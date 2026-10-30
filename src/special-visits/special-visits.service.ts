@@ -2,7 +2,15 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSpecialVisitDto } from './dto/special-visit.dto';
-import { CarerWeeklyHoursService, carerOverMaxMessage } from '../employee-hours-approvals/carer-weekly-hours.service';
+import {
+  CarerWeeklyHoursService,
+  carerNoContractedHoursError,
+  carerOverMaxApprovalMessage,
+  carerOverMaxError,
+  carerOverMaxMessage,
+  overMaxAllowed,
+  visitsNeedApproval,
+} from '../employee-hours-approvals/carer-weekly-hours.service';
 import { VisitPlanWeeklyHoursService } from '../service-user-visit-plans/visit-plan-weekly-hours.service';
 
 /** Allocation statuses that count as the carer actually being booked. */
@@ -90,27 +98,29 @@ export class SpecialVisitsService {
     if (hours?.blocked) {
       throw new BadRequestException(`${hours.message}. The special visit was not created (Settings → Dom Rules).`);
     }
-    // The carer's contracted weekly hours (Settings → Dom Rules "Carer over weekly hours").
+    // The carer's weekly hours (Settings → Dom Rules "Carer weekly hours limit").
     const carerRule = await this.carerHours.rule();
     const maxCheck = await this.carerHours.checkNewVisits(this.prisma, dto.employeeId, [
       { start, end, serviceUserId: dto.serviceUserId },
     ]);
-    // Above the most weekly hours a manager can approve: never, whatever the setting.
-    if (maxCheck.overMax.length) {
-      throw new BadRequestException(
-        `${carerOverMaxMessage(maxCheck.weeks[0]?.minutes ?? 0, maxCheck.maxMinutes)}. The special visit was not created — choose another carer.`,
+    if (maxCheck.noContractedHours) throw carerNoContractedHoursError(dto.employeeId);
+    const weekMinutes = maxCheck.weeks[0]?.minutes ?? 0;
+    // Above the carer's maximum: refused unless Settings → Dom Rules allows going over it.
+    if (maxCheck.overMax.length && !overMaxAllowed(carerRule)) {
+      throw carerOverMaxError(
+        dto.employeeId,
+        `${carerOverMaxMessage(weekMinutes, maxCheck.maxMinutes)}. The special visit was not created — choose another carer.`,
       );
     }
-    const carerCheck = carerRule.behavior === 'ALWAYS_ALLOW' ? null : maxCheck;
-    const carerOver = Boolean(carerCheck?.over.length && carerCheck.limitMinutes != null);
     const hoursLabel = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
-    const carerMessage = carerOver
-      ? `The carer would go over their contracted weekly hours (that week ${hoursLabel(carerCheck!.weeks[0]?.minutes ?? 0)} of ${hoursLabel(carerCheck!.limitMinutes!)})`
-      : null;
-    if (carerMessage && carerRule.behavior === 'DONT_ALLOW') {
-      throw new BadRequestException(`${carerMessage}. The special visit was not created (Settings → Dom Rules).`);
-    }
-    const waitForManager = Boolean(carerMessage) && carerRule.behavior === 'MANAGER_APPROVAL';
+    const carerMessage = maxCheck.overMax.length
+      ? visitsNeedApproval(carerRule)
+        ? carerOverMaxApprovalMessage(weekMinutes, maxCheck.maxMinutes)
+        : carerOverMaxMessage(weekMinutes, maxCheck.maxMinutes)
+      : maxCheck.over.length && maxCheck.limitMinutes != null
+        ? `The carer would go over their contracted weekly hours (that week ${hoursLabel(weekMinutes)} of ${hoursLabel(maxCheck.limitMinutes)})`
+        : null;
+    const waitForManager = Boolean(carerMessage) && visitsNeedApproval(carerRule);
     const scheduleBatchId = await this.batchForDate(start);
 
     const job = await this.prisma.$transaction(async (tx) => {
@@ -156,9 +166,9 @@ export class SpecialVisitsService {
         requestedById: userId,
         start,
         end,
-        weekStart: carerCheck!.weeks[0]?.weekStart ?? (await this.carerHours.weekStartOf(start)),
-        weekMinutes: carerCheck!.weeks[0]?.minutes ?? 0,
-        limitMinutes: carerCheck!.limitMinutes ?? 0,
+        weekStart: maxCheck.weeks[0]?.weekStart ?? (await this.carerHours.weekStartOf(start)),
+        weekMinutes: maxCheck.weeks[0]?.minutes ?? 0,
+        limitMinutes: maxCheck.limitMinutes ?? 0,
         source: 'SPECIAL_VISIT',
         allocation: { isLeadCarer: true },
       });

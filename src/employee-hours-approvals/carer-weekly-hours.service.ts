@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   AllocationStatus,
   EmployeeHoursApprovalStatus,
@@ -19,6 +19,11 @@ import {
   formatOrganisationIsoDate,
 } from '../common/utils/organisation-display-format.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  DEFAULT_CARER_MAX_WEEKLY_HOURS,
+  type DomAllocationRuleBehavior,
+  type WeeklyHoursOverMax,
+} from '../organisation-general-settings/dom-care-allocation-rules.util';
 import { buildVisitPlanOccurrence } from '../service-user-visit-plans/visit-plan-generate-occurrence.util';
 import { EmployeeHoursApprovalNotificationHook } from './employee-hours-approval-notification.hook';
 
@@ -96,8 +101,10 @@ export type CarerHoursWeek = {
 };
 
 export type CarerHoursCount = {
-  /** Contracted weekly hours in minutes (null: no limit set). Each week's own limit is on the week. */
+  /** Contracted weekly hours in minutes (null: none set — the carer can't be given visits). Each week's own limit is on the week. */
   limitMinutes: number | null;
+  /** The carer's maximum weekly hours in minutes (Employment; blank = 60h). */
+  maxMinutes: number;
   graceMinutes: number;
   weeks: CarerHoursWeek[];
   /** Weeks over the limit + grace. */
@@ -112,10 +119,67 @@ export function mondayOf(iso: string): string {
   return addDaysToOperationalIso(iso, -offset);
 }
 
-/** "That week would have 66.5h — above the 60h weekly maximum …" (a carer over the most a manager can approve). */
+/** "That week would have 66.5h — above the carer's 60h weekly maximum …" (stopped: Settings → Dom Rules doesn't allow it). */
 export function carerOverMaxMessage(weekMinutes: number, maxMinutes: number): string {
   const h = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
-  return `That week would have ${h(weekMinutes)} — above the ${h(maxMinutes)} weekly maximum a manager can approve (Settings → Dom Rules)`;
+  return `That week would have ${h(weekMinutes)} — above the carer's ${h(maxMinutes)} weekly maximum (Employment → Working hours)`;
+}
+
+/** "That week would have 66.5h — above the carer's 60h weekly maximum, so a manager must approve …". */
+export function carerOverMaxApprovalMessage(weekMinutes: number, maxMinutes: number): string {
+  const h = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
+  return `That week would have ${h(weekMinutes)} — above the carer's ${h(maxMinutes)} weekly maximum, so a manager must approve`;
+}
+
+/** Shown wherever a carer with no contracted weekly hours would be given visits. */
+export const CARER_NO_CONTRACTED_HOURS_MESSAGE =
+  "This carer has no contracted weekly hours. Set their weekly hours first (Employment → Working hours), then give them visits.";
+
+/** Error code the admin uses to open a dialog with a link to the carer's working hours. */
+export const CARER_NO_CONTRACTED_HOURS_CODE = 'CARER_NO_CONTRACTED_HOURS';
+/** Error code the admin uses to show "above the carer's maximum" in a dialog. */
+export const CARER_OVER_MAX_CODE = 'CARER_OVER_MAX_WEEKLY_HOURS';
+
+/** 400 for a carer with no contracted weekly hours (the admin shows a dialog with a link to them). */
+export function carerNoContractedHoursError(employeeId: string, name?: string | null): BadRequestException {
+  return new BadRequestException({
+    code: CARER_NO_CONTRACTED_HOURS_CODE,
+    employeeId,
+    message: name ? `${name}: ${CARER_NO_CONTRACTED_HOURS_MESSAGE}` : CARER_NO_CONTRACTED_HOURS_MESSAGE,
+  });
+}
+
+/** 400 for visits above the carer's maximum weekly hours when Settings → Dom Rules doesn't allow it. */
+export function carerOverMaxError(employeeId: string, message: string): BadRequestException {
+  return new BadRequestException({ code: CARER_OVER_MAX_CODE, employeeId, message });
+}
+
+/** Visits over a carer's weekly hours wait for a manager (Settings → Dom Rules); otherwise they are assigned with a warning. */
+export function visitsNeedApproval(rule: { behavior: DomAllocationRuleBehavior }): boolean {
+  return rule.behavior !== 'REQUEST_CONFIRMATION';
+}
+
+/** Settings → Dom Rules "Allow over a carer's maximum weekly hours". */
+export function overMaxAllowed(rule: { allowOverMax: WeeklyHoursOverMax }): boolean {
+  return rule.allowOverMax === 'YES';
+}
+
+/**
+ * Above the carer's maximum weekly hours the visit goes to a manager only when Settings → Dom
+ * Rules allows going over the maximum and visits over the hours need approval.
+ */
+export function overMaxNeedsApproval(rule: {
+  allowOverMax: WeeklyHoursOverMax;
+  behavior: DomAllocationRuleBehavior;
+}): boolean {
+  return overMaxAllowed(rule) && visitsNeedApproval(rule);
+}
+
+/** Minutes from a carer's Employment "Maximum weekly hours" (blank = 60h). */
+export function carerMaxMinutes(maximumWeeklyHours: number | null | undefined): number {
+  return Math.round(
+    (maximumWeeklyHours != null && maximumWeeklyHours > 0 ? maximumWeeklyHours : DEFAULT_CARER_MAX_WEEKLY_HOURS) * 60,
+  );
 }
 
 /** Monday–Sunday weeks (Mondays, YYYY-MM-DD) that the days from `startIso` to `endIso` touch. */
@@ -241,9 +305,10 @@ export class CarerWeeklyHoursService {
       this.rule(),
       client.employeeEmployment.findMany({
         where: { employeeId: { in: ids }, deletedAt: null },
-        select: { employeeId: true, contractedWeeklyHours: true },
+        select: { employeeId: true, contractedWeeklyHours: true, maximumWeeklyHours: true },
       }),
     ]);
+    const maxById = new Map(employments.map((e) => [e.employeeId, carerMaxMinutes(e.maximumWeeklyHours)]));
     const limitById = new Map(
       employments.map((e) => [
         e.employeeId,
@@ -691,6 +756,7 @@ export class CarerWeeklyHoursService {
       const overWeeks = weeks.filter((w) => w.overVisits.length > 0);
       result.set(id, {
         limitMinutes,
+        maxMinutes: maxById.get(id) ?? carerMaxMinutes(null),
         graceMinutes,
         weeks,
         overWeeks,
@@ -702,8 +768,8 @@ export class CarerWeeklyHoursService {
 
   /**
    * New rota visits for a carer (in the order given): which of them take a week over the
-   * contracted weekly hours (+ grace), and which take it over the most weekly hours a manager can
-   * approve (Settings → Dom Rules; never allowed). In a week over, the new visits are picked
+   * contracted weekly hours (+ grace), and which take it over the carer's maximum weekly hours
+   * (Employment; blank = 60h). In a week over, the new visits are picked
    * latest first until the week fits — visits the carer already has never count as "over".
    */
   async checkNewVisits(
@@ -719,17 +785,15 @@ export class CarerWeeklyHoursService {
     graceMinutes: number;
     /** Indexes of `newVisits` over the hours. */
     over: number[];
-    /** The most weekly hours a manager can approve, in minutes. */
+    /** The carer's maximum weekly hours, in minutes. */
     maxMinutes: number;
+    /** The carer has no contracted weekly hours: they can't be given visits. */
+    noContractedHours: boolean;
     /** Indexes of `newVisits` that take a week over `maxMinutes`. */
     overMax: number[];
     weeks: Array<{ weekStart: string; minutes: number; limitMinutes: number | null; extraMinutes: number }>;
   }> {
-    const [timeZone, rule] = await Promise.all([
-      this.orgSettings.getOperationalTimezone(),
-      this.rule(),
-    ]);
-    const maxMinutes = Math.round(rule.maxApprovableHours * 60);
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const extra: CarerHoursVisit[] = newVisits.map((v, i) => ({
       date: dayKeyInTimeZone(v.start, timeZone),
       start: v.start,
@@ -769,8 +833,9 @@ export class CarerWeeklyHoursService {
       contractedMinutes: count.limitMinutes,
       graceMinutes: count.graceMinutes,
       over: newOver((w) => (w.limitMinutes != null ? w.limitMinutes + count.graceMinutes : null)),
-      maxMinutes,
-      overMax: newOver(() => maxMinutes),
+      maxMinutes: count.maxMinutes,
+      noContractedHours: count.limitMinutes == null,
+      overMax: newOver(() => count.maxMinutes),
       weeks: count.weeks.map((w) => ({
         weekStart: w.weekStart,
         minutes: w.minutes,

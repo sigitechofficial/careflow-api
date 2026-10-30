@@ -13,7 +13,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
-import { WEEKLY_HOURS_REJECT_ACTIONS } from '../dom-care-allocation-rules.util';
+import { WEEKLY_HOURS_OVER_MAX_OPTIONS } from '../dom-care-allocation-rules.util';
 import {
   SU_BULK_OVER_LIMIT,
   SU_DRAFT_OVER_LIMIT,
@@ -70,21 +70,41 @@ const ALLOCATION_BEHAVIORS = [
 ] as const;
 
 export class DomWeeklyHoursRuleOptionsDto {
-  @ApiProperty({ enum: WEEKLY_HOURS_REJECT_ACTIONS })
-  @IsIn(WEEKLY_HOURS_REJECT_ACTIONS)
-  rejectAction!: (typeof WEEKLY_HOURS_REJECT_ACTIONS)[number];
-
-  @ApiProperty({ minimum: 1, maximum: 168 })
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(168)
-  maxApprovableHours!: number;
+  @ApiPropertyOptional({
+    enum: WEEKLY_HOURS_OVER_MAX_OPTIONS,
+    description: "Above a carer's maximum weekly hours: NO (never, default) or YES (follows the approval setting).",
+  })
+  @IsOptional()
+  @IsIn([...WEEKLY_HOURS_OVER_MAX_OPTIONS, 'MANAGER_APPROVAL'])
+  allowOverMax?: (typeof WEEKLY_HOURS_OVER_MAX_OPTIONS)[number] | 'MANAGER_APPROVAL';
 
   @ApiPropertyOptional({ description: 'Called-off visits count in the carer weekly hours (default true).' })
   @IsOptional()
   @IsBoolean()
   countCalledOff?: boolean;
+
+  @ApiPropertyOptional({ description: 'Changing contracted weekly hours needs manager approval (default true).' })
+  @IsOptional()
+  @IsBoolean()
+  contractedChangeNeedsApproval?: boolean;
+
+  @ApiPropertyOptional({ description: 'Adding extra weekly hours needs manager approval (default false).' })
+  @IsOptional()
+  @IsBoolean()
+  extraHoursNeedApproval?: boolean;
+
+  /** No longer used (30 Oct 2026); accepted so an older admin page can still save. */
+  @ApiPropertyOptional({ deprecated: true })
+  @IsOptional()
+  @IsString()
+  rejectAction?: string;
+
+  /** No longer used (30 Oct 2026): each carer's Employment maximum applies instead. */
+  @ApiPropertyOptional({ deprecated: true })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  maxApprovableHours?: number;
 }
 
 export class DomCareAllocationRuleDto {
@@ -203,9 +223,11 @@ export class ServiceUserWeeklyHoursSettingsDto {
   @IsBoolean()
   extraApproveRecheck!: boolean;
 
-  @ApiProperty()
+  /** No longer used (30 Oct 2026): every rejection needs a reason. Accepted so older pages can save. */
+  @ApiPropertyOptional({ deprecated: true })
+  @IsOptional()
   @IsBoolean()
-  extraRejectReasonRequired!: boolean;
+  extraRejectReasonRequired?: boolean;
 
   @ApiProperty({ enum: SU_EXTRA_EDIT_OVER_LIMIT })
   @IsIn(SU_EXTRA_EDIT_OVER_LIMIT)

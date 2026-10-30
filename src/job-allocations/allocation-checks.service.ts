@@ -29,7 +29,14 @@ import { AllocationComplianceService } from '../employee-compliance/allocation-c
 import { formatComplianceAllocationMessages } from '../employee-compliance/allocation-compliance.util';
 import { dayKeyInTimeZone, getOperationalTimeZone } from '../common/utils/operational-day.util';
 import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
-import { CarerWeeklyHoursService, carerOverMaxMessage } from '../employee-hours-approvals/carer-weekly-hours.service';
+import {
+  CarerWeeklyHoursService,
+  CARER_NO_CONTRACTED_HOURS_MESSAGE,
+  carerOverMaxApprovalMessage,
+  carerOverMaxMessage,
+  overMaxAllowed,
+  visitsNeedApproval,
+} from '../employee-hours-approvals/carer-weekly-hours.service';
 
 export type AllocationWarningSeverity = 'blocking' | 'warning' | 'info';
 
@@ -284,10 +291,10 @@ export class AllocationChecksService {
   }
 
   /**
-   * Carer over their contracted weekly hours (Monday–Sunday, + grace) with this visit —
-   * Settings → Dom Rules "Carer over weekly hours": don't allow (hard block), request
-   * confirmation (warning), manager approval (not allocated; a request goes to a manager) or
-   * always allow.
+   * Carer over their weekly hours (contracted + extra, Monday–Sunday, + grace) with this visit —
+   * Settings → Dom Rules: manager approval (not allocated; a request goes to a manager) or a
+   * warning. A carer with no contracted hours, or above their maximum when that isn't allowed,
+   * can't be given the visit.
    */
   async checkCapacity(
     ctx: AllocationCheckContext,
@@ -297,23 +304,47 @@ export class AllocationChecksService {
     const check = await this.carerHours.checkNewVisits(this.prisma, ctx.employeeId, [
       { start: ctx.jobStart, end: ctx.jobEnd, serviceUserId: ctx.serviceUserId },
     ]);
-    const week = check.weeks[0];
-    const hours = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
-    // Above the most weekly hours a manager can approve: never, whatever the setting.
-    if (check.overMax.length) {
+    if (check.noContractedHours) {
       push({
-        type: AllocationWarningType.CAPACITY_EXCEEDED,
-        message: `${carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes)}. Choose another carer`,
+        type: AllocationWarningType.CARER_NO_CONTRACTED_HOURS,
+        message: CARER_NO_CONTRACTED_HOURS_MESSAGE,
         severity: 'blocking',
         hardBlock: true,
       });
       return;
     }
-    if (rule.behavior === 'ALWAYS_ALLOW') return;
+    const week = check.weeks[0];
+    const hours = (m: number) => `${Math.round((m / 60) * 10) / 10}h`;
+    const needsApproval = visitsNeedApproval(rule);
+    // Above the carer's maximum weekly hours: stopped — unless Settings → Dom Rules allows going
+    // over the maximum, then it follows the approval setting like any visit over the hours.
+    if (check.overMax.length) {
+      if (!overMaxAllowed(rule)) {
+        push({
+          type: AllocationWarningType.CAPACITY_EXCEEDED,
+          message: `${carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes)}. Choose another carer`,
+          severity: 'blocking',
+          hardBlock: true,
+        });
+      } else if (needsApproval) {
+        push({
+          type: AllocationWarningType.CAPACITY_NEEDS_APPROVAL,
+          message: carerOverMaxApprovalMessage(week?.minutes ?? 0, check.maxMinutes),
+          severity: 'info',
+        });
+      } else {
+        push({
+          type: AllocationWarningType.CAPACITY_EXCEEDED,
+          message: carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes),
+          severity: 'warning',
+        });
+      }
+      return;
+    }
     if (!check.over.length || check.limitMinutes == null) return;
     const extra = week?.extraMinutes ? ` (incl. ${hours(week.extraMinutes)} extra)` : '';
     const base = `Over contracted weekly hours: that week would have ${hours(week?.minutes ?? 0)} of ${hours(check.limitMinutes)}${extra}`;
-    if (rule.behavior === 'MANAGER_APPROVAL') {
+    if (needsApproval) {
       push({
         type: AllocationWarningType.CAPACITY_NEEDS_APPROVAL,
         message: `${base} — a manager must approve before the carer is put on this visit`,
@@ -323,7 +354,7 @@ export class AllocationChecksService {
       push({
         type: AllocationWarningType.CAPACITY_EXCEEDED,
         message: base,
-        severity: rule.behavior === 'DONT_ALLOW' ? 'blocking' : 'warning',
+        severity: 'warning',
       });
     }
   }

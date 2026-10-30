@@ -66,6 +66,7 @@ import {
 import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 import {
   CARER_HOURS_CHECK_WEEKS,
+  CARER_NO_CONTRACTED_HOURS_MESSAGE,
   CarerWeeklyHoursService,
   mondayOf,
 } from '../employee-hours-approvals/carer-weekly-hours.service';
@@ -1079,6 +1080,9 @@ export class ServiceUserVisitPlansService {
         });
       }
       const ruleBlockReasons = ruleHits.filter((h) => h.block).map((h) => h.message);
+      // No contracted weekly hours: the carer can't be given visits until hours are set.
+      const noContractedHours = contractedWeeklyHours == null || contractedWeeklyHours <= 0;
+      if (noContractedHours) ruleBlockReasons.push(CARER_NO_CONTRACTED_HOURS_MESSAGE);
       const ruleBlocked = ruleBlockReasons.length > 0;
       for (const hit of ruleHits) {
         if (!hit.block && !warnings.includes(hit.message)) warnings.push(hit.message);
@@ -1119,6 +1123,7 @@ export class ServiceUserVisitPlansService {
           Math.round(((completedMinutesByEmployee.get(emp.id) ?? 0) / 60) * 10) / 10,
         projectedWeeklyHours,
         exceedsContractedHours,
+        noContractedHours,
         ruleBlocked,
         ruleBlockReasons,
         timeOff: timeOffByEmployee.get(emp.id) ?? null,
@@ -1646,6 +1651,7 @@ export class ServiceUserVisitPlansService {
     // Longer visits that keep their old time until a manager approves the new one.
     const heldTimeSlotIds = new Set<string>();
     const heldTimeChanges: PendingPlanTimeChange[] = [];
+    const carerHoursWarnings: string[] = [];
 
     const updated = await this.prisma.$transaction(async (tx) => {
       // Once set, weekly hours change only through a manager-approved request.
@@ -1679,6 +1685,7 @@ export class ServiceUserVisitPlansService {
           previousVisits: carerVisitsBefore,
           timeChanges,
           heldTimeSlotIds,
+          warnings: carerHoursWarnings,
         });
         for (const c of timeChanges.filter((t) => heldTimeSlotIds.has(t.slotId))) {
           heldTimeChanges.push(c);
@@ -1789,14 +1796,24 @@ export class ServiceUserVisitPlansService {
     }
 
     return {
-      message: heldTimeChanges.length
-        ? `Visit plan updated. ${heldTimeChanges
-            .map((c) => `${c.slotLabel} ${c.fromStart}–${c.fromEnd} → ${c.toStart}–${c.toEnd}`)
-            .join(', ')}: a carer goes over their weekly hours — the visit keeps its current time until a manager approves (Hours approvals)`
-        : 'Visit plan updated',
+      message: [
+        heldTimeChanges.length
+          ? `Visit plan updated. ${heldTimeChanges
+              .map((c) => `${c.slotLabel} ${c.fromStart}–${c.fromEnd} → ${c.toStart}–${c.toEnd}`)
+              .join(', ')}: a carer goes over their weekly hours — the visit keeps its current time until a manager approves (Hours approvals)`
+          : 'Visit plan updated',
+        // Settings → Dom Rules: carers over their weekly hours are assigned with a warning.
+        ...carerHoursWarnings.map((w) => `Warning: ${w}.`),
+      ].join(' '),
       data: this.mapPlan(updated, roundNameByCode),
       ...(heldTimeChanges.length ? { heldTimeChanges } : {}),
       ...(scheduleImpact ? { scheduleImpact } : {}),
+      // Only data / meta / message reach the client (response interceptor), so the admin reads these from meta.
+      meta: {
+        ...(heldTimeChanges.length ? { heldTimeChanges } : {}),
+        ...(scheduleImpact ? { scheduleImpact } : {}),
+        ...(carerHoursWarnings.length ? { carerHoursWarnings } : {}),
+      },
     };
   }
 
@@ -2301,6 +2318,7 @@ export class ServiceUserVisitPlansService {
       select: { id: true },
     });
 
+    const activationWarnings: string[] = [];
     const result = await this.prisma.$transaction(async (tx) => {
       await tx.serviceUserVisitPlan.updateMany({
         where: {
@@ -2333,6 +2351,15 @@ export class ServiceUserVisitPlansService {
         },
         include: planInclude,
       });
+      // A draft was not checked for carers' weekly hours: check now (every visit is new). A carer
+      // with no contracted hours, or above their maximum when not allowed, stops the activation;
+      // visits over the hours wait for a manager when Settings → Dom Rules asks for approval.
+      if (!wasSuspended) {
+        await this.hoursApprovals.reconcileForPlan(userId, serviceUserId, planId, tx, {
+          previousVisits: new Map(),
+          warnings: activationWarnings,
+        });
+      }
       if (wasSuspended) {
         await tx.visitPlanStatusEvent.create({
           data: {
@@ -2380,9 +2407,14 @@ export class ServiceUserVisitPlansService {
 
     const roundNameByCode = await this.loadRoundNameMap();
     return {
-      message: wasSuspended ? 'Visit plan re-activated' : 'Visit plan activated',
+      message: [
+        wasSuspended ? 'Visit plan re-activated' : 'Visit plan activated',
+        ...activationWarnings.map((w) => `Warning: ${w}.`),
+      ].join(' '),
       data: this.mapPlan(result, roundNameByCode),
       ...(scheduleImpact ? { scheduleImpact } : {}),
+      // Only data / meta / message reach the client (response interceptor).
+      meta: scheduleImpact ? { scheduleImpact } : {},
     };
   }
 
@@ -2534,6 +2566,8 @@ export class ServiceUserVisitPlansService {
       message: 'Visit plan suspended',
       data: this.mapPlan(result, roundNameByCode),
       ...(scheduleImpact ? { scheduleImpact } : {}),
+      // Only data / meta / message reach the client (response interceptor).
+      meta: scheduleImpact ? { scheduleImpact } : {},
     };
   }
 
@@ -2704,6 +2738,8 @@ export class ServiceUserVisitPlansService {
       message: isScheduledEnd ? 'Visit plan scheduled to end' : 'Visit plan ended',
       data: this.mapPlan(result, roundNameByCode),
       ...(scheduleImpact ? { scheduleImpact } : {}),
+      // Only data / meta / message reach the client (response interceptor).
+      meta: scheduleImpact ? { scheduleImpact } : {},
     };
   }
 

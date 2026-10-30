@@ -4839,6 +4839,8 @@ enum EmployeeHoursApprovalType {
   /// A rota visit (board, extra or special visit) that puts the carer over their contracted weekly hours:
   /// the carer is allocated only once a manager approves.
   ROTA_VISIT_OVER_HOURS
+  /// Extra weekly hours for a carer waiting for a manager (Settings → Dom Rules).
+  EXTRA_WEEKLY_HOURS
 
   @@schema("service_users")
 }

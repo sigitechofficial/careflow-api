@@ -86,7 +86,16 @@ import {
   visitPlanCarerSyncFromDateTime,
 } from './visit-plan-slot-carer-sync.util';
 import { resolveGlobalAssignedEmployeeIds } from './visit-plan-readiness.util';
-import { CarerWeeklyHoursService, carerOverMaxMessage } from '../employee-hours-approvals/carer-weekly-hours.service';
+import {
+  CarerWeeklyHoursService,
+  CARER_NO_CONTRACTED_HOURS_MESSAGE,
+  carerNoContractedHoursError,
+  carerOverMaxApprovalMessage,
+  carerOverMaxError,
+  carerOverMaxMessage,
+  overMaxAllowed,
+  visitsNeedApproval,
+} from '../employee-hours-approvals/carer-weekly-hours.service';
 
 const datePlanInclude = {
   slots: {
@@ -1107,7 +1116,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         excludeAllocationIds,
         false,
       );
-      if (carers.over.size || carers.overMax.size) {
+      if (carers.over.size || carers.overMax.size || carers.overMaxApproval.size) {
         const names = new Map(
           (
             await this.prisma.employeePersonalDetail.findMany({
@@ -1126,21 +1135,24 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
             continue;
           }
           const over = result.employeeIds
-            .filter((id) => carers.over.has(`${check.date}|${id}`))
-            .map((id) => ({
-              employeeId: id,
-              message: `${names.get(id) ?? 'Carer'} would go ${carers.over.get(`${check.date}|${id}`)}`,
-            }));
+            .filter((id) => carers.over.has(`${check.date}|${id}`) || carers.overMaxApproval.has(`${check.date}|${id}`))
+            .map((id) => {
+              const overMessage = carers.overMaxApproval.get(`${check.date}|${id}`) ?? carers.over.get(`${check.date}|${id}`) ?? '';
+              return {
+                employeeId: id,
+                // "over their weekly hours (…)" reads after "would go"; the maximum message is a sentence.
+                message: overMessage.startsWith('over ')
+                  ? `${names.get(id) ?? 'Carer'} would go ${overMessage}`
+                  : `${names.get(id) ?? 'Carer'}: ${overMessage}`,
+              };
+            });
           if (!over.length) continue;
-          if (carers.behavior === 'DONT_ALLOW') {
-            check.ok = false;
-            check.message = `${over[0].message} — not allowed (Settings → Dom Rules)`;
-          } else {
-            check.carerOverHours = over.map((o) => ({
-              ...o,
-              outcome: carers.behavior === 'MANAGER_APPROVAL' ? 'MANAGER_APPROVAL' : 'REQUEST_CONFIRMATION',
-            }));
-          }
+          check.carerOverHours = over.map((o) => ({
+            ...o,
+            outcome: carers.waitsForManager(`${check.date}|${o.employeeId}`)
+              ? 'MANAGER_APPROVAL'
+              : 'REQUEST_CONFIRMATION',
+          }));
         }
       }
     }
@@ -1326,8 +1338,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     );
     const carerApprovals: Array<{ date: string; employeeId: string; approvalId: string }> = [];
     const carerWarnings: Array<{ date: string; employeeId: string; message: string }> = [];
-    const waitingForManager = (date: string, employeeId: string) =>
-      carerCheck.behavior === 'MANAGER_APPROVAL' && carerCheck.over.has(`${date}|${employeeId}`);
+    const waitingForManager = (date: string, employeeId: string) => carerCheck.waitsForManager(`${date}|${employeeId}`);
 
     const createdJobIds: string[] = [];
     const createdExceptionIds: string[] = [];
@@ -1686,31 +1697,52 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
   }
 
   /**
-   * Carers over their contracted weekly hours with these new visits — Settings → Dom Rules
-   * "Carer over weekly hours": "don't allow" refuses the change; otherwise returns the
-   * "date|employeeId" pairs over the hours with a message (manager approval: the carer waits;
-   * request confirmation: they go on needing confirmation).
+   * Carers over their weekly hours with these new visits — Settings → Dom Rules "Carer weekly
+   * hours limit": returns the "date|employeeId" pairs over the hours with a message (manager
+   * approval: the carer waits; otherwise they go on with a warning). A carer with no contracted
+   * hours, or above their maximum when that isn't allowed, is refused.
    */
   private async carerHoursForExtras(
     employeeIds: string[],
     visits: Array<{ date: string; start: Date; end: Date }>,
     serviceUserId: string,
     excludeAllocationIds: string[] = [],
-    /** False for the preview: report "don't allow" instead of refusing. */
+    /** False for the preview: report the refusal instead of throwing. */
     throwOnBlock = true,
   ): Promise<{
     behavior: Awaited<ReturnType<CarerWeeklyHoursService['rule']>>['behavior'];
     over: Map<string, string>;
-    /** "date|employeeId" above the most weekly hours a manager can approve (never allowed). */
+    /** "date|employeeId" refused: no contracted hours, or above the carer's maximum when not allowed. */
     overMax: Map<string, string>;
+    /** "date|employeeId" above the carer's maximum, waiting for a manager (Settings → Dom Rules). */
+    overMaxApproval: Map<string, string>;
+    /** The carer waits for a manager on that date. */
+    waitsForManager: (key: string) => boolean;
   }> {
     const rule = await this.carerHours.rule();
     const over = new Map<string, string>();
     const overMax = new Map<string, string>();
+    const overMaxApproval = new Map<string, string>();
+    const needsApproval = visitsNeedApproval(rule);
+    const maxAllowed = overMaxAllowed(rule);
+    const result = () => ({
+      behavior: rule.behavior,
+      over,
+      overMax,
+      overMaxApproval,
+      waitsForManager: (key: string) => overMaxApproval.has(key) || (needsApproval && over.has(key)),
+    });
     if (!employeeIds.length || !visits.length) {
-      return { behavior: rule.behavior, over, overMax };
+      return result();
     }
     const hours = (m: number) => formatMinutesAsHours(m);
+    const nameOf = async (employeeId: string) => {
+      const person = await this.prisma.employeePersonalDetail.findFirst({
+        where: { employeeId, deletedAt: null },
+        select: { firstName: true, lastName: true },
+      });
+      return `${person?.firstName ?? ''} ${person?.lastName ?? ''}`.trim() || 'A carer';
+    };
     for (const employeeId of employeeIds) {
       const check = await this.carerHours.checkNewVisits(
         this.prisma,
@@ -1718,19 +1750,28 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         visits.map((v) => ({ start: v.start, end: v.end, serviceUserId })),
         { excludeAllocationIds },
       );
+      if (check.noContractedHours) {
+        if (throwOnBlock) throw carerNoContractedHoursError(employeeId, await nameOf(employeeId));
+        for (const visit of visits) overMax.set(`${visit.date}|${employeeId}`, CARER_NO_CONTRACTED_HOURS_MESSAGE);
+        continue;
+      }
       for (const i of check.overMax) {
         const visit = visits[i];
         const weekStart = await this.carerHours.weekStartOf(visit.start);
         const week = check.weeks.find((w) => w.weekStart === weekStart);
-        overMax.set(`${visit.date}|${employeeId}`, carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes));
+        const key = `${visit.date}|${employeeId}`;
+        if (!maxAllowed) overMax.set(key, carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes));
+        else if (needsApproval) overMaxApproval.set(key, carerOverMaxApprovalMessage(week?.minutes ?? 0, check.maxMinutes));
+        else over.set(key, carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes));
       }
-      if (rule.behavior === 'ALWAYS_ALLOW') continue;
       for (const i of check.over) {
         const visit = visits[i];
+        const key = `${visit.date}|${employeeId}`;
+        if (overMax.has(key) || overMaxApproval.has(key) || over.has(key)) continue;
         const weekStart = await this.carerHours.weekStartOf(visit.start);
         const week = check.weeks.find((w) => w.weekStart === weekStart);
         over.set(
-          `${visit.date}|${employeeId}`,
+          key,
           `over their weekly hours (that week ${hours(week?.minutes ?? 0)} of ${hours(week?.limitMinutes ?? check.limitMinutes ?? 0)})`,
         );
       }
@@ -1738,30 +1779,13 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     if (overMax.size && throwOnBlock) {
       const [key, message] = [...overMax.entries()][0];
       const [date, employeeId] = key.split('|');
-      const person = await this.prisma.employeePersonalDetail.findFirst({
-        where: { employeeId, deletedAt: null },
-        select: { firstName: true, lastName: true },
-      });
-      const name = `${person?.firstName ?? ''} ${person?.lastName ?? ''}`.trim() || 'A carer';
       const display = await this.orgSettings.getOperationalDisplaySettings();
-      throw new BadRequestException(
-        `${name}: ${message} on ${formatOrganisationIsoDate(date, display.dateDisplayFormat)}. Choose another carer or change the visit.`,
+      throw carerOverMaxError(
+        employeeId,
+        `${await nameOf(employeeId)}: ${message} on ${formatOrganisationIsoDate(date, display.dateDisplayFormat)}. Choose another carer or change the visit.`,
       );
     }
-    if (over.size && rule.behavior === 'DONT_ALLOW' && throwOnBlock) {
-      const [key, message] = [...over.entries()][0];
-      const [date, employeeId] = key.split('|');
-      const person = await this.prisma.employeePersonalDetail.findFirst({
-        where: { employeeId, deletedAt: null },
-        select: { firstName: true, lastName: true },
-      });
-      const name = `${person?.firstName ?? ''} ${person?.lastName ?? ''}`.trim() || 'A carer';
-      const display = await this.orgSettings.getOperationalDisplaySettings();
-      throw new BadRequestException(
-        `${name} would go ${message} on ${formatOrganisationIsoDate(date, display.dateDisplayFormat)}. Choose another carer or change the visit.`,
-      );
-    }
-    return { behavior: rule.behavior, over, overMax };
+    return result();
   }
 
   /**
@@ -1905,11 +1929,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       serviceUserId,
       job.allocations.map((a) => a.id),
     );
-    const waiting = new Set(
-      carerCheck.behavior === 'MANAGER_APPROVAL'
-        ? employeeIds.filter((id) => carerCheck.over.has(`${date}|${id}`))
-        : [],
-    );
+    const waiting = new Set(employeeIds.filter((id) => carerCheck.waitsForManager(`${date}|${id}`)));
     // "Manager must approve": nothing changes until a manager approves every carer the edit
     // puts over their weekly hours — the visit keeps its time and carers meanwhile.
     if (waiting.size) {
