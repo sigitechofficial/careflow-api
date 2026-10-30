@@ -59,6 +59,13 @@ export class CrmController {
     return this.service.fundingTypes();
   }
 
+  @Get('funders')
+  @AnyPermission('crm.read', 'crm.manage')
+  @ApiOperation({ summary: 'Active funders (shared lookup) for the funders on a quote' })
+  funders() {
+    return this.service.funders();
+  }
+
   @Get('care-plans')
   @AnyPermission('crm.read', 'crm.manage')
   @ApiOperation({ summary: 'Published care plans the enquiry form can list under care needs' })
@@ -132,6 +139,16 @@ export class CrmController {
     @Req() req: Request,
   ) {
     return this.service.linkServiceUser(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/initial-assessment')
+  @Permissions('crm.manage', 'service_users.create')
+  @AnyPermission('service_users.initial_assessment.create', 'service_users.update')
+  @ApiOperation({
+    summary: 'Link a Pre-admission service user (made from the enquiry if needed) for the full initial assessment',
+  })
+  startInitialAssessment(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.startInitialAssessment(user, id, getRequestAuditMeta(req));
   }
 
   @Post(':id/notes')

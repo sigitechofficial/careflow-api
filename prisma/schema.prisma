@@ -284,6 +284,10 @@ enum InitialAssessmentAttachmentCategory {
   WOUND_PHOTO
   EMERGENCY_DOCUMENT
   OTHER
+  /// Recorded assessment conversation (kept privately; served only through the permission-checked endpoint).
+  CONVERSATION_RECORDING
+  /// Whisper transcript of a recorded conversation (.txt, kept privately like the recording).
+  CONVERSATION_TRANSCRIPT
 
   @@schema("service_users")
 }
@@ -15028,9 +15032,18 @@ enum EnquiryType {
   @@schema("service_users")
 }
 
+/// An enquiry from the person or family, or a referral from a professional; both follow the same pipeline.
+enum EnquiryKind {
+  ENQUIRY
+  REFERRAL
+
+  @@schema("service_users")
+}
+
 enum EnquiryUrgency {
   ROUTINE
   URGENT
+  EMERGENCY
 
   @@schema("service_users")
 }
@@ -15077,6 +15090,13 @@ model Enquiry {
   id                     String         @id @default(uuid()) @db.Uuid
   referenceNumber        String         @unique
   stage                  EnquiryStage   @default(NEW)
+  /// ENQUIRY (the person or family) or REFERRAL (a professional: council, NHS, hospital, GP, social worker).
+  kind                   EnquiryKind    @default(ENQUIRY)
+  /// Referral only: the referring organisation, the referrer's role, their reference and the date on the referral.
+  referringOrganisation  String?
+  referrerRole           String?
+  referralReference      String?
+  referralDate           DateTime?
   firstName              String
   lastName               String
   dateOfBirth            DateTime?
@@ -15141,6 +15161,7 @@ model Enquiry {
   quotations EnquiryQuotation[]
 
   @@index([stage])
+  @@index([kind])
   @@index([source])
   @@index([ownerId])
   @@index([locationId])
@@ -15198,6 +15219,15 @@ enum EnquiryQuoteStatus {
 enum EnquiryQuoteType {
   PROVISIONAL_ESTIMATE
   FINAL
+
+  @@schema("service_users")
+}
+
+/// DETAILED: visits with times, priced from the rates. SUMMARY: a "total amount" quote — a typed weekly
+/// total, and the visits listed only by time of day (the client sees no times or per-visit prices).
+enum EnquiryQuoteClientLayout {
+  DETAILED
+  SUMMARY
 
   @@schema("service_users")
 }
@@ -15329,6 +15359,9 @@ model EnquiryQuotationVersion {
   versionNumber        Int
   status               EnquiryQuoteStatus @default(DRAFT)
   quoteType            EnquiryQuoteType   @default(PROVISIONAL_ESTIMATE)
+  clientLayout         EnquiryQuoteClientLayout @default(DETAILED)
+  /// The typed weekly price of the visits on a SUMMARY ("total amount") quote.
+  manualWeeklyTotal    Decimal?                    @db.Decimal(12, 2)
   /// Version this one was revised from (V1 for V2, …).
   revisedFromVersionId String?            @db.Uuid
 
@@ -15345,6 +15378,10 @@ model EnquiryQuotationVersion {
   fundingCategory        EnquiryQuoteFundingCategory @default(PRIVATE)
   /// Client charge card used for pricing; empty = picked automatically (branch / funder / default).
   chargeCardId           String?                     @db.Uuid
+  /// £ per carer per hour; quotes are priced by hand from this (charge cards are not used).
+  hourlyRate             Decimal?                    @db.Decimal(10, 2)
+  /// Other rates typed on the quote: short visits, weekend, bank holiday, sleeping / waking night (QuoteRates JSON).
+  rates                  Json?
   /// Staff only — never on the client preview, PDF or email.
   internalNotes          String?                     @db.Text
   clientNotes            String?                     @db.Text

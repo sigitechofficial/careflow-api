@@ -1,12 +1,17 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
-import { EnquirySource, EnquiryStage } from '@prisma/client';
+import { EnquiryKind, EnquirySource, EnquiryStage } from '@prisma/client';
 
 export class ListEnquiriesQueryDto {
   @ApiPropertyOptional({ enum: EnquiryStage })
   @IsOptional()
   @IsEnum(EnquiryStage)
   stage?: EnquiryStage;
+
+  @ApiPropertyOptional({ enum: EnquiryKind, description: 'Only enquiries or only referrals.' })
+  @IsOptional()
+  @IsEnum(EnquiryKind)
+  kind?: EnquiryKind;
 
   @ApiPropertyOptional({ enum: EnquirySource })
   @IsOptional()

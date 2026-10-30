@@ -11,6 +11,7 @@ import { InitialAssessmentCarePlanRulesService } from './initial-assessment-care
 import { InitialAssessmentNotificationHook } from './initial-assessment-notification.hook';
 import { InitialAssessmentTranscriptionService } from './initial-assessment-transcription.service';
 import { InitialAssessmentAiFillService } from './initial-assessment-ai-fill.service';
+import { InitialAssessmentConversationFilesService } from './initial-assessment-conversation-files.service';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { InitialAssessmentAiFillService } from './initial-assessment-ai-fill.ser
     InitialAssessmentNotificationHook,
     InitialAssessmentTranscriptionService,
     InitialAssessmentAiFillService,
+    InitialAssessmentConversationFilesService,
   ],
   exports: [InitialAssessmentsService, InitialAssessmentCarePlanRulesService],
 })

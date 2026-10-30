@@ -141,6 +141,8 @@ export function renderQuoteHtml(view: ClientQuoteView): string {
   const [hero, ...otherTotals] = view.totals;
   const provisional = /provisional/i.test(view.quoteTypeLabel);
 
+  // Summary: the visits by time of day only; the price is the total in the cost summary.
+  const summary = view.layout === 'SUMMARY';
   const visitRows = view.visits
     .map(
       (v) => `
@@ -150,11 +152,21 @@ export function renderQuoteHtml(view: ClientQuoteView): string {
               ? `<div class="visit-sub">${esc(v.activities.join(', '))}</div>`
               : ''
           }</td>
-          <td>${v.days.map((d) => `<span class="chip">${esc(d)}</span>`).join('')}<div class="visit-sub">${esc(v.time)}</div></td>
-          <td>${esc(v.duration)}</td>
-          <td>${v.carers}</td>
+          <td>${v.days.map((d) => `<span class="chip">${esc(d)}</span>`).join('')}${
+            summary ? '' : `<div class="visit-sub">${esc(v.time)}</div>`
+          }</td>${
+            summary
+              ? ''
+              : `
+          <td>${esc(v.duration)}</td>`
+          }
+          <td>${v.carers}</td>${
+            summary
+              ? ''
+              : `
           <td class="num">${esc(v.perVisit ?? '—')}</td>
-          <td class="num"><strong>${esc(v.weekly)}</strong></td>
+          <td class="num"><strong>${esc(v.weekly)}</strong></td>`
+          }
         </tr>`,
     )
     .join('');
@@ -197,6 +209,22 @@ export function renderQuoteHtml(view: ClientQuoteView): string {
     )
     .join('');
   const calendar = view.totals.find((t) => /calendar/i.test(t.label));
+
+  const rates = view.rates.length
+    ? `
+    <section class="section">
+      <h3 class="section-title">Rates used</h3>
+      <table class="grid-table">
+        <thead><tr><th>Visits</th><th class="num">Rate</th></tr></thead>
+        <tbody>${view.rates
+          .map(
+            (r) =>
+              `<tr><td>${esc(r.label)}</td><td class="num">${esc(r.value)}</td></tr>`,
+          )
+          .join('')}</tbody>
+      </table>
+    </section>`
+    : '';
 
   const funding = view.funding.length
     ? `
@@ -286,10 +314,15 @@ export function renderQuoteHtml(view: ClientQuoteView): string {
     <section class="section">
       <h3 class="section-title">Proposed visits</h3>
       <table class="grid-table">
-        <thead><tr><th>Visit</th><th>Schedule</th><th>Duration</th><th>Carers</th><th class="num">Per visit</th><th class="num">Price</th></tr></thead>
+        <thead><tr>${
+          summary
+            ? '<th>Visit</th><th>Days</th><th>Carers</th>'
+            : '<th>Visit</th><th>Schedule</th><th>Duration</th><th>Carers</th><th class="num">Per visit</th><th class="num">Price</th>'
+        }</tr></thead>
         <tbody>${visitRows}</tbody>
       </table>
     </section>
+    ${rates}
     ${extras}
 
     <section class="section">

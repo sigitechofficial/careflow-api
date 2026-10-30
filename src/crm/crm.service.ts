@@ -3,7 +3,14 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { AuditEventType, EnquiryLostReason, EnquiryStage, Prisma } from '@prisma/client';
+import {
+  AuditEventType,
+  EnquiryKind,
+  EnquiryLostReason,
+  EnquiryQuotePayerType,
+  EnquiryStage,
+  Prisma,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -19,6 +26,7 @@ import { EnquiryNoteDto } from './dto/note-enquiry.dto';
 import { ListEnquiriesQueryDto } from './dto/list-enquiries-query.dto';
 import { EnquiryDuplicatesQueryDto } from './dto/duplicates-query.dto';
 import { LinkServiceUserDto } from './dto/link-service-user.dto';
+import { InitialAssessmentsService } from '../initial-assessments/initial-assessments.service';
 import { canMove } from './crm-workflow.util';
 
 type EventRow = Prisma.EnquiryEventGetPayload<object>;
@@ -60,6 +68,8 @@ type NameMaps = {
   funding?: Map<string, string>;
   locations?: Map<string, string>;
   carePlans?: Map<string, string>;
+  /** Latest initial assessment of the linked service user, by service user id. */
+  assessments?: Map<string, { id: string; status: string; updatedAt: string }>;
 };
 
 function mapEnquiry(row: AnyEnquiryRow, maps: NameMaps = {}) {
@@ -69,6 +79,11 @@ function mapEnquiry(row: AnyEnquiryRow, maps: NameMaps = {}) {
     id: row.id,
     referenceNumber: row.referenceNumber,
     stage: row.stage,
+    kind: row.kind,
+    referringOrganisation: row.referringOrganisation,
+    referrerRole: row.referrerRole,
+    referralReference: row.referralReference,
+    referralDate: row.referralDate?.toISOString() ?? null,
     firstName: row.firstName,
     lastName: row.lastName,
     dateOfBirth: row.dateOfBirth?.toISOString() ?? null,
@@ -115,6 +130,9 @@ function mapEnquiry(row: AnyEnquiryRow, maps: NameMaps = {}) {
     lostReasonCode: row.lostReasonCode,
     lostReason: row.lostReason,
     convertedServiceUserId: row.convertedServiceUserId,
+    initialAssessment: row.convertedServiceUserId
+      ? (maps.assessments?.get(row.convertedServiceUserId) ?? null)
+      : null,
     recordedById: row.recordedById,
     recordedByName: user(row.recordedById),
     stageChangedAt: row.stageChangedAt.toISOString(),
@@ -122,6 +140,21 @@ function mapEnquiry(row: AnyEnquiryRow, maps: NameMaps = {}) {
     updatedAt: row.updatedAt.toISOString(),
     events: [...events].sort((a, b) => a.at.getTime() - b.at.getTime()).map(mapEvent),
   };
+}
+
+/** Quote payer type for a funder's funding type: council, NHS, the person themselves, or other. */
+export function payerTypeForFundingType(code: string | null | undefined): EnquiryQuotePayerType {
+  switch (code) {
+    case 'LOCAL_AUTHORITY':
+      return EnquiryQuotePayerType.LOCAL_AUTHORITY;
+    case 'NHS':
+      return EnquiryQuotePayerType.NHS;
+    case 'PRIVATE':
+    case 'SELF_FUNDED':
+      return EnquiryQuotePayerType.PRIVATE_CLIENT;
+    default:
+      return EnquiryQuotePayerType.OTHER;
+  }
 }
 
 const digitsOnly = (v: string | null | undefined) => (v ?? '').replace(/\D/g, '');
@@ -132,6 +165,7 @@ export class CrmService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly orgScope: OrgScopeService,
+    private readonly initialAssessments: InitialAssessmentsService,
   ) {}
 
   private parseDate(value: string | null | undefined): Date | null | undefined {
@@ -226,18 +260,54 @@ export class CrmService {
     return new Map(rows.map(r => [r.id, r.name]));
   }
 
+  private async latestAssessments(ids: Array<string | null | undefined>) {
+    const unique = [...new Set(ids.filter((v): v is string => !!v))];
+    if (unique.length === 0) return new Map<string, { id: string; status: string; updatedAt: string }>();
+    const rows = await this.prisma.initialAssessmentSubmission.findMany({
+      where: {
+        serviceUserId: { in: unique },
+        deletedAt: null,
+        status: { notIn: ['ARCHIVED', 'CANCELLED'] },
+      },
+      orderBy: { updatedAt: 'desc' },
+      distinct: ['serviceUserId'],
+      select: { id: true, serviceUserId: true, status: true, updatedAt: true },
+    });
+    return new Map(
+      rows.map(r => [r.serviceUserId, { id: r.id, status: r.status, updatedAt: r.updatedAt.toISOString() }]),
+    );
+  }
+
   /** Map rows to API shape with user / funding / branch names resolved. */
   private async present<T extends AnyEnquiryRow>(rows: T[]) {
-    const [users, funding, locations, carePlans] = await Promise.all([
+    const [users, funding, locations, carePlans, assessments] = await Promise.all([
       this.userNames(rows.flatMap(r => [r.recordedById, r.ownerId, r.assessorId])),
       this.fundingNames(rows.map(r => r.fundingTypeId)),
       this.locationNames(rows.map(r => r.locationId)),
       this.carePlanNames(rows.flatMap(r => r.carePlanFormIds)),
+      this.latestAssessments(rows.map(r => r.convertedServiceUserId)),
     ]);
-    return rows.map(r => mapEnquiry(r, { users, funding, locations, carePlans }));
+    return rows.map(r => mapEnquiry(r, { users, funding, locations, carePlans, assessments }));
   }
 
   /* ─── reads ─────────────────────────────────────────────────────────── */
+
+  /** Active funders (Settings → Funders) for a quote's "who pays", with the quote payer type of each. */
+  async funders() {
+    const rows = await this.prisma.funder.findMany({
+      where: { isActive: true, deletedAt: null },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, fundingType: { select: { code: true, name: true } } },
+    });
+    return {
+      data: rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        fundingTypeName: r.fundingType?.name ?? null,
+        payerType: payerTypeForFundingType(r.fundingType?.code),
+      })),
+    };
+  }
 
   async fundingTypes() {
     const rows = await this.prisma.serviceUserFundingType.findMany({
@@ -277,6 +347,7 @@ export class CrmService {
     const where = this.scopeWhere(actor, query.locationId);
     andWhereFragment(where, {
       ...(query.stage ? { stage: query.stage } : {}),
+      ...(query.kind ? { kind: query.kind } : {}),
       ...(query.source ? { source: query.source } : {}),
       ...(query.ownerId ? { ownerId: query.ownerId } : {}),
     });
@@ -292,6 +363,8 @@ export class CrmService {
           { contactEmail: contains },
           { contactPhone: contains },
           { postcode: contains },
+          { referringOrganisation: contains },
+          { referralReference: contains },
         ],
       });
     }
@@ -437,9 +510,15 @@ export class CrmService {
       });
       const referenceNumber = `ENQ-${year}-${String(seq.lastValue).padStart(4, '0')}`;
 
+      const isReferral = dto.kind === EnquiryKind.REFERRAL;
       const created = await tx.enquiry.create({
         data: {
           referenceNumber,
+          kind: dto.kind ?? EnquiryKind.ENQUIRY,
+          referringOrganisation: isReferral ? (dto.referringOrganisation ?? null) : null,
+          referrerRole: isReferral ? (dto.referrerRole ?? null) : null,
+          referralReference: isReferral ? (dto.referralReference ?? null) : null,
+          referralDate: isReferral ? (this.parseDate(dto.referralDate) ?? null) : null,
           firstName: dto.firstName,
           lastName: dto.lastName,
           dateOfBirth: this.parseDate(dto.dateOfBirth) ?? null,
@@ -476,7 +555,7 @@ export class CrmService {
           quoteSentAt: this.parseDate(dto.quoteSentAt) ?? null,
           quoteNotes: dto.quoteNotes ?? null,
           recordedById: userId,
-          events: { create: { action: 'Enquiry created', userId } },
+          events: { create: { action: isReferral ? 'Referral created' : 'Enquiry created', userId } },
         },
         include: { events: true },
       });
@@ -489,14 +568,14 @@ export class CrmService {
         eventType: AuditEventType.CREATE,
         recordType: 'Enquiry',
         recordId: created.id,
-        description: `Enquiry ${referenceNumber} created`,
+        description: `${isReferral ? 'Referral' : 'Enquiry'} ${referenceNumber} created`,
         newValues: auditSnapshot({ referenceNumber, name: `${created.firstName} ${created.lastName}` }),
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
 
       const [data] = await this.present([created]);
-      return { message: 'Enquiry created', data };
+      return { message: isReferral ? 'Referral created' : 'Enquiry created', data };
     });
   }
 
@@ -507,6 +586,7 @@ export class CrmService {
       sentAt: this.parseDate(dto.sentAt),
       receivedAt: this.parseDate(dto.receivedAt),
       requestedStartDate: this.parseDate(dto.requestedStartDate),
+      referralDate: this.parseDate(dto.referralDate),
       nextFollowUpAt: this.parseDate(dto.nextFollowUpAt),
       assessmentAt: this.parseDate(dto.assessmentAt),
       quoteSentAt: this.parseDate(dto.quoteSentAt),
@@ -525,10 +605,15 @@ export class CrmService {
         'contactEmail', 'source', 'sourceDetail', 'enquiryType', 'urgency', 'needs', 'carePlanFormIds',
         'ownerId', 'receivedVia', 'addressLine', 'postcode', 'fundingType', 'fundingTypeId', 'funderName',
         'hoursPerWeek', 'visitsPerDay', 'nextAction', 'assessorId', 'assessmentLocation',
-        'quoteWeeklyAmount', 'quoteHourlyRate', 'quoteNotes'] as const).forEach(k => {
+        'quoteWeeklyAmount', 'quoteHourlyRate', 'quoteNotes', 'kind', 'referringOrganisation', 'referrerRole',
+        'referralReference'] as const).forEach(k => {
         if (dto[k] !== undefined) data[k] = dto[k];
       });
       for (const [k, v] of Object.entries(dates)) if (v !== undefined) data[k] = v;
+      // An enquiry keeps no referral details (they are cleared when a referral is changed back).
+      if ((data.kind ?? before.kind) === EnquiryKind.ENQUIRY) {
+        for (const k of ['referringOrganisation', 'referrerRole', 'referralReference', 'referralDate']) data[k] = null;
+      }
       if (locationId !== undefined) data.locationId = locationId;
 
       // Only record what actually changed.
@@ -608,6 +693,7 @@ export class CrmService {
         },
         include: { events: true },
       });
+      await this.syncPreAdmissionServiceUser(tx, updated, changedKeys, userId);
 
       await this.audit.logAudit({
         tx,
@@ -733,6 +819,275 @@ export class CrmService {
       const [data] = await this.present([updated]);
       return { message: 'Enquiry linked to service user', data };
     });
+  }
+
+  /** A service user made from the enquiry's details (name, date of birth, branch, funding type, address). */
+  private async createServiceUserFromEnquiry(
+    tx: Prisma.TransactionClient,
+    actor: RequestUser,
+    enquiry: Prisma.EnquiryGetPayload<object>,
+    statusCode: 'PRE_ADMISSION' | 'ACTIVE',
+    serviceStartDate: Date | null,
+  ) {
+    const locationId = enquiry.locationId ?? this.resolveLocationId(actor, undefined) ?? null;
+    const status = await tx.serviceUserStatus.findFirst({
+      where: { code: statusCode, isActive: true },
+      select: { id: true },
+    });
+    const su = await tx.serviceUser.create({
+      data: {
+        firstName: enquiry.firstName,
+        lastName: enquiry.lastName,
+        dateOfBirth: enquiry.dateOfBirth,
+        statusId: status?.id ?? null,
+        locationId,
+        fundingTypeId: enquiry.fundingTypeId,
+        serviceStartDate,
+        createdById: actor.id,
+      },
+    });
+    if (locationId) {
+      await tx.serviceUserAssignment.create({
+        data: { serviceUserId: su.id, locationId, createdById: actor.id },
+      });
+    }
+    if (enquiry.addressLine || enquiry.postcode) {
+      await tx.serviceUserAddress.create({
+        data: { serviceUserId: su.id, addressLine1: enquiry.addressLine, postcode: enquiry.postcode },
+      });
+    }
+    return su;
+  }
+
+  /**
+   * After the client accepts: the enquiry's person becomes an active service user. The Pre-admission
+   * service user made for the initial assessment is made active (its missing details filled from the
+   * enquiry); otherwise one is created. The enquiry is linked and marked Won. Safe to repeat.
+   */
+  async activateServiceUser(
+    actor: RequestUser,
+    id: string,
+    opts: { serviceStartDate: Date | null },
+    meta?: RequestAuditMeta,
+  ) {
+    const userId = actor.id;
+    return this.prisma.$transaction(async tx => {
+      const before = await this.getInScope(actor, id, tx);
+      if (!before.locationId) throw new BadRequestException('Set the branch on the enquiry first');
+      const active = await tx.serviceUserStatus.findFirst({
+        where: { code: 'ACTIVE', isActive: true },
+        select: { id: true },
+      });
+      let serviceUserId = before.convertedServiceUserId;
+      let created = false;
+      if (serviceUserId) {
+        const su = await tx.serviceUser.findFirst({
+          where: { id: serviceUserId, deletedAt: null },
+          select: { statusId: true, dateOfBirth: true, locationId: true, fundingTypeId: true, serviceStartDate: true },
+        });
+        if (!su) throw new NotFoundException('The linked service user no longer exists');
+        await tx.serviceUser.update({
+          where: { id: serviceUserId },
+          data: {
+            statusId: active?.id ?? su.statusId,
+            dateOfBirth: su.dateOfBirth ?? before.dateOfBirth,
+            locationId: su.locationId ?? before.locationId,
+            fundingTypeId: su.fundingTypeId ?? before.fundingTypeId,
+            serviceStartDate: su.serviceStartDate ?? opts.serviceStartDate,
+            updatedById: userId,
+          },
+        });
+        const address = await tx.serviceUserAddress.findUnique({ where: { serviceUserId }, select: { id: true } });
+        if (!address && (before.addressLine || before.postcode)) {
+          await tx.serviceUserAddress.create({
+            data: { serviceUserId, addressLine1: before.addressLine, postcode: before.postcode },
+          });
+        }
+        if (su.statusId !== active?.id) {
+          await this.audit.logAudit({
+            tx,
+            userId,
+            module: AuditModule.SERVICE_USER,
+            action: AuditAction.SERVICE_USER_STATUS_CHANGED,
+            recordType: 'ServiceUser',
+            recordId: serviceUserId,
+            description: `Service user made active from accepted quote on enquiry ${before.referenceNumber}`,
+            oldValues: auditSnapshot({ statusId: su.statusId }),
+            newValues: auditSnapshot({ statusId: active?.id ?? null }),
+            ipAddress: meta?.ipAddress ?? undefined,
+            userAgent: meta?.userAgent ?? undefined,
+          });
+        }
+      } else {
+        const su = await this.createServiceUserFromEnquiry(tx, actor, before, 'ACTIVE', opts.serviceStartDate);
+        serviceUserId = su.id;
+        created = true;
+        await this.audit.logAudit({
+          tx,
+          userId,
+          module: AuditModule.SERVICE_USER,
+          action: AuditAction.SERVICE_USER_CREATED,
+          recordType: 'ServiceUser',
+          recordId: su.id,
+          description: `Active service user created from enquiry ${before.referenceNumber}`,
+          newValues: auditSnapshot({ id: su.id, firstName: su.firstName, lastName: su.lastName, statusId: su.statusId, locationId: su.locationId }),
+          ipAddress: meta?.ipAddress ?? undefined,
+          userAgent: meta?.userAgent ?? undefined,
+        });
+      }
+
+      const becomesWon = before.stage !== EnquiryStage.WON;
+      await tx.enquiry.update({
+        where: { id },
+        data: {
+          convertedServiceUserId: serviceUserId,
+          ...(becomesWon ? { stage: EnquiryStage.WON, stageChangedAt: new Date() } : {}),
+          events: {
+            create: {
+              action: 'Converted to service user',
+              note: `${before.firstName} ${before.lastName} — ${created ? 'created as active' : 'made active'}`,
+              userId,
+            },
+          },
+        },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.CRM,
+        action: AuditAction.ENQUIRY_CONVERTED,
+        eventType: AuditEventType.UPDATE,
+        recordType: 'Enquiry',
+        recordId: id,
+        description: `Enquiry ${before.referenceNumber} converted to an active service user`,
+        newValues: auditSnapshot({ convertedServiceUserId: serviceUserId, stage: EnquiryStage.WON }),
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+      return { serviceUserId: serviceUserId!, created };
+    });
+  }
+
+  /**
+   * The full initial assessment is kept on a service user. An enquiry without one gets a
+   * Pre-admission service user made from its details and linked to it; the enquiry keeps its
+   * stage (it is not marked Won), and the new service user gets a draft assessment to fill in.
+   * Returns the existing link when there is one.
+   */
+  async startInitialAssessment(actor: RequestUser, id: string, meta?: RequestAuditMeta) {
+    const userId = actor.id;
+    const linked = await this.prisma.$transaction(async tx => {
+      const before = await this.getInScope(actor, id, tx);
+      if (before.convertedServiceUserId) return { serviceUserId: before.convertedServiceUserId, created: false };
+      const su = await this.createServiceUserFromEnquiry(tx, actor, before, 'PRE_ADMISSION', null);
+      await tx.enquiry.update({
+        where: { id },
+        data: {
+          convertedServiceUserId: su.id,
+          events: {
+            create: {
+              action: 'Initial assessment started',
+              note: `Pre-admission service user created for ${su.firstName} ${su.lastName}`,
+              userId,
+            },
+          },
+        },
+      });
+
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_CREATED,
+        recordType: 'ServiceUser',
+        recordId: su.id,
+        description: `Pre-admission service user created from enquiry ${before.referenceNumber}`,
+        newValues: auditSnapshot({
+          id: su.id,
+          firstName: su.firstName,
+          lastName: su.lastName,
+          statusId: su.statusId,
+          locationId: su.locationId,
+        }),
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.CRM,
+        action: AuditAction.ENQUIRY_CONVERTED,
+        eventType: AuditEventType.UPDATE,
+        recordType: 'Enquiry',
+        recordId: id,
+        description: `Enquiry ${before.referenceNumber} linked to a pre-admission service user for the initial assessment`,
+        newValues: auditSnapshot({ convertedServiceUserId: su.id, stage: before.stage }),
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+
+      return { serviceUserId: su.id, created: true };
+    });
+
+    if (!linked.created) {
+      return { message: 'Enquiry already has a service user', data: { serviceUserId: linked.serviceUserId } };
+    }
+    try {
+      await this.initialAssessments.createSubmission(userId, linked.serviceUserId, {}, meta);
+    } catch {
+      // The link is made; the assessment page offers "Start new assessment" if the draft failed.
+    }
+    return { message: 'Pre-admission service user created', data: { serviceUserId: linked.serviceUserId } };
+  }
+
+  /**
+   * While the linked service user is still Pre-admission (made from this enquiry for the initial
+   * assessment), the person's details changed on the enquiry are copied to it. Only changed fields
+   * are copied, so a correction made on the service user is not undone by an unrelated edit.
+   */
+  private async syncPreAdmissionServiceUser(
+    tx: Prisma.TransactionClient,
+    enquiry: Prisma.EnquiryGetPayload<object>,
+    changedKeys: string[],
+    userId: string,
+  ) {
+    if (!enquiry.convertedServiceUserId) return;
+    const changed = (k: string) => changedKeys.includes(k);
+    const personKeys = ['firstName', 'lastName', 'dateOfBirth', 'locationId', 'fundingTypeId', 'addressLine', 'postcode'];
+    if (!personKeys.some(changed)) return;
+    const su = await tx.serviceUser.findFirst({
+      where: { id: enquiry.convertedServiceUserId, deletedAt: null, status: { code: 'PRE_ADMISSION' } },
+      select: { id: true },
+    });
+    if (!su) return;
+
+    await tx.serviceUser.update({
+      where: { id: su.id },
+      data: {
+        ...(changed('firstName') ? { firstName: enquiry.firstName } : {}),
+        ...(changed('lastName') ? { lastName: enquiry.lastName } : {}),
+        ...(changed('dateOfBirth') ? { dateOfBirth: enquiry.dateOfBirth } : {}),
+        ...(changed('locationId') ? { locationId: enquiry.locationId } : {}),
+        ...(changed('fundingTypeId') ? { fundingTypeId: enquiry.fundingTypeId } : {}),
+        updatedById: userId,
+      },
+    });
+    if (changed('locationId')) {
+      await tx.serviceUserAssignment.updateMany({
+        where: { serviceUserId: su.id, deletedAt: null },
+        data: { locationId: enquiry.locationId },
+      });
+    }
+    if (changed('addressLine') || changed('postcode')) {
+      await tx.serviceUserAddress.upsert({
+        where: { serviceUserId: su.id },
+        update: {
+          ...(changed('addressLine') ? { addressLine1: enquiry.addressLine } : {}),
+          ...(changed('postcode') ? { postcode: enquiry.postcode } : {}),
+        },
+        create: { serviceUserId: su.id, addressLine1: enquiry.addressLine, postcode: enquiry.postcode },
+      });
+    }
   }
 
   async addNote(actor: RequestUser, id: string, dto: EnquiryNoteDto, meta?: RequestAuditMeta) {

@@ -50,6 +50,7 @@ import {
   transcriptionMulterOptions,
 } from './initial-assessment-transcription.service';
 import { InitialAssessmentAiFillService } from './initial-assessment-ai-fill.service';
+import { InitialAssessmentConversationFilesService } from './initial-assessment-conversation-files.service';
 import { InitialAssessmentAiFillDto } from './dto/initial-assessment-ai-fill.dto';
 
 @ApiTags('Initial Assessments')
@@ -61,6 +62,7 @@ export class InitialAssessmentsController {
     private readonly service: InitialAssessmentsService,
     private readonly transcription: InitialAssessmentTranscriptionService,
     private readonly aiFillService: InitialAssessmentAiFillService,
+    private readonly conversationFiles: InitialAssessmentConversationFilesService,
   ) {}
 
   @Get()
@@ -497,15 +499,43 @@ export class InitialAssessmentsController {
     @Param('id') serviceUserId: string,
     @Param('submissionId') submissionId: string,
     @UploadedFile() file: Express.Multer.File,
+    @Req() req: Request,
   ) {
     if (!file) throw new BadRequestException('Audio file is required');
+    // The recording is kept on the assessment (and so the service user) before it is transcribed.
+    let saved: Awaited<ReturnType<InitialAssessmentConversationFilesService['saveRecording']>>;
     try {
-      await this.service.assertSubmissionExists(serviceUserId, submissionId);
+      saved = await this.conversationFiles.saveRecording(user.id, serviceUserId, submissionId, file, getRequestAuditMeta(req));
     } catch (e) {
       unlink(file.path, () => undefined);
       throw e;
     }
-    return this.transcription.start(user.id, submissionId, file);
+    const recording = saved.attachment;
+    return this.transcription.start(
+      user.id,
+      submissionId,
+      { path: saved.path, originalName: file.originalname, recordingAttachmentId: recording.id },
+      async (text) =>
+        (await this.conversationFiles.saveTranscript(user.id, serviceUserId, submissionId, recording, text))?.id ?? null,
+    );
+  }
+
+  @Get(':submissionId/attachments/:attachmentId/file')
+  @AnyPermission('service_users.initial_assessment.read', 'service_users.read')
+  @ApiOperation({ summary: 'Download an assessment attachment (recordings and transcripts are only served here)' })
+  async attachmentFile(
+    @CurrentUser() user: RequestUser,
+    @Param('id') serviceUserId: string,
+    @Param('submissionId') submissionId: string,
+    @Param('attachmentId') attachmentId: string,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const file = await this.conversationFiles.fileFor(user.id, serviceUserId, submissionId, attachmentId, getRequestAuditMeta(req));
+    res.setHeader('Content-Type', file.mimeType);
+    res.setHeader('Cache-Control', 'private, no-store');
+    res.setHeader('Content-Disposition', `inline; filename="${file.originalName.replace(/["\\\r\n]/g, '_')}"`);
+    res.sendFile(file.path);
   }
 
   @Post(':submissionId/ai-fill')

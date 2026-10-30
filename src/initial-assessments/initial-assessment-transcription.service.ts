@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { spawn, type ChildProcess } from 'child_process';
 import { randomUUID } from 'crypto';
-import { existsSync, mkdirSync, unlink } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { tmpdir } from 'os';
 import { extname, join } from 'path';
 import { diskStorage } from 'multer';
@@ -29,7 +29,13 @@ export type TranscriptionJob = {
   error: string | null;
   createdAt: Date;
   finishedAt: Date | null;
+  /** The recording kept as an attachment of the assessment, and its saved transcript once done. */
+  recordingAttachmentId: string | null;
+  transcriptAttachmentId: string | null;
 };
+
+/** Called with the finished transcript; returns the id of the attachment that keeps it. */
+export type TranscriptSaver = (text: string) => Promise<string | null>;
 
 const AUDIO_EXT = new Set([
   '.webm',
@@ -60,7 +66,7 @@ export function transcriptionMaxBytes() {
   return (Number.isFinite(mb) && mb > 0 ? mb : 200) * 1024 * 1024;
 }
 
-/** Audio goes to the OS temp folder and is deleted as soon as Whisper has read it. */
+/** Audio lands in the OS temp folder; the controller then moves it into the assessment's attachments. */
 export function transcriptionMulterOptions() {
   return {
     storage: diskStorage({
@@ -103,8 +109,9 @@ export function transcriptionMulterOptions() {
 
 /**
  * Speech-to-text with Whisper running on this server (scripts/whisper/transcribe.py).
- * Jobs run one at a time (Whisper uses all CPU cores) and are kept in memory for 2 hours;
- * neither the audio nor the transcript is stored in the database.
+ * Jobs run one at a time (Whisper uses all CPU cores) and are kept in memory for 2 hours. The audio
+ * file belongs to the caller (it is a saved attachment) and is never deleted here; the finished
+ * transcript is handed to the caller's saver.
  */
 @Injectable()
 export class InitialAssessmentTranscriptionService implements OnModuleDestroy {
@@ -112,20 +119,29 @@ export class InitialAssessmentTranscriptionService implements OnModuleDestroy {
     InitialAssessmentTranscriptionService.name,
   );
   private readonly jobs = new Map<string, TranscriptionJob>();
-  private readonly queue: { job: TranscriptionJob; path: string }[] = [];
+  private readonly queue: {
+    job: TranscriptionJob;
+    path: string;
+    save?: TranscriptSaver;
+  }[] = [];
   private running: ChildProcess | null = null;
 
   start(
     userId: string,
     submissionId: string,
-    file: Express.Multer.File,
+    audio: {
+      path: string;
+      originalName: string;
+      recordingAttachmentId?: string | null;
+    },
+    save?: TranscriptSaver,
   ): TranscriptionJob {
     this.prune();
     const job: TranscriptionJob = {
       id: randomUUID(),
       submissionId,
       userId,
-      fileName: file.originalname,
+      fileName: audio.originalName,
       status: 'QUEUED',
       done: 0,
       duration: null,
@@ -135,9 +151,11 @@ export class InitialAssessmentTranscriptionService implements OnModuleDestroy {
       error: null,
       createdAt: new Date(),
       finishedAt: null,
+      recordingAttachmentId: audio.recordingAttachmentId ?? null,
+      transcriptAttachmentId: null,
     };
     this.jobs.set(job.id, job);
-    this.queue.push({ job, path: file.path });
+    this.queue.push({ job, path: audio.path, save });
     this.next();
     return job;
   }
@@ -163,7 +181,7 @@ export class InitialAssessmentTranscriptionService implements OnModuleDestroy {
     if (this.running) return;
     const item = this.queue.shift();
     if (!item) return;
-    const { job, path } = item;
+    const { job, path, save } = item;
     job.status = 'RUNNING';
     const python = process.env.WHISPER_PYTHON || 'python';
     const script = join(process.cwd(), 'scripts', 'whisper', 'transcribe.py');
@@ -190,7 +208,15 @@ export class InitialAssessmentTranscriptionService implements OnModuleDestroy {
     const finish = (failure: string | null) => {
       clearTimeout(timer);
       this.running = null;
-      unlink(path, () => undefined);
+      if (job.status === 'DONE' && save && job.text?.trim()) {
+        save(job.text)
+          .then((id) => {
+            job.transcriptAttachmentId = id;
+          })
+          .catch((e: Error) =>
+            this.logger.warn(`Transcript ${job.id} not saved: ${e.message}`),
+          );
+      }
       if (job.status !== 'DONE') {
         job.status = 'FAILED';
         job.error = failure ?? 'Transcription stopped unexpectedly';

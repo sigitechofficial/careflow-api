@@ -2,6 +2,7 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
   EnquiryLostReason,
+  EnquiryQuoteClientLayout,
   EnquiryQuoteExtraKind,
   EnquiryQuoteFundingCategory,
   EnquiryQuoteFundingMethod,
@@ -36,6 +37,80 @@ import {
 } from 'class-validator';
 
 const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+export class QuoteShortVisitRateDto {
+  @ApiProperty({
+    description: 'Visits up to this many minutes use this price.',
+  })
+  @IsInt()
+  @Min(1)
+  @Max(240)
+  upToMinutes!: number;
+
+  @ApiProperty({ description: '£ per visit per carer.' })
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  pricePerVisit!: number;
+}
+
+export class QuoteDayRateDto {
+  @ApiProperty({
+    enum: ['PERCENT', 'HOURLY'],
+    description:
+      '% on top of the visit price, or an hourly rate in place of the standard one.',
+  })
+  @IsIn(['PERCENT', 'HOURLY'])
+  mode!: 'PERCENT' | 'HOURLY';
+
+  @ApiProperty()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  @Max(1000)
+  value!: number;
+}
+
+/** The quote's other rates; all optional. */
+export class QuoteRatesDto {
+  @ApiPropertyOptional({ type: [QuoteShortVisitRateDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(3)
+  @ValidateNested({ each: true })
+  @Type(() => QuoteShortVisitRateDto)
+  shortVisits?: QuoteShortVisitRateDto[];
+
+  @ApiPropertyOptional({
+    type: QuoteDayRateDto,
+    description: 'Saturday and Sunday.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => QuoteDayRateDto)
+  weekend?: QuoteDayRateDto | null;
+
+  @ApiPropertyOptional({
+    type: QuoteDayRateDto,
+    description: 'Replaces the weekend rate on a bank holiday.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => QuoteDayRateDto)
+  bankHoliday?: QuoteDayRateDto | null;
+
+  @ApiPropertyOptional({ description: '£ per sleeping night per carer.' })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  sleepingNightPrice?: number | null;
+
+  @ApiPropertyOptional({
+    description: '£ per carer per hour on a waking night.',
+  })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  wakingNightHourly?: number | null;
+}
 
 export class QuoteVisitPatternDto {
   @ApiProperty({ maxLength: 120 })
@@ -130,7 +205,7 @@ export class QuoteVisitPatternDto {
   notes?: string | null;
 
   @ApiPropertyOptional({
-    description: 'Manual £ per visit (all carers) instead of the card rate.',
+    description: 'Own £ per visit (all carers) instead of the hourly rate.',
   })
   @IsOptional()
   @IsNumber({ maxDecimalPlaces: 2 })
@@ -272,11 +347,40 @@ export class QuoteDraftDto {
   fundingCategory?: EnquiryQuoteFundingCategory;
 
   @ApiPropertyOptional({
-    description: 'Client charge card; empty = picked automatically.',
+    description:
+      '£ per carer per hour; each visit = rate × length × carers (unless it has its own price).',
   })
   @IsOptional()
-  @IsUUID()
-  chargeCardId?: string | null;
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  hourlyRate?: number | null;
+
+  @ApiPropertyOptional({
+    enum: EnquiryQuoteClientLayout,
+    description:
+      'DETAILED: every visit with times and prices. SUMMARY: only the total and the visits by time of day (no times).',
+  })
+  @IsOptional()
+  @IsEnum(EnquiryQuoteClientLayout)
+  clientLayout?: EnquiryQuoteClientLayout;
+
+  @ApiPropertyOptional({
+    description:
+      'SUMMARY quotes: the weekly price of the visits, typed by hand (£).',
+  })
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0)
+  manualWeeklyTotal?: number | null;
+
+  @ApiPropertyOptional({
+    type: QuoteRatesDto,
+    description: 'Short-visit, weekend, bank holiday and night rates.',
+  })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => QuoteRatesDto)
+  rates?: QuoteRatesDto | null;
 
   @ApiPropertyOptional({ maxLength: 5000 })
   @IsOptional()
@@ -326,6 +430,34 @@ export class QuoteNoteDto {
   @IsOptional()
   @IsString()
   @MaxLength(2000)
+  note?: string;
+}
+
+export class CreateServiceUserFromQuoteDto {
+  @ApiPropertyOptional({
+    description:
+      'Also create the draft care package from the accepted quote (default true).',
+  })
+  @IsOptional()
+  @IsBoolean()
+  createCarePackage?: boolean;
+}
+
+/** The funder's approval of an accepted quote: their funding reference and a short note. */
+export class ConfirmFundingDto {
+  @ApiPropertyOptional({
+    maxLength: 120,
+    description: "The funder's reference (e.g. council package or CHC number).",
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  reference?: string;
+
+  @ApiPropertyOptional({ maxLength: 500 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
   note?: string;
 }
 

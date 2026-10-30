@@ -7,15 +7,10 @@ import {
   clockSpanMinutes,
   wallClockVisitEnd,
 } from '../../service-user-visit-plans/visit-plan-slot-window.util';
-import {
-  calculateBillableAmount,
-  type ChargeCardRuleLike,
-} from '../../billing/visit-reconciliation.util';
 
 /**
- * Enquiry quotation pricing. Every visit is priced with the existing CLIENT charge engine
- * (`calculateBillableAmount`): day types, bank holidays, time bands (PRIORITY stacking, so an
- * uplift is applied once), fixed short-visit slots, hourly pro-rata, sleep-in and waking nights.
+ * Enquiry quotation pricing. Quotes are priced by hand, not from charge cards: each visit is the
+ * quote's hourly rate × the visit length × carers per visit, unless the visit has its own price.
  *
  * Order (deterministic): visits → extras (set-up fee, mileage, other) → discounts → VAT → totals.
  * Weekly estimates use a typical week (no bank holidays); the calendar-month estimate prices the
@@ -92,12 +87,129 @@ export type QuoteVat = {
   problem?: string | null;
 };
 
+/** A day uplift: a % on top of the visit price, or an hourly rate used instead of the standard one. */
+export type QuoteDayRate = { mode: 'PERCENT' | 'HOURLY'; value: number };
+
+/**
+ * The quote's other rates, all optional and typed by hand. A visit is priced by the first that
+ * applies: a night rate (by its night type), then a short-visit price (by its length), then the
+ * hourly rate; a bank holiday (or else a weekend) rate is then applied for the day.
+ */
+export type QuoteRates = {
+  /** Fixed £ per carer for visits up to `upToMinutes` long; the shortest band that fits is used. */
+  shortVisits?: { upToMinutes: number; pricePerVisit: number }[];
+  /** Saturday and Sunday. */
+  weekend?: QuoteDayRate | null;
+  /** Replaces the weekend rate on a bank holiday. */
+  bankHoliday?: QuoteDayRate | null;
+  /** £ per carer for a sleeping night. */
+  sleepingNightPrice?: number | null;
+  /** £ per carer per hour for a waking night. */
+  wakingNightHourly?: number | null;
+};
+
+const nonNegative = (v: unknown) =>
+  typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : null;
+/** A rate of 0 (a line added but not filled in yet) counts as not set, so nothing is priced at £0. */
+const positive = (v: unknown) => {
+  const n = nonNegative(v);
+  return n ? n : null;
+};
+
+/** Rates as stored (JSON) or sent, keeping only usable values; null when none are set. */
+export function normaliseQuoteRates(raw: unknown): QuoteRates | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  const day = (v: unknown): QuoteDayRate | null => {
+    if (!v || typeof v !== 'object') return null;
+    const d = v as Record<string, unknown>;
+    const value = positive(d.value);
+    return value != null && (d.mode === 'PERCENT' || d.mode === 'HOURLY')
+      ? { mode: d.mode, value }
+      : null;
+  };
+  const shortVisits = (Array.isArray(r.shortVisits) ? r.shortVisits : [])
+    .map((b) => {
+      const band = (b ?? {}) as Record<string, unknown>;
+      const upToMinutes = nonNegative(band.upToMinutes);
+      const pricePerVisit = nonNegative(band.pricePerVisit);
+      // A line with no price yet (or £0) is ignored rather than making visits free.
+      return upToMinutes && pricePerVisit
+        ? { upToMinutes, pricePerVisit }
+        : null;
+    })
+    .filter(
+      (b): b is { upToMinutes: number; pricePerVisit: number } => b != null,
+    )
+    .sort((a, b) => a.upToMinutes - b.upToMinutes);
+  const rates: QuoteRates = {
+    shortVisits,
+    weekend: day(r.weekend),
+    bankHoliday: day(r.bankHoliday),
+    sleepingNightPrice: positive(r.sleepingNightPrice),
+    wakingNightHourly: positive(r.wakingNightHourly),
+  };
+  const any =
+    shortVisits.length > 0 ||
+    rates.weekend != null ||
+    rates.bankHoliday != null ||
+    rates.sleepingNightPrice != null ||
+    rates.wakingNightHourly != null;
+  return any ? rates : null;
+}
+
+/** The rates in words, for the client's copy ("Rates used"). */
+export function describeQuoteRates(
+  hourlyRate: number | null,
+  rates: QuoteRates | null,
+): { label: string; value: string }[] {
+  const gbp = (n: number) => `£${n.toFixed(2)}`;
+  const day = (d: QuoteDayRate) =>
+    d.mode === 'PERCENT'
+      ? `+${d.value}% on the visit price`
+      : `${gbp(d.value)} per carer per hour`;
+  const out: { label: string; value: string }[] = [];
+  if (hourlyRate != null)
+    out.push({
+      label: 'Standard visits',
+      value: `${gbp(hourlyRate)} per carer per hour`,
+    });
+  for (const b of rates?.shortVisits ?? []) {
+    out.push({
+      label: `Short visits (up to ${b.upToMinutes} min)`,
+      value: `${gbp(b.pricePerVisit)} per visit per carer`,
+    });
+  }
+  if (rates?.weekend)
+    out.push({
+      label: 'Weekends (Saturday and Sunday)',
+      value: day(rates.weekend),
+    });
+  if (rates?.bankHoliday)
+    out.push({ label: 'Bank holidays', value: day(rates.bankHoliday) });
+  if (rates?.sleepingNightPrice != null)
+    out.push({
+      label: 'Sleeping night',
+      value: `${gbp(rates.sleepingNightPrice)} per night per carer`,
+    });
+  if (rates?.wakingNightHourly != null)
+    out.push({
+      label: 'Waking night',
+      value: `${gbp(rates.wakingNightHourly)} per carer per hour`,
+    });
+  return out;
+}
+
 export type QuotePricingContext = {
-  cardName: string | null;
-  rules: ChargeCardRuleLike[];
-  defaultChargeMethod: string;
-  /** COMBINED: each carer is charged (default). FIXED: the visit is charged once. */
-  multiCarerMode: 'COMBINED' | 'FIXED';
+  /** £ per carer per hour, typed on the quote; null until it is set. */
+  hourlyRate: number | null;
+  /** Short-visit, weekend, bank holiday and night rates (see QuoteRates). */
+  rates?: QuoteRates | null;
+  /**
+   * Set (even to null) on a "total amount" quote: the visits are only listed by time of day and
+   * their weekly price is this hand-typed total instead of being worked out from rates.
+   */
+  manualWeeklyTotal?: number | null;
   timeZone?: string;
   bankHolidays: Set<string>;
   /** Monday (YYYY-MM-DD) of the week used for weekly prices. */
@@ -188,11 +300,8 @@ export function validatePattern(p: QuotePatternInput): string[] {
   ) {
     errors.push(`${name}: a night needs a date`);
   }
-  if (p.manualChargePerVisit != null) {
-    if (!(p.manualChargePerVisit >= 0))
-      errors.push(`${name}: manual charge must be 0 or more`);
-    if (!p.overrideReason?.trim())
-      errors.push(`${name}: give a reason for the manual charge`);
+  if (p.manualChargePerVisit != null && !(p.manualChargePerVisit >= 0)) {
+    errors.push(`${name}: the visit's own price must be 0 or more`);
   }
   return errors;
 }
@@ -279,7 +388,10 @@ export type OccurrencePrice = {
   issue: string | null;
 };
 
-/** Price one visit on `dayIso` for every carer (per `multiCarerMode`). */
+/**
+ * Price one visit on `dayIso`: its own price, or else from the quote's rates — a night rate, a
+ * short-visit price or the hourly rate × length — then a bank holiday (or weekend) rate, × carers.
+ */
 export function priceOccurrence(
   p: QuotePatternInput,
   dayIso: string,
@@ -290,21 +402,13 @@ export function priceOccurrence(
   const weekday = WEEKDAY_NAMES[dayOfWeek(dayIso)];
   const base = { date: dayIso, weekday, isBankHoliday };
   if (p.manualChargePerVisit != null) {
+    const reason = p.overrideReason?.trim();
     return {
       ...base,
       amount: round2(p.manualChargePerVisit),
       perCarerAmount: null,
-      rateReference: `Manual charge (${p.overrideReason?.trim() || 'no reason'})`,
+      rateReference: `Own price${reason ? ` (${reason})` : ''}`,
       issue: null,
-    };
-  }
-  if (!ctx.rules.length) {
-    return {
-      ...base,
-      amount: null,
-      perCarerAmount: null,
-      rateReference: 'No charge card',
-      issue: 'No client charge card applies to this quote',
     };
   }
   const start = combineOperationalDateAndHm(dayIso, p.startTime, timeZone);
@@ -317,64 +421,64 @@ export function priceOccurrence(
     1,
     Math.round((end.getTime() - start.getTime()) / 60_000),
   );
-  const nightDuty = p.nightDuty && p.nightDuty !== 'NONE' ? p.nightDuty : null;
-  const calc = calculateBillableAmount(
-    ctx.rules,
-    start,
-    minutes,
-    ctx.defaultChargeMethod,
-    isBankHoliday,
-    {
-      start,
-      end,
-      isBankHolidayFn: (d) => ctx.bankHolidays.has(isoInZone(d, timeZone)),
-      timeZone,
-    },
-    nightDuty,
-    minutes,
-  );
-  const when = `${weekday}${isBankHoliday ? ' (bank holiday)' : ''} ${p.startTime}, ${minutes} min`;
-  if (!calc) {
-    const what =
-      nightDuty === 'SLEEPING_NIGHT'
-        ? 'sleeping night'
-        : nightDuty === 'WAKING_NIGHT'
-          ? 'waking night'
-          : 'visit';
-    return {
-      ...base,
-      amount: null,
-      perCarerAmount: null,
-      rateReference: ctx.cardName ?? 'Charge card',
-      issue: `No ${what} rate on ${ctx.cardName ?? 'the charge card'} for ${when}`,
-    };
+  const carers = Math.max(1, p.carersPerVisit);
+  const rates = ctx.rates ?? null;
+  const dow = dayOfWeek(dayIso);
+  // A bank holiday rate replaces the weekend one.
+  const dayRate: { rate: QuoteDayRate; label: string } | null =
+    isBankHoliday && rates?.bankHoliday
+      ? { rate: rates.bankHoliday, label: 'bank holiday' }
+      : (dow === 0 || dow === 6) && rates?.weekend
+        ? { rate: rates.weekend, label: 'weekend' }
+        : null;
+
+  let perCarer: number;
+  let reference: string;
+  // An hourly day rate is used in place of the standard hourly rate (no % on top).
+  let dayRateUsed = false;
+  if (p.nightDuty === 'SLEEPING_NIGHT' && rates?.sleepingNightPrice != null) {
+    perCarer = rates.sleepingNightPrice;
+    reference = `Sleeping night £${perCarer.toFixed(2)}`;
+  } else if (
+    p.nightDuty === 'WAKING_NIGHT' &&
+    rates?.wakingNightHourly != null
+  ) {
+    perCarer = (rates.wakingNightHourly * minutes) / 60;
+    reference = `Waking night £${rates.wakingNightHourly.toFixed(2)}/hour × ${minutes} min`;
+  } else {
+    const band = rates?.shortVisits?.find((b) => minutes <= b.upToMinutes);
+    if (band) {
+      perCarer = band.pricePerVisit;
+      reference = `Short visit (up to ${band.upToMinutes} min) £${band.pricePerVisit.toFixed(2)}`;
+    } else {
+      const dayHourly =
+        dayRate?.rate.mode === 'HOURLY' ? dayRate.rate.value : null;
+      const rate = dayHourly ?? ctx.hourlyRate;
+      if (rate == null) {
+        return {
+          ...base,
+          amount: null,
+          perCarerAmount: null,
+          rateReference: 'No hourly rate',
+          issue: 'Set the hourly rate for this quote',
+        };
+      }
+      perCarer = (rate * minutes) / 60;
+      reference = `£${rate.toFixed(2)}/hour${dayHourly != null ? ` (${dayRate!.label})` : ''} × ${minutes} min`;
+      dayRateUsed = dayHourly != null;
+    }
   }
-  const carers =
-    ctx.multiCarerMode === 'FIXED' ? 1 : Math.max(1, p.carersPerVisit);
-  const segments = calc.segments?.length
-    ? calc.segments
-        .map(
-          (s) =>
-            `${s.hoursLabel ?? ''} @ £${s.rate.toFixed(2)}/h${s.ruleLabel ? ` (${s.ruleLabel})` : ''}`,
-        )
-        .join(' + ')
-    : calc.label;
+  if (dayRate?.rate.mode === 'PERCENT' && !dayRateUsed) {
+    perCarer = perCarer * (1 + dayRate.rate.value / 100);
+    reference += ` + ${dayRate.rate.value}% ${dayRate.label}`;
+  }
   return {
     ...base,
-    amount: round2(calc.amount * carers),
-    perCarerAmount: round2(calc.amount),
-    rateReference: `${ctx.cardName ?? 'Charge card'}: ${segments}${carers > 1 ? ` × ${carers} carers` : ''}`,
+    amount: round2(perCarer * carers),
+    perCarerAmount: round2(perCarer),
+    rateReference: `${reference}${carers > 1 ? ` × ${carers} carers` : ''}`,
     issue: null,
   };
-}
-
-function isoInZone(d: Date, timeZone: string): string {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(d);
 }
 
 /* ─── a whole quote ───────────────────────────────────────────────────── */
@@ -407,6 +511,8 @@ export type ExtraPricing = QuoteExtraInput & {
 export type FundingPricing = QuoteFundingInput & { weeklyAmount: number };
 
 export type QuotePricingResult = {
+  /** A "total amount" quote: the visits' price is the typed weekly total. */
+  manual?: boolean;
   patterns: PatternPricing[];
   extras: ExtraPricing[];
   fundings: FundingPricing[];
@@ -459,6 +565,7 @@ export function priceQuote(
 ): QuotePricingResult {
   const issues: string[] = [];
   let unresolved = 0;
+  const manual = ctx.manualWeeklyTotal !== undefined;
   const weekStart = ctx.referenceWeekStart;
   const weekDays = Array.from({ length: 7 }, (_, i) =>
     addDaysToOperationalIso(weekStart, i),
@@ -470,13 +577,17 @@ export function priceQuote(
     let oneOffTotal = 0;
     let weeklyOccurrences = 0;
     const occurrences: OccurrencePrice[] = [];
-    if (!pIssues.length) {
+    if (manual) {
+      // Listed only: counted for "N visits a week" (and per-visit funding), not priced one by one.
+      if (!pIssues.length && p.frequency !== 'ONE_OFF')
+        weeklyOccurrences = p.daysOfWeek.length / EVERY_N_WEEKS[p.frequency];
+    } else if (!pIssues.length) {
       if (p.frequency === 'ONE_OFF') {
         for (const d of [...(p.oneOffDates ?? [])].sort()) {
           const occ = priceOccurrence(p, d, ctx, ctx.bankHolidays.has(d));
           occurrences.push(occ);
           if (occ.amount == null) {
-            pIssues.push(occ.issue!);
+            if (!pIssues.includes(occ.issue!)) pIssues.push(occ.issue!);
             unresolved++;
           } else oneOffTotal += occ.amount;
         }
@@ -488,7 +599,7 @@ export function priceQuote(
           const occ = priceOccurrence(p, d, ctx, false);
           occurrences.push(occ);
           if (occ.amount == null) {
-            pIssues.push(occ.issue!);
+            if (!pIssues.includes(occ.issue!)) pIssues.push(occ.issue!);
             unresolved++;
           } else weeklyTotal += occ.amount / every;
         }
@@ -504,16 +615,15 @@ export function priceQuote(
       carersPerVisit: p.carersPerVisit,
       durationMinutes: p.durationMinutes,
       weeklyOccurrences: Math.round(weeklyOccurrences * 1000) / 1000,
-      weeklyCoverageMinutes: Math.round(p.durationMinutes * weeklyOccurrences),
-      weeklyCarerMinutes: Math.round(
-        p.durationMinutes * weeklyOccurrences * p.carersPerVisit,
-      ),
-      chargePerOccurrence:
-        amounts.length === 1
-          ? amounts[0]
-          : priced.length
-            ? round2(priced.reduce((s, o) => s + o.amount!, 0) / priced.length)
-            : null,
+      // A "total amount" quote has no visit lengths, so no hours.
+      weeklyCoverageMinutes: manual
+        ? 0
+        : Math.round(p.durationMinutes * weeklyOccurrences),
+      weeklyCarerMinutes: manual
+        ? 0
+        : Math.round(p.durationMinutes * weeklyOccurrences * p.carersPerVisit),
+      // One price for every visit; null when weekend / bank holiday rates make the days differ.
+      chargePerOccurrence: amounts.length === 1 ? amounts[0] : null,
       rateReference:
         [...new Set(priced.map((o) => o.rateReference))].join('; ') || null,
       weeklyTotal: round2(weeklyTotal),
@@ -522,9 +632,16 @@ export function priceQuote(
       issues: pIssues,
     };
   });
-  for (const p of patterns) issues.push(...p.issues);
+  for (const p of patterns)
+    for (const i of p.issues) if (!issues.includes(i)) issues.push(i);
 
-  const visitsWeekly = round2(patterns.reduce((s, p) => s + p.weeklyTotal, 0));
+  if (manual && ctx.manualWeeklyTotal == null) {
+    issues.push('Enter the weekly total for this quote');
+    unresolved++;
+  }
+  const visitsWeekly = manual
+    ? round2(ctx.manualWeeklyTotal ?? 0)
+    : round2(patterns.reduce((s, p) => s + p.weeklyTotal, 0));
   const visitsOneOff = round2(patterns.reduce((s, p) => s + p.oneOffTotal, 0));
 
   // Extras before discounts; discounts apply to visits + extras of the same frequency.
@@ -542,7 +659,7 @@ export function priceQuote(
     if (e.kind === 'MILEAGE') {
       const rate = e.amount ?? mileageRate;
       if (rate == null)
-        issue = `${e.description || 'Mileage'}: no mileage rate on the charge card — enter a rate`;
+        issue = `${e.description || 'Mileage'}: enter the rate per mile`;
       else total = round2((e.quantity ?? 0) * rate);
     } else {
       if (e.amount == null)
@@ -632,6 +749,11 @@ export function priceQuote(
       }
       if (!patternRunsOn(p, iso, weekStart)) return;
       const bh = ctx.bankHolidays.has(iso);
+      if (manual) {
+        monthOccurrences++;
+        if (bh) monthBankHoliday++;
+        return;
+      }
       const occ = priceOccurrence(p, iso, ctx, bh);
       monthOccurrences++;
       if (bh) monthBankHoliday++;
@@ -639,6 +761,9 @@ export function priceQuote(
       else monthVisits += occ.amount;
     });
   }
+  // A typed weekly total is spread over the month's days.
+  if (manual) monthVisits = ((ctx.manualWeeklyTotal ?? 0) * daysInMonth) / 7;
+  if (manual && ctx.manualWeeklyTotal == null) monthComplete = false;
   const monthExtras = extras
     .filter((e) => e.kind !== 'DISCOUNT')
     .reduce(
@@ -706,6 +831,7 @@ export function priceQuote(
   unresolved += fundingIssues.length;
 
   return {
+    manual,
     patterns,
     extras,
     fundings,
@@ -730,8 +856,9 @@ export function priceQuote(
         key: 'weekly',
         label: 'Weekly',
         amount: weeklyTotal,
-        method:
-          'One typical week (Mon–Sun) at normal day rates; bank holidays not included',
+        method: manual
+          ? 'The agreed weekly price'
+          : 'One typical week (Mon–Sun) at the hourly rate',
       },
       {
         key: 'fourWeekly',
@@ -749,7 +876,7 @@ export function priceQuote(
         key: 'annual',
         label: 'Annual',
         amount: round2(weeklyTotal * WEEKS_PER_YEAR),
-        method: 'Weekly × 52 (bank holiday rates not included)',
+        method: 'Weekly × 52',
       },
     ],
     calendarMonth: {
@@ -758,7 +885,9 @@ export function priceQuote(
       occurrences: monthOccurrences,
       bankHolidayOccurrences: monthBankHoliday,
       complete: monthComplete,
-      method: `Actual dates in ${monthLabel}: ${monthOccurrences} visit${monthOccurrences === 1 ? '' : 's'}${monthBankHoliday ? `, ${monthBankHoliday} on bank holidays at bank holiday rates` : ''}; weekly extras pro rata; one-off charges excluded`,
+      method: manual
+        ? `${monthLabel}: the weekly price × ${daysInMonth} days ÷ 7; weekly extras pro rata; one-off charges excluded`
+        : `Actual dates in ${monthLabel}: ${monthOccurrences} visit${monthOccurrences === 1 ? '' : 's'}${monthBankHoliday ? ` (${monthBankHoliday} on bank holidays, same rate)` : ''}; weekly extras pro rata; one-off charges excluded`,
     },
     clientWeeklyLiability: round2(Math.max(0, weeklyTotal - fundedWeekly)),
     clientWeeklyLiabilityIfPendingDeclined: round2(
@@ -768,28 +897,5 @@ export function priceQuote(
     pendingFundingWeekly,
     issues,
     unresolvedCharges: unresolved,
-  };
-}
-
-/**
- * VAT only from the charge card's configured tax treatment. Nothing configured = no VAT line
- * (labelled as such); a treatment that names VAT without a readable rate blocks issuing.
- */
-export function resolveVat(taxTreatment: string | null | undefined): QuoteVat {
-  const t = taxTreatment?.trim();
-  if (!t)
-    return {
-      rate: null,
-      label: 'No VAT classification on the charge card — VAT not added',
-    };
-  if (/exempt|zero|outside|not applicable|^n\/?a$|^none$/i.test(t))
-    return { rate: 0, label: `VAT: ${t}` };
-  const pct = /(\d+(?:\.\d+)?)\s*%/.exec(t);
-  if (pct)
-    return { rate: Number(pct[1]), label: `VAT ${Number(pct[1])}% (${t})` };
-  return {
-    rate: null,
-    label: `VAT: ${t}`,
-    problem: `The charge card's tax treatment "${t}" has no VAT rate — set it to e.g. "VAT exempt" or "VAT 20%"`,
   };
 }

@@ -11,6 +11,7 @@ import {
   EnquiryLostReason,
   EnquiryQuoteStatus,
   EnquiryStage,
+  InitialAssessmentStatus,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
@@ -25,25 +26,27 @@ import { MailService } from '../../mail/mail.service';
 import { OrganisationGeneralSettingsService } from '../../organisation-general-settings/organisation-general-settings.service';
 import { ServiceUserVisitPlansService } from '../../service-user-visit-plans/service-user-visit-plans.service';
 import type { VisitPlanSlotDto } from '../../service-user-visit-plans/dto/visit-plan-slot.dto';
-import { pickBestMatchingChargeCard } from '../../billing/charge-card-assignment.util';
 import { operationalTodayIso } from '../../common/utils/operational-day.util';
 import { CrmService, LOST_REASON_LABELS } from '../crm.service';
 import { OPEN_STAGES } from '../crm-workflow.util';
 import {
+  describeQuoteRates,
   mondayOnOrAfter,
+  normaliseQuoteRates,
   priceQuote,
-  resolveVat,
   round2,
   WEEKDAY_NAMES,
   type QuoteExtraInput,
   type QuoteFundingInput,
   type QuotePatternInput,
   type QuotePricingResult,
+  type QuoteRates,
 } from './quote-pricing.util';
 import {
   AWAITING_CLIENT,
   canTransition,
   diffVersions,
+  type DiffFormat,
   formatQuotationNumber,
   isEditable,
   QUOTE_STATUS_LABELS,
@@ -77,8 +80,14 @@ type EnquiryRow = Prisma.EnquiryGetPayload<object>;
 /** Frozen when a version leaves DRAFT; everything client-facing is built from it. */
 type PricingSnapshot = {
   calculatedAt: string;
-  card: { id: string; name: string } | null;
-  multiCarerMode: 'COMBINED' | 'FIXED';
+  /** £ per carer per hour the quote was priced at. */
+  hourlyRate: number | null;
+  /** The other rates the quote was priced at (absent on quotes priced before they existed). */
+  rates?: QuoteRates | null;
+  /** The typed weekly total of a "total amount" (SUMMARY) quote. */
+  manualWeeklyTotal?: number | null;
+  /** Quotes issued before manual pricing were priced from this charge card. */
+  card?: { id: string; name: string } | null;
   referenceWeekStart: string;
   calendarMonth: string;
   pricing: QuotePricingResult;
@@ -124,6 +133,36 @@ const gbp = (n: number) =>
   new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'GBP' }).format(
     n,
   );
+/** Morning / Lunchtime / Afternoon / Evening / Night, for a summary quote that shows no times. */
+export const timeOfDay = (startTime: string, nightDuty?: string | null) => {
+  if (nightDuty && nightDuty !== 'NONE') return 'Night';
+  const h = Number(startTime.slice(0, 2));
+  if (h >= 5 && h < 11) return 'Morning';
+  if (h >= 11 && h < 14) return 'Lunchtime';
+  if (h >= 14 && h < 17) return 'Afternoon';
+  if (h >= 17 && h < 21) return 'Evening';
+  return 'Night';
+};
+
+/** "£12.00", or "£12.00–£14.40" when weekend / bank holiday rates make the days differ. */
+const perVisitRange = (
+  priced:
+    | {
+        chargePerOccurrence: number | null;
+        occurrences: { amount: number | null }[];
+      }
+    | undefined,
+) => {
+  if (!priced) return null;
+  if (priced.chargePerOccurrence != null)
+    return gbp(priced.chargePerOccurrence);
+  const amounts = priced.occurrences
+    .map((o) => o.amount)
+    .filter((a): a is number => a != null);
+  return amounts.length
+    ? `${gbp(Math.min(...amounts))}–${gbp(Math.max(...amounts))}`
+    : null;
+};
 const QUOTE_TYPE_LABELS = {
   PROVISIONAL_ESTIMATE: 'Provisional estimate',
   FINAL: 'Final quotation',
@@ -220,12 +259,15 @@ export class QuotationsService {
     }));
   }
 
-  /** Price draft content with the client charge card that applies (explicit, else branch / funder / default). */
+  /** Price draft content by hand: the quote's hourly rate (charge cards are not used for quotes). */
   private async calculate(
     tx: Tx,
     input: {
       locationId: string | null;
-      chargeCardId: string | null;
+      hourlyRate: number | Prisma.Decimal | null;
+      rates: unknown;
+      clientLayout: string | null | undefined;
+      manualWeeklyTotal: number | Prisma.Decimal | null | undefined;
       proposedStartDate: string | null;
       fundingCategory: string;
       serviceUserId: string | null;
@@ -263,39 +305,6 @@ export class QuotationsService {
     const monthDate = new Date(Date.UTC(sy, sm - 1 + (sd === 1 ? 0 : 1), 1));
     const calendarMonth = monthDate.toISOString().slice(0, 7);
 
-    let card: Prisma.ChargeCardGetPayload<{ include: { rules: true } }> | null =
-      null;
-    if (input.chargeCardId) {
-      card = await tx.chargeCard.findFirst({
-        where: { id: input.chargeCardId, deletedAt: null },
-        include: { rules: true },
-      });
-      if (!card)
-        throw new BadRequestException('The selected charge card was not found');
-    } else {
-      const cards = await tx.chargeCard.findMany({
-        where: { deletedAt: null, status: 'ACTIVE' },
-        include: { rules: true },
-      });
-      card = pickBestMatchingChargeCard(
-        {
-          serviceUserId: input.serviceUserId ?? '',
-          locationId: input.locationId,
-          fundingId: null,
-          funderId: input.fundings.find((f) => f.funderId)?.funderId ?? null,
-          packageName: null,
-          householdKey: null,
-          serviceTypeKey: null,
-        },
-        cards,
-        { at: new Date(`${start}T12:00:00Z`) },
-      );
-    }
-    const settings = await tx.organisationGeneralSettings.findFirst({
-      select: { multiCarerFunderChargeMode: true },
-    });
-    const multiCarerMode =
-      settings?.multiCarerFunderChargeMode === 'FIXED' ? 'FIXED' : 'COMBINED';
     const holidayTo = new Date(
       Date.UTC(monthDate.getUTCFullYear(), monthDate.getUTCMonth() + 2, 1),
     );
@@ -325,8 +334,13 @@ export class QuotationsService {
           select: { holidayDate: true },
         })
       : [];
-    const rules = card?.rules ?? [];
-    const mileageRule = rules.find((r) => r.rateType === 'MILEAGE');
+    const hourlyRate = num(input.hourlyRate);
+    const rates = normaliseQuoteRates(input.rates);
+    // A "total amount" quote is priced from its typed weekly total, not from rates.
+    const manualWeeklyTotal =
+      input.clientLayout === 'SUMMARY'
+        ? num(input.manualWeeklyTotal ?? null)
+        : undefined;
     const pricing = priceQuote(
       this.patternInputs(input.patterns),
       input.extras.map((e) => ({
@@ -346,25 +360,25 @@ export class QuotationsService {
       })),
       input.fundingCategory,
       {
-        cardName: card?.name ?? null,
-        rules,
-        defaultChargeMethod: card?.defaultChargeMethod ?? 'HOURLY_PRO_RATA',
-        multiCarerMode,
+        hourlyRate,
+        rates,
+        manualWeeklyTotal,
         timeZone,
         bankHolidays: new Set(
           [...holidays, ...extraHolidays].map((h) => isoDay(h.holidayDate)!),
         ),
         referenceWeekStart,
         calendarMonth,
-        vat: resolveVat(card?.taxTreatment),
+        vat: { rate: null, label: 'VAT not added' },
       },
-      mileageRule ? Number(mileageRule.amount) : null,
+      null,
     );
     return {
       pricing,
       snapshot: {
-        card: card ? { id: card.id, name: card.name } : null,
-        multiCarerMode,
+        hourlyRate,
+        rates,
+        manualWeeklyTotal: manualWeeklyTotal ?? null,
         referenceWeekStart,
         calendarMonth,
       },
@@ -383,7 +397,10 @@ export class QuotationsService {
     });
     const { pricing } = await this.calculate(tx, {
       locationId: v.locationId,
-      chargeCardId: v.chargeCardId,
+      hourlyRate: v.hourlyRate,
+      rates: v.rates,
+      clientLayout: v.clientLayout,
+      manualWeeklyTotal: v.manualWeeklyTotal,
       proposedStartDate: isoDay(v.proposedStartDate),
       fundingCategory: v.fundingCategory,
       serviceUserId,
@@ -460,7 +477,10 @@ export class QuotationsService {
     const enquiry = await this.enquiry(actor, enquiryId);
     const { pricing, snapshot } = await this.calculate(this.prisma, {
       locationId: dto.locationId ?? enquiry.locationId,
-      chargeCardId: dto.chargeCardId ?? null,
+      hourlyRate: dto.hourlyRate ?? null,
+      rates: dto.rates ?? null,
+      clientLayout: dto.clientLayout ?? 'DETAILED',
+      manualWeeklyTotal: dto.manualWeeklyTotal ?? null,
       proposedStartDate: dto.proposedStartDate?.slice(0, 10) ?? null,
       fundingCategory: dto.fundingCategory ?? 'PRIVATE',
       serviceUserId: enquiry.convertedServiceUserId,
@@ -500,7 +520,10 @@ export class QuotationsService {
       assessmentSubmissionId: v.assessmentSubmissionId,
       assessmentReference: v.assessmentReference,
       fundingCategory: v.fundingCategory,
-      chargeCardId: v.chargeCardId,
+      hourlyRate: num(v.hourlyRate),
+      rates: normaliseQuoteRates(v.rates),
+      clientLayout: v.clientLayout,
+      manualWeeklyTotal: num(v.manualWeeklyTotal),
       internalNotes: v.internalNotes,
       clientNotes: v.clientNotes,
       terms: v.terms,
@@ -589,13 +612,37 @@ export class QuotationsService {
     };
   }
 
-  /** Branch, assessment, funding and agreement — shown as pending after acceptance (nothing is auto-completed). */
-  private prerequisites(enquiry: EnquiryRow, v: VersionRow) {
+  /** Latest full initial assessment of the enquiry's service user (archived and cancelled left out). */
+  private async latestInitialAssessmentStatus(serviceUserId: string | null) {
+    if (!serviceUserId) return null;
+    const row = await this.prisma.initialAssessmentSubmission.findFirst({
+      where: {
+        serviceUserId,
+        deletedAt: null,
+        status: { notIn: ['ARCHIVED', 'CANCELLED'] },
+      },
+      orderBy: { updatedAt: 'desc' },
+      select: { status: true },
+    });
+    return row?.status ?? null;
+  }
+
+  /**
+   * Branch, assessment, funding and agreement — shown as pending after acceptance (nothing is
+   * auto-completed). A submitted or reviewed full initial assessment counts as the assessment.
+   */
+  private prerequisites(
+    enquiry: EnquiryRow,
+    v: VersionRow,
+    iaStatus: InitialAssessmentStatus | null = null,
+  ) {
     const thirdParty = v.fundings.filter(
       (f) => f.payerType !== 'PRIVATE_CLIENT',
     );
     const pendingFunding = thirdParty.filter((f) => f.status !== 'CONFIRMED');
+    const iaDone = iaStatus === 'SUBMITTED' || iaStatus === 'REVIEWED';
     const assessed =
+      iaDone ||
       Boolean(v.assessmentSubmissionId) ||
       Boolean(
         enquiry.assessmentAt && enquiry.assessmentAt.getTime() <= Date.now(),
@@ -611,11 +658,18 @@ export class QuotationsService {
         key: 'assessment',
         label: 'Assessment',
         done: assessed,
-        detail: assessed
-          ? 'Assessment recorded'
-          : enquiry.assessmentAt
-            ? 'Assessment booked, not yet carried out'
-            : 'No assessment booked',
+        detail:
+          iaStatus === 'REVIEWED'
+            ? 'Initial assessment reviewed'
+            : iaStatus === 'SUBMITTED'
+              ? 'Initial assessment submitted · awaiting manager review'
+              : assessed
+                ? 'Assessment recorded'
+                : iaStatus
+                  ? 'Initial assessment in progress, not yet submitted'
+                  : enquiry.assessmentAt
+                    ? 'Assessment booked, not yet carried out'
+                    : 'No assessment booked',
       },
       {
         key: 'funding',
@@ -802,7 +856,10 @@ export class QuotationsService {
       livePricing = (
         await this.calculate(this.prisma, {
           locationId: v.locationId,
-          chargeCardId: v.chargeCardId,
+          hourlyRate: v.hourlyRate,
+          rates: v.rates,
+          clientLayout: v.clientLayout,
+          manualWeeklyTotal: v.manualWeeklyTotal,
           proposedStartDate: isoDay(v.proposedStartDate),
           fundingCategory: v.fundingCategory,
           serviceUserId: enquiry.convertedServiceUserId,
@@ -838,7 +895,15 @@ export class QuotationsService {
           statusLabel: QUOTE_STATUS_LABELS[x.status],
         })),
         prerequisites:
-          v.status === 'ACCEPTED' ? this.prerequisites(enquiry, v) : null,
+          v.status === 'ACCEPTED'
+            ? this.prerequisites(
+                enquiry,
+                v,
+                await this.latestInitialAssessmentStatus(
+                  enquiry.convertedServiceUserId,
+                ),
+              )
+            : null,
         serviceUserId: enquiry.convertedServiceUserId,
         enquiryStage: enquiry.stage,
         emailAvailable: this.emailAvailable(),
@@ -951,7 +1016,14 @@ export class QuotationsService {
       data.assessmentReference = dto.assessmentReference?.trim() || null;
     if (dto.fundingCategory !== undefined)
       data.fundingCategory = dto.fundingCategory;
-    if (dto.chargeCardId !== undefined) data.chargeCardId = dto.chargeCardId;
+    if (dto.hourlyRate !== undefined) data.hourlyRate = dto.hourlyRate;
+    if (dto.clientLayout !== undefined) data.clientLayout = dto.clientLayout;
+    if (dto.manualWeeklyTotal !== undefined)
+      data.manualWeeklyTotal = dto.manualWeeklyTotal;
+    if (dto.rates !== undefined)
+      data.rates =
+        (normaliseQuoteRates(dto.rates) as Prisma.InputJsonValue | null) ??
+        Prisma.DbNull;
     if (dto.internalNotes !== undefined)
       data.internalNotes = dto.internalNotes?.trim() || null;
     if (dto.clientNotes !== undefined)
@@ -1364,7 +1436,10 @@ export class QuotationsService {
       );
     const { pricing, snapshot } = await this.calculate(tx, {
       locationId: v.locationId,
-      chargeCardId: v.chargeCardId,
+      hourlyRate: v.hourlyRate,
+      rates: v.rates,
+      clientLayout: v.clientLayout,
+      manualWeeklyTotal: v.manualWeeklyTotal,
       proposedStartDate: isoDay(v.proposedStartDate),
       fundingCategory: v.fundingCategory,
       serviceUserId,
@@ -1645,7 +1720,10 @@ export class QuotationsService {
         assessmentSubmissionId: source.assessmentSubmissionId,
         assessmentReference: source.assessmentReference,
         fundingCategory: source.fundingCategory,
-        chargeCardId: source.chargeCardId,
+        hourlyRate: source.hourlyRate,
+        rates: source.rates ?? Prisma.DbNull,
+        clientLayout: source.clientLayout,
+        manualWeeklyTotal: source.manualWeeklyTotal,
         internalNotes: source.internalNotes,
         clientNotes: source.clientNotes,
         terms: source.terms,
@@ -2051,8 +2129,36 @@ export class QuotationsService {
       proposedEndDate: isoDay(v.proposedEndDate),
       clientName: `${enquiry.firstName} ${enquiry.lastName}`,
       contactName: enquiry.contactName,
+      layout: v.clientLayout,
       visits: v.patterns.map((pat, i) => {
         const priced = p.patterns[i];
+        if (v.clientLayout === 'SUMMARY') {
+          // No times, lengths or prices: "Morning visit", the days and how often.
+          const days =
+            pat.frequency === 'ONE_OFF'
+              ? pat.oneOffDates.map((d) => isoDay(d)!)
+              : [1, 2, 3, 4, 5, 6, 0]
+                  .filter((d) => pat.daysOfWeek.includes(d))
+                  .map((d) => WEEKDAY_NAMES[d].slice(0, 3));
+          const often =
+            freq[pat.frequency].charAt(0).toUpperCase() +
+            freq[pat.frequency].slice(1);
+          return {
+            // The slot's name ("Morning visit"); visits added with times get one from their start time.
+            label:
+              pat.label?.trim() ||
+              `${timeOfDay(pat.startTime, pat.nightDuty)} visit`,
+            when: `${days.length === 7 ? 'Every day' : days.join(', ')} (${freq[pat.frequency]})`,
+            days: days.length === 7 ? ['Every day'] : days,
+            time: '',
+            frequency: often,
+            duration: '',
+            carers: pat.carersPerVisit,
+            activities: pat.activities,
+            perVisit: null,
+            weekly: '',
+          };
+        }
         const days =
           pat.frequency === 'ONE_OFF'
             ? pat.oneOffDates.map((d) => isoDay(d)).join(', ')
@@ -2080,10 +2186,7 @@ export class QuotationsService {
           duration: hm(pat.durationMinutes),
           carers: pat.carersPerVisit,
           activities: pat.activities,
-          perVisit:
-            priced?.chargePerOccurrence != null
-              ? gbp(priced.chargePerOccurrence)
-              : null,
+          perVisit: perVisitRange(priced),
           weekly:
             pat.frequency === 'ONE_OFF'
               ? `${gbp(priced?.oneOffTotal ?? 0)} one-off`
@@ -2112,6 +2215,11 @@ export class QuotationsService {
           : []),
       ],
       oneOffTotal: p.oneOffTotal ? gbp(p.oneOffTotal) : null,
+      // Only when the quote has rates besides the hourly one (the visit rows show that); never on a summary.
+      rates:
+        snap.rates && v.clientLayout === 'DETAILED'
+          ? describeQuoteRates(snap.hourlyRate, snap.rates)
+          : [],
       vatLabel: p.vatLabel,
       funding: p.fundings
         .filter((f) => f.payerType !== 'PRIVATE_CLIENT')
@@ -2423,6 +2531,73 @@ export class QuotationsService {
     };
   }
 
+  /**
+   * A funder approved its share after the client accepted. Only that funding row's status (and
+   * reference) changes: the price and the copy the client received stay as they were.
+   */
+  async confirmFunding(
+    actor: RequestUser,
+    enquiryId: string,
+    quotationId: string,
+    versionId: string,
+    fundingId: string,
+    dto: { reference?: string; note?: string },
+    meta?: RequestAuditMeta,
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const v = await this.version(
+        actor,
+        enquiryId,
+        quotationId,
+        versionId,
+        tx,
+      );
+      if (v.status !== 'ACCEPTED')
+        throw new ConflictException(
+          'Confirm funding on the accepted quotation (change a draft in Who pays)',
+        );
+      const funding = v.fundings.find((f) => f.id === fundingId);
+      if (!funding)
+        throw new NotFoundException('Funding not found on this quotation');
+      if (funding.status === 'CONFIRMED') return;
+      const reference = dto.reference?.trim() || funding.reference;
+      await tx.enquiryQuotationFunding.update({
+        where: { id: funding.id },
+        data: { status: 'CONFIRMED', reference },
+      });
+      const payer =
+        funding.payerName || funding.payerType.replace('_', ' ').toLowerCase();
+      await this.event(
+        tx,
+        enquiryId,
+        'Funding confirmed',
+        [
+          `${v.quotation.quotationNumber} V${v.versionNumber} — ${payer}`,
+          reference ? `ref ${reference}` : null,
+          dto.note?.trim() || null,
+        ]
+          .filter(Boolean)
+          .join(' · '),
+        actor.id,
+        v.id,
+      );
+      await this.logAudit(
+        tx,
+        actor.id,
+        AuditAction.ENQUIRY_QUOTE_UPDATED,
+        AuditEventType.UPDATE,
+        v.id,
+        `Funding confirmed: ${payer}`,
+        meta,
+      );
+    });
+    return {
+      message: 'Funding confirmed',
+      data: (await this.getVersion(actor, enquiryId, quotationId, versionId))
+        .data,
+    };
+  }
+
   /* ─── follow-ups ────────────────────────────────────────────────────── */
 
   /**
@@ -2624,27 +2799,107 @@ export class QuotationsService {
         status: QUOTE_STATUS_LABELS[v.status],
       };
     };
-    const rows = diffVersions(shape(a), shape(b), [
-      ['General', 'status', 'Status'],
-      ['General', 'quoteType', 'Quote type'],
-      ['General', 'proposedStartDate', 'Proposed start'],
-      ['General', 'proposedEndDate', 'Proposed end'],
-      ['General', 'validUntil', 'Valid until'],
-      ['General', 'fundingCategory', 'Funding category'],
-      ['General', 'clientNotes', 'Client notes'],
-      ['General', 'terms', 'Terms'],
-      ['Cost summary', 'weeklyTotal', 'Weekly total'],
-      ['Cost summary', 'monthlyAverage', 'Average monthly'],
-      ['Cost summary', 'clientWeeklyLiability', 'Client pays per week'],
-      ['Cost summary', 'coverageHours', 'Coverage hours / week'],
-      ['Cost summary', 'carerHours', 'Carer hours / week'],
-    ]);
+    const sa = shape(a);
+    const sb = shape(b);
+    // A "total amount" quote has no visit prices or hours, so those are not compared.
+    const timed =
+      a.clientLayout === 'DETAILED' && b.clientLayout === 'DETAILED';
+    const rows = diffVersions(
+      sa,
+      sb,
+      [
+        ['General', 'status', 'Status'],
+        ['General', 'quoteType', 'Quote type', 'enum'],
+        ['General', 'proposedStartDate', 'Proposed start', 'date'],
+        ['General', 'proposedEndDate', 'Proposed end', 'date'],
+        ['General', 'validUntil', 'Valid until', 'date'],
+        ['General', 'fundingCategory', 'Funding type', 'enum'],
+        ['General', 'clientNotes', 'Notes for the client'],
+        ['General', 'terms', 'Terms'],
+        ['Pricing', 'clientLayout', 'How it is priced', 'enum'],
+        ['Pricing', 'hourlyRate', 'Hourly rate', 'money'],
+        ['Pricing', 'manualWeeklyTotal', 'Typed weekly total', 'money'],
+        ['Price', 'weeklyTotal', 'Weekly total', 'money'],
+        ['Price', 'monthlyAverage', 'Average month', 'money'],
+        ['Price', 'clientWeeklyLiability', 'Client pays per week', 'money'],
+        ...(timed
+          ? ([
+              ['Price', 'coverageHours', 'Hours of care a week', 'hours'],
+              ['Price', 'carerHours', 'Carer hours a week', 'hours'],
+            ] as Array<[string, string, string, DiffFormat]>)
+          : []),
+      ],
+      { visitPrices: timed },
+    );
+    const side = (v: VersionRow, m: typeof sa) => ({
+      id: v.id,
+      versionNumber: v.versionNumber,
+      statusLabel: m.status,
+      weeklyTotal: m.weeklyTotal,
+      clientWeeklyLiability: m.clientWeeklyLiability,
+    });
     return {
       data: {
-        from: { id: a.id, versionNumber: a.versionNumber },
-        to: { id: b.id, versionNumber: b.versionNumber },
+        from: side(a, sa),
+        to: side(b, sb),
         rows,
       },
+    };
+  }
+
+  /* ─── accepted quote → active service user ──────────────────────────── */
+
+  /**
+   * The client accepted: make the person an active service user (see CrmService.activateServiceUser)
+   * with the quote's proposed start as their service start, then, if asked, the draft care package.
+   * A care package that cannot be made does not undo the service user; the reason is returned.
+   */
+  async createServiceUserFromQuote(
+    actor: RequestUser,
+    enquiryId: string,
+    quotationId: string,
+    versionId: string,
+    opts: { createCarePackage: boolean },
+    meta?: RequestAuditMeta,
+  ) {
+    const v = await this.version(actor, enquiryId, quotationId, versionId);
+    if (v.status !== 'ACCEPTED')
+      throw new ConflictException(
+        "Record the client's acceptance before creating the service user",
+      );
+    const { serviceUserId, created } = await this.crm.activateServiceUser(
+      actor,
+      enquiryId,
+      { serviceStartDate: v.proposedStartDate },
+      meta,
+    );
+    let carePackage: { created: boolean; error: string | null } = {
+      created: false,
+      error: null,
+    };
+    if (opts.createCarePackage && !v.convertedVisitPlanId) {
+      try {
+        const r = await this.convertToCarePackage(
+          actor,
+          enquiryId,
+          quotationId,
+          versionId,
+          meta,
+        );
+        carePackage = { created: r.data.created, error: null };
+      } catch (e) {
+        carePackage = {
+          created: false,
+          error:
+            e instanceof Error
+              ? e.message
+              : 'The care package could not be made',
+        };
+      }
+    }
+    return {
+      message: created ? 'Service user created' : 'Service user made active',
+      data: { serviceUserId, created, carePackage },
     };
   }
 
@@ -2761,7 +3016,19 @@ export class QuotationsService {
           },
         ];
       });
-      const weeklyHours = round2(v.weeklyCoverageMinutes / 60);
+      // A "total amount" quote prices no visit minutes, so its contracted hours come from the visits.
+      const weeklyMinutes =
+        v.weeklyCoverageMinutes ||
+        v.patterns.reduce(
+          (sum, p) =>
+            sum +
+            p.durationMinutes *
+              (p.frequency === 'ONE_OFF'
+                ? p.oneOffDates.length
+                : p.daysOfWeek.length),
+          0,
+        );
+      const weeklyHours = round2(weeklyMinutes / 60);
       const created = await this.visitPlans.create(
         actor.id,
         serviceUserId,

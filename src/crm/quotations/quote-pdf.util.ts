@@ -8,6 +8,8 @@ type Doc = InstanceType<typeof PDFDocument>;
 
 /** Client-facing quote content. Built only from an issued version's snapshot — never internal notes. */
 export type ClientQuoteView = {
+  /** SUMMARY: visits by time of day with no times, lengths or per-visit prices; totals only. */
+  layout: 'DETAILED' | 'SUMMARY';
   provider: {
     name: string;
     email: string | null;
@@ -38,6 +40,8 @@ export type ClientQuoteView = {
     weekly: string;
   }>;
   extras: Array<{ description: string; frequency: string; amount: string }>;
+  /** The quote's rates in words, when it has rates besides the hourly one (else empty). */
+  rates: Array<{ label: string; value: string }>;
   totals: Array<{ label: string; amount: string; method: string }>;
   oneOffTotal: string | null;
   vatLabel: string;
@@ -146,13 +150,16 @@ export function buildQuotePdfKit(view: ClientQuoteView): Promise<Buffer> {
     heading('Proposed visits');
     for (const v of view.visits) {
       doc.font('Helvetica-Bold').fontSize(9).text(t(v.label), left);
+      const carers = `${v.carers} carer${v.carers === 1 ? '' : 's'}`;
       doc
         .font('Helvetica')
         .fontSize(9)
         .fillColor('#334155')
         .text(
           t(
-            `${v.when}  |  ${v.duration}  |  ${v.carers} carer${v.carers === 1 ? '' : 's'}`,
+            view.layout === 'SUMMARY'
+              ? `${v.when}  |  ${carers}`
+              : `${v.when}  |  ${v.duration}  |  ${carers}`,
           ),
           left,
         );
@@ -161,7 +168,8 @@ export function buildQuotePdfKit(view: ClientQuoteView): Promise<Buffer> {
           width,
         });
       doc.fillColor('#0f172a');
-      row(v.perVisit ? `Per visit ${v.perVisit}` : 'Price', v.weekly);
+      if (view.layout === 'DETAILED')
+        row(v.perVisit ? `Per visit ${v.perVisit}` : 'Price', v.weekly);
       doc.moveDown(0.2);
     }
 
@@ -169,6 +177,11 @@ export function buildQuotePdfKit(view: ClientQuoteView): Promise<Buffer> {
       heading('Other charges');
       for (const e of view.extras)
         row(`${e.description} (${e.frequency})`, e.amount);
+    }
+
+    if (view.rates.length) {
+      heading('Rates used');
+      for (const r of view.rates) row(r.label, r.value);
     }
 
     heading('Cost summary');

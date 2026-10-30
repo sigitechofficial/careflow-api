@@ -170,6 +170,7 @@ export enum AuditAction {
   INITIAL_ASSESSMENT_SECURE_FIELD_REVEALED = 'initial_assessment_secure_field_revealed',
   INITIAL_ASSESSMENT_ATTACHMENT_UPLOADED = 'initial_assessment_attachment_uploaded',
   INITIAL_ASSESSMENT_ATTACHMENT_DELETED = 'initial_assessment_attachment_deleted',
+  INITIAL_ASSESSMENT_ATTACHMENT_DOWNLOADED = 'initial_assessment_attachment_downloaded',
   INITIAL_ASSESSMENT_ANSWER_CORRECTED = 'initial_assessment_answer_corrected',
   INITIAL_ASSESSMENT_CARE_PLAN_DECISION = 'initial_assessment_care_plan_decision',
   INITIAL_ASSESSMENT_CQC_EVIDENCE_EXPORTED = 'initial_assessment_cqc_evidence_exported',

@@ -15,6 +15,7 @@ import {
 } from 'class-validator';
 import {
   EnquiryFundingType,
+  EnquiryKind,
   EnquiryReceivedVia,
   EnquirySource,
   EnquiryType,
@@ -22,6 +23,34 @@ import {
 } from '@prisma/client';
 
 export class CreateEnquiryDto {
+  @ApiPropertyOptional({ enum: EnquiryKind, description: 'ENQUIRY (person / family) or REFERRAL (a professional). Default ENQUIRY.' })
+  @IsOptional()
+  @IsEnum(EnquiryKind)
+  kind?: EnquiryKind;
+
+  @ApiPropertyOptional({ description: 'Referral only: council, trust, hospital ward, GP practice…' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  referringOrganisation?: string;
+
+  @ApiPropertyOptional({ description: "Referral only: the referrer's role (social worker, discharge nurse…)." })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  referrerRole?: string;
+
+  @ApiPropertyOptional({ description: "Referral only: the referrer's reference (e.g. council case number)." })
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  referralReference?: string;
+
+  @ApiPropertyOptional({ format: 'date', description: 'Referral only: the date on the referral.' })
+  @IsOptional()
+  @IsString()
+  referralDate?: string;
+
   @ApiProperty()
   @IsString()
   @MaxLength(120)

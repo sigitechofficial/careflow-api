@@ -27,6 +27,8 @@ import {
   CreateFollowUpDto,
   QuoteDraftDto,
   QuoteNoteDto,
+  ConfirmFundingDto,
+  CreateServiceUserFromQuoteDto,
   ReconcileLegacyQuoteDto,
   RecordResponseDto,
   SendQuoteDto,
@@ -75,7 +77,7 @@ export class QuotationsController {
   @Permissions('crm.manage')
   @ApiOperation({
     summary:
-      'Price unsaved quotation content with the client charge card (nothing saved)',
+      'Price unsaved quotation content at its hourly rate (nothing saved)',
   })
   pricingPreview(
     @CurrentUser() user: RequestUser,
@@ -403,6 +405,58 @@ export class QuotationsController {
       quotationId,
       versionId,
       dto.note,
+      getRequestAuditMeta(req),
+    );
+  }
+
+  @Post(
+    'quotations/:quotationId/versions/:versionId/fundings/:fundingId/confirm',
+  )
+  @Permissions('crm.manage')
+  @ApiOperation({
+    summary:
+      'Record that a funder approved its share of an accepted quote (price unchanged)',
+  })
+  confirmFunding(
+    @CurrentUser() user: RequestUser,
+    @Param('enquiryId', uuid) enquiryId: string,
+    @Param('quotationId', uuid) quotationId: string,
+    @Param('versionId', uuid) versionId: string,
+    @Param('fundingId', uuid) fundingId: string,
+    @Body() dto: ConfirmFundingDto,
+    @Req() req: Request,
+  ) {
+    return this.service.confirmFunding(
+      user,
+      enquiryId,
+      quotationId,
+      versionId,
+      fundingId,
+      dto,
+      getRequestAuditMeta(req),
+    );
+  }
+
+  @Post('quotations/:quotationId/versions/:versionId/service-user')
+  @Permissions('crm.manage', 'service_users.create')
+  @ApiOperation({
+    summary:
+      'After acceptance: make the person an active service user (and, if asked, the draft care package)',
+  })
+  createServiceUser(
+    @CurrentUser() user: RequestUser,
+    @Param('enquiryId', uuid) enquiryId: string,
+    @Param('quotationId', uuid) quotationId: string,
+    @Param('versionId', uuid) versionId: string,
+    @Body() dto: CreateServiceUserFromQuoteDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createServiceUserFromQuote(
+      user,
+      enquiryId,
+      quotationId,
+      versionId,
+      { createCarePackage: dto.createCarePackage !== false },
       getRequestAuditMeta(req),
     );
   }

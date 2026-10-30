@@ -1,9 +1,10 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
-import { CrmService } from './crm.service';
+import { CrmService, payerTypeForFundingType } from './crm.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { OrgScopeService } from '../common/org-scope/org-scope.service';
+import { InitialAssessmentsService } from '../initial-assessments/initial-assessments.service';
 
 function row(overrides: Record<string, unknown> = {}) {
   const now = new Date();
@@ -48,6 +49,7 @@ const branchUser: any = { id: 'u2', roles: ['Manager'], permissions: [], assigne
 describe('CrmService', () => {
   let service: CrmService;
   const audit = { logAudit: jest.fn() };
+  const initialAssessments = { createSubmission: jest.fn() };
 
   const prisma: any = {
     enquiry: { findFirst: jest.fn(), update: jest.fn(), findMany: jest.fn() },
@@ -55,7 +57,11 @@ describe('CrmService', () => {
     serviceUserFundingType: { findMany: jest.fn() },
     location: { findMany: jest.fn() },
     carePathwayForm: { findMany: jest.fn() },
-    serviceUser: { findFirst: jest.fn(), findMany: jest.fn() },
+    serviceUser: { findFirst: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn() },
+    serviceUserAddress: { create: jest.fn(), upsert: jest.fn() },
+    serviceUserStatus: { findFirst: jest.fn() },
+    serviceUserAssignment: { create: jest.fn(), updateMany: jest.fn() },
+    initialAssessmentSubmission: { findMany: jest.fn() },
     enquiryNumberSequence: { upsert: jest.fn() },
     enquiryEvent: { create: jest.fn() },
     $transaction: jest.fn(),
@@ -69,6 +75,7 @@ describe('CrmService', () => {
     prisma.carePathwayForm.findMany.mockResolvedValue([]);
     prisma.enquiry.findMany.mockResolvedValue([]);
     prisma.serviceUser.findMany.mockResolvedValue([]);
+    prisma.initialAssessmentSubmission.findMany.mockResolvedValue([]);
     prisma.$transaction.mockImplementation((cb: (tx: unknown) => unknown) => cb(prisma));
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -76,6 +83,7 @@ describe('CrmService', () => {
         OrgScopeService,
         { provide: PrismaService, useValue: prisma },
         { provide: AuditLogsService, useValue: audit },
+        { provide: InitialAssessmentsService, useValue: initialAssessments },
       ],
     }).compile();
     service = moduleRef.get(CrmService);
@@ -121,6 +129,31 @@ describe('CrmService', () => {
     const call = prisma.enquiry.update.mock.calls[0][0];
     expect(call.data).toEqual(expect.objectContaining({ hoursPerWeek: 14, fundingTypeId: 'ft-1' }));
     expect(call.data.events.create).toEqual([expect.objectContaining({ action: 'Details updated' })]);
+  });
+
+  it('copies changed person details to the linked Pre-admission service user', async () => {
+    prisma.enquiry.findFirst.mockResolvedValue(row({ convertedServiceUserId: 'su-1', postcode: 'AB1 2CD' }));
+    prisma.enquiry.update.mockResolvedValue(
+      row({ convertedServiceUserId: 'su-1', firstName: 'Tufal', lastName: 'Marwat', postcode: 'AB1 2CD' }),
+    );
+    prisma.serviceUser.findFirst.mockResolvedValue({ id: 'su-1' });
+    await service.update(admin, 'e1', { firstName: 'Tufal', lastName: 'Marwat', postcode: 'AB1 2CD' } as any);
+    expect(prisma.serviceUser.findFirst.mock.calls[0][0].where).toEqual(
+      expect.objectContaining({ id: 'su-1', status: { code: 'PRE_ADMISSION' } }),
+    );
+    // The unchanged postcode is not copied.
+    expect(prisma.serviceUser.update.mock.calls[0][0].data).toEqual(
+      expect.objectContaining({ firstName: 'Tufal', lastName: 'Marwat' }),
+    );
+    expect(prisma.serviceUserAddress.upsert).not.toHaveBeenCalled();
+  });
+
+  it('leaves a service user that is no longer Pre-admission alone', async () => {
+    prisma.enquiry.findFirst.mockResolvedValue(row({ convertedServiceUserId: 'su-1' }));
+    prisma.enquiry.update.mockResolvedValue(row({ convertedServiceUserId: 'su-1', firstName: 'Tufal' }));
+    prisma.serviceUser.findFirst.mockResolvedValue(null);
+    await service.update(admin, 'e1', { firstName: 'Tufal' } as any);
+    expect(prisma.serviceUser.update).not.toHaveBeenCalled();
   });
 
   it('stores the chosen care plans and returns their names', async () => {
@@ -201,6 +234,40 @@ describe('CrmService', () => {
     expect(prisma.enquiry.create.mock.calls[0][0].data.locationId).toBe('loc-a');
   });
 
+  it('records a referral with its details, and an enquiry without them', async () => {
+    prisma.enquiryNumberSequence.upsert.mockResolvedValue({ lastValue: 10 });
+    prisma.enquiry.create = jest.fn().mockResolvedValue(row({ kind: 'REFERRAL' }));
+    const referral = {
+      firstName: 'A',
+      lastName: 'B',
+      kind: 'REFERRAL',
+      referringOrganisation: 'Croydon Council Adult Social Care',
+      referrerRole: 'Social worker',
+      referralReference: 'ASC-123',
+      referralDate: '2026-10-29',
+    };
+    const res = await service.create(branchUser, referral as any);
+    const data = prisma.enquiry.create.mock.calls[0][0].data;
+    expect(data).toMatchObject({ kind: 'REFERRAL', referringOrganisation: 'Croydon Council Adult Social Care', referralReference: 'ASC-123' });
+    expect(data.referralDate).toEqual(new Date('2026-10-29'));
+    expect(data.events.create.action).toBe('Referral created');
+    expect(res.message).toBe('Referral created');
+
+    await service.create(branchUser, { ...referral, kind: 'ENQUIRY' } as any);
+    expect(prisma.enquiry.create.mock.calls[1][0].data).toMatchObject({ kind: 'ENQUIRY', referringOrganisation: null, referralDate: null });
+  });
+
+  it('clears the referral details when a referral is changed to an enquiry', async () => {
+    prisma.enquiry.findFirst.mockResolvedValue(row({ kind: 'REFERRAL', referringOrganisation: 'NHS Trust', referralReference: 'X1' }));
+    prisma.enquiry.update.mockResolvedValue(row());
+    await service.update(admin, 'e1', { kind: 'ENQUIRY' } as any);
+    expect(prisma.enquiry.update.mock.calls[0][0].data).toMatchObject({
+      kind: 'ENQUIRY',
+      referringOrganisation: null,
+      referralReference: null,
+    });
+  });
+
   it('rejects a branch the user cannot access', async () => {
     await expect(
       service.create(branchUser, { firstName: 'A', lastName: 'B', locationId: 'loc-z' } as any),
@@ -224,6 +291,37 @@ describe('CrmService', () => {
     expect(prisma.enquiry.update.mock.calls[0][0].data).toEqual(
       expect.objectContaining({ convertedServiceUserId: 'su-1', stage: 'WON' }),
     );
+  });
+
+  it('starts the full initial assessment on a new Pre-admission service user without marking the enquiry Won', async () => {
+    prisma.enquiry.findFirst.mockResolvedValue(row({ locationId: 'loc-a', fundingTypeId: 'f1' }));
+    prisma.serviceUserStatus.findFirst.mockResolvedValue({ id: 'status-pre' });
+    prisma.serviceUser.create.mockResolvedValue({ id: 'su-new', firstName: 'Jo', lastName: 'Bloggs', statusId: 'status-pre', locationId: 'loc-a' });
+    const res = await service.startInitialAssessment(admin, 'e1');
+    expect(res.data).toEqual({ serviceUserId: 'su-new' });
+    expect(prisma.serviceUser.create.mock.calls[0][0].data).toEqual(
+      expect.objectContaining({ firstName: 'Jo', lastName: 'Bloggs', statusId: 'status-pre', locationId: 'loc-a', fundingTypeId: 'f1' }),
+    );
+    const update = prisma.enquiry.update.mock.calls[0][0].data;
+    expect(update.convertedServiceUserId).toBe('su-new');
+    expect(update.stage).toBeUndefined();
+    expect(initialAssessments.createSubmission).toHaveBeenCalledWith('u1', 'su-new', {}, undefined);
+  });
+
+  it('opens the linked service user instead of creating another one', async () => {
+    prisma.enquiry.findFirst.mockResolvedValue(row({ convertedServiceUserId: 'su-old' }));
+    const res = await service.startInitialAssessment(admin, 'e1');
+    expect(res.data).toEqual({ serviceUserId: 'su-old' });
+    expect(prisma.serviceUser.create).not.toHaveBeenCalled();
+    expect(initialAssessments.createSubmission).not.toHaveBeenCalled();
+  });
+
+  it('maps each funder to the quote payer type from its funding type', () => {
+    expect(payerTypeForFundingType('LOCAL_AUTHORITY')).toBe('LOCAL_AUTHORITY');
+    expect(payerTypeForFundingType('NHS')).toBe('NHS');
+    expect(payerTypeForFundingType('SELF_FUNDED')).toBe('PRIVATE_CLIENT');
+    expect(payerTypeForFundingType('DIRECT_PAYMENT')).toBe('OTHER');
+    expect(payerTypeForFundingType(null)).toBe('OTHER');
   });
 
   it('refuses to relink an enquiry to a different service user', async () => {
