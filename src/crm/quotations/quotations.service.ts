@@ -1274,6 +1274,21 @@ export class QuotationsService {
         userId,
         version.id,
       );
+      if (enquiry.stage === EnquiryStage.NEW) {
+        // A quote is only made once the person has been spoken to, so a new enquiry is now Contacted.
+        await tx.enquiry.update({
+          where: { id: enquiryId },
+          data: { stage: EnquiryStage.CONTACTED, stageChangedAt: new Date() },
+        });
+        await this.event(
+          tx,
+          enquiryId,
+          `Moved to ${EnquiryStage.CONTACTED}`,
+          `${quotationNumber} created`,
+          userId,
+          version.id,
+        );
+      }
       await this.logAudit(
         tx,
         userId,

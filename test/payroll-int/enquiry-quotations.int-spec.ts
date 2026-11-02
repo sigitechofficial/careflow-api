@@ -68,7 +68,7 @@ const draft = (over: Partial<QuoteDraftDto> = {}): QuoteDraftDto => ({
   ...over,
 });
 
-async function newEnquiry(stage: 'CONTACTED' | 'OFFER' = 'CONTACTED', locationId: string | null = null) {
+async function newEnquiry(stage: 'NEW' | 'CONTACTED' | 'OFFER' = 'CONTACTED', locationId: string | null = null) {
   const e = await prisma.enquiry.create({
     data: {
       referenceNumber: `ENQ-T-${tag}-${enquiries.length}`,
@@ -122,6 +122,16 @@ describe('enquiry quotations (database)', () => {
     expect(after.stage).toBe('CONTACTED');
     // The enquiry had no branch: it takes the quote's branch.
     expect(after.locationId).toBe(branchA);
+  });
+
+  it('A2: creating a quotation for a New enquiry marks it Contacted', async () => {
+    const e = await newEnquiry('NEW', branchA);
+    const { data } = await service.create(admin, e.id, draft({ locationId: branchA }));
+    const after = await prisma.enquiry.findUniqueOrThrow({ where: { id: e.id }, include: { events: true } });
+    expect(after.stage).toBe('CONTACTED');
+    expect(after.events).toContainEqual(
+      expect.objectContaining({ action: 'Moved to CONTACTED', note: `${data.quotationNumber} created` }),
+    );
   });
 
   it('J: a missing hourly rate blocks issuing', async () => {
