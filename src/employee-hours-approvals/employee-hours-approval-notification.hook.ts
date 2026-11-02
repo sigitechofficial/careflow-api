@@ -254,6 +254,8 @@ export class EmployeeHoursApprovalNotificationHook {
     visitLabel: string;
     weekHoursLabel: string;
     requestedById?: string;
+    /** What waits: "extra visit" (default), "visit plan visit", "special visit", "longer extra visit"… */
+    kindLabel?: string;
   }): Promise<void> {
     if (!this.notifications) return;
     try {
@@ -264,11 +266,12 @@ export class EmployeeHoursApprovalNotificationHook {
         select: { firstName: true, lastName: true },
       });
       const suName = `${su?.firstName ?? ''} ${su?.lastName ?? ''}`.trim() || 'A service user';
+      const kind = params.kindLabel ?? 'extra visit';
       await this.notifications.notifyUsers({
         recipientUserIds,
         type: NotificationType.SYSTEM_MESSAGE,
-        title: `Extra visit over weekly hours — ${suName}`,
-        message: `${suName}: extra visit on ${params.visitLabel} takes the week to ${params.weekHoursLabel}. Open Hours Approvals to approve or reject.`,
+        title: `${kind.charAt(0).toUpperCase()}${kind.slice(1)} over weekly hours — ${suName}`,
+        message: `${suName}: ${kind} on ${params.visitLabel} takes the week to ${params.weekHoursLabel}. Open Hours Approvals to approve or reject.`,
         module: NotificationModule.SERVICE_USER,
         severity: NotificationSeverity.WARNING,
         recordType: 'EmployeeHoursApproval',

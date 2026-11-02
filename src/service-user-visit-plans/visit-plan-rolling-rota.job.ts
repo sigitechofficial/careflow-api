@@ -23,6 +23,7 @@ import {
 } from './visit-plan-rolling-rota-catchup.util';
 import { JobHandler } from '../jobs/job-handler.registry';
 import { CarerExtraHoursService } from '../employee-hours-approvals/carer-extra-hours.service';
+import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
 import {
   JobRunner,
   isExternalCronMode,
@@ -47,12 +48,15 @@ export class VisitPlanRollingRotaJob {
     private readonly orgSettings: OrganisationGeneralSettingsService,
     @Optional() private readonly jobRunner?: JobRunner,
     @Optional() private readonly carerExtraHours?: CarerExtraHoursService,
+    @Optional() private readonly hoursApprovals?: EmployeeHoursApprovalsService,
   ) {}
 
   /** Carer requests back within the weekly hours are approved (never fails the run). */
   private async approveCarerRequestsBackWithinLimit(): Promise<number> {
     if (!this.carerExtraHours) return 0;
     try {
+      // Visit requests that can no longer happen move to Expired first.
+      await this.hoursApprovals?.expireStaleRequests();
       return (await this.carerExtraHours.approveBackWithinLimit()).approved.length;
     } catch (err) {
       this.logger.warn(`Rolling rota: hours requests check failed: ${(err as Error).message}`);

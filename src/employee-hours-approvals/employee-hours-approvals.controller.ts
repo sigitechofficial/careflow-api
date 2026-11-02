@@ -109,9 +109,11 @@ export class EmployeeHoursApprovalsController {
   @Post('check-within-limit')
   @AnyPermission('hours_approvals.read', 'hours_approvals.manage')
   @ApiOperation({
-    summary: 'Approve carer requests that are back within the weekly hours (runs when Hours approvals opens)',
+    summary: 'Expire stale visit requests, then approve carer requests back within the weekly hours (runs when Hours approvals opens)',
   })
-  checkWithinLimit() {
+  async checkWithinLimit() {
+    // Visits that can no longer happen move to Expired first.
+    await this.service.expireStaleRequests();
     return this.extraHours.approveBackWithinLimit().then((data) => ({
       message: data.approved.length
         ? `${data.approved.length} request(s) approved automatically`

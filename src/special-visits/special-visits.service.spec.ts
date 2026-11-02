@@ -29,7 +29,10 @@ describe('SpecialVisitsService.create — carer weekly hours', () => {
       scheduleBatch: { findFirst: jest.fn().mockResolvedValue({ id: 'batch-1' }) },
       $transaction: jest.fn((fn: (t: typeof tx) => unknown) => fn(tx)),
     };
-    const weeklyHours = { checkSpecialVisit: jest.fn().mockResolvedValue(null) };
+    // Service user weekly hours: special visits don't count here, so no SU check runs.
+    const weeklyHours = {
+      context: jest.fn().mockResolvedValue({ timeZone: 'Europe/London', rules: { specialVisitsCount: false } }),
+    };
     const carerHours = {
       rule: jest.fn().mockResolvedValue({ graceMinutes: 0, ...rule }),
       checkNewVisits: jest.fn().mockResolvedValue({

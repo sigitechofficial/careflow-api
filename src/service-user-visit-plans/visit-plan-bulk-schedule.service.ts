@@ -275,9 +275,6 @@ export class VisitPlanBulkScheduleService {
       source?: 'manual' | 'rolling';
     },
   ) {
-    const source = options?.source ?? 'manual';
-    const hoursCtx = await this.weeklyHours.context();
-    const bulkRule = hoursCtx.rules.bulkOverLimit;
     const weeklyHoursWarnings: string[] = [];
     if (dto.planIds?.length) {
       const plans = await this.loadActivePlans(dto.locationId, dto.planIds);
@@ -334,34 +331,6 @@ export class VisitPlanBulkScheduleService {
         continue;
       }
 
-      // Weekly contracted hours (Settings → Dom Rules): warn, or skip by hand / everywhere.
-      let weeklyHoursWarning: string | undefined;
-      const over = await this.weeklyHours.overLimitWeeksForRange({
-        serviceUserId: plan.serviceUserId,
-        planId: plan.id,
-        fallbackHours: plan.weeklyContractedHours,
-        fromIso: dto.fromDate.slice(0, 10),
-        toIso: dto.toDate.slice(0, 10),
-      });
-      const overText = await this.weeklyHours.describeOverLimit(over);
-      if (overText) {
-        weeklyHoursWarning = `${label}: ${overText}`;
-        if (bulkRule === 'SKIP_ALL' || (bulkRule === 'SKIP_MANUAL' && source === 'manual')) {
-          skipped += 1;
-          weeklyHoursWarnings.push(`${weeklyHoursWarning} (skipped)`);
-          results.push({
-            serviceUserId: plan.serviceUserId,
-            planId: plan.id,
-            serviceUserLabel: label,
-            status: 'skipped',
-            skipReason: `O${weeklyHoursWarning.slice(label.length + 3)}`,
-            weeklyHoursWarning,
-          });
-          continue;
-        }
-        weeklyHoursWarnings.push(weeklyHoursWarning);
-      }
-
       try {
         const respectWorkingPatternOnSync =
           dto.respectWorkingPatternOnSync ?? plan.respectWorkingPatternOnSync;
@@ -374,10 +343,12 @@ export class VisitPlanBulkScheduleService {
             respectWorkingPatternOnSync,
           },
           meta,
-          // The weekly hours were checked above for this run.
-          { restoreDeletedJobs: options?.restoreDeletedJobs, skipWeeklyHoursCheck: true },
+          { restoreDeletedJobs: options?.restoreDeletedJobs },
         );
         const data = response.data;
+        // Service user weekly hours: visits over were held for a manager, or made with a warning.
+        const weeklyHoursWarning = data.weeklyHoursWarning ? `${label}: ${data.weeklyHoursWarning}` : undefined;
+        if (weeklyHoursWarning) weeklyHoursWarnings.push(weeklyHoursWarning);
         visitsCreated += data.visitsCreated;
         visitsSkipped += data.visitsSkipped;
         visitsWithPatternWarnings += data.visitsWithPatternWarnings ?? 0;

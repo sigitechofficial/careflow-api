@@ -4821,6 +4821,8 @@ enum EmployeeHoursApprovalStatus {
   APPROVED
   REJECTED
   CANCELLED
+  /// The visit's start time passed, or the request is no longer valid (plan ended, date cancelled, …).
+  EXPIRED
 
   @@schema("service_users")
 }
@@ -4841,6 +4843,9 @@ enum EmployeeHoursApprovalType {
   ROTA_VISIT_OVER_HOURS
   /// Extra weekly hours for a carer waiting for a manager (Settings → Dom Rules).
   EXTRA_WEEKLY_HOURS
+  /// A rota visit (visit plan or special visit) over the service user's weekly hours: made only once a
+  /// manager approves (Settings → Dom Rules "Visits over the weekly hours need approval").
+  SERVICE_USER_VISIT_OVER_HOURS
 
   @@schema("service_users")
 }

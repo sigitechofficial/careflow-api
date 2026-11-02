@@ -31,9 +31,29 @@ export interface ExtraVisitCreator {
     planId: string | null;
     limitMinutes: number;
     overWeeks: Array<{ weekStart: string; minutes: number }>;
-    toCancel: Array<{ date: string; slotLabel: string; startDateTime: string; endDateTime: string; status: string }>;
+    toCancel: Array<{
+      kind: 'PLAN' | 'EXTRA' | 'SPECIAL';
+      date: string;
+      slotLabel: string;
+      startDateTime: string;
+      endDateTime: string;
+      timeCritical: boolean;
+    }>;
     stillOverWeeks: Array<{ weekStart: string; minutes: number }>;
   }>;
+
+  /**
+   * Make a visit held over the service user's weekly hours, now a manager approved it (a plan
+   * visit through generating its day, a special visit through the special visit create).
+   * Returns the rota job made, or null when there was nothing left to make.
+   */
+  createHeldServiceUserVisit(
+    userId: string,
+    serviceUserId: string,
+    planId: string | null,
+    payload: Record<string, unknown>,
+    meta?: RequestAuditMeta,
+  ): Promise<{ scheduledJobId: string | null }>;
 
   /** Apply an extra visit edit that waited for a manager (every carer it put over approved). */
   applyHeldExtraVisitEdit(
