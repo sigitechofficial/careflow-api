@@ -856,7 +856,67 @@ export class CrmService {
         data: { serviceUserId: su.id, addressLine1: enquiry.addressLine, postcode: enquiry.postcode },
       });
     }
+    await this.copyEnquiryContact(tx, actor, enquiry, su.id);
     return su;
+  }
+
+  /**
+   * The enquiry's contact becomes one of the service user's contacts (once, matched by name). Its
+   * relationship is matched to the relationship list by name; a referral's contact with no matching
+   * relationship is kept as "Other" (a professional, such as the referring team). The first contact
+   * is the primary one.
+   */
+  private async copyEnquiryContact(
+    tx: Prisma.TransactionClient,
+    actor: RequestUser,
+    enquiry: Prisma.EnquiryGetPayload<object>,
+    serviceUserId: string,
+  ) {
+    const name = enquiry.contactName?.trim();
+    if (!name) return;
+    const existing = await tx.serviceUserContact.findMany({
+      where: { serviceUserId, deletedAt: null },
+      select: { firstName: true, lastName: true },
+    });
+    const fullName = (c: { firstName: string; lastName: string | null }) =>
+      [c.firstName, c.lastName].filter(Boolean).join(' ').toLowerCase();
+    if (existing.some(c => fullName(c) === name.toLowerCase())) return;
+
+    const relationship = enquiry.contactRelationship?.trim() ?? '';
+    const code = relationship.toUpperCase().replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+    const matched = code
+      ? await tx.relationshipType.findFirst({
+          where: { isActive: true, OR: [{ code }, { name: { equals: relationship, mode: 'insensitive' } }] },
+          select: { id: true, code: true },
+        })
+      : null;
+    const type =
+      matched ??
+      (enquiry.kind === EnquiryKind.REFERRAL
+        ? await tx.relationshipType.findFirst({ where: { code: 'OTHER', isActive: true }, select: { id: true, code: true } })
+        : null);
+    // A person's name is split into first and last; a professional contact (a team or practice) is kept whole.
+    const professional = ['GP', 'SOCIAL_WORKER', 'OTHER'].includes(type?.code ?? '');
+    const space = name.indexOf(' ');
+    const [firstName, lastName] =
+      professional || space < 0 ? [name, null] : [name.slice(0, space), name.slice(space + 1).trim()];
+
+    await tx.serviceUserContact.create({
+      data: {
+        serviceUserId,
+        firstName,
+        lastName,
+        relationshipTypeId: type?.id ?? null,
+        phone: enquiry.contactPhone,
+        email: enquiry.contactEmail,
+        isPrimary: existing.length === 0,
+        notes:
+          relationship && !matched
+            ? `From enquiry ${enquiry.referenceNumber} (relationship: ${relationship})`
+            : `From enquiry ${enquiry.referenceNumber}`,
+        createdById: actor.id,
+      },
+    });
   }
 
   /**
@@ -903,6 +963,7 @@ export class CrmService {
             data: { serviceUserId, addressLine1: before.addressLine, postcode: before.postcode },
           });
         }
+        await this.copyEnquiryContact(tx, actor, before, serviceUserId);
         if (su.statusId !== active?.id) {
           await this.audit.logAudit({
             tx,

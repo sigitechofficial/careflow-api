@@ -99,6 +99,7 @@ afterAll(async () => {
   await prisma.initialAssessmentSubmission.deleteMany({ where: { serviceUserId: { in: serviceUsers } } });
   await prisma.serviceUserAssignment.deleteMany({ where: { serviceUserId: { in: serviceUsers } } });
   await prisma.serviceUserAddress.deleteMany({ where: { serviceUserId: { in: serviceUsers } } });
+  await prisma.serviceUserContact.deleteMany({ where: { serviceUserId: { in: serviceUsers } } });
   await prisma.initialAssessmentTemplate.deleteMany({ where: { id: { in: templates } } });
   await prisma.serviceUser.deleteMany({ where: { id: { in: serviceUsers } } });
   await prisma.location.deleteMany({ where: { id: { in: [branchA, branchB] } } });
@@ -373,9 +374,56 @@ describe('enquiry quotations (database)', () => {
     const enq = await prisma.enquiry.findUniqueOrThrow({ where: { id: e.id } });
     expect(enq).toMatchObject({ stage: 'WON', convertedServiceUserId: su.id });
 
-    // Repeating it makes no second service user or package.
+    // The enquiry's contact is on the service user's contacts.
+    const contacts = await prisma.serviceUserContact.findMany({ where: { serviceUserId: su.id } });
+    expect(contacts).toEqual([expect.objectContaining({ firstName: 'Daughter', email: 'family@example.test', isPrimary: true })]);
+
+    // Repeating it makes no second service user, package or contact.
     const again = await service.createServiceUserFromQuote(admin, e.id, v.quotationId, v.id, { createCarePackage: true });
     expect(again.data).toMatchObject({ serviceUserId: su.id, created: false, carePackage: { created: false } });
+    expect(await prisma.serviceUserContact.count({ where: { serviceUserId: su.id } })).toBe(1);
+  });
+
+  it('P7: the contact keeps its relationship; a referral team is kept whole as a professional', async () => {
+    for (const [code, name] of [['DAUGHTER', 'Daughter'], ['OTHER', 'Other']]) {
+      await prisma.relationshipType.upsert({ where: { code }, update: { isActive: true }, create: { code, name } });
+    }
+    const accept = async (enquiryId: string) => {
+      const { data: v } = await service.create(admin, enquiryId, draft({ locationId: branchA }));
+      await service.approve(admin, enquiryId, v.quotationId, v.id, undefined);
+      await service.send(admin, enquiryId, v.quotationId, v.id, { channel: 'POST', idempotencyKey: key() });
+      await service.recordResponse(admin, enquiryId, v.quotationId, v.id, { responseType: 'ACCEPTED' });
+      const res = await service.createServiceUserFromQuote(admin, enquiryId, v.quotationId, v.id, { createCarePackage: false });
+      serviceUsers.push(res.data.serviceUserId);
+      return prisma.serviceUserContact.findFirstOrThrow({
+        where: { serviceUserId: res.data.serviceUserId },
+        include: { relationshipType: true },
+      });
+    };
+
+    const family = await newEnquiry('CONTACTED', branchA);
+    await prisma.enquiry.update({
+      where: { id: family.id },
+      data: { contactName: 'Ann Bloggs', contactRelationship: 'daughter', contactPhone: '07700 900123' },
+    });
+    expect(await accept(family.id)).toMatchObject({
+      firstName: 'Ann',
+      lastName: 'Bloggs',
+      phone: '07700 900123',
+      relationshipType: { code: 'DAUGHTER' },
+    });
+
+    const referral = await newEnquiry('CONTACTED', branchA);
+    await prisma.enquiry.update({
+      where: { id: referral.id },
+      data: { kind: 'REFERRAL', contactName: "St Mary's Discharge Team", contactRelationship: 'Discharge coordinator' },
+    });
+    expect(await accept(referral.id)).toMatchObject({
+      firstName: "St Mary's Discharge Team",
+      lastName: null,
+      relationshipType: { code: 'OTHER' },
+      notes: expect.stringContaining('relationship: Discharge coordinator'),
+    });
   });
 
   it('P6: a total amount quote also becomes a draft care package, contracted for its visits', async () => {
