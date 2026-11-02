@@ -58,6 +58,7 @@ describe('VisitPlanDateChangesService.carerHoursForExtras — carer weekly hours
       {} as never,
       carerHours as never,
       {} as never,
+      {} as never,
     );
     const helper = (
       service as unknown as { carerHoursForExtras: Helper }

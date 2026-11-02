@@ -57,6 +57,7 @@ import type { AllocateJobDto } from '../job-allocations/dto/allocate-job.dto';
 import type { ContractedHoursImpact } from './carer-hours-reduction.service';
 import { EmployeeHoursApprovalNotificationHook } from './employee-hours-approval-notification.hook';
 import { EXTRA_VISIT_CREATOR, type ExtraVisitCreator } from './extra-visit-creator';
+import { VisitPlanWeeklyHoursService, mondayOfIso } from '../service-user-visit-plans/visit-plan-weekly-hours.service';
 import { EXTRA_WEEKLY_HOURS_GRANTER, type ExtraWeeklyHoursGranter } from './extra-weekly-hours-granter';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { suHoursChangeNeedsApproval } from '../organisation-general-settings/service-user-weekly-hours-settings.util';
@@ -392,10 +393,7 @@ export class EmployeeHoursApprovalsService {
     return `${date} ${p.startTime ?? ''}–${p.endTime ?? ''}`.trim();
   }
 
-  /**
-   * Approve: the extra visit is created now. By default there is no second hours check (the
-   * manager allowed it); Settings → Dom Rules can refuse it when the week grew since the request.
-   */
+  /** Approve: the extra visit is created now, with no second hours check (the manager allowed it). */
   private async approveExtraVisitOverHours(
     userId: string,
     row: Prisma.EmployeeHoursApprovalGetPayload<object>,
@@ -410,18 +408,6 @@ export class EmployeeHoursApprovalsService {
       throw new BadRequestException('The request has no extra visit details.');
     }
     const creator = this.moduleRef.get<ExtraVisitCreator>(EXTRA_VISIT_CREATOR, { strict: false });
-    const rules = await this.orgSettings.getServiceUserWeeklyHoursSettings();
-    const askedMinutes = Number(payload.weekMinutes);
-    if (rules.extraApproveRecheck && Number.isFinite(askedMinutes)) {
-      const now = await creator.currentExtraVisitWeekHours(row.serviceUserId, row.visitPlanId, payload);
-      if (now.weekMinutes > askedMinutes) {
-        throw new BadRequestException(
-          `That week has more visits than when this was asked for: it would now have ${formatHoursMinutes(
-            now.weekMinutes,
-          )} (it was ${formatHoursMinutes(askedMinutes)}). Reject it and ask for the visit again.`,
-        );
-      }
-    }
     const { exceptionId } = await creator.createApprovedExtraVisit(
       userId,
       row.serviceUserId,
@@ -519,8 +505,8 @@ export class EmployeeHoursApprovalsService {
     return {
       message: 'Pending weekly hours change',
       data: {
-        /** Settings → Dom Rules: which changes need a manager (the screens ask before saving). */
-        changeApproval: rules.changeApproval,
+        /** Settings → Dom Rules: whether a change needs a manager (the screens ask before saving). */
+        changeNeedsApproval: rules.changeNeedsApproval,
         pending: row
           ? {
               id: row.id,
@@ -565,7 +551,7 @@ export class EmployeeHoursApprovalsService {
     const parsed = current != null ? Number.parseFloat(current) : NaN;
     const previous = Number.isFinite(parsed) ? parsed : null;
     const rules = await this.orgSettings.getServiceUserWeeklyHoursSettings();
-    if (!suHoursChangeNeedsApproval(rules.changeApproval, previous, weeklyHours)) {
+    if (!suHoursChangeNeedsApproval(rules.changeNeedsApproval, previous, weeklyHours)) {
       // Settings → Dom Rules: this change does not need a manager, so it applies now.
       await this.prisma.$transaction((tx) =>
         syncServiceUserWeeklyHours(tx, this.audit, {
@@ -579,7 +565,7 @@ export class EmployeeHoursApprovalsService {
       const after = await this.afterServiceUserHoursChanged(userId, serviceUserId, previous, weeklyHours, meta);
       return {
         message: ['Weekly hours changed', after.message].filter(Boolean).join('. '),
-        data: { id: null, applied: true, cancelledVisits: after.cancelled },
+        data: { id: null, applied: true, cancelledVisits: after.cancelled, autoApproved: after.autoApproved },
       };
     }
     const created = await this.prisma.employeeHoursApproval.create({
@@ -664,13 +650,14 @@ export class EmployeeHoursApprovalsService {
     );
     return {
       message: ['Weekly hours change approved', after.message].filter(Boolean).join('. '),
-      data: { ...updated, cancelledVisits: after.cancelled },
+      data: { ...updated, cancelledVisits: after.cancelled, autoApproved: after.autoApproved },
     };
   }
 
   /**
-   * After lower weekly hours are saved: Settings → Dom Rules either keeps the visits (the plan
-   * shows the weeks over as a warning) or cancels the latest visits in each week over.
+   * After new weekly hours are saved. Lower: the visits over the new hours are cancelled (latest in
+   * each week first; the dialog listed them before saving). Higher: pending visit requests that now
+   * fit are approved automatically.
    */
   private async afterServiceUserHoursChanged(
     userId: string,
@@ -678,15 +665,24 @@ export class EmployeeHoursApprovalsService {
     previous: number | null,
     next: number,
     meta?: RequestAuditMeta,
-  ): Promise<{ cancelled: number; message: string | null }> {
-    if (previous == null || next >= previous) return { cancelled: 0, message: null };
-    const rules = await this.orgSettings.getServiceUserWeeklyHoursSettings();
-    if (rules.decreaseAction !== 'CANCEL_LATEST') return { cancelled: 0, message: null };
+  ): Promise<{ cancelled: number; message: string | null; autoApproved: Array<{ id: string; label: string }> }> {
+    if (previous == null || next === previous) return { cancelled: 0, message: null, autoApproved: [] };
+    if (next > previous) {
+      const { approved } = await this.autoApproveServiceUserVisits(userId, serviceUserId, meta);
+      return {
+        cancelled: 0,
+        autoApproved: approved,
+        message: approved.length
+          ? `${approved.length} waiting visit${approved.length === 1 ? '' : 's'} now fit and were approved automatically`
+          : null,
+      };
+    }
     const creator = this.moduleRef.get<ExtraVisitCreator>(EXTRA_VISIT_CREATOR, { strict: false });
     try {
       const { cancelled } = await creator.applyHoursDecrease(userId, serviceUserId, next, meta);
       return {
         cancelled,
+        autoApproved: [],
         message: cancelled
           ? `${cancelled} visit${cancelled === 1 ? '' : 's'} over the new hours cancelled`
           : null,
@@ -696,6 +692,7 @@ export class EmployeeHoursApprovalsService {
       this.logger.warn(`Hours decrease cancel failed for ${serviceUserId}: ${(err as Error).message}`);
       return {
         cancelled: 0,
+        autoApproved: [],
         message: `Visits over the new hours could not be cancelled (${(err as Error).message}) — cancel them on the visit plan`,
       };
     }
@@ -703,28 +700,411 @@ export class EmployeeHoursApprovalsService {
 
   /** What lowering a service user's weekly hours would do to their visits (nothing is saved). */
   async serviceUserHoursImpact(serviceUserId: string, weeklyHours: number) {
-    const rules = await this.orgSettings.getServiceUserWeeklyHoursSettings();
     const creator = this.moduleRef.get<ExtraVisitCreator>(EXTRA_VISIT_CREATOR, { strict: false });
     const plan = await creator.planHoursDecrease(serviceUserId, weeklyHours);
     return {
       message: 'Weekly hours change impact',
       data: {
-        decreaseAction: rules.decreaseAction,
         limitMinutes: plan.limitMinutes,
         overWeeks: plan.overWeeks,
-        visitsToCancel:
-          rules.decreaseAction === 'CANCEL_LATEST'
-            ? plan.toCancel.map((v) => ({
-                date: v.date,
-                slotLabel: v.slotLabel,
-                startDateTime: v.startDateTime,
-                endDateTime: v.endDateTime,
-                onRota: v.status === 'ON_ROTA',
-              }))
-            : [],
-        stillOverWeeks: rules.decreaseAction === 'CANCEL_LATEST' ? plan.stillOverWeeks : plan.overWeeks,
+        visitsToCancel: plan.toCancel.map((v) => ({
+          date: v.date,
+          slotLabel: v.slotLabel,
+          startDateTime: v.startDateTime,
+          endDateTime: v.endDateTime,
+          kind: v.kind,
+          timeCritical: v.timeCritical,
+        })),
+        stillOverWeeks: plan.stillOverWeeks,
       },
     };
+  }
+
+  // ── Service user visits held over the weekly hours (visit plan or special visit) ────────
+
+  /** Tell approvers visits are waiting: they would take the service user over their weekly hours. */
+  async notifyServiceUserVisitsHeld(params: {
+    serviceUserId: string;
+    approvalIds: string[];
+    requestedById?: string;
+  }): Promise<void> {
+    if (!params.approvalIds.length) return;
+    const first = await this.prisma.employeeHoursApproval.findUnique({ where: { id: params.approvalIds[0] } });
+    if (!first) return;
+    const p = (first.requestPayload ?? {}) as { kind?: string; weekMinutes?: number; limitWeeklyHours?: number | null; heldDeltas?: unknown[] };
+    const kindLabel =
+      p.kind === 'SPECIAL_VISIT'
+        ? 'special visit'
+        : p.kind === 'EXTRA_EDIT'
+          ? 'longer extra visit'
+          : p.kind === 'PLAN_TIME'
+            ? 'longer visit plan visit'
+            : 'visit plan visit';
+    const n = params.approvalIds.length;
+    const more = p.kind === 'PLAN_TIME' ? (p.heldDeltas?.length ?? 1) - 1 : n - 1;
+    void this.notificationHook.notifyExtraVisitRequested({
+      approvalId: first.id,
+      serviceUserId: params.serviceUserId,
+      kindLabel,
+      visitLabel: more > 0 ? `${await this.extraVisitLabel(first)} and ${more} more` : await this.extraVisitLabel(first),
+      weekHoursLabel: `${formatHoursMinutes(p.weekMinutes ?? 0)} of ${formatHoursMinutes(
+        Math.round((p.limitWeeklyHours ?? first.contractedWeeklyHours ?? 0) * 60),
+      )}`,
+      requestedById: params.requestedById,
+    });
+  }
+
+  /** Approve: the held visit is made now, with no second hours check (the manager allowed it). */
+  private async approveServiceUserVisitOverHours(
+    userId: string,
+    row: Prisma.EmployeeHoursApprovalGetPayload<object>,
+    notes?: string,
+    meta?: RequestAuditMeta,
+  ) {
+    if (row.status !== EmployeeHoursApprovalStatus.PENDING) {
+      throw new BadRequestException('This request has already been decided.');
+    }
+    const payload = row.requestPayload as Record<string, unknown> | null;
+    if (!payload || !row.serviceUserId) throw new BadRequestException('The request has no visit details.');
+    if (payload.kind === 'PLAN_TIME') return this.approveHeldPlanTime(userId, row, payload, notes, meta);
+    const isEdit = payload.kind === 'EXTRA_EDIT';
+    const creator = this.moduleRef.get<ExtraVisitCreator>(EXTRA_VISIT_CREATOR, { strict: false });
+    const { scheduledJobId } = await creator.createHeldServiceUserVisit(
+      userId,
+      row.serviceUserId,
+      row.visitPlanId,
+      payload,
+      meta,
+    );
+    if (!scheduledJobId) {
+      throw new BadRequestException('The visit could not be made (the plan or its time slot changed). Reject it instead.');
+    }
+    const updated = await this.prisma.employeeHoursApproval.update({
+      where: { id: row.id },
+      data: {
+        status: EmployeeHoursApprovalStatus.APPROVED,
+        decidedById: userId,
+        decidedAt: new Date(),
+        decisionNotes: notes?.trim() || null,
+        requestPayload: { ...payload, createdJobId: scheduledJobId } as Prisma.InputJsonValue,
+      },
+    });
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.SERVICE_USER,
+      action: AuditAction.EMPLOYEE_HOURS_APPROVAL_DECIDED,
+      recordType: 'EmployeeHoursApproval',
+      recordId: row.id,
+      newValues: { status: 'APPROVED', serviceUserId: row.serviceUserId, createdJobId: scheduledJobId },
+      ...meta,
+    });
+    void this.notificationHook.notifyRequesterDecided({
+      approvalId: row.id,
+      requestedById: row.requestedById,
+      decidedById: userId,
+      approved: true,
+      title: isEdit ? 'Longer visit approved' : 'Visit approved',
+      message: isEdit
+        ? `The longer visit on ${await this.extraVisitLabel(row)} was approved — the rota visit has the new time.`
+        : `The visit on ${await this.extraVisitLabel(row)} was approved and added to the rota.`,
+      href: `/service-users/${row.serviceUserId}/visit-plan`,
+    });
+    return {
+      message: isEdit ? 'Approved — the visit now has the new time' : 'Visit approved and added to the rota',
+      data: updated,
+    };
+  }
+
+  /**
+   * Approve a plan amendment's longer visits: the rota visits that kept their old time move to the
+   * plan's time now (only those still upcoming, and only when the plan still has that time).
+   */
+  private async approveHeldPlanTime(
+    userId: string,
+    row: Prisma.EmployeeHoursApprovalGetPayload<object>,
+    payload: Record<string, unknown>,
+    notes?: string,
+    meta?: RequestAuditMeta,
+  ) {
+    const change = payload.planTimeChange as {
+      planId: string;
+      changes: Array<{ slotId: string; slotLabel: string; fromStart: string; fromEnd: string; toStart: string; toEnd: string }>;
+      held: Array<{ slotId: string; startsAt: string }>;
+    };
+    const serviceUserId = row.serviceUserId!;
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    let moved = 0;
+    for (const c of change.changes) {
+      const slot = await this.prisma.visitPlanSlot.findFirst({
+        where: { id: c.slotId, visitPlanId: change.planId, isActive: true },
+        select: { plannedStartTime: true, plannedEndTime: true },
+      });
+      // The plan changed since (another time saved): that one stands.
+      if (!slot || !samePlanTime(slot.plannedStartTime, c.toStart) || !samePlanTime(slot.plannedEndTime, c.toEnd)) continue;
+      const starts = new Set(change.held.filter((h) => h.slotId === c.slotId).map((h) => h.startsAt));
+      const result = await this.scheduleImpact.rescheduleSlotJobs(userId, {
+        serviceUserId,
+        visitPlanSlotId: c.slotId,
+        fromDate: visitPlanTodayUtc(new Date(), timeZone),
+        resolveNewTimes: (jobStart) =>
+          starts.has(jobStart.toISOString()) ? resolveEndFromStartAndTimes(jobStart, c.toStart, c.toEnd, timeZone) : null,
+        reason: `${c.slotLabel} visit time ${c.fromStart}–${c.fromEnd} → ${c.toStart}–${c.toEnd} (approved over the service user's weekly hours)`,
+        source: 'visit_plan_amendment',
+      }, meta);
+      moved += result.jobsRescheduled ?? 0;
+    }
+    const updated = await this.prisma.employeeHoursApproval.update({
+      where: { id: row.id },
+      data: {
+        status: EmployeeHoursApprovalStatus.APPROVED,
+        decidedById: userId,
+        decidedAt: new Date(),
+        decisionNotes: notes?.trim() || null,
+      },
+    });
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.SERVICE_USER,
+      action: AuditAction.EMPLOYEE_HOURS_APPROVAL_DECIDED,
+      recordType: 'EmployeeHoursApproval',
+      recordId: row.id,
+      newValues: { status: 'APPROVED', serviceUserId, visitsMoved: moved },
+      ...meta,
+    });
+    void this.notificationHook.notifyRequesterDecided({
+      approvalId: row.id,
+      requestedById: row.requestedById,
+      decidedById: userId,
+      approved: true,
+      title: 'Longer visits approved',
+      message: `${moved} visit${moved === 1 ? '' : 's'} moved to the new time.`,
+      href: `/service-users/${serviceUserId}/visit-plan`,
+    });
+    return { message: `Approved — ${moved} visit${moved === 1 ? '' : 's'} moved to the new time`, data: updated };
+  }
+
+  /** Reject: the held visit is not made (and generation never makes it). */
+  private async rejectServiceUserVisitOverHours(
+    userId: string,
+    row: Prisma.EmployeeHoursApprovalGetPayload<object>,
+    notes: string,
+    meta?: RequestAuditMeta,
+  ) {
+    if (row.status !== EmployeeHoursApprovalStatus.PENDING) {
+      throw new BadRequestException('This request has already been decided.');
+    }
+    const updated = await this.prisma.employeeHoursApproval.update({
+      where: { id: row.id },
+      data: {
+        status: EmployeeHoursApprovalStatus.REJECTED,
+        decidedById: userId,
+        decidedAt: new Date(),
+        decisionNotes: notes.trim(),
+      },
+    });
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.SERVICE_USER,
+      action: AuditAction.EMPLOYEE_HOURS_APPROVAL_DECIDED,
+      recordType: 'EmployeeHoursApproval',
+      recordId: row.id,
+      newValues: { status: 'REJECTED', serviceUserId: row.serviceUserId, reason: notes.trim() },
+      ...meta,
+    });
+    void this.notificationHook.notifyRequesterDecided({
+      approvalId: row.id,
+      requestedById: row.requestedById,
+      decidedById: userId,
+      approved: false,
+      title: 'Visit rejected',
+      message: `The visit on ${await this.extraVisitLabel(row)} was rejected: ${notes.trim()}`,
+      href: `/service-users/${row.serviceUserId}/visit-plan`,
+    });
+    return { message: 'Visit rejected — it is not added to the rota', data: updated };
+  }
+
+  /**
+   * Weekly hours went up: pending visit requests of the service user (extra visits and held
+   * visits) that fit the new hours are approved, oldest first, each one counted with the ones
+   * before it. A request that can't be made (e.g. it clashes with another visit) stays pending.
+   */
+  private async autoApproveServiceUserVisits(
+    userId: string,
+    serviceUserId: string,
+    meta?: RequestAuditMeta,
+  ): Promise<{ approved: Array<{ id: string; label: string }>; stillPending: number }> {
+    await this.expireStaleRequests();
+    const rows = await this.prisma.employeeHoursApproval.findMany({
+      where: {
+        serviceUserId,
+        status: EmployeeHoursApprovalStatus.PENDING,
+        requestType: {
+          in: [EmployeeHoursApprovalType.EXTRA_VISIT_OVER_HOURS, EmployeeHoursApprovalType.SERVICE_USER_VISIT_OVER_HOURS],
+        },
+      },
+      orderBy: { requestedAt: 'asc' },
+    });
+    const weeklyHours = this.moduleRef.get(VisitPlanWeeklyHoursService, { strict: false });
+    const limit = await weeklyHours.limit(this.prisma, serviceUserId);
+    const approved: Array<{ id: string; label: string }> = [];
+    let stillPending = 0;
+    const note = 'Approved automatically: the weekly hours went up and the visit now fits';
+    for (const row of rows) {
+      const p = (row.requestPayload ?? {}) as {
+        date?: string;
+        durationMinutes?: number;
+        requiredCarers?: number;
+        heldDeltas?: Array<{ date: string; minutes: number }>;
+      };
+      // What the request adds to each week (a longer visit adds only the extra time).
+      const deltas = p.heldDeltas ?? (p.date ? [{ date: p.date, minutes: (p.durationMinutes ?? 0) * Math.max(1, p.requiredCarers ?? 1) }] : []);
+      const addByWeek = new Map<string, { date: string; minutes: number }>();
+      for (const d of deltas) {
+        const key = mondayOfIso(d.date);
+        addByWeek.set(key, { date: d.date, minutes: (addByWeek.get(key)?.minutes ?? 0) + d.minutes });
+      }
+      let fits = limit != null && addByWeek.size > 0;
+      for (const add of addByWeek.values()) {
+        if (!fits) break;
+        const week = await weeklyHours.weekMinutes(this.prisma, serviceUserId, add.date);
+        fits = week.minutes + add.minutes <= Math.round(limit! * 60);
+      }
+      if (!fits) {
+        stillPending += 1;
+        continue;
+      }
+      try {
+        if (row.requestType === EmployeeHoursApprovalType.EXTRA_VISIT_OVER_HOURS) {
+          await this.approveExtraVisitOverHours(userId, row, note, meta);
+        } else {
+          await this.approveServiceUserVisitOverHours(userId, row, note, meta);
+        }
+        approved.push({ id: row.id, label: await this.extraVisitLabel(row) });
+      } catch (err) {
+        stillPending += 1;
+        this.logger.warn(`Auto-approve of ${row.id} skipped: ${(err as Error).message}`);
+      }
+    }
+    return { approved, stillPending };
+  }
+
+  /**
+   * Requests whose visit can no longer happen are marked EXPIRED (kept, shown on their own tab):
+   * the visit's start time has passed, or the request is no longer valid — plan ended or deleted,
+   * service user inactive, the time slot removed, the date cancelled, or the visit already on the
+   * rota. Service user and carer visit requests. Runs when Hours approvals opens, in the nightly
+   * rolling rota and before an approve.
+   */
+  async expireStaleRequests(onlyId?: string): Promise<number> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const now = new Date();
+    const today = dayKeyInTimeZone(now, timeZone);
+    const nowLocal = `${today}T${new Intl.DateTimeFormat('en-GB', {
+      timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(now)}`;
+    const rows = await this.prisma.employeeHoursApproval.findMany({
+      where: {
+        ...(onlyId ? { id: onlyId } : {}),
+        status: EmployeeHoursApprovalStatus.PENDING,
+        requestType: {
+          in: [
+            EmployeeHoursApprovalType.EXTRA_VISIT_OVER_HOURS,
+            EmployeeHoursApprovalType.SERVICE_USER_VISIT_OVER_HOURS,
+            EmployeeHoursApprovalType.ROTA_VISIT_OVER_HOURS,
+            EmployeeHoursApprovalType.VISIT_PLAN_OVER_HOURS,
+          ],
+        },
+      },
+    });
+    let expired = 0;
+    for (const row of rows) {
+      const why = await this.expiryReason(row, { now, today, nowLocal });
+      if (!why) continue;
+      await this.prisma.employeeHoursApproval.update({
+        where: { id: row.id },
+        data: { status: EmployeeHoursApprovalStatus.EXPIRED, decidedAt: now, decisionNotes: why },
+      });
+      expired += 1;
+    }
+    return expired;
+  }
+
+  private async expiryReason(
+    row: Prisma.EmployeeHoursApprovalGetPayload<object>,
+    clock: { now: Date; today: string; nowLocal: string },
+  ): Promise<string | null> {
+    const p = (row.requestPayload ?? {}) as {
+      kind?: string;
+      date?: string;
+      startTime?: string;
+      startsAt?: string;
+      start?: string;
+      visitPlanSlotId?: string;
+      scheduledJobId?: string;
+      withheld?: string[];
+    };
+    // Time: the visit's start has passed.
+    if (p.startsAt && new Date(p.startsAt) <= clock.now) return 'Visit time has passed';
+    if (p.start && new Date(p.start) <= clock.now) return 'Visit time has passed';
+    if (!p.startsAt && p.date && p.startTime && `${p.date}T${p.startTime}` <= clock.nowLocal) {
+      return 'Visit time has passed';
+    }
+    if (row.requestType === EmployeeHoursApprovalType.VISIT_PLAN_OVER_HOURS && p.withheld?.length) {
+      const dates = p.withheld.map((k) => k.split('|').pop() ?? '');
+      if (dates.every((d) => d && d < clock.today)) return 'Visit time has passed';
+    }
+    // Validity.
+    if (row.serviceUserId) {
+      const su = await this.prisma.serviceUser.findFirst({
+        where: { id: row.serviceUserId },
+        select: { isActive: true, deletedAt: true, dateOfDeath: true },
+      });
+      if (!su || !su.isActive || su.deletedAt || su.dateOfDeath) return 'No longer valid: the service user is not active';
+    }
+    if (row.visitPlanId) {
+      const plan = await this.prisma.serviceUserVisitPlan.findFirst({
+        where: { id: row.visitPlanId },
+        select: { status: true, deletedAt: true, isActive: true },
+      });
+      if (!plan || plan.deletedAt || !plan.isActive || plan.status === 'ENDED') {
+        return 'No longer valid: the visit plan ended';
+      }
+    }
+    if (row.requestType === EmployeeHoursApprovalType.SERVICE_USER_VISIT_OVER_HOURS && p.kind === 'PLAN_VISIT') {
+      const slot = p.visitPlanSlotId
+        ? await this.prisma.visitPlanSlot.findFirst({
+            where: { id: p.visitPlanSlotId },
+            select: { isEnabled: true, exceptions: { where: { exceptionType: 'SKIP' }, select: { exceptionDate: true } } },
+          })
+        : null;
+      if (!slot || !slot.isEnabled) return 'No longer valid: the time slot was removed';
+      if (slot.exceptions.some((e) => e.exceptionDate.toISOString().slice(0, 10) === p.date)) {
+        return 'No longer valid: the date was cancelled';
+      }
+      const onRota = await this.prisma.scheduledJob.findFirst({
+        where: {
+          deletedAt: null,
+          status: { not: 'CANCELLED' },
+          AND: [
+            { metadata: { path: ['visitPlanSlotId'], equals: p.visitPlanSlotId } },
+            { metadata: { path: ['date'], equals: p.date } },
+          ],
+        },
+        select: { id: true },
+      });
+      if (onRota) return 'No longer valid: the visit is already on the rota';
+    }
+    if (row.requestType === EmployeeHoursApprovalType.ROTA_VISIT_OVER_HOURS && p.scheduledJobId) {
+      const job = await this.prisma.scheduledJob.findFirst({
+        where: { id: p.scheduledJobId },
+        select: { deletedAt: true, status: true },
+      });
+      if (!job || job.deletedAt || job.status === 'CANCELLED') return 'No longer valid: the visit was removed from the rota';
+    }
+    return null;
   }
 
   private async requireEmployee(employeeId: string) {
@@ -1809,8 +2189,15 @@ export class EmployeeHoursApprovalsService {
     if (row.requestType === EmployeeHoursApprovalType.SERVICE_USER_WEEKLY_HOURS_CHANGE) {
       return this.approveServiceUserHoursChange(userId, row, notes, meta);
     }
+    // A visit that can no longer happen can't be approved (it moves to Expired).
+    if (await this.expireStaleRequests(row.id)) {
+      throw new BadRequestException('This request has expired — the visit time has passed or it is no longer valid.');
+    }
     if (row.requestType === EmployeeHoursApprovalType.EXTRA_VISIT_OVER_HOURS) {
       return this.approveExtraVisitOverHours(userId, row, notes, meta);
+    }
+    if (row.requestType === EmployeeHoursApprovalType.SERVICE_USER_VISIT_OVER_HOURS) {
+      return this.approveServiceUserVisitOverHours(userId, row, notes, meta);
     }
     if (row.requestType === EmployeeHoursApprovalType.DRAFT_PLAN_OVER_HOURS) {
       return this.approveDraftPlanOverHours(userId, row, notes, meta);
@@ -2385,6 +2772,9 @@ export class EmployeeHoursApprovalsService {
     if (!notes?.trim()) throw new BadRequestException('Give a reason for rejecting this request.');
     if (row.requestType === EmployeeHoursApprovalType.EXTRA_VISIT_OVER_HOURS) {
       return this.rejectExtraVisitOverHours(userId, row, notes, meta);
+    }
+    if (row.requestType === EmployeeHoursApprovalType.SERVICE_USER_VISIT_OVER_HOURS) {
+      return this.rejectServiceUserVisitOverHours(userId, row, notes, meta);
     }
     if (row.requestType === EmployeeHoursApprovalType.DRAFT_PLAN_OVER_HOURS) {
       return this.rejectDraftPlanOverHours(userId, row, notes, meta);

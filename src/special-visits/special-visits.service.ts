@@ -1,4 +1,6 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateSpecialVisitDto } from './dto/special-visit.dto';
@@ -11,7 +13,11 @@ import {
   overMaxAllowed,
   visitsNeedApproval,
 } from '../employee-hours-approvals/carer-weekly-hours.service';
-import { VisitPlanWeeklyHoursService } from '../service-user-visit-plans/visit-plan-weekly-hours.service';
+import {
+  VisitPlanWeeklyHoursService,
+  type ServiceUserVisitHoldPayload,
+} from '../service-user-visit-plans/visit-plan-weekly-hours.service';
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 
 /** Allocation statuses that count as the carer actually being booked. */
 const ACTIVE_ALLOCATION_STATUSES = ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] as const;
@@ -53,6 +59,7 @@ export class SpecialVisitsService {
     private readonly prisma: PrismaService,
     private readonly weeklyHours: VisitPlanWeeklyHoursService,
     private readonly carerHours: CarerWeeklyHoursService,
+    @Optional() private readonly moduleRef?: ModuleRef,
   ) {}
 
   /** Day (UTC midnight) a Date falls on, used as the ScheduleBatch.scheduleDate. */
@@ -76,7 +83,12 @@ export class SpecialVisitsService {
     return created.id;
   }
 
-  async create(userId: string, dto: CreateSpecialVisitDto) {
+  async create(
+    userId: string,
+    dto: CreateSpecialVisitDto,
+    /** A manager approved it over the service user's weekly hours (Hours approvals): no second check. */
+    options?: { approvedOverServiceUserHours?: boolean },
+  ) {
     const [employee, serviceUser] = await Promise.all([
       this.prisma.employee.findFirst({ where: { id: dto.employeeId, deletedAt: null }, select: { id: true } }),
       this.prisma.serviceUser.findFirst({ where: { id: dto.serviceUserId, deletedAt: null }, select: { id: true } }),
@@ -93,10 +105,28 @@ export class SpecialVisitsService {
       throw new BadRequestException('End time must be after start time');
     }
     const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60_000);
-    // Service user's weekly contracted hours (Settings → Dom Rules): block, or create with a warning.
-    const hours = await this.weeklyHours.checkSpecialVisit({ serviceUserId: dto.serviceUserId, start, end });
-    if (hours?.blocked) {
-      throw new BadRequestException(`${hours.message}. The special visit was not created (Settings → Dom Rules).`);
+    // Service user's weekly contracted hours (Settings → Dom Rules): over the hours it waits for a
+    // manager (not made until approved), or is made with a warning.
+    const hours = options?.approvedOverServiceUserHours ? null : await this.serviceUserHoursCheck(dto, start, end);
+    if (hours?.held) {
+      const approvalId = await this.weeklyHours.holdVisit(this.prisma, {
+        userId,
+        serviceUserId: dto.serviceUserId,
+        visitPlanId: null,
+        payload: hours.payload,
+      });
+      // Managers are told a visit is waiting (looked up at run time: the modules don't import each other).
+      void this.moduleRef
+        ?.get(EmployeeHoursApprovalsService, { strict: false })
+        .notifyServiceUserVisitsHeld({ serviceUserId: dto.serviceUserId, approvalIds: [approvalId], requestedById: userId })
+        .catch(() => undefined);
+      return {
+        data: {
+          id: null,
+          serviceUserHoursApprovalId: approvalId,
+          serviceUserHoursApprovalRequested: `${hours.message}. Sent to Hours approvals — the special visit is made once a manager approves.`,
+        },
+      };
     }
     // The carer's weekly hours (Settings → Dom Rules "Carer weekly hours limit").
     const carerRule = await this.carerHours.rule();
@@ -177,12 +207,64 @@ export class SpecialVisitsService {
     return {
       data: {
         id: job.id,
-        ...(hours ? { weeklyHoursWarning: hours.message } : {}),
+        ...(hours ? { weeklyHoursWarning: `${hours.message} (warning only)` } : {}),
         ...(carerMessage
           ? waitForManager
             ? { carerHoursApprovalRequested: `${carerMessage} — sent to a manager; the carer is put on it once approved.` }
             : { carerHoursWarning: `${carerMessage} — needs confirmation on the rota.` }
           : {}),
+      },
+    };
+  }
+
+  /**
+   * The service user's week with this special visit: null when it fits (or special visits don't
+   * count, or there is no limit); otherwise the message and whether it is held for a manager.
+   */
+  private async serviceUserHoursCheck(
+    dto: CreateSpecialVisitDto,
+    start: Date,
+    end: Date,
+  ): Promise<{ held: boolean; message: string; payload: ServiceUserVisitHoldPayload } | null> {
+    const ctx = await this.weeklyHours.context();
+    if (!ctx.rules.specialVisitsCount) return null;
+    const date = dayKeyInTimeZone(start, ctx.timeZone);
+    if (date < dayKeyInTimeZone(new Date(), ctx.timeZone)) return null;
+    const minutes = Math.round((end.getTime() - start.getTime()) / 60_000);
+    const plan = await this.prisma.serviceUserVisitPlan.findFirst({
+      where: { serviceUserId: dto.serviceUserId, status: 'ACTIVE', deletedAt: null, isActive: true },
+      select: { weeklyContractedHours: true },
+    });
+    const check = await this.weeklyHours.classifyNewVisits({
+      serviceUserId: dto.serviceUserId,
+      fallbackHours: plan?.weeklyContractedHours ?? null,
+      visits: [{ date, startsAt: start.toISOString(), minutes }],
+    });
+    const visit = check.visits[0];
+    if (!visit?.over) return null;
+    const hm = (d: Date) =>
+      new Intl.DateTimeFormat('en-GB', { timeZone: ctx.timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
+    return {
+      held: ctx.rules.visitsNeedApproval,
+      message: `This special visit takes the service user over their weekly contracted hours: ${await this.weeklyHours.describeWeek(
+        visit.weekStart,
+        visit.weekMinutes,
+        check.limitWeeklyHours,
+      )}`,
+      payload: {
+        kind: 'SPECIAL_VISIT',
+        date,
+        startsAt: start.toISOString(),
+        endsAt: end.toISOString(),
+        startTime: hm(start),
+        endTime: hm(end),
+        durationMinutes: minutes,
+        requiredCarers: 1,
+        slotLabel: dto.title.trim(),
+        weekStart: visit.weekStart,
+        weekMinutes: visit.weekMinutes,
+        limitWeeklyHours: check.limitWeeklyHours,
+        specialVisit: { ...dto } as unknown as Record<string, unknown>,
       },
     };
   }
