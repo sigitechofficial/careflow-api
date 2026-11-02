@@ -40,11 +40,11 @@ const HM = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 export class QuoteShortVisitRateDto {
   @ApiProperty({
-    description: 'Visits up to this many minutes use this price.',
+    description: 'Visits up to this many minutes use this price (at most 60).',
   })
   @IsInt()
   @Min(1)
-  @Max(240)
+  @Max(60)
   upToMinutes!: number;
 
   @ApiProperty({ description: '£ per visit per carer.' })
@@ -74,7 +74,7 @@ export class QuoteRatesDto {
   @ApiPropertyOptional({ type: [QuoteShortVisitRateDto] })
   @IsOptional()
   @IsArray()
-  @ArrayMaxSize(3)
+  @ArrayMaxSize(10)
   @ValidateNested({ each: true })
   @Type(() => QuoteShortVisitRateDto)
   shortVisits?: QuoteShortVisitRateDto[];
