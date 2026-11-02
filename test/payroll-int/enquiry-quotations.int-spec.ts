@@ -399,6 +399,28 @@ describe('enquiry quotations (database)', () => {
     expect(await prisma.serviceUserContact.count({ where: { serviceUserId: su.id } })).toBe(1);
   });
 
+  it('P8: a Pre-admission record made to add details has no assessment, and becomes the active service user', async () => {
+    const e = await newEnquiry('CONTACTED', branchA);
+    const pre = await crm.createPreAdmissionServiceUser(admin, e.id);
+    serviceUsers.push(pre.data.serviceUserId);
+    const preStatus = await prisma.serviceUserStatus.findFirst({ where: { code: 'PRE_ADMISSION' } });
+    const su = await prisma.serviceUser.findUniqueOrThrow({ where: { id: pre.data.serviceUserId } });
+    expect(su.statusId).toBe(preStatus?.id ?? null);
+    expect(await prisma.initialAssessmentSubmission.count({ where: { serviceUserId: su.id } })).toBe(0);
+    const linked = await prisma.enquiry.findUniqueOrThrow({ where: { id: e.id }, include: { events: true } });
+    expect(linked).toMatchObject({ stage: 'CONTACTED', convertedServiceUserId: su.id });
+    expect(linked.events.map((x) => x.action)).toContain('Pre-admission service user created');
+    // Asking again keeps the same record.
+    expect((await crm.createPreAdmissionServiceUser(admin, e.id)).data.serviceUserId).toBe(su.id);
+
+    const { data: v } = await service.create(admin, e.id, draft({ locationId: branchA }));
+    await service.approve(admin, e.id, v.quotationId, v.id, undefined);
+    await service.send(admin, e.id, v.quotationId, v.id, { channel: 'POST', idempotencyKey: key() });
+    await service.recordResponse(admin, e.id, v.quotationId, v.id, { responseType: 'ACCEPTED' });
+    const res = await service.createServiceUserFromQuote(admin, e.id, v.quotationId, v.id, { createCarePackage: false });
+    expect(res.data).toMatchObject({ serviceUserId: su.id, created: false });
+  });
+
   it('P7: the contact keeps its relationship; a referral team is kept whole as a professional', async () => {
     for (const [code, name] of [['DAUGHTER', 'Daughter'], ['OTHER', 'Other']]) {
       await prisma.relationshipType.upsert({ where: { code }, update: { isActive: true }, create: { code, name } });

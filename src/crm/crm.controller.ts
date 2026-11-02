@@ -151,6 +151,15 @@ export class CrmController {
     return this.service.startInitialAssessment(user, id, getRequestAuditMeta(req));
   }
 
+  @Post(':id/pre-admission')
+  @Permissions('crm.manage', 'service_users.create')
+  @ApiOperation({
+    summary: 'Link a Pre-admission service user made from the enquiry (no assessment), to add its details',
+  })
+  createPreAdmission(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
+    return this.service.createPreAdmissionServiceUser(user, id, getRequestAuditMeta(req));
+  }
+
   @Post(':id/notes')
   @Permissions('crm.manage')
   @ApiOperation({ summary: 'Add a timeline note to an enquiry' })

@@ -1068,7 +1068,54 @@ export class CrmService {
    */
   async startInitialAssessment(actor: RequestUser, id: string, meta?: RequestAuditMeta) {
     const userId = actor.id;
-    const linked = await this.prisma.$transaction(async tx => {
+    const linked = await this.linkPreAdmissionServiceUser(
+      actor,
+      id,
+      'Initial assessment started',
+      'for the initial assessment',
+      meta,
+    );
+
+    if (!linked.created) {
+      return { message: 'Enquiry already has a service user', data: { serviceUserId: linked.serviceUserId } };
+    }
+    try {
+      await this.initialAssessments.createSubmission(userId, linked.serviceUserId, {}, meta);
+    } catch {
+      // The link is made; the assessment page offers "Start new assessment" if the draft failed.
+    }
+    return { message: 'Pre-admission service user created', data: { serviceUserId: linked.serviceUserId } };
+  }
+
+  /**
+   * A Pre-admission service user made from the enquiry (no assessment), so details only the
+   * service user holds (title, GP, NHS number…) can be added before it is made active.
+   * Returns the existing link when there is one.
+   */
+  async createPreAdmissionServiceUser(actor: RequestUser, id: string, meta?: RequestAuditMeta) {
+    const linked = await this.linkPreAdmissionServiceUser(
+      actor,
+      id,
+      'Pre-admission service user created',
+      'to add their details',
+      meta,
+    );
+    return {
+      message: linked.created ? 'Pre-admission service user created' : 'Enquiry already has a service user',
+      data: { serviceUserId: linked.serviceUserId },
+    };
+  }
+
+  /** Makes and links a Pre-admission service user from the enquiry, unless one is linked already. */
+  private async linkPreAdmissionServiceUser(
+    actor: RequestUser,
+    id: string,
+    eventAction: string,
+    purpose: string,
+    meta?: RequestAuditMeta,
+  ) {
+    const userId = actor.id;
+    return this.prisma.$transaction(async tx => {
       const before = await this.getInScope(actor, id, tx);
       if (before.convertedServiceUserId) return { serviceUserId: before.convertedServiceUserId, created: false };
       const su = await this.createServiceUserFromEnquiry(tx, actor, before, 'PRE_ADMISSION', null);
@@ -1078,7 +1125,7 @@ export class CrmService {
           convertedServiceUserId: su.id,
           events: {
             create: {
-              action: 'Initial assessment started',
+              action: eventAction,
               note: `Pre-admission service user created for ${su.firstName} ${su.lastName}`,
               userId,
             },
@@ -1112,7 +1159,7 @@ export class CrmService {
         eventType: AuditEventType.UPDATE,
         recordType: 'Enquiry',
         recordId: id,
-        description: `Enquiry ${before.referenceNumber} linked to a pre-admission service user for the initial assessment`,
+        description: `Enquiry ${before.referenceNumber} linked to a pre-admission service user ${purpose}`,
         newValues: auditSnapshot({ convertedServiceUserId: su.id, stage: before.stage }),
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
@@ -1120,16 +1167,6 @@ export class CrmService {
 
       return { serviceUserId: su.id, created: true };
     });
-
-    if (!linked.created) {
-      return { message: 'Enquiry already has a service user', data: { serviceUserId: linked.serviceUserId } };
-    }
-    try {
-      await this.initialAssessments.createSubmission(userId, linked.serviceUserId, {}, meta);
-    } catch {
-      // The link is made; the assessment page offers "Start new assessment" if the draft failed.
-    }
-    return { message: 'Pre-admission service user created', data: { serviceUserId: linked.serviceUserId } };
   }
 
   /**
