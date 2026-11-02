@@ -2220,7 +2220,8 @@ export class QuotationsService {
         snap.rates && v.clientLayout === 'DETAILED'
           ? describeQuoteRates(snap.hourlyRate, snap.rates)
           : [],
-      vatLabel: p.vatLabel,
+      // Care is VAT exempt, so VAT is only mentioned when the quote charges it.
+      vatLabel: p.vatWeekly > 0 ? p.vatLabel : null,
       funding: p.fundings
         .filter((f) => f.payerType !== 'PRIVATE_CLIENT')
         .map((f) => ({

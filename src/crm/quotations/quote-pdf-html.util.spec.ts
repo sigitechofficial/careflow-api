@@ -32,7 +32,7 @@ const view = (over: Partial<ClientQuoteView>): ClientQuoteView => ({
   rates: [],
   totals: [{ label: 'Weekly', amount: '£24.00', method: 'One typical week' }],
   oneOffTotal: null,
-  vatLabel: 'VAT not added',
+  vatLabel: null,
   funding: [],
   clientWeeklyLiability: '£24.00 / week',
   clientNotes: null,
@@ -46,6 +46,8 @@ describe('quote PDF layout', () => {
     expect(html).toContain('08:00 – 08:30');
     expect(html).toContain('Per visit');
     expect(html).toContain('£12.00');
+    // No VAT is charged, so none is mentioned.
+    expect(html).not.toContain('VAT');
   });
 
   it('shows only the visits by time of day and the total on a summary quote', () => {

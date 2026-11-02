@@ -337,9 +337,13 @@ export function renderQuoteHtml(view: ClientQuoteView): string {
         </div>
         <div class="cost-list">${costRows}</div>
       </div>
-      <div class="callout">${INFO_ICON}<div>${
-        calendar ? `${esc(calendar.method)}. ` : ''
-      }<strong>${esc(view.vatLabel)}</strong></div></div>
+      ${
+        calendar || view.vatLabel
+          ? `<div class="callout">${INFO_ICON}<div>${
+              calendar ? `${esc(calendar.method)}. ` : ''
+            }${view.vatLabel ? `<strong>${esc(view.vatLabel)}</strong>` : ''}</div></div>`
+          : ''
+      }
     </section>
     ${funding}
     ${notes}

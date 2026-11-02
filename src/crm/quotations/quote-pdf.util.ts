@@ -44,7 +44,8 @@ export type ClientQuoteView = {
   rates: Array<{ label: string; value: string }>;
   totals: Array<{ label: string; amount: string; method: string }>;
   oneOffTotal: string | null;
-  vatLabel: string;
+  /** Only when the quote charges VAT. */
+  vatLabel: string | null;
   funding: Array<{
     payer: string;
     detail: string;
@@ -200,11 +201,12 @@ export function buildQuotePdfKit(view: ClientQuoteView): Promise<Buffer> {
       doc.fillColor('#0f172a').moveDown(0.2);
     }
     if (view.oneOffTotal) row('One-off charges', view.oneOffTotal, true);
-    doc
-      .font('Helvetica')
-      .fontSize(8)
-      .fillColor('#64748b')
-      .text(t(view.vatLabel), left, undefined, { width });
+    if (view.vatLabel)
+      doc
+        .font('Helvetica')
+        .fontSize(8)
+        .fillColor('#64748b')
+        .text(t(view.vatLabel), left, undefined, { width });
 
     if (view.funding.length) {
       heading('Funding');
