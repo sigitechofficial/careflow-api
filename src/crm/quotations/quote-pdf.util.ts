@@ -56,7 +56,12 @@ export type ClientQuoteView = {
   terms: string | null;
 };
 
-const t = (v: string | null | undefined) => sanitizePayslipPdfText(v ?? '');
+/** Text Helvetica can draw; keeps × and ÷ (in its character set) for the totals' working. */
+const t = (v: string | null | undefined) =>
+  (v ?? '')
+    .split(/([\u00D7\u00F7])/)
+    .map((part) => (part === '\u00D7' || part === '\u00F7' ? part : sanitizePayslipPdfText(part)))
+    .join('');
 
 /** Plain pdfkit layout, used when no browser is available for the HTML design. */
 export function buildQuotePdfKit(view: ClientQuoteView): Promise<Buffer> {
