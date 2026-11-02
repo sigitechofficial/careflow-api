@@ -110,6 +110,8 @@ function mapEnquiry(row: AnyEnquiryRow, maps: NameMaps = {}) {
     receivedAt: row.receivedAt?.toISOString() ?? null,
     addressLine: row.addressLine,
     postcode: row.postcode,
+    latitude: row.latitude == null ? null : Number(row.latitude),
+    longitude: row.longitude == null ? null : Number(row.longitude),
     fundingType: row.fundingType,
     fundingTypeId: row.fundingTypeId,
     fundingTypeName: row.fundingTypeId ? (maps.funding?.get(row.fundingTypeId) ?? null) : null,
@@ -539,6 +541,8 @@ export class CrmService {
           receivedAt: this.parseDate(dto.receivedAt) ?? null,
           addressLine: dto.addressLine ?? null,
           postcode: dto.postcode ?? null,
+          latitude: dto.latitude ?? null,
+          longitude: dto.longitude ?? null,
           fundingType: dto.fundingType ?? null,
           fundingTypeId: dto.fundingTypeId ?? null,
           funderName: dto.funderName ?? null,
@@ -603,7 +607,7 @@ export class CrmService {
       const data: Record<string, unknown> = {};
       (['firstName', 'lastName', 'contactName', 'contactRelationship', 'contactPhone',
         'contactEmail', 'source', 'sourceDetail', 'enquiryType', 'urgency', 'needs', 'carePlanFormIds',
-        'ownerId', 'receivedVia', 'addressLine', 'postcode', 'fundingType', 'fundingTypeId', 'funderName',
+        'ownerId', 'receivedVia', 'addressLine', 'postcode', 'latitude', 'longitude', 'fundingType', 'fundingTypeId', 'funderName',
         'hoursPerWeek', 'visitsPerDay', 'nextAction', 'assessorId', 'assessmentLocation',
         'quoteWeeklyAmount', 'quoteHourlyRate', 'quoteNotes', 'kind', 'referringOrganisation', 'referrerRole',
         'referralReference'] as const).forEach(k => {
@@ -618,7 +622,13 @@ export class CrmService {
 
       // Only record what actually changed.
       const norm = (x: unknown) =>
-        x instanceof Date ? x.getTime() : Array.isArray(x) ? [...x].sort().join(',') : (x ?? null);
+        x instanceof Date
+          ? x.getTime()
+          : x instanceof Prisma.Decimal
+            ? x.toNumber()
+            : Array.isArray(x)
+              ? [...x].sort().join(',')
+              : (x ?? null);
       const prev = before as Record<string, unknown>;
       const changedKeys = Object.keys(data).filter(k => norm(prev[k]) !== norm(data[k]));
       const has = (...keys: string[]) => keys.some(k => changedKeys.includes(k));
@@ -853,7 +863,13 @@ export class CrmService {
     }
     if (enquiry.addressLine || enquiry.postcode) {
       await tx.serviceUserAddress.create({
-        data: { serviceUserId: su.id, addressLine1: enquiry.addressLine, postcode: enquiry.postcode },
+        data: {
+          serviceUserId: su.id,
+          addressLine1: enquiry.addressLine,
+          postcode: enquiry.postcode,
+          latitude: enquiry.latitude,
+          longitude: enquiry.longitude,
+        },
       });
     }
     await this.copyEnquiryContact(tx, actor, enquiry, su.id);
@@ -957,10 +973,25 @@ export class CrmService {
             updatedById: userId,
           },
         });
-        const address = await tx.serviceUserAddress.findUnique({ where: { serviceUserId }, select: { id: true } });
+        const address = await tx.serviceUserAddress.findUnique({
+          where: { serviceUserId },
+          select: { id: true, latitude: true },
+        });
         if (!address && (before.addressLine || before.postcode)) {
           await tx.serviceUserAddress.create({
-            data: { serviceUserId, addressLine1: before.addressLine, postcode: before.postcode },
+            data: {
+              serviceUserId,
+              addressLine1: before.addressLine,
+              postcode: before.postcode,
+              latitude: before.latitude,
+              longitude: before.longitude,
+            },
+          });
+        } else if (address && address.latitude == null && before.latitude != null) {
+          // An address kept without a map position gets the enquiry's.
+          await tx.serviceUserAddress.update({
+            where: { id: address.id },
+            data: { latitude: before.latitude, longitude: before.longitude },
           });
         }
         await this.copyEnquiryContact(tx, actor, before, serviceUserId);
@@ -1114,7 +1145,9 @@ export class CrmService {
   ) {
     if (!enquiry.convertedServiceUserId) return;
     const changed = (k: string) => changedKeys.includes(k);
-    const personKeys = ['firstName', 'lastName', 'dateOfBirth', 'locationId', 'fundingTypeId', 'addressLine', 'postcode'];
+    const personKeys = [
+      'firstName', 'lastName', 'dateOfBirth', 'locationId', 'fundingTypeId', 'addressLine', 'postcode', 'latitude', 'longitude',
+    ];
     if (!personKeys.some(changed)) return;
     const su = await tx.serviceUser.findFirst({
       where: { id: enquiry.convertedServiceUserId, deletedAt: null, status: { code: 'PRE_ADMISSION' } },
@@ -1139,14 +1172,22 @@ export class CrmService {
         data: { locationId: enquiry.locationId },
       });
     }
-    if (changed('addressLine') || changed('postcode')) {
+    if (changed('addressLine') || changed('postcode') || changed('latitude') || changed('longitude')) {
+      const coords = changed('latitude') || changed('longitude');
       await tx.serviceUserAddress.upsert({
         where: { serviceUserId: su.id },
         update: {
           ...(changed('addressLine') ? { addressLine1: enquiry.addressLine } : {}),
           ...(changed('postcode') ? { postcode: enquiry.postcode } : {}),
+          ...(coords ? { latitude: enquiry.latitude, longitude: enquiry.longitude } : {}),
         },
-        create: { serviceUserId: su.id, addressLine1: enquiry.addressLine, postcode: enquiry.postcode },
+        create: {
+          serviceUserId: su.id,
+          addressLine1: enquiry.addressLine,
+          postcode: enquiry.postcode,
+          latitude: enquiry.latitude,
+          longitude: enquiry.longitude,
+        },
       });
     }
   }

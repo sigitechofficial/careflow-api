@@ -15127,6 +15127,9 @@ model Enquiry {
   receivedAt             DateTime?
   addressLine            String?
   postcode               String?
+  /// Map position of the address (from Google Places); copied to the service user's address.
+  latitude               Decimal?       @db.Decimal(10, 7)
+  longitude              Decimal?       @db.Decimal(10, 7)
   fundingType            EnquiryFundingType?
   /// Funding type from the shared lookup (ServiceUserFundingType) — preferred over `fundingType`.
   fundingTypeId          String?        @db.Uuid

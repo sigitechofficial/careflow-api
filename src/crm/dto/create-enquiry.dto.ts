@@ -159,6 +159,20 @@ export class CreateEnquiryDto {
   @MaxLength(20)
   postcode?: string;
 
+  @ApiPropertyOptional({ description: 'Map position of the address (from Google Places). Null clears it.' })
+  @IsOptional()
+  @IsNumber()
+  @Min(-90)
+  @Max(90)
+  latitude?: number | null;
+
+  @ApiPropertyOptional({ description: 'Map position of the address (from Google Places). Null clears it.' })
+  @IsOptional()
+  @IsNumber()
+  @Min(-180)
+  @Max(180)
+  longitude?: number | null;
+
   @ApiPropertyOptional({ enum: EnquiryFundingType, deprecated: true, description: 'Use fundingTypeId.' })
   @IsOptional()
   @IsEnum(EnquiryFundingType)

@@ -355,7 +355,10 @@ describe('enquiry quotations (database)', () => {
 
   it('P5: after acceptance the person becomes an active service user, the enquiry is Won and the care package is made', async () => {
     const e = await newEnquiry('CONTACTED', branchA);
-    await prisma.enquiry.update({ where: { id: e.id }, data: { addressLine: '1 High St', postcode: 'CR0 1AA' } });
+    await prisma.enquiry.update({
+      where: { id: e.id },
+      data: { addressLine: '1 High St', postcode: 'CR0 1AA', latitude: 51.3727, longitude: -0.1099 },
+    });
     const { data: v } = await service.create(admin, e.id, draft({ locationId: branchA }));
     // Not before the client accepts.
     await expect(service.createServiceUserFromQuote(admin, e.id, v.quotationId, v.id, { createCarePackage: true })).rejects.toThrow(ConflictException);
@@ -371,6 +374,8 @@ describe('enquiry quotations (database)', () => {
     expect(su).toMatchObject({ firstName: 'Quote', locationId: branchA, statusId: active?.id ?? null });
     expect(su.serviceStartDate?.toISOString().slice(0, 10)).toBe('2027-01-04');
     expect(su.address).toMatchObject({ addressLine1: '1 High St', postcode: 'CR0 1AA' });
+    // The map position picked on the enquiry goes with the address.
+    expect([Number(su.address?.latitude), Number(su.address?.longitude)]).toEqual([51.3727, -0.1099]);
     const enq = await prisma.enquiry.findUniqueOrThrow({ where: { id: e.id } });
     expect(enq).toMatchObject({ stage: 'WON', convertedServiceUserId: su.id });
 
