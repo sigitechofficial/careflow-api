@@ -1,5 +1,17 @@
 import { CarePathwayFormType, Prisma, PrismaClient } from '@prisma/client';
-import type { CarePlanRuleCondition } from '../../src/initial-assessments/initial-assessment-care-plan-rules.types';
+
+/**
+ * Same shape as CarePlanRuleCondition in src/initial-assessments/initial-assessment-care-plan-rules.types.ts
+ * (keep in sync). The seed path must not import from src/: src/ is not in the deploy artifact.
+ */
+type CarePlanRuleCondition = {
+  fieldKey?: string;
+  specRef?: string;
+  questionTextContains?: string;
+  adlActivity?: string;
+  when: 'yes' | 'no' | 'answered' | 'not_answered' | 'select_equals' | 'text_contains' | 'adl_score_gte';
+  value?: string;
+};
 
 export type IaCarePlanStarterRule = {
   formName: string;
