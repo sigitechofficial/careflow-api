@@ -16,12 +16,15 @@ export interface ExtraVisitCreator {
     meta?: RequestAuditMeta,
   ): Promise<{ exceptionId: string }>;
 
-  /** That week's visit minutes today with this extra visit added (the week may have changed since the request). */
+  /**
+   * That week's visit minutes today with this extra visit added (the week may have changed since the
+   * request), and the minutes its visits hold from the timebank (they count on top of the weekly hours).
+   */
   currentExtraVisitWeekHours(
     serviceUserId: string,
     planId: string,
     payload: Record<string, unknown>,
-  ): Promise<{ weekMinutes: number; limitWeeklyHours: number | null }>;
+  ): Promise<{ weekMinutes: number; limitWeeklyHours: number | null; timebankMinutes: number }>;
 
   /** Weekly hours lowered: weeks over the new hours and the visits that would be cancelled (nothing saved). */
   planHoursDecrease(

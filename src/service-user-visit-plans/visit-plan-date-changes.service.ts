@@ -212,6 +212,8 @@ export type ExtraVisitDateCheck = {
   weekMinutes?: number;
   /** The week would go over the weekly hours: blocked when `ok` is false, else a warning only (Settings → Dom Rules). */
   overWeeklyHours?: boolean;
+  /** Hours over the weekly hours the service user's timebank pays for (docs/SU_TIMEBANK_USE_PLAN.md). */
+  fromTimebankMinutes?: number;
   /**
    * Carers over their contracted weekly hours with this visit and what saving does
    * (Settings → Dom Rules "Carer over weekly hours"): wait for a manager, or go on to be confirmed.
@@ -231,6 +233,8 @@ export type ExtraVisitApprovalPayload = {
   weekStart: string;
   weekMinutes: number;
   limitWeeklyHours: number | null;
+  /** Minutes the week's visits held from the timebank when asked (they count on top of the weekly hours). */
+  timebankMinutes?: number;
   roundCode: string;
   slotLabel: string;
   startTime: string;
@@ -1062,6 +1066,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         startTime: dto.startTime,
         durationMinutes: dto.durationMinutes,
         requiredCarers: dto.requiredCarers,
+        budget: await this.weeklyHours.timebankBudget(serviceUserId),
       });
       limitWeeklyHours = hours.limitWeeklyHours;
       const byDate = new Map(hours.dates.map((d) => [d.date, d]));
@@ -1070,6 +1075,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         if (!h) continue;
         check.weekStart = h.weekStart;
         check.weekMinutes = h.weekMinutes;
+        if (h.fromTimebankMinutes > 0) check.fromTimebankMinutes = h.fromTimebankMinutes;
         if (!h.needsApproval) continue;
         if (rules.visitsNeedApproval) {
           check.needsApproval = true;
@@ -1088,12 +1094,14 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         exceptionId: dto.editingExceptionId,
         durationMinutes: dto.durationMinutes,
         requiredCarers: dto.requiredCarers,
+        budget: await this.weeklyHours.timebankBudget(serviceUserId),
       });
       if (hours) {
         limitWeeklyHours = hours.limitWeeklyHours;
         for (const check of result.checks) {
           check.weekStart = hours.weekStart;
           check.weekMinutes = hours.weekMinutes;
+          if (check.ok && hours.fromTimebankMinutes > 0) check.fromTimebankMinutes = hours.fromTimebankMinutes;
           if (check.ok && hours.over) {
             // With approval: saved as a request, the visit keeps its time until a manager approves.
             if (hours.blocked) {
@@ -1231,8 +1239,11 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     let toCreate = valid;
     const sentForApproval: Array<{ date: string; weekStart: string; weekMinutes: number; approvalId: string }> = [];
     const overWeeklyHours: Array<{ date: string; weekMinutes: number }> = [];
+    // Dates whose hours over the weekly hours the timebank pays for: made now, the bank time reserved.
+    const fromTimebank = new Map<string, { weekStart: string; minutes: number }>();
     if (!options.approvedOverHours) {
       const { rules } = await this.weeklyHours.context();
+      const budget = await this.weeklyHours.timebankBudget(serviceUserId);
       const hours = await this.weeklyHours.classifyExtraDates({
         serviceUserId,
         fallbackHours: plan.weeklyContractedHours,
@@ -1240,7 +1251,11 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         startTime: dto.startTime,
         durationMinutes: dto.durationMinutes,
         requiredCarers: dto.requiredCarers,
+        budget,
       });
+      for (const d of hours.dates) {
+        if (d.fromTimebankMinutes > 0) fromTimebank.set(d.date, { weekStart: d.weekStart, minutes: d.fromTimebankMinutes });
+      }
       const over = hours.dates.filter((d) => d.needsApproval);
       const overDates = new Set(over.map((d) => d.date));
       if (!rules.visitsNeedApproval) {
@@ -1258,6 +1273,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
             weekStart: d.weekStart,
             weekMinutes: d.weekMinutes,
             limitWeeklyHours: hours.limitWeeklyHours,
+            timebankMinutes: budget.reservedIn(d.weekStart),
             roundCode: round.code,
             slotLabel: label,
             startTime: dto.startTime,
@@ -1467,6 +1483,20 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
           });
           if (overMessage) carerWarnings.push({ date, employeeId, message: overMessage });
         }
+        const bank = fromTimebank.get(date);
+        if (bank) {
+          await this.weeklyHours.reserveTimebank(tx, [
+            {
+              serviceUserId,
+              scheduledJobId: job.id,
+              weekStart: bank.weekStart,
+              minutes: bank.minutes,
+              reason: 'NEW_VISIT',
+              note: 'Extra visit over the weekly hours',
+              userId: user.id,
+            },
+          ]);
+        }
         createdExceptionIds.push(exception.id);
         return { jobId: job.id, visitId: visit.id };
       });
@@ -1533,6 +1563,9 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       overWeeklyHours.length
         ? `${overWeeklyHours.length} ${overWeeklyHours.length === 1 ? 'goes' : 'go'} over the weekly hours (allowed by settings)`
         : null,
+      fromTimebank.size
+        ? `${formatMinutesAsHours([...fromTimebank.values()].reduce((s, b) => s + b.minutes, 0))} over the weekly hours taken from the timebank`
+        : null,
       carerApprovals.length
         ? `${carerApprovals.length} carer place${carerApprovals.length === 1 ? '' : 's'} sent to a manager (carer over their weekly hours)`
         : null,
@@ -1548,6 +1581,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         createdExceptionIds,
         sentForApproval,
         overWeeklyHours,
+        fromTimebank: [...fromTimebank].map(([date, b]) => ({ date, minutes: b.minutes })),
         carerApprovals,
         carerWarnings,
         skipped: skipped.map((c) => ({ date: c.date, message: c.message })),
@@ -1612,12 +1646,12 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     return { exceptionId };
   }
 
-  /** That week's visit minutes today with this requested extra visit added. */
+  /** That week's visit minutes today with this requested extra visit added, and what its visits hold from the timebank. */
   async currentExtraVisitWeekHours(
     serviceUserId: string,
     planId: string,
     payload: Record<string, unknown>,
-  ): Promise<{ weekMinutes: number; limitWeeklyHours: number | null }> {
+  ): Promise<{ weekMinutes: number; limitWeeklyHours: number | null; timebankMinutes: number }> {
     const p = payload as unknown as ExtraVisitApprovalPayload;
     const plan = await this.getPlanOrThrow(serviceUserId, planId);
     const hours = await this.weeklyHours.classifyExtraDates({
@@ -1628,9 +1662,11 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
       durationMinutes: p.durationMinutes,
       requiredCarers: p.requiredCarers,
     });
+    const budget = await this.weeklyHours.timebankBudget(serviceUserId);
     return {
       weekMinutes: hours.dates[0]?.weekMinutes ?? p.weekMinutes,
       limitWeeklyHours: hours.limitWeeklyHours,
+      timebankMinutes: budget.reservedIn(hours.dates[0]?.weekStart ?? p.weekStart),
     };
   }
 
@@ -2132,7 +2168,8 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     // A longer extra visit that takes its week over the service user's weekly hours: with approval
     // (Settings → Dom Rules) nothing changes until a manager approves — the visit keeps its time;
     // otherwise it is saved with a warning.
-    const hoursCheck = serviceUserHoursApproved
+    const editBudget = serviceUserHoursApproved ? null : await this.weeklyHours.timebankBudget(serviceUserId);
+    const hoursCheck = !editBudget
       ? null
       : await this.weeklyHours.checkExtraEdit({
           serviceUserId,
@@ -2141,6 +2178,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
           exceptionId,
           durationMinutes: dto.durationMinutes,
           requiredCarers: dto.requiredCarers,
+          budget: editBudget,
         });
     const hoursWeek = hoursCheck?.over
       ? await this.weeklyHours.describeWeek(hoursCheck.weekStart, hoursCheck.weekMinutes, hoursCheck.limitWeeklyHours)
@@ -2164,6 +2202,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
           weekStart: hoursCheck.weekStart,
           weekMinutes: hoursCheck.weekMinutes,
           limitWeeklyHours: hoursCheck.limitWeeklyHours,
+          timebankMinutes: editBudget?.reservedIn(hoursCheck.weekStart) ?? 0,
           fromStartTime: exception.plannedStartTime ?? undefined,
           fromEndTime: exception.plannedEndTime ?? undefined,
           heldDeltas: [
@@ -2217,6 +2256,19 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         job.metadata && typeof job.metadata === 'object' && !Array.isArray(job.metadata)
           ? (job.metadata as Record<string, unknown>)
           : {};
+      if (hoursCheck && hoursCheck.fromTimebankMinutes > 0) {
+        await this.weeklyHours.reserveTimebank(tx, [
+          {
+            serviceUserId,
+            scheduledJobId: job.id,
+            weekStart: hoursCheck.weekStart,
+            minutes: hoursCheck.fromTimebankMinutes,
+            reason: 'LONGER_VISIT',
+            note: 'Extra visit made longer, over the weekly hours',
+            userId: user.id,
+          },
+        ]);
+      }
       await tx.scheduledJob.update({
         where: { id: job.id },
         data: {
@@ -2372,6 +2424,9 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
           ? `Extra visit updated. ${waiting.size} carer${waiting.size === 1 ? ' is' : 's are'} over their weekly hours — sent to a manager, on the visit once approved`
           : 'Extra visit updated',
         hoursWeek ? `Over the service user's weekly hours: ${hoursWeek} (warning only)` : null,
+        hoursCheck && hoursCheck.fromTimebankMinutes > 0
+          ? `${formatMinutesAsHours(hoursCheck.fromTimebankMinutes)} over the weekly hours taken from the timebank`
+          : null,
       ]
         .filter(Boolean)
         .join('. '),

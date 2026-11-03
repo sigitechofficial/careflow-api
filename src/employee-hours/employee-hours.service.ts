@@ -185,7 +185,7 @@ function calendarMonthWeekBlocks(
     });
 }
 
-function reconciliationPayableMinutes(r: {
+export function reconciliationPayableMinutes(r: {
   payableMinutes: number | null;
   approvedPayStart: Date | null;
   approvedPayEnd: Date | null;

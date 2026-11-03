@@ -24,6 +24,7 @@ import {
 import { JobHandler } from '../jobs/job-handler.registry';
 import { CarerExtraHoursService } from '../employee-hours-approvals/carer-extra-hours.service';
 import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
+import { ServiceUserTimebankLedgerService } from '../service-user-hours/service-user-timebank-ledger.service';
 import {
   JobRunner,
   isExternalCronMode,
@@ -49,6 +50,7 @@ export class VisitPlanRollingRotaJob {
     @Optional() private readonly jobRunner?: JobRunner,
     @Optional() private readonly carerExtraHours?: CarerExtraHoursService,
     @Optional() private readonly hoursApprovals?: EmployeeHoursApprovalsService,
+    @Optional() private readonly timebankLedger?: ServiceUserTimebankLedgerService,
   ) {}
 
   /** Carer requests back within the weekly hours are approved (never fails the run). */
@@ -57,6 +59,8 @@ export class VisitPlanRollingRotaJob {
     try {
       // Visit requests that can no longer happen move to Expired first.
       await this.hoursApprovals?.expireStaleRequests();
+      // Timebank: visits cancelled, weeks that need less and finished weeks give their time back.
+      await this.timebankLedger?.settleAll();
       return (await this.carerExtraHours.approveBackWithinLimit()).approved.length;
     } catch (err) {
       this.logger.warn(`Rolling rota: hours requests check failed: ${(err as Error).message}`);
