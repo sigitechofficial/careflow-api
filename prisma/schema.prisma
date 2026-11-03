@@ -596,6 +596,7 @@ model User {
   policyApprovalsAuthored            PolicyApproval[]                 @relation("PolicyApprovalActor")
   policyAcknowledgements             PolicyAcknowledgement[]
   passwordResetTokens                PasswordResetToken[]
+  serviceUserTimebankEntries         ServiceUserTimebankEntry[]       @relation("ServiceUserTimebankEntryBy")
 
   @@index([email])
   @@index([deletedAt])
@@ -3087,6 +3088,7 @@ model ServiceUser {
   portalAccount                  ServiceUserPortalAccount?
   visitCareConsents              VisitCareConsent[]
   specialistPathwayCases         SpecialistPathwayCase[]
+  timebankEntries                ServiceUserTimebankEntry[]
 
   @@index([deletedAt])
   @@index([statusId])
@@ -3100,6 +3102,39 @@ model ServiceUser {
   @@index([namedNurseId])
   @@index([lastName, firstName])
   @@index([dateOfDeath])
+  @@schema("service_users")
+}
+
+enum ServiceUserTimebankEntryKind {
+  RESERVED
+  RETURNED
+
+  @@schema("service_users")
+}
+
+/// Timebank hours taken for a visit over the weekly hours (RESERVED) and given back (RETURNED).
+/// Rows are only added, never changed (docs/SU_TIMEBANK_USE_PLAN.md).
+model ServiceUserTimebankEntry {
+  id             String                       @id @default(uuid()) @db.Uuid
+  serviceUserId  String                       @db.Uuid
+  scheduledJobId String?                      @db.Uuid
+  /// Monday of the visit's week (org day).
+  weekStart      DateTime                     @db.Date
+  kind           ServiceUserTimebankEntryKind
+  minutes        Int
+  /// NEW_VISIT | LONGER_VISIT | VISIT_CANCELLED | VISIT_REMOVED | WEEK_NEEDED_LESS | NOT_DELIVERED
+  reason         String
+  note           String?
+  createdById    String?                      @db.Uuid
+  createdAt      DateTime                     @default(now())
+
+  serviceUser  ServiceUser   @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  scheduledJob ScheduledJob? @relation(fields: [scheduledJobId], references: [id], onDelete: SetNull)
+  createdBy    User?         @relation("ServiceUserTimebankEntryBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([serviceUserId])
+  @@index([scheduledJobId])
+  @@index([weekStart])
   @@schema("service_users")
 }
 
@@ -7095,6 +7130,7 @@ model ScheduledJob {
   timelineEvents           VisitTimelineEvent[]
   voiceNotes               VisitVoiceNote[]
   careConsents             VisitCareConsent[]
+  timebankEntries          ServiceUserTimebankEntry[]
 
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])

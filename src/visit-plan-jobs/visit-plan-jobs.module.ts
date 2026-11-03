@@ -8,6 +8,7 @@ import { VisitPlanScheduledEndJob } from '../service-user-visit-plans/visit-plan
 import { VisitPlanRollingRotaJob } from '../service-user-visit-plans/visit-plan-rolling-rota.job';
 import { LateVisitAlertJob } from '../visit-attendance/late-visit-alert.job';
 import { VisitStartReminderJob } from '../visit-attendance/visit-start-reminder.job';
+import { ServiceUserHoursModule } from '../service-user-hours/service-user-hours.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { VisitStartReminderJob } from '../visit-attendance/visit-start-reminder.
     NotificationsModule,
     OrganisationGeneralSettingsModule,
     EmployeeHoursApprovalsModule,
+    ServiceUserHoursModule,
   ],
   providers: [VisitPlanScheduledEndJob, VisitPlanRollingRotaJob, LateVisitAlertJob, VisitStartReminderJob],
 })

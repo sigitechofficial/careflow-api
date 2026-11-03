@@ -1499,7 +1499,8 @@ export class ServiceUserVisitPlansService {
       plan.status === VisitPlanStatus.ACTIVE ? undefined : { planFromRows: planId },
     );
     const limit = await this.weeklyHours.limit(this.prisma, serviceUserId, plan.weeklyContractedHours);
-    return { data: this.weeklyHours.withLimit(summary, limit, context.rules.visitsNeedApproval) };
+    const timebank = await this.weeklyHours.timebankBudget(serviceUserId);
+    return { data: this.weeklyHours.withLimit(summary, limit, context.rules.visitsNeedApproval, timebank) };
   }
 
   /**
@@ -1524,7 +1525,8 @@ export class ServiceUserVisitPlansService {
       if (!(e instanceof WeeklyHoursPreviewRollback)) throw e;
     }
     void plan;
-    return { data: this.weeklyHours.withLimit(result.summary!, limit, context.rules.visitsNeedApproval) };
+    const timebank = await this.weeklyHours.timebankBudget(serviceUserId);
+    return { data: this.weeklyHours.withLimit(result.summary!, limit, context.rules.visitsNeedApproval, timebank) };
   }
 
   async getById(serviceUserId: string, planId: string) {
@@ -1770,7 +1772,7 @@ export class ServiceUserVisitPlansService {
       // Service user weekly hours: longer rota visits over the hours keep their old time until approved.
       const longer = dto.slots?.length
         ? await this.holdLongerPlanVisits(userId, serviceUserId, existing, existing.slots, updated.slots, roundNameByCode)
-        : { keepOldTime: new Set<string>(), message: null };
+        : { keepOldTime: new Set<string>(), message: null, timebank: [] };
       longerVisitsMessage = longer.message;
       scheduleImpact = await this.amendmentImpact.applyAmendmentImpact(userId, {
         serviceUserId,
@@ -1779,6 +1781,8 @@ export class ServiceUserVisitPlansService {
         after: snapshotAfter,
         keepOldTime: longer.keepOldTime,
       }, meta);
+      // Longer visits whose hours over the weekly hours the timebank pays for (same rota jobs, new time).
+      await this.weeklyHours.reserveTimebank(this.prisma, longer.timebank);
     }
 
     return {
@@ -1825,10 +1829,15 @@ export class ServiceUserVisitPlansService {
       isEnabled: boolean;
     }>,
     roundNameByCode: Map<string, string>,
-  ): Promise<{ keepOldTime: Set<string>; message: string | null }> {
+  ): Promise<{
+    keepOldTime: Set<string>;
+    message: string | null;
+    timebank: Parameters<VisitPlanWeeklyHoursService['reserveTimebank']>[1];
+  }> {
     const keepOldTime = new Set<string>();
+    const timebank: Parameters<VisitPlanWeeklyHoursService['reserveTimebank']>[1] = [];
     const limit = await this.weeklyHours.limit(this.prisma, serviceUserId, plan.weeklyContractedHours);
-    if (limit == null) return { keepOldTime, message: null };
+    if (limit == null) return { keepOldTime, message: null, timebank };
     const minutesOf = (start: string, end: string, duration: number | null) => {
       if (duration != null && duration > 0) return duration;
       const diff = hmMinutes(end) - hmMinutes(start);
@@ -1857,8 +1866,9 @@ export class ServiceUserVisitPlansService {
           },
         ];
       });
-    if (!changes.length) return { keepOldTime, message: null };
+    if (!changes.length) return { keepOldTime, message: null, timebank };
     const ctx = await this.weeklyHours.context();
+    const budget = await this.weeklyHours.timebankBudget(serviceUserId);
     const { edge } = await this.weeklyHours.window(ctx.timeZone);
     const bySlot = new Map(changes.map((c) => [c.slotId, c]));
     const jobs = (
@@ -1889,27 +1899,52 @@ export class ServiceUserVisitPlansService {
         weekTotals.set(weekStart, (await this.weeklyHours.weekMinutes(this.prisma, serviceUserId, date)).minutes);
       }
       const delta = change.extraMinutes * Math.max(1, job.requiredCarers ?? 1);
-      const total = weekTotals.get(weekStart)! + delta;
-      if (total > limitMinutes && ctx.rules.visitsNeedApproval) {
+      const before = weekTotals.get(weekStart)!;
+      const total = before + delta;
+      const room = limitMinutes + budget.reservedIn(weekStart);
+      if (total > room && budget.cover(weekStart, total - Math.max(before, room))) {
+        timebank.push({
+          serviceUserId,
+          scheduledJobId: job.id,
+          weekStart,
+          minutes: total - Math.max(before, room),
+          reason: 'LONGER_VISIT',
+          note: 'Plan visit made longer, over the weekly hours',
+          userId,
+        });
+        weekTotals.set(weekStart, total);
+        continue;
+      }
+      if (total > room && ctx.rules.visitsNeedApproval) {
         keepOldTime.add(`${change.slotId}|${job.scheduledStartDateTime.toISOString()}`);
         held.push({ jobId: job.id, slotId: change.slotId, date, startsAt: job.scheduledStartDateTime.toISOString(), minutes: delta });
         overWeeks.set(weekStart, Math.max(overWeeks.get(weekStart) ?? 0, total));
         continue;
       }
-      if (total > limitMinutes) overWeeks.set(weekStart, total);
+      if (total > room) overWeeks.set(weekStart, total);
       weekTotals.set(weekStart, total);
     }
-    if (!overWeeks.size) return { keepOldTime, message: null };
+    const timebankText = timebank.length
+      ? `${formatHoursMinutes(timebank.reduce((s, t) => s + t.minutes, 0))} over the weekly hours taken from the timebank.`
+      : null;
+    if (!overWeeks.size) return { keepOldTime, message: timebankText, timebank };
     const weeksText = [...overWeeks]
       .map(([week, minutes]) => `week of ${formatOrganisationIsoDate(week, ctx.dateDisplayFormat)}: ${formatHoursMinutes(minutes)}`)
       .join('; ');
     const limitText = formatHoursMinutes(limitMinutes);
     if (!held.length) {
-      return { keepOldTime, message: `Warning: over the weekly contracted hours (${limitText}) — ${weeksText}.` };
+      return {
+        keepOldTime,
+        message: [timebankText, `Warning: over the weekly contracted hours (${limitText}) — ${weeksText}.`]
+          .filter(Boolean)
+          .join(' '),
+        timebank,
+      };
     }
     const first = held[0];
     const last = held[held.length - 1];
     const firstChange = bySlot.get(first.slotId)!;
+    const [busiestWeek] = [...overWeeks].reduce((a, b) => (b[1] > a[1] ? b : a));
     const approvalId = await this.weeklyHours.holdVisit(this.prisma, {
       userId,
       serviceUserId,
@@ -1929,6 +1964,7 @@ export class ServiceUserVisitPlansService {
         weekStart: mondayOfIso(first.date),
         weekMinutes: Math.max(...overWeeks.values()),
         limitWeeklyHours: limit,
+        timebankMinutes: budget.reservedIn(busiestWeek),
         fromStartTime: firstChange.fromStart,
         fromEndTime: firstChange.fromEnd,
         heldDeltas: held.map((h) => ({ date: h.date, minutes: h.minutes })),
@@ -1938,7 +1974,13 @@ export class ServiceUserVisitPlansService {
     void this.hoursApprovals.notifyServiceUserVisitsHeld({ serviceUserId, approvalIds: [approvalId], requestedById: userId });
     return {
       keepOldTime,
-      message: `${held.length} visit${held.length === 1 ? '' : 's'} made longer would go over the weekly contracted hours (${limitText}) — ${weeksText}. They keep their current time until a manager approves (Hours approvals).`,
+      message: [
+        timebankText,
+        `${held.length} visit${held.length === 1 ? '' : 's'} made longer would go over the weekly contracted hours (${limitText}) — ${weeksText}. They keep their current time until a manager approves (Hours approvals).`,
+      ]
+        .filter(Boolean)
+        .join(' '),
+      timebank,
     };
   }
 
@@ -2204,7 +2246,7 @@ export class ServiceUserVisitPlansService {
       timeZone,
     });
     // Shown before confirming: weeks of this run over the weekly hours (visits are never refused as a whole).
-    const weeklyHoursWarning = await this.weeklyHoursRunWarning(
+    const weeklyHours = await this.weeklyHoursRunWarning(
       serviceUserId,
       plan.id,
       plan.weeklyContractedHours,
@@ -2213,7 +2255,8 @@ export class ServiceUserVisitPlansService {
     return {
       data: {
         ...preview,
-        weeklyHoursWarning,
+        weeklyHoursWarning: weeklyHours.warning,
+        weeklyHoursTimebank: weeklyHours.timebank,
         weeklyHoursBlocked: false,
       },
     };
@@ -2967,6 +3010,13 @@ export class ServiceUserVisitPlansService {
     const hoursCtx = await this.weeklyHours.context();
     const hoursLimit = await this.weeklyHours.limit(this.prisma, serviceUserId, plan.weeklyContractedHours);
     const heldKeys = await this.weeklyHours.heldPlanVisits(this.prisma, planId);
+    // Timebank (docs/SU_TIMEBANK_USE_PLAN.md): a week also has the minutes visits hold from the bank;
+    // when the setting is on, the bank pays for a visit's hours over if it has all of them.
+    const timebank = await this.weeklyHours.timebankBudget(serviceUserId);
+    /** "slotId|YYYY-MM-DD" → bank minutes to reserve once the visit's job is made. */
+    const timebankByKey = new Map<string, { weekStart: string; minutes: number }>();
+    /** Week → bank minutes reserved by this run (for the result message). */
+    const timebankUsed = new Map<string, number>();
     const hoursToday = dayKeyInTimeZone(new Date(), hoursCtx.timeZone);
     const weekTotals = new Map<string, number>();
     const overWeeks = new Map<string, number>();
@@ -3057,8 +3107,14 @@ export class ServiceUserVisitPlansService {
         if (!weekTotals.has(weekStart)) {
           weekTotals.set(weekStart, (await this.weeklyHours.weekMinutes(tx, serviceUserId, dateStr)).minutes);
         }
-        const limitMinutes = Math.round(hoursLimit * 60);
-        const after = weekTotals.get(weekStart)! + visit.durationMinutes * Math.max(1, visit.requiredCarers);
+        const before = weekTotals.get(weekStart)!;
+        const after = before + visit.durationMinutes * Math.max(1, visit.requiredCarers);
+        const limitMinutes = Math.round(hoursLimit * 60) + timebank.reservedIn(weekStart);
+        if (after > limitMinutes && timebank.cover(weekStart, after - Math.max(before, limitMinutes))) {
+          timebankByKey.set(key, { weekStart, minutes: after - Math.max(before, limitMinutes) });
+          weekTotals.set(weekStart, after);
+          return false;
+        }
         if (after <= limitMinutes || !hoursCtx.rules.visitsNeedApproval) {
           weekTotals.set(weekStart, after);
           if (after > limitMinutes) overWeeks.set(weekStart, after);
@@ -3077,6 +3133,7 @@ export class ServiceUserVisitPlansService {
           weekStart,
           weekMinutes: after,
           limitWeeklyHours: hoursLimit,
+          timebankMinutes: timebank.reservedIn(weekStart),
           visitPlanSlotId: slot.id,
         };
         heldApprovalIds.push(
@@ -3084,6 +3141,22 @@ export class ServiceUserVisitPlansService {
         );
         heldKeys.add(key);
         return 'held';
+      };
+      const reserveTimebankFor = async (key: string, jobId: string) => {
+        const bank = timebankByKey.get(key);
+        if (!bank) return;
+        await this.weeklyHours.reserveTimebank(tx, [
+          {
+            serviceUserId,
+            scheduledJobId: jobId,
+            weekStart: bank.weekStart,
+            minutes: bank.minutes,
+            reason: 'NEW_VISIT',
+            note: 'Plan visit over the weekly hours',
+            userId: userId || null,
+          },
+        ]);
+        timebankUsed.set(bank.weekStart, (timebankUsed.get(bank.weekStart) ?? 0) + bank.minutes);
       };
       // Time order within a day, so the earlier visits of a week use its hours first.
       const slotsInTimeOrder = [...enabledSlots].sort((a, b) =>
@@ -3283,6 +3356,7 @@ export class ServiceUserVisitPlansService {
               },
             });
             createdJobIds.push(job.id);
+            await reserveTimebankFor(`${slot.id}|${dateStr}`, job.id);
             await tx.scheduledVisit.update({
               where: { id: existingVisit.id },
               data: {
@@ -3354,6 +3428,7 @@ export class ServiceUserVisitPlansService {
             },
           });
           createdJobIds.push(job.id);
+          await reserveTimebankFor(`${slot.id}|${dateStr}`, job.id);
 
           const visit = await tx.scheduledVisit.create({
             data: {
@@ -3528,6 +3603,9 @@ export class ServiceUserVisitPlansService {
       });
     }
     const weeklyHoursWarning = await this.weeklyHoursRunResult(hoursLimit, visitsHeld, overWeeks);
+    const weeklyHoursTimebank = timebankUsed.size
+      ? this.timebankRunText(timebankUsed, hoursCtx.dateDisplayFormat, 'taken')
+      : null;
 
     return {
       message: 'Schedule generated from visit plan',
@@ -3543,38 +3621,79 @@ export class ServiceUserVisitPlansService {
         backfillDays,
         visitsHeldOverWeeklyHours: visitsHeld,
         ...(weeklyHoursWarning ? { weeklyHoursWarning } : {}),
+        ...(weeklyHoursTimebank ? { weeklyHoursTimebank } : {}),
       },
     };
   }
 
   /**
    * Before a run (generate preview): weeks of the run over the service user's weekly hours with
-   * this plan, in words, and what will happen to the visits over (null when none).
+   * this plan, in words, and what will happen to the visits over (null when none). A week counts
+   * its weekly hours plus what visits already hold from the timebank; with "Use timebank hours
+   * automatically" on, weeks the bank can pay for in full are listed under `timebank` instead.
+   * Like the run, the bank pays only for the time this run's new visits add above the room
+   * (never for a week already over before it). The run decides visit by visit (all or nothing).
    */
   private async weeklyHoursRunWarning(
     serviceUserId: string,
     planId: string,
     fallbackHours: string | null,
     dto: GenerateVisitPlanScheduleDto,
-  ): Promise<string | null> {
+  ): Promise<{ warning: string | null; timebank: string | null }> {
     const limit = await this.weeklyHours.limit(this.prisma, serviceUserId, fallbackHours);
-    if (limit == null) return null;
+    if (limit == null) return { warning: null, timebank: null };
     const { rules, dateDisplayFormat } = await this.weeklyHours.context();
     const summary = await this.weeklyHours.weeks(this.prisma, serviceUserId, { planFromRows: planId });
+    const budget = await this.weeklyHours.timebankBudget(serviceUserId);
+    // The rota as it is now: what the run's new visits are added to.
+    const now = budget.enabled ? await this.weeklyHours.weeks(this.prisma, serviceUserId) : null;
+    const nowMinutes = new Map((now?.weeks ?? []).map((w) => [w.weekStart, w.minutes]));
     const from = mondayOfIso(dto.fromDate.slice(0, 10));
     const to = dto.toDate.slice(0, 10);
     const limitMinutes = Math.round(limit * 60);
-    const over = summary.weeks.filter((w) => w.weekStart >= from && w.weekStart <= to && w.minutes > limitMinutes);
-    if (!over.length) return null;
+    const over: typeof summary.weeks = [];
+    const fromBank = new Map<string, number>();
+    for (const w of summary.weeks) {
+      if (w.weekStart < from || w.weekStart > to) continue;
+      const room = limitMinutes + budget.reservedIn(w.weekStart);
+      if (w.minutes <= room) continue;
+      const before = nowMinutes.get(w.weekStart) ?? 0;
+      const need = w.minutes - Math.max(before, room);
+      const covered = need > 0 && budget.cover(w.weekStart, need);
+      if (covered) fromBank.set(w.weekStart, need);
+      if (!covered || before > room) over.push(w);
+    }
+    let timebank = this.timebankRunText(fromBank, dateDisplayFormat, 'will be taken');
+    if (timebank && over.length && budget.availableMinutes > 0) {
+      timebank += `. The ${formatHoursMinutes(budget.availableMinutes)} left is used only for a visit whose whole time over it can pay`;
+    }
+    if (!over.length) return { warning: null, timebank };
     const weeks = over
       .map((w) => `week of ${formatOrganisationIsoDate(w.weekStart, dateDisplayFormat)}: ${formatHoursMinutes(w.minutes)}`)
       .join('; ');
-    return (
-      `Over the weekly contracted hours (${formatHoursMinutes(limitMinutes)}) — ${weeks}. ` +
-      (rules.visitsNeedApproval
-        ? 'Visits over the hours go to Hours approvals and are made only once a manager approves.'
-        : 'All visits are made (warning only).')
-    );
+    return {
+      warning:
+        `Over the weekly contracted hours (${formatHoursMinutes(limitMinutes)}) — ${weeks}. ` +
+        (rules.visitsNeedApproval
+          ? 'Visits over the hours go to Hours approvals and are made only once a manager approves.'
+          : 'All visits are made (warning only).'),
+      timebank,
+    };
+  }
+
+  /** "Timebank: 1h taken for visits over the weekly hours — week of 10 Nov: 1h" (null when none). */
+  private timebankRunText(
+    byWeek: Map<string, number>,
+    dateDisplayFormat: Parameters<typeof formatOrganisationIsoDate>[1],
+    verb: 'will be taken' | 'taken',
+  ): string | null {
+    const weeks = [...byWeek].filter(([, m]) => m > 0).sort(([a], [b]) => a.localeCompare(b));
+    if (!weeks.length) return null;
+    const total = weeks.reduce((s, [, m]) => s + m, 0);
+    const list = weeks
+      .map(([week, m]) => `week of ${formatOrganisationIsoDate(week, dateDisplayFormat)}: ${formatHoursMinutes(m)}`)
+      .join('; ');
+    return `Timebank: ${formatHoursMinutes(total)} ${verb} for visits over the weekly hours — ${list}`;
   }
 
   /** After a run: what happened to the visits over the service user's weekly hours. */

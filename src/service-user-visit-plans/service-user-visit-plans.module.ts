@@ -19,6 +19,7 @@ import { VisitPlanDateChangesController } from './visit-plan-date-changes.contro
 import { VisitPlanDateChangesService } from './visit-plan-date-changes.service';
 import { VisitPlanWeeklyHoursService } from './visit-plan-weekly-hours.service';
 import { EXTRA_VISIT_CREATOR } from '../employee-hours-approvals/extra-visit-creator';
+import { ServiceUserHoursModule } from '../service-user-hours/service-user-hours.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { EXTRA_VISIT_CREATOR } from '../employee-hours-approvals/extra-visit-cre
     EmployeeComplianceModule,
     NotificationsModule,
     EmployeeHoursApprovalsModule,
+    ServiceUserHoursModule,
     forwardRef(() => ScheduledJobsHousekeepingModule),
   ],
   controllers: [
