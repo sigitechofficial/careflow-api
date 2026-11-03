@@ -107,7 +107,10 @@ export class SpecialVisitsService {
     const durationMinutes = Math.round((end.getTime() - start.getTime()) / 60_000);
     // Service user's weekly contracted hours (Settings → Dom Rules): over the hours it waits for a
     // manager (not made until approved), or is made with a warning.
-    const hours = options?.approvedOverServiceUserHours ? null : await this.serviceUserHoursCheck(dto, start, end);
+    const hoursCheck = options?.approvedOverServiceUserHours ? null : await this.serviceUserHoursCheck(dto, start, end);
+    // The service user's timebank pays for the hours over (docs/SU_TIMEBANK_USE_PLAN.md): made as fitting.
+    const fromTimebank = hoursCheck && 'fromTimebankMinutes' in hoursCheck ? hoursCheck : null;
+    const hours = hoursCheck && 'held' in hoursCheck ? hoursCheck : null;
     if (hours?.held) {
       const approvalId = await this.weeklyHours.holdVisit(this.prisma, {
         userId,
@@ -169,6 +172,19 @@ export class SpecialVisitsService {
           metadata: { special: true },
         },
       });
+      if (fromTimebank) {
+        await this.weeklyHours.reserveTimebank(tx, [
+          {
+            serviceUserId: dto.serviceUserId,
+            scheduledJobId: createdJob.id,
+            weekStart: fromTimebank.weekStart,
+            minutes: fromTimebank.fromTimebankMinutes,
+            reason: 'NEW_VISIT',
+            note: 'Special visit over the weekly hours',
+            userId,
+          },
+        ]);
+      }
       if (!waitForManager) {
         await tx.jobAllocation.create({
           data: {
@@ -208,6 +224,7 @@ export class SpecialVisitsService {
       data: {
         id: job.id,
         ...(hours ? { weeklyHoursWarning: `${hours.message} (warning only)` } : {}),
+        ...(fromTimebank ? { fromTimebankMinutes: fromTimebank.fromTimebankMinutes } : {}),
         ...(carerMessage
           ? waitForManager
             ? { carerHoursApprovalRequested: `${carerMessage} — sent to a manager; the carer is put on it once approved.` }
@@ -225,7 +242,11 @@ export class SpecialVisitsService {
     dto: CreateSpecialVisitDto,
     start: Date,
     end: Date,
-  ): Promise<{ held: boolean; message: string; payload: ServiceUserVisitHoldPayload } | null> {
+  ): Promise<
+    | { held: boolean; message: string; payload: ServiceUserVisitHoldPayload }
+    | { weekStart: string; fromTimebankMinutes: number }
+    | null
+  > {
     const ctx = await this.weeklyHours.context();
     if (!ctx.rules.specialVisitsCount) return null;
     const date = dayKeyInTimeZone(start, ctx.timeZone);
@@ -235,12 +256,17 @@ export class SpecialVisitsService {
       where: { serviceUserId: dto.serviceUserId, status: 'ACTIVE', deletedAt: null, isActive: true },
       select: { weeklyContractedHours: true },
     });
+    const budget = await this.weeklyHours.timebankBudget(dto.serviceUserId);
     const check = await this.weeklyHours.classifyNewVisits({
       serviceUserId: dto.serviceUserId,
       fallbackHours: plan?.weeklyContractedHours ?? null,
       visits: [{ date, startsAt: start.toISOString(), minutes }],
+      budget,
     });
     const visit = check.visits[0];
+    if (visit && visit.fromTimebankMinutes > 0) {
+      return { weekStart: visit.weekStart, fromTimebankMinutes: visit.fromTimebankMinutes };
+    }
     if (!visit?.over) return null;
     const hm = (d: Date) =>
       new Intl.DateTimeFormat('en-GB', { timeZone: ctx.timeZone, hour: '2-digit', minute: '2-digit', hour12: false }).format(d);
@@ -264,6 +290,7 @@ export class SpecialVisitsService {
         weekStart: visit.weekStart,
         weekMinutes: visit.weekMinutes,
         limitWeeklyHours: check.limitWeeklyHours,
+        timebankMinutes: budget.reservedIn(visit.weekStart),
         specialVisit: { ...dto } as unknown as Record<string, unknown>,
       },
     };

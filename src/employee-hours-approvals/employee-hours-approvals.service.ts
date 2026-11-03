@@ -1745,7 +1745,7 @@ export class EmployeeHoursApprovalsService {
       this.requestChanges(rows),
     ]);
     // Pending extra visits: that week as it is now (it may have changed since the request).
-    const currentWeek = new Map<string, { weekMinutes: number; limitWeeklyHours: number | null }>();
+    const currentWeek = new Map<string, { weekMinutes: number; limitWeeklyHours: number | null; timebankMinutes: number }>();
     const pendingExtras = rows.filter(
       (r) =>
         r.requestType === EmployeeHoursApprovalType.EXTRA_VISIT_OVER_HOURS &&

@@ -5,7 +5,7 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 
 /** Visit plans whose weekly hours follow the DOM Care value (ended plans keep their history). */
-const OPEN_VISIT_PLAN_STATUSES: VisitPlanStatus[] = [
+export const OPEN_VISIT_PLAN_STATUSES: VisitPlanStatus[] = [
   VisitPlanStatus.DRAFT,
   VisitPlanStatus.ACTIVE,
   VisitPlanStatus.SUSPENDED,

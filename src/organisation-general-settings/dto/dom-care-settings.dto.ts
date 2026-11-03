@@ -203,4 +203,9 @@ export class ServiceUserWeeklyHoursSettingsDto {
   @IsOptional()
   @IsBoolean()
   specialVisitsCount?: boolean;
+
+  @ApiPropertyOptional({ default: false, description: 'Visits over the weekly hours use the timebank when it covers them.' })
+  @IsOptional()
+  @IsBoolean()
+  useTimebank?: boolean;
 }

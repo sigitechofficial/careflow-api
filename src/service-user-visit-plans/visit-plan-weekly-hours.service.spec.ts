@@ -1,4 +1,5 @@
 import { VisitPlanWeeklyHoursService, mondayOfIso } from './visit-plan-weekly-hours.service';
+import { TimebankBudget } from '../service-user-hours/service-user-timebank-ledger.service';
 
 /** Service user weekly hours counted from the rota (docs/SU_WEEKLY_HOURS_SIMPLIFY_PLAN.md S11–S13). */
 describe('VisitPlanWeeklyHoursService (rota count)', () => {
@@ -73,6 +74,36 @@ describe('VisitPlanWeeklyHoursService (rota count)', () => {
       ['2026-11-11', false, 300],
       ['2026-11-12', true, 360],
     ]);
+  });
+
+  it('timebank: pays for the hours over only when it has all of them; held minutes widen the week', async () => {
+    // 5h limit; 4h on the rota, 1h of it already held from the bank (so the week has room for 6h).
+    const { service } = build([job('2026-11-09T09:00:00Z', 240)]);
+    const budget = new TimebankBudget(true, 90, new Map([['2026-11-09', 60]]));
+    const result = await service.classifyNewVisits({
+      serviceUserId: 'su',
+      budget,
+      visits: [
+        { date: '2026-11-10', startsAt: '2026-11-10T09:00', minutes: 120 },
+        { date: '2026-11-11', startsAt: '2026-11-11T09:00', minutes: 60 },
+      ],
+    });
+    // 4h + 2h = 6h fits 5h + 1h held; then 7h is 1h over → the bank (90m) pays 60m.
+    expect(result.visits.map((v) => [v.date, v.over, v.fromTimebankMinutes])).toEqual([
+      ['2026-11-10', false, 0],
+      ['2026-11-11', false, 60],
+    ]);
+    expect(budget.availableMinutes).toBe(30);
+    // The rota now has the 7h made above.
+    const after = build([job('2026-11-09T09:00:00Z', 240), job('2026-11-10T09:00:00Z', 120), job('2026-11-11T09:00:00Z', 60)]);
+    const more = await after.service.classifyNewVisits({
+      serviceUserId: 'su',
+      budget,
+      visits: [{ date: '2026-11-12', startsAt: '2026-11-12T09:00', minutes: 60 }],
+    });
+    // 30m left cannot pay for 60m: over as before, the bank untouched.
+    expect(more.visits[0]).toMatchObject({ over: true, fromTimebankMinutes: 0 });
+    expect(budget.availableMinutes).toBe(30);
   });
 
   it('no weekly hours set: nothing is over', async () => {

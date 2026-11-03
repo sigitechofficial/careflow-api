@@ -17,6 +17,12 @@ export type ServiceUserWeeklyHoursSettings = {
   visitsNeedApproval: boolean;
   /** Special visits count towards the service user's weekly hours. */
   specialVisitsCount: boolean;
+  /**
+   * Timebank (docs/SU_TIMEBANK_USE_PLAN.md): Yes → a new visit over the weekly hours takes the hours
+   * over from the service user's timebank when the bank covers all of them (reserved when the visit
+   * is put on the rota). No → the bank is only shown.
+   */
+  useTimebank: boolean;
 };
 
 export const DEFAULT_SERVICE_USER_WEEKLY_HOURS_SETTINGS: ServiceUserWeeklyHoursSettings =
@@ -24,6 +30,7 @@ export const DEFAULT_SERVICE_USER_WEEKLY_HOURS_SETTINGS: ServiceUserWeeklyHoursS
     changeNeedsApproval: true,
     visitsNeedApproval: true,
     specialVisitsCount: true,
+    useTimebank: false,
   };
 
 /**
@@ -48,6 +55,7 @@ export function parseServiceUserWeeklyHoursSettings(
     changeNeedsApproval: bool(raw.changeNeedsApproval) ?? legacyChange ?? d.changeNeedsApproval,
     visitsNeedApproval: bool(raw.visitsNeedApproval) ?? legacyVisits ?? d.visitsNeedApproval,
     specialVisitsCount: bool(raw.specialVisitsCount) ?? d.specialVisitsCount,
+    useTimebank: bool(raw.useTimebank) ?? d.useTimebank,
   };
 }
 
