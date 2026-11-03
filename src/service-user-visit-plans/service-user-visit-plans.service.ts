@@ -3013,6 +3013,7 @@ export class ServiceUserVisitPlansService {
     // Timebank (docs/SU_TIMEBANK_USE_PLAN.md): a week also has the minutes visits hold from the bank;
     // when the setting is on, the bank pays for a visit's hours over if it has all of them.
     const timebank = await this.weeklyHours.timebankBudget(serviceUserId);
+    const timebankAtStart = timebank.availableMinutes;
     /** "slotId|YYYY-MM-DD" → bank minutes to reserve once the visit's job is made. */
     const timebankByKey = new Map<string, { weekStart: string; minutes: number }>();
     /** Week → bank minutes reserved by this run (for the result message). */
@@ -3604,7 +3605,13 @@ export class ServiceUserVisitPlansService {
     }
     const weeklyHoursWarning = await this.weeklyHoursRunResult(hoursLimit, visitsHeld, overWeeks);
     const weeklyHoursTimebank = timebankUsed.size
-      ? this.timebankRunText(timebankUsed, hoursCtx.dateDisplayFormat, 'taken')
+      ? this.timebankRunText(
+          timebankUsed,
+          hoursCtx.dateDisplayFormat,
+          'taken',
+          Math.round((hoursLimit ?? 0) * 60),
+          timebankAtStart - [...timebankUsed.values()].reduce((s, m) => s + m, 0),
+        )
       : null;
 
     return {
@@ -3663,9 +3670,9 @@ export class ServiceUserVisitPlansService {
       if (covered) fromBank.set(w.weekStart, need);
       if (!covered || before > room) over.push(w);
     }
-    let timebank = this.timebankRunText(fromBank, dateDisplayFormat, 'will be taken');
+    let timebank = this.timebankRunText(fromBank, dateDisplayFormat, 'will be taken', limitMinutes, budget.availableMinutes);
     if (timebank && over.length && budget.availableMinutes > 0) {
-      timebank += `. The ${formatHoursMinutes(budget.availableMinutes)} left is used only for a visit whose whole time over it can pay`;
+      timebank += ', and is used only for a visit whose whole time over the hours it can pay';
     }
     if (!over.length) return { warning: null, timebank };
     const weeks = over
@@ -3686,6 +3693,8 @@ export class ServiceUserVisitPlansService {
     byWeek: Map<string, number>,
     dateDisplayFormat: Parameters<typeof formatOrganisationIsoDate>[1],
     verb: 'will be taken' | 'taken',
+    limitMinutes: number,
+    leftMinutes: number,
   ): string | null {
     const weeks = [...byWeek].filter(([, m]) => m > 0).sort(([a], [b]) => a.localeCompare(b));
     if (!weeks.length) return null;
@@ -3693,7 +3702,14 @@ export class ServiceUserVisitPlansService {
     const list = weeks
       .map(([week, m]) => `week of ${formatOrganisationIsoDate(week, dateDisplayFormat)}: ${formatHoursMinutes(m)}`)
       .join('; ');
-    return `Timebank: ${formatHoursMinutes(total)} ${verb} for visits over the weekly hours — ${list}`;
+    const balance =
+      verb === 'taken'
+        ? `${formatHoursMinutes(leftMinutes)} left in the timebank`
+        : `The timebank has ${formatHoursMinutes(total + leftMinutes)} now; ${formatHoursMinutes(leftMinutes)} will be left`;
+    return (
+      `${formatHoursMinutes(total)} ${verb} from the timebank to pay for time over the weekly contracted hours ` +
+      `(${formatHoursMinutes(limitMinutes)}) — ${list}. ${balance}`
+    );
   }
 
   /** After a run: what happened to the visits over the service user's weekly hours. */
