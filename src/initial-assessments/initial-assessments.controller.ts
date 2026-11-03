@@ -312,7 +312,7 @@ export class InitialAssessmentsController {
   }
 
   @Patch(':submissionId/care-plan-recommendations/:recommendationId')
-  @AnyPermission('service_users.initial_assessment.review', 'service_users.initial_assessment.update')
+  @Permissions('service_users.initial_assessment.review')
   decideCarePlanRecommendation(
     @CurrentUser() user: RequestUser,
     @Param('id') serviceUserId: string,

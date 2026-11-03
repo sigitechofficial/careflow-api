@@ -334,6 +334,15 @@ enum InitialAssessmentCarePlanRuleMatchMode {
   @@schema("service_users")
 }
 
+enum InitialAssessmentCarePlanRecommendationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  DEFERRED
+
+  @@schema("service_users")
+}
+
 enum BodyMapRecordType {
   INJURY
   WOUND
@@ -463,6 +472,26 @@ enum AssessmentCompletionSource {
 enum ServiceUserCarePlanInstanceStatus {
   DRAFT
   PUBLISHED
+
+  @@schema("service_users")
+}
+
+/// Operational lifecycle of a care plan, separate from DRAFT/PUBLISHED and from draft approval.
+/// Only ACTIVE published plans are current instructions for carers; nothing is deleted.
+enum ServiceUserCarePlanLifecycleStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+
+  @@schema("service_users")
+}
+
+/// Approval state of a care plan's working draft. Publishing consumes the draft (the plan is then
+/// PUBLISHED on the instance); a published plan keeps showing its current version during review.
+enum ServiceUserCarePlanDraftApprovalStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
 
   @@schema("service_users")
 }
@@ -945,6 +974,8 @@ enum ComplianceAllocationMode {
 model OrganisationGeneralSettings {
   id                                   String                     @id @default(uuid()) @db.Uuid
   reviewCarePlanAfterDays              Int                        @default(180)
+  /// Care plans: when true, only a manager-approved working draft can be published. Off by default.
+  carePlanApprovalRequired             Boolean                    @default(false)
   handoverReportLastHours              Int                        @default(12)
   /// Incidents: Duty of Candour is flagged overdue after this many days without telling the person
   /// in person (organisation policy — the law says "as soon as reasonably practicable"). Null = off.
@@ -3593,18 +3624,19 @@ model InitialAssessmentSubmission {
   updatedById   String?                 @db.Uuid
   deletedById   String?                 @db.Uuid
 
-  serviceUser           ServiceUser                       @relation(fields: [serviceUserId], references: [id])
-  template              InitialAssessmentTemplate         @relation(fields: [templateId], references: [id])
-  submittedBy           User?                             @relation("InitialAssessmentSubmittedBy", fields: [submittedById], references: [id])
-  reviewedBy            User?                             @relation("InitialAssessmentReviewedBy", fields: [reviewedById], references: [id])
-  createdBy             User?                             @relation("InitialAssessmentCreatedBy", fields: [createdById], references: [id])
-  updatedBy             User?                             @relation("InitialAssessmentUpdatedBy", fields: [updatedById], references: [id])
-  answers               InitialAssessmentAnswer[]
-  actions               InitialAssessmentAction[]
-  attachments           InitialAssessmentAttachment[]
-  riskRecords           InitialAssessmentRiskRecord[]
-  visitPlans            ServiceUserVisitPlan[]
-  assessmentCompletions ServiceUserAssessmentCompletion[]
+  serviceUser             ServiceUser                               @relation(fields: [serviceUserId], references: [id])
+  template                InitialAssessmentTemplate                 @relation(fields: [templateId], references: [id])
+  submittedBy             User?                                     @relation("InitialAssessmentSubmittedBy", fields: [submittedById], references: [id])
+  reviewedBy              User?                                     @relation("InitialAssessmentReviewedBy", fields: [reviewedById], references: [id])
+  createdBy               User?                                     @relation("InitialAssessmentCreatedBy", fields: [createdById], references: [id])
+  updatedBy               User?                                     @relation("InitialAssessmentUpdatedBy", fields: [updatedById], references: [id])
+  answers                 InitialAssessmentAnswer[]
+  actions                 InitialAssessmentAction[]
+  attachments             InitialAssessmentAttachment[]
+  riskRecords             InitialAssessmentRiskRecord[]
+  visitPlans              ServiceUserVisitPlan[]
+  assessmentCompletions   ServiceUserAssessmentCompletion[]
+  carePlanRecommendations InitialAssessmentCarePlanRecommendation[]
 
   @@index([serviceUserId])
   @@index([templateId])
@@ -3656,6 +3688,37 @@ model InitialAssessmentCarePlanRecommendationRule {
   @@index([carePathwayFormId])
   @@index([isActive])
   @@index([deletedAt])
+  @@schema("service_users")
+}
+
+/// Care plan recommendations captured when an initial assessment is submitted. `legacyRecommendationId`
+/// is the id the API has always used (`cp-…`, `rule-…`, `condition-…`); decisions are still also kept in
+/// `InitialAssessmentSubmission.metadata.carePlanDecisions`. Submissions without rows use live calculation.
+model InitialAssessmentCarePlanRecommendation {
+  id                     String                                        @id @default(uuid()) @db.Uuid
+  submissionId           String                                        @db.Uuid
+  serviceUserId          String                                        @db.Uuid
+  carePathwayFormId      String?                                       @db.Uuid
+  legacyRecommendationId String
+  sourceType             String
+  /// Full recommendation as calculated at submission (area, title, triggers, aliasIds…).
+  evidenceJson           Json
+  sortOrder              Int                                           @default(0)
+  status                 InitialAssessmentCarePlanRecommendationStatus @default(PENDING)
+  decisionReason         String?                                       @db.Text
+  decidedById            String?                                       @db.Uuid
+  decidedAt              DateTime?
+  /// Care plan instance created or linked when the recommendation was accepted. Kept if the decision later changes.
+  carePlanInstanceId     String?                                       @db.Uuid
+  createdAt              DateTime                                      @default(now())
+  updatedAt              DateTime                                      @updatedAt
+
+  submission InitialAssessmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, legacyRecommendationId])
+  @@index([serviceUserId])
+  @@index([carePathwayFormId])
+  @@index([carePlanInstanceId])
   @@schema("service_users")
 }
 
@@ -3719,32 +3782,37 @@ model InitialAssessmentAttachment {
 }
 
 model InitialAssessmentRiskRecord {
-  id                  String                      @id @default(uuid()) @db.Uuid
-  submissionId        String                      @db.Uuid
-  serviceUserId       String                      @db.Uuid
-  riskType            InitialAssessmentRiskType
-  description         String                      @db.Text
-  likelihood          InitialAssessmentRiskLevel
-  severity            InitialAssessmentRiskLevel
-  riskLevel           InitialAssessmentRiskLevel
-  controlMeasures     String?                     @db.Text
-  residualRisk        InitialAssessmentRiskLevel?
-  reviewDate          DateTime?
-  status              InitialAssessmentRiskStatus @default(OPEN)
-  sourceSectionNumber Int?
-  sourceQuestionId    String?                     @db.Uuid
-  sourceQuestionText  String?
-  responsiblePersonId String?                     @db.Uuid
-  autoGenerated       Boolean                     @default(false)
-  createdAt           DateTime                    @default(now())
-  updatedAt           DateTime                    @updatedAt
-  createdById         String?                     @db.Uuid
-  updatedById         String?                     @db.Uuid
+  id                       String                      @id @default(uuid()) @db.Uuid
+  submissionId             String                      @db.Uuid
+  serviceUserId            String                      @db.Uuid
+  riskType                 InitialAssessmentRiskType
+  description              String                      @db.Text
+  likelihood               InitialAssessmentRiskLevel
+  severity                 InitialAssessmentRiskLevel
+  riskLevel                InitialAssessmentRiskLevel
+  controlMeasures          String?                     @db.Text
+  residualRisk             InitialAssessmentRiskLevel?
+  reviewDate               DateTime?
+  status                   InitialAssessmentRiskStatus @default(OPEN)
+  sourceSectionNumber      Int?
+  sourceQuestionId         String?                     @db.Uuid
+  sourceQuestionText       String?
+  responsiblePersonId      String?                     @db.Uuid
+  autoGenerated            Boolean                     @default(false)
+  /// A later assessment recorded the same risk type: an authorised user must decide on this one.
+  /// Status is never changed automatically.
+  supersededBySubmissionId String?                     @db.Uuid
+  supersedeReviewRequired  Boolean                     @default(false)
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+  createdById              String?                     @db.Uuid
+  updatedById              String?                     @db.Uuid
 
   submission        InitialAssessmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   serviceUser       ServiceUser                 @relation(fields: [serviceUserId], references: [id])
   sourceQuestion    InitialAssessmentQuestion?  @relation(fields: [sourceQuestionId], references: [id])
   responsiblePerson User?                       @relation("InitialAssessmentRiskResponsible", fields: [responsiblePersonId], references: [id])
+  carePlanLinks     CarePlanRiskLink[]
 
   @@index([submissionId])
   @@index([serviceUserId])
@@ -3817,18 +3885,23 @@ model CarePlanAssessmentLink {
 }
 
 model ServiceUserCarePlanInstance {
-  id                       String                            @id @default(uuid()) @db.Uuid
-  serviceUserId            String                            @db.Uuid
-  carePathwayFormId        String                            @db.Uuid
-  carePathwayFormVersionId String?                           @db.Uuid
-  status                   ServiceUserCarePlanInstanceStatus @default(DRAFT)
+  id                       String                             @id @default(uuid()) @db.Uuid
+  serviceUserId            String                             @db.Uuid
+  carePathwayFormId        String                             @db.Uuid
+  carePathwayFormVersionId String?                            @db.Uuid
+  status                   ServiceUserCarePlanInstanceStatus  @default(DRAFT)
+  lifecycleStatus          ServiceUserCarePlanLifecycleStatus @default(ACTIVE)
+  /// Reason for the latest suspend / resume / archive.
+  lifecycleReason          String?                            @db.Text
+  lifecycleChangedAt       DateTime?
+  lifecycleChangedById     String?                            @db.Uuid
   nextReviewDueAt          DateTime?
   lastReviewedAt           DateTime?
-  lastReviewedById         String?                           @db.Uuid
-  createdAt                DateTime                          @default(now())
-  updatedAt                DateTime                          @updatedAt
-  createdById              String?                           @db.Uuid
-  updatedById              String?                           @db.Uuid
+  lastReviewedById         String?                            @db.Uuid
+  createdAt                DateTime                           @default(now())
+  updatedAt                DateTime                           @updatedAt
+  createdById              String?                            @db.Uuid
+  updatedById              String?                            @db.Uuid
 
   serviceUser            ServiceUser                           @relation(fields: [serviceUserId], references: [id])
   carePathwayForm        CarePathwayForm                       @relation(fields: [carePathwayFormId], references: [id])
@@ -3840,22 +3913,177 @@ model ServiceUserCarePlanInstance {
   publishedVersions      ServiceUserCarePlanPublishedVersion[]
   assessmentCompletions  ServiceUserAssessmentCompletion[]
   assessmentLinks        CarePlanAssessmentLink[]
+  visitTaskLinks         CarePlanVisitTaskLink[]
+  acknowledgements       CarePlanVersionAcknowledgement[]
+  reassessmentFlags      CarePlanReassessmentFlag[]
+  riskLinks              CarePlanRiskLink[]
 
   @@unique([serviceUserId, carePathwayFormId])
   @@index([serviceUserId])
   @@index([carePathwayFormId])
   @@index([status, nextReviewDueAt])
+  @@index([lifecycleStatus])
+  @@schema("service_users")
+}
+
+enum CarePlanVisitTaskLinkStatus {
+  LINKED
+  REVIEW_REQUIRED
+  NOT_APPLICABLE
+
+  @@schema("service_users")
+}
+
+/// Manager-confirmed link between a published care plan (optionally one structured requirement, a
+/// form field key) and an existing visit task assignment. Never creates, changes or deletes tasks.
+/// NOT_APPLICABLE rows record a requirement judged not to need a task (no assignment).
+model CarePlanVisitTaskLink {
+  id                         String                      @id @default(uuid()) @db.Uuid
+  serviceUserId              String                      @db.Uuid
+  carePlanInstanceId         String                      @db.Uuid
+  /// Published version the link was confirmed against (kept when a newer version is published).
+  carePlanPublishedVersionId String                      @db.Uuid
+  visitTaskAssignmentId      String?                     @db.Uuid
+  /// Structured care plan field key; "" means the plan as a whole.
+  requirementKey             String                      @default("")
+  requirementLabel           String?
+  status                     CarePlanVisitTaskLinkStatus @default(LINKED)
+  reason                     String?                     @db.Text
+  linkedById                 String?                     @db.Uuid
+  linkedAt                   DateTime                    @default(now())
+  reviewedById               String?                     @db.Uuid
+  reviewedAt                 DateTime?
+  updatedAt                  DateTime                    @updatedAt
+
+  carePlanInstance         ServiceUserCarePlanInstance         @relation(fields: [carePlanInstanceId], references: [id], onDelete: Cascade)
+  carePlanPublishedVersion ServiceUserCarePlanPublishedVersion @relation(fields: [carePlanPublishedVersionId], references: [id], onDelete: Cascade)
+  visitTaskAssignment      ServiceUserVisitTaskAssignment?     @relation(fields: [visitTaskAssignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([carePlanInstanceId, visitTaskAssignmentId, requirementKey])
+  @@index([serviceUserId])
+  @@index([visitTaskAssignmentId])
+  @@index([carePlanInstanceId, status])
+  @@schema("service_users")
+}
+
+/// One row per carer per published care plan version: created when the carer is notified (the row
+/// is the "already notified" claim) and completed when the carer acknowledges that exact version.
+/// A new version needs a new row. Delivery never sets acknowledgedAt.
+model CarePlanVersionAcknowledgement {
+  id                 String    @id @default(uuid()) @db.Uuid
+  publishedVersionId String    @db.Uuid
+  carePlanInstanceId String    @db.Uuid
+  serviceUserId      String    @db.Uuid
+  employeeId         String    @db.Uuid
+  notifiedAt         DateTime?
+  acknowledgedAt     DateTime?
+  acknowledgedById   String?   @db.Uuid
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  publishedVersion ServiceUserCarePlanPublishedVersion @relation(fields: [publishedVersionId], references: [id], onDelete: Cascade)
+  carePlanInstance ServiceUserCarePlanInstance         @relation(fields: [carePlanInstanceId], references: [id], onDelete: Cascade)
+
+  @@unique([publishedVersionId, employeeId])
+  @@index([employeeId])
+  @@index([carePlanInstanceId])
+  @@schema("service_users")
+}
+
+enum CarePlanReassessmentChange {
+  NEW_NEED
+  CHANGED_NEED
+  NO_LONGER_INDICATED
+  NEW_RISK
+  GENERAL
+
+  @@schema("service_users")
+}
+
+enum CarePlanReviewFlagStatus {
+  OPEN
+  RESOLVED
+
+  @@schema("service_users")
+}
+
+/// A later initial assessment suggests this care plan needs a manager's review. Nothing about the
+/// plan changes until the manager acts; one flag per plan per triggering assessment.
+model CarePlanReassessmentFlag {
+  id                     String                       @id @default(uuid()) @db.Uuid
+  serviceUserId          String                       @db.Uuid
+  carePlanInstanceId     String                       @db.Uuid
+  triggeringSubmissionId String                       @db.Uuid
+  previousSubmissionId   String?                      @db.Uuid
+  changeTypes            CarePlanReassessmentChange[]
+  reason                 String                       @db.Text
+  /// Structured evidence only (recommendation trigger question ids, risk types / levels).
+  detailsJson            Json?
+  status                 CarePlanReviewFlagStatus     @default(OPEN)
+  resolvedById           String?                      @db.Uuid
+  resolvedAt             DateTime?
+  resolutionNote         String?                      @db.Text
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+
+  carePlanInstance ServiceUserCarePlanInstance @relation(fields: [carePlanInstanceId], references: [id], onDelete: Cascade)
+
+  @@unique([carePlanInstanceId, triggeringSubmissionId])
+  @@index([serviceUserId])
+  @@index([carePlanInstanceId, status])
+  @@schema("service_users")
+}
+
+enum CarePlanRiskLinkStatus {
+  LINKED
+  REVIEW_REQUIRED
+
+  @@schema("service_users")
+}
+
+/// Manager-confirmed link between an initial assessment risk record and a care plan that controls it.
+/// The risk record (and its evidence) is never changed by linking.
+model CarePlanRiskLink {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  serviceUserId      String                 @db.Uuid
+  carePlanInstanceId String                 @db.Uuid
+  riskRecordId       String                 @db.Uuid
+  status             CarePlanRiskLinkStatus @default(LINKED)
+  /// Risk level / severity / controls when the link was confirmed, to see what changed.
+  riskSnapshotJson   Json
+  reviewReason       String?                @db.Text
+  linkedById         String?                @db.Uuid
+  linkedAt           DateTime               @default(now())
+  reviewedById       String?                @db.Uuid
+  reviewedAt         DateTime?
+  updatedAt          DateTime               @updatedAt
+
+  carePlanInstance ServiceUserCarePlanInstance @relation(fields: [carePlanInstanceId], references: [id], onDelete: Cascade)
+  riskRecord       InitialAssessmentRiskRecord @relation(fields: [riskRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([carePlanInstanceId, riskRecordId])
+  @@index([serviceUserId])
+  @@index([riskRecordId])
   @@schema("service_users")
 }
 
 model ServiceUserCarePlanDraft {
-  id               String   @id @default(uuid()) @db.Uuid
-  instanceId       String   @unique @db.Uuid
-  valuesJson       Json     @default("{}")
-  composedFromJson Json?
-  gapsJson         Json?
-  updatedAt        DateTime @updatedAt
-  updatedById      String?  @db.Uuid
+  id                       String                                 @id @default(uuid()) @db.Uuid
+  instanceId               String                                 @unique @db.Uuid
+  valuesJson               Json                                   @default("{}")
+  composedFromJson         Json?
+  gapsJson                 Json?
+  updatedAt                DateTime                               @updatedAt
+  updatedById              String?                                @db.Uuid
+  approvalStatus           ServiceUserCarePlanDraftApprovalStatus @default(DRAFT)
+  /// SHA-256 of the draft values at submission; approval and publication must match it.
+  approvalContentHash      String?
+  submittedForApprovalAt   DateTime?
+  submittedForApprovalById String?                                @db.Uuid
+  approvalDecidedAt        DateTime?
+  approvalDecidedById      String?                                @db.Uuid
+  /// Reason given when changes were requested.
+  approvalReason           String?                                @db.Text
 
   instance  ServiceUserCarePlanInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   updatedBy User?                       @relation("CarePlanDraftUpdatedBy", fields: [updatedById], references: [id])
@@ -3876,10 +4104,14 @@ model ServiceUserCarePlanPublishedVersion {
   supersededAt     DateTime?
   /// The incident "Care plan update" measure this version is the evidence for (incidents.IncidentAction).
   incidentActionId String?   @db.Uuid
+  /// Approval that authorised this version (submitter, approver, content hash); null if published without one.
+  approvalJson     Json?
   createdAt        DateTime  @default(now())
 
-  instance    ServiceUserCarePlanInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  publishedBy User?                       @relation("CarePlanVersionPublishedBy", fields: [publishedById], references: [id])
+  instance         ServiceUserCarePlanInstance      @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  publishedBy      User?                            @relation("CarePlanVersionPublishedBy", fields: [publishedById], references: [id])
+  visitTaskLinks   CarePlanVisitTaskLink[]
+  acknowledgements CarePlanVersionAcknowledgement[]
 
   @@unique([instanceId, versionNumber])
   @@index([instanceId])
@@ -5288,11 +5520,12 @@ model ServiceUserVisitTaskAssignment {
   createdById           String?                    @db.Uuid
   updatedById           String?                    @db.Uuid
 
-  serviceUser ServiceUser                    @relation(fields: [serviceUserId], references: [id], onDelete: Cascade)
-  task        TaskCatalogueTask              @relation(fields: [taskCatalogueTaskId], references: [id], onDelete: Cascade)
-  createdBy   User?                          @relation("ServiceUserVisitTaskAssignmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy   User?                          @relation("ServiceUserVisitTaskAssignmentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  completions ScheduledVisitTaskCompletion[]
+  serviceUser   ServiceUser                    @relation(fields: [serviceUserId], references: [id], onDelete: Cascade)
+  task          TaskCatalogueTask              @relation(fields: [taskCatalogueTaskId], references: [id], onDelete: Cascade)
+  createdBy     User?                          @relation("ServiceUserVisitTaskAssignmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?                          @relation("ServiceUserVisitTaskAssignmentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  completions   ScheduledVisitTaskCompletion[]
+  carePlanLinks CarePlanVisitTaskLink[]
 
   @@unique([serviceUserId, medicationRoundCode, taskCatalogueTaskId])
   @@index([serviceUserId, medicationRoundCode])
@@ -6743,7 +6976,9 @@ enum ScheduleBuildSource {
   @@schema("scheduling")
 }
 
-/** Branch lifecycle (ScheduleArea.status). */
+/**
+ * Branch lifecycle (ScheduleArea.status).
+ */
 enum BranchStatus {
   ACTIVE
   INACTIVE
@@ -6752,7 +6987,9 @@ enum BranchStatus {
   @@schema("scheduling")
 }
 
-/** CQC overall rating of a registered branch. */
+/**
+ * CQC overall rating of a registered branch.
+ */
 enum CqcRating {
   OUTSTANDING
   GOOD

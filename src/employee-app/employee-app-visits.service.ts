@@ -6550,7 +6550,8 @@ export class EmployeeAppVisitsService {
           select: { id: true, message: true, displayUntil: true },
         }),
         this.prisma.serviceUserCarePlanInstance.findMany({
-          where: { serviceUserId: suId },
+          // Suspended / archived plans are not current instructions for carers.
+          where: { serviceUserId: suId, lifecycleStatus: 'ACTIVE' },
           take: 4,
           orderBy: { updatedAt: 'desc' },
           select: {

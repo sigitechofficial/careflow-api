@@ -241,7 +241,8 @@ export class MedicalConditionsService {
         },
       }),
       this.prisma.carePathwayForm.findMany({
-        where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
+        // Only forms a recommendation may target (same as the IA recommendation engine).
+        where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null, isActive: true },
         select: { id: true, name: true },
       }),
     ]);

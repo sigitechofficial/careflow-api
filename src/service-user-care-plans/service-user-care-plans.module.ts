@@ -5,6 +5,9 @@ import { NotificationsModule } from '../notifications/notifications.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { CarePlanComposeService } from './care-plan-compose.service';
 import { CarePlanReviewRemindersJob } from './care-plan-review-reminders.job';
+import { CarePlanTaskReconciliationService } from './care-plan-task-reconciliation.service';
+import { CarePlanCarerNotificationService } from './care-plan-carer-notification.service';
+import { CarePlanRiskLinkService } from './care-plan-risk-link.service';
 import { ServiceUserCarePlansReviewController } from './service-user-care-plans-review.controller';
 import { ServiceUserCarePlansController } from './service-user-care-plans.controller';
 import { ServiceUserCarePlansService } from './service-user-care-plans.service';
@@ -17,7 +20,14 @@ import { ServiceUserCarePlansService } from './service-user-care-plans.service';
     forwardRef(() => NotificationsModule),
   ],
   controllers: [ServiceUserCarePlansController, ServiceUserCarePlansReviewController],
-  providers: [ServiceUserCarePlansService, CarePlanComposeService, CarePlanReviewRemindersJob],
+  providers: [
+    ServiceUserCarePlansService,
+    CarePlanComposeService,
+    CarePlanReviewRemindersJob,
+    CarePlanTaskReconciliationService,
+    CarePlanCarerNotificationService,
+    CarePlanRiskLinkService,
+  ],
   exports: [ServiceUserCarePlansService, CarePlanComposeService],
 })
 export class ServiceUserCarePlansModule {}

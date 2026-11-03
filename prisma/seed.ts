@@ -348,6 +348,7 @@ async function main() {
     'service_users.initial_assessment.submit',
     'service_users.initial_assessment.review',
     'service_users.initial_assessment.export',
+    'service_users.care_plan.approve',
     'service_users.assessments.read',
     'service_users.assessments.create',
     'service_users.assessments.link',
@@ -2419,6 +2420,24 @@ async function main() {
       (await prisma.role.findFirst({ where: { name: roleName, deletedAt: null } }));
     if (!r) continue;
     for (const p of initialAssessmentReviewPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  // Care plan approval is manager-level only (not implied by service_users.update).
+  const carePlanApprovePerms = await prisma.permission.findMany({
+    where: { key: 'service_users.care_plan.approve', deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager', 'Branch Admin']) {
+    const r =
+      roles.find((x) => x.name === roleName) ??
+      (await prisma.role.findFirst({ where: { name: roleName, deletedAt: null } }));
+    if (!r) continue;
+    for (const p of carePlanApprovePerms) {
       await prisma.rolePermission.upsert({
         where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
         update: {},
