@@ -299,8 +299,13 @@ export class CarerExtraHoursService {
   ) {
     const display = await this.orgSettings.getOperationalDisplaySettings();
     const fmt = (iso: string) => formatOrganisationIsoDate(iso, display.dateDisplayFormat);
-    const periodLabel =
-      checked.startDate === checked.endDate ? fmt(checked.startDate) : `${fmt(checked.startDate)} – ${fmt(checked.endDate)}`;
+    const weekStarts =
+      checked.periods.length > 1 ? checked.periods.map((p) => p.startDate) : undefined;
+    const periodLabel = weekStarts
+      ? `weeks of ${weekStarts.map(fmt).join(', ')}`
+      : checked.startDate === checked.endDate
+        ? fmt(checked.startDate)
+        : `${fmt(checked.startDate)} – ${fmt(checked.endDate)}`;
     const row = await this.prisma.employeeHoursApproval.create({
       data: {
         requestType: EmployeeHoursApprovalType.EXTRA_WEEKLY_HOURS,
@@ -316,6 +321,7 @@ export class CarerExtraHoursService {
           periodType: dto.periodType,
           startDate: dto.startDate,
           ...(dto.endDate ? { endDate: dto.endDate } : {}),
+          ...(weekStarts ? { weekStarts } : {}),
           extraHours: dto.extraHours,
           ...(dto.reason?.trim() ? { reason: dto.reason.trim() } : {}),
           periodStart: checked.startDate,
@@ -331,7 +337,13 @@ export class CarerExtraHoursService {
       action: AuditAction.EMPLOYEE_EXTRA_WEEKLY_HOURS_REQUESTED,
       recordType: 'EmployeeHoursApproval',
       recordId: row.id,
-      newValues: { employeeId: dto.employeeId, extraHours: dto.extraHours, startDate: checked.startDate, endDate: checked.endDate },
+      newValues: {
+        employeeId: dto.employeeId,
+        extraHours: dto.extraHours,
+        startDate: checked.startDate,
+        endDate: checked.endDate,
+        ...(weekStarts ? { weekStarts } : {}),
+      },
       ...meta,
     });
     void this.notificationHook.notifyExtraHoursRequested({
@@ -353,47 +365,57 @@ export class CarerExtraHoursService {
     checked: Awaited<ReturnType<CarerExtraHoursService['checkGrant']>>,
     meta?: RequestAuditMeta,
   ) {
-    const { startDate, endDate, weeks, overMaxWarning } = checked;
-    const row = await this.prisma.employeeExtraWeeklyHours.create({
-      data: {
-        employeeId: dto.employeeId,
-        periodType: dto.periodType,
-        startDate: new Date(`${startDate}T00:00:00.000Z`),
-        endDate: new Date(`${endDate}T00:00:00.000Z`),
-        extraHours: dto.extraHours,
-        reason: dto.reason?.trim() || null,
-        grantedById: userId,
-      },
-    });
-    await this.audit.logAudit({
-      userId,
-      module: AuditModule.EMPLOYEE,
-      action: AuditAction.EMPLOYEE_EXTRA_WEEKLY_HOURS_GRANTED,
-      recordType: 'EmployeeExtraWeeklyHours',
-      recordId: row.id,
-      newValues: {
-        employeeId: dto.employeeId,
-        periodType: dto.periodType,
-        startDate,
-        endDate,
-        extraHours: dto.extraHours,
-        reason: row.reason,
-        ...(overMaxWarning ? { aboveWeeklyMaximum: overMaxWarning } : {}),
-      },
-      ...meta,
-    });
+    const { startDate, endDate, periods, weeks, overMaxWarning } = checked;
+    // One row per period (several weeks: one per week), so each week can be cancelled on its own.
+    const rows = await this.prisma.$transaction(
+      periods.map((p) =>
+        this.prisma.employeeExtraWeeklyHours.create({
+          data: {
+            employeeId: dto.employeeId,
+            periodType: dto.periodType,
+            startDate: new Date(`${p.startDate}T00:00:00.000Z`),
+            endDate: new Date(`${p.endDate}T00:00:00.000Z`),
+            extraHours: dto.extraHours,
+            reason: dto.reason?.trim() || null,
+            grantedById: userId,
+          },
+        }),
+      ),
+    );
+    for (const [i, row] of rows.entries()) {
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.EMPLOYEE,
+        action: AuditAction.EMPLOYEE_EXTRA_WEEKLY_HOURS_GRANTED,
+        recordType: 'EmployeeExtraWeeklyHours',
+        recordId: row.id,
+        newValues: {
+          employeeId: dto.employeeId,
+          periodType: dto.periodType,
+          startDate: periods[i].startDate,
+          endDate: periods[i].endDate,
+          extraHours: dto.extraHours,
+          reason: row.reason,
+          ...(overMaxWarning ? { aboveWeeklyMaximum: overMaxWarning } : {}),
+        },
+        ...meta,
+      });
+    }
 
+    // Approved once all the weeks are raised: a request over two of them fits only then.
     const outcome = await this.approveRequestsThatFit(
       userId,
       dto.employeeId,
       weeks,
       meta,
     );
-    await this.prisma.employeeExtraWeeklyHours.update({
-      where: { id: row.id },
+    await this.prisma.employeeExtraWeeklyHours.updateMany({
+      where: { id: { in: rows.map((r) => r.id) } },
       data: { outcome: outcome as unknown as Prisma.InputJsonValue },
     });
-    const parts = [`${round1(dto.extraHours)}h extra added`];
+    const parts = [
+      `${round1(dto.extraHours)}h extra added${rows.length > 1 ? ` to each of ${rows.length} weeks` : ''}`,
+    ];
     if (overMaxWarning) parts.push("above the carer's weekly maximum");
     if (outcome.approved.length)
       parts.push(`${outcome.approved.length} waiting request(s) approved`);
@@ -404,7 +426,8 @@ export class CarerExtraHoursService {
     return {
       message: parts.join(' — '),
       data: {
-        id: row.id,
+        id: rows[0].id,
+        ids: rows.map((r) => r.id),
         startDate,
         endDate,
         extraHours: dto.extraHours,
@@ -420,7 +443,9 @@ export class CarerExtraHoursService {
    */
   private async checkGrant(dto: GrantExtraWeeklyHoursDto) {
     await this.requireEmployee(dto.employeeId);
-    const { startDate, endDate } = this.periodDates(dto);
+    const periods = this.periodDates(dto);
+    const startDate = periods[0].startDate;
+    const endDate = periods[periods.length - 1].endDate;
     const employment = await this.prisma.employeeEmployment.findUnique({
       where: { employeeId: dto.employeeId },
       select: { contractedWeeklyHours: true, maximumWeeklyHours: true },
@@ -429,7 +454,9 @@ export class CarerExtraHoursService {
     if (contracted == null || contracted <= 0) throw carerNoContractedHoursError(dto.employeeId);
 
     // Every week the dates touch: contracted + extras already given + this one ≤ the maximum.
-    const weeks = weeksTouched(startDate, endDate);
+    const weeks = [
+      ...new Set(periods.flatMap((p) => weeksTouched(p.startDate, p.endDate))),
+    ].sort();
     const rule = await this.carerHours.rule();
     const canGoOverMax = overMaxAllowed(rule);
     let overMaxWarning: string | null = null;
@@ -470,7 +497,7 @@ export class CarerExtraHoursService {
       }
     }
 
-    return { startDate, endDate, weeks, overMaxWarning, contracted };
+    return { startDate, endDate, periods, weeks, overMaxWarning, contracted };
   }
 
   /** Cancel extra hours given by mistake (kept as the record). Requests already approved stay. */
@@ -515,17 +542,25 @@ export class CarerExtraHoursService {
     return { message: 'Extra weekly hours cancelled', data: { id } };
   }
 
-  /** The dates a day / week / range covers (a week is always Monday–Sunday). */
-  private periodDates(dto: GrantExtraWeeklyHoursDto): {
+  /**
+   * The dates a day / week(s) / range covers, earliest first (a week is always Monday–Sunday).
+   * Several weeks (`weekStarts`) give one Monday–Sunday period each.
+   */
+  private periodDates(dto: GrantExtraWeeklyHoursDto): Array<{
     startDate: string;
     endDate: string;
-  } {
+  }> {
     if (dto.periodType === EmployeeExtraHoursPeriod.DAY) {
-      return { startDate: dto.startDate, endDate: dto.startDate };
+      return [{ startDate: dto.startDate, endDate: dto.startDate }];
     }
     if (dto.periodType === EmployeeExtraHoursPeriod.WEEK) {
-      const monday = mondayOf(dto.startDate);
-      return { startDate: monday, endDate: addDaysToOperationalIso(monday, 6) };
+      const mondays = [
+        ...new Set((dto.weekStarts?.length ? dto.weekStarts : [dto.startDate]).map(mondayOf)),
+      ].sort();
+      return mondays.map((monday) => ({
+        startDate: monday,
+        endDate: addDaysToOperationalIso(monday, 6),
+      }));
     }
     if (!dto.endDate)
       throw new BadRequestException('Choose the last day of the date range.');
@@ -534,7 +569,7 @@ export class CarerExtraHoursService {
         'The last day of the range must be on or after the first day.',
       );
     }
-    return { startDate: dto.startDate, endDate: dto.endDate };
+    return [{ startDate: dto.startDate, endDate: dto.endDate }];
   }
 
   /**

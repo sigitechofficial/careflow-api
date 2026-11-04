@@ -1,6 +1,9 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  ArrayMinSize,
+  IsArray,
   IsEnum,
   IsISO8601,
   IsNumber,
@@ -32,6 +35,15 @@ export class GrantExtraWeeklyHoursDto {
   @IsOptional()
   @IsISO8601({ strict: true })
   endDate?: string;
+
+  /** WEEK only: several weeks at once (any day of each week; Monday–Sunday is used). Replaces `startDate`'s week. */
+  @ApiPropertyOptional({ type: [String], example: ['2026-11-09', '2026-11-23'] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMinSize(1)
+  @ArrayMaxSize(12)
+  @IsISO8601({ strict: true }, { each: true })
+  weekStarts?: string[];
 
   @ApiProperty({ minimum: 0.25, maximum: 168 })
   @Type(() => Number)

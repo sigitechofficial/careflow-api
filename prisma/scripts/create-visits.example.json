@@ -1,0 +1,60 @@
+{
+  "fromDate": "2026-11-09",
+  "toDate": "2026-11-22",
+  "amendmentReason": "Package agreed with the family — visits set up by script",
+  "respectWorkingPatterns": false,
+  "serviceUsers": [
+    {
+      "serviceUser": "SU-GW-01",
+      "visits": [
+        {
+          "round": "MORNING",
+          "start": "08:00",
+          "end": "09:00",
+          "days": "daily",
+          "carers": "Amina Yusuf",
+          "tasks": [
+            { "task": "Assisted wash", "instructions": "Assist with a wash at the sink", "priority": "important" },
+            { "task": "Meal prep", "instructions": "Porridge and tea" }
+          ],
+          "medicines": [
+            { "name": "Paracetamol", "dose": "500 mg", "route": "ORAL" },
+            { "name": "Amlodipine", "dose": "5 mg", "route": "ORAL" }
+          ]
+        },
+        {
+          "round": "EVENING",
+          "start": "18:00",
+          "end": "18:30",
+          "days": "daily",
+          "carers": "Amina Yusuf",
+          "tasks": [{ "task": "Meal prep", "instructions": "Light supper" }],
+          "medicines": [{ "name": "Paracetamol", "dose": "500 mg", "route": "ORAL" }]
+        }
+      ]
+    },
+    {
+      "serviceUser": "Harold Bennett",
+      "visits": [
+        {
+          "round": "MORNING",
+          "start": "09:00",
+          "end": "10:00",
+          "days": "weekdays",
+          "carers": ["Amina Yusuf", "Chloe Mensah"],
+          "tasks": [{ "task": "Transfer (bed <-> chair)", "instructions": "Use the hoist", "priority": "critical" }]
+        },
+        {
+          "round": "NIGHT",
+          "start": "21:00",
+          "end": "21:30",
+          "days": ["Mon", "Wed", "Fri", "Sat"],
+          "carers": "Liam Walsh",
+          "carersByDay": { "Sat": "Chloe Mensah" },
+          "tasks": [{ "task": "Bed-making" }],
+          "medicines": [{ "name": "Simvastatin", "dose": "20 mg", "route": "ORAL" }]
+        }
+      ]
+    }
+  ]
+}
