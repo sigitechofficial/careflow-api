@@ -40,7 +40,10 @@ describe('EmployeeHoursApprovalsService.approveOwn', () => {
   it('only looks at the pending requests this user sent', async () => {
     const { service, prisma, approve } = build([]);
     approve.mockResolvedValue({ message: 'ok' } as never);
-    await expect(service.approveOwn('me', ['a', 'b'])).resolves.toMatchObject({ data: { results: [] } });
+    await expect(service.approveOwn('me', ['a', 'b'])).resolves.toEqual({
+      message: 'Nothing left to approve — already decided on Hours approvals',
+      data: { results: [] },
+    });
     expect(prisma.employeeHoursApproval.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: { in: ['a', 'b'] }, requestedById: 'me', status: EmployeeHoursApprovalStatus.PENDING },

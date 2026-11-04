@@ -266,6 +266,10 @@ export class EmployeeHoursApprovalsService {
    */
   async approveOwn(userId: string, ids: string[], reason?: string, meta?: RequestAuditMeta) {
     const own = await this.ownPendingIds(userId, ids);
+    if (!own.length) {
+      // e.g. another manager decided them on Hours approvals first.
+      return { message: 'Nothing left to approve — already decided on Hours approvals', data: { results: [] } };
+    }
     const why = reason?.trim() || null;
     const notes = why ? `Approved when sent: ${why}` : 'Approved when sent';
     const sentBefore = new Date();
