@@ -87,7 +87,7 @@ describe('EmployeeHoursApprovalsService.approveOwn', () => {
       { id: 'b', approved: true, message: 'Approved' },
     ]);
     expect(hook.dismissWaiting).toHaveBeenCalledWith(['b'], expect.any(Date));
-    expect(res.message).toBe('1 approved, 1 could not be approved — still on Hours approvals');
+    expect(res.message).toBe('1 approved, 1 could not be approved — see Hours approvals');
   });
 
   it('skips a request an earlier approval already settled', async () => {

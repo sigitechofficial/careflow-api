@@ -303,7 +303,7 @@ export class EmployeeHoursApprovalsService {
     const failed = results.length - approved;
     return {
       message: failed
-        ? `${approved} approved, ${failed} could not be approved — still on Hours approvals`
+        ? `${approved} approved, ${failed} could not be approved — see Hours approvals`
         : `${approved} request${approved === 1 ? '' : 's'} approved`,
       data: { results },
     };

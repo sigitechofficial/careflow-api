@@ -25,13 +25,15 @@ import {
   type WeeklyHoursOverMax,
 } from '../organisation-general-settings/dom-care-allocation-rules.util';
 import { buildVisitPlanOccurrence } from '../service-user-visit-plans/visit-plan-generate-occurrence.util';
+import { resolveRollingRotaCatchUpWindow } from '../service-user-visit-plans/visit-plan-rolling-rota-catchup.util';
+import {
+  clampRotaHorizonDays,
+  parseRotaHorizonMode,
+} from '../service-user-visit-plans/visit-plan-rolling-rota.util';
 import { EmployeeHoursApprovalNotificationHook } from './employee-hours-approval-notification.hook';
 import { trackHoursRequest } from '../common/request-context/super-admin-context';
 
 type Client = Prisma.TransactionClient | PrismaService;
-
-/** Weeks counted from this week on (the rota is generated well inside this). */
-export const CARER_HOURS_CHECK_WEEKS = 12;
 
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
@@ -249,6 +251,35 @@ export class CarerWeeklyHoursService {
     return this.orgSettings.getCarerWeeklyHoursRule();
   }
 
+  /**
+   * Days counted: this week's Monday → the rota horizon edge (Settings → Dom Rules), like the
+   * service user's weekly hours. Later days are checked when the rota reaches them.
+   */
+  async checkWindow(
+    timeZone?: string,
+  ): Promise<{ today: string; edge: string; weekStarts: string[] }> {
+    const tz = timeZone ?? (await this.orgSettings.getOperationalTimezone());
+    const today = dayKeyInTimeZone(new Date(), tz);
+    const settings = await this.prisma.organisationGeneralSettings.findFirst({
+      orderBy: { updatedAt: 'desc' },
+      select: { domRotaHorizonDays: true, domRotaHorizonMode: true },
+    });
+    const { toDate: edge } = resolveRollingRotaCatchUpWindow(
+      today,
+      parseRotaHorizonMode(settings?.domRotaHorizonMode ?? 'FIXED_DAYS'),
+      clampRotaHorizonDays(settings?.domRotaHorizonDays ?? 28),
+    );
+    const weekStarts: string[] = [];
+    for (
+      let w = mondayOf(today);
+      w <= edge;
+      w = addDaysToOperationalIso(w, 7)
+    ) {
+      weekStarts.push(w);
+    }
+    return { today, edge, weekStarts };
+  }
+
   async count(
     client: Client,
     employeeId: string,
@@ -320,12 +351,11 @@ export class CarerWeeklyHoursService {
     );
     const excludeSlots = new Set(options.excludeSlotIds ?? []);
     const excludeJobs = new Set(options.excludeScheduledJobIds ?? []);
-    const today = dayKeyInTimeZone(new Date(), timeZone);
+    const window = await this.checkWindow(timeZone);
+    const today = window.today;
     const weekStarts = options.weekStarts?.length
       ? [...new Set(options.weekStarts)].sort()
-      : Array.from({ length: CARER_HOURS_CHECK_WEEKS }, (_, i) =>
-          addDaysToOperationalIso(mondayOf(today), i * 7),
-        );
+      : window.weekStarts;
     const firstDay = weekStarts[0];
     const lastDay = addDaysToOperationalIso(
       weekStarts[weekStarts.length - 1],
@@ -525,13 +555,15 @@ export class CarerWeeklyHoursService {
       }
       rejectedById.set(r.employeeId, set);
     }
-    // Days already gone get no new visits from a plan.
+    // Days already gone get no new visits from a plan, nor days past the rota horizon (they are
+    // checked when the rota reaches them).
     const planFrom = today > firstDay ? today : firstDay;
+    const planTo = lastDay < window.edge ? lastDay : window.edge;
     for (const plan of plans) {
       const fromRows = plan.id === options.planOverride;
       for (
         let day = planFrom;
-        day <= lastDay;
+        day <= planTo;
         day = addDaysToOperationalIso(day, 1)
       ) {
         for (const slot of plan.slots) {
