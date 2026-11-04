@@ -2820,6 +2820,8 @@ async function main() {
     'users.read',
     'users.create',
     'roles.manage',
+    // Also granted above, but the role does not exist yet on a fresh database at that point.
+    'service_users.care_plan.approve',
   ];
   await assignPermKeys('Branch Admin', branchAdminPermKeys);
 
