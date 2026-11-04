@@ -71,7 +71,8 @@
     "seed:assign-billing-cards": "ts-node --transpile-only prisma/scripts/assign-billing-cards.ts",
     "seed:pay-cards": "ts-node --transpile-only prisma/scripts/seed-pay-cards.ts",
     "seed:charge-cards": "ts-node --transpile-only prisma/scripts/seed-charge-cards.ts",
-    "seed:surveys": "ts-node --transpile-only prisma/scripts/seed-surveys.ts"
+    "seed:surveys": "ts-node --transpile-only prisma/scripts/seed-surveys.ts",
+    "visits:create": "ts-node --transpile-only prisma/scripts/create-visits-via-api.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.133.0",
