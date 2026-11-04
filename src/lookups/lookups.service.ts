@@ -504,6 +504,45 @@ export class LookupsService implements OnModuleInit {
     }
   }
 
+  /**
+   * Default interval for review, skill and certification types (Settings → Workforce lookups).
+   * Returns the updated row, or null when the request carries no interval.
+   */
+  async updateLookupInterval(
+    resourceRaw: string,
+    id: string,
+    dto: {
+      defaultIntervalDays?: number | null;
+      defaultRefreshMonths?: number | null;
+      defaultValidityMonths?: number | null;
+    },
+  ) {
+    const resource = this.parseManageableResource(resourceRaw);
+    const fields = (
+      [
+        ['defaultIntervalDays', 'review-types'],
+        ['defaultRefreshMonths', 'skill-types'],
+        ['defaultValidityMonths', 'certification-types'],
+      ] as const
+    ).filter(([field]) => dto[field] !== undefined);
+    if (!fields.length) return null;
+    const wrong = fields.find(([, owner]) => owner !== resource);
+    if (wrong) {
+      throw new BadRequestException(`${wrong[0]} cannot be set on ${resource}`);
+    }
+    const value = dto[fields[0][0]] ?? null;
+    switch (resource) {
+      case 'review-types':
+        return this.prisma.reviewType.update({ where: { id }, data: { defaultIntervalDays: value } });
+      case 'skill-types':
+        return this.prisma.skillType.update({ where: { id }, data: { defaultRefreshMonths: value } });
+      case 'certification-types':
+        return this.prisma.certificationType.update({ where: { id }, data: { defaultValidityMonths: value } });
+      default:
+        return null;
+    }
+  }
+
   async deleteNamedLookup(resourceRaw: string, id: string) {
     const resource = this.parseManageableResource(resourceRaw);
     const soft = { deletedAt: new Date(), isActive: false };

@@ -18,6 +18,7 @@ import {
 import { seedServiceUserAreas } from './seeds/service-user-areas.seed';
 import { seedServiceUserObservations } from './seeds/service-user-observations.seed';
 import { seedCompanyProfile } from './seeds/company-profile.seed';
+import { seedWorkforceLookupIntervals } from './seeds/workforce-catalog.seed';
 import {
   seedAllforCareOrganisation,
   summariseAllforCareChanges,
@@ -1975,6 +1976,14 @@ async function main() {
   for (const name of WORKFORCE_CERTIFICATION_NAMES) {
     await upsertLookup(prisma.certificationType, name);
   }
+
+  // Review types (supervision every 90 days, appraisal, probation…) and skill / certification
+  // intervals. Fills gaps only, so intervals an admin set in Settings survive every deploy.
+  const workforceIntervals = await seedWorkforceLookupIntervals(prisma);
+  console.log(
+    `[seed] Workforce review types: ${workforceIntervals.reviewTypesCreated} created, ` +
+      `${workforceIntervals.intervalsFilled} interval(s) filled.`,
+  );
 
   const skillTypes = await prisma.skillType.findMany({
     where: { deletedAt: null, isActive: true },

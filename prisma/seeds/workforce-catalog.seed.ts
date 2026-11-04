@@ -110,6 +110,69 @@ async function softRetireComplianceByCode(prisma: PrismaClient, code: string) {
   return true;
 }
 
+/**
+ * Review types (supervision, appraisal, probation…) and skill / certification intervals.
+ * Runs on every deploy (`prisma db seed`), so it only fills gaps: it creates missing review types,
+ * links an existing same-name type to its code, and sets an interval only where none is set.
+ * Names and intervals an admin changed in Settings are never overwritten.
+ */
+export async function seedWorkforceLookupIntervals(prisma: PrismaClient): Promise<{
+  reviewTypesCreated: number;
+  intervalsFilled: number;
+}> {
+  let reviewTypesCreated = 0;
+  let intervalsFilled = 0;
+
+  for (const rt of WORKFORCE_REVIEW_TYPES) {
+    const existing =
+      (await prisma.reviewType.findFirst({ where: { code: rt.code } })) ??
+      (await prisma.reviewType.findFirst({ where: { name: rt.name } }));
+    if (!existing) {
+      await prisma.reviewType.create({
+        data: {
+          name: rt.name,
+          code: rt.code,
+          description: rt.description ?? null,
+          defaultIntervalDays: rt.defaultIntervalDays,
+          isActive: true,
+        },
+      });
+      reviewTypesCreated += 1;
+      continue;
+    }
+    const fill: { code?: string; description?: string; defaultIntervalDays?: number } = {};
+    if (!existing.code) fill.code = rt.code;
+    if (!existing.description && rt.description) fill.description = rt.description;
+    if (existing.defaultIntervalDays == null && rt.defaultIntervalDays != null) {
+      fill.defaultIntervalDays = rt.defaultIntervalDays;
+      intervalsFilled += 1;
+    }
+    if (Object.keys(fill).length) {
+      await prisma.reviewType.update({ where: { id: existing.id }, data: fill });
+    }
+  }
+
+  for (const [name, months] of Object.entries(WORKFORCE_SKILL_REFRESH_MONTHS)) {
+    if (months == null) continue;
+    const { count } = await prisma.skillType.updateMany({
+      where: { name, defaultRefreshMonths: null },
+      data: { defaultRefreshMonths: months },
+    });
+    intervalsFilled += count;
+  }
+
+  for (const [name, months] of Object.entries(WORKFORCE_CERT_VALIDITY_MONTHS)) {
+    if (months == null) continue;
+    const { count } = await prisma.certificationType.updateMany({
+      where: { name, defaultValidityMonths: null },
+      data: { defaultValidityMonths: months },
+    });
+    intervalsFilled += count;
+  }
+
+  return { reviewTypesCreated, intervalsFilled };
+}
+
 export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<WorkforceSeedResult> {
   const complianceTypeDefs = [
     ...CARE_COMPLIANCE_CATALOG,
@@ -253,23 +316,7 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
     await upsertCertificationType(prisma, name, WORKFORCE_CERT_VALIDITY_MONTHS[name]);
   }
 
-  for (const rt of WORKFORCE_REVIEW_TYPES) {
-    const payload = {
-      name: rt.name,
-      code: rt.code,
-      description: rt.description ?? null,
-      defaultIntervalDays: rt.defaultIntervalDays,
-      isActive: true,
-      deletedAt: null as Date | null,
-    };
-    const byCode = await prisma.reviewType.findFirst({ where: { code: rt.code } });
-    const byName = byCode ?? (await prisma.reviewType.findFirst({ where: { name: rt.name } }));
-    if (byName) {
-      await prisma.reviewType.update({ where: { id: byName.id }, data: payload });
-    } else {
-      await prisma.reviewType.create({ data: payload });
-    }
-  }
+  await seedWorkforceLookupIntervals(prisma);
 
   const [complianceCount, skillCount, certificationCount, reviewTypeCount] = await Promise.all([
     prisma.complianceType.count({ where: { deletedAt: null, isActive: true } }),

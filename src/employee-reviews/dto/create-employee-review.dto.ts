@@ -13,7 +13,10 @@ export class CreateEmployeeReviewDto {
   @IsUUID()
   reviewTypeId!: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Ignored: the API works out status (SCHEDULED, DUE_SOON, OVERDUE, COMPLETED) from the dates.',
+    deprecated: true,
+  })
   @IsOptional()
   @IsString()
   status?: string;
@@ -24,7 +27,9 @@ export class CreateEmployeeReviewDto {
   @IsDate()
   lastDone?: Date;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    description: 'Leave out to use last done + the review type interval (e.g. 90 days for supervision).',
+  })
   @IsOptional()
   @Type(() => Date)
   @IsDate()

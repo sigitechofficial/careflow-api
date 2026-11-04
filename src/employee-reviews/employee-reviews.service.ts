@@ -7,6 +7,11 @@ import { UpdateEmployeeReviewDto } from './dto/update-employee-review.dto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import {
+  computeReviewNextDue,
+  deriveReviewStatus,
+  withDerivedReviewStatus,
+} from './employee-review-schedule.util';
 
 @Injectable()
 export class EmployeeReviewsService {
@@ -21,7 +26,8 @@ export class EmployeeReviewsService {
       include: { reviewType: true, reviewedBy: true },
       orderBy: { createdAt: 'desc' },
     });
-    return { data: items };
+    const now = new Date();
+    return { data: items.map((r) => withDerivedReviewStatus(r, now)) };
   }
 
   /** Organisation-wide staff reviews for Employee → Review Status. */
@@ -47,14 +53,23 @@ export class EmployeeReviewsService {
         { createdAt: 'desc' },
       ],
     });
-    return { data: items };
+    const now = new Date();
+    return { data: items.map((r) => withDerivedReviewStatus(r, now)) };
   }
 
   async create(userId: string, employeeId: string, dto: CreateEmployeeReviewDto, meta?: RequestAuditMeta) {
     await this.ensureEmployee(employeeId);
+    const intervalDays = await this.intervalDays(dto.reviewTypeId);
+    const nextDue = dto.nextDue ?? computeReviewNextDue(dto.lastDone, intervalDays);
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.employeeReview.create({
-        data: { employeeId, ...dto, createdById: userId },
+        data: {
+          employeeId,
+          ...dto,
+          nextDue,
+          status: deriveReviewStatus({ lastDone: dto.lastDone, nextDue }),
+          createdById: userId,
+        },
       });
       await this.audit.logAudit({
         tx,
@@ -84,9 +99,21 @@ export class EmployeeReviewsService {
         where: { id: reviewId, employeeId, deletedAt: null },
       });
       if (!existing) throw new NotFoundException('Review not found');
+      const lastDone = dto.lastDone !== undefined ? dto.lastDone : existing.lastDone;
+      let nextDue = dto.nextDue !== undefined ? dto.nextDue : existing.nextDue;
+      // A new "last done" or type moves next due on by the type interval unless one was given.
+      if (dto.nextDue === undefined && (dto.lastDone !== undefined || dto.reviewTypeId !== undefined)) {
+        const intervalDays = await this.intervalDays(dto.reviewTypeId ?? existing.reviewTypeId, tx);
+        nextDue = computeReviewNextDue(lastDone, intervalDays) ?? nextDue;
+      }
       const updated = await tx.employeeReview.update({
         where: { id: reviewId },
-        data: { ...dto, updatedById: userId },
+        data: {
+          ...dto,
+          nextDue,
+          status: deriveReviewStatus({ lastDone, nextDue }),
+          updatedById: userId,
+        },
       });
       const oldS = auditSnapshot(existing);
       const newS = auditSnapshot(updated);
@@ -131,6 +158,19 @@ export class EmployeeReviewsService {
       });
       return { message: 'Review deleted', data: {} };
     });
+  }
+
+  /** Default interval of a review type (e.g. 90 days for supervision); null if none. */
+  private async intervalDays(
+    reviewTypeId: string | null | undefined,
+    db: Pick<PrismaService, 'reviewType'> = this.prisma,
+  ): Promise<number | null> {
+    if (!reviewTypeId) return null;
+    const type = await db.reviewType.findFirst({
+      where: { id: reviewTypeId, deletedAt: null },
+      select: { defaultIntervalDays: true },
+    });
+    return type?.defaultIntervalDays ?? null;
   }
 
   private async ensureEmployee(employeeId: string) {

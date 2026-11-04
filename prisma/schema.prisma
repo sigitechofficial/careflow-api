@@ -2573,6 +2573,8 @@ model VisitStatusReason {
 model SkillType {
   id        String    @id @default(uuid()) @db.Uuid
   name      String    @unique
+  /// Months until a skill needs refreshing. Null = no refresh.
+  defaultRefreshMonths Int?
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -2586,6 +2588,8 @@ model SkillType {
 model CertificationType {
   id        String    @id @default(uuid()) @db.Uuid
   name      String    @unique
+  /// Months a certification stays valid. Null = does not expire.
+  defaultValidityMonths Int?
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -2627,8 +2631,13 @@ model ComplianceType {
 }
 
 model ReviewType {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String    @unique
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique
+  /// Stable key for seeded types (e.g. SUPERVISION); null for types an admin adds.
+  code        String?   @unique
+  description String?
+  /// Days from "last done" to "next due" (e.g. 90 for supervision, NICE QS123). Null = no repeat.
+  defaultIntervalDays Int?
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
