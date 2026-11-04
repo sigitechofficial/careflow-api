@@ -26,6 +26,7 @@ import {
 } from '../organisation-general-settings/dom-care-allocation-rules.util';
 import { buildVisitPlanOccurrence } from '../service-user-visit-plans/visit-plan-generate-occurrence.util';
 import { EmployeeHoursApprovalNotificationHook } from './employee-hours-approval-notification.hook';
+import { trackHoursRequest } from '../common/request-context/super-admin-context';
 
 type Client = Prisma.TransactionClient | PrismaService;
 
@@ -898,7 +899,10 @@ export class CarerWeeklyHoursService {
         },
       });
     }
-    if (open) return { id: open.id };
+    if (open) {
+      trackHoursRequest(open.id);
+      return { id: open.id };
+    }
     const contracted = Math.round((params.limitMinutes / 60) * 10) / 10;
     const projected = Math.round((params.weekMinutes / 60) * 10) / 10;
     const row = await client.employeeHoursApproval.create({
@@ -929,6 +933,7 @@ export class CarerWeeklyHoursService {
       },
       select: { id: true },
     });
+    trackHoursRequest(row.id);
     const display = await this.orgSettings.getOperationalDisplaySettings();
     const visitLabel = `${formatOrganisationIsoDate(
       dayKeyInTimeZone(params.start, display.timeZone),

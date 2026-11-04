@@ -366,6 +366,16 @@ export class EmployeeHoursApprovalNotificationHook {
     }
   }
 
+  /** Requests approved by the person who sent them: the "waiting for you" notifications go. */
+  async dismissWaiting(approvalIds: string[], sentBefore: Date): Promise<void> {
+    if (!this.notifications || !approvalIds.length) return;
+    try {
+      await this.notifications.dismissForRecords('EmployeeHoursApproval', approvalIds, sentBefore);
+    } catch (err) {
+      this.logger.warn(`Hours request notification dismiss failed: ${(err as Error).message}`);
+    }
+  }
+
   /** Tell the person who sent a request that a manager approved or rejected it. */
   async notifyRequesterDecided(params: {
     approvalId: string;

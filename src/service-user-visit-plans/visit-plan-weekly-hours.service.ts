@@ -29,6 +29,7 @@ import {
   type VisitPlanWeekHours,
   type VisitPlanWeeklyHoursSummary,
 } from './visit-plan-weekly-hours.util';
+import { trackHoursRequest } from '../common/request-context/super-admin-context';
 
 type HoursClient = Prisma.TransactionClient | PrismaService;
 
@@ -596,6 +597,7 @@ export class VisitPlanWeeklyHoursService {
       },
       select: { id: true },
     });
+    trackHoursRequest(row.id);
     return row.id;
   }
 

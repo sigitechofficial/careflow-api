@@ -101,6 +101,7 @@ import {
   overMaxAllowed,
   visitsNeedApproval,
 } from '../employee-hours-approvals/carer-weekly-hours.service';
+import { trackHoursRequest } from '../common/request-context/super-admin-context';
 
 const datePlanInclude = {
   slots: {
@@ -1300,6 +1301,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
               requestedById: user.id,
             },
           });
+          trackHoursRequest(approval.id);
           sentForApproval.push({ date: d.date, weekStart: d.weekStart, weekMinutes: d.weekMinutes, approvalId: approval.id });
           void this.hoursApprovalNotifications.notifyExtraVisitRequested({
             approvalId: approval.id,

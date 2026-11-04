@@ -38,6 +38,7 @@ import { EmployeeHoursApprovalsService } from './employee-hours-approvals.servic
 import { EmployeeHoursApprovalNotificationHook } from './employee-hours-approval-notification.hook';
 import { allocationErrorReason } from '../job-allocations/job-allocations.service';
 import type { GrantExtraWeeklyHoursDto } from './dto/grant-extra-weekly-hours.dto';
+import { trackHoursRequest } from '../common/request-context/super-admin-context';
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -130,6 +131,72 @@ export class CarerExtraHoursService {
         cancelledAt: r.cancelledAt?.toISOString() ?? null,
         cancelReason: r.cancelReason,
       })),
+    };
+  }
+
+  /**
+   * The carer's extra-hours requests still waiting for a manager, or rejected, newest first.
+   * Approved ones are not listed: they are the extra hours themselves (`list`).
+   */
+  async listRequests(employeeId: string) {
+    await this.requireEmployee(employeeId);
+    const rows = await this.prisma.employeeHoursApproval.findMany({
+      where: {
+        employeeId,
+        requestType: EmployeeHoursApprovalType.EXTRA_WEEKLY_HOURS,
+        status: {
+          in: [
+            EmployeeHoursApprovalStatus.PENDING,
+            EmployeeHoursApprovalStatus.REJECTED,
+          ],
+        },
+      },
+      orderBy: [{ requestedAt: 'desc' }],
+    });
+    const userIds = [
+      ...new Set(
+        rows
+          .flatMap((r) => [r.requestedById, r.decidedById])
+          .filter((id): id is string => Boolean(id)),
+      ),
+    ];
+    const users = userIds.length
+      ? await this.prisma.user.findMany({
+          where: { id: { in: userIds } },
+          select: { id: true, firstName: true, lastName: true, email: true },
+        })
+      : [];
+    const userName = new Map(
+      users.map((u) => [
+        u.id,
+        `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email || u.id,
+      ]),
+    );
+    return {
+      message: 'Extra weekly hours requests',
+      data: rows.map((r) => {
+        const p = (r.requestPayload ?? {}) as Partial<
+          GrantExtraWeeklyHoursDto & { periodStart: string; periodEnd: string }
+        >;
+        return {
+          id: r.id,
+          status: r.status,
+          periodType: p.periodType ?? null,
+          startDate: p.periodStart ?? p.startDate ?? null,
+          endDate: p.periodEnd ?? p.endDate ?? p.startDate ?? null,
+          extraHours: r.extraHours ?? p.extraHours ?? null,
+          reason: r.reason,
+          requestedByName: r.requestedById
+            ? (userName.get(r.requestedById) ?? null)
+            : null,
+          requestedAt: r.requestedAt.toISOString(),
+          decidedByName: r.decidedById
+            ? (userName.get(r.decidedById) ?? null)
+            : null,
+          decidedAt: r.decidedAt?.toISOString() ?? null,
+          decisionNotes: r.decisionNotes,
+        };
+      }),
     };
   }
 
@@ -257,6 +324,7 @@ export class CarerExtraHoursService {
         } as Prisma.InputJsonValue,
       },
     });
+    trackHoursRequest(row.id);
     await this.audit.logAudit({
       userId,
       module: AuditModule.EMPLOYEE,
