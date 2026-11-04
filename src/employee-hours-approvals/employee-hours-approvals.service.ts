@@ -69,6 +69,7 @@ import {
   sameWeeklyHours,
   syncServiceUserWeeklyHours,
 } from '../service-user-dom-care/service-user-weekly-hours-sync.util';
+import { trackHoursRequest } from '../common/request-context/super-admin-context';
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 
@@ -220,6 +221,7 @@ export class EmployeeHoursApprovalsService {
         requestedById: userId,
       },
     });
+    trackHoursRequest(created.id);
     await this.audit.logAudit({
       userId,
       module: AuditModule.EMPLOYEE,
@@ -249,6 +251,72 @@ export class EmployeeHoursApprovalsService {
       return { ...applied, data: { ...applied.data, id: created.id, appliedAtOnce: true } };
     }
     return { message: 'Sent for manager approval', data: { id: created.id } };
+  }
+
+  /** Of these requests, the ones this user sent that still wait for a manager (Hours approvals rows). */
+  async listOwnPending(userId: string, ids: string[]) {
+    const own = await this.ownPendingIds(userId, ids);
+    if (!own.length) return { message: 'No requests waiting', data: [] };
+    return this.list(EmployeeHoursApprovalStatus.PENDING, own);
+  }
+
+  /**
+   * "Approve now": a manager approves requests they just sent (e.g. a carer put over their weekly
+   * hours), each exactly as on Hours approvals. Only their own pending requests; the reason is optional.
+   */
+  async approveOwn(userId: string, ids: string[], reason?: string, meta?: RequestAuditMeta) {
+    const own = await this.ownPendingIds(userId, ids);
+    if (!own.length) {
+      // e.g. another manager decided them on Hours approvals first.
+      return { message: 'Nothing left to approve — already decided on Hours approvals', data: { results: [] } };
+    }
+    const why = reason?.trim() || null;
+    const notes = why ? `Approved when sent: ${why}` : 'Approved when sent';
+    const sentBefore = new Date();
+    const results: Array<{ id: string; approved: boolean; message: string | null }> = [];
+    for (const id of own) {
+      // Approving one can settle another (e.g. extra weekly hours approve visits that now fit).
+      const now = await this.prisma.employeeHoursApproval.findUnique({ where: { id }, select: { status: true } });
+      if (now?.status === EmployeeHoursApprovalStatus.APPROVED) {
+        results.push({ id, approved: true, message: null });
+        continue;
+      }
+      try {
+        const res = (await this.approve(userId, id, notes, meta)) as { message?: string } | undefined;
+        results.push({ id, approved: true, message: res?.message ?? null });
+        await this.audit.logAudit({
+          userId,
+          module: AuditModule.EMPLOYEE,
+          action: AuditAction.EMPLOYEE_HOURS_APPROVED_BY_REQUESTER,
+          recordType: 'EmployeeHoursApproval',
+          recordId: id,
+          newValues: { status: 'APPROVED', approvedWhenSent: true, reason: why },
+          ...meta,
+        });
+      } catch (err) {
+        results.push({ id, approved: false, message: (err as Error).message });
+      }
+    }
+    const approvedIds = results.filter((r) => r.approved).map((r) => r.id);
+    await this.notificationHook.dismissWaiting(approvedIds, sentBefore);
+    const approved = approvedIds.length;
+    const failed = results.length - approved;
+    return {
+      message: failed
+        ? `${approved} approved, ${failed} could not be approved — see Hours approvals`
+        : `${approved} request${approved === 1 ? '' : 's'} approved`,
+      data: { results },
+    };
+  }
+
+  private async ownPendingIds(userId: string, ids: string[]): Promise<string[]> {
+    if (!ids.length) return [];
+    const rows = await this.prisma.employeeHoursApproval.findMany({
+      where: { id: { in: ids }, requestedById: userId, status: EmployeeHoursApprovalStatus.PENDING },
+      orderBy: { requestedAt: 'asc' },
+      select: { id: true },
+    });
+    return rows.map((r) => r.id);
   }
 
   /** Withdraw a pending request (contracted hours change or over-hours). */
@@ -580,6 +648,7 @@ export class EmployeeHoursApprovalsService {
         requestedById: userId,
       },
     });
+    trackHoursRequest(created.id);
     await this.audit.logAudit({
       userId,
       module: AuditModule.SERVICE_USER,
@@ -1411,6 +1480,7 @@ export class EmployeeHoursApprovalsService {
       };
       if (pending) {
         await client.employeeHoursApproval.update({ where: { id: pending.id }, data });
+        trackHoursRequest(pending.id);
       } else {
         const row = await client.employeeHoursApproval.create({
           data: {
@@ -1423,6 +1493,7 @@ export class EmployeeHoursApprovalsService {
             requestedById: userId,
           },
         });
+        trackHoursRequest(row.id);
         created.push({ id: row.id, employeeId, projected, contracted, extra: data.extraHours });
       }
     }
@@ -1697,9 +1768,9 @@ export class EmployeeHoursApprovalsService {
     return out;
   }
 
-  async list(status?: EmployeeHoursApprovalStatus) {
+  async list(status?: EmployeeHoursApprovalStatus, ids?: string[]) {
     const rows = await this.prisma.employeeHoursApproval.findMany({
-      where: status ? { status } : {},
+      where: { ...(status ? { status } : {}), ...(ids ? { id: { in: ids } } : {}) },
       orderBy: [{ status: 'asc' }, { requestedAt: 'desc' }],
     });
 
@@ -1970,6 +2041,7 @@ export class EmployeeHoursApprovalsService {
         requestedById: userId,
       },
     });
+    trackHoursRequest(created.id);
     await this.audit.logAudit({
       userId,
       module: AuditModule.SERVICE_USER,

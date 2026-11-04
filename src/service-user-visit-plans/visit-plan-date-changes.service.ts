@@ -101,6 +101,7 @@ import {
   overMaxAllowed,
   visitsNeedApproval,
 } from '../employee-hours-approvals/carer-weekly-hours.service';
+import { trackHoursRequest } from '../common/request-context/super-admin-context';
 
 const datePlanInclude = {
   slots: {
@@ -1300,6 +1301,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
               requestedById: user.id,
             },
           });
+          trackHoursRequest(approval.id);
           sentForApproval.push({ date: d.date, weekStart: d.weekStart, weekMinutes: d.weekMinutes, approvalId: approval.id });
           void this.hoursApprovalNotifications.notifyExtraVisitRequested({
             approvalId: approval.id,
@@ -1920,7 +1922,14 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
   ): Promise<{ scheduledJobId: string | null }> {
     const p = payload as unknown as ServiceUserVisitHoldPayload;
     if (p.kind === 'EXTRA_EDIT' && p.pendingEdit) {
-      const edit = p.pendingEdit as { planId: string; exceptionId: string; dto: VisitPlanEditExtraVisitDto };
+      const edit = p.pendingEdit as {
+        planId: string;
+        exceptionId: string;
+        dto: VisitPlanEditExtraVisitDto;
+        approvedEmployeeIds?: string[];
+      };
+      // Carers approved earlier for this edit are not asked about again (else each approval
+      // would send the other request round once more and the edit would never be made).
       await this.editExtraVisit(
         { id: userId } as RequestUser,
         serviceUserId,
@@ -1928,7 +1937,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         edit.exceptionId,
         edit.dto,
         meta,
-        [],
+        edit.approvedEmployeeIds ?? [],
         true,
       );
       const job = await this.prisma.scheduledJob.findFirst({
@@ -2215,7 +2224,13 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
               ),
             },
           ],
-          pendingEdit: { planId, exceptionId, dto: { ...dto } },
+          // Carers already approved over their hours for this edit stay approved when it is replayed.
+          pendingEdit: {
+            planId,
+            exceptionId,
+            dto: { ...dto },
+            ...(hoursApproved.length ? { approvedEmployeeIds: hoursApproved } : {}),
+          },
         },
       });
       const display = await this.orgSettings.getOperationalDisplaySettings();

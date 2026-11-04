@@ -359,6 +359,38 @@ export class NotificationsService {
     return { id: notificationId, dismissedAt: dismissedAt.toISOString() };
   }
 
+  /**
+   * Take notifications about these records off every recipient's list (e.g. "waiting for a
+   * manager" once the request was approved on the spot). Returns how many were dismissed.
+   */
+  async dismissForRecords(recordType: string, recordIds: string[], createdBefore?: Date): Promise<number> {
+    if (!recordIds.length) return 0;
+    const rows = await this.prisma.notificationRecipient.findMany({
+      where: {
+        dismissedAt: null,
+        notification: {
+          recordType,
+          recordId: { in: recordIds },
+          ...(createdBefore ? { createdAt: { lte: createdBefore } } : {}),
+        },
+      },
+      select: { id: true, userId: true, notificationId: true },
+    });
+    if (!rows.length) return 0;
+    const dismissedAt = new Date();
+    await this.prisma.notificationRecipient.updateMany({
+      where: { id: { in: rows.map((r) => r.id) } },
+      data: { dismissedAt },
+    });
+    for (const r of rows) {
+      this.gateway.emitNotificationDismissed(r.userId, { id: r.notificationId, dismissedAt: dismissedAt.toISOString() });
+    }
+    for (const userId of new Set(rows.map((r) => r.userId))) {
+      this.gateway.emitUnreadCount(userId, await this.getUnreadCount(userId));
+    }
+    return rows.length;
+  }
+
   async getMyPreferences(userId: string) {
     const rows = await this.prisma.notificationPreference.findMany({ where: { userId } });
     const byType = new Map(rows.map((r) => [r.type, r]));

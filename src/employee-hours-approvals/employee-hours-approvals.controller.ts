@@ -23,6 +23,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { EmployeeHoursApprovalsService } from './employee-hours-approvals.service';
 import { DecideHoursApprovalDto } from './dto/decide-hours-approval.dto';
+import { ApproveSentHoursRequestsDto, SentHoursRequestsDto } from './dto/approve-sent-requests.dto';
 import { RequestContractedHoursChangeDto } from './dto/request-contracted-hours-change.dto';
 import { RequestServiceUserHoursChangeDto } from './dto/request-service-user-hours-change.dto';
 import { CarerExtraHoursService } from './carer-extra-hours.service';
@@ -129,6 +130,13 @@ export class EmployeeHoursApprovalsController {
     return this.extraHours.list(employeeId);
   }
 
+  @Get('extra-hours/requests')
+  @Permissions('employees.read')
+  @ApiOperation({ summary: "A carer's extra-hours requests waiting for a manager, or rejected" })
+  listExtraHoursRequests(@Query('employeeId', new ParseUUIDPipe()) employeeId: string) {
+    return this.extraHours.listRequests(employeeId);
+  }
+
   @Post('extra-hours')
   @Permissions('employees.extra_hours.manage')
   @ApiOperation({ summary: 'Give a carer extra weekly hours for a day, a week or a date range' })
@@ -191,6 +199,20 @@ export class EmployeeHoursApprovalsController {
       dto.reason,
       getRequestAuditMeta(req),
     );
+  }
+
+  @Post('sent/pending')
+  @Permissions('hours_approvals.manage')
+  @ApiOperation({ summary: 'Of the requests just sent (meta.hoursRequestIds), the ones by this user still waiting' })
+  sentPending(@CurrentUser() user: RequestUser, @Body() dto: SentHoursRequestsDto) {
+    return this.service.listOwnPending(user.id, dto.ids);
+  }
+
+  @Post('sent/approve')
+  @Permissions('hours_approvals.manage')
+  @ApiOperation({ summary: '"Approve now": approve requests this user just sent (managers and Super Admin)' })
+  approveSent(@CurrentUser() user: RequestUser, @Body() dto: ApproveSentHoursRequestsDto, @Req() req: Request) {
+    return this.service.approveOwn(user.id, dto.ids, dto.reason, getRequestAuditMeta(req));
   }
 
   @Post(':id/cancel')

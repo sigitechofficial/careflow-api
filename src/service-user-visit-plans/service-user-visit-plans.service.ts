@@ -65,7 +65,6 @@ import {
 } from '../common/utils/operational-day.util';
 import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 import {
-  CARER_HOURS_CHECK_WEEKS,
   CARER_NO_CONTRACTED_HOURS_MESSAGE,
   CarerWeeklyHoursService,
   mondayOf,
@@ -795,12 +794,13 @@ export class ServiceUserVisitPlansService {
       proposedByWeek.set(mondayOf(dto.scheduledDate), proposedPerDayMinutes);
     } else {
       const days = new Set(slotDays);
-      for (let w = 0; w < CARER_HOURS_CHECK_WEEKS; w += 1) {
-        const weekStart = addDaysToOperationalIso(mondayOf(todayIso), w * 7);
+      // The weeks the carer count covers: this week to the rota horizon.
+      const { edge, weekStarts } = await this.carerHours.checkWindow(timeZone);
+      for (const weekStart of weekStarts) {
         let minutes = 0;
         for (let d = 0; d < 7; d += 1) {
           const day = addDaysToOperationalIso(weekStart, d);
-          if (day < todayIso) continue;
+          if (day < todayIso || day > edge) continue;
           if (days.has(new Date(`${day}T12:00:00Z`).getUTCDay())) minutes += proposedPerDayMinutes;
         }
         proposedByWeek.set(weekStart, minutes);

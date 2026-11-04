@@ -6,6 +6,7 @@ import {
   StreamableFile,
 } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
+import { trackedHoursRequests } from '../request-context/super-admin-context';
 
 type StandardResponse = {
   success: boolean;
@@ -48,6 +49,15 @@ export class ResponseInterceptor implements NestInterceptor {
           meta: {},
         };
       }),
+      map(withHoursRequests),
     );
   }
+}
+
+/** Hours requests this request sent for manager approval: listed in meta so a manager can approve them at once. */
+function withHoursRequests(res: StandardResponse | StreamableFile): StandardResponse | StreamableFile {
+  const ids = trackedHoursRequests();
+  if (!ids.length || res instanceof StreamableFile) return res;
+  const meta = res.meta && typeof res.meta === 'object' ? res.meta : {};
+  return { ...res, meta: { ...meta, hoursRequestIds: ids } };
 }
