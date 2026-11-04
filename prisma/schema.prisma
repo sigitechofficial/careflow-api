@@ -8707,11 +8707,32 @@ model CarePathwayForm {
   defaultSelections DefaultFormSelection[]
   textTemplates     CarePlanTextTemplate[]
   carePlanInstances ServiceUserCarePlanInstance[]
+  /// CARE_PLAN forms: assessments the organisation requires whenever this care plan is recommended.
+  requiredAssessments CarePlanRequiredAssessment[] @relation("CarePlanRequiredAssessmentCarePlan")
+  /// ASSESSMENT forms: care plans that require this assessment.
+  requiredByCarePlans CarePlanRequiredAssessment[] @relation("CarePlanRequiredAssessmentAssessment")
 
   @@index([deletedAt])
   @@index([formType])
   @@index([status])
   @@index([name])
+  @@schema("care_pathway")
+}
+
+/// Assessment forms an organisation requires for a care plan form (Care pathway settings).
+/// Shown after an Initial Assessment for each recommended care plan; it does not block anything.
+model CarePlanRequiredAssessment {
+  id               String   @id @default(uuid()) @db.Uuid
+  carePlanFormId   String   @db.Uuid
+  assessmentFormId String   @db.Uuid
+  createdById      String?  @db.Uuid
+  createdAt        DateTime @default(now())
+
+  carePlanForm   CarePathwayForm @relation("CarePlanRequiredAssessmentCarePlan", fields: [carePlanFormId], references: [id], onDelete: Cascade)
+  assessmentForm CarePathwayForm @relation("CarePlanRequiredAssessmentAssessment", fields: [assessmentFormId], references: [id], onDelete: Cascade)
+
+  @@unique([carePlanFormId, assessmentFormId])
+  @@index([assessmentFormId])
   @@schema("care_pathway")
 }
 

@@ -50,6 +50,7 @@ import {
 } from './initial-assessment-body-map.util';
 import { InitialAssessmentCarePlanRulesService } from './initial-assessment-care-plan-rules.service';
 import { buildCarePlanRecommendations } from './initial-assessment-care-plan.util';
+import { loadRequiredAssessments } from './initial-assessment-required-assessments.util';
 import {
   applyCarePlanDecisions,
   carePlanDecisionChangeError,
@@ -2028,6 +2029,11 @@ export class InitialAssessmentsService {
       submission.serviceUserId,
       applyCarePlanDecisions(await this.carePlanRules.loadRecommendations(submissionId), carePlanDecisions),
     );
+    const requiredAssessments = await loadRequiredAssessments(
+      this.prisma,
+      submission.serviceUserId,
+      carePlanRecommendations,
+    );
     const agencySettings = getInitialAssessmentAgencySettings();
     const careActivation = evaluateCareActivation({
       status: submission.status,
@@ -2067,6 +2073,7 @@ export class InitialAssessmentsService {
         managerReviewRequired,
         clinical,
         carePlanRecommendations,
+        requiredAssessments,
         agencySettings,
         careActivation,
       },

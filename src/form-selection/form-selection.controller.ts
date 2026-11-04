@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Patch, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -10,6 +10,7 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { FormSelectionService } from './form-selection.service';
 import { DefaultFormSelectionQueryDto } from './dto/default-form-selection-query.dto';
 import { UpdateDefaultFormSelectionDto } from './dto/update-default-form-selection.dto';
+import { UpdateCarePlanRequiredAssessmentsDto } from './dto/update-care-plan-required-assessments.dto';
 
 @ApiTags('Form Selection')
 @ApiBearerAuth()
@@ -34,6 +35,25 @@ export class FormSelectionController {
     @Req() req: Request,
   ) {
     return this.service.updateSelections(user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Get('care-plan-required-assessments')
+  @Permissions('form_selection.read')
+  @ApiOperation({ summary: 'Assessment forms required per care plan form' })
+  getCarePlanRequiredAssessments() {
+    return this.service.getCarePlanRequiredAssessments();
+  }
+
+  @Put('care-plan-required-assessments/:carePlanFormId')
+  @Permissions('form_selection.update')
+  @ApiOperation({ summary: 'Replace the assessment forms required for a care plan form' })
+  setCarePlanRequiredAssessments(
+    @CurrentUser() user: RequestUser,
+    @Param('carePlanFormId', ParseUUIDPipe) carePlanFormId: string,
+    @Body() dto: UpdateCarePlanRequiredAssessmentsDto,
+    @Req() req: Request,
+  ) {
+    return this.service.setCarePlanRequiredAssessments(user.id, carePlanFormId, dto, getRequestAuditMeta(req));
   }
 
   @Get('care-plans')

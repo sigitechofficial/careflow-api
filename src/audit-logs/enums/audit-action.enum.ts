@@ -362,6 +362,7 @@ export enum AuditAction {
   FORM_FIELD_DELETED = 'form_field_deleted',
 
   DEFAULT_FORMS_UPDATED = 'default_forms_updated',
+  CARE_PLAN_REQUIRED_ASSESSMENTS_UPDATED = 'care_plan_required_assessments_updated',
 
   CARE_PLAN_TEXT_CREATED = 'care_plan_text_created',
   CARE_PLAN_TEXT_UPDATED = 'care_plan_text_updated',
