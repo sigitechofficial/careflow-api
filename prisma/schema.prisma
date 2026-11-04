@@ -1067,6 +1067,8 @@ model OrganisationGeneralSettings {
   domRotaHorizonDays                   Int                        @default(28)
   domRotaHorizonMode                   String                     @default("FIXED_DAYS")
   domAutoExtendRotaRunHour             Int                        @default(12)
+  /// Most days back a manager may create visits for (Backfill past visits). 0 = backfill off.
+  domMaxBackfillDays                   Int                        @default(14)
   domShowWeeklyHours                   Boolean                    @default(true)
   domShowServiceUserName               Boolean                    @default(true)
   /// When true, carers blocked by a service user still appear in schedule pickers (marked, not assignable).

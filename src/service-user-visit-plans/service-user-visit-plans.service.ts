@@ -2228,6 +2228,7 @@ export class ServiceUserVisitPlansService {
     if (backfillOnly && backfillDays < 1) {
       throw new BadRequestException('backfillDays must be at least 1 when backfillOnly is true');
     }
+    const orgMaxBackfillDays = await this.assertBackfillWithinOrgLimit(backfillDays);
     const enabledSlots = plan.slots.filter((s) => s.isEnabled);
     const bankHolidayDates = await this.loadBankHolidayDateKeys(from, to, backfillDays);
     const timeZone = await this.orgSettings.getOperationalTimezone();
@@ -2237,6 +2238,7 @@ export class ServiceUserVisitPlansService {
       fromDate: from,
       toDate: to,
       backfillDays,
+      orgMaxBackfillDays,
       backfillOnly,
       enabledSlots: enabledSlots.map((s) => slotAsWithRelations(s)),
       scheduleAnchor: plan.effectiveFrom,
@@ -2368,6 +2370,22 @@ export class ServiceUserVisitPlansService {
         ? 'Dry run — visit plans and rota counts only'
         : 'Visit plans and rota cleared for all service users',
     };
+  }
+
+  /** Refuses a backfill over the organisation limit (Settings → Dom Care); returns that limit. */
+  private async assertBackfillWithinOrgLimit(backfillDays: number): Promise<number> {
+    const orgMax = await this.orgSettings.getMaxBackfillDays();
+    if (backfillDays > 0 && orgMax === 0) {
+      throw new BadRequestException(
+        'Backfill is turned off. Set Max backfill days in Settings → Dom Care to allow it.',
+      );
+    }
+    if (backfillDays > orgMax) {
+      throw new BadRequestException(
+        `Backfill is limited to ${orgMax} day(s) (Settings → Dom Care).`,
+      );
+    }
+    return orgMax;
   }
 
   private async loadBankHolidayDateKeys(from: Date, to: Date, backfillDays: number): Promise<Set<string>> {
@@ -3003,6 +3021,7 @@ export class ServiceUserVisitPlansService {
     if (backfillOnly && backfillDays < 1) {
       throw new BadRequestException('backfillDays must be at least 1 when backfillOnly is true');
     }
+    const orgMaxBackfillDays = await this.assertBackfillWithinOrgLimit(backfillDays);
 
     // Service user weekly hours (Settings → Dom Rules): from today on, a visit that takes its week
     // over the hours is held for a manager (not made) or made with a warning. Visits already held
@@ -3191,7 +3210,7 @@ export class ServiceUserVisitPlansService {
 
         if (isBackfillDay) {
           const anySlotAllowsBackfill = enabledSlots.some((slot) => {
-            const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays);
+            const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays, orgMaxBackfillDays);
             if (allowed <= 0) return false;
             const slotStart = computeGenerationStart(from, backfillDays, slot.slotEffectiveFrom, {
               clampToSlotEffectiveFrom: clampToSlot,
@@ -3219,7 +3238,7 @@ export class ServiceUserVisitPlansService {
         for (const slot of slotsInTimeOrder) {
           let extendBefore = 0;
           if (isBackfillDay) {
-            const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays);
+            const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays, orgMaxBackfillDays);
             if (allowed <= 0) continue;
             const slotStart = computeGenerationStart(from, backfillDays, slot.slotEffectiveFrom, {
               clampToSlotEffectiveFrom: clampToSlot,

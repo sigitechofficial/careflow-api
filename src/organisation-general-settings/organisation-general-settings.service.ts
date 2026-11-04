@@ -55,6 +55,7 @@ import {
   type EmployeeVisaType,
 } from './employee-visa-types.util';
 import { parseRotaHorizonMode } from '../service-user-visit-plans/visit-plan-rolling-rota.util';
+import { clampOrgMaxBackfillDays } from '../service-user-visit-plans/visit-plan-slot-carer-resolve.util';
 import {
   DEFAULT_ORGANISATION_TIMEZONE,
   isOrganisationTimezone,
@@ -142,6 +143,7 @@ type SettingsRow = {
   domRotaHorizonDays: number;
   domRotaHorizonMode: string;
   domAutoExtendRotaRunHour: number;
+  domMaxBackfillDays: number;
   domShowWeeklyHours: boolean;
   domShowServiceUserName: boolean;
   domShowBlockedCarersInSchedule: boolean;
@@ -285,6 +287,7 @@ function mapRow(row: SettingsRow, lateVisitBranches?: DomLateVisitBranch[]) {
     domRotaHorizonDays: row.domRotaHorizonDays,
     domRotaHorizonMode: parseRotaHorizonMode(row.domRotaHorizonMode),
     domAutoExtendRotaRunHour: row.domAutoExtendRotaRunHour,
+    domMaxBackfillDays: row.domMaxBackfillDays,
     domShowWeeklyHours: row.domShowWeeklyHours,
     domShowServiceUserName: row.domShowServiceUserName,
     domShowBlockedCarersInSchedule: row.domShowBlockedCarersInSchedule,
@@ -420,6 +423,7 @@ function buildUpdateData(
   set('domRotaHorizonDays', dto.domRotaHorizonDays);
   set('domRotaHorizonMode', dto.domRotaHorizonMode);
   set('domAutoExtendRotaRunHour', dto.domAutoExtendRotaRunHour);
+  set('domMaxBackfillDays', dto.domMaxBackfillDays);
   set('domShowWeeklyHours', dto.domShowWeeklyHours);
   set('domShowServiceUserName', dto.domShowServiceUserName);
   set('domShowBlockedCarersInSchedule', dto.domShowBlockedCarersInSchedule);
@@ -587,6 +591,15 @@ export class OrganisationGeneralSettingsService {
       select: { timezone: true },
     });
     return getOperationalTimeZone(row?.timezone);
+  }
+
+  /** Most days back Backfill past visits may create (Settings → Dom Care); 0 = backfill off. */
+  async getMaxBackfillDays(): Promise<number> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: { domMaxBackfillDays: true },
+    });
+    return clampOrgMaxBackfillDays(row?.domMaxBackfillDays);
   }
 
   /** Service user weekly hours rules (defaults when never saved). */

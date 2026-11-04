@@ -436,6 +436,18 @@ export class UpdateOrganisationGeneralSettingsDto {
   @Max(23)
   domAutoExtendRotaRunHour?: number;
 
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 31,
+    description: 'Most days back Backfill past visits may create (0 = backfill off)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(31)
+  domMaxBackfillDays?: number;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
