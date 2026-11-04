@@ -22,6 +22,9 @@ import {
   type RotaPlanResult,
 } from './visit-plan-rolling-rota-catchup.util';
 import { JobHandler } from '../jobs/job-handler.registry';
+import { CarerExtraHoursService } from '../employee-hours-approvals/carer-extra-hours.service';
+import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
+import { ServiceUserTimebankLedgerService } from '../service-user-hours/service-user-timebank-ledger.service';
 import {
   JobRunner,
   isExternalCronMode,
@@ -45,7 +48,25 @@ export class VisitPlanRollingRotaJob {
     private readonly bulkSchedule: VisitPlanBulkScheduleService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     @Optional() private readonly jobRunner?: JobRunner,
+    @Optional() private readonly carerExtraHours?: CarerExtraHoursService,
+    @Optional() private readonly hoursApprovals?: EmployeeHoursApprovalsService,
+    @Optional() private readonly timebankLedger?: ServiceUserTimebankLedgerService,
   ) {}
+
+  /** Carer requests back within the weekly hours are approved (never fails the run). */
+  private async approveCarerRequestsBackWithinLimit(): Promise<number> {
+    if (!this.carerExtraHours) return 0;
+    try {
+      // Visit requests that can no longer happen move to Expired first.
+      await this.hoursApprovals?.expireStaleRequests();
+      // Timebank: visits cancelled, weeks that need less and finished weeks give their time back.
+      await this.timebankLedger?.settleAll();
+      return (await this.carerExtraHours.approveBackWithinLimit()).approved.length;
+    } catch (err) {
+      this.logger.warn(`Rolling rota: hours requests check failed: ${(err as Error).message}`);
+      return 0;
+    }
+  }
 
   /**
    * CRON_MODE=internal only: hourly UTC tick that runs the catch-up once a day at the
@@ -106,6 +127,7 @@ export class VisitPlanRollingRotaJob {
     let visitsWithPatternWarnings = 0;
     let visitsWithRotaConflicts = 0;
     const planResults: RotaPlanResult[] = [];
+    const weeklyHoursWarnings: string[] = [];
 
     for (const chunk of chunks) {
       let response: Awaited<
@@ -121,7 +143,7 @@ export class VisitPlanRollingRotaJob {
           },
           undefined,
           // Nightly catch-up never brings back visits the office deleted.
-          { restoreDeletedJobs: false },
+          { restoreDeletedJobs: false, source: 'rolling' },
         );
       } catch (error) {
         if (
@@ -131,7 +153,8 @@ export class VisitPlanRollingRotaJob {
           this.logger.log(
             'Rolling rota: no active visit plans — nothing to generate',
           );
-          return jobSkipped('No active visit plans', base);
+          const hoursRequestsApproved = await this.approveCarerRequestsBackWithinLimit();
+          return jobSkipped('No active visit plans', { ...base, hoursRequestsApproved });
         }
         throw error;
       }
@@ -140,6 +163,7 @@ export class VisitPlanRollingRotaJob {
       visitsSkipped += totals.visitsSkipped;
       visitsWithPatternWarnings += totals.visitsWithPatternWarnings;
       visitsWithRotaConflicts += totals.visitsWithRotaConflicts;
+      weeklyHoursWarnings.push(...(totals.weeklyHoursWarnings ?? []));
       for (const r of response.data.results) {
         planResults.push({
           planId: r.planId,
@@ -151,6 +175,11 @@ export class VisitPlanRollingRotaJob {
     }
 
     const plans = summarisePlanResults(planResults);
+    const hoursRequestsApproved = await this.approveCarerRequestsBackWithinLimit();
+    // Plans over a service user's weekly contracted hours (Settings → Dom Rules decides warn or skip).
+    for (const warning of [...new Set(weeklyHoursWarnings)].slice(0, MAX_LISTED)) {
+      this.logger.warn(`Rolling rota: ${warning}`);
+    }
     this.logger.log(
       `Rolling rota ${window.fromDate}..${window.toDate} (${mode}, horizon ${horizonDays}d, tz ${timeZone}): ` +
         `${visitsCreated} created, ${visitsSkipped} skipped, ${plans.succeeded} plans ok, ` +
@@ -170,6 +199,8 @@ export class VisitPlanRollingRotaJob {
         skipped: plans.skipped,
       },
       failedPlans: plans.failures.slice(0, MAX_LISTED),
+      weeklyHoursWarnings: [...new Set(weeklyHoursWarnings)].slice(0, MAX_LISTED),
+      hoursRequestsApproved,
     };
     if (plans.failed > 0) {
       // Visits for the other plans are kept; failing the run raises the alert and lets the

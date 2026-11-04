@@ -1,5 +1,6 @@
 import type { CarePlanRecommendation } from './initial-assessment-care-plan.util'
 import type { CarePlanCatalogueRow } from './initial-assessment-care-plan-area-map.util'
+import { absorbRecommendation } from './initial-assessment-care-plan-rules.util'
 
 /**
  * Active medical condition catalogue codes → Care Pathway CARE_PLAN form names.
@@ -109,7 +110,8 @@ function recommendationFormKey(rec: CarePlanRecommendation): string | null {
 
 /**
  * Merge IA/rule recommendations with medical-condition recommendations.
- * Same care plan form → keep primary (IA/rule), append condition triggers.
+ * Same care plan form → keep the first primary (IA/rule), append the other recommendation's
+ * triggers and keep its id as an alias. Nothing is dropped.
  * Condition-only forms are added as new pending recommendations.
  */
 export function mergeMedicalConditionRecommendations(
@@ -121,30 +123,18 @@ export function mergeMedicalConditionRecommendations(
   const byKey = new Map<string, CarePlanRecommendation>()
   const withoutForm: CarePlanRecommendation[] = []
 
-  for (const rec of primary) {
+  for (const rec of [...primary, ...fromConditions]) {
     const key = recommendationFormKey(rec)
     if (!key) {
-      withoutForm.push(rec)
+      if (rec.source !== 'medical_condition') withoutForm.push(rec)
       continue
     }
-    byKey.set(key, rec)
-  }
-
-  for (const rec of fromConditions) {
-    const key = recommendationFormKey(rec)
-    if (!key) continue
     const existing = byKey.get(key)
     if (!existing) {
       byKey.set(key, rec)
       continue
     }
-    const seen = new Set(existing.triggers.map((t) => t.questionId))
-    for (const trigger of rec.triggers) {
-      if (seen.has(trigger.questionId)) continue
-      existing.triggers.push(trigger)
-      seen.add(trigger.questionId)
-    }
-    existing.triggerCount = existing.triggers.length
+    absorbRecommendation(existing, rec)
   }
 
   return [...byKey.values(), ...withoutForm].sort(

@@ -7,6 +7,7 @@
  * transaction client.
  */
 import { Prisma } from '@prisma/client';
+import type { DayTypePriority } from './pay-time-band.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { BANK_HOLIDAY_REGION_LABELS, BANK_HOLIDAY_REGIONS, isBankHolidayRegion } from './bank-holiday-regions.util';
 import {
@@ -33,6 +34,29 @@ const ROW_SELECT = {
   substituteForDate: true,
 } as const;
 
+/** Day types a priority can be set for (BillingDayType), most specific first — the built-in order. */
+export const PAY_DAY_TYPES = [
+  'CHRISTMAS', 'BOXING_DAY', 'NEW_YEAR', 'EASTER', 'SPECIAL', 'BANK_HOLIDAY', 'SUNDAY', 'SATURDAY', 'WEEKDAY', 'ANY',
+] as const;
+
+/** The built-in order as numbers (used to show the defaults; pricing uses it when nothing is saved). */
+export const DEFAULT_DAY_TYPE_PRIORITY: Record<string, number> = Object.fromEntries(
+  PAY_DAY_TYPES.map((d, i) => [d, (PAY_DAY_TYPES.length - i) * 10]),
+);
+
+/** The organisation's saved day priority for carer pay, or null when the built-in order applies. */
+export async function loadDayTypePriority(db: Db): Promise<DayTypePriority | null> {
+  const settings = await db.organisationGeneralSettings.findFirst({ select: { payDayTypePriority: true } });
+  const raw = settings?.payDayTypePriority;
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+  const out: DayTypePriority = {};
+  for (const d of PAY_DAY_TYPES) {
+    const v = (raw as Record<string, unknown>)[d];
+    if (typeof v === 'number' && Number.isFinite(v)) out[d] = v;
+  }
+  return Object.keys(out).length ? out : null;
+}
+
 export async function loadHolidayPremiumBasis(db: Db): Promise<HolidayPremiumBasis> {
   const settings = await db.organisationGeneralSettings.findFirst({
     select: { holidayPremiumBasis: true },
@@ -51,7 +75,7 @@ export async function loadPayCalendar(
 ): Promise<PayCalendar> {
   const padMs = 36 * 60 * 60 * 1000;
   const range = { gte: new Date(from.getTime() - padMs), lte: new Date(to.getTime() + padMs) };
-  const [basis, rows] = await Promise.all([
+  const [basis, rows, dayTypePriority] = await Promise.all([
     loadHolidayPremiumBasis(db),
     db.bankHoliday.findMany({
       where: {
@@ -61,8 +85,9 @@ export async function loadPayCalendar(
       },
       select: ROW_SELECT,
     }),
+    loadDayTypePriority(db),
   ]);
-  return buildPayCalendar(rows, region, basis);
+  return buildPayCalendar(rows, region, basis, dayTypePriority ?? undefined);
 }
 
 /** Whether each nation's calendar is complete for the years given, and the policy in force. */

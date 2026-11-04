@@ -22,6 +22,8 @@ import { UpdateScheduledVisitDto } from './dto/update-scheduled-visit.dto';
 import { UpdateScheduledVisitStatusDto } from './dto/update-scheduled-visit-status.dto';
 import { ScheduledVisitStatus } from './enums/scheduled-visit-status.enum';
 
+import { visitCancellationReasonMeta } from '../scheduled-jobs-housekeeping/visit-cancellation-reason.util';
+
 const visitInclude = {
   scheduledJob: {
     select: { id: true, jobName: true, scheduleBatchId: true, status: true },
@@ -85,7 +87,95 @@ export class ScheduledVisitsService {
       this.prisma.scheduledVisit.count({ where }),
       this.prisma.scheduledVisit.findMany({ where, orderBy, skip, take: limit, include: visitInclude }),
     ]);
-    return { data: rows.map((r) => this.mapVisit(r)), meta: buildPaginationMeta({ page, limit, total }) };
+    const cancellationByJob = await this.cancellationDetails(
+      rows
+        .filter((r) => r.status === PrismaVisitStatus.CANCELLED || r.status === PrismaVisitStatus.CALLED_OFF)
+        .map((r) => r.scheduledJobId),
+    );
+    return {
+      data: rows.map((r) => ({
+        ...this.mapVisit(r),
+        ...(cancellationByJob.has(r.scheduledJobId)
+          ? { cancellation: cancellationByJob.get(r.scheduledJobId) }
+          : {}),
+      })),
+      meta: buildPaginationMeta({ page, limit, total }),
+    };
+  }
+
+  /**
+   * Who cancelled a visit, when and why. Rota and "Cancel visits" cancellations keep a full record;
+   * a visit cancelled by a visit plan change keeps the change's reason in the job notes and who
+   * made it as the job's last editor.
+   */
+  private async cancellationDetails(jobIds: string[]) {
+    const out = new Map<
+      string,
+      {
+        source: 'CANCELLATION' | 'PLAN_CHANGE';
+        cancelledByName: string | null;
+        cancelledAt: string | null;
+        cancelledByParty: string | null;
+        cancelledByDescription: string | null;
+        reasonCode: string | null;
+        reasonLabel: string | null;
+        reasonNotes: string | null;
+        chargeDecision: string | null;
+      }
+    >();
+    if (!jobIds.length) return out;
+    const userName = (u: { firstName: string | null; lastName: string | null; email: string } | null) =>
+      u ? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email : null;
+    const jobs = await this.prisma.scheduledJob.findMany({
+      where: { id: { in: [...new Set(jobIds)] } },
+      select: {
+        id: true,
+        notes: true,
+        updatedAt: true,
+        updatedBy: { select: { firstName: true, lastName: true, email: true } },
+        cancellation: {
+          select: {
+            cancelledAt: true,
+            cancelledByParty: true,
+            cancelledByDescription: true,
+            reasonCode: true,
+            reasonNotes: true,
+            chargeDecision: true,
+            cancelledBy: { select: { firstName: true, lastName: true, email: true } },
+          },
+        },
+      },
+    });
+    for (const job of jobs) {
+      const c = job.cancellation;
+      out.set(
+        job.id,
+        c
+          ? {
+              source: 'CANCELLATION',
+              cancelledByName: userName(c.cancelledBy),
+              cancelledAt: c.cancelledAt.toISOString(),
+              cancelledByParty: c.cancelledByParty,
+              cancelledByDescription: c.cancelledByDescription,
+              reasonCode: c.reasonCode,
+              reasonLabel: visitCancellationReasonMeta(c.reasonCode).label,
+              reasonNotes: c.reasonNotes,
+              chargeDecision: c.chargeDecision,
+            }
+          : {
+              source: 'PLAN_CHANGE',
+              cancelledByName: userName(job.updatedBy),
+              cancelledAt: job.updatedAt.toISOString(),
+              cancelledByParty: null,
+              cancelledByDescription: null,
+              reasonCode: null,
+              reasonLabel: null,
+              reasonNotes: job.notes?.trim() || null,
+              chargeDecision: null,
+            },
+      );
+    }
+    return out;
   }
 
   async getById(id: string, actor?: RequestUser) {

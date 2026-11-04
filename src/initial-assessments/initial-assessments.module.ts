@@ -9,6 +9,13 @@ import { InitialAssessmentCarePlanRulesController } from './initial-assessment-c
 import { InitialAssessmentsService } from './initial-assessments.service';
 import { InitialAssessmentCarePlanRulesService } from './initial-assessment-care-plan-rules.service';
 import { InitialAssessmentNotificationHook } from './initial-assessment-notification.hook';
+import { InitialAssessmentTranscriptionService } from './initial-assessment-transcription.service';
+import { InitialAssessmentAiFillService } from './initial-assessment-ai-fill.service';
+import { InitialAssessmentConversationFilesService } from './initial-assessment-conversation-files.service';
+// Stateless (Prisma only); provided here so accepting a recommendation can compose the first draft
+// without importing ServiceUserCarePlansModule, which already imports this module.
+import { CarePlanComposeService } from '../service-user-care-plans/care-plan-compose.service';
+import { CarePlanReassessmentService } from './care-plan-reassessment.service';
 
 @Module({
   imports: [
@@ -26,6 +33,11 @@ import { InitialAssessmentNotificationHook } from './initial-assessment-notifica
     InitialAssessmentsService,
     InitialAssessmentCarePlanRulesService,
     InitialAssessmentNotificationHook,
+    InitialAssessmentTranscriptionService,
+    InitialAssessmentAiFillService,
+    InitialAssessmentConversationFilesService,
+    CarePlanComposeService,
+    CarePlanReassessmentService,
   ],
   exports: [InitialAssessmentsService, InitialAssessmentCarePlanRulesService],
 })

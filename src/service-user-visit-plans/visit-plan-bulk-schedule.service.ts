@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BulkGenerateVisitPlanScheduleDto } from './dto/bulk-generate-visit-plan-schedule.dto';
 import { BulkVisitPlanScheduleCandidatesQueryDto } from './dto/bulk-visit-plan-schedule-query.dto';
 import { ServiceUserVisitPlansService } from './service-user-visit-plans.service';
+import { VisitPlanWeeklyHoursService } from './visit-plan-weekly-hours.service';
 import {
   type ScheduleAreaBranchLookup,
   loadScheduleAreaByLocationMap,
@@ -55,7 +56,10 @@ export type BulkVisitPlanScheduleResultItem = {
   rotaConflictWarnings?: string[];
   error?: string;
   skipReason?: string;
+  /** The plan has weeks over the service user's weekly contracted hours in this run. */
+  weeklyHoursWarning?: string;
 };
+
 
 function serviceUserMatchesLocationFilter(
   su: {
@@ -165,6 +169,7 @@ export class VisitPlanBulkScheduleService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly visitPlans: ServiceUserVisitPlansService,
+    private readonly weeklyHours: VisitPlanWeeklyHoursService,
   ) {}
 
   private async loadRoundNameMap(): Promise<Map<string, string>> {
@@ -264,8 +269,13 @@ export class VisitPlanBulkScheduleService {
     userId: string,
     dto: BulkGenerateVisitPlanScheduleDto,
     meta?: RequestAuditMeta,
-    options?: { restoreDeletedJobs?: boolean },
+    options?: {
+      restoreDeletedJobs?: boolean;
+      /** Who runs it: a person (bulk generate page) or the hourly rolling rota. */
+      source?: 'manual' | 'rolling';
+    },
   ) {
+    const weeklyHoursWarnings: string[] = [];
     if (dto.planIds?.length) {
       const plans = await this.loadActivePlans(dto.locationId, dto.planIds);
       if (plans.length !== dto.planIds.length) {
@@ -336,6 +346,9 @@ export class VisitPlanBulkScheduleService {
           { restoreDeletedJobs: options?.restoreDeletedJobs },
         );
         const data = response.data;
+        // Service user weekly hours: visits over were held for a manager, or made with a warning.
+        const weeklyHoursWarning = data.weeklyHoursWarning ? `${label}: ${data.weeklyHoursWarning}` : undefined;
+        if (weeklyHoursWarning) weeklyHoursWarnings.push(weeklyHoursWarning);
         visitsCreated += data.visitsCreated;
         visitsSkipped += data.visitsSkipped;
         visitsWithPatternWarnings += data.visitsWithPatternWarnings ?? 0;
@@ -358,6 +371,7 @@ export class VisitPlanBulkScheduleService {
           visitsWithRotaConflicts: data.visitsWithRotaConflicts ?? 0,
           patternWarnings: data.patternWarnings ?? [],
           rotaConflictWarnings: data.rotaConflictWarnings ?? [],
+          ...(weeklyHoursWarning ? { weeklyHoursWarning } : {}),
         });
       } catch (error) {
         failed += 1;
@@ -394,6 +408,8 @@ export class VisitPlanBulkScheduleService {
           visitsWithRotaConflicts,
           patternWarnings: [...new Set(patternWarnings)],
           rotaConflictWarnings: [...new Set(rotaConflictWarnings)],
+          /** Plans over the service user's weekly contracted hours (generated or skipped). */
+          weeklyHoursWarnings,
         },
         results,
       },

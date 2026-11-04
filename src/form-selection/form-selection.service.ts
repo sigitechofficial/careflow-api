@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { CarePathwayFormType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
@@ -9,6 +9,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { DefaultFormSelectionQueryDto } from './dto/default-form-selection-query.dto';
 import { UpdateDefaultFormSelectionDto } from './dto/update-default-form-selection.dto';
+import { UpdateCarePlanRequiredAssessmentsDto } from './dto/update-care-plan-required-assessments.dto';
 
 const FORM_TYPE_GROUPS = {
   carePlans: CarePathwayFormType.CARE_PLAN,
@@ -235,6 +236,77 @@ export class FormSelectionService {
       }
 
       return { message: 'Default form selections updated', data: grouped };
+    });
+  }
+
+  /** Assessments required per care plan form (only care plans that have at least one). */
+  async getCarePlanRequiredAssessments() {
+    const rows = await this.prisma.carePlanRequiredAssessment.findMany({
+      where: { carePlanForm: { deletedAt: null }, assessmentForm: { deletedAt: null } },
+      select: { carePlanFormId: true, assessmentFormId: true },
+      orderBy: { createdAt: 'asc' },
+    });
+    const byCarePlan = new Map<string, string[]>();
+    for (const row of rows) {
+      const list = byCarePlan.get(row.carePlanFormId) ?? [];
+      list.push(row.assessmentFormId);
+      byCarePlan.set(row.carePlanFormId, list);
+    }
+    return {
+      data: [...byCarePlan].map(([carePlanFormId, assessmentFormIds]) => ({ carePlanFormId, assessmentFormIds })),
+    };
+  }
+
+  /** Replaces the assessments required for one care plan form. */
+  async setCarePlanRequiredAssessments(
+    userId: string,
+    carePlanFormId: string,
+    dto: UpdateCarePlanRequiredAssessmentsDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const carePlan = await this.prisma.carePathwayForm.findFirst({
+      where: { id: carePlanFormId, formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
+      select: { id: true, name: true },
+    });
+    if (!carePlan) throw new NotFoundException('Care plan form not found');
+
+    const assessmentFormIds = [...new Set(dto.assessmentFormIds)];
+    if (assessmentFormIds.length) {
+      await this.validateFormIds(CarePathwayFormType.ASSESSMENT, assessmentFormIds);
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      const before = await tx.carePlanRequiredAssessment.findMany({
+        where: { carePlanFormId },
+        select: { assessmentFormId: true },
+      });
+      await tx.carePlanRequiredAssessment.deleteMany({
+        where: { carePlanFormId, assessmentFormId: { notIn: assessmentFormIds } },
+      });
+      if (assessmentFormIds.length) {
+        await tx.carePlanRequiredAssessment.createMany({
+          data: assessmentFormIds.map((assessmentFormId) => ({
+            carePlanFormId,
+            assessmentFormId,
+            createdById: userId,
+          })),
+          skipDuplicates: true,
+        });
+      }
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.CARE_PATHWAY,
+        action: AuditAction.CARE_PLAN_REQUIRED_ASSESSMENTS_UPDATED,
+        recordType: 'CarePathwayForm',
+        recordId: carePlanFormId,
+        oldValues: { assessmentFormIds: before.map((row) => row.assessmentFormId) },
+        newValues: { assessmentFormIds },
+        metadata: { carePlanFormName: carePlan.name },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      return { message: 'Required assessments updated', data: { carePlanFormId, assessmentFormIds } };
     });
   }
 

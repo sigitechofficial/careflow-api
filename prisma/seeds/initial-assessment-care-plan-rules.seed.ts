@@ -1,21 +1,42 @@
 import { CarePathwayFormType, Prisma, PrismaClient } from '@prisma/client';
 
-type RuleSeed = {
+/**
+ * Same shape as CarePlanRuleCondition in src/initial-assessments/initial-assessment-care-plan-rules.types.ts
+ * (keep in sync). The seed path must not import from src/: src/ is not in the deploy artifact.
+ */
+type CarePlanRuleCondition = {
+  fieldKey?: string;
+  specRef?: string;
+  questionTextContains?: string;
+  adlActivity?: string;
+  when: 'yes' | 'no' | 'answered' | 'not_answered' | 'select_equals' | 'text_contains' | 'adl_score_gte';
+  value?: string;
+};
+
+export type IaCarePlanStarterRule = {
   formName: string;
   label?: string;
   matchMode?: 'ANY' | 'ALL';
   suppressLegacyArea?: string;
   sortOrder?: number;
-  conditions: Array<{
-    fieldKey?: string;
-    specRef?: string;
-    questionTextContains?: string;
-    when: string;
-    value?: string;
-  }>;
+  conditions: CarePlanRuleCondition[];
 };
 
-const STARTER_RULES: RuleSeed[] = [
+const CARER_MEDICATION_LEVELS = ['level_1a', 'level_1b', 'level_2a', 'level_2b'];
+
+/**
+ * Starter IA → care plan rules for a fresh environment. Existing rules are never changed by the
+ * seed (administrators own them); use GET /initial-assessments/care-plan-recommendation-rules/diagnostics
+ * to review differences between these defaults and the live configuration.
+ *
+ * Phase 1 (2026-11): Falls covers falls history only (hoist / transfers are not a falls history and
+ * reach a plan through the legacy Mobility area pending clinical sign-off); Medication covers the
+ * carer medication support levels (same set as the IA §9.6 `CARER_MEDICATION_LEVELS` gate);
+ * Washing and dressing, Personal Safety, Pain Management, Dementia Care plan and Eating and
+ * Drinking rules were added where the target plan's compose already reads that IA evidence or an
+ * approved medical-condition mapping routes the same need to it.
+ */
+export const IA_CARE_PLAN_STARTER_RULES: IaCarePlanStarterRule[] = [
   {
     formName: 'Medication',
     suppressLegacyArea: 'Medication',
@@ -23,10 +44,12 @@ const STARTER_RULES: RuleSeed[] = [
     conditions: [
       { fieldKey: 'emarRequired', when: 'yes' },
       { fieldKey: 'insulinAdministrationRequired', when: 'yes' },
-      { fieldKey: 'medicationSupportLevel', when: 'select_equals', value: 'level_1a' },
-      { fieldKey: 'medicationSupportLevel', when: 'select_equals', value: 'level_1b' },
-      { fieldKey: 'medicationSupportLevel', when: 'select_equals', value: 'level_2a' },
-      { fieldKey: 'medicationSupportLevel', when: 'select_equals', value: 'level_2b' },
+      { fieldKey: 'packagingHelpRequired', when: 'yes' },
+      ...CARER_MEDICATION_LEVELS.map((value) => ({
+        fieldKey: 'medicationSupportLevel',
+        when: 'select_equals' as const,
+        value,
+      })),
     ],
   },
   {
@@ -64,47 +87,71 @@ const STARTER_RULES: RuleSeed[] = [
     formName: 'Falls',
     suppressLegacyArea: 'Mobility',
     sortOrder: 50,
+    conditions: [{ fieldKey: 'fallsLast12Months', when: 'yes' }],
+  },
+  {
+    formName: 'Washing and dressing',
+    label: 'Washing and dressing — personal care support identified (ADL worksheet)',
+    sortOrder: 55,
     conditions: [
-      { fieldKey: 'fallsLast12Months', when: 'yes' },
-      { fieldKey: 'fallsUnsteadiness', when: 'yes' },
-      { fieldKey: 'transferSupportRequired', when: 'yes' },
-      { fieldKey: 'usesHoistOrSling', when: 'yes' },
+      { adlActivity: 'bathing', when: 'adl_score_gte', value: '1' },
+      { adlActivity: 'dressing_undressing', when: 'adl_score_gte', value: '1' },
+      { adlActivity: 'grooming', when: 'adl_score_gte', value: '1' },
+    ],
+  },
+  {
+    formName: 'Personal Safety',
+    label: 'Personal Safety — safeguarding concern recorded (escalation follows the safeguarding process)',
+    sortOrder: 60,
+    conditions: [{ fieldKey: 'safeguardingConcern', when: 'yes' }],
+  },
+  {
+    formName: 'Pain Management',
+    sortOrder: 70,
+    conditions: [{ specRef: '5.3', questionTextContains: 'Pain or distress identified', when: 'yes' }],
+  },
+  {
+    formName: 'Dementia Care plan',
+    sortOrder: 80,
+    conditions: [{ fieldKey: 'diagnosedDementia', when: 'yes' }],
+  },
+  {
+    formName: 'Eating and Drinking',
+    sortOrder: 90,
+    conditions: [
+      { specRef: '5.4', questionTextContains: 'Swallowing or choking concerns', when: 'yes' },
+      { specRef: '5.4', questionTextContains: 'SALT referral required', when: 'yes' },
     ],
   },
 ];
 
+/** Creates starter rules for forms that have never had one. Never updates or re-creates an existing rule. */
 export async function seedInitialAssessmentCarePlanRules(prisma: PrismaClient): Promise<number> {
   let count = 0;
-  for (const seed of STARTER_RULES) {
+  for (const seed of IA_CARE_PLAN_STARTER_RULES) {
     const form = await prisma.carePathwayForm.findFirst({
       where: { name: seed.formName, formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
     });
     if (!form) continue;
 
+    // Includes rules an administrator deleted: the seed must not bring them back.
     const existing = await prisma.initialAssessmentCarePlanRecommendationRule.findFirst({
-      where: { carePathwayFormId: form.id, deletedAt: null },
+      where: { carePathwayFormId: form.id },
     });
+    if (existing) continue;
 
-    const data = {
-      carePathwayFormId: form.id,
-      label: seed.label ?? null,
-      matchMode: (seed.matchMode ?? 'ANY') as 'ANY' | 'ALL',
-      conditions: seed.conditions as unknown as Prisma.InputJsonValue,
-      suppressLegacyArea: seed.suppressLegacyArea ?? null,
-      sortOrder: seed.sortOrder ?? 0,
-      isActive: true,
-      deletedAt: null,
-    };
-
-    if (existing) {
-      await prisma.initialAssessmentCarePlanRecommendationRule.update({
-        where: { id: existing.id },
-        data,
-      });
-    } else {
-      await prisma.initialAssessmentCarePlanRecommendationRule.create({ data });
-      count += 1;
-    }
+    await prisma.initialAssessmentCarePlanRecommendationRule.create({
+      data: {
+        carePathwayFormId: form.id,
+        label: seed.label ?? null,
+        matchMode: seed.matchMode ?? 'ANY',
+        conditions: seed.conditions as unknown as Prisma.InputJsonValue,
+        suppressLegacyArea: seed.suppressLegacyArea ?? null,
+        sortOrder: seed.sortOrder ?? 0,
+        isActive: true,
+      },
+    });
+    count += 1;
   }
   if (count > 0) {
     console.log(`[seed] Created ${count} initial assessment care plan recommendation rule(s).`);

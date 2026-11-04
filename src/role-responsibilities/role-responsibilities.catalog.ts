@@ -248,6 +248,13 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
     act: ['hours_approvals.manage'],
   },
   {
+    key: 'extra-weekly-hours',
+    label: 'Give extra weekly hours',
+    description: 'Give or cancel extra weekly hours for a carer (a day, a week or a date range).',
+    view: ['employees.read'],
+    act: ['employees.extra_hours.manage'],
+  },
+  {
     key: 'training',
     label: 'Training (Learning)',
     description: 'Courses, assignments, training events and certificates.',
@@ -300,6 +307,30 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
       'Record survey answers by telephone, from paper or in person, on someone\'s behalf or anonymously.',
     view: ['surveys.read'],
     act: ['surveys.responses.record'],
+  },
+  {
+    key: 'specialist_pathways',
+    label: 'Specialist care pathways',
+    description:
+      'Record specialist pathway assessments (e.g. Learning Disability) and build, submit and approve pathway care plans.',
+    view: ['specialist_pathways.read'],
+    act: ['specialist_pathways.manage', 'specialist_pathways.approve'],
+  },
+  {
+    key: 'safeguarding',
+    label: 'Safeguarding',
+    description:
+      'Raise, triage, refer, investigate and close safeguarding concerns with a case timeline.',
+    view: ['safeguarding.read'],
+    act: ['safeguarding.manage'],
+  },
+  {
+    key: 'crm',
+    label: 'Enquiries (CRM)',
+    description:
+      'Capture care enquiries, move them through the pipeline and convert them into service users.',
+    view: ['crm.read'],
+    act: ['crm.manage'],
   },
 ];
 

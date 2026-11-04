@@ -5,6 +5,7 @@ import {
   visitCarerPatternMismatchWarnings,
   desiredEmployeeIdsForVisitSync,
   countVisitsSkippedIfRespecting,
+  planSyncAllocationChanges,
 } from './visit-plan-slot-carer-sync.util';
 import { DayOfWeek, VisitPlanSlotCarerRole } from '@prisma/client';
 import type { EmployeePatternContext } from './visit-plan-carer-job-fit.util';
@@ -412,6 +413,53 @@ describe('visit-plan-slot-carer-sync.util', () => {
       expect(visitPlanCarerSyncFromDateTime('2026-01-15', 'Europe/London').toISOString()).toBe(
         '2026-01-15T00:00:00.000Z',
       );
+    });
+  });
+  describe('planSyncAllocationChanges', () => {
+    const row = (employeeId: string, fromVisitPlan: boolean) => ({ id: `a-${employeeId}`, employeeId, fromVisitPlan });
+
+    it('keeps a carer chosen on the rota who is not on the plan slot', () => {
+      const { toRemove, toAdd } = planSyncAllocationChanges({
+        active: [row('rota-carer', false)],
+        target: ['plan-carer'],
+        removedByHand: new Set(),
+        requiredCarers: 1,
+      });
+      expect(toRemove).toEqual([]);
+      // The rota carer takes the only place: the plan carer is not added on top.
+      expect(toAdd).toEqual([]);
+    });
+
+    it('replaces a plan carer when the plan slot has another carer', () => {
+      const { toRemove, toAdd } = planSyncAllocationChanges({
+        active: [row('old-plan-carer', true)],
+        target: ['new-plan-carer'],
+        removedByHand: new Set(),
+        requiredCarers: 1,
+      });
+      expect(toRemove.map((r) => r.employeeId)).toEqual(['old-plan-carer']);
+      expect(toAdd).toEqual(['new-plan-carer']);
+    });
+
+    it('does not put back a plan carer a person took off this visit', () => {
+      const { toRemove, toAdd } = planSyncAllocationChanges({
+        active: [],
+        target: ['plan-carer'],
+        removedByHand: new Set(['plan-carer']),
+        requiredCarers: 1,
+      });
+      expect(toRemove).toEqual([]);
+      expect(toAdd).toEqual([]);
+    });
+
+    it('fills the places left after the rota carers', () => {
+      const { toAdd } = planSyncAllocationChanges({
+        active: [row('rota-carer', false)],
+        target: ['plan-a', 'plan-b'],
+        removedByHand: new Set(),
+        requiredCarers: 2,
+      });
+      expect(toAdd).toEqual(['plan-a']);
     });
   });
 });

@@ -12,6 +12,7 @@ import { corsOrigin } from './config/cors-origins.util';
 import { applyTrustProxy } from './config/trust-proxy.util';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
+import { runInRequestContext } from './common/request-context/super-admin-context';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -25,6 +26,8 @@ async function bootstrap() {
     app,
     app.get(ConfigService).get<number>('app.trustProxyHops', 0),
   );
+  // Each request carries whether its user is a Super Admin (see super-admin-context.ts).
+  app.use(runInRequestContext);
   const uploadPath = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads');
   // Allow logos/photos to render from a different SPA origin (admin host ≠ API host).
   // Also expose the same files under /files/uploads/* — some hosts intercept bare /uploads
@@ -36,7 +39,7 @@ async function bootstrap() {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Cache-Control', 'public, max-age=86400');
   };
-  // Incident attachments are only served through the permission-checked download endpoint —
+  // Incident attachments, specialist-pathway documents and recorded assessment conversations are only served through the permission-checked download endpoint —
   // never as public static files. Path is decoded, normalised and lower-cased so encoding/case/`..` tricks can't bypass it.
   app.use((req: { path: string }, res: { status: (c: number) => { json: (b: unknown) => void } }, next: () => void) => {
     let p = req.path;
@@ -46,7 +49,14 @@ async function bootstrap() {
       return res.status(400).json({ success: false, message: 'Bad request' });
     }
     p = posix.normalize(p.replace(/\\/g, '/')).toLowerCase();
-    if (p.startsWith('/uploads/incidents/') || p.startsWith('/files/uploads/incidents/')) {
+    if (
+      p.startsWith('/uploads/incidents/') ||
+      p.startsWith('/files/uploads/incidents/') ||
+      p.startsWith('/uploads/specialist-pathways/') ||
+      p.startsWith('/files/uploads/specialist-pathways/') ||
+      p.startsWith('/uploads/initial-assessment-conversations/') ||
+      p.startsWith('/files/uploads/initial-assessment-conversations/')
+    ) {
       return res.status(404).json({ success: false, message: 'Not found' });
     }
     next();

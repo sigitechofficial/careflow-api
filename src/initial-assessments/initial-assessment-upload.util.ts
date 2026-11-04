@@ -12,6 +12,18 @@ export function initialAssessmentUploadRoot(submissionId: string) {
   return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', ...UPLOAD_SEGMENTS, submissionId);
 }
 
+/**
+ * Recorded conversations and their transcripts. Kept apart from the other attachments because this
+ * folder is never served as static files (see main.ts): only the permission-checked endpoint reads it.
+ */
+export const IA_CONVERSATION_UPLOAD_SEGMENT = 'initial-assessment-conversations';
+
+export function initialAssessmentConversationRoot(submissionId: string) {
+  const root = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', IA_CONVERSATION_UPLOAD_SEGMENT, submissionId);
+  if (!existsSync(root)) mkdirSync(root, { recursive: true });
+  return root;
+}
+
 export function initialAssessmentUploadMaxBytes() {
   const explicit = Number(process.env.UPLOAD_MAX_FILE_SIZE_BYTES ?? 0);
   if (explicit > 0) return explicit;

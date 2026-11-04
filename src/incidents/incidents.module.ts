@@ -15,6 +15,7 @@ import { IncidentAnalyticsService } from './incident-analytics.service';
 import { IncidentCandourController } from './incident-candour.controller';
 import { IncidentCandourService } from './incident-candour.service';
 import { IncidentSuspensionStartJob } from './incident-suspension-start.job';
+import { InvestigationCoreService } from './investigation-core.service';
 
 @Module({
   imports: [
@@ -34,7 +35,8 @@ import { IncidentSuspensionStartJob } from './incident-suspension-start.job';
     IncidentAnalyticsService,
     IncidentCandourService,
     IncidentSuspensionStartJob,
+    InvestigationCoreService,
   ],
-  exports: [IncidentsService],
+  exports: [IncidentsService, InvestigationCoreService],
 })
 export class IncidentsModule {}

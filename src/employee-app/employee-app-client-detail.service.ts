@@ -2,7 +2,10 @@ import {
   prnLimitLabels,
   prnLimitsFromMedication,
 } from '../medications/medication-prn-limits.util';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { carerAuthorityCards } from '../service-user-documents/legal-authority-coverage.util';
 import {
   AllocationStatus,
@@ -68,6 +71,7 @@ export class EmployeeAppClientDetailService {
     private readonly prisma: PrismaService,
     private readonly clientsService: EmployeeAppClientsService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    @Optional() private readonly audit?: AuditLogsService,
   ) {}
 
   async getProfile(employeeId: string, clientId: string, dateParam?: string) {
@@ -158,7 +162,8 @@ export class EmployeeAppClientDetailService {
         },
       }),
       this.prisma.serviceUserCarePlanInstance.findMany({
-        where: { serviceUserId: clientId },
+        // Suspended / archived plans are not current instructions for carers.
+        where: { serviceUserId: clientId, lifecycleStatus: 'ACTIVE' },
         take: 8,
         orderBy: { updatedAt: 'desc' },
         select: {
@@ -1024,7 +1029,7 @@ export class EmployeeAppClientDetailService {
   async getCarePlan(employeeId: string, clientId: string) {
     await this.clientsService.assertClientOnRound(employeeId, clientId);
     const su = await this.loadClientOrThrow(clientId);
-    const plans = await this.loadPublishedCarePlanList(clientId);
+    const plans = await this.loadPublishedCarePlanList(clientId, employeeId);
 
     return {
       data: {
@@ -1037,6 +1042,98 @@ export class EmployeeAppClientDetailService {
     };
   }
 
+  /**
+   * The carer confirms they have read this exact published version. Idempotent; a superseded
+   * version cannot be acknowledged. Reading the plan never depends on this.
+   */
+  async acknowledgeCarePlan(
+    employeeId: string,
+    userId: string,
+    clientId: string,
+    instanceId: string,
+    publishedVersionId: string,
+  ) {
+    await this.clientsService.assertClientOnRound(employeeId, clientId);
+    const instance = await this.prisma.serviceUserCarePlanInstance.findFirst({
+      where: { id: instanceId, serviceUserId: clientId, lifecycleStatus: 'ACTIVE', publishedVersions: { some: {} } },
+      select: {
+        id: true,
+        publishedVersions: {
+          where: { supersededAt: null },
+          orderBy: { versionNumber: 'desc' },
+          take: 1,
+          select: { id: true, versionNumber: true },
+        },
+      },
+    });
+    const current = instance?.publishedVersions[0];
+    if (!instance || !current) throw new NotFoundException('Published care plan not found');
+    if (current.id !== publishedVersionId) {
+      throw new ConflictException('A newer version of this care plan has been published. Open it and acknowledge that one.');
+    }
+    const row = await this.prisma.carePlanVersionAcknowledgement.upsert({
+      where: { publishedVersionId_employeeId: { publishedVersionId: current.id, employeeId } },
+      create: {
+        publishedVersionId: current.id,
+        carePlanInstanceId: instance.id,
+        serviceUserId: clientId,
+        employeeId,
+      },
+      update: {},
+    });
+    let acknowledgedAt = row.acknowledgedAt;
+    if (!acknowledgedAt) {
+      const now = new Date();
+      const claimed = await this.prisma.carePlanVersionAcknowledgement.updateMany({
+        where: { id: row.id, acknowledgedAt: null },
+        data: { acknowledgedAt: now, acknowledgedById: userId },
+      });
+      if (claimed.count === 1) {
+        acknowledgedAt = now;
+        await this.audit?.logAudit({
+          userId,
+          module: AuditModule.CARE_PLAN,
+          action: AuditAction.CARE_PLAN_ACKNOWLEDGED,
+          recordType: 'CarePlanVersionAcknowledgement',
+          recordId: row.id,
+          newValues: {
+            employeeId,
+            publishedVersionId: current.id,
+            versionNumber: current.versionNumber,
+            acknowledgedAt: now.toISOString(),
+          },
+          metadata: { serviceUserId: clientId, carePlanInstanceId: instance.id, publishedVersionId: current.id },
+        });
+      } else {
+        acknowledgedAt =
+          (await this.prisma.carePlanVersionAcknowledgement.findUnique({ where: { id: row.id } }))?.acknowledgedAt ?? now;
+      }
+    }
+    return {
+      data: {
+        carePlanInstanceId: instance.id,
+        publishedVersionId: current.id,
+        versionNumber: current.versionNumber,
+        acknowledgedAt: acknowledgedAt.toISOString(),
+      },
+    };
+  }
+
+  /** Whether this carer still has to acknowledge each current published version. */
+  private async acknowledgementByVersionId(employeeId: string, versionIds: string[]) {
+    const rows = versionIds.length
+      ? await this.prisma.carePlanVersionAcknowledgement.findMany({
+          where: { employeeId, publishedVersionId: { in: versionIds } },
+          select: { publishedVersionId: true, acknowledgedAt: true },
+        })
+      : [];
+    const byId = new Map(rows.map((r) => [r.publishedVersionId, r.acknowledgedAt]));
+    return (versionId: string) => {
+      const at = byId.get(versionId) ?? null;
+      return { required: !at, acknowledgedAt: at?.toISOString() ?? null, publishedVersionId: versionId };
+    };
+  }
+
   async getCarePlanDetail(employeeId: string, clientId: string, instanceId: string) {
     await this.clientsService.assertClientOnRound(employeeId, clientId);
     const su = await this.loadClientOrThrow(clientId);
@@ -1045,6 +1142,7 @@ export class EmployeeAppClientDetailService {
       where: {
         id: instanceId,
         serviceUserId: clientId,
+        lifecycleStatus: 'ACTIVE',
         publishedVersions: { some: {} },
       },
       select: {
@@ -1071,6 +1169,7 @@ export class EmployeeAppClientDetailService {
     ) ?? [];
     const plan = toPublishedPlanListItem(instance, pub);
     const fullSummary = sanitizeComposeTextOrNull(pub.summary);
+    const acknowledgement = (await this.acknowledgementByVersionId(employeeId, [pub.id]))(pub.id);
 
     return {
       data: {
@@ -1082,6 +1181,7 @@ export class EmployeeAppClientDetailService {
           ...plan,
           summary: fullSummary ?? plan.summary,
         },
+        acknowledgement,
         sections: mapPublishedCarePlanForCarer({
           valuesJson: pub.valuesJson,
           formName: instance.carePathwayForm.name,
@@ -1091,10 +1191,11 @@ export class EmployeeAppClientDetailService {
     };
   }
 
-  private async loadPublishedCarePlanList(clientId: string) {
+  private async loadPublishedCarePlanList(clientId: string, employeeId?: string) {
     const instances = await this.prisma.serviceUserCarePlanInstance.findMany({
       where: {
         serviceUserId: clientId,
+        lifecycleStatus: 'ACTIVE',
         publishedVersions: { some: {} },
       },
       select: {
@@ -1105,6 +1206,7 @@ export class EmployeeAppClientDetailService {
           orderBy: [{ versionNumber: 'desc' }, { publishedAt: 'desc' }],
           take: 1,
           select: {
+            id: true,
             versionNumber: true,
             summary: true,
             publishedAt: true,
@@ -1112,11 +1214,19 @@ export class EmployeeAppClientDetailService {
         },
       },
     });
+    const ackFor = employeeId
+      ? await this.acknowledgementByVersionId(
+          employeeId,
+          instances.flatMap((i) => (i.publishedVersions[0] ? [i.publishedVersions[0].id] : [])),
+        )
+      : null;
 
     return instances
       .flatMap((instance) => {
         const pub = instance.publishedVersions[0];
-        return pub ? [toPublishedPlanListItem(instance, pub)] : [];
+        return pub
+          ? [{ ...toPublishedPlanListItem(instance, pub), ...(ackFor ? { acknowledgement: ackFor(pub.id) } : {}) }]
+          : [];
       })
       .sort((a, b) => {
         const ta = a.publishedAt ? Date.parse(a.publishedAt) : 0;
@@ -1561,6 +1671,7 @@ const publishedCarePlanSelect = {
     orderBy: [{ versionNumber: 'desc' as const }, { publishedAt: 'desc' as const }],
     take: 1,
     select: {
+      id: true,
       versionNumber: true,
       summary: true,
       publishedAt: true,

@@ -1498,12 +1498,27 @@ export class PayrollRunsService {
       }
     }
 
+    // Back pay: a visit approved after its period was closed cannot be paid there (a closed period
+    // takes no further run), so it comes into the next run as back pay. Only closed earlier periods
+    // of this schedule: a visit of a period that is still open belongs to that period's run.
+    const closedEarlierPeriods = await this.prisma.payrollPeriod.findMany({
+      where: { scheduleId: run.scheduleId, status: 'CLOSED', deletedAt: null, periodEnd: { lt: periodStart } },
+      select: { periodStart: true, periodEnd: true },
+    });
+    const earlierWindows = closedEarlierPeriods.map((p) => ({
+      gte: operationalDayBounds(p.periodStart.toISOString().slice(0, 10), timeZone).start,
+      lt: operationalDayBounds(addDaysToOperationalIso(p.periodEnd.toISOString().slice(0, 10), 1), timeZone).start,
+    }));
+
     const approvedRecons = await this.prisma.visitReconciliation.findMany({
       where: {
         employeeId: { in: employeeIds },
         status: { in: ['APPROVED_FOR_PAY', 'APPROVED_FOR_BOTH'] },
         // The pay period is a span of UK dates: from the first midnight to the one after the last.
-        approvedPayStart: { gte: periodStartBound, lt: periodEndExclusive },
+        OR: [
+          { approvedPayStart: { gte: periodStartBound, lt: periodEndExclusive } },
+          ...earlierWindows.map((w) => ({ approvedPayStart: w })),
+        ],
         // Not yet settled by a visit pay run or by another closed UK run.
         includedInPayrollRunId: null,
         paidByUkPayrollRunId: null,
@@ -1529,9 +1544,11 @@ export class PayrollRunsService {
         sourceVisitReconciliationId: recon.id,
         sourceSalaryDeductionId: null,
         lineType: 'VISIT_PAY',
-        description: `Approved visit pay (provisional — not locked in billing)${
-          recon.visitRef ? ` · ${recon.visitRef}` : ''
-        }`,
+        description: `${
+          recon.approvedPayStart && recon.approvedPayStart < periodStartBound
+            ? `Back pay: visit on ${ukCivilDay(recon.approvedPayStart).toISOString().slice(0, 10)} (its period was already closed)`
+            : 'Approved visit pay (provisional — not locked in billing)'
+        }${recon.visitRef ? ` · ${recon.visitRef}` : ''}`,
         minutes: recon.payableMinutes,
         amount,
         isExpense: false,
@@ -2426,7 +2443,9 @@ export class PayrollRunsService {
       const closedGross = closed.reduce((sum, c) => sum + decimalNum(c.totalGross), 0);
       const ledgerGross = decimalNum(ytdByEmployeeId.get(re.employeeId)?.grossPayYtd ?? 0);
       if (Math.abs(ledgerGross - closedGross) > 0.005) {
-        refuse('year-to-date pay includes amounts not paid by closed runs here (director earnings cannot be attributed safely)');
+        refuse(
+          `pay recorded for this tax year (£${ledgerGross.toFixed(2)}) does not match their closed payroll runs (£${closedGross.toFixed(2)}), so director NI cannot be worked out. If they are not a company director, untick Director on their payroll profile`,
+        );
         continue;
       }
       const inDirectorPeriod = closed.filter(
@@ -2674,23 +2693,23 @@ export class PayrollRunsService {
     // Gate C4: SK codes use the Scottish bands and CK codes this tax year's Welsh bands.
     const scottishBands = scottishIncomeTaxBands(run.taxYear.startDate);
     const welshBands = welshIncomeTaxBands(run.taxYear.startDate);
-    const refused = new Map<string, number>();
+    // Each reason, with the employees it stops.
+    const refused = new Map<string, string[]>();
+    const addRefusal = (reason: string | null | undefined, employeeId: string) => {
+      if (reason) refused.set(reason, [...(refused.get(reason) ?? []), employeeId]);
+    };
     for (const re of runEmployees) {
       const reason = unsupportedTaxCodeReason(
         profileByEmployeeId.get(re.employeeId)?.taxCode,
         scottishBands != null,
         welshBands != null,
       );
-      if (reason) refused.set(reason, (refused.get(reason) ?? 0) + 1);
+      addRefusal(reason, re.employeeId);
       // Gate C6: NI only on a recorded category this version calculates; never assumed to be A.
-      const niReason = unsupportedNiCategoryReason(profileByEmployeeId.get(re.employeeId)?.niCategory);
-      if (niReason) refused.set(niReason, (refused.get(niReason) ?? 0) + 1);
-      const directorReason = directorReasonByEmployeeId.get(re.employeeId);
-      if (directorReason) refused.set(directorReason, (refused.get(directorReason) ?? 0) + 1);
-      const loanReason = loanReasonByEmployeeId.get(re.employeeId);
-      if (loanReason) refused.set(loanReason, (refused.get(loanReason) ?? 0) + 1);
-      const pensionReason = pensionReasonByEmployeeId.get(re.employeeId);
-      if (pensionReason) refused.set(pensionReason, (refused.get(pensionReason) ?? 0) + 1);
+      addRefusal(unsupportedNiCategoryReason(profileByEmployeeId.get(re.employeeId)?.niCategory), re.employeeId);
+      addRefusal(directorReasonByEmployeeId.get(re.employeeId), re.employeeId);
+      addRefusal(loanReasonByEmployeeId.get(re.employeeId), re.employeeId);
+      addRefusal(pensionReasonByEmployeeId.get(re.employeeId), re.employeeId);
       // Gate C10: a supplementary payment adds to its earnings period's earlier payments; under a
       // different category the RTI figures could not be kept apart, so it is refused.
       const category = (profileByEmployeeId.get(re.employeeId)?.niCategory ?? '').toUpperCase();
@@ -2698,16 +2717,25 @@ export class PayrollRunsService {
         category &&
         earlierInPeriod.some((e) => e.employeeId === re.employeeId && (e.niCategoryApplied ?? '').toUpperCase() !== category)
       ) {
-        const reason = 'NI category differs from an earlier payment in this earnings period (not calculated by this version)';
-        refused.set(reason, (refused.get(reason) ?? 0) + 1);
+        addRefusal('NI category differs from an earlier payment in this earnings period (not calculated by this version)', re.employeeId);
       }
     }
     if (refused.size) {
-      const count = [...refused.values()].reduce((a, b) => a + b, 0);
+      // Named, so the person reading it knows whose payroll profile to look at.
+      const stopped = [...new Set([...refused.values()].flat())];
+      const people = await this.prisma.employeePersonalDetail.findMany({
+        where: { employeeId: { in: stopped } },
+        select: { employeeId: true, firstName: true, lastName: true },
+      });
+      const nameOf = new Map(
+        people.map((p) => [p.employeeId, [p.firstName, p.lastName].filter(Boolean).join(' ').trim() || 'Unnamed employee']),
+      );
       throw new BadRequestException(
-        `Tax and NI not calculated: ${count} employee(s) cannot be taxed by this version: ${[...refused]
-          .map(([reason, n]) => `${reason} (${n})`)
-          .join('; ')}. Record or correct the tax code on each employee's payroll profile.`,
+        `Tax and NI were not calculated for this run. ${stopped.length === 1 ? '1 employee needs' : `${stopped.length} employees need`} attention: ${[
+          ...refused,
+        ]
+          .map(([reason, ids]) => `${ids.map((id) => nameOf.get(id) ?? 'Unnamed employee').join(', ')} — ${reason}`)
+          .join('; ')}. Correct this, then calculate again.`,
       );
     }
 

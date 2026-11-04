@@ -23,14 +23,6 @@ export class CreateLeaveTermsDto {
   @Max(28)
   leaveYearStartDay?: number;
 
-  @ApiPropertyOptional({ description: 'Regular hours: the hours of a normal working week' })
-  @IsOptional()
-  @Type(() => Number)
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  @Max(100)
-  weeklyHours?: number | null;
-
   @ApiPropertyOptional({ description: 'Leave beyond the statutory 5.6 weeks, in hours a year' })
   @IsOptional()
   @Type(() => Number)

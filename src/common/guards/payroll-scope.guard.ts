@@ -43,7 +43,9 @@ export type PayrollScopeRule =
   /** A pay agreement by id: scoped through its employee. */
   | { kind: 'payAgreement'; param: string }
   /** A UK payroll run employee row by id (payslip download): scoped through its employee. */
-  | { kind: 'runEmployee'; param: string };
+  | { kind: 'runEmployee'; param: string }
+  /** A service user by id (pay and charge totals for their visits): scoped through their branch. */
+  | { kind: 'serviceUser'; param: string };
 
 export const PAYROLL_SCOPE_KEY = 'payrollScope';
 export const PayrollScope = (rule: PayrollScopeRule) => SetMetadata(PAYROLL_SCOPE_KEY, rule);
@@ -141,6 +143,11 @@ export class PayrollScopeGuard implements CanActivate {
         });
         if (!row) throw new NotFoundException('Payslip not found');
         await this.orgScope.assertEmployeeInScope(scope, row.employeeId);
+        return true;
+      }
+
+      case 'serviceUser': {
+        await this.orgScope.assertServiceUserInScope(scope, String(req.params?.[rule.param] ?? ''));
         return true;
       }
     }

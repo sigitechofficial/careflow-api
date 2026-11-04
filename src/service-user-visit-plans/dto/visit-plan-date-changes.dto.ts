@@ -145,6 +145,14 @@ export class VisitPlanExtraVisitsPreviewDto {
   @IsOptional()
   @IsUUID()
   editingExceptionId?: string;
+
+  @ApiPropertyOptional({
+    enum: VisitPlanNightDuty,
+    description: 'Only for a visit that runs past midnight; NONE (normal visit) when left out',
+  })
+  @IsOptional()
+  @IsEnum(VisitPlanNightDuty)
+  nightDuty?: VisitPlanNightDuty;
 }
 
 export class VisitPlanAddExtraVisitsDto extends VisitPlanExtraVisitsPreviewDto {
@@ -160,13 +168,6 @@ export class VisitPlanAddExtraVisitsDto extends VisitPlanExtraVisitsPreviewDto {
   @MaxLength(2000)
   notes?: string;
 
-  @ApiPropertyOptional({
-    enum: VisitPlanNightDuty,
-    description: 'Only for a visit that runs past midnight; NONE (normal visit) when left out',
-  })
-  @IsOptional()
-  @IsEnum(VisitPlanNightDuty)
-  nightDuty?: VisitPlanNightDuty;
 }
 
 /** Edit one extra visit; its date and time slot stay the same. */

@@ -12,22 +12,23 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import type { CarePlanRuleConditionWhen } from '../initial-assessment-care-plan-rules.types';
+import {
+  CARE_PLAN_RULE_CONDITION_WHEN,
+  type CarePlanRuleConditionWhen,
+} from '../initial-assessment-care-plan-rules.types';
 
-const CONDITION_WHEN = [
-  'yes',
-  'no',
-  'answered',
-  'not_answered',
-  'select_equals',
-  'text_contains',
-] as const;
+const CONDITION_WHEN = [...CARE_PLAN_RULE_CONDITION_WHEN];
 
 export class CarePlanRuleConditionDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   fieldKey?: string;
+
+  @ApiPropertyOptional({ description: 'ADL worksheet activity id, for when = adl_score_gte' })
+  @IsOptional()
+  @IsString()
+  adlActivity?: string;
 
   @ApiPropertyOptional()
   @IsOptional()

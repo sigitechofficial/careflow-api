@@ -127,6 +127,60 @@ describe('UK payroll gross collection: one settlement per visit', () => {
     expect(lines[0].isProvisional).toBe(false);
   });
 
+  it('back pay: a visit approved after its period closed is paid once by the next run of the schedule', async () => {
+    const employeeId = uuid();
+    const november = await createUkRun(prisma, { periodStart: '2026-11-01', periodEnd: '2026-11-30', employeeIds: [employeeId], createdById: maker });
+    await createApprovedVisit(prisma, { employeeId, start: '2026-11-03T09:00:00Z', amount: 28 });
+    await grossAndClose(november);
+    const novemberRun = await prisma.ukPayrollRun.findUniqueOrThrow({ where: { id: november }, include: { period: true } });
+    expect(novemberRun.period.status).toBe('CLOSED');
+
+    // Approved only now, after November closed.
+    const late = await createApprovedVisit(prisma, { employeeId, start: '2026-11-25T09:00:00Z', amount: 14 });
+    // A visit of a period that is still open is not back pay: it stays with its own period.
+    const otherSchedule = await createUkRun(prisma, { periodStart: '2026-10-01', periodEnd: '2026-10-31', employeeIds: [], createdById: maker });
+    const october = await prisma.ukPayrollRun.findUniqueOrThrow({ where: { id: otherSchedule } });
+    const notMine = await createApprovedVisit(prisma, { employeeId, start: '2026-10-20T09:00:00Z', amount: 7 });
+
+    const decemberPeriod = await prisma.payrollPeriod.create({
+      data: {
+        scheduleId: novemberRun.scheduleId,
+        taxYearId: novemberRun.taxYearId,
+        sequence: 2,
+        label: 'December',
+        periodStart: new Date('2026-12-01'),
+        periodEnd: new Date('2026-12-31'),
+        paymentDate: new Date('2026-12-31'),
+      },
+    });
+    const december = (
+      await prisma.ukPayrollRun.create({
+        data: {
+          periodId: decemberPeriod.id,
+          taxYearId: novemberRun.taxYearId,
+          scheduleId: novemberRun.scheduleId,
+          runNumber: 1,
+          label: 'December run',
+          status: 'EMPLOYEES_ENROLLED',
+          employeeCount: 1,
+          createdById: maker,
+          employees: { create: [{ employeeId }] },
+        },
+      })
+    ).id;
+    await ukRuns.calculateGross(maker, december);
+
+    const [line] = await visitInputs(december, late.id);
+    expect(line.description).toMatch(/^Back pay: visit on 2026-11-25 \(its period was already closed\)/);
+    expect(Number(line.amount)).toBe(14);
+    expect(await visitInputs(december, notMine.id)).toHaveLength(0);
+    expect(october.status).toBe('EMPLOYEES_ENROLLED');
+
+    await markStatutoryCalculated(prisma, december);
+    await ukRuns.close(checker, december);
+    expect((await prisma.visitReconciliation.findUniqueOrThrow({ where: { id: late.id } })).paidByUkPayrollRunId).toBe(december);
+  });
+
   it('PR-13: reopening a closed UK run releases its visits; it is refused once a payout is approved', async () => {
     const employeeId = uuid();
     const visit = await createApprovedVisit(prisma, { employeeId, start: '2026-11-03T09:00:00Z', amount: 28 });

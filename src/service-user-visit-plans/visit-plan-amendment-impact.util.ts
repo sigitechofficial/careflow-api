@@ -37,6 +37,9 @@ export type AmendmentImpactAction = {
   type: AmendmentImpactActionType;
   visitPlanSlotId: string;
   slotLabel: string;
+  /** The visit's time before the change (HH:MM), so the change can be named in plain words. */
+  startTime?: string;
+  endTime?: string;
   removedWeekdays?: number[];
   newStartTime?: string;
   newEndTime?: string;
@@ -57,9 +60,10 @@ export function diffVisitPlanSnapshots(
     const slotId = afterSlot.id ?? beforeSlot.id;
     if (!slotId) continue;
     const label = afterSlot.label ?? beforeSlot.label ?? afterSlot.slotCode;
+    const times = { startTime: beforeSlot.plannedStartTime, endTime: beforeSlot.plannedEndTime };
 
     if (beforeSlot.isEnabled && !afterSlot.isEnabled) {
-      actions.push({ type: 'cancel_slot_disabled', visitPlanSlotId: slotId, slotLabel: label });
+      actions.push({ type: 'cancel_slot_disabled', visitPlanSlotId: slotId, slotLabel: label, ...times });
       continue;
     }
 
@@ -71,6 +75,7 @@ export function diffVisitPlanSnapshots(
         type: 'cancel_weekdays_removed',
         visitPlanSlotId: slotId,
         slotLabel: label,
+        ...times,
         removedWeekdays,
       });
     }
@@ -83,6 +88,7 @@ export function diffVisitPlanSnapshots(
         type: 'reschedule_time',
         visitPlanSlotId: slotId,
         slotLabel: label,
+        ...times,
         newStartTime: afterSlot.plannedStartTime,
         newEndTime: afterSlot.plannedEndTime,
       });
@@ -99,6 +105,7 @@ export function diffVisitPlanSnapshots(
           type: 'skip_exception',
           visitPlanSlotId: slotId,
           slotLabel: label,
+          ...times,
           exceptionDate: ex.exceptionDate.slice(0, 10),
         });
       }
@@ -113,6 +120,7 @@ export function diffVisitPlanSnapshots(
             type: 'extra_exception',
             visitPlanSlotId: slotId,
             slotLabel: label,
+            ...times,
             exceptionDate: ex.exceptionDate.slice(0, 10),
           });
         }

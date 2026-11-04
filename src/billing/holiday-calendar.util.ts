@@ -9,7 +9,7 @@
  * policy (`HolidayPremiumBasis`), not a fact about the calendar.
  */
 import { BANK_HOLIDAY_REGIONS, type BankHolidayRegion } from './bank-holiday-regions.util';
-import type { SpecialDayCalendar } from './pay-time-band.util';
+import type { DayTypePriority, SpecialDayCalendar } from './pay-time-band.util';
 
 /** The organisation's own special days are kept beside the bank holidays, under this region. */
 export const ORGANISATION_SPECIAL_DAY_REGION = 'ORGANISATION';
@@ -103,6 +103,7 @@ export function buildPayCalendar(
   rows: HolidayCalendarRow[],
   region: string,
   basis: HolidayPremiumBasis,
+  dayTypePriority?: DayTypePriority,
 ): PayCalendar {
   const bankHolidayKeys = new Set<string>();
   const specialDays: NonNullable<SpecialDayCalendar['specialDays']> = [];
@@ -120,7 +121,14 @@ export function buildPayCalendar(
       bankHolidayKeys.add(dateKey(row.holidayDate));
     }
   }
-  return { bankHolidayKeys, calendar: { specialDays, fixedDates: basis !== 'STATUTORY_DAY' } };
+  return {
+    bankHolidayKeys,
+    calendar: {
+      specialDays,
+      fixedDates: basis !== 'STATUTORY_DAY',
+      ...(dayTypePriority ? { dayTypePriority } : {}),
+    },
+  };
 }
 
 export type HolidayCalendarYearStatus = {

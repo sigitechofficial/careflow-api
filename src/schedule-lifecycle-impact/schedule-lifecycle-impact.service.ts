@@ -17,6 +17,7 @@ import {
   ACTIVE_ALLOCATION_STATUSES,
   buildCancellableServiceUserJobsWhere,
   buildUnallocateEmployeeJobsWhere,
+  buildUnallocateEmployeeJobsInWindowWhere,
   calendarDayUtc,
   CANCELLABLE_JOB_STATUSES,
   datesOverlap,
@@ -49,6 +50,10 @@ export type UnallocateEmployeeJobsParams = {
   toDate: Date | null;
   reason: string;
   source: ScheduleImpactSource;
+  /** Only these allocation rows. */
+  allocationIds?: string[];
+  /** Use fromDate/toDate as exact instants and only touch overlapping visits (default: whole days). */
+  exactWindow?: boolean;
 };
 
 export type TimelineJobOperationalFlags = {
@@ -270,6 +275,8 @@ export class ScheduleLifecycleImpactService {
         select: {
           id: true,
           scheduledStartDateTime: true,
+          scheduledEndDateTime: true,
+          estimatedDurationMinutes: true,
           metadata: true,
           visits: {
             where: { deletedAt: null, isActive: true, visitPlanSlotId: params.visitPlanSlotId },
@@ -309,6 +316,24 @@ export class ScheduleLifecycleImpactService {
             },
           });
         }
+        // Carers who had the visit's own times move with it (same rule as changing a visit's
+        // time on the rota); customised carer times are kept.
+        await this.jobAllocations.syncAllocationTimingsToJobWindow(client, {
+          scheduledJobId: job.id,
+          previousJob: {
+            scheduledStartDateTime: job.scheduledStartDateTime,
+            scheduledEndDateTime: job.scheduledEndDateTime,
+            estimatedDurationMinutes: job.estimatedDurationMinutes,
+          },
+          nextJob: {
+            scheduledStartDateTime: newTimes.start,
+            scheduledEndDateTime: newTimes.end,
+            estimatedDurationMinutes: job.estimatedDurationMinutes,
+          },
+          userId,
+          meta,
+          rejectOutside: false,
+        });
         jobIds.push(job.id);
       }
 
@@ -374,6 +399,29 @@ export class ScheduleLifecycleImpactService {
     return this.unallocateEmployeeJobsInRange(
       userId,
       { employeeId, fromDate: from, toDate: null, reason, source },
+      meta,
+      tx,
+    );
+  }
+
+  /**
+   * Unassign specific rota allocations of one carer (from today on; past, completed and
+   * cancelled visits are never touched by the shared where-builder).
+   */
+  async unallocateEmployeeAllocations(
+    userId: string,
+    employeeId: string,
+    allocationIds: string[],
+    reason: string,
+    source: ScheduleImpactSource,
+    meta?: RequestAuditMeta,
+    tx?: Prisma.TransactionClient,
+  ): Promise<ScheduleImpactResult> {
+    if (!allocationIds.length) return { jobsCancelled: 0, jobsUnallocated: 0, jobIds: [] };
+    const from = await this.opsTodayLabel();
+    return this.unallocateEmployeeJobsInRange(
+      userId,
+      { employeeId, fromDate: from, toDate: null, reason, source, allocationIds },
       meta,
       tx,
     );
@@ -528,11 +576,18 @@ export class ScheduleLifecycleImpactService {
     meta?: RequestAuditMeta,
     tx?: Prisma.TransactionClient,
   ): Promise<ScheduleImpactResult> {
-    const { from, to } = await this.impactWindow(params.fromDate, params.toDate);
+    // An exact (timed) window needs both ends; otherwise whole org-local days.
+    const exact = params.exactWindow && params.toDate ? { from: params.fromDate, to: params.toDate } : null;
+    const { from, to } = exact ?? (await this.impactWindow(params.fromDate, params.toDate));
 
     const run = async (client: Prisma.TransactionClient) => {
       const allocations = await client.jobAllocation.findMany({
-        where: buildUnallocateEmployeeJobsWhere(params.employeeId, from, to),
+        where: exact
+          ? {
+              ...buildUnallocateEmployeeJobsInWindowWhere(params.employeeId, from, to),
+              ...(params.allocationIds ? { id: { in: params.allocationIds } } : {}),
+            }
+          : buildUnallocateEmployeeJobsWhere(params.employeeId, from, to, params.allocationIds),
         select: {
           id: true,
           scheduledJobId: true,

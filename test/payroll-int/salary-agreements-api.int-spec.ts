@@ -32,12 +32,14 @@ describe('salary agreements API (HTTP)', () => {
     effectiveFrom: '2026-11-01',
     salaryEntryPeriod: 'MONTHLY',
     salaryEntryAmount: 2000,
-    contractedHours: 37.5,
     salaryProrationMethod: 'EQUAL_PERIODS_CALENDAR_DAYS',
     salaryCoverage: 'ALL_VISIT_WORK',
   };
   const create = (body: Record<string, unknown>, by = officer) =>
     post(by, `/payroll/employees/${employeeId}/pay-agreements`, body);
+  // Contracted weekly hours are entered on the employee's record; agreements and terms copy them.
+  const setHours = (hours: number | null) =>
+    t.prisma.employeeEmployment.updateMany({ where: { employeeId }, data: { contractedWeeklyHours: hours } });
 
   beforeAll(async () => {
     t = await createTestApp();
@@ -54,6 +56,7 @@ describe('salary agreements API (HTTP)', () => {
     approver = await createStaffUser(t.prisma, { permissions: APPROVE });
     superAdmin = await createStaffUser(t.prisma, { roleName: 'Super Admin' });
     employeeId = (await createCarer(t.prisma)).employeeId;
+    await setHours(37.5);
   });
   afterAll(async () => {
     await t.close();
@@ -73,9 +76,11 @@ describe('salary agreements API (HTTP)', () => {
     expect((await create({ ...SALARY, salaryEntryAmount: undefined })).body.message).toMatch(/Enter the salary/);
     expect((await create({ ...SALARY, salaryProrationMethod: undefined })).body.message).toMatch(/how a part period is paid/);
     expect((await create({ ...SALARY, salaryCoverage: undefined })).body.message).toMatch(/what work the salary already pays for/);
-    expect(
-      (await create({ ...SALARY, salaryCoverage: 'CONTRACTED_HOURS', contractedHours: undefined })).body.message,
-    ).toMatch(/contracted weekly hours/);
+    await setHours(null);
+    expect((await create({ ...SALARY, salaryCoverage: 'CONTRACTED_HOURS' })).body.message).toMatch(
+      /contracted weekly hours on the Edit employee page/,
+    );
+    expect((await create({ ...SALARY, contractedHours: 37.5 })).status).toBe(400); // not entered on the agreement
     expect((await create({ ...SALARY, salaryCoverage: 'EVERYTHING' })).status).toBe(400);
     expect((await create({ basis: 'HOURLY_CARE', effectiveFrom: '2026-11-01', annualSalary: 24000 })).body.message).toMatch(
       /hourly agreement does not carry a salary/,

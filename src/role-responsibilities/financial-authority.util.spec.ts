@@ -22,12 +22,12 @@ const APPROVE = [
 ];
 
 describe('financial authority (R-12)', () => {
-  it('a Super Admin prepares pay but does not approve it without an explicit grant', () => {
+  it('a Super Admin holds every power, approving pay included', () => {
     const admin = user('Sam', ['Super Admin', []]);
     expect(userHoldsPower(admin, power('prepare-pay-runs'))).toBe(true);
     expect(userHoldsPower(admin, power('view-payroll-audit'))).toBe(true);
     for (const key of ['approve-pay-runs', 'close-uk-payroll', 'reopen-uk-payroll', 'approve-payouts', 'record-settlement']) {
-      expect(userHoldsPower(admin, power(key))).toBe(false);
+      expect(userHoldsPower(admin, power(key))).toBe(true);
     }
   });
 
@@ -46,13 +46,13 @@ describe('financial authority (R-12)', () => {
   });
 
   it('warns for every required power nobody holds, and not for optional ones', () => {
-    const { warnings, powers } = summariseFinancialAuthority([user('Sam', ['Super Admin', []])]);
+    const { warnings, powers } = summariseFinancialAuthority([user('Pat', ['Payroll Clerk', [...PREPARE, ORG]])]);
     const keys = warnings.filter((w) => w.kind === 'NO_HOLDER').map((w) => w.powerKey);
-    expect(keys).toEqual(['approve-pay-runs', 'close-uk-payroll', 'approve-payouts', 'record-settlement']);
+    expect(keys).toEqual(expect.arrayContaining(['approve-pay-runs', 'close-uk-payroll', 'approve-payouts', 'record-settlement']));
     expect(keys).not.toContain('reopen-uk-payroll');
-    expect(warnings[0].message).toMatch(/No active user can approve and lock visit pay runs/);
+    expect(warnings.find((w) => w.powerKey === 'approve-pay-runs')!.message).toMatch(/No active user can approve and lock visit pay runs/);
     expect(powers.find((p) => p.key === 'prepare-pay-runs')!.users).toEqual([
-      { id: 'Sam', name: 'Sam', roles: ['Super Admin'] },
+      { id: 'Pat', name: 'Pat', roles: ['Payroll Clerk'] },
     ]);
   });
 

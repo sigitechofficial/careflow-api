@@ -172,7 +172,12 @@ export function resolveCalendarDayType(
 export type SpecialDayCalendar = {
   specialDays?: Array<{ date: string; kind: PaySpecialDay }>;
   fixedDates?: boolean;
+  /** Organisation setting: priority per day type for carer pay (higher wins). Unset = built-in order. */
+  dayTypePriority?: DayTypePriority;
 };
+
+/** Priority per day type (BillingDayType → number); higher wins when rules for different days compete. */
+export type DayTypePriority = Partial<Record<string, number>>;
 
 export function resolveSpecialDay(
   date: Date,
@@ -257,8 +262,10 @@ function dayTypeMatchesRule(
   return ruleDayType === calendarDay;
 }
 
-function ruleSpecificity(rule: TimeBandRule): number {
+function ruleSpecificity(rule: TimeBandRule, dayTypePriority?: DayTypePriority): number {
   let score = 0;
+  // The organisation's day priority decides first; the rest only breaks ties within a day type.
+  if (dayTypePriority) score += (dayTypePriority[rule.dayType] ?? 0) * 1_000_000;
   if (rule.startTime || rule.endTime) score += 10;
   const dayIdx = DAY_TYPE_PRIORITY.indexOf(rule.dayType);
   score += dayIdx >= 0 ? (DAY_TYPE_PRIORITY.length - dayIdx) : 0;
@@ -538,10 +545,11 @@ function chooseRulesByPolicy(
   stackingPolicy: PayStackingPolicy,
   /** The card's base hourly rate (premiums / multipliers are applied to it). */
   baseRate: number,
+  dayTypePriority?: DayTypePriority,
 ): TimeBandRule[] {
   if (!candidates.length) return [];
   const sorted = [...candidates].sort((a, b) => {
-    const spec = ruleSpecificity(b) - ruleSpecificity(a);
+    const spec = ruleSpecificity(b, dayTypePriority) - ruleSpecificity(a, dayTypePriority);
     if (spec !== 0) return spec;
     return (a.sortOrder ?? 0) - (b.sortOrder ?? 0);
   });
@@ -587,6 +595,7 @@ export function calculateBandedPay(input: {
   fixedDates?: boolean;
   /** IANA TZ for interpreting rule clock bands (default UTC for unit tests). */
   timeZone?: string;
+  dayTypePriority?: DayTypePriority;
 }): BandedPayResult | null {
   const {
     start,
@@ -598,6 +607,7 @@ export function calculateBandedPay(input: {
     specialDays,
     fixedDates,
     timeZone = 'UTC',
+    dayTypePriority,
   } = input;
 
   const segments = splitIntoTimeSegments(start, end, rules, {
@@ -616,7 +626,7 @@ export function calculateBandedPay(input: {
 
   for (const segment of segments) {
     const matches = matchingHourlyRulesForSegment(rules, segment, timeZone);
-    const chosen = chooseRulesByPolicy(matches, stackingPolicy, baseRate);
+    const chosen = chooseRulesByPolicy(matches, stackingPolicy, baseRate, dayTypePriority);
 
     let rate = 0;
     let label: string | null = null;

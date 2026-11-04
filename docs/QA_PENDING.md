@@ -48,3 +48,19 @@ Found while live-testing the lead-carer and support clock-out changes in admin (
 | P-014 | **Incident register** record does not store the writer's role (Lead/Support). Needs a schema change. | Incidents | Notes/handover/concerns already store role. |
 | P-015 | **Push notifications not delivered locally** — FCM "invalid_grant: Invalid JWT Signature". Check the service-account key. | Notifications / config | QA list issue #27. |
 | P-016 | **IA recommendation card not shown on first open** of a new care plan (e.g. Medication) until "Refresh from IA / profile" is clicked; a manager could miss the recommendation. | Admin care plans | Robert Chen Medication plan. |
+
+---
+
+## P-017 — Carer weekly hours check ignores visa work-hour caps
+
+- **Found:** 2026-10-30, while redesigning the carer weekly hours settings
+- **Area:** Carer weekly hours limit (Settings → Dom Rules) / employee visa
+- **Status:** Deferred (product owner: skip for now, must be looked at later)
+
+**What happens today**
+
+- The carer weekly hours check (`src/employee-hours-approvals/carer-weekly-hours.service.ts`) uses contracted weekly hours (+ extra weekly hours + grace) only.
+- Visa caps (`resolveVisa` / `capHours` in `src/employee-hours/employee-hours.service.ts`) and the Employment field "Approved extra weekly hours" (`weeklyHoursCapOverride`) are used only by the employee hours report, not by the weekly hours check.
+- With the planned "no manager approval → assign with a warning" option, a carer on a capped visa could be given visits above their visa cap.
+
+**Decision:** pending — decide how visa caps apply to visit assignment.

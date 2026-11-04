@@ -13,6 +13,7 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import { WEEKLY_HOURS_OVER_MAX_OPTIONS } from '../dom-care-allocation-rules.util';
 
 export class DomJobCancellationRuleDto {
   @ApiProperty()
@@ -49,7 +50,50 @@ export class DomJobCancellationRuleDto {
   payEmployeePercent!: number;
 }
 
-const ALLOCATION_BEHAVIORS = ['DONT_ALLOW', 'ALWAYS_ALLOW', 'REQUEST_CONFIRMATION'] as const;
+const ALLOCATION_BEHAVIORS = [
+  'DONT_ALLOW',
+  'ALWAYS_ALLOW',
+  'REQUEST_CONFIRMATION',
+  'MANAGER_APPROVAL',
+] as const;
+
+export class DomWeeklyHoursRuleOptionsDto {
+  @ApiPropertyOptional({
+    enum: WEEKLY_HOURS_OVER_MAX_OPTIONS,
+    description: "Above a carer's maximum weekly hours: NO (never, default) or YES (follows the approval setting).",
+  })
+  @IsOptional()
+  @IsIn([...WEEKLY_HOURS_OVER_MAX_OPTIONS, 'MANAGER_APPROVAL'])
+  allowOverMax?: (typeof WEEKLY_HOURS_OVER_MAX_OPTIONS)[number] | 'MANAGER_APPROVAL';
+
+  @ApiPropertyOptional({ description: 'Called-off visits count in the carer weekly hours (default true).' })
+  @IsOptional()
+  @IsBoolean()
+  countCalledOff?: boolean;
+
+  @ApiPropertyOptional({ description: 'Changing contracted weekly hours needs manager approval (default true).' })
+  @IsOptional()
+  @IsBoolean()
+  contractedChangeNeedsApproval?: boolean;
+
+  @ApiPropertyOptional({ description: 'Adding extra weekly hours needs manager approval (default false).' })
+  @IsOptional()
+  @IsBoolean()
+  extraHoursNeedApproval?: boolean;
+
+  /** No longer used (30 Oct 2026); accepted so an older admin page can still save. */
+  @ApiPropertyOptional({ deprecated: true })
+  @IsOptional()
+  @IsString()
+  rejectAction?: string;
+
+  /** No longer used (30 Oct 2026): each carer's Employment maximum applies instead. */
+  @ApiPropertyOptional({ deprecated: true })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  maxApprovableHours?: number;
+}
 
 export class DomCareAllocationRuleDto {
   @ApiProperty()
@@ -73,6 +117,12 @@ export class DomCareAllocationRuleDto {
   @Min(0)
   @Max(999)
   minutes?: number | null;
+
+  @ApiPropertyOptional({ type: DomWeeklyHoursRuleOptionsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => DomWeeklyHoursRuleOptionsDto)
+  weeklyHours?: DomWeeklyHoursRuleOptionsDto;
 }
 
 export class DomCareShiftDefinitionDto {
@@ -138,4 +188,24 @@ export class DomLateVisitZoneAlertDto {
   @IsArray()
   @IsUUID('4', { each: true })
   notificationEmployeeIds!: string[];
+}
+
+export class ServiceUserWeeklyHoursSettingsDto {
+  @ApiProperty({ description: 'Changing a service user\'s weekly hours waits for a manager.' })
+  @IsBoolean()
+  changeNeedsApproval!: boolean;
+
+  @ApiProperty({ description: 'New visits over the weekly hours go to Hours approvals.' })
+  @IsBoolean()
+  visitsNeedApproval!: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  specialVisitsCount?: boolean;
+
+  @ApiPropertyOptional({ default: false, description: 'Visits over the weekly hours use the timebank when it covers them.' })
+  @IsOptional()
+  @IsBoolean()
+  useTimebank?: boolean;
 }

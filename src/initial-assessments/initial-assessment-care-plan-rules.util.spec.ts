@@ -208,8 +208,9 @@ describe('mergeCarePlanRecommendations', () => {
         carePlanArea: 'Medication',
       },
     ]);
-    const merged = mergeCarePlanRecommendations(ruleBased, legacy, ['Medication']);
+    const merged = mergeCarePlanRecommendations(ruleBased, legacy);
     expect(merged).toHaveLength(1);
     expect(merged[0].id).toBe('rule-1');
+    expect(merged[0].aliasIds).toEqual(['cp-9-medication']);
   });
 });

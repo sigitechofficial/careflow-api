@@ -124,6 +124,11 @@ export class VisitPlanAmendmentImpactService {
       amendmentReason: string;
       before: VisitPlanSnapshotShape;
       after: VisitPlanSnapshotShape;
+      /**
+       * Rota visits that keep their old time ("slotId|start ISO"): made longer over the service
+       * user's weekly hours, waiting for a manager (Hours approvals).
+       */
+      keepOldTime?: Set<string>;
     },
     meta?: RequestAuditMeta,
   ): Promise<ScheduleImpactResult> {
@@ -171,12 +176,14 @@ export class VisitPlanAmendmentImpactService {
           fromDate: from,
           // The plan's times are wall-clock times in the organisation timezone, not UTC.
           resolveNewTimes: (jobStart) =>
-            resolveEndFromStartAndTimes(
-              jobStart,
-              action.newStartTime!,
-              action.newEndTime!,
-              timeZone,
-            ),
+            params.keepOldTime?.has(`${action.visitPlanSlotId}|${jobStart.toISOString()}`)
+              ? null
+              : resolveEndFromStartAndTimes(
+                  jobStart,
+                  action.newStartTime!,
+                  action.newEndTime!,
+                  timeZone,
+                ),
           reason: params.amendmentReason,
           source: 'visit_plan_amendment',
         }, meta);

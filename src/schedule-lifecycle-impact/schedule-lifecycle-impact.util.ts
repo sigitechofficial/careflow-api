@@ -47,7 +47,8 @@ export type ScheduleImpactSource =
   | 'visit_plan_skip_exception'
   | 'employee_holiday'
   | 'employee_non_core_activity'
-  | 'employee_inactive';
+  | 'employee_inactive'
+  | 'employee_hours_reduced';
 
 export const SCHEDULE_IMPACT_PREVIEW_MAX = 500;
 
@@ -159,6 +160,32 @@ export function buildUnallocateEmployeeJobsWhere(
   employeeId: string,
   from: Date,
   to: Date,
+  /** Only these allocation rows. */
+  allocationIds?: string[],
+): Prisma.JobAllocationWhereInput {
+  return {
+    ...(allocationIds ? { id: { in: allocationIds } } : {}),
+    employeeId,
+    deletedAt: null,
+    isActive: true,
+    status: { in: ACTIVE_ALLOCATION_STATUSES },
+    scheduledJob: {
+      deletedAt: null,
+      isActive: true,
+      status: { in: CANCELLABLE_JOB_STATUSES },
+      scheduledStartDateTime: jobScheduledTimeWhere(from, to),
+    },
+  };
+}
+
+/**
+ * Allocations on visits that overlap an exact time window (e.g. an 11:00–12:00 non-core activity).
+ * A visit with no planned end counts when it starts inside the window.
+ */
+export function buildUnallocateEmployeeJobsInWindowWhere(
+  employeeId: string,
+  from: Date,
+  to: Date,
 ): Prisma.JobAllocationWhereInput {
   return {
     employeeId,
@@ -169,7 +196,11 @@ export function buildUnallocateEmployeeJobsWhere(
       deletedAt: null,
       isActive: true,
       status: { in: CANCELLABLE_JOB_STATUSES },
-      scheduledStartDateTime: jobScheduledTimeWhere(from, to),
+      scheduledStartDateTime: { lt: to },
+      OR: [
+        { scheduledEndDateTime: { gt: from } },
+        { scheduledEndDateTime: null, scheduledStartDateTime: { gte: from } },
+      ],
     },
   };
 }

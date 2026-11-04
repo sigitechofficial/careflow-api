@@ -1,4 +1,5 @@
 import { isVisitPlanExtraJobMetadata } from './visit-plan-extra-visit.util';
+import { rotaApprovedAfterRejection } from '../employee-hours-approvals/rota-approval-override.util';
 import {
   AllocationStatus,
   Prisma,
@@ -34,10 +35,20 @@ import {
 } from './visit-plan-slot-carer-resolve.util';
 import {
   DEFAULT_OPERATIONAL_TIMEZONE,
+  dayKeyInTimeZone,
   operationalDayBounds,
   operationalTodayIso,
 } from '../common/utils/operational-day.util';
 import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
+import {
+  blockingRuleHits,
+  evaluateAllocationRuleHits,
+  skillKeywordsForVisitPlanSlot,
+} from '../job-allocations/allocation-rule-hits.util';
+import {
+  allocationRuleBehavior,
+  loadDomCareAllocationRules,
+} from '../organisation-general-settings/dom-care-allocation-rules.util';
 
 type VisitPlanSlotCarerSyncParams = {
   scheduledJobId: string;
@@ -339,25 +350,33 @@ export async function resolveVisitCarerAssignment(
     respectWorkingPattern: boolean;
     patternByEmployee: Map<string, EmployeePatternContext>;
     excludeScheduledJobId?: string;
+    medicationRequired?: boolean;
+    visitPlanSlotId?: string | null;
     /** Organisation timezone for working-pattern weekday / HH:mm checks. */
     timeZone: string;
   },
 ): Promise<{
   employeeIds: string[];
   patternWarnings: string[];
+  /** Carers left off the visit: rota clash or a "Don't allow" allocation rule. */
   rotaConflictWarnings: string[];
 }> {
+  const rules = await loadDomCareAllocationRules(tx);
+  // "Don't allow" outside working pattern always filters, whatever the plan's toggle says.
+  const respectWorkingPattern =
+    options.respectWorkingPattern ||
+    allocationRuleBehavior(rules, 'job_outside_working_pattern') === 'DONT_ALLOW';
   const employeeIds = targetEmployeeIdsForVisit(
     desired,
     visit,
     required,
-    options.respectWorkingPattern,
+    respectWorkingPattern,
     options.patternByEmployee,
     options.timeZone,
   );
   const patternWarnings: string[] = [];
 
-  if (!options.respectWorkingPattern && options.patternByEmployee.size) {
+  if (!respectWorkingPattern && options.patternByEmployee.size) {
     patternWarnings.push(
       ...visitCarerPatternMismatchWarnings(
         employeeIds,
@@ -384,10 +403,34 @@ export async function resolveVisitCarerAssignment(
   );
   const withoutConflict = filterEmployeeIdsWithoutRotaConflict(employeeIds, conflicts, nameById);
 
-  return {
+  // Settings → Allocation rules set to "Don't allow" (leave, holiday, NCA, travel gap,
+  // medication, skills). Overlap is already handled by the rota conflict filter above.
+  const ruleHits = await evaluateAllocationRuleHits(tx, {
     employeeIds: withoutConflict.employeeIds,
+    jobStart,
+    jobEnd,
+    rules,
+    excludeScheduledJobId: options.excludeScheduledJobId,
+    medicationRequired: options.medicationRequired ?? false,
+    skillKeywords: await skillKeywordsForVisitPlanSlot(tx, options.visitPlanSlotId),
+    timeZone: options.timeZone,
+  });
+  const allowed: string[] = [];
+  const ruleWarnings: string[] = [];
+  for (const employeeId of withoutConflict.employeeIds) {
+    const blocking = blockingRuleHits(ruleHits.get(employeeId)).filter((h) => h.key !== 'allow_overlap');
+    if (blocking.length) {
+      const name = nameById.get(employeeId) ?? employeeId;
+      ruleWarnings.push(`${name}: ${blocking.map((h) => h.message).join('; ')} — not assigned`);
+      continue;
+    }
+    allowed.push(employeeId);
+  }
+
+  return {
+    employeeIds: allowed,
     patternWarnings,
-    rotaConflictWarnings: withoutConflict.warnings,
+    rotaConflictWarnings: [...withoutConflict.warnings, ...ruleWarnings],
   };
 }
 
@@ -443,6 +486,27 @@ export function visitPlanCarerSyncFromDateTime(
 }
 
 /** Push visit-plan slot carer defaults onto matching scheduled jobs. */
+/**
+ * What the plan sync changes on one visit. Only carers the plan put on are replaced; carers
+ * chosen on the rota or approved by a manager stay and take a place. A plan carer a person took
+ * off this visit is not put back.
+ */
+export function planSyncAllocationChanges<T extends { employeeId: string; fromVisitPlan: boolean }>(params: {
+  active: T[];
+  target: string[];
+  removedByHand: Set<string>;
+  requiredCarers: number;
+}): { toRemove: T[]; toAdd: string[] } {
+  const currentIds = new Set(params.active.map((row) => row.employeeId));
+  const targetIds = new Set(params.target);
+  const toRemove = params.active.filter((row) => row.fromVisitPlan && !targetIds.has(row.employeeId));
+  const kept = params.active.length - toRemove.length;
+  const toAdd = params.target
+    .filter((employeeId) => !currentIds.has(employeeId) && !params.removedByHand.has(employeeId))
+    .slice(0, Math.max(0, params.requiredCarers - kept));
+  return { toRemove, toAdd };
+}
+
 export async function syncVisitPlanSlotCarersToScheduledJobs(
   tx: Prisma.TransactionClient,
   params: SyncVisitPlanSlotCarersParams,
@@ -479,6 +543,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
       requiredCarers: true,
       scheduledStartDateTime: true,
       scheduledEndDateTime: true,
+      medicationRequired: true,
       scheduledJob: { select: { metadata: true } },
     },
   });
@@ -486,6 +551,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
   let jobsUpdated = 0;
 
   const timeZone = params.timeZone?.trim() || DEFAULT_OPERATIONAL_TIMEZONE;
+  const withheld = await withheldCarerDates(tx, params.visitPlanSlotId);
 
   for (const visit of visits) {
     // Extra visits keep the carers chosen when they were added.
@@ -522,10 +588,16 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
         respectWorkingPattern,
         patternByEmployee,
         excludeScheduledJobId: jobId,
+        medicationRequired: visit.medicationRequired,
+        visitPlanSlotId: params.visitPlanSlotId,
         timeZone: params.timeZone,
       },
     );
-    const target = resolved.employeeIds;
+    // Carers over their weekly hours stay off the visits a manager has not approved yet.
+    const visitDate =
+      (visit.scheduledJob.metadata as { date?: string } | null)?.date?.slice(0, 10) ??
+      dayKeyInTimeZone(visit.scheduledStartDateTime, timeZone);
+    const target = resolved.employeeIds.filter((id) => !withheld.has(`${id}|${visitDate}`));
 
     const activeAllocations = await tx.jobAllocation.findMany({
       where: {
@@ -534,13 +606,31 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
         isActive: true,
         status: { in: ACTIVE_ALLOCATION_STATUSES },
       },
-      select: { id: true, employeeId: true },
+      select: { id: true, employeeId: true, fromVisitPlan: true },
     });
-
-    const currentIds = new Set(activeAllocations.map((row) => row.employeeId));
-    const targetIds = new Set(target);
-    const toRemove = activeAllocations.filter((row) => !targetIds.has(row.employeeId));
-    const toAdd = target.filter((employeeId) => !currentIds.has(employeeId));
+    // Carers a person took off this visit on the rota stay off it (leave, a status change or this
+    // sync taking them off does not count: those come back as before).
+    const removedByHand = new Set(
+      (
+        await tx.jobAllocation.findMany({
+          where: {
+            scheduledJobId: jobId,
+            deletedAt: null,
+            isActive: false,
+            status: AllocationStatus.UNALLOCATED,
+            unallocatedByHand: true,
+            employeeId: { notIn: activeAllocations.map((row) => row.employeeId) },
+          },
+          select: { employeeId: true },
+        })
+      ).map((row) => row.employeeId),
+    );
+    const { toRemove, toAdd } = planSyncAllocationChanges({
+      active: activeAllocations,
+      target,
+      removedByHand,
+      requiredCarers: visitRequired,
+    });
 
     if (toRemove.length === 0 && toAdd.length === 0 && !requiredChanged) continue;
 
@@ -604,6 +694,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
           scheduledEndDateTime: end,
           durationMinutes,
           isLeadCarer: carerWindow?.isLeadCarer ?? false,
+          fromVisitPlan: true,
         },
       });
     }
@@ -613,6 +704,45 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
   }
 
   return { jobsUpdated };
+}
+
+/**
+ * "employeeId|YYYY-MM-DD" of this slot's visits held back from carers by an over-weekly-hours
+ * request (Hours approvals) that is waiting or was rejected.
+ */
+async function withheldCarerDates(
+  tx: Prisma.TransactionClient,
+  visitPlanSlotId: string,
+): Promise<Set<string>> {
+  const slot = await tx.visitPlanSlot.findUnique({
+    where: { id: visitPlanSlotId },
+    select: { visitPlanId: true },
+  });
+  const out = new Set<string>();
+  if (!slot) return out;
+  const rows = await tx.employeeHoursApproval.findMany({
+    where: {
+      visitPlanId: slot.visitPlanId,
+      requestType: 'VISIT_PLAN_OVER_HOURS',
+      // Waiting for a manager, or rejected: the carer does not do those visits.
+      status: { in: ['PENDING', 'REJECTED'] },
+    },
+    select: { employeeId: true, status: true, decidedAt: true, requestPayload: true },
+  });
+  // A rejected visit a manager later approved on the rota stays with the carer.
+  const approvedLater = await rotaApprovedAfterRejection(
+    tx,
+    rows.filter((r) => r.status === 'REJECTED'),
+  );
+  for (const r of rows) {
+    for (const key of (r.requestPayload as { withheld?: string[] } | null)?.withheld ?? []) {
+      const [slotId, date] = key.split('|');
+      if (slotId !== visitPlanSlotId) continue;
+      if (r.status === 'REJECTED' && approvedLater.has(`${r.employeeId}|${key}`)) continue;
+      out.add(`${r.employeeId}|${date}`);
+    }
+  }
+  return out;
 }
 
 async function linkedVisitPlanSlotIds(

@@ -101,7 +101,9 @@ export class ScheduleLifecycleNotificationHook {
             ? 'Rota updated — carer unavailable'
             : params.source === 'employee_inactive'
               ? 'Rota updated — employee inactive'
-              : 'Rota updated — visit plan change';
+              : params.source === 'employee_hours_reduced'
+                ? 'Rota updated — carer weekly hours reduced'
+                : 'Rota updated — visit plan change';
 
       await this.notifications.notifyUsers({
         recipientUserIds,

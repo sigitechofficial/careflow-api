@@ -173,6 +173,7 @@ async function main() {
     'Self Isolation',
     'Non working time',
     'Last Minute sickness',
+    'Office meeting',
   ])
     await upsertLookup(prisma.nonCoreActivityReason, name);
 
@@ -347,6 +348,7 @@ async function main() {
     'service_users.initial_assessment.submit',
     'service_users.initial_assessment.review',
     'service_users.initial_assessment.export',
+    'service_users.care_plan.approve',
     'service_users.assessments.read',
     'service_users.assessments.create',
     'service_users.assessments.link',
@@ -630,9 +632,17 @@ async function main() {
     'surveys.manage',
     'surveys.respond',
     'surveys.responses.record',
+    // Carer notifications (Settings › Carer notifications)
+    'carer_notifications.send',
+    // On-call rota and out-of-hours calls (Operations › On-call)
+    'on_call.read',
+    'on_call.manage',
+    'on_call.log',
     // Employee hours approvals (over-contracted-hours workflow)
     'hours_approvals.read',
     'hours_approvals.manage',
+    // Extra weekly hours for a carer (day / week / date range)
+    'employees.extra_hours.manage',
     // Azure Pricing (platform costs) — Super Admin only (granted via the all-permissions sweep)
     'platform_costs.read',
     'platform_costs.manage',
@@ -645,6 +655,16 @@ async function main() {
     'setup_checklist.read',
     // Role tasks — create/manage work for office-user roles
     'role_tasks.manage',
+    // Specialist care pathways (e.g. Learning Disability)
+    'specialist_pathways.read',
+    'specialist_pathways.manage',
+    'specialist_pathways.approve',
+    // Safeguarding
+    'safeguarding.read',
+    'safeguarding.manage',
+    // CRM / Enquiries
+    'crm.read',
+    'crm.manage',
   ];
 
   for (const key of permissionKeys) {
@@ -737,9 +757,35 @@ async function main() {
   // Record responses by telephone / paper / in person
   await assignPermKeys('Admin', ['surveys.responses.record']);
 
+  // Specialist care pathways — coordinators read, managers build/approve plans
+  await assignPermKeys('Care Coordinator', ['specialist_pathways.read']);
+  await assignPermKeys('Manager', [
+    'specialist_pathways.read',
+    'specialist_pathways.manage',
+    'specialist_pathways.approve',
+  ]);
+  await assignPermKeys('Admin', [
+    'specialist_pathways.read',
+    'specialist_pathways.manage',
+    'specialist_pathways.approve',
+  ]);
+
+  // Safeguarding — coordinators read, managers & admins manage the full workflow
+  await assignPermKeys('Care Coordinator', ['safeguarding.read']);
+  await assignPermKeys('Manager', ['safeguarding.read', 'safeguarding.manage']);
+  await assignPermKeys('Admin', ['safeguarding.read', 'safeguarding.manage']);
+
+  // CRM / Enquiries — coordinators read, managers & admins run the pipeline
+  await assignPermKeys('Care Coordinator', ['crm.read']);
+  await assignPermKeys('Manager', ['crm.read', 'crm.manage']);
+  await assignPermKeys('Admin', ['crm.read', 'crm.manage']);
+
   // Hours approvals — managers approve/reject over-contracted-hours requests
   await assignPermKeys('Care Coordinator', ['hours_approvals.read']);
   await assignPermKeys('Manager', ['hours_approvals.read', 'hours_approvals.manage']);
+  // Extra weekly hours — managers and admins give carers extra hours for a day, week or range
+  await assignPermKeys('Manager', ['employees.extra_hours.manage']);
+  await assignPermKeys('Admin', ['employees.extra_hours.manage']);
 
   // Office user salaries — company-wide admins only (Super Admin already has every permission)
   await assignPermKeys('Admin', ['office_salaries.manage', 'setup_checklist.read', 'role_tasks.manage']);
@@ -2138,18 +2184,13 @@ async function main() {
   ]) {
     await upsertMedCode(prisma.medicationFrequency, row);
   }
+  // Create missing time slots only. The seed runs on every deploy, so it must not overwrite
+  // slots an organisation already has (Settings → Time slots, or a migration like
+  // 20261015120000_time_slot_morning_night_windows).
   for (const row of DEFAULT_MEDICATION_ADMINISTRATION_ROUNDS) {
     await prisma.medicationAdministrationRound.upsert({
       where: { code: row.code },
-      update: {
-        name: row.name,
-        time: row.time,
-        windowStart: row.windowStart,
-        windowEnd: row.windowEnd,
-        sortOrder: row.sortOrder,
-        isActive: true,
-        deletedAt: null,
-      },
+      update: {},
       create: {
         name: row.name,
         code: row.code,
@@ -2379,6 +2420,24 @@ async function main() {
       (await prisma.role.findFirst({ where: { name: roleName, deletedAt: null } }));
     if (!r) continue;
     for (const p of initialAssessmentReviewPerms) {
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
+        update: {},
+        create: { roleId: r.id, permissionId: p.id },
+      });
+    }
+  }
+
+  // Care plan approval is manager-level only (not implied by service_users.update).
+  const carePlanApprovePerms = await prisma.permission.findMany({
+    where: { key: 'service_users.care_plan.approve', deletedAt: null },
+  });
+  for (const roleName of ['Admin', 'Manager', 'Branch Admin']) {
+    const r =
+      roles.find((x) => x.name === roleName) ??
+      (await prisma.role.findFirst({ where: { name: roleName, deletedAt: null } }));
+    if (!r) continue;
+    for (const p of carePlanApprovePerms) {
       await prisma.rolePermission.upsert({
         where: { roleId_permissionId: { roleId: r.id, permissionId: p.id } },
         update: {},
@@ -2774,6 +2833,7 @@ async function main() {
     'notifications.read',
   ];
   await assignPermKeys('Master Staff Allocation', masterAllocPermKeys);
+  await assignPermKeys('Master Staff Allocation', ['employees.extra_hours.manage']);
 
   // Ensure Staff Allocation can view staff/SUs needed for allocation (additive).
   await assignPermKeys('Staff Allocation', [
@@ -2781,6 +2841,7 @@ async function main() {
     'service_users.read',
     'service_users.assignments.read',
     'lookups.read',
+    'employees.extra_hours.manage',
   ]);
 
   // Optional employment RBAC levels (job title sync → identity role). Does not replace job titles.

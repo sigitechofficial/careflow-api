@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { isSuperAdminRequest } from '../common/request-context/super-admin-context';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
@@ -799,7 +800,8 @@ export class PayItemsService {
     if (item.status !== 'PENDING_APPROVAL') throw new BadRequestException('Only pending pay items can be approved.');
     if (
       payItemConfigOf(item.wageTypeCode)?.requiresSecondApprover &&
-      item.createdById === userId
+      item.createdById === userId &&
+      !isSuperAdminRequest()
     ) {
       throw new ForbiddenException('Bonuses and manual adjustments must be approved by a different user from the one who entered them.');
     }

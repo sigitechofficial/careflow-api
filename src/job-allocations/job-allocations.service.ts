@@ -28,6 +28,15 @@ import { AllocationChecksService, type AllocationWarning } from './allocation-ch
 import { AllocationWarningType } from './enums/allocation-warning-type.enum';
 import { CARER_ROTA_CONFLICT_MESSAGE } from '../service-user-visit-plans/visit-carer-rota-conflict.util';
 import { ScheduleAllocationNotificationHook } from './schedule-allocation-notification.hook';
+import {
+  CarerWeeklyHoursService,
+  CARER_NO_CONTRACTED_HOURS_MESSAGE,
+  carerMaxMinutes,
+  carerOverMaxApprovalMessage,
+  carerOverMaxMessage,
+  overMaxAllowed,
+  visitsNeedApproval,
+} from '../employee-hours-approvals/carer-weekly-hours.service';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import { AllocationQueryDto } from './dto/allocation-query.dto';
 import { AllocateJobDto } from './dto/allocate-job.dto';
@@ -84,7 +93,7 @@ const ACTIVE_STATUSES: PrismaAllocationStatus[] = [
 /** Lead-carer rules apply to visits that need 2+ carers (single-carer visits unchanged). */
 const MULTI_CARER_MIN = 2;
 
-type WarningView = { type: string; message: string; severity: string };
+type WarningView = { type: string; message: string; severity: string; hardBlock?: boolean };
 
 export type TeamCarerCheck = {
   employeeId: string;
@@ -103,9 +112,63 @@ function personName(
   return [pd?.firstName, pd?.lastName].filter(Boolean).join(' ').trim() || fallback;
 }
 
-function warningViews(warnings: AllocationWarning[]): WarningView[] {
-  return warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity }));
+/** The reason an allocation was refused: its first blocking check, else the error's message. */
+export function allocationErrorReason(err: unknown): string {
+  if (err instanceof HttpException) {
+    const res = err.getResponse() as { warnings?: WarningView[] } | string;
+    const blocking =
+      typeof res === 'object'
+        ? res.warnings?.find((w) => w.severity === 'blocking')
+        : undefined;
+    return blocking?.message ?? err.message;
+  }
+  return err instanceof Error ? err.message : 'Could not be allocated';
 }
+
+function warningViews(warnings: AllocationWarning[]): WarningView[] {
+  return warnings.map((w) => ({
+    type: w.type,
+    message: w.message,
+    severity: w.severity,
+    ...(w.hardBlock ? { hardBlock: true } : {}),
+  }));
+}
+
+type AllocateOptions = {
+  /** A manager approved the carer over their weekly hours (Hours approvals). */
+  weeklyHoursApproved?: boolean;
+  /** An extra or special visit, which never runs the rota checks. */
+  skipAllocationChecks?: boolean;
+  /** Carers about to be taken off the visit to make room (their place counts as free). */
+  replacingEmployeeIds?: string[];
+};
+
+/** One visit of a run: what putting the run carer on it would do. */
+export type RunCarerVisitPlan = {
+  jobId: string;
+  start: Date;
+  end: Date;
+  serviceUserId: string | null;
+  /** ALREADY: the carer is on it. ALLOCATE: goes on it. NEEDS_APPROVAL: waits for a manager. BLOCKED: can't. */
+  outcome: 'ALREADY' | 'ALLOCATE' | 'NEEDS_APPROVAL' | 'BLOCKED';
+  message: string | null;
+  overWeeklyHours: boolean;
+  /** Carers the run carer takes the place of (one-carer visits, replace on). */
+  replaceEmployeeIds: string[];
+  replaceNames: string[];
+};
+
+export type RunCarerPlan = {
+  visits: RunCarerVisitPlan[];
+  weeks: Array<{
+    weekStart: string;
+    beforeMinutes: number;
+    afterMinutes: number;
+    limitMinutes: number | null;
+    extraMinutes: number;
+  }>;
+  maxMinutes: number;
+};
 
 @Injectable()
 export class JobAllocationsService {
@@ -116,6 +179,7 @@ export class JobAllocationsService {
     private readonly notifications: ScheduleAllocationNotificationHook,
     private readonly orgScope: OrgScopeService,
     private readonly carerPush: CarerVisitPushHook,
+    private readonly carerHours: CarerWeeklyHoursService,
   ) {}
 
   /** Status for a new allocation given its check warnings (same rules for single and team). */
@@ -239,6 +303,11 @@ export class JobAllocationsService {
       };
       userId: string;
       meta?: RequestAuditMeta;
+      /**
+       * False when the visit window has already been decided elsewhere (a visit plan amendment):
+       * a customised assignment that no longer fits is left as it is instead of refusing.
+       */
+      rejectOutside?: boolean;
     },
   ): Promise<void> {
     const allocations = await tx.jobAllocation.findMany({
@@ -302,7 +371,7 @@ export class JobAllocationsService {
       }
     }
 
-    if (outside.length) {
+    if (outside.length && params.rejectOutside !== false) {
       throw new BadRequestException({
         message:
           'One or more carer assignment times fall outside the new visit window. Correct assignment timings before saving.',
@@ -399,13 +468,19 @@ export class JobAllocationsService {
   }
 
   /** Single allocate never goes over requiredCarers (replace / drag remove the old carer first). */
-  private async assertCarerPlaceAvailable(scheduledJobId: string, requiredCarers: number) {
+  private async assertCarerPlaceAvailable(
+    scheduledJobId: string,
+    requiredCarers: number,
+    /** Carers about to be taken off this visit (their place counts as free). */
+    replacingEmployeeIds: string[] = [],
+  ) {
     const active = await this.prisma.jobAllocation.count({
       where: {
         scheduledJobId,
         deletedAt: null,
         isActive: true,
         status: { in: ACTIVE_STATUSES },
+        ...(replacingEmployeeIds.length ? { employeeId: { notIn: replacingEmployeeIds } } : {}),
       },
     });
     const message = fullVisitMessage(active, requiredCarers);
@@ -447,26 +522,22 @@ export class JobAllocationsService {
     return next;
   }
 
-  async allocate(
-    userId: string,
+  /**
+   * Everything allocate() checks before it saves: the visit, the carer, a free place and the
+   * rota checks. Throws with the reason when the carer can't be put on the visit.
+   */
+  private async checkAllocation(
     scheduledJobId: string,
     dto: AllocateJobDto,
-    meta?: RequestAuditMeta,
-    actor?: RequestUser,
+    options: AllocateOptions,
   ) {
-    if (actor) {
-      await this.orgScope.assertScheduledJobInScope(
-        this.orgScope.fromRequestUser(actor),
-        scheduledJobId,
-      );
-    }
     const job = await this.prisma.scheduledJob.findFirst({
       where: { id: scheduledJobId, deletedAt: null, isActive: true },
     });
     if (!job) throw new NotFoundException('Scheduled job not found');
     await ensureActiveEmployee(this.prisma, dto.employeeId);
     await this.assertNoDuplicateAllocation(scheduledJobId, dto.employeeId);
-    await this.assertCarerPlaceAvailable(scheduledJobId, job.requiredCarers);
+    await this.assertCarerPlaceAvailable(scheduledJobId, job.requiredCarers, options.replacingEmployeeIds);
 
     if (dto.scheduledVisitId) {
       const visit = await this.prisma.scheduledVisit.findFirst({
@@ -476,20 +547,29 @@ export class JobAllocationsService {
     }
 
     const assignment = this.resolveAssignmentTimesFromDto(job, dto);
-    const warnings = await this.checks.runAllChecks({
-      scheduledJobId,
-      scheduledVisitId: dto.scheduledVisitId,
-      employeeId: dto.employeeId,
-      serviceUserId: job.serviceUserId,
-      jobStart: assignment.start,
-      jobEnd: assignment.end,
-      jobMetadata: job.metadata,
-    });
+    const allWarnings = options.skipAllocationChecks
+      ? []
+      : await this.checks.runAllChecks({
+          scheduledJobId,
+          scheduledVisitId: dto.scheduledVisitId,
+          employeeId: dto.employeeId,
+          serviceUserId: job.serviceUserId,
+          jobStart: assignment.start,
+          jobEnd: assignment.end,
+          jobMetadata: job.metadata,
+          skipWeeklyHours: options.weeklyHoursApproved,
+        });
+    const needsApproval = allWarnings.some(
+      (w) => w.type === AllocationWarningType.CAPACITY_NEEDS_APPROVAL,
+    );
+    const warnings = allWarnings.filter(
+      (w) => w.type !== AllocationWarningType.CAPACITY_NEEDS_APPROVAL,
+    );
 
     if (this.checks.hasNonOverridableBlockingWarnings(warnings)) {
       throw new BadRequestException({
         message: warnings.find((w) => w.severity === 'blocking')?.message ?? CARER_ROTA_CONFLICT_MESSAGE,
-        warnings: warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity })),
+        warnings: warningViews(warnings),
         requiresConfirmation: false,
       });
     }
@@ -498,9 +578,258 @@ export class JobAllocationsService {
     if (hasBlocking && !dto.force) {
       throw new BadRequestException({
         message: 'Allocation blocked due to validation warnings. Use force=true to create pending confirmation.',
-        warnings: warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity })),
+        warnings: warningViews(warnings),
         requiresConfirmation: true,
       });
+    }
+    return { job, assignment, allWarnings, warnings, needsApproval };
+  }
+
+  /**
+   * What putting one carer on these visits (a run, in run order) would do, nothing saved: which
+   * visits they would go on, which wait for a manager (over the weekly hours), and which a check
+   * stops (another carer, a clash, blocked carer, over the weekly maximum…). `replaceExisting`:
+   * on a one-carer visit someone else holds, the run carer takes their place.
+   */
+  async planRunCarer(
+    employeeId: string,
+    jobIds: string[],
+    options: {
+      replaceExisting?: boolean;
+      /** The previous run carer, taken off these visits before the new one goes on. */
+      releasingEmployeeId?: string;
+    } = {},
+  ): Promise<RunCarerPlan> {
+    const rows = await this.prisma.scheduledJob.findMany({
+      where: { id: { in: jobIds }, deletedAt: null, isActive: true },
+      include: {
+        allocations: {
+          where: { deletedAt: null, isActive: true, status: { in: ACTIVE_STATUSES } },
+          include: { employee: { select: { personalDetail: { select: { firstName: true, lastName: true } } } } },
+        },
+      },
+    });
+    const byId = new Map(rows.map((r) => [r.id, r]));
+    const jobs = jobIds.map((id) => byId.get(id)).filter((j): j is (typeof rows)[number] => Boolean(j));
+    const rule = await this.carerHours.rule();
+    const visits: RunCarerVisitPlan[] = [];
+    const placed: Array<{ jobId: string; start: Date; end: Date }> = [];
+    for (const job of jobs) {
+      const { start, end } = this.resolveAssignmentTimesFromDto(job, { employeeId } as AllocateJobDto);
+      const base = { jobId: job.id, start, end, serviceUserId: job.serviceUserId, overWeeklyHours: false };
+      if (job.allocations.some((a) => a.employeeId === employeeId)) {
+        visits.push({ ...base, outcome: 'ALREADY', message: null, replaceEmployeeIds: [], replaceNames: [] });
+        placed.push({ jobId: job.id, start, end });
+        continue;
+      }
+      const releasing = options.releasingEmployeeId && options.releasingEmployeeId !== employeeId
+        ? job.allocations.filter((a) => a.employeeId === options.releasingEmployeeId).map((a) => a.employeeId)
+        : [];
+      const others = job.allocations.filter(
+        (a) => a.employeeId !== employeeId && !releasing.includes(a.employeeId),
+      );
+      const replace = Boolean(options.replaceExisting) && job.requiredCarers <= 1 && others.length > 0;
+      const replaceEmployeeIds = replace ? others.map((a) => a.employeeId) : [];
+      const replaceNames = replace ? others.map((a) => personName(a.employee.personalDetail)) : [];
+      // Two visits of this run at the same time: the carer can only do the first.
+      const clash = placed.find((p) => p.start < end && start < p.end);
+      const reason = clash
+        ? 'Overlaps another visit in this run'
+        : await this.allocationBlockedReason(job.id, { employeeId, force: true } as AllocateJobDto, {
+            weeklyHoursApproved: true,
+            replacingEmployeeIds: [...replaceEmployeeIds, ...releasing],
+          });
+      if (reason) {
+        visits.push({ ...base, outcome: 'BLOCKED', message: reason, replaceEmployeeIds: [], replaceNames: [] });
+        continue;
+      }
+      visits.push({ ...base, outcome: 'ALLOCATE', message: null, replaceEmployeeIds, replaceNames });
+      placed.push({ jobId: job.id, start, end });
+    }
+
+    // Weekly hours, in run order: the visits after the one that crosses the limit are over.
+    const toCount = visits.filter((v) => v.outcome === 'ALLOCATE');
+    const check = toCount.length
+      ? await this.carerHours.checkNewVisits(
+          this.prisma,
+          employeeId,
+          toCount.map((v) => ({ start: v.start, end: v.end, serviceUserId: v.serviceUserId })),
+        )
+      : null;
+    const weekOf = new Map<string, string>();
+    for (const v of toCount) weekOf.set(v.jobId, await this.carerHours.weekStartOf(v.start));
+    if (check) {
+      const overMax = new Set(check.overMax);
+      const over = new Set(check.over);
+      const needsApproval = visitsNeedApproval(rule);
+      toCount.forEach((v, i) => {
+        const week = check.weeks.find((w) => w.weekStart === weekOf.get(v.jobId));
+        if (check.noContractedHours) {
+          v.outcome = 'BLOCKED';
+          v.message = CARER_NO_CONTRACTED_HOURS_MESSAGE;
+          v.replaceEmployeeIds = [];
+          v.replaceNames = [];
+        } else if (overMax.has(i) && !overMaxAllowed(rule)) {
+          v.outcome = 'BLOCKED';
+          v.message = carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes);
+          v.replaceEmployeeIds = [];
+          v.replaceNames = [];
+        } else if (overMax.has(i)) {
+          // Over the carer's maximum, allowed by Settings → Dom Rules: follows the approval setting.
+          v.overWeeklyHours = true;
+          if (needsApproval) {
+            v.outcome = 'NEEDS_APPROVAL';
+            v.message = carerOverMaxApprovalMessage(week?.minutes ?? 0, check.maxMinutes);
+          } else {
+            v.message = carerOverMaxMessage(week?.minutes ?? 0, check.maxMinutes);
+          }
+        } else if (over.has(i)) {
+          v.overWeeklyHours = true;
+          if (needsApproval) {
+            v.outcome = 'NEEDS_APPROVAL';
+            v.message = 'Over the weekly hours — a manager must approve before the carer goes on it';
+          } else {
+            v.message = 'Goes over the weekly hours';
+          }
+        }
+      });
+    }
+    // Each week: before this run, and with the visits that would go on (or wait for a manager).
+    const runMinutes = (weekStart: string) =>
+      toCount
+        .filter((v) => weekOf.get(v.jobId) === weekStart && v.outcome !== 'BLOCKED')
+        .reduce((sum, v) => sum + Math.round((v.end.getTime() - v.start.getTime()) / 60000), 0);
+    const allNewMinutes = (weekStart: string) =>
+      toCount
+        .filter((v) => weekOf.get(v.jobId) === weekStart)
+        .reduce((sum, v) => sum + Math.round((v.end.getTime() - v.start.getTime()) / 60000), 0);
+    return {
+      visits,
+      weeks: (check?.weeks ?? []).map((w) => ({
+        weekStart: w.weekStart,
+        beforeMinutes: Math.max(0, w.minutes - allNewMinutes(w.weekStart)),
+        afterMinutes: Math.max(0, w.minutes - allNewMinutes(w.weekStart)) + runMinutes(w.weekStart),
+        limitMinutes: w.limitMinutes,
+        extraMinutes: w.extraMinutes,
+      })),
+      maxMinutes: check?.maxMinutes ?? carerMaxMinutes(null),
+    };
+  }
+
+  /**
+   * A rota visit over the carer's weekly hours that, once a manager approves, also takes off the
+   * carers now on it (a run carer taking over a one-carer visit). Until then nothing changes.
+   */
+  async requestReplacingApproval(
+    userId: string,
+    scheduledJobId: string,
+    employeeId: string,
+    replace: { employeeIds: string[]; names: string[] },
+  ): Promise<{ id: string }> {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: scheduledJobId, deletedAt: null, isActive: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+    const { start, end } = this.resolveAssignmentTimesFromDto(job, { employeeId } as AllocateJobDto);
+    const weekStart = await this.carerHours.weekStartOf(start);
+    const check = await this.carerHours.checkNewVisits(this.prisma, employeeId, [
+      { start, end, serviceUserId: job.serviceUserId },
+    ]);
+    return this.carerHours.requestRotaVisitApproval(this.prisma, {
+      employeeId,
+      scheduledJobId,
+      serviceUserId: job.serviceUserId,
+      requestedById: userId,
+      start,
+      end,
+      weekStart,
+      weekMinutes: check.weeks[0]?.minutes ?? 0,
+      limitMinutes: check.contractedMinutes ?? 0,
+      source: 'ROTA',
+      allocation: { force: true },
+      replaceEmployeeIds: replace.employeeIds,
+      replaceEmployeeNames: replace.names,
+    });
+  }
+
+  /**
+   * Why allocate() would refuse this carer now (null: it would go through). Nothing is saved —
+   * e.g. the Add extra hours preview of the requests it would approve.
+   */
+  async allocationBlockedReason(
+    scheduledJobId: string,
+    dto: AllocateJobDto,
+    options: AllocateOptions = {},
+  ): Promise<string | null> {
+    try {
+      await this.checkAllocation(scheduledJobId, dto, options);
+      return null;
+    } catch (err) {
+      if (
+        err instanceof BadRequestException ||
+        err instanceof NotFoundException ||
+        err instanceof ConflictException
+      ) {
+        return allocationErrorReason(err);
+      }
+      throw err;
+    }
+  }
+
+  async allocate(
+    userId: string,
+    scheduledJobId: string,
+    dto: AllocateJobDto,
+    meta?: RequestAuditMeta,
+    actor?: RequestUser,
+    /**
+     * Set when a manager approved the carer over their weekly hours (Hours approvals).
+     * `skipAllocationChecks`: an extra or special visit, which never runs the rota checks.
+     */
+    options: AllocateOptions = {},
+  ) {
+    if (actor) {
+      await this.orgScope.assertScheduledJobInScope(
+        this.orgScope.fromRequestUser(actor),
+        scheduledJobId,
+      );
+    }
+    const { job, assignment, allWarnings, warnings, needsApproval } = await this.checkAllocation(
+      scheduledJobId,
+      dto,
+      options,
+    );
+
+    // Over the carer's weekly hours (Settings → Dom Rules: manager approval): the carer is not
+    // put on the visit; a manager decides on Hours approvals, and approving allocates them.
+    if (needsApproval) {
+      const weekStart = await this.carerHours.weekStartOf(assignment.start);
+      const check = await this.carerHours.checkNewVisits(this.prisma, dto.employeeId, [
+        { start: assignment.start, end: assignment.end, serviceUserId: job.serviceUserId },
+      ]);
+      const request = await this.carerHours.requestRotaVisitApproval(this.prisma, {
+        employeeId: dto.employeeId,
+        scheduledJobId,
+        serviceUserId: job.serviceUserId,
+        requestedById: userId,
+        start: assignment.start,
+        end: assignment.end,
+        weekStart,
+        weekMinutes: check.weeks[0]?.minutes ?? 0,
+        limitMinutes: check.contractedMinutes ?? 0,
+        source: 'ROTA',
+        allocation: { ...dto },
+      });
+      // `meta` survives the response wrapper (top-level fields do not).
+      return {
+        message: 'Sent to a manager — the carer is over their weekly hours and is put on this visit once approved',
+        data: { approvalRequested: true, approvalId: request.id },
+        meta: {
+          approvalRequested: true,
+          approvalId: request.id,
+          warnings: allWarnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity })),
+        },
+      };
     }
 
     const { status, needsConfirmation } = this.allocationOutcome(warnings, dto.force);
@@ -627,7 +956,7 @@ export class JobAllocationsService {
           ? 'Allocation created — confirmation required'
           : 'Carer allocated to job',
         requiresConfirmation: needsConfirmation,
-        warnings: warnings.map((w) => ({ type: w.type, message: w.message, severity: w.severity })),
+        warnings: warningViews(warnings),
         data: this.mapAllocation(created),
         jobStatus: newJobStatus,
       };
@@ -698,7 +1027,7 @@ export class JobAllocationsService {
     }
 
     // Same per-carer checks as POST /allocate, run for every new carer before any write.
-    const checked: Array<TeamCarerCheck & { raw: AllocationWarning[] }> = [];
+    const checked: Array<TeamCarerCheck & { raw: AllocationWarning[]; needsApproval?: boolean }> = [];
     for (const employeeId of dto.employeeIds) {
       const name = nameById.get(employeeId) ?? 'Carer';
       try {
@@ -729,12 +1058,13 @@ export class JobAllocationsService {
       checked.push({
         employeeId,
         name,
+        needsApproval: warnings.some((w) => w.type === AllocationWarningType.CAPACITY_NEEDS_APPROVAL),
         hardBlocked: this.checks.hasNonOverridableBlockingWarnings(warnings),
         requiresConfirmation:
           this.checks.hasBlockingWarnings(warnings) &&
           !this.checks.hasNonOverridableBlockingWarnings(warnings),
         warnings: warningViews(warnings),
-        raw: warnings,
+        raw: warnings.filter((w) => w.type !== AllocationWarningType.CAPACITY_NEEDS_APPROVAL),
       });
     }
 
@@ -763,6 +1093,20 @@ export class JobAllocationsService {
         requiresConfirmation: true,
       });
     }
+
+    // Carers over their weekly hours (manager approval) are not put on the visit yet; the
+    // lead must be someone who goes on it now.
+    const leadCheck = checked.find((c) => c.employeeId === dto.leadEmployeeId);
+    if (leadCheck?.needsApproval) {
+      throw new BadRequestException({
+        message: `Team not assigned — ${leadCheck.name} is over their weekly hours and needs a manager's approval, so cannot be the lead. Choose another lead.`,
+        warnings: flatWarnings,
+        carers: carersPayload,
+        requiresConfirmation: false,
+      });
+    }
+    const toApprove = checked.filter((c) => c.needsApproval);
+    const toAllocate = checked.filter((c) => !c.needsApproval);
 
     const previousJobStatus = job.status;
     const previousLeadEmployeeId =
@@ -826,7 +1170,7 @@ export class JobAllocationsService {
 
       const created: Array<Prisma.JobAllocationGetPayload<{ include: typeof allocationInclude }>> =
         [];
-      for (const [index, carer] of checked.entries()) {
+      for (const [index, carer] of toAllocate.entries()) {
         const { status, needsConfirmation } = this.allocationOutcome(carer.raw, dto.force);
         const warningTypes = carer.raw.map((w) => w.type);
         const warningMessages = carer.raw.map((w) => w.message);
@@ -900,7 +1244,39 @@ export class JobAllocationsService {
       return { created, newJobStatus };
     });
 
-    for (const [index, carer] of checked.entries()) {
+    const approvalRequests: Array<{ employeeId: string; name: string; approvalId: string }> = [];
+    if (toApprove.length) {
+      const weekStart = await this.carerHours.weekStartOf(assignment.start);
+      for (const carer of toApprove) {
+        const check = await this.carerHours.checkNewVisits(this.prisma, carer.employeeId, [
+          { start: assignment.start, end: assignment.end, serviceUserId: job.serviceUserId },
+        ]);
+        const request = await this.carerHours.requestRotaVisitApproval(this.prisma, {
+          employeeId: carer.employeeId,
+          scheduledJobId,
+          serviceUserId: job.serviceUserId,
+          requestedById: userId,
+          start: assignment.start,
+          end: assignment.end,
+          weekStart,
+          weekMinutes: check.weeks[0]?.minutes ?? 0,
+          limitMinutes: check.contractedMinutes ?? 0,
+          source: 'ROTA',
+          allocation: {
+            employeeId: carer.employeeId,
+            scheduledVisitId: dto.scheduledVisitId,
+            notes: dto.notes,
+            force: dto.force,
+            isLeadCarer: false,
+            scheduledStartDateTime: assignment.start.toISOString(),
+            scheduledEndDateTime: assignment.end.toISOString(),
+          },
+        });
+        approvalRequests.push({ employeeId: carer.employeeId, name: carer.name, approvalId: request.id });
+      }
+    }
+
+    for (const [index, carer] of toAllocate.entries()) {
       const row = result.created[index]!;
       void this.notifications.notifyAllocated({
         employeeId: carer.employeeId,
@@ -926,19 +1302,23 @@ export class JobAllocationsService {
       this.notifications.scheduleLeadChangePush({
         scheduledJobId,
         previousLeadEmployeeId,
-        newlyAssignedEmployeeIds: dto.employeeIds,
+        newlyAssignedEmployeeIds: toAllocate.map((c) => c.employeeId),
       });
     }
 
+    const approvalText = approvalRequests.length
+      ? ` Sent to a manager (over weekly hours): ${approvalRequests.map((a) => a.name).join(', ')} — put on the visit once approved.`
+      : '';
     const pending = result.created.some(
       (r) => r.status === PrismaAllocationStatus.PENDING_CONFIRMATION,
     );
     return {
       message: pending
-        ? `Carers allocated — confirmation required. ${leadName} is the lead carer.`
-        : `Carers allocated. ${leadName} is the lead carer.`,
+        ? `Carers allocated — confirmation required. ${leadName} is the lead carer.${approvalText}`
+        : `Carers allocated. ${leadName} is the lead carer.${approvalText}`,
       data: result.created.map((r) => this.mapAllocation(r)),
       meta: {
+        approvalRequests,
         requiresConfirmation: pending,
         leadEmployeeId: dto.leadEmployeeId,
         jobStatus: result.newJobStatus,
@@ -1065,6 +1445,8 @@ export class JobAllocationsService {
           unallocatedAt: new Date(),
           unallocatedById: userId,
           unallocationReason: dto.reason?.trim() ?? null,
+          // A person took the carer off: the nightly plan sync leaves them off this visit.
+          unallocatedByHand: true,
           // Removed carers are never the lead.
           ...(allocation.isLeadCarer ? { isLeadCarer: false } : {}),
         },

@@ -105,7 +105,7 @@ function sortedFacet(map: Map<string, FacetOption>): FacetOption[] {
   return [...map.values()].sort((a, b) => a.name.localeCompare(b.name));
 }
 
-function reconciliationBillableMinutes(r: {
+export function reconciliationBillableMinutes(r: {
   billableMinutes: number | null;
   approvedBillStart: Date | null;
   approvedBillEnd: Date | null;

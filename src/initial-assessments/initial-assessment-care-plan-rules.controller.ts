@@ -51,6 +51,16 @@ export class InitialAssessmentCarePlanRulesController {
     return this.rulesService.listAssessmentFieldKeys(templateId);
   }
 
+  @Get('diagnostics')
+  @AnyPermission('form_builder.read', 'service_users.initial_assessment.read')
+  @ApiOperation({
+    summary:
+      'Rule configuration health: invalid target forms, unresolvable or ambiguous conditions, free-text triggers and drift from the starter rules (read-only)',
+  })
+  diagnostics(@Query('templateId') templateId?: string) {
+    return this.rulesService.diagnostics(templateId);
+  }
+
   @Post()
   @AnyPermission('form_builder.update', 'service_users.initial_assessment.update')
   @ApiOperation({ summary: 'Create care plan recommendation rule' })

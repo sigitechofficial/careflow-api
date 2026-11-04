@@ -20,6 +20,7 @@ export class EmployeeDocumentsService {
     const docs = await this.prisma.employeeDocument.findMany({
       where: { employeeId, deletedAt: null },
       orderBy: { uploadedDate: 'desc' },
+      include: { complianceType: { select: { id: true, name: true } } },
     });
     return { data: docs };
   }
@@ -46,6 +47,7 @@ export class EmployeeDocumentsService {
           mimeType: params.file.mimetype,
           uploadedById: params.userId,
           uploadedDate: new Date(),
+          complianceTypeId: params.dto.complianceTypeId,
           tags: params.dto.tags ?? [],
           createdById: params.userId,
         },

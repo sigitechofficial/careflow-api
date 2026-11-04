@@ -1,5 +1,6 @@
 import type { CarePlanRecommendation } from '../initial-assessments/initial-assessment-care-plan.util';
 import {
+  effectiveCarePlanDecision,
   readCarePlanDecisions,
   type StoredCarePlanDecision,
 } from '../initial-assessments/initial-assessment-care-plan-decisions.util';
@@ -20,8 +21,10 @@ export function recommendationsMatchingPublishedForm(
   existingDecisions: Record<string, StoredCarePlanDecision>,
 ): CarePlanRecommendation[] {
   return recommendations.filter((rec) => {
-    const prior = existingDecisions[rec.id];
-    if (prior?.decision === 'accepted' || prior?.decision === 'declined') return false;
+    // Includes decisions stored under ids merged into this recommendation: never auto-accept a declined
+    // or deferred one — a deferral is the manager's to resolve.
+    const prior = effectiveCarePlanDecision(rec, existingDecisions);
+    if (prior) return false;
 
     if (rec.carePathwayFormId && rec.carePathwayFormId === publishedFormId) return true;
 

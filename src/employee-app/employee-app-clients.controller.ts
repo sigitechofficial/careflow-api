@@ -1,6 +1,6 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiPropertyOptional, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { IsOptional, IsString, Matches, MaxLength } from 'class-validator';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOperation, ApiProperty, ApiPropertyOptional, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { IsOptional, IsString, IsUUID, Matches, MaxLength } from 'class-validator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -23,6 +23,12 @@ class EmployeeAppClientDateQueryDto {
   @IsString()
   @Matches(/^\d{4}-\d{2}-\d{2}$/, { message: 'date must be YYYY-MM-DD' })
   date?: string;
+}
+
+class AcknowledgeCarePlanDto {
+  @ApiProperty({ description: 'The published version the carer has read (must be the current one).' })
+  @IsUUID()
+  publishedVersionId!: string;
 }
 
 @ApiTags('Employee App Clients')
@@ -93,6 +99,24 @@ export class EmployeeAppClientsController {
   @ApiOperation({ summary: 'Published care plans for a client (list)' })
   carePlan(@CurrentUser() user: RequestUser, @Param('clientId') clientId: string) {
     return this.clientDetailService.getCarePlan(user.employeeId!, clientId);
+  }
+
+  @Post('clients/:clientId/care-plan/:instanceId/acknowledge')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Acknowledge the current published version of a care plan (idempotent)' })
+  acknowledgeCarePlan(
+    @CurrentUser() user: RequestUser,
+    @Param('clientId') clientId: string,
+    @Param('instanceId') instanceId: string,
+    @Body() dto: AcknowledgeCarePlanDto,
+  ) {
+    return this.clientDetailService.acknowledgeCarePlan(
+      user.employeeId!,
+      user.id,
+      clientId,
+      instanceId,
+      dto.publishedVersionId,
+    );
   }
 
   @Get('clients/:clientId/care-plan/:instanceId')

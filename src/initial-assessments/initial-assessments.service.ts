@@ -4,14 +4,17 @@ import {
   ForbiddenException,
   HttpException,
   Injectable,
+  InternalServerErrorException,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   CarePathwayFormType,
   DataAccessType,
   InitialAssessmentStatus as PrismaStatus,
   Prisma,
+  ServiceUserCarePlanInstanceStatus,
   ServiceUserClinicalDataSource,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -47,10 +50,23 @@ import {
 } from './initial-assessment-body-map.util';
 import { InitialAssessmentCarePlanRulesService } from './initial-assessment-care-plan-rules.service';
 import { buildCarePlanRecommendations } from './initial-assessment-care-plan.util';
+import { loadRequiredAssessments } from './initial-assessment-required-assessments.util';
 import {
   applyCarePlanDecisions,
+  carePlanDecisionChangeError,
+  effectiveCarePlanDecision,
+  findCarePlanRecommendation,
   readCarePlanDecisions,
+  type StoredCarePlanDecision,
 } from './initial-assessment-care-plan-decisions.util';
+import { CarePlanComposeService } from '../service-user-care-plans/care-plan-compose.service';
+import { CarePlanReassessmentService } from './care-plan-reassessment.service';
+import {
+  buildAcceptedRecommendationDraft,
+  type AcceptedRecommendationDraft,
+} from '../service-user-care-plans/ia-accepted-recommendation-draft.util';
+import { storedStatusForDecision } from './initial-assessment-care-plan-recommendation-store.util';
+import { assertInitialAssessmentStatusTransition } from './initial-assessment-status-transition.util';
 import { resolveCarePlanFormFromCatalogue } from './initial-assessment-care-plan-area-map.util';
 import { ServiceUserVisitPlansService } from '../service-user-visit-plans/service-user-visit-plans.service';
 import { CarePlanRecommendationDecision } from './dto/initial-assessment-care-plan-decision.dto';
@@ -134,6 +150,27 @@ const submissionUserSelect = {
   lastName: true,
 } as const;
 
+/** Care plan work prepared (outside the transaction) for an accept. `draft` is null when an instance exists. */
+type AcceptedCarePlanPrep = { carePathwayFormId: string; draft: AcceptedRecommendationDraft | null };
+
+/** The care plan an accepted recommendation was linked to. */
+type AcceptedCarePlanLink = {
+  instanceId: string;
+  carePathwayFormId: string;
+  status: ServiceUserCarePlanInstanceStatus;
+  hasDraft: boolean;
+  action: 'created' | 'linked';
+  prefilled?: boolean;
+  prefillSkippedReason?: string;
+};
+
+type LinkedCarePlanSummary = {
+  instanceId: string;
+  carePathwayFormId: string;
+  status: ServiceUserCarePlanInstanceStatus;
+  hasDraft: boolean;
+};
+
 const submissionInclude = {
   template: { select: { id: true, name: true, version: true } },
   submittedBy: { select: submissionUserSelect },
@@ -159,6 +196,8 @@ export class InitialAssessmentsService {
     private readonly notifications: InitialAssessmentNotificationHook,
     private readonly carePlanRules: InitialAssessmentCarePlanRulesService,
     private readonly visitPlans: ServiceUserVisitPlansService,
+    private readonly carePlanCompose: CarePlanComposeService,
+    @Optional() private readonly carePlanReassessment?: CarePlanReassessmentService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -191,6 +230,14 @@ export class InitialAssessmentsService {
     });
     if (!row) throw new NotFoundException('Initial assessment submission not found');
     return row;
+  }
+
+  async assertSubmissionExists(serviceUserId: string, submissionId: string) {
+    const row = await this.prisma.initialAssessmentSubmission.findFirst({
+      where: { id: submissionId, serviceUserId, deletedAt: null },
+      select: { id: true },
+    });
+    if (!row) throw new NotFoundException('Initial assessment submission not found');
   }
 
   private async logDataAccess(
@@ -1156,6 +1203,11 @@ export class InitialAssessmentsService {
         answers,
       });
       await this.applyConditionProposalsOnSubmit(tx, userId, serviceUserId, submissionId, submissionMetadata);
+      await this.carePlanRules.persistRecommendations(tx, {
+        submissionId,
+        serviceUserId,
+        metadata: submissionMetadata as Prisma.JsonValue,
+      });
       return updated;
     });
 
@@ -1175,6 +1227,8 @@ export class InitialAssessmentsService {
       managerReviewRequired,
       notifyManagers: agencySettings.notifyManagersOnHighRiskSubmit,
     });
+    // Reassessment: flag affected active care plans and earlier risks for review (never fails submit).
+    await this.carePlanReassessment?.onAssessmentCompleted(submissionId, userId);
 
     return { message: 'Initial assessment submitted', data: this.mapSubmission(result) };
   }
@@ -1248,6 +1302,9 @@ export class InitialAssessmentsService {
     });
 
     await this.notifications.onReviewed({ submissionId, serviceUserId, reviewedById: userId });
+    if (result.status === PrismaStatus.REVIEWED) {
+      await this.carePlanReassessment?.onAssessmentCompleted(submissionId, userId);
+    }
 
     const visitPlanDraft =
       dto.status === PrismaStatus.REVIEWED && dto.approvedForCareStart === true
@@ -1640,6 +1697,8 @@ export class InitialAssessmentsService {
     meta?: RequestAuditMeta,
   ) {
     const submission = await this.getSubmissionOrThrow(serviceUserId, submissionId);
+    // SUBMITTED / REVIEWED only through /submit and /review, so their checks and side effects always run.
+    assertInitialAssessmentStatusTransition(submission.status, dto.status as PrismaStatus);
     const priorMeta =
       typeof submission.metadata === 'object' && submission.metadata && !Array.isArray(submission.metadata)
         ? (submission.metadata as Record<string, unknown>)
@@ -1689,11 +1748,13 @@ export class InitialAssessmentsService {
       where: { id: submissionId, deletedAt: null },
     });
     if (!submission) throw new NotFoundException('Submission not found');
+    // Same evaluation the recommendations use: Yes answers or substantive text, still shown on the form.
+    if (flag === 'carePlan') return this.carePlanRules.loadCarePlanTriggerItems(submissionId);
 
     const answers = await this.prisma.initialAssessmentAnswer.findMany({
       where: {
         submissionId,
-        ...(flag === 'risk' ? { riskFlag: true } : { carePlanTrigger: true }),
+        riskFlag: true,
       },
       include: {
         question: {
@@ -1860,13 +1921,12 @@ export class InitialAssessmentsService {
 
     for (const submission of submissions) {
       const decisions = readCarePlanDecisions(submission.metadata);
-      const triggerItems = await this.getFlaggedAnswers(submission.id, 'carePlan');
-      const recommendations = await this.carePlanRules.resolveRecommendations(
-        submission.id,
-        triggerItems,
-      );
+      const recommendations = await this.carePlanRules.loadRecommendations(submission.id);
       const withDecisions = applyCarePlanDecisions(recommendations, decisions);
-      const recById = new Map(withDecisions.map((r) => [r.id, r]));
+      // Decisions may be stored under an id that was later merged into another recommendation.
+      const recById = new Map(
+        withDecisions.flatMap((r) => [r.id, ...(r.aliasIds ?? [])].map((id) => [id, r] as const)),
+      );
 
       const processAccepted = (
         recommendationId: string,
@@ -1965,9 +2025,14 @@ export class InitialAssessmentsService {
     const managerReviewRequired = submissionMeta.managerReviewRequired === true;
     const clinical = parseStoredClinicalMetadata(submission.metadata);
     const carePlanDecisions = readCarePlanDecisions(submission.metadata);
-    const carePlanRecommendations = applyCarePlanDecisions(
-      await this.carePlanRules.resolveRecommendations(submissionId, triggerItems),
-      carePlanDecisions,
+    const carePlanRecommendations = await this.withLinkedCarePlans(
+      submission.serviceUserId,
+      applyCarePlanDecisions(await this.carePlanRules.loadRecommendations(submissionId), carePlanDecisions),
+    );
+    const requiredAssessments = await loadRequiredAssessments(
+      this.prisma,
+      submission.serviceUserId,
+      carePlanRecommendations,
     );
     const agencySettings = getInitialAssessmentAgencySettings();
     const careActivation = evaluateCareActivation({
@@ -2008,6 +2073,7 @@ export class InitialAssessmentsService {
         managerReviewRequired,
         clinical,
         carePlanRecommendations,
+        requiredAssessments,
         agencySettings,
         careActivation,
       },
@@ -2845,11 +2911,25 @@ export class InitialAssessmentsService {
         responsiblePersonId:
           dto.responsiblePersonId !== undefined ? dto.responsiblePersonId : undefined,
         updatedById: userId,
+        // Setting a status is the authorised decision a superseded risk was waiting for.
+        ...(dto.status !== undefined && existing.supersedeReviewRequired ? { supersedeReviewRequired: false } : {}),
       },
       include: {
         responsiblePerson: { select: { id: true, email: true, firstName: true, lastName: true } },
       },
     });
+    const materialChange =
+      row.riskLevel !== existing.riskLevel ||
+      row.severity !== existing.severity ||
+      row.status !== existing.status ||
+      (row.controlMeasures ?? null) !== (existing.controlMeasures ?? null);
+    if (materialChange) {
+      // Care plans linked to this risk must re-check their controls.
+      await this.prisma.carePlanRiskLink.updateMany({
+        where: { riskRecordId: row.id },
+        data: { status: 'REVIEW_REQUIRED', reviewReason: 'The risk record changed (level, severity, controls or status).' },
+      });
+    }
     await this.logDataAccess(
       userId,
       {
@@ -3241,33 +3321,36 @@ export class InitialAssessmentsService {
       );
     }
 
-    const triggerItems = await this.getFlaggedAnswers(submissionId, 'carePlan');
-    const recommendations = await this.carePlanRules.resolveRecommendations(submissionId, triggerItems);
-    const target = recommendations.find((r) => r.id === recommendationId);
+    const recommendations = await this.carePlanRules.loadRecommendations(submissionId);
+    // A recommendation may also be addressed by an id that was merged into it (aliasIds).
+    const target = findCarePlanRecommendation(recommendations, recommendationId);
     if (!target) {
       throw new NotFoundException('Care plan recommendation not found');
     }
+    const decisionId = target.id;
 
-    if (dto.decision === CarePlanRecommendationDecision.DECLINED) {
-      const reason = dto.reason?.trim() ?? '';
-      if (reason.length < 3) {
-        throw new BadRequestException('A decline reason is required (min 3 characters)');
-      }
+    // Early check for a clear error before any work; re-checked under lock in the transaction.
+    const priorDecision = effectiveCarePlanDecision(target, readCarePlanDecisions(submission.metadata));
+    const changeError = carePlanDecisionChangeError({
+      prior: priorDecision,
+      next: dto.decision,
+      reason: dto.reason,
+    });
+    if (changeError) throw new BadRequestException(changeError);
+
+    const catalogue = await this.prisma.carePathwayForm.findMany({
+      where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null, isActive: true },
+      select: { id: true, name: true },
+    });
+    // A recommendation whose care plan form has since been deleted or deactivated is no longer valid.
+    if (target.carePathwayFormId && !catalogue.some((f) => f.id === target.carePathwayFormId)) {
+      throw new BadRequestException('The care plan form for this recommendation is no longer available');
     }
-
-    const priorMeta =
-      typeof submission.metadata === 'object' && submission.metadata && !Array.isArray(submission.metadata)
-        ? (submission.metadata as Record<string, unknown>)
-        : {};
-    const priorDecisions = readCarePlanDecisions(submission.metadata);
 
     let resolvedFormId = target.carePathwayFormId;
     let resolvedFormName = target.carePathwayFormName;
+    let carePlanPrep: AcceptedCarePlanPrep | null = null;
     if (dto.decision === CarePlanRecommendationDecision.ACCEPTED) {
-      const catalogue = await this.prisma.carePathwayForm.findMany({
-        where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
-        select: { id: true, name: true },
-      });
       const row = resolveCarePlanFormFromCatalogue(
         catalogue,
         target.carePlanArea,
@@ -3275,52 +3358,103 @@ export class InitialAssessmentsService {
       );
       resolvedFormId = target.carePathwayFormId ?? row?.id;
       resolvedFormName = target.carePathwayFormName ?? row?.name;
-    }
-
-    const nextDecision = {
-      decision: dto.decision,
-      reason:
-        dto.decision === CarePlanRecommendationDecision.DECLINED ? (dto.reason?.trim() ?? null) : null,
-      decidedAt: new Date().toISOString(),
-      decidedById: userId,
-      ...(dto.decision === CarePlanRecommendationDecision.ACCEPTED
-        ? {
-            carePathwayFormId: resolvedFormId,
-            carePathwayFormName: resolvedFormName,
-            title: target.title,
-            carePlanArea: target.carePlanArea,
-          }
-        : {}),
-    };
-
-    let managerReviewRequired = priorMeta.managerReviewRequired === true;
-    if (dto.decision === CarePlanRecommendationDecision.DECLINED) {
-      const highRiskCount = await this.prisma.initialAssessmentRiskRecord.count({
-        where: {
-          submissionId,
-          status: 'OPEN',
-          riskLevel: { in: ['HIGH'] },
-        },
-      });
-      if (highRiskCount > 0) {
-        managerReviewRequired = true;
+      if (!resolvedFormId) {
+        throw new BadRequestException(
+          'No active care plan form matches this recommendation, so it cannot be accepted yet',
+        );
       }
+      carePlanPrep = await this.prepareAcceptedCarePlan({
+        serviceUserId,
+        submissionId,
+        recommendationId: decisionId,
+        carePathwayFormId: resolvedFormId,
+      });
     }
 
-    const nextMetadata = {
-      ...priorMeta,
-      managerReviewRequired,
-      carePlanDecisions: {
-        ...priorDecisions,
-        [recommendationId]: nextDecision,
-      },
-    } as Prisma.InputJsonValue;
+    const decidedAt = new Date().toISOString();
 
-    const updated = await this.prisma.$transaction(async (tx) => {
+    const { updated, carePlanLink } = await this.prisma.$transaction(async (tx) => {
+      // Serialise decisions on this assessment, then re-check against the committed state so two
+      // managers acting at once cannot both "accept" or overwrite each other's decision.
+      await tx.$queryRaw`SELECT "id" FROM "service_users"."InitialAssessmentSubmission" WHERE "id" = ${submissionId}::uuid FOR UPDATE`;
+      const current = await tx.initialAssessmentSubmission.findUniqueOrThrow({
+        where: { id: submissionId },
+        select: { status: true, metadata: true },
+      });
+      if (current.status !== PrismaStatus.REVIEWED) {
+        throw new BadRequestException('Care plan decisions are only allowed after manager review is complete');
+      }
+      const currentMeta =
+        typeof current.metadata === 'object' && current.metadata && !Array.isArray(current.metadata)
+          ? (current.metadata as Record<string, unknown>)
+          : {};
+      const currentDecisions = readCarePlanDecisions(current.metadata);
+      const prior = effectiveCarePlanDecision(target, currentDecisions);
+      const concurrentError = carePlanDecisionChangeError({ prior, next: dto.decision, reason: dto.reason });
+      if (concurrentError) throw new BadRequestException(concurrentError);
+
+      const carePlanLink = carePlanPrep
+        ? await this.linkAcceptedCarePlan(tx, { userId, serviceUserId, prep: carePlanPrep })
+        : null;
+
+      // A care plan linked by an earlier accept stays linked (for audit) when the decision changes.
+      const keptInstanceId = carePlanLink?.instanceId ?? prior?.carePlanInstanceId;
+      const nextDecision: StoredCarePlanDecision = {
+        decision: dto.decision,
+        // Required for decline/defer/corrections; optional note on accept.
+        reason: dto.reason?.trim() || null,
+        decidedAt,
+        decidedById: userId,
+        ...(dto.decision === CarePlanRecommendationDecision.ACCEPTED
+          ? {
+              carePathwayFormId: resolvedFormId,
+              carePathwayFormName: resolvedFormName,
+              title: target.title,
+              carePlanArea: target.carePlanArea,
+            }
+          : {}),
+        ...(keptInstanceId ? { carePlanInstanceId: keptInstanceId } : {}),
+        ...(dto.decision !== CarePlanRecommendationDecision.ACCEPTED && prior?.decision === 'accepted' && keptInstanceId
+          ? { linkedCarePlanReviewRequired: true }
+          : {}),
+      };
+
+      let managerReviewRequired = currentMeta.managerReviewRequired === true;
+      if (dto.decision === CarePlanRecommendationDecision.DECLINED) {
+        const highRiskCount = await tx.initialAssessmentRiskRecord.count({
+          where: {
+            submissionId,
+            status: 'OPEN',
+            riskLevel: { in: ['HIGH'] },
+          },
+        });
+        if (highRiskCount > 0) {
+          managerReviewRequired = true;
+        }
+      }
+
       const row = await tx.initialAssessmentSubmission.update({
         where: { id: submissionId },
-        data: { metadata: nextMetadata, updatedById: userId },
+        data: {
+          metadata: {
+            ...currentMeta,
+            managerReviewRequired,
+            carePlanDecisions: { ...currentDecisions, [decisionId]: nextDecision },
+          } as Prisma.InputJsonValue,
+          updatedById: userId,
+        },
         include: submissionInclude,
+      });
+      // Mirror the decision onto the stored recommendation (older assessments have none).
+      await tx.initialAssessmentCarePlanRecommendation.updateMany({
+        where: { submissionId, legacyRecommendationId: decisionId },
+        data: {
+          status: storedStatusForDecision(nextDecision),
+          decisionReason: nextDecision.reason,
+          decidedById: userId,
+          decidedAt: new Date(decidedAt),
+          ...(carePlanLink ? { carePlanInstanceId: carePlanLink.instanceId } : {}),
+        },
       });
       await this.audit.logAudit({
         tx,
@@ -3329,27 +3463,195 @@ export class InitialAssessmentsService {
         action: AuditAction.INITIAL_ASSESSMENT_CARE_PLAN_DECISION,
         recordType: 'InitialAssessmentSubmission',
         recordId: submissionId,
+        oldValues: {
+          recommendationId: decisionId,
+          status: prior?.decision ?? 'pending',
+          reason: prior?.reason ?? null,
+          decidedById: prior?.decidedById ?? null,
+          decidedAt: prior?.decidedAt ?? null,
+          carePlanInstanceId: prior?.carePlanInstanceId ?? null,
+        },
         newValues: {
-          recommendationId,
+          recommendationId: decisionId,
+          ...(decisionId !== recommendationId ? { requestedRecommendationId: recommendationId } : {}),
           carePlanArea: target.carePlanArea,
+          carePathwayFormId: resolvedFormId ?? null,
+          previousStatus: prior?.decision ?? 'pending',
+          newStatus: dto.decision,
           decision: dto.decision,
           reason: nextDecision.reason,
+          decidedById: userId,
+          decidedAt,
+          correction: prior?.decision === 'accepted' || prior?.decision === 'declined',
+          carePlanInstanceId: keptInstanceId ?? null,
+          ...(carePlanLink ? { carePlan: carePlanLink } : {}),
+          ...(nextDecision.linkedCarePlanReviewRequired ? { linkedCarePlanReviewRequired: true } : {}),
         },
-        metadata: { serviceUserId, submissionId, recommendationId },
+        metadata: { serviceUserId, submissionId, recommendationId: decisionId },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
-      return row;
+      return { updated: row, carePlanLink };
     });
 
-    const merged = applyCarePlanDecisions(recommendations, readCarePlanDecisions(updated.metadata));
+    const [merged] = await this.withLinkedCarePlans(
+      serviceUserId,
+      applyCarePlanDecisions([target], readCarePlanDecisions(updated.metadata)),
+    );
     return {
       message: 'Care plan recommendation updated',
       data: {
         submission: this.mapSubmission(updated),
-        recommendation: merged.find((r) => r.id === recommendationId) ?? null,
+        recommendation: merged ?? null,
+        ...(carePlanLink ? { carePlan: carePlanLink } : {}),
       },
     };
+  }
+
+  /**
+   * Work done before an accept is committed (reads only): if the service user has no care plan for
+   * the form yet, compose its first draft. Throws — so nothing is recorded — when compose fails.
+   */
+  private async prepareAcceptedCarePlan(input: {
+    serviceUserId: string;
+    submissionId: string;
+    recommendationId: string;
+    carePathwayFormId: string;
+  }): Promise<AcceptedCarePlanPrep> {
+    const form = await this.prisma.carePathwayForm.findFirst({
+      where: {
+        id: input.carePathwayFormId,
+        formType: CarePathwayFormType.CARE_PLAN,
+        deletedAt: null,
+        isActive: true,
+      },
+      select: { id: true, name: true, reviewFrequencyMonths: true },
+    });
+    if (!form) {
+      throw new BadRequestException('The care plan form for this recommendation is no longer available');
+    }
+    const existing = await this.prisma.serviceUserCarePlanInstance.findUnique({
+      where: {
+        serviceUserId_carePathwayFormId: {
+          serviceUserId: input.serviceUserId,
+          carePathwayFormId: form.id,
+        },
+      },
+      select: { id: true },
+    });
+    if (existing) return { carePathwayFormId: form.id, draft: null };
+
+    let compose: Awaited<ReturnType<CarePlanComposeService['compose']>>['data'];
+    try {
+      compose = (await this.carePlanCompose.compose(input.serviceUserId, form.id)).data;
+    } catch (error) {
+      this.logger.error(
+        `Compose failed while accepting IA recommendation ${input.recommendationId} (submission ${input.submissionId})`,
+        error instanceof Error ? error.stack : String(error),
+      );
+      throw new InternalServerErrorException(
+        'Could not prepare the care plan draft. The decision was not saved — please try again.',
+      );
+    }
+    return {
+      carePathwayFormId: form.id,
+      draft: buildAcceptedRecommendationDraft({
+        compose,
+        formName: form.name,
+        reviewFrequencyMonths: form.reviewFrequencyMonths,
+        submissionId: input.submissionId,
+        recommendationId: input.recommendationId,
+      }),
+    };
+  }
+
+  /**
+   * Inside the decision transaction: create the care plan instance (and its first draft) only when
+   * none exists; otherwise link the existing one untouched. Insert-if-absent on the
+   * (service user, form) unique key means concurrent accepts can never create two instances.
+   */
+  private async linkAcceptedCarePlan(
+    tx: Prisma.TransactionClient,
+    input: { userId: string; serviceUserId: string; prep: AcceptedCarePlanPrep },
+  ): Promise<AcceptedCarePlanLink> {
+    const { serviceUserId, prep, userId } = input;
+    const inserted = await tx.serviceUserCarePlanInstance.createMany({
+      data: [{ serviceUserId, carePathwayFormId: prep.carePathwayFormId, createdById: userId, updatedById: userId }],
+      skipDuplicates: true,
+    });
+    const instance = await tx.serviceUserCarePlanInstance.findUniqueOrThrow({
+      where: { serviceUserId_carePathwayFormId: { serviceUserId, carePathwayFormId: prep.carePathwayFormId } },
+      select: { id: true, status: true, draft: { select: { id: true } } },
+    });
+    const created = inserted.count === 1;
+
+    let prefilled: boolean | undefined;
+    let prefillSkippedReason: string | undefined;
+    let hasDraft = Boolean(instance.draft);
+    if (created && prep.draft) {
+      await tx.serviceUserCarePlanDraft.createMany({
+        data: [
+          {
+            instanceId: instance.id,
+            valuesJson: prep.draft.valuesJson,
+            composedFromJson: prep.draft.composedFromJson,
+            gapsJson: prep.draft.gapsJson,
+            updatedById: userId,
+          },
+        ],
+        skipDuplicates: true,
+      });
+      hasDraft = true;
+      prefilled = prep.draft.prefilled;
+      prefillSkippedReason = prep.draft.prefillSkippedReason;
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.CARE_PLAN,
+        action: AuditAction.CARE_PLAN_DRAFT_SAVED,
+        recordType: 'ServiceUserCarePlanInstance',
+        recordId: instance.id,
+        newValues: { carePathwayFormId: prep.carePathwayFormId, source: 'ia_recommendation_accept', prefilled },
+        metadata: { serviceUserId, carePathwayFormId: prep.carePathwayFormId, instanceId: instance.id },
+      });
+    }
+
+    return {
+      instanceId: instance.id,
+      carePathwayFormId: prep.carePathwayFormId,
+      status: instance.status,
+      hasDraft,
+      action: created ? 'created' : 'linked',
+      ...(prefilled !== undefined ? { prefilled } : {}),
+      ...(prefillSkippedReason ? { prefillSkippedReason } : {}),
+    };
+  }
+
+  /** Adds the linked care plan's current state (draft or published) to recommendations that have one. */
+  private async withLinkedCarePlans<T extends { carePlanInstanceId?: string | null }>(
+    serviceUserId: string,
+    recommendations: T[],
+  ): Promise<Array<T & { linkedCarePlan?: LinkedCarePlanSummary }>> {
+    const ids = [...new Set(recommendations.map((r) => r.carePlanInstanceId).filter((id): id is string => !!id))];
+    if (ids.length === 0) return recommendations;
+    const instances = await this.prisma.serviceUserCarePlanInstance.findMany({
+      where: { id: { in: ids }, serviceUserId },
+      select: { id: true, carePathwayFormId: true, status: true, draft: { select: { id: true } } },
+    });
+    const byId = new Map(instances.map((i) => [i.id, i]));
+    return recommendations.map((rec) => {
+      const instance = rec.carePlanInstanceId ? byId.get(rec.carePlanInstanceId) : undefined;
+      if (!instance) return rec;
+      return {
+        ...rec,
+        linkedCarePlan: {
+          instanceId: instance.id,
+          carePathwayFormId: instance.carePathwayFormId,
+          status: instance.status,
+          hasDraft: Boolean(instance.draft),
+        },
+      };
+    });
   }
 
   async exportCqcEvidence(
@@ -3401,7 +3703,7 @@ export class InitialAssessmentsService {
         ? (submission.metadata as Record<string, unknown>)
         : {};
     const carePlanRecommendations = applyCarePlanDecisions(
-      await this.carePlanRules.resolveRecommendations(submissionId, triggerItems),
+      await this.carePlanRules.loadRecommendations(submissionId),
       readCarePlanDecisions(submission.metadata),
     );
     const clinical = parseStoredClinicalMetadata(submission.metadata);

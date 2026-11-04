@@ -41,4 +41,6 @@ export enum AuditModule {
   SYSTEM_JOBS = 'SYSTEM_JOBS',
   ROLE_TASK = 'ROLE_TASK',
   BILLING = 'BILLING',
+  SAFEGUARDING = 'SAFEGUARDING',
+  CRM = 'CRM',
 }

@@ -18,6 +18,7 @@ import {
   minuteInTimeBand,
   resolveCalendarDayType as resolveBandCalendarDayType,
   resolveSpecialDay,
+  type DayTypePriority,
   shouldPreferBandedOverFixed,
   SPECIAL_DAY_PRIORITY,
   type PaySpecialDay,
@@ -740,8 +741,20 @@ function toTimeBandRules(rules: PayCardRuleLike[]): TimeBandRule[] {
   }));
 }
 
+/** The organisation's day priority first (when set), then a time window, rule priority, card order. */
 function sortRuleCandidates<T extends RuleWithOptionalTime>(candidates: T[]): T | null {
+  return sortRuleCandidatesBy(candidates);
+}
+
+function sortRuleCandidatesBy<T extends RuleWithOptionalTime>(
+  candidates: T[],
+  dayTypePriority?: DayTypePriority,
+): T | null {
   return [...candidates].sort((a, b) => {
+    if (dayTypePriority) {
+      const diff = (dayTypePriority[b.dayType] ?? 0) - (dayTypePriority[a.dayType] ?? 0);
+      if (diff !== 0) return diff;
+    }
     const aWindow = a.startTime?.trim() || a.endTime?.trim() ? 1 : 0;
     const bWindow = b.startTime?.trim() || b.endTime?.trim() ? 1 : 0;
     if (aWindow !== bWindow) return bWindow - aWindow;
@@ -777,6 +790,11 @@ function pickBestRule<T extends RuleWithOptionalTime>(
   isBankHoliday = false,
   timeZone: string = 'UTC',
   calendar?: SpecialDayCalendar,
+  /**
+   * Carer pay: on a bank holiday (or other special day) with a holiday rate on the card, that
+   * rate applies to short visits too — a fixed visit slot only wins when it is itself a holiday rule.
+   */
+  holidayRateWins = false,
 ): T | null {
   if (!rules.length || visitMinutes <= 0) return null;
 
@@ -784,12 +802,35 @@ function pickBestRule<T extends RuleWithOptionalTime>(
     dayTypeMatches(rule.dayType, visitDate, isBankHoliday, timeZone, calendar),
   );
   if (!dayMatches.length) return null;
+  // The organisation's day priority is a carer pay setting (charges keep the built-in order).
+  const dayPriority = holidayRateWins ? calendar?.dayTypePriority : undefined;
+  const sortRuleCandidates = <R extends T>(candidates: R[]) => sortRuleCandidatesBy(candidates, dayPriority);
 
   if (visitMinutes <= MAX_FIXED_VISIT_MINUTES) {
     const fixedSlots = dayMatches
       .filter((rule) => isFixedVisitSlotRule(rule))
       .filter((rule) => ruleMatchesVisitClock(rule, visitDate, timeZone));
     const exactFixed = fixedSlots.filter((rule) => rule.minimumMinutes === visitMinutes);
+    if (holidayRateWins) {
+      // Holiday rules only match on a holiday, so finding one means the visit is on a holiday.
+      const isHolidayRule = (rule: T) =>
+        SPECIAL_DAY_RULE_TYPES.has(rule.dayType as Exclude<PaySpecialDay, 'NONE'>);
+      // Windowed or not: a windowed holiday rate is priced by the time bands afterwards.
+      const holidayHourly = dayMatches.filter(
+        (rule) =>
+          isHolidayRule(rule) &&
+          !NON_VISIT_RATE_TYPES.has(rule.rateType) &&
+          (rule.rateType === 'HOURLY' || rule.rateType === 'BANDED'),
+      );
+      if (holidayHourly.length) {
+        const holidayFixed = exactFixed.filter(isHolidayRule);
+        const holiday = sortRuleCandidates(holidayFixed.length ? holidayFixed : holidayHourly)!;
+        // A fixed visit amount for a day the organisation ranks above the holiday still wins.
+        const otherFixed = sortRuleCandidates(exactFixed.filter((rule) => !isHolidayRule(rule)));
+        const rank = (rule: T) => dayPriority?.[rule.dayType] ?? 0;
+        return otherFixed && dayPriority && rank(otherFixed) > rank(holiday) ? otherFixed : holiday;
+      }
+    }
     if (exactFixed.length) return sortRuleCandidates(exactFixed);
 
     // No exact fixed slot — fall back to hourly (banded pro-rata when a time window is provided).
@@ -882,7 +923,7 @@ export function calculatePayableAmount(
   // Both (fixed + hourly): visits ≤ 1 hour use an exact fixed duration slot when present.
   // Planned visits longer than 1 hour always use hourly/banded (even if actual is short).
   if (!forceHourlyFromPlan && minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone, calendar);
+    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone, calendar, true);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
@@ -903,6 +944,7 @@ export function calculatePayableAmount(
       timeZone,
       specialDays: calendar?.specialDays,
       fixedDates: calendar?.fixedDates,
+      dayTypePriority: calendar?.dayTypePriority,
       isBankHolidayFn:
         window.isBankHolidayFn ??
         ((d) => {
@@ -945,7 +987,7 @@ export function calculatePayableAmount(
   }
 
   if (!forceHourlyFromPlan && minutes <= MAX_FIXED_VISIT_MINUTES) {
-    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone, calendar);
+    const fixed = pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone, calendar, true);
     if (fixed && (fixed.rateType === 'FIXED' || fixed.rateType === 'PER_VISIT_FEE')) {
       return { amount: Number(fixed.amount), label: fixed.rateType };
     }
@@ -953,8 +995,8 @@ export function calculatePayableAmount(
 
   // When planned is long, pick an hourly rule even if actual minutes would match a fixed slot.
   const rule = forceHourlyFromPlan
-    ? pickBestRule(dayRules, visitDate, rateBasisMinutes!, isBankHoliday, timeZone, calendar)
-    : pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone, calendar);
+    ? pickBestRule(dayRules, visitDate, rateBasisMinutes!, isBankHoliday, timeZone, calendar, true)
+    : pickBestRule(dayRules, visitDate, minutes, isBankHoliday, timeZone, calendar, true);
   if (!rule) return null;
   const amount = Number(rule.amount);
   if (
@@ -1526,7 +1568,7 @@ export function buildPayRateBreakdown(
     };
   }
 
-  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday, window?.timeZone ?? 'UTC');
+  const rule = pickBestRule(rules, visitDate, minutes, isBankHoliday, window?.timeZone ?? 'UTC', undefined, true);
   if (!rule) return null;
 
   const unitAmount = Number(rule.amount);

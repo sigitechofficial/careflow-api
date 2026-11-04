@@ -1,5 +1,7 @@
 import {
   BadRequestException,
+  ConflictException,
+  ForbiddenException,
   Injectable,
   Logger,
   NotFoundException,
@@ -7,11 +9,14 @@ import {
 } from '@nestjs/common';
 import {
   CarePathwayFormType,
+  CarePlanVisitTaskLinkStatus,
   NotificationModule,
   NotificationSeverity,
   NotificationType,
   Prisma,
+  ServiceUserCarePlanDraftApprovalStatus as ApprovalStatus,
   ServiceUserCarePlanInstanceStatus,
+  ServiceUserCarePlanLifecycleStatus as LifecycleStatus,
 } from '@prisma/client';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -20,8 +25,6 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { InitialAssessmentCarePlanRulesService } from '../initial-assessments/initial-assessment-care-plan-rules.service';
 import { readCarePlanDecisions } from '../initial-assessments/initial-assessment-care-plan-decisions.util';
-import type { CarePlanTriggerItem } from '../initial-assessments/initial-assessment-care-plan.util';
-import { isSecureQuestionMetadata } from '../initial-assessments/initial-assessment-secure-field.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { incidentServiceUserIds } from '../incidents/incident-care-plan-measure.util';
 import {
@@ -29,7 +32,15 @@ import {
   mergeCarePlanDecisionsIntoMetadata,
   recommendationsMatchingPublishedForm,
 } from './accept-ia-recommendation-on-publish.util';
-import { PublishCarePlanDto } from './dto/save-care-plan-draft.dto';
+import {
+  ApproveCarePlanDto,
+  CarePlanLifecycleReasonDto,
+  PublishCarePlanDto,
+  RequestCarePlanChangesDto,
+  ResumeCarePlanDto,
+} from './dto/save-care-plan-draft.dto';
+import { carePlanApprovalTransitionError, carePlanDraftContentHash } from './care-plan-approval.util';
+import { CarePlanCarerNotificationService } from './care-plan-carer-notification.service';
 import type { SaveCarePlanDraftDto } from './dto/save-care-plan-draft.dto';
 import {
   aggregatePublishedCarePlanReview,
@@ -75,6 +86,7 @@ export class ServiceUserCarePlansService {
     private readonly audit: AuditLogsService,
     private readonly carePlanRules: InitialAssessmentCarePlanRulesService,
     @Optional() private readonly notifications?: NotificationsService,
+    @Optional() private readonly carerNotifications?: CarePlanCarerNotificationService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -120,6 +132,12 @@ export class ServiceUserCarePlansService {
       carePathwayFormVersionId: row.carePathwayFormVersionId,
       status: row.status,
       displayStatus,
+      lifecycle: {
+        status: row.lifecycleStatus,
+        reason: row.lifecycleReason,
+        changedAt: row.lifecycleChangedAt?.toISOString() ?? null,
+        changedById: row.lifecycleChangedById,
+      },
       nextReviewDueAt: row.nextReviewDueAt?.toISOString() ?? null,
       lastReviewedAt: row.lastReviewedAt?.toISOString() ?? null,
       lastReviewedById: row.lastReviewedById,
@@ -134,6 +152,15 @@ export class ServiceUserCarePlansService {
             gaps: row.draft.gapsJson ?? null,
             updatedAt: row.draft.updatedAt.toISOString(),
             updatedById: row.draft.updatedById,
+            approval: {
+              status: row.draft.approvalStatus,
+              contentHash: row.draft.approvalContentHash,
+              submittedAt: row.draft.submittedForApprovalAt?.toISOString() ?? null,
+              submittedById: row.draft.submittedForApprovalById,
+              decidedAt: row.draft.approvalDecidedAt?.toISOString() ?? null,
+              decidedById: row.draft.approvalDecidedById,
+              reason: row.draft.approvalReason,
+            },
           }
         : null,
       latestPublishedVersion: latest
@@ -212,7 +239,11 @@ export class ServiceUserCarePlansService {
       pictureUrl: formById.get(row.carePathwayFormId)?.pictureUrl ?? null,
     }));
     const publishedReviews = data
-      .filter((row) => row.status === ServiceUserCarePlanInstanceStatus.PUBLISHED)
+      .filter(
+        (row) =>
+          row.status === ServiceUserCarePlanInstanceStatus.PUBLISHED &&
+          row.lifecycle.status === LifecycleStatus.ACTIVE,
+      )
       .map((row) => row.review);
 
     return {
@@ -246,8 +277,35 @@ export class ServiceUserCarePlansService {
         ...this.mapInstance(row, form),
         formName: form?.name ?? null,
         pictureUrl: form?.pictureUrl ?? null,
+        carePlanApprovalRequired: await this.isCarePlanApprovalRequired(),
+        reassessmentReview: await this.openReassessmentReview(row.id),
       },
     };
+  }
+
+  /** Open reassessment review flags and risk links needing review for one plan. */
+  private async openReassessmentReview(instanceId: string) {
+    const [flags, riskLinksNeedingReview] = await Promise.all([
+      this.prisma.carePlanReassessmentFlag.findMany({
+        where: { carePlanInstanceId: instanceId, status: 'OPEN' },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, changeTypes: true, reason: true, triggeringSubmissionId: true, createdAt: true },
+      }),
+      this.prisma.carePlanRiskLink.count({ where: { carePlanInstanceId: instanceId, status: 'REVIEW_REQUIRED' } }),
+    ]);
+    return {
+      required: flags.length > 0 || riskLinksNeedingReview > 0,
+      riskLinksNeedingReview,
+      flags: flags.map((f) => ({ ...f, createdAt: f.createdAt.toISOString() })),
+    };
+  }
+
+  /** Organisation setting; off (the original publish flow) when not configured. */
+  async isCarePlanApprovalRequired(): Promise<boolean> {
+    const settings = await this.prisma.organisationGeneralSettings.findFirst({
+      select: { carePlanApprovalRequired: true },
+    });
+    return settings?.carePlanApprovalRequired === true;
   }
 
   async saveDraft(
@@ -275,6 +333,19 @@ export class ServiceUserCarePlansService {
       : undefined;
     const gapsJson = dto.gaps ? (dto.gaps as Prisma.InputJsonValue) : undefined;
 
+    this.assertNotArchived(instance);
+    const approvalState = instance.draft?.approvalStatus ?? ApprovalStatus.DRAFT;
+    if (approvalState === ApprovalStatus.PENDING_APPROVAL) {
+      throw new ConflictException(
+        'This care plan is awaiting approval and cannot be edited until a manager approves it or requests changes.',
+      );
+    }
+    // Changing an approved draft withdraws the approval: the new content needs its own review.
+    // Re-saving identical content keeps it.
+    const invalidatesApproval =
+      approvalState === ApprovalStatus.APPROVED &&
+      carePlanDraftContentHash(valuesWithReview) !== instance.draft?.approvalContentHash;
+
     await this.prisma.$transaction([
       this.prisma.serviceUserCarePlanInstance.update({
         where: { id: instance.id },
@@ -294,9 +365,35 @@ export class ServiceUserCarePlansService {
           ...(composedFromJson !== undefined ? { composedFromJson } : {}),
           ...(gapsJson !== undefined ? { gapsJson } : {}),
           updatedById: userId,
+          ...(invalidatesApproval
+            ? {
+                approvalStatus: ApprovalStatus.DRAFT,
+                approvalContentHash: null,
+                approvalDecidedAt: null,
+                approvalDecidedById: null,
+              }
+            : {}),
         },
       }),
     ]);
+
+    if (invalidatesApproval && instance.draft) {
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.CARE_PLAN,
+        action: AuditAction.CARE_PLAN_APPROVAL_INVALIDATED,
+        recordType: 'ServiceUserCarePlanDraft',
+        recordId: instance.draft.id,
+        oldValues: {
+          status: ApprovalStatus.APPROVED,
+          contentHash: instance.draft.approvalContentHash,
+          approvedById: instance.draft.approvalDecidedById,
+        },
+        newValues: { status: ApprovalStatus.DRAFT, reason: 'Draft edited after approval' },
+        metadata: { serviceUserId, carePathwayFormId, instanceId: instance.id, draftId: instance.draft.id },
+        ...meta,
+      });
+    }
 
     await this.audit.logAudit({
       userId,
@@ -312,6 +409,331 @@ export class ServiceUserCarePlansService {
       ...meta,
     });
 
+    return this.getInstance(serviceUserId, carePathwayFormId);
+  }
+
+  /** Author submits the working draft for manager approval; the content is fingerprinted and locked. */
+  async submitForApproval(
+    userId: string,
+    serviceUserId: string,
+    carePathwayFormId: string,
+    meta?: RequestAuditMeta,
+  ) {
+    const draft = await this.loadDraftForApproval(serviceUserId, carePathwayFormId);
+    const owner = await this.prisma.serviceUserCarePlanInstance.findUnique({
+      where: { id: draft.instanceId },
+      select: { lifecycleStatus: true },
+    });
+    if (owner) this.assertNotArchived(owner);
+    const error = carePlanApprovalTransitionError(draft.approvalStatus, 'submit');
+    if (error) throw new BadRequestException(error);
+    const values = draft.valuesJson as Record<string, unknown> | null;
+    if (!values || typeof values !== 'object' || Object.keys(values).length === 0) {
+      throw new BadRequestException('Care plan draft has no values to submit.');
+    }
+    const contentHash = carePlanDraftContentHash(values);
+    await this.applyApprovalChange(draft, {
+      userId,
+      serviceUserId,
+      carePathwayFormId,
+      meta,
+      action: AuditAction.CARE_PLAN_SUBMITTED_FOR_APPROVAL,
+      next: ApprovalStatus.PENDING_APPROVAL,
+      data: {
+        approvalContentHash: contentHash,
+        submittedForApprovalAt: new Date(),
+        submittedForApprovalById: userId,
+        approvalDecidedAt: null,
+        approvalDecidedById: null,
+        approvalReason: null,
+      },
+    });
+    return this.getInstance(serviceUserId, carePathwayFormId);
+  }
+
+  /**
+   * Manager approves the submitted draft. The approver cannot be the submitter, and must confirm the
+   * content hash they reviewed, which must still match the draft.
+   */
+  async approveDraft(
+    userId: string,
+    serviceUserId: string,
+    carePathwayFormId: string,
+    dto: ApproveCarePlanDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const draft = await this.loadDraftForApproval(serviceUserId, carePathwayFormId);
+    const error = carePlanApprovalTransitionError(draft.approvalStatus, 'approve');
+    if (error) throw new BadRequestException(error);
+    if (draft.submittedForApprovalById === userId) {
+      throw new ForbiddenException('You cannot approve a care plan you submitted. Another manager must approve it.');
+    }
+    const currentHash = carePlanDraftContentHash(draft.valuesJson);
+    if (currentHash !== draft.approvalContentHash || dto.contentHash !== draft.approvalContentHash) {
+      throw new ConflictException('The care plan changed since it was submitted. Reload it and review again.');
+    }
+    await this.applyApprovalChange(draft, {
+      userId,
+      serviceUserId,
+      carePathwayFormId,
+      meta,
+      action: AuditAction.CARE_PLAN_APPROVED,
+      next: ApprovalStatus.APPROVED,
+      data: { approvalDecidedAt: new Date(), approvalDecidedById: userId, approvalReason: null },
+    });
+    return this.getInstance(serviceUserId, carePathwayFormId);
+  }
+
+  /** Manager returns the submitted draft to the author with a reason; the content is kept. */
+  async requestDraftChanges(
+    userId: string,
+    serviceUserId: string,
+    carePathwayFormId: string,
+    dto: RequestCarePlanChangesDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const draft = await this.loadDraftForApproval(serviceUserId, carePathwayFormId);
+    const error = carePlanApprovalTransitionError(draft.approvalStatus, 'request_changes');
+    if (error) throw new BadRequestException(error);
+    const reason = dto.reason?.trim() ?? '';
+    if (reason.length < 3) {
+      throw new BadRequestException('A reason is required when requesting changes (min 3 characters)');
+    }
+    await this.applyApprovalChange(draft, {
+      userId,
+      serviceUserId,
+      carePathwayFormId,
+      meta,
+      action: AuditAction.CARE_PLAN_CHANGES_REQUESTED,
+      next: ApprovalStatus.DRAFT,
+      reason,
+      data: { approvalDecidedAt: new Date(), approvalDecidedById: userId, approvalReason: reason },
+    });
+    return this.getInstance(serviceUserId, carePathwayFormId);
+  }
+
+  private async loadDraftForApproval(serviceUserId: string, carePathwayFormId: string) {
+    await this.ensureServiceUser(serviceUserId);
+    await this.ensureCarePlanForm(carePathwayFormId);
+    const instance = await this.prisma.serviceUserCarePlanInstance.findUnique({
+      where: { serviceUserId_carePathwayFormId: { serviceUserId, carePathwayFormId } },
+      select: { id: true, draft: true },
+    });
+    if (!instance?.draft) {
+      throw new BadRequestException('Save a draft before submitting it for approval.');
+    }
+    return instance.draft;
+  }
+
+  /**
+   * Moves the draft to its next approval state only if nobody changed it meanwhile (same status and
+   * updatedAt), and records the change in the audit log in the same transaction.
+   */
+  private async applyApprovalChange(
+    draft: Prisma.ServiceUserCarePlanDraftGetPayload<object>,
+    input: {
+      userId: string;
+      serviceUserId: string;
+      carePathwayFormId: string;
+      meta?: RequestAuditMeta;
+      action: AuditAction;
+      next: ApprovalStatus;
+      reason?: string;
+      data: Prisma.ServiceUserCarePlanDraftUpdateManyMutationInput;
+    },
+  ) {
+    await this.prisma.$transaction(async (tx) => {
+      const changed = await tx.serviceUserCarePlanDraft.updateMany({
+        where: { id: draft.id, approvalStatus: draft.approvalStatus, updatedAt: draft.updatedAt },
+        data: { ...input.data, approvalStatus: input.next },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException('The care plan changed while you were working. Reload it and try again.');
+      }
+      const after = await tx.serviceUserCarePlanDraft.findUniqueOrThrow({ where: { id: draft.id } });
+      await this.audit.logAudit({
+        tx,
+        userId: input.userId,
+        module: AuditModule.CARE_PLAN,
+        action: input.action,
+        recordType: 'ServiceUserCarePlanDraft',
+        recordId: draft.id,
+        oldValues: { status: draft.approvalStatus, contentHash: draft.approvalContentHash },
+        newValues: {
+          status: after.approvalStatus,
+          contentHash: after.approvalContentHash,
+          submittedById: after.submittedForApprovalById,
+          submittedAt: after.submittedForApprovalAt?.toISOString() ?? null,
+          reviewedById: after.approvalDecidedById,
+          reviewedAt: after.approvalDecidedAt?.toISOString() ?? null,
+          reason: input.reason ?? null,
+        },
+        metadata: {
+          serviceUserId: input.serviceUserId,
+          carePathwayFormId: input.carePathwayFormId,
+          instanceId: draft.instanceId,
+          draftId: draft.id,
+        },
+        ipAddress: input.meta?.ipAddress,
+        userAgent: input.meta?.userAgent,
+      });
+    });
+  }
+
+  /** Takes an active published plan out of carers' current instructions. Its versions are kept. */
+  async suspend(
+    userId: string,
+    serviceUserId: string,
+    carePathwayFormId: string,
+    dto: CarePlanLifecycleReasonDto,
+    meta?: RequestAuditMeta,
+  ) {
+    return this.changeLifecycle(userId, serviceUserId, carePathwayFormId, {
+      from: [LifecycleStatus.ACTIVE],
+      to: LifecycleStatus.SUSPENDED,
+      reason: dto.reason,
+      requirePublished: true,
+      action: AuditAction.CARE_PLAN_SUSPENDED,
+      meta,
+    });
+  }
+
+  /**
+   * Returns a suspended plan to carers. The manager must confirm it is still appropriate, and a plan
+   * whose review is overdue must be reviewed (a new version published) first.
+   */
+  async resume(
+    userId: string,
+    serviceUserId: string,
+    carePathwayFormId: string,
+    dto: ResumeCarePlanDto,
+    meta?: RequestAuditMeta,
+  ) {
+    if (dto.reviewConfirmed !== true) {
+      throw new BadRequestException('Confirm the care plan is still appropriate before resuming it.');
+    }
+    const result = await this.changeLifecycle(userId, serviceUserId, carePathwayFormId, {
+      from: [LifecycleStatus.SUSPENDED],
+      to: LifecycleStatus.ACTIVE,
+      reason: dto.reason,
+      requirePublished: true,
+      rejectOverdueReview: true,
+      action: AuditAction.CARE_PLAN_RESUMED,
+      meta,
+    });
+    // Back in carers' instructions: carers not yet told about this version are notified.
+    if (result.data?.id) await this.carerNotifications?.notifyCurrentVersion(result.data.id);
+    return result;
+  }
+
+  /** Retires a plan for good: hidden from carers, kept with its full history. No un-archive here. */
+  async archive(
+    userId: string,
+    serviceUserId: string,
+    carePathwayFormId: string,
+    dto: CarePlanLifecycleReasonDto,
+    meta?: RequestAuditMeta,
+  ) {
+    return this.changeLifecycle(userId, serviceUserId, carePathwayFormId, {
+      from: [LifecycleStatus.ACTIVE, LifecycleStatus.SUSPENDED],
+      to: LifecycleStatus.ARCHIVED,
+      reason: dto.reason,
+      requirePublished: false,
+      action: AuditAction.CARE_PLAN_ARCHIVED,
+      meta,
+    });
+  }
+
+  private assertNotArchived(instance: { lifecycleStatus: LifecycleStatus }) {
+    if (instance.lifecycleStatus === LifecycleStatus.ARCHIVED) {
+      throw new BadRequestException(
+        'This care plan is archived. Its history is kept, but it cannot be edited or published again.',
+      );
+    }
+  }
+
+  private async changeLifecycle(
+    userId: string,
+    serviceUserId: string,
+    carePathwayFormId: string,
+    input: {
+      from: LifecycleStatus[];
+      to: LifecycleStatus;
+      reason: string;
+      requirePublished: boolean;
+      rejectOverdueReview?: boolean;
+      action: AuditAction;
+      meta?: RequestAuditMeta;
+    },
+  ) {
+    await this.ensureServiceUser(serviceUserId);
+    await this.ensureCarePlanForm(carePathwayFormId);
+    const reason = input.reason?.trim() ?? '';
+    if (reason.length < 3) {
+      throw new BadRequestException('A reason is required (min 3 characters)');
+    }
+    const instance = await this.prisma.serviceUserCarePlanInstance.findUnique({
+      where: { serviceUserId_carePathwayFormId: { serviceUserId, carePathwayFormId } },
+      include: instanceInclude,
+    });
+    if (!instance) throw new NotFoundException('Care plan not found');
+    const current = instance.publishedVersions[0] ?? null;
+    if (input.requirePublished && (!current || instance.status !== ServiceUserCarePlanInstanceStatus.PUBLISHED)) {
+      throw new BadRequestException('Only a published care plan can be suspended or resumed.');
+    }
+    if (!input.from.includes(instance.lifecycleStatus)) {
+      throw new BadRequestException(
+        `This care plan is ${instance.lifecycleStatus.toLowerCase()} and cannot be ${input.to === LifecycleStatus.ACTIVE ? 'resumed' : input.to.toLowerCase()}.`,
+      );
+    }
+    if (input.rejectOverdueReview && instance.nextReviewDueAt && instance.nextReviewDueAt.getTime() < Date.now()) {
+      throw new BadRequestException(
+        'This care plan is overdue for review. Review it and publish an updated version before resuming it.',
+      );
+    }
+
+    const changedAt = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      // Only from the state just checked, so two managers cannot both apply a change.
+      const changed = await tx.serviceUserCarePlanInstance.updateMany({
+        where: { id: instance.id, lifecycleStatus: instance.lifecycleStatus },
+        data: {
+          lifecycleStatus: input.to,
+          lifecycleReason: reason,
+          lifecycleChangedAt: changedAt,
+          lifecycleChangedById: userId,
+          updatedById: userId,
+        },
+      });
+      if (changed.count !== 1) {
+        throw new ConflictException('The care plan changed while you were working. Reload it and try again.');
+      }
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.CARE_PLAN,
+        action: input.action,
+        recordType: 'ServiceUserCarePlanInstance',
+        recordId: instance.id,
+        oldValues: {
+          lifecycleStatus: instance.lifecycleStatus,
+          reason: instance.lifecycleReason,
+          changedAt: instance.lifecycleChangedAt?.toISOString() ?? null,
+          changedById: instance.lifecycleChangedById,
+        },
+        newValues: {
+          lifecycleStatus: input.to,
+          reason,
+          changedAt: changedAt.toISOString(),
+          changedById: userId,
+          publishedVersionId: current?.id ?? null,
+          publishedVersionNumber: current?.versionNumber ?? null,
+        },
+        metadata: { serviceUserId, carePathwayFormId, instanceId: instance.id },
+        ipAddress: input.meta?.ipAddress,
+        userAgent: input.meta?.userAgent,
+      });
+    });
     return this.getInstance(serviceUserId, carePathwayFormId);
   }
 
@@ -337,6 +759,12 @@ export class ServiceUserCarePlansService {
       throw new BadRequestException('Care plan draft has no values to publish.');
     }
 
+    const approvalRequired = await this.isCarePlanApprovalRequired();
+    if (approvalRequired) {
+      const error = carePlanApprovalTransitionError(draft.approvalStatus, 'publish');
+      if (error) throw new BadRequestException(error);
+    }
+
     const blockingGapCount = this.countBlockingGaps(draft.gapsJson);
     if (blockingGapCount > 0 && !dto.gapAcknowledged) {
       throw new BadRequestException(
@@ -348,12 +776,7 @@ export class ServiceUserCarePlansService {
       ? await this.loadIncidentCarePlanMeasure(dto.incidentActionId, serviceUserId, instance.id)
       : null;
 
-    const latestVersion = await this.prisma.serviceUserCarePlanPublishedVersion.findFirst({
-      where: { instanceId: instance.id },
-      orderBy: { versionNumber: 'desc' },
-      select: { versionNumber: true },
-    });
-    const versionNumber = (latestVersion?.versionNumber ?? 0) + 1;
+    this.assertNotArchived(instance);
     const publishedAt = new Date();
     const valuesForPublish = ensureDraftValuesNextReviewDate(
       values && typeof values === 'object' ? { ...values } : {},
@@ -370,17 +793,37 @@ export class ServiceUserCarePlansService {
       from: publishedAt,
     });
 
+    let flaggedTaskLinks = 0;
     const version = await this.prisma.$transaction(async (tx) => {
+      // One publish at a time per plan: concurrent or repeated requests wait here, then find the
+      // draft already consumed instead of creating a second version.
+      await tx.$queryRaw`SELECT "id" FROM "service_users"."ServiceUserCarePlanInstance" WHERE "id" = ${instance.id}::uuid FOR UPDATE`;
       const currentDraft = await tx.serviceUserCarePlanDraft.findUnique({
         where: { id: draft.id },
       });
       if (!currentDraft) {
-        throw new BadRequestException('Save a draft before publishing.');
+        throw new ConflictException('This draft has already been published. Reload the care plan.');
       }
+      const latestVersion = await tx.serviceUserCarePlanPublishedVersion.findFirst({
+        where: { instanceId: instance.id },
+        orderBy: { versionNumber: 'desc' },
+        select: { versionNumber: true },
+      });
+      const versionNumber = (latestVersion?.versionNumber ?? 0) + 1;
 
       const currentValues = currentDraft.valuesJson as Record<string, unknown>;
       if (!currentValues || typeof currentValues !== 'object' || Object.keys(currentValues).length === 0) {
         throw new BadRequestException('Care plan draft has no values to publish.');
+      }
+
+      // Re-check inside the transaction: the approval must cover exactly the content being published.
+      const approved =
+        currentDraft.approvalStatus === ApprovalStatus.APPROVED &&
+        currentDraft.approvalContentHash === carePlanDraftContentHash(currentValues);
+      if (approvalRequired && !approved) {
+        throw new ConflictException(
+          'The care plan changed after it was approved. Submit it for approval again before publishing.',
+        );
       }
 
       const publishedValues = ensureDraftValuesNextReviewDate(
@@ -409,6 +852,16 @@ export class ServiceUserCarePlansService {
             : undefined,
           publishedById: userId,
           incidentActionId: incidentMeasure?.id ?? null,
+          approvalJson: approved
+            ? ({
+                contentHash: currentDraft.approvalContentHash,
+                submittedById: currentDraft.submittedForApprovalById,
+                submittedAt: currentDraft.submittedForApprovalAt?.toISOString() ?? null,
+                approvedById: currentDraft.approvalDecidedById,
+                approvedAt: currentDraft.approvalDecidedAt?.toISOString() ?? null,
+                draftId: currentDraft.id,
+              } satisfies Prisma.InputJsonValue)
+            : undefined,
         },
       });
 
@@ -424,12 +877,28 @@ export class ServiceUserCarePlansService {
         },
       });
 
-      await tx.serviceUserCarePlanDraft.deleteMany({
+      // Consumes the draft (and with it any approval). If it changed meanwhile, publish nothing.
+      const consumed = await tx.serviceUserCarePlanDraft.deleteMany({
         where: consumePublishedDraftWhere(currentDraft),
       });
+      if (consumed.count !== 1) {
+        throw new ConflictException('The draft changed while publishing. Reload the care plan and try again.');
+      }
+
+      // Visit task links confirmed against an earlier version need a manager to re-check them.
+      // They keep their old version reference; no task is changed.
+      const flagged = await tx.carePlanVisitTaskLink.updateMany({
+        where: {
+          carePlanInstanceId: instance.id,
+          status: { in: [CarePlanVisitTaskLinkStatus.LINKED, CarePlanVisitTaskLinkStatus.NOT_APPLICABLE] },
+        },
+        data: { status: CarePlanVisitTaskLinkStatus.REVIEW_REQUIRED },
+      });
+      flaggedTaskLinks = flagged.count;
 
       return created;
     });
+    const versionNumber = version.versionNumber;
 
     await this.audit.logAudit({
       userId,
@@ -441,6 +910,7 @@ export class ServiceUserCarePlansService {
         carePathwayFormId,
         versionNumber,
         summary: dto.summary ?? null,
+        approval: version.approvalJson ?? null,
       }),
       metadata: {
         serviceUserId,
@@ -450,6 +920,19 @@ export class ServiceUserCarePlansService {
       },
       ...meta,
     });
+
+    if (flaggedTaskLinks > 0) {
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.CARE_PLAN,
+        action: AuditAction.CARE_PLAN_TASK_LINKS_FLAGGED,
+        recordType: 'ServiceUserCarePlanInstance',
+        recordId: instance.id,
+        newValues: { status: CarePlanVisitTaskLinkStatus.REVIEW_REQUIRED, count: flaggedTaskLinks, reason: 'New version published' },
+        metadata: { serviceUserId, carePathwayFormId, instanceId: instance.id, publishedVersionId: version.id, versionNumber },
+        ...meta,
+      });
+    }
 
     if (incidentMeasure) {
       // On the incident timeline next to the measure.
@@ -472,6 +955,9 @@ export class ServiceUserCarePlansService {
       carePathwayFormName: form.name,
       meta,
     });
+
+    // After the version is committed: tell carers on upcoming visits. Never fails the publish.
+    await this.carerNotifications?.notifyCurrentVersion(instance.id);
 
     return this.getInstance(serviceUserId, carePathwayFormId);
   }
@@ -551,11 +1037,7 @@ export class ServiceUserCarePlansService {
     const { latest: submission } = splitLatestAndPreviousAssessments(submissions);
     if (!submission) return;
 
-    const triggerItems = await this.loadCarePlanTriggerItems(submission.id);
-    const recommendations = await this.carePlanRules.resolveRecommendations(
-      submission.id,
-      triggerItems,
-    );
+    const recommendations = await this.carePlanRules.loadRecommendations(submission.id);
     const existingDecisions = readCarePlanDecisions(submission.metadata);
     const catalogue = await this.prisma.carePathwayForm.findMany({
       where: { formType: CarePathwayFormType.CARE_PLAN, deletedAt: null },
@@ -622,47 +1104,6 @@ export class ServiceUserCarePlansService {
         });
       }
     });
-  }
-
-  private async loadCarePlanTriggerItems(submissionId: string): Promise<CarePlanTriggerItem[]> {
-    const answers = await this.prisma.initialAssessmentAnswer.findMany({
-      where: { submissionId, carePlanTrigger: true },
-      include: {
-        question: {
-          select: {
-            id: true,
-            questionText: true,
-            metadata: true,
-            section: {
-              select: { id: true, title: true, sectionNumber: true, carePlanArea: true },
-            },
-          },
-        },
-      },
-    });
-
-    return answers
-      .filter((a) => a.checked === true || a.booleanValue === true || Boolean(a.textValue?.trim()))
-      .map((a) => {
-        const meta = a.question.metadata;
-        const specRef =
-          meta &&
-          typeof meta === 'object' &&
-          !Array.isArray(meta) &&
-          typeof (meta as { specRef?: unknown }).specRef === 'string'
-            ? (meta as { specRef: string }).specRef
-            : undefined;
-        return {
-          answerId: a.id,
-          questionId: a.questionId,
-          questionText: a.question.questionText,
-          notes: a.notes,
-          textValue: isSecureQuestionMetadata(a.question.metadata) ? null : a.textValue,
-          section: a.question.section,
-          carePlanArea: a.question.section.carePlanArea,
-          specRef,
-        };
-      });
   }
 
   async listVersions(serviceUserId: string, carePathwayFormId: string) {
@@ -768,6 +1209,8 @@ export class ServiceUserCarePlansService {
     const rows = await this.prisma.serviceUserCarePlanInstance.findMany({
       where: {
         status: ServiceUserCarePlanInstanceStatus.PUBLISHED,
+        // Suspended and archived plans are not active review items.
+        lifecycleStatus: LifecycleStatus.ACTIVE,
         nextReviewDueAt: { not: null },
         ...(params?.serviceUserId ? { serviceUserId: params.serviceUserId } : {}),
         serviceUser: {

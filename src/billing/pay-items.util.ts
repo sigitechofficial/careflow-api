@@ -125,6 +125,18 @@ export const SYSTEM_PAY_ITEM_CONFIG: Record<string, PayItemConfig & { label: str
     countsAsNmwHours: false,
     sourceTypes: [],
   },
+  // Pay for a visit the carer was taken off for a non-core activity (e.g. an office meeting),
+  // at the visit's own rate. It is pay for working time; the amount is entered, not hours.
+  NON_CORE_VISIT_PAY: {
+    label: 'Visit pay (taken off for non-core activity)',
+    lineType: 'NON_VISIT_ACTIVITY',
+    units: ['AMOUNT'],
+    allowNegative: false,
+    requiresSecondApprover: true,
+    includesInNmwPay: true,
+    countsAsNmwHours: false,
+    sourceTypes: [],
+  },
   MILEAGE_CORRECTION: {
     label: 'Mileage correction',
     lineType: 'MILEAGE',

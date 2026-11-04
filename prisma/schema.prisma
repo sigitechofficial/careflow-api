@@ -284,6 +284,10 @@ enum InitialAssessmentAttachmentCategory {
   WOUND_PHOTO
   EMERGENCY_DOCUMENT
   OTHER
+  /// Recorded assessment conversation (kept privately; served only through the permission-checked endpoint).
+  CONVERSATION_RECORDING
+  /// Whisper transcript of a recorded conversation (.txt, kept privately like the recording).
+  CONVERSATION_TRANSCRIPT
 
   @@schema("service_users")
 }
@@ -326,6 +330,15 @@ enum InitialAssessmentRiskStatus {
 enum InitialAssessmentCarePlanRuleMatchMode {
   ANY
   ALL
+
+  @@schema("service_users")
+}
+
+enum InitialAssessmentCarePlanRecommendationStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  DEFERRED
 
   @@schema("service_users")
 }
@@ -463,6 +476,26 @@ enum ServiceUserCarePlanInstanceStatus {
   @@schema("service_users")
 }
 
+/// Operational lifecycle of a care plan, separate from DRAFT/PUBLISHED and from draft approval.
+/// Only ACTIVE published plans are current instructions for carers; nothing is deleted.
+enum ServiceUserCarePlanLifecycleStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+
+  @@schema("service_users")
+}
+
+/// Approval state of a care plan's working draft. Publishing consumes the draft (the plan is then
+/// PUBLISHED on the instance); a published plan keeps showing its current version during review.
+enum ServiceUserCarePlanDraftApprovalStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+
+  @@schema("service_users")
+}
+
 model User {
   id               String  @id @default(uuid()) @db.Uuid
   email            String  @unique
@@ -592,6 +625,7 @@ model User {
   policyApprovalsAuthored            PolicyApproval[]                 @relation("PolicyApprovalActor")
   policyAcknowledgements             PolicyAcknowledgement[]
   passwordResetTokens                PasswordResetToken[]
+  serviceUserTimebankEntries         ServiceUserTimebankEntry[]       @relation("ServiceUserTimebankEntryBy")
 
   @@index([email])
   @@index([deletedAt])
@@ -941,6 +975,8 @@ enum ComplianceAllocationMode {
 model OrganisationGeneralSettings {
   id                                   String                     @id @default(uuid()) @db.Uuid
   reviewCarePlanAfterDays              Int                        @default(180)
+  /// Care plans: when true, only a manager-approved working draft can be published. Off by default.
+  carePlanApprovalRequired             Boolean                    @default(false)
   handoverReportLastHours              Int                        @default(12)
   /// Incidents: Duty of Candour is flagged overdue after this many days without telling the person
   /// in person (organisation policy — the law says "as soon as reasonably practicable"). Null = off.
@@ -953,6 +989,23 @@ model OrganisationGeneralSettings {
   /// Carer pay when a holiday falls on a weekend: BOTH (the date and its substitute day, the
   /// behaviour before this setting existed), ACTUAL_DAY or STATUTORY_DAY. Policy decision D-13.
   holidayPremiumBasis                  String                     @default("BOTH")
+  /// Carer pay: priority per day type ({ CHRISTMAS: 100, ..., ANY: 10 }) when rules for different days
+  /// compete; higher wins. Null = the built-in order (most specific day wins).
+  payDayTypePriority                   Json?
+  /// Travel between visits: false = gaps are never paid automatically (only travel entered on a visit).
+  travelGapPayEnabled                  Boolean                    @default(true)
+  /// Travel between visits: GAP (the gap limits below) or DISTANCE (the drive between the two addresses, same day only).
+  travelPayBasis                       String                     @default("GAP") @db.VarChar(20)
+  /// Travel between visits (DISTANCE): average driving speed that turns miles into travel minutes.
+  travelAverageSpeedMph                Int                        @default(20)
+  /// Travel between visits (DISTANCE): straight-line miles × this, as roads are not straight.
+  travelRoadFactor                     Decimal                    @default(1.3) @db.Decimal(4, 2)
+  /// Travel between visits: gaps up to this many minutes are paid as waiting time.
+  travelWaitingGapMinutes              Int                        @default(15)
+  /// Travel between visits: gaps from this many minutes between visits to the same service user are a break (not paid).
+  travelBreakGapMinutes                Int                        @default(60)
+  /// Travel between visits: gaps from this many minutes are treated as the carer going home (not paid).
+  travelWentHomeGapMinutes             Int                        @default(90)
   defaultCarerStatus                   DefaultCarerStatus         @default(ACTIVE)
   sendEmailWhenEmployeeActive          Boolean                    @default(true)
   allowMultipleRoles                   Boolean                    @default(true)
@@ -1028,6 +1081,8 @@ model OrganisationGeneralSettings {
   domLateVisitZoneAlerts               Json                       @default("[]")
   domCareShiftDefinitions              Json                       @default("[]")
   domCareAllocationRules               Json                       @default("[]")
+  /// Service user weekly hours rules (approval, over-limit behaviour, weeks checked). Missing keys use the defaults.
+  serviceUserWeeklyHoursSettings       Json                       @default("{}")
   incidentDetailsEditableMinutes       Int                        @default(60)
   incidentDisplayHours                 Int                        @default(12)
   incidentDefaultStatus                String                     @default("REPORTED")
@@ -1704,6 +1759,7 @@ model EmployeeDocument {
   uploadedDate DateTime          @default(now())
   tags         String[]
   documentType HrDocumentType?
+  complianceTypeId String?       @db.Uuid
   expiryDate   DateTime?
   status       HrDocumentStatus?
 
@@ -1715,12 +1771,14 @@ model EmployeeDocument {
   updatedById String?   @db.Uuid
   deletedById String?   @db.Uuid
 
-  employee   Employee @relation(fields: [employeeId], references: [id])
-  uploadedBy User?    @relation(fields: [uploadedById], references: [id])
+  employee       Employee        @relation(fields: [employeeId], references: [id])
+  uploadedBy     User?           @relation(fields: [uploadedById], references: [id])
+  complianceType ComplianceType? @relation(fields: [complianceTypeId], references: [id])
 
   @@index([employeeId])
   @@index([uploadedDate])
   @@index([documentType])
+  @@index([complianceTypeId])
   @@index([status])
   @@index([deletedAt])
   @@schema("employees")
@@ -2559,6 +2617,7 @@ model ComplianceType {
 
   complianceRecords EmployeeCompliance[]
   requirements      ComplianceRequirement[]
+  employeeDocuments EmployeeDocument[]
 
   @@index([category])
   @@index([deletedAt])
@@ -3059,6 +3118,8 @@ model ServiceUser {
   bodyMapAlerts                  BodyMapAlert[]
   portalAccount                  ServiceUserPortalAccount?
   visitCareConsents              VisitCareConsent[]
+  specialistPathwayCases         SpecialistPathwayCase[]
+  timebankEntries                ServiceUserTimebankEntry[]
 
   @@index([deletedAt])
   @@index([statusId])
@@ -3072,6 +3133,39 @@ model ServiceUser {
   @@index([namedNurseId])
   @@index([lastName, firstName])
   @@index([dateOfDeath])
+  @@schema("service_users")
+}
+
+enum ServiceUserTimebankEntryKind {
+  RESERVED
+  RETURNED
+
+  @@schema("service_users")
+}
+
+/// Timebank hours taken for a visit over the weekly hours (RESERVED) and given back (RETURNED).
+/// Rows are only added, never changed (docs/SU_TIMEBANK_USE_PLAN.md).
+model ServiceUserTimebankEntry {
+  id             String                       @id @default(uuid()) @db.Uuid
+  serviceUserId  String                       @db.Uuid
+  scheduledJobId String?                      @db.Uuid
+  /// Monday of the visit's week (org day).
+  weekStart      DateTime                     @db.Date
+  kind           ServiceUserTimebankEntryKind
+  minutes        Int
+  /// NEW_VISIT | LONGER_VISIT | VISIT_CANCELLED | VISIT_REMOVED | WEEK_NEEDED_LESS | NOT_DELIVERED
+  reason         String
+  note           String?
+  createdById    String?                      @db.Uuid
+  createdAt      DateTime                     @default(now())
+
+  serviceUser  ServiceUser   @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  scheduledJob ScheduledJob? @relation(fields: [scheduledJobId], references: [id], onDelete: SetNull)
+  createdBy    User?         @relation("ServiceUserTimebankEntryBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([serviceUserId])
+  @@index([scheduledJobId])
+  @@index([weekStart])
   @@schema("service_users")
 }
 
@@ -3565,18 +3659,19 @@ model InitialAssessmentSubmission {
   updatedById   String?                 @db.Uuid
   deletedById   String?                 @db.Uuid
 
-  serviceUser           ServiceUser                       @relation(fields: [serviceUserId], references: [id])
-  template              InitialAssessmentTemplate         @relation(fields: [templateId], references: [id])
-  submittedBy           User?                             @relation("InitialAssessmentSubmittedBy", fields: [submittedById], references: [id])
-  reviewedBy            User?                             @relation("InitialAssessmentReviewedBy", fields: [reviewedById], references: [id])
-  createdBy             User?                             @relation("InitialAssessmentCreatedBy", fields: [createdById], references: [id])
-  updatedBy             User?                             @relation("InitialAssessmentUpdatedBy", fields: [updatedById], references: [id])
-  answers               InitialAssessmentAnswer[]
-  actions               InitialAssessmentAction[]
-  attachments           InitialAssessmentAttachment[]
-  riskRecords           InitialAssessmentRiskRecord[]
-  visitPlans            ServiceUserVisitPlan[]
-  assessmentCompletions ServiceUserAssessmentCompletion[]
+  serviceUser             ServiceUser                               @relation(fields: [serviceUserId], references: [id])
+  template                InitialAssessmentTemplate                 @relation(fields: [templateId], references: [id])
+  submittedBy             User?                                     @relation("InitialAssessmentSubmittedBy", fields: [submittedById], references: [id])
+  reviewedBy              User?                                     @relation("InitialAssessmentReviewedBy", fields: [reviewedById], references: [id])
+  createdBy               User?                                     @relation("InitialAssessmentCreatedBy", fields: [createdById], references: [id])
+  updatedBy               User?                                     @relation("InitialAssessmentUpdatedBy", fields: [updatedById], references: [id])
+  answers                 InitialAssessmentAnswer[]
+  actions                 InitialAssessmentAction[]
+  attachments             InitialAssessmentAttachment[]
+  riskRecords             InitialAssessmentRiskRecord[]
+  visitPlans              ServiceUserVisitPlan[]
+  assessmentCompletions   ServiceUserAssessmentCompletion[]
+  carePlanRecommendations InitialAssessmentCarePlanRecommendation[]
 
   @@index([serviceUserId])
   @@index([templateId])
@@ -3628,6 +3723,37 @@ model InitialAssessmentCarePlanRecommendationRule {
   @@index([carePathwayFormId])
   @@index([isActive])
   @@index([deletedAt])
+  @@schema("service_users")
+}
+
+/// Care plan recommendations captured when an initial assessment is submitted. `legacyRecommendationId`
+/// is the id the API has always used (`cp-…`, `rule-…`, `condition-…`); decisions are still also kept in
+/// `InitialAssessmentSubmission.metadata.carePlanDecisions`. Submissions without rows use live calculation.
+model InitialAssessmentCarePlanRecommendation {
+  id                     String                                        @id @default(uuid()) @db.Uuid
+  submissionId           String                                        @db.Uuid
+  serviceUserId          String                                        @db.Uuid
+  carePathwayFormId      String?                                       @db.Uuid
+  legacyRecommendationId String
+  sourceType             String
+  /// Full recommendation as calculated at submission (area, title, triggers, aliasIds…).
+  evidenceJson           Json
+  sortOrder              Int                                           @default(0)
+  status                 InitialAssessmentCarePlanRecommendationStatus @default(PENDING)
+  decisionReason         String?                                       @db.Text
+  decidedById            String?                                       @db.Uuid
+  decidedAt              DateTime?
+  /// Care plan instance created or linked when the recommendation was accepted. Kept if the decision later changes.
+  carePlanInstanceId     String?                                       @db.Uuid
+  createdAt              DateTime                                      @default(now())
+  updatedAt              DateTime                                      @updatedAt
+
+  submission InitialAssessmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, legacyRecommendationId])
+  @@index([serviceUserId])
+  @@index([carePathwayFormId])
+  @@index([carePlanInstanceId])
   @@schema("service_users")
 }
 
@@ -3691,32 +3817,37 @@ model InitialAssessmentAttachment {
 }
 
 model InitialAssessmentRiskRecord {
-  id                  String                      @id @default(uuid()) @db.Uuid
-  submissionId        String                      @db.Uuid
-  serviceUserId       String                      @db.Uuid
-  riskType            InitialAssessmentRiskType
-  description         String                      @db.Text
-  likelihood          InitialAssessmentRiskLevel
-  severity            InitialAssessmentRiskLevel
-  riskLevel           InitialAssessmentRiskLevel
-  controlMeasures     String?                     @db.Text
-  residualRisk        InitialAssessmentRiskLevel?
-  reviewDate          DateTime?
-  status              InitialAssessmentRiskStatus @default(OPEN)
-  sourceSectionNumber Int?
-  sourceQuestionId    String?                     @db.Uuid
-  sourceQuestionText  String?
-  responsiblePersonId String?                     @db.Uuid
-  autoGenerated       Boolean                     @default(false)
-  createdAt           DateTime                    @default(now())
-  updatedAt           DateTime                    @updatedAt
-  createdById         String?                     @db.Uuid
-  updatedById         String?                     @db.Uuid
+  id                       String                      @id @default(uuid()) @db.Uuid
+  submissionId             String                      @db.Uuid
+  serviceUserId            String                      @db.Uuid
+  riskType                 InitialAssessmentRiskType
+  description              String                      @db.Text
+  likelihood               InitialAssessmentRiskLevel
+  severity                 InitialAssessmentRiskLevel
+  riskLevel                InitialAssessmentRiskLevel
+  controlMeasures          String?                     @db.Text
+  residualRisk             InitialAssessmentRiskLevel?
+  reviewDate               DateTime?
+  status                   InitialAssessmentRiskStatus @default(OPEN)
+  sourceSectionNumber      Int?
+  sourceQuestionId         String?                     @db.Uuid
+  sourceQuestionText       String?
+  responsiblePersonId      String?                     @db.Uuid
+  autoGenerated            Boolean                     @default(false)
+  /// A later assessment recorded the same risk type: an authorised user must decide on this one.
+  /// Status is never changed automatically.
+  supersededBySubmissionId String?                     @db.Uuid
+  supersedeReviewRequired  Boolean                     @default(false)
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+  createdById              String?                     @db.Uuid
+  updatedById              String?                     @db.Uuid
 
   submission        InitialAssessmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   serviceUser       ServiceUser                 @relation(fields: [serviceUserId], references: [id])
   sourceQuestion    InitialAssessmentQuestion?  @relation(fields: [sourceQuestionId], references: [id])
   responsiblePerson User?                       @relation("InitialAssessmentRiskResponsible", fields: [responsiblePersonId], references: [id])
+  carePlanLinks     CarePlanRiskLink[]
 
   @@index([submissionId])
   @@index([serviceUserId])
@@ -3789,18 +3920,23 @@ model CarePlanAssessmentLink {
 }
 
 model ServiceUserCarePlanInstance {
-  id                       String                            @id @default(uuid()) @db.Uuid
-  serviceUserId            String                            @db.Uuid
-  carePathwayFormId        String                            @db.Uuid
-  carePathwayFormVersionId String?                           @db.Uuid
-  status                   ServiceUserCarePlanInstanceStatus @default(DRAFT)
+  id                       String                             @id @default(uuid()) @db.Uuid
+  serviceUserId            String                             @db.Uuid
+  carePathwayFormId        String                             @db.Uuid
+  carePathwayFormVersionId String?                            @db.Uuid
+  status                   ServiceUserCarePlanInstanceStatus  @default(DRAFT)
+  lifecycleStatus          ServiceUserCarePlanLifecycleStatus @default(ACTIVE)
+  /// Reason for the latest suspend / resume / archive.
+  lifecycleReason          String?                            @db.Text
+  lifecycleChangedAt       DateTime?
+  lifecycleChangedById     String?                            @db.Uuid
   nextReviewDueAt          DateTime?
   lastReviewedAt           DateTime?
-  lastReviewedById         String?                           @db.Uuid
-  createdAt                DateTime                          @default(now())
-  updatedAt                DateTime                          @updatedAt
-  createdById              String?                           @db.Uuid
-  updatedById              String?                           @db.Uuid
+  lastReviewedById         String?                            @db.Uuid
+  createdAt                DateTime                           @default(now())
+  updatedAt                DateTime                           @updatedAt
+  createdById              String?                            @db.Uuid
+  updatedById              String?                            @db.Uuid
 
   serviceUser            ServiceUser                           @relation(fields: [serviceUserId], references: [id])
   carePathwayForm        CarePathwayForm                       @relation(fields: [carePathwayFormId], references: [id])
@@ -3812,22 +3948,177 @@ model ServiceUserCarePlanInstance {
   publishedVersions      ServiceUserCarePlanPublishedVersion[]
   assessmentCompletions  ServiceUserAssessmentCompletion[]
   assessmentLinks        CarePlanAssessmentLink[]
+  visitTaskLinks         CarePlanVisitTaskLink[]
+  acknowledgements       CarePlanVersionAcknowledgement[]
+  reassessmentFlags      CarePlanReassessmentFlag[]
+  riskLinks              CarePlanRiskLink[]
 
   @@unique([serviceUserId, carePathwayFormId])
   @@index([serviceUserId])
   @@index([carePathwayFormId])
   @@index([status, nextReviewDueAt])
+  @@index([lifecycleStatus])
+  @@schema("service_users")
+}
+
+enum CarePlanVisitTaskLinkStatus {
+  LINKED
+  REVIEW_REQUIRED
+  NOT_APPLICABLE
+
+  @@schema("service_users")
+}
+
+/// Manager-confirmed link between a published care plan (optionally one structured requirement, a
+/// form field key) and an existing visit task assignment. Never creates, changes or deletes tasks.
+/// NOT_APPLICABLE rows record a requirement judged not to need a task (no assignment).
+model CarePlanVisitTaskLink {
+  id                         String                      @id @default(uuid()) @db.Uuid
+  serviceUserId              String                      @db.Uuid
+  carePlanInstanceId         String                      @db.Uuid
+  /// Published version the link was confirmed against (kept when a newer version is published).
+  carePlanPublishedVersionId String                      @db.Uuid
+  visitTaskAssignmentId      String?                     @db.Uuid
+  /// Structured care plan field key; "" means the plan as a whole.
+  requirementKey             String                      @default("")
+  requirementLabel           String?
+  status                     CarePlanVisitTaskLinkStatus @default(LINKED)
+  reason                     String?                     @db.Text
+  linkedById                 String?                     @db.Uuid
+  linkedAt                   DateTime                    @default(now())
+  reviewedById               String?                     @db.Uuid
+  reviewedAt                 DateTime?
+  updatedAt                  DateTime                    @updatedAt
+
+  carePlanInstance         ServiceUserCarePlanInstance         @relation(fields: [carePlanInstanceId], references: [id], onDelete: Cascade)
+  carePlanPublishedVersion ServiceUserCarePlanPublishedVersion @relation(fields: [carePlanPublishedVersionId], references: [id], onDelete: Cascade)
+  visitTaskAssignment      ServiceUserVisitTaskAssignment?     @relation(fields: [visitTaskAssignmentId], references: [id], onDelete: Cascade)
+
+  @@unique([carePlanInstanceId, visitTaskAssignmentId, requirementKey])
+  @@index([serviceUserId])
+  @@index([visitTaskAssignmentId])
+  @@index([carePlanInstanceId, status])
+  @@schema("service_users")
+}
+
+/// One row per carer per published care plan version: created when the carer is notified (the row
+/// is the "already notified" claim) and completed when the carer acknowledges that exact version.
+/// A new version needs a new row. Delivery never sets acknowledgedAt.
+model CarePlanVersionAcknowledgement {
+  id                 String    @id @default(uuid()) @db.Uuid
+  publishedVersionId String    @db.Uuid
+  carePlanInstanceId String    @db.Uuid
+  serviceUserId      String    @db.Uuid
+  employeeId         String    @db.Uuid
+  notifiedAt         DateTime?
+  acknowledgedAt     DateTime?
+  acknowledgedById   String?   @db.Uuid
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  publishedVersion ServiceUserCarePlanPublishedVersion @relation(fields: [publishedVersionId], references: [id], onDelete: Cascade)
+  carePlanInstance ServiceUserCarePlanInstance         @relation(fields: [carePlanInstanceId], references: [id], onDelete: Cascade)
+
+  @@unique([publishedVersionId, employeeId])
+  @@index([employeeId])
+  @@index([carePlanInstanceId])
+  @@schema("service_users")
+}
+
+enum CarePlanReassessmentChange {
+  NEW_NEED
+  CHANGED_NEED
+  NO_LONGER_INDICATED
+  NEW_RISK
+  GENERAL
+
+  @@schema("service_users")
+}
+
+enum CarePlanReviewFlagStatus {
+  OPEN
+  RESOLVED
+
+  @@schema("service_users")
+}
+
+/// A later initial assessment suggests this care plan needs a manager's review. Nothing about the
+/// plan changes until the manager acts; one flag per plan per triggering assessment.
+model CarePlanReassessmentFlag {
+  id                     String                       @id @default(uuid()) @db.Uuid
+  serviceUserId          String                       @db.Uuid
+  carePlanInstanceId     String                       @db.Uuid
+  triggeringSubmissionId String                       @db.Uuid
+  previousSubmissionId   String?                      @db.Uuid
+  changeTypes            CarePlanReassessmentChange[]
+  reason                 String                       @db.Text
+  /// Structured evidence only (recommendation trigger question ids, risk types / levels).
+  detailsJson            Json?
+  status                 CarePlanReviewFlagStatus     @default(OPEN)
+  resolvedById           String?                      @db.Uuid
+  resolvedAt             DateTime?
+  resolutionNote         String?                      @db.Text
+  createdAt              DateTime                     @default(now())
+  updatedAt              DateTime                     @updatedAt
+
+  carePlanInstance ServiceUserCarePlanInstance @relation(fields: [carePlanInstanceId], references: [id], onDelete: Cascade)
+
+  @@unique([carePlanInstanceId, triggeringSubmissionId])
+  @@index([serviceUserId])
+  @@index([carePlanInstanceId, status])
+  @@schema("service_users")
+}
+
+enum CarePlanRiskLinkStatus {
+  LINKED
+  REVIEW_REQUIRED
+
+  @@schema("service_users")
+}
+
+/// Manager-confirmed link between an initial assessment risk record and a care plan that controls it.
+/// The risk record (and its evidence) is never changed by linking.
+model CarePlanRiskLink {
+  id                 String                 @id @default(uuid()) @db.Uuid
+  serviceUserId      String                 @db.Uuid
+  carePlanInstanceId String                 @db.Uuid
+  riskRecordId       String                 @db.Uuid
+  status             CarePlanRiskLinkStatus @default(LINKED)
+  /// Risk level / severity / controls when the link was confirmed, to see what changed.
+  riskSnapshotJson   Json
+  reviewReason       String?                @db.Text
+  linkedById         String?                @db.Uuid
+  linkedAt           DateTime               @default(now())
+  reviewedById       String?                @db.Uuid
+  reviewedAt         DateTime?
+  updatedAt          DateTime               @updatedAt
+
+  carePlanInstance ServiceUserCarePlanInstance @relation(fields: [carePlanInstanceId], references: [id], onDelete: Cascade)
+  riskRecord       InitialAssessmentRiskRecord @relation(fields: [riskRecordId], references: [id], onDelete: Cascade)
+
+  @@unique([carePlanInstanceId, riskRecordId])
+  @@index([serviceUserId])
+  @@index([riskRecordId])
   @@schema("service_users")
 }
 
 model ServiceUserCarePlanDraft {
-  id               String   @id @default(uuid()) @db.Uuid
-  instanceId       String   @unique @db.Uuid
-  valuesJson       Json     @default("{}")
-  composedFromJson Json?
-  gapsJson         Json?
-  updatedAt        DateTime @updatedAt
-  updatedById      String?  @db.Uuid
+  id                       String                                 @id @default(uuid()) @db.Uuid
+  instanceId               String                                 @unique @db.Uuid
+  valuesJson               Json                                   @default("{}")
+  composedFromJson         Json?
+  gapsJson                 Json?
+  updatedAt                DateTime                               @updatedAt
+  updatedById              String?                                @db.Uuid
+  approvalStatus           ServiceUserCarePlanDraftApprovalStatus @default(DRAFT)
+  /// SHA-256 of the draft values at submission; approval and publication must match it.
+  approvalContentHash      String?
+  submittedForApprovalAt   DateTime?
+  submittedForApprovalById String?                                @db.Uuid
+  approvalDecidedAt        DateTime?
+  approvalDecidedById      String?                                @db.Uuid
+  /// Reason given when changes were requested.
+  approvalReason           String?                                @db.Text
 
   instance  ServiceUserCarePlanInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
   updatedBy User?                       @relation("CarePlanDraftUpdatedBy", fields: [updatedById], references: [id])
@@ -3848,10 +4139,14 @@ model ServiceUserCarePlanPublishedVersion {
   supersededAt     DateTime?
   /// The incident "Care plan update" measure this version is the evidence for (incidents.IncidentAction).
   incidentActionId String?   @db.Uuid
+  /// Approval that authorised this version (submitter, approver, content hash); null if published without one.
+  approvalJson     Json?
   createdAt        DateTime  @default(now())
 
-  instance    ServiceUserCarePlanInstance @relation(fields: [instanceId], references: [id], onDelete: Cascade)
-  publishedBy User?                       @relation("CarePlanVersionPublishedBy", fields: [publishedById], references: [id])
+  instance         ServiceUserCarePlanInstance      @relation(fields: [instanceId], references: [id], onDelete: Cascade)
+  publishedBy      User?                            @relation("CarePlanVersionPublishedBy", fields: [publishedById], references: [id])
+  visitTaskLinks   CarePlanVisitTaskLink[]
+  acknowledgements CarePlanVersionAcknowledgement[]
 
   @@unique([instanceId, versionNumber])
   @@index([instanceId])
@@ -4792,6 +5087,32 @@ enum EmployeeHoursApprovalStatus {
   PENDING
   APPROVED
   REJECTED
+  CANCELLED
+  /// The visit's start time passed, or the request is no longer valid (plan ended, date cancelled, …).
+  EXPIRED
+
+  @@schema("service_users")
+}
+
+enum EmployeeHoursApprovalType {
+  /// A visit plan put the carer over their weekly hours.
+  VISIT_PLAN_OVER_HOURS
+  /// A change to the carer's contracted weekly hours waiting for a manager.
+  CONTRACTED_HOURS_CHANGE
+  /// A change to a service user's weekly contracted hours waiting for a manager.
+  SERVICE_USER_WEEKLY_HOURS_CHANGE
+  /// An extra visit that takes a service user's week over their weekly hours.
+  EXTRA_VISIT_OVER_HOURS
+  /// A draft visit plan over the service user's weekly hours: it can't be activated until approved.
+  DRAFT_PLAN_OVER_HOURS
+  /// A rota visit (board, extra or special visit) that puts the carer over their contracted weekly hours:
+  /// the carer is allocated only once a manager approves.
+  ROTA_VISIT_OVER_HOURS
+  /// Extra weekly hours for a carer waiting for a manager (Settings → Dom Rules).
+  EXTRA_WEEKLY_HOURS
+  /// A rota visit (visit plan or special visit) over the service user's weekly hours: made only once a
+  /// manager approves (Settings → Dom Rules "Visits over the weekly hours need approval").
+  SERVICE_USER_VISIT_OVER_HOURS
 
   @@schema("service_users")
 }
@@ -4800,16 +5121,26 @@ enum EmployeeHoursApprovalStatus {
 /// hours. Created when an over-contracted assignment is saved; the carer is
 /// assigned immediately but stays PENDING until decided. Independent of the
 /// slot's carer-assignment rows (which are replaced on every slot save).
+/// CONTRACTED_HOURS_CHANGE rows hold a requested contracted-hours change instead
+/// (no service user / visit plan); nothing changes until they are approved.
 model EmployeeHoursApproval {
   id                    String                      @id @default(uuid()) @db.Uuid
-  employeeId            String                      @db.Uuid
-  serviceUserId         String                      @db.Uuid
-  visitPlanId           String                      @db.Uuid
+  /// Null for service user weekly hours requests (no carer involved).
+  employeeId            String?                     @db.Uuid
+  requestType           EmployeeHoursApprovalType   @default(VISIT_PLAN_OVER_HOURS)
+  serviceUserId         String?                     @db.Uuid
+  visitPlanId           String?                     @db.Uuid
   visitPlanSlotId       String?                     @db.Uuid
   status                EmployeeHoursApprovalStatus @default(PENDING)
   contractedWeeklyHours Float?
   projectedWeeklyHours  Float?
   extraHours            Float?
+  previousContractedWeeklyHours  Float?
+  requestedContractedWeeklyHours Float?
+  /// Preview shown when the request was sent (visits/hours that would be unassigned).
+  impactSummary         Json?
+  /// Extra visit over hours: the visit to create when approved (date, time, carers, reason…).
+  requestPayload        Json?
   reason                String?                     @db.Text
   requestedById         String?                     @db.Uuid
   requestedAt           DateTime                    @default(now())
@@ -4823,7 +5154,42 @@ model EmployeeHoursApproval {
   @@index([employeeId])
   @@index([serviceUserId])
   @@index([visitPlanSlotId])
+  @@index([requestType])
   @@schema("service_users")
+}
+
+/// How the manager picked the dates of extra weekly hours (the dates are always stored).
+enum EmployeeExtraHoursPeriod {
+  DAY
+  WEEK
+  RANGE
+
+  @@schema("employees")
+}
+
+/// Extra weekly hours a manager gave a carer for a day, a week or a date range. Every
+/// Monday–Sunday week the dates touch gets the extra on top of the contracted weekly hours;
+/// extras on the same week add up. Cancelled rows are kept as the record.
+model EmployeeExtraWeeklyHours {
+  id            String                   @id @default(uuid()) @db.Uuid
+  employeeId    String                   @db.Uuid
+  periodType    EmployeeExtraHoursPeriod
+  startDate     DateTime                 @db.Date
+  endDate       DateTime                 @db.Date
+  extraHours    Float
+  reason        String?                  @db.Text
+  grantedById   String?                  @db.Uuid
+  grantedAt     DateTime                 @default(now())
+  /// Hours requests approved because of this extra, and those still over (shown on the record).
+  outcome       Json?
+  cancelledById String?                  @db.Uuid
+  cancelledAt   DateTime?
+  cancelReason  String?                  @db.Text
+  createdAt     DateTime                 @default(now())
+  updatedAt     DateTime                 @updatedAt
+
+  @@index([employeeId, startDate, endDate])
+  @@schema("employees")
 }
 
 enum VisitPlanStatusEventType {
@@ -4946,6 +5312,9 @@ model ServiceUserVisitPlan {
   updatedById  String?   @db.Uuid
   approvedById String?   @db.Uuid
   approvedAt   DateTime?
+  /// Draft package created from an accepted enquiry quotation (one package per version).
+  sourceEnquiryQuotationId        String? @db.Uuid
+  sourceEnquiryQuotationVersionId String? @unique @db.Uuid
 
   serviceUser        ServiceUser                  @relation(fields: [serviceUserId], references: [id])
   sourceSubmission   InitialAssessmentSubmission? @relation(fields: [sourceSubmissionId], references: [id], onDelete: SetNull)
@@ -5186,11 +5555,12 @@ model ServiceUserVisitTaskAssignment {
   createdById           String?                    @db.Uuid
   updatedById           String?                    @db.Uuid
 
-  serviceUser ServiceUser                    @relation(fields: [serviceUserId], references: [id], onDelete: Cascade)
-  task        TaskCatalogueTask              @relation(fields: [taskCatalogueTaskId], references: [id], onDelete: Cascade)
-  createdBy   User?                          @relation("ServiceUserVisitTaskAssignmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
-  updatedBy   User?                          @relation("ServiceUserVisitTaskAssignmentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
-  completions ScheduledVisitTaskCompletion[]
+  serviceUser   ServiceUser                    @relation(fields: [serviceUserId], references: [id], onDelete: Cascade)
+  task          TaskCatalogueTask              @relation(fields: [taskCatalogueTaskId], references: [id], onDelete: Cascade)
+  createdBy     User?                          @relation("ServiceUserVisitTaskAssignmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?                          @relation("ServiceUserVisitTaskAssignmentUpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  completions   ScheduledVisitTaskCompletion[]
+  carePlanLinks CarePlanVisitTaskLink[]
 
   @@unique([serviceUserId, medicationRoundCode, taskCatalogueTaskId])
   @@index([serviceUserId, medicationRoundCode])
@@ -6556,6 +6926,48 @@ model NotificationRecipient {
   @@schema("notifications")
 }
 
+enum CarerMessageAudience {
+  ALL
+  BRANCHES
+  EMPLOYEES
+
+  @@schema("notifications")
+}
+
+/// A push notification an office user sent by hand to carers (Settings › Carer notifications).
+model CarerMessage {
+  id             String               @id @default(uuid()) @db.Uuid
+  title          String               @db.VarChar(65)
+  body           String               @db.VarChar(240)
+  audience       CarerMessageAudience
+  locationIds    String[]             @default([]) @db.Uuid
+  employeeIds    String[]             @default([]) @db.Uuid
+  recipientCount Int                  @default(0)
+  withAppCount   Int                  @default(0)
+  deliveredCount Int                  @default(0)
+  sentById       String?              @db.Uuid
+  createdAt      DateTime             @default(now())
+
+  recipients CarerMessageRecipient[]
+
+  @@index([createdAt])
+  @@schema("notifications")
+}
+
+model CarerMessageRecipient {
+  id          String   @id @default(uuid()) @db.Uuid
+  messageId   String   @db.Uuid
+  employeeId  String   @db.Uuid
+  hadDevice   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  message CarerMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, employeeId])
+  @@index([employeeId])
+  @@schema("notifications")
+}
+
 /**
  * Per-user overrides for a notification type. No row = use product defaults (in-app + sound on). Composite PK avoids a redundant surrogate id.
  */
@@ -6599,7 +7011,9 @@ enum ScheduleBuildSource {
   @@schema("scheduling")
 }
 
-/** Branch lifecycle (ScheduleArea.status). */
+/**
+ * Branch lifecycle (ScheduleArea.status).
+ */
 enum BranchStatus {
   ACTIVE
   INACTIVE
@@ -6608,7 +7022,9 @@ enum BranchStatus {
   @@schema("scheduling")
 }
 
-/** CQC overall rating of a registered branch. */
+/**
+ * CQC overall rating of a registered branch.
+ */
 enum CqcRating {
   OUTSTANDING
   GOOD
@@ -6951,6 +7367,7 @@ model ScheduledJob {
   timelineEvents           VisitTimelineEvent[]
   voiceNotes               VisitVoiceNote[]
   careConsents             VisitCareConsent[]
+  timebankEntries          ServiceUserTimebankEntry[]
 
   @@index([scheduleBatchId])
   @@index([scheduleAreaId])
@@ -7262,6 +7679,9 @@ model JobAllocation {
    */
   actualEndDateTime      DateTime?
   isLeadCarer            Boolean          @default(false)
+  /// Put on the visit from the visit plan (generate / plan sync). False: chosen on the rota,
+  /// approved on Hours approvals, an extra or special visit — the nightly plan sync keeps it.
+  fromVisitPlan          Boolean          @default(false)
   warningTypes           Json?
   warningMessages        Json?
   notes                  String?
@@ -7270,6 +7690,9 @@ model JobAllocation {
   unallocatedAt          DateTime?
   unallocatedById        String?          @db.Uuid
   unallocationReason     String?
+  /// Taken off the visit by a person on the rota (not by leave, a status change or the plan sync):
+  /// the nightly plan sync does not put this carer back on the visit.
+  unallocatedByHand      Boolean          @default(false)
   isActive               Boolean          @default(true)
   createdAt              DateTime         @default(now())
   updatedAt              DateTime         @updatedAt
@@ -8284,11 +8707,32 @@ model CarePathwayForm {
   defaultSelections DefaultFormSelection[]
   textTemplates     CarePlanTextTemplate[]
   carePlanInstances ServiceUserCarePlanInstance[]
+  /// CARE_PLAN forms: assessments the organisation requires whenever this care plan is recommended.
+  requiredAssessments CarePlanRequiredAssessment[] @relation("CarePlanRequiredAssessmentCarePlan")
+  /// ASSESSMENT forms: care plans that require this assessment.
+  requiredByCarePlans CarePlanRequiredAssessment[] @relation("CarePlanRequiredAssessmentAssessment")
 
   @@index([deletedAt])
   @@index([formType])
   @@index([status])
   @@index([name])
+  @@schema("care_pathway")
+}
+
+/// Assessment forms an organisation requires for a care plan form (Care pathway settings).
+/// Shown after an Initial Assessment for each recommended care plan; it does not block anything.
+model CarePlanRequiredAssessment {
+  id               String   @id @default(uuid()) @db.Uuid
+  carePlanFormId   String   @db.Uuid
+  assessmentFormId String   @db.Uuid
+  createdById      String?  @db.Uuid
+  createdAt        DateTime @default(now())
+
+  carePlanForm   CarePathwayForm @relation("CarePlanRequiredAssessmentCarePlan", fields: [carePlanFormId], references: [id], onDelete: Cascade)
+  assessmentForm CarePathwayForm @relation("CarePlanRequiredAssessmentAssessment", fields: [assessmentFormId], references: [id], onDelete: Cascade)
+
+  @@unique([carePlanFormId, assessmentFormId])
+  @@index([assessmentFormId])
   @@schema("care_pathway")
 }
 
@@ -13469,6 +13913,7 @@ model PolicyAcknowledgement {
 enum SurveyTargetKind {
   EMPLOYEE
   SERVICE_USER
+  PUBLIC
 
   @@schema("surveys")
 }
@@ -13550,6 +13995,10 @@ model Survey {
   closesAt    DateTime?
   publishedAt DateTime?
   locationIds String[]         @default([]) @db.Uuid
+  /// Employee job-role (EmployeeRoleLookup) ids to scope an employee survey to. Empty = all roles.
+  roleIds     String[]         @default([]) @db.Uuid
+  /// Marks this survey as a reusable template (shown separately; used to start new surveys).
+  isTemplate  Boolean          @default(false)
   /// When to auto-send this survey to employees (scheduled distribution).
   distributeAt DateTime?
   /// When scheduled distribution actually ran (one-shot only).
@@ -13988,7 +14437,9 @@ model FeedbackRecord {
   deletedAt    DateTime?
   deletedById  String?   @db.Uuid
 
-  events FeedbackEvent[]
+  events              FeedbackEvent[]
+  investigation       FeedbackInvestigation?
+  investigationPauses FeedbackInvestigationPause[]
 
   @@index([type, status])
   @@index([receivedAt])
@@ -14011,6 +14462,59 @@ model FeedbackEvent {
   feedback FeedbackRecord @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
 
   @@index([feedbackId, createdAt])
+  @@schema("incidents")
+}
+
+/// Investigation of a complaint: the same set-up, findings and evidence as an incident investigation
+/// (shared rules in incidents/investigation-core.service), without the incident-only scope fields.
+model FeedbackInvestigation {
+  id                         String                  @id @default(uuid()) @db.Uuid
+  feedbackId                 String                  @unique @db.Uuid
+  whatHappened               String?                 @db.Text
+  whyHappened                String?                 @db.Text
+  contributingFactors        String[]
+  contributingFactorDetails  Json?
+  rootCause                  String?                 @db.Text
+  preventable                IncidentPreventability?
+  conclusion                 String?                 @db.Text
+  completedAt                DateTime?
+  investigationLevel         String?                 @db.VarChar(20)
+  leadInvestigatorEmployeeId String?                 @db.Uuid
+  investigatorInvolved       String?                 @db.VarChar(20)
+  investigatorInvolvedReason String?                 @db.Text
+  targetDate                 DateTime?               @db.Date
+  termsOfReference           String?                 @db.Text
+  /// IN_PROGRESS / PAUSED / COMPLETED (separate from the complaint status).
+  investigationStatus        String                  @default("IN_PROGRESS") @db.VarChar(20)
+  recordsReviewed            String[]
+  recordsReviewedDetails     Json?
+  evidenceNotes              String?                 @db.Text
+  outstandingEvidence        String?                 @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+
+  feedback FeedbackRecord @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@schema("incidents")
+}
+
+/// Pauses of a complaint investigation (kept after resuming).
+model FeedbackInvestigationPause {
+  id             String    @id @default(uuid()) @db.Uuid
+  feedbackId     String    @db.Uuid
+  reason         String    @db.Text
+  pausedAt       DateTime  @default(now())
+  pausedById     String?   @db.Uuid
+  nextReviewDate DateTime  @db.Date
+  resumedAt      DateTime?
+  resumedById    String?   @db.Uuid
+
+  feedback FeedbackRecord @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId, pausedAt])
   @@schema("incidents")
 }
 
@@ -14304,4 +14808,1121 @@ model ReferralNumberSequence {
 
   @@id([kind, year])
   @@schema("service_users")
+}
+
+/// On-call: who covers evenings, nights, weekends and bank holidays when the office is closed.
+enum OnCallTier {
+  FIRST_LINE
+  SECOND_LINE
+
+  @@schema("scheduling")
+}
+
+/// One on-call shift. locationId null = covers every branch.
+model OnCallShift {
+  id          String     @id @default(uuid()) @db.Uuid
+  employeeId  String     @db.Uuid
+  locationId  String?    @db.Uuid
+  tier        OnCallTier
+  startsAt    DateTime
+  endsAt      DateTime
+  notes       String?    @db.VarChar(500)
+  createdById String?    @db.Uuid
+  updatedById String?    @db.Uuid
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  deletedAt   DateTime?
+
+  @@index([startsAt])
+  @@index([endsAt])
+  @@index([employeeId])
+  @@schema("scheduling")
+}
+
+enum OnCallCallerType {
+  CARER
+  SERVICE_USER
+  FAMILY
+  PROFESSIONAL
+  OTHER
+
+  @@schema("scheduling")
+}
+
+enum OnCallCallCategory {
+  CARER_SICKNESS
+  LATE_OR_MISSED_VISIT
+  ACCESS_PROBLEM
+  SERVICE_USER_UNWELL
+  MEDICATION
+  CONCERN_OR_COMPLAINT
+  OTHER
+
+  @@schema("scheduling")
+}
+
+enum OnCallCallStatus {
+  OPEN
+  CLOSED
+
+  @@schema("scheduling")
+}
+
+/// A call received while the office is closed. OPEN calls make up the morning handover.
+model OnCallCall {
+  id                String             @id @default(uuid()) @db.Uuid
+  receivedAt        DateTime
+  takenByUserId     String?            @db.Uuid
+  callerType        OnCallCallerType
+  callerName        String             @db.VarChar(120)
+  callerPhone       String?            @db.VarChar(40)
+  callerEmployeeId  String?            @db.Uuid
+  serviceUserId     String?            @db.Uuid
+  locationId        String?            @db.Uuid
+  category          OnCallCallCategory
+  summary           String             @db.VarChar(2000)
+  actionTaken       String?            @db.VarChar(2000)
+  followUpRequired  Boolean            @default(false)
+  status            OnCallCallStatus   @default(OPEN)
+  closedAt          DateTime?
+  closedByUserId    String?            @db.Uuid
+  closingNote       String?            @db.VarChar(1000)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  deletedAt         DateTime?
+
+  @@index([receivedAt])
+  @@index([status])
+  @@index([serviceUserId])
+  @@schema("scheduling")
+}
+
+// ---------------------------------------------------------------------------
+// Specialist care pathways (generic foundation; v1 ships Learning Disability).
+// A pathway case records a client-type-specific assessment (free-form sections
+// stored as JSON) and produces versioned, approved care plans. Section layouts
+// live in the frontend `pathway-specs.ts`, keeping this model generic.
+// ---------------------------------------------------------------------------
+
+enum SpecialistPathwayType {
+  LEARNING_DISABILITY
+  DEMENTIA
+  END_OF_LIFE
+  CHILDREN
+  SUPPORTED_LIVING
+
+  @@schema("service_users")
+}
+
+enum SpecialistPathwayStatus {
+  OPEN
+  ACTIVE
+  CLOSED
+
+  @@schema("service_users")
+}
+
+enum SpecialistPathwayPlanStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  RETURNED
+  SUPERSEDED
+
+  @@schema("service_users")
+}
+
+model SpecialistPathwayCase {
+  id            String                  @id @default(uuid()) @db.Uuid
+  serviceUserId String                  @db.Uuid
+  pathwayType   SpecialistPathwayType
+  ref           String
+  status        SpecialistPathwayStatus @default(OPEN)
+  reviewDueDate DateTime?
+  /// Keyed assessment answers: { [sectionKey]: { fields: Record<string,string>, verifiedById, verifiedAt } }
+  sections      Json                    @default("{}")
+  closedReason  String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  deletedById String?   @db.Uuid
+
+  serviceUser ServiceUser                 @relation(fields: [serviceUserId], references: [id])
+  plans       SpecialistPathwayCarePlan[]
+  risks       SpecialistPathwayRisk[]
+  reviews     SpecialistPathwayReview[]
+  events      SpecialistPathwayEvent[]
+  professionals SpecialistPathwayProfessional[]
+  documents     SpecialistPathwayDocument[]
+
+  @@unique([pathwayType, ref])
+  @@index([serviceUserId])
+  @@index([pathwayType, status])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+enum SpecialistPathwayRiskStatus {
+  OPEN
+  CLOSED
+
+  @@schema("service_users")
+}
+
+enum SpecialistPathwayReviewOutcome {
+  NO_CHANGE
+  PLAN_UPDATE_NEEDED
+  ESCALATED
+  CASE_CLOSED
+
+  @@schema("service_users")
+}
+
+/// Risk assessment on a pathway case: score = likelihood × impact (each 1–5).
+model SpecialistPathwayRisk {
+  id          String                      @id @default(uuid()) @db.Uuid
+  caseId      String                      @db.Uuid
+  title       String
+  category    String?
+  description String?
+  likelihood  Int
+  impact      Int
+  controls    String?
+  reviewDate  DateTime?
+  status      SpecialistPathwayRiskStatus @default(OPEN)
+  createdById String?                     @db.Uuid
+  createdAt   DateTime                    @default(now())
+  updatedAt   DateTime                    @updatedAt
+  deletedAt   DateTime?
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("service_users")
+}
+
+/// A recorded review of a pathway case.
+model SpecialistPathwayReview {
+  id             String                         @id @default(uuid()) @db.Uuid
+  caseId         String                         @db.Uuid
+  reviewedAt     DateTime
+  reviewedById   String?                        @db.Uuid
+  outcome        SpecialistPathwayReviewOutcome
+  notes          String?
+  nextReviewDate DateTime?
+  createdAt      DateTime                       @default(now())
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("service_users")
+}
+
+/// External professional involved in a pathway case (GP, social worker, SALT...).
+model SpecialistPathwayProfessional {
+  id           String    @id @default(uuid()) @db.Uuid
+  caseId       String    @db.Uuid
+  name         String
+  role         String
+  organisation String?
+  phone        String?
+  email        String?
+  notes        String?
+  createdById  String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("service_users")
+}
+
+/// File attached to a pathway case. Stored outside the public static root; served only via the download endpoint.
+model SpecialistPathwayDocument {
+  id           String    @id @default(uuid()) @db.Uuid
+  caseId       String    @db.Uuid
+  title        String
+  category     String?
+  fileName     String
+  originalName String
+  mimeType     String
+  fileSize     Int
+  uploadedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("service_users")
+}
+
+/// Activity timeline entry on a pathway case.
+model SpecialistPathwayEvent {
+  id     String   @id @default(uuid()) @db.Uuid
+  caseId String   @db.Uuid
+  action String
+  note   String?
+  userId String?  @db.Uuid
+  at     DateTime @default(now())
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("service_users")
+}
+
+model SpecialistPathwayCarePlan {
+  id        String                      @id @default(uuid()) @db.Uuid
+  caseId    String                      @db.Uuid
+  version   Int
+  status    SpecialistPathwayPlanStatus @default(DRAFT)
+  /// Plan body (free-form; e.g. { summary, goals[], support[] }).
+  content   Json                        @default("{}")
+  comment   String?
+
+  submittedById String?   @db.Uuid
+  submittedAt   DateTime?
+  decidedById   String?   @db.Uuid
+  decidedAt     DateTime?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+
+  case SpecialistPathwayCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@unique([caseId, version])
+  @@index([caseId])
+  @@index([status])
+  @@schema("service_users")
+}
+
+// ---------------------------------------------------------------------------
+// Safeguarding (lean case register). A concern is raised, triaged (risk +
+// category), referred to the Local Authority / CQC, investigated via a
+// timeline of events, and closed with an outcome. People/branch are linked as
+// scalar UUIDs (validated in the service), so no cross-schema FK is needed.
+// ---------------------------------------------------------------------------
+
+enum SafeguardingStatus {
+  RAISED
+  SCREENING
+  INVESTIGATING
+  REFERRED
+  CLOSED
+
+  @@schema("incidents")
+}
+
+enum SafeguardingRisk {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@schema("incidents")
+}
+
+enum SafeguardingCategory {
+  PHYSICAL
+  EMOTIONAL
+  SEXUAL
+  FINANCIAL
+  NEGLECT
+  SELF_NEGLECT
+  DISCRIMINATORY
+  ORGANISATIONAL
+  DOMESTIC_ABUSE
+  MODERN_SLAVERY
+  OTHER
+
+  @@schema("incidents")
+}
+
+enum SafeguardingReferralDecision {
+  NOT_REQUIRED
+  PENDING
+  MADE
+
+  @@schema("incidents")
+}
+
+model SafeguardingCase {
+  id              String                       @id @default(uuid()) @db.Uuid
+  referenceNumber String                       @unique
+  status          SafeguardingStatus           @default(RAISED)
+  category        SafeguardingCategory
+  riskLevel       SafeguardingRisk             @default(MEDIUM)
+  aboutServiceUserId String?                   @db.Uuid
+  personDescription  String?
+  locationId         String?                   @db.Uuid
+  handlerEmployeeId  String?                   @db.Uuid
+  raisedByRole       String?
+  raisedAt           DateTime
+  description        String                    @db.Text
+  immediateAction    String?
+  laReferral         SafeguardingReferralDecision @default(PENDING)
+  laReference        String?
+  laReferredAt       DateTime?
+  cqcNotified        SafeguardingReferralDecision @default(PENDING)
+  cqcReference       String?
+  outcome            String?
+  lessonsLearned     String?
+  closedAt           DateTime?
+
+  /// Phase 2: case lead (office user), review date, immediate safety, multi-agency and the person's voice.
+  leadUserId          String?   @db.Uuid
+  reviewDate          DateTime?
+  reportedToManagerAt DateTime?
+  personSafe          String?
+  safetyMeasures      String?   @db.Text
+  personWords         String?   @db.Text
+  evidence            String?   @db.Text
+  agencies            String[]  @default([])
+  agenciesOther       String?
+  meetingHeld         String?
+  meetingDate         DateTime?
+  protectionPlan      String?   @db.Text
+  personWants         String?   @db.Text
+  capacity            String?
+
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  recordedById String?  @db.Uuid
+  deletedById  String?  @db.Uuid
+
+  events SafeguardingEvent[]
+  investigation       SafeguardingInvestigation?
+  investigationPauses SafeguardingInvestigationPause[]
+
+  @@index([status])
+  @@index([category])
+  @@index([aboutServiceUserId])
+  @@index([locationId])
+  @@index([deletedAt])
+  @@schema("incidents")
+}
+
+model SafeguardingEvent {
+  id     String   @id @default(uuid()) @db.Uuid
+  caseId String   @db.Uuid
+  action String
+  note   String?
+  userId String?  @db.Uuid
+  at     DateTime @default(now())
+
+  case SafeguardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId])
+  @@schema("incidents")
+}
+
+/// Structured investigation of a safeguarding case (one per case, upserted) — same shape as
+/// IncidentInvestigation: set-up, findings, contributing factors, evidence and conclusion.
+model SafeguardingInvestigation {
+  id                         String                  @id @default(uuid()) @db.Uuid
+  caseId                     String                  @unique @db.Uuid
+  whatHappened               String?                 @db.Text
+  whyHappened                String?                 @db.Text
+  contributingFactors        String[]
+  contributingFactorDetails  Json?
+  rootCause                  String?                 @db.Text
+  preventable                IncidentPreventability?
+  conclusion                 String?                 @db.Text
+  completedAt                DateTime?
+  /// STANDARD / ENHANCED / COMPREHENSIVE.
+  investigationLevel         String?                 @db.VarChar(20)
+  leadInvestigatorEmployeeId String?                 @db.Uuid
+  /// NO / YES / NOT_KNOWN.
+  investigatorInvolved       String?                 @db.VarChar(20)
+  investigatorInvolvedReason String?                 @db.Text
+  targetDate                 DateTime?               @db.Date
+  termsOfReference           String?                 @db.Text
+  /// IN_PROGRESS / PAUSED / COMPLETED (separate from the case status).
+  investigationStatus        String                  @default("IN_PROGRESS") @db.VarChar(20)
+  recordsReviewed            String[]
+  recordsReviewedDetails     Json?
+  evidenceNotes              String?                 @db.Text
+  outstandingEvidence        String?                 @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+
+  case SafeguardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@schema("incidents")
+}
+
+/// One pause of a safeguarding investigation (kept after it is resumed).
+model SafeguardingInvestigationPause {
+  id             String    @id @default(uuid()) @db.Uuid
+  caseId         String    @db.Uuid
+  reason         String    @db.Text
+  pausedAt       DateTime  @default(now())
+  pausedById     String?   @db.Uuid
+  nextReviewDate DateTime  @db.Date
+  resumedAt      DateTime?
+  resumedById    String?   @db.Uuid
+
+  case SafeguardingCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  @@index([caseId, pausedAt])
+  @@schema("incidents")
+}
+
+model SafeguardingNumberSequence {
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([year])
+  @@schema("incidents")
+}
+
+// ---------------------------------------------------------------------------
+// CRM / Enquiries (lead intake pipeline). A care enquiry is captured, moved
+// through pipeline stages on a board, and converted into a ServiceUser (the
+// conversion reuses POST /service-users; the new id is stored here). People
+// are linked as scalar UUIDs, so no existing model is touched.
+// ---------------------------------------------------------------------------
+
+enum EnquiryStage {
+  NEW
+  CONTACTED
+  ASSESSMENT
+  OFFER
+  WON
+  LOST
+
+  @@schema("service_users")
+}
+
+enum EnquirySource {
+  SELF
+  FAMILY
+  GP
+  HOSPITAL
+  LOCAL_AUTHORITY
+  NHS
+  SOCIAL_WORKER
+  WEBSITE
+  WORD_OF_MOUTH
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum EnquiryType {
+  PRIVATE
+  LOCAL_AUTHORITY
+  NHS
+  HOSPITAL
+
+  @@schema("service_users")
+}
+
+/// An enquiry from the person or family, or a referral from a professional; both follow the same pipeline.
+enum EnquiryKind {
+  ENQUIRY
+  REFERRAL
+
+  @@schema("service_users")
+}
+
+enum EnquiryUrgency {
+  ROUTINE
+  URGENT
+  EMERGENCY
+
+  @@schema("service_users")
+}
+
+enum EnquiryReceivedVia {
+  PHONE
+  EMAIL
+  WEBSITE
+  IN_PERSON
+  LETTER
+  FAX
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum EnquiryLostReason {
+  PRICE
+  CHOSE_ANOTHER_PROVIDER
+  NO_CAPACITY
+  OUT_OF_AREA
+  NEEDS_NOT_MET
+  MOVED_TO_CARE_HOME
+  NO_LONGER_NEEDED
+  DECEASED
+  NO_RESPONSE
+  FUNDING_DECLINED
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum EnquiryFundingType {
+  SELF_FUNDED
+  LOCAL_AUTHORITY
+  NHS_CHC
+  MIXED
+  UNKNOWN
+
+  @@schema("service_users")
+}
+
+model Enquiry {
+  id                     String         @id @default(uuid()) @db.Uuid
+  referenceNumber        String         @unique
+  stage                  EnquiryStage   @default(NEW)
+  /// ENQUIRY (the person or family) or REFERRAL (a professional: council, NHS, hospital, GP, social worker).
+  kind                   EnquiryKind    @default(ENQUIRY)
+  /// Referral only: the referring organisation, the referrer's role, their reference and the date on the referral.
+  referringOrganisation  String?
+  referrerRole           String?
+  referralReference      String?
+  referralDate           DateTime?
+  firstName              String
+  lastName               String
+  dateOfBirth            DateTime?
+  contactName            String?
+  contactRelationship    String?
+  contactPhone           String?
+  contactEmail           String?
+  source                 EnquirySource  @default(OTHER)
+  sourceDetail           String?
+  enquiryType            EnquiryType?
+  urgency                EnquiryUrgency @default(ROUTINE)
+  needs                  String?        @db.Text
+  /// Care plans the person is likely to need (CARE_PLAN CarePathwayForm ids; scalar links).
+  carePlanFormIds        String[]       @default([]) @db.Uuid
+  ownerId                String?        @db.Uuid
+  /// How the enquiry reached us (phone, email, website, …).
+  receivedVia            EnquiryReceivedVia?
+  /// When the referrer/person sent the enquiry.
+  sentAt                 DateTime?
+  /// When the office received the enquiry (may differ from createdAt — when it was entered).
+  receivedAt             DateTime?
+  addressLine            String?
+  postcode               String?
+  /// Map position of the address (from Google Places); copied to the service user's address.
+  latitude               Decimal?       @db.Decimal(10, 7)
+  longitude              Decimal?       @db.Decimal(10, 7)
+  fundingType            EnquiryFundingType?
+  /// Funding type from the shared lookup (ServiceUserFundingType) — preferred over `fundingType`.
+  fundingTypeId          String?        @db.Uuid
+  funderName             String?
+  hoursPerWeek           Float?
+  visitsPerDay           Int?
+  requestedStartDate     DateTime?
+  /// Next follow-up due and what needs doing; overdue when in the past on an open enquiry.
+  nextFollowUpAt         DateTime?
+  nextAction             String?
+  /// Branch the enquiry belongs to (scalar link to Location; drives branch scoping).
+  locationId             String?        @db.Uuid
+  quoteWeeklyAmount      Float?
+  quoteHourlyRate        Float?
+  quoteSentAt            DateTime?
+  quoteNotes             String?
+  assessmentAt           DateTime?
+  /// Office user carrying out the assessment.
+  assessorId             String?        @db.Uuid
+  assessmentLocation     String?
+  lostReasonCode         EnquiryLostReason?
+  lostReason             String?
+  convertedServiceUserId String?        @db.Uuid
+  stageChangedAt         DateTime       @default(now())
+
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  deletedAt    DateTime?
+  recordedById String?   @db.Uuid
+  deletedById  String?   @db.Uuid
+
+  /// Legacy "Quote sent" enquiry (no quotation record) reviewed by staff; legacy quote fields stay as recorded.
+  legacyQuoteReconciledAt   DateTime?
+  legacyQuoteReconciledById String?   @db.Uuid
+  legacyQuoteReconcileNote  String?   @db.Text
+
+  events     EnquiryEvent[]
+  quotations EnquiryQuotation[]
+
+  @@index([stage])
+  @@index([kind])
+  @@index([source])
+  @@index([ownerId])
+  @@index([locationId])
+  @@index([deletedAt])
+  @@schema("service_users")
+}
+
+model EnquiryEvent {
+  id        String   @id @default(uuid()) @db.Uuid
+  enquiryId String   @db.Uuid
+  action    String
+  note      String?
+  userId    String?  @db.Uuid
+  at        DateTime @default(now())
+  /// Quotation version the event is about (quote created, sent, response, …).
+  quotationVersionId String? @db.Uuid
+
+  enquiry Enquiry @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+
+  @@index([enquiryId])
+  @@schema("service_users")
+}
+
+model EnquiryNumberSequence {
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([year])
+  @@schema("service_users")
+}
+
+// ---------------------------------------------------------------------------
+// Enquiry quotations. A quotation (stable number EQ-YYYY-NNNN) has numbered versions;
+// a version is editable only while DRAFT and is frozen (pricing snapshot) when it leaves
+// DRAFT. Prices come from the CLIENT charge cards (billing.ChargeCard), never pay cards.
+// ---------------------------------------------------------------------------
+
+enum EnquiryQuoteStatus {
+  DRAFT
+  PENDING_APPROVAL
+  APPROVED
+  SENT
+  CHANGES_REQUESTED
+  UNDER_NEGOTIATION
+  ACCEPTED
+  DECLINED
+  EXPIRED
+  SUPERSEDED
+  CANCELLED
+
+  @@schema("service_users")
+}
+
+enum EnquiryQuoteType {
+  PROVISIONAL_ESTIMATE
+  FINAL
+
+  @@schema("service_users")
+}
+
+/// DETAILED: visits with times, priced from the rates. SUMMARY: a "total amount" quote — a typed weekly
+/// total, and the visits listed only by time of day (the client sees no times or per-visit prices).
+enum EnquiryQuoteClientLayout {
+  DETAILED
+  SUMMARY
+
+  @@schema("service_users")
+}
+
+enum EnquiryQuoteFundingCategory {
+  PRIVATE
+  LOCAL_AUTHORITY
+  NHS
+  OTHER
+  MIXED
+
+  @@schema("service_users")
+}
+
+enum EnquiryQuotePayerType {
+  PRIVATE_CLIENT
+  LOCAL_AUTHORITY
+  NHS
+  OTHER
+
+  @@schema("service_users")
+}
+
+/// FIXED = £ per week, PERCENTAGE = % of the weekly total, PER_VISIT = £ per visit.
+enum EnquiryQuoteFundingMethod {
+  FIXED
+  PERCENTAGE
+  PER_VISIT
+
+  @@schema("service_users")
+}
+
+enum EnquiryQuoteFundingStatus {
+  CONFIRMED
+  PENDING_APPROVAL
+
+  @@schema("service_users")
+}
+
+enum EnquiryQuotePatternFrequency {
+  WEEKLY
+  FORTNIGHTLY
+  FOUR_WEEKLY
+  ONE_OFF
+
+  @@schema("service_users")
+}
+
+enum EnquiryQuoteExtraKind {
+  SETUP_FEE
+  MILEAGE
+  DISCOUNT
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum EnquiryQuoteResponseType {
+  ACCEPTED
+  DECLINED
+  CHANGES_REQUESTED
+  QUERY
+  NO_RESPONSE
+
+  @@schema("service_users")
+}
+
+/// EMAIL = sent through the system mail integration; the others record a send done outside CareFlow.
+enum EnquiryQuoteSendChannel {
+  EMAIL
+  EXTERNAL_EMAIL
+  POST
+  HAND_DELIVERED
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum EnquiryQuoteSendStatus {
+  SENT
+  FAILED
+  RECORDED
+
+  @@schema("service_users")
+}
+
+enum EnquiryQuoteFollowUpStatus {
+  OPEN
+  DONE
+  CANCELLED
+
+  @@schema("service_users")
+}
+
+model EnquiryQuotation {
+  id              String    @id @default(uuid()) @db.Uuid
+  enquiryId       String    @db.Uuid
+  /// EQ-2026-0001 — the same for every version.
+  quotationNumber String    @unique
+  /// The enquiry's current quotation (one per enquiry).
+  isCurrent       Boolean   @default(true)
+  createdById     String?   @db.Uuid
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  enquiry        Enquiry                         @relation(fields: [enquiryId], references: [id], onDelete: Cascade)
+  versions       EnquiryQuotationVersion[]
+  communications EnquiryQuotationCommunication[]
+  responses      EnquiryQuotationResponse[]
+  followUps      EnquiryQuotationFollowUp[]
+
+  @@index([enquiryId])
+  @@schema("service_users")
+}
+
+model EnquiryQuotationNumberSequence {
+  year      Int
+  lastValue Int      @default(0)
+  updatedAt DateTime @updatedAt
+
+  @@id([year])
+  @@schema("service_users")
+}
+
+model EnquiryQuotationVersion {
+  id                   String             @id @default(uuid()) @db.Uuid
+  quotationId          String             @db.Uuid
+  versionNumber        Int
+  status               EnquiryQuoteStatus @default(DRAFT)
+  quoteType            EnquiryQuoteType   @default(PROVISIONAL_ESTIMATE)
+  clientLayout         EnquiryQuoteClientLayout @default(DETAILED)
+  /// The typed weekly price of the visits on a SUMMARY ("total amount") quote.
+  manualWeeklyTotal    Decimal?                    @db.Decimal(12, 2)
+  /// Version this one was revised from (V1 for V2, …).
+  revisedFromVersionId String?            @db.Uuid
+
+  locationId             String?                     @db.Uuid
+  ownerId                String?                     @db.Uuid
+  proposedStartDate      DateTime?                   @db.Date
+  proposedEndDate        DateTime?                   @db.Date
+  issueDate              DateTime?                   @db.Date
+  validUntil             DateTime?                   @db.Date
+  currency               String                      @default("GBP")
+  /// Assessment the quote is based on (InitialAssessmentSubmission id) or a free-text reference.
+  assessmentSubmissionId String?                     @db.Uuid
+  assessmentReference    String?
+  fundingCategory        EnquiryQuoteFundingCategory @default(PRIVATE)
+  /// Client charge card used for pricing; empty = picked automatically (branch / funder / default).
+  chargeCardId           String?                     @db.Uuid
+  /// £ per carer per hour; quotes are priced by hand from this (charge cards are not used).
+  hourlyRate             Decimal?                    @db.Decimal(10, 2)
+  /// Other rates typed on the quote: short visits, weekend, bank holiday, sleeping / waking night (QuoteRates JSON).
+  rates                  Json?
+  /// Staff only — never on the client preview, PDF or email.
+  internalNotes          String?                     @db.Text
+  clientNotes            String?                     @db.Text
+  terms                  String?                     @db.Text
+
+  /// Server-calculated totals (latest calculation; frozen with the snapshot once issued).
+  weeklyTotal           Decimal   @default(0) @db.Decimal(12, 2)
+  fourWeeklyTotal       Decimal   @default(0) @db.Decimal(12, 2)
+  monthlyAverageTotal   Decimal   @default(0) @db.Decimal(12, 2)
+  annualTotal           Decimal   @default(0) @db.Decimal(12, 2)
+  calendarMonthTotal    Decimal?  @db.Decimal(12, 2)
+  oneOffTotal           Decimal   @default(0) @db.Decimal(12, 2)
+  vatWeekly             Decimal   @default(0) @db.Decimal(12, 2)
+  clientWeeklyLiability Decimal   @default(0) @db.Decimal(12, 2)
+  weeklyCoverageMinutes Int       @default(0)
+  weeklyCarerMinutes    Int       @default(0)
+  unresolvedCharges     Int       @default(0)
+  calculatedAt          DateTime?
+  /// Full breakdown frozen when the version leaves DRAFT (the issued price).
+  pricingSnapshot       Json?
+  issuedAt              DateTime?
+  issuedById            String?   @db.Uuid
+
+  submittedForApprovalAt   DateTime?
+  submittedForApprovalById String?   @db.Uuid
+  approvedAt               DateTime?
+  approvedById             String?   @db.Uuid
+  approvalNote             String?   @db.Text
+
+  sentAt                DateTime?
+  respondedAt           DateTime?
+  acceptedAt            DateTime?
+  /// Signed / written agreement received (recorded by staff — not a digital signature).
+  agreementReceivedAt   DateTime?
+  agreementRecordedById String?   @db.Uuid
+  agreementNote         String?   @db.Text
+  /// Draft care package created from this version (service_users.ServiceUserVisitPlan).
+  convertedVisitPlanId  String?   @db.Uuid
+  convertedAt           DateTime?
+  convertedById         String?   @db.Uuid
+  statusChangedAt       DateTime  @default(now())
+
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quotation EnquiryQuotation               @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+  patterns  EnquiryQuotationVisitPattern[]
+  fundings  EnquiryQuotationFunding[]
+  extras    EnquiryQuotationExtra[]
+
+  @@unique([quotationId, versionNumber])
+  @@index([status])
+  @@index([locationId])
+  @@schema("service_users")
+}
+
+/// One visit pattern: e.g. "Morning personal care", Mon–Fri 08:00–08:45, 2 carers.
+model EnquiryQuotationVisitPattern {
+  id              String                       @id @default(uuid()) @db.Uuid
+  versionId       String                       @db.Uuid
+  sortOrder       Int                          @default(0)
+  label           String
+  careType        String?
+  /// Visit start (HH:mm). With a time window it is the window start.
+  startTime       String
+  /// Visit end (HH:mm); an end at/before the start is the next day.
+  endTime         String?
+  /// Latest start when the visit can happen in a window (HH:mm); null = fixed time.
+  windowEndTime   String?
+  durationMinutes Int
+  /// 0=Sun … 6=Sat (same as visit plan slots).
+  daysOfWeek      Int[]                        @default([])
+  frequency       EnquiryQuotePatternFrequency @default(WEEKLY)
+  effectiveFrom   DateTime?                    @db.Date
+  effectiveTo     DateTime?                    @db.Date
+  oneOffDates     DateTime[]                   @db.Date
+  /// Carers per visit (2+ = double-up for this visit only).
+  carersPerVisit  Int                          @default(1)
+  nightDuty       VisitPlanNightDuty           @default(NONE)
+  activities      String[]                     @default([])
+  notes           String?                      @db.Text
+
+  /// Manual charge per visit instead of the card rate (reason + who + when required).
+  manualChargePerVisit Decimal?  @db.Decimal(12, 2)
+  overrideReason       String?   @db.Text
+  overrideById         String?   @db.Uuid
+  overrideAt           DateTime?
+
+  /// Server calculated.
+  rateReference         String?
+  chargePerOccurrence   Decimal? @db.Decimal(12, 2)
+  weeklyOccurrences     Decimal  @default(0) @db.Decimal(8, 3)
+  weeklyCoverageMinutes Int      @default(0)
+  weeklyCarerMinutes    Int      @default(0)
+  weeklyTotal           Decimal  @default(0) @db.Decimal(12, 2)
+  pricingIssue          String?  @db.Text
+
+  version EnquiryQuotationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId])
+  @@schema("service_users")
+}
+
+model EnquiryQuotationFunding {
+  id           String                    @id @default(uuid()) @db.Uuid
+  versionId    String                    @db.Uuid
+  payerType    EnquiryQuotePayerType
+  payerName    String?
+  funderId     String?                   @db.Uuid
+  reference    String?
+  method       EnquiryQuoteFundingMethod @default(FIXED)
+  amount       Decimal                   @db.Decimal(12, 2)
+  status       EnquiryQuoteFundingStatus @default(PENDING_APPROVAL)
+  /// Server calculated £ per week covered by this payer.
+  weeklyAmount Decimal                   @default(0) @db.Decimal(12, 2)
+  sortOrder    Int                       @default(0)
+
+  version EnquiryQuotationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId])
+  @@schema("service_users")
+}
+
+/// Set-up fee, mileage, discount or another charge on top of the visits.
+model EnquiryQuotationExtra {
+  id           String                   @id @default(uuid()) @db.Uuid
+  versionId    String                   @db.Uuid
+  kind         EnquiryQuoteExtraKind
+  description  String
+  frequency    QuotationChargeFrequency @default(WEEKLY)
+  /// £ amount; for MILEAGE the miles (quantity) × rate; for DISCOUNT a £ amount or a % when isPercentage.
+  amount       Decimal?                 @db.Decimal(12, 2)
+  quantity     Decimal?                 @db.Decimal(10, 2)
+  isPercentage Boolean                  @default(false)
+  /// Server calculated £ (negative for a discount).
+  total        Decimal                  @default(0) @db.Decimal(12, 2)
+  sortOrder    Int                      @default(0)
+
+  version EnquiryQuotationVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+
+  @@index([versionId])
+  @@schema("service_users")
+}
+
+/// Every send (or recorded external send) of a specific version.
+model EnquiryQuotationCommunication {
+  id                String                  @id @default(uuid()) @db.Uuid
+  quotationId       String                  @db.Uuid
+  versionId         String                  @db.Uuid
+  channel           EnquiryQuoteSendChannel
+  status            EnquiryQuoteSendStatus
+  recipientName     String?
+  recipientEmail    String?
+  template          String?
+  subject           String?
+  message           String?                 @db.Text
+  senderId          String?                 @db.Uuid
+  sentAt            DateTime?
+  failureReason     String?                 @db.Text
+  attemptCount      Int                     @default(1)
+  providerMessageId String?
+  followUpDate      DateTime?
+  /// Client-supplied key so a double-click / retry never sends twice.
+  idempotencyKey    String?                 @unique
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+
+  quotation EnquiryQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@index([versionId])
+  @@schema("service_users")
+}
+
+model EnquiryQuotationResponse {
+  id                    String                   @id @default(uuid()) @db.Uuid
+  quotationId           String                   @db.Uuid
+  versionId             String                   @db.Uuid
+  responseType          EnquiryQuoteResponseType
+  responderName         String?
+  responderRelationship String?
+  method                String?
+  respondedAt           DateTime
+  details               String?                  @db.Text
+  /// Where the evidence is (e.g. "Email from daughter 3 Nov, saved to documents").
+  evidence              String?                  @db.Text
+  declineReasonCode     EnquiryLostReason?
+  nextAction            String?
+  /// Draft revision created by a Changes Requested response.
+  createdVersionId      String?                  @db.Uuid
+  recordedById          String?                  @db.Uuid
+  createdAt             DateTime                 @default(now())
+
+  quotation EnquiryQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@index([versionId])
+  @@schema("service_users")
+}
+
+model EnquiryQuotationFollowUp {
+  id                String                     @id @default(uuid()) @db.Uuid
+  quotationId       String                     @db.Uuid
+  versionId         String?                    @db.Uuid
+  assigneeId        String?                    @db.Uuid
+  method            String?
+  dueAt             DateTime
+  note              String?                    @db.Text
+  status            EnquiryQuoteFollowUpStatus @default(OPEN)
+  completedAt       DateTime?
+  completedById     String?                    @db.Uuid
+  outcome           String?                    @db.Text
+  /// Follow-up this one replaced when it was rescheduled.
+  rescheduledFromId String?                    @db.Uuid
+  createdById       String?                    @db.Uuid
+  createdAt         DateTime                   @default(now())
+  updatedAt         DateTime                   @updatedAt
+
+  quotation EnquiryQuotation @relation(fields: [quotationId], references: [id], onDelete: Cascade)
+
+  @@index([quotationId])
+  @@index([status, dueAt])
+  @@schema("service_users")
+}
+
+/// Google driving distance and time between two map points (rounded to 5 decimals), kept so the
+/// rota and visit billing do not ask Google again for the same journey. Only Google answers are stored.
+model TravelRouteCache {
+  id             String   @id @default(uuid()) @db.Uuid
+  originKey      String   @db.VarChar(32)
+  destinationKey String   @db.VarChar(32)
+  meters         Int
+  seconds        Int
+  fetchedAt      DateTime @default(now())
+
+  @@unique([originKey, destinationKey])
+  @@schema("scheduling")
 }

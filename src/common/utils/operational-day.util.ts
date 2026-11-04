@@ -17,17 +17,43 @@ export function getOperationalTimeZone(_orgTimezone?: string | null): string {
   return trimmed || DEFAULT_OPERATIONAL_TIMEZONE;
 }
 
+/**
+ * Building an Intl.DateTimeFormat is slow and these helpers run thousands of times when a
+ * visit plan is counted, so one formatter per timezone is kept and reused (same output).
+ */
+const dayFormatters = new Map<string, Intl.DateTimeFormat>();
+const hmFormatters = new Map<string, Intl.DateTimeFormat>();
+const hmsFormatters = new Map<string, Intl.DateTimeFormat>();
+
+function cachedFormatter(
+  cache: Map<string, Intl.DateTimeFormat>,
+  timeZone: string,
+  make: () => Intl.DateTimeFormat,
+): Intl.DateTimeFormat {
+  let formatter = cache.get(timeZone);
+  if (!formatter) {
+    formatter = make();
+    cache.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 /** Operational calendar day as YYYY-MM-DD in the given IANA timezone. */
 export function operationalTodayIso(
   now = new Date(),
   timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): string {
-  return new Intl.DateTimeFormat('en-CA', {
+  return cachedFormatter(
+    dayFormatters,
     timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(now);
+    () =>
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }),
+  ).format(now);
 }
 
 /** Calendar day of an instant in the operational timezone (YYYY-MM-DD). */
@@ -43,12 +69,17 @@ export function formatHmInTimeZone(
   instant: Date,
   timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): string {
-  const parts = new Intl.DateTimeFormat('en-GB', {
+  const parts = cachedFormatter(
+    hmFormatters,
     timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(instant);
+    () =>
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone,
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+      }),
+  ).formatToParts(instant);
   const hour = parts.find((p) => p.type === 'hour')?.value ?? '00';
   const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
   return `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
@@ -59,13 +90,18 @@ export function formatHmsInTimeZone(
   instant: Date,
   timeZone = DEFAULT_OPERATIONAL_TIMEZONE,
 ): string {
-  const parts = new Intl.DateTimeFormat('en-GB', {
+  const parts = cachedFormatter(
+    hmsFormatters,
     timeZone,
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hourCycle: 'h23',
-  }).formatToParts(instant);
+    () =>
+      new Intl.DateTimeFormat('en-GB', {
+        timeZone,
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hourCycle: 'h23',
+      }),
+  ).formatToParts(instant);
   const hour = parts.find((p) => p.type === 'hour')?.value ?? '00';
   const minute = parts.find((p) => p.type === 'minute')?.value ?? '00';
   const second = parts.find((p) => p.type === 'second')?.value ?? '00';

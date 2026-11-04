@@ -27,7 +27,7 @@ describe('Q35: holiday entitlement and holiday pay (synthetic terms)', () => {
   const post = (user: { id: string }, path: string, body: Record<string, unknown> = {}) =>
     request(server()).post(path).set(as(user)).send(body);
   const get = (user: { id: string }, path: string) => request(server()).get(path).set(as(user));
-  const REGULAR = { workerCategory: 'REGULAR_HOURS', leaveYearStartMonth: 4, weeklyHours: 37.5, payMethod: 'NORMAL_REMUNERATION_52_WEEKS', effectiveFrom: '2026-04-01' };
+  const REGULAR = { workerCategory: 'REGULAR_HOURS', leaveYearStartMonth: 4, payMethod: 'NORMAL_REMUNERATION_52_WEEKS', effectiveFrom: '2026-04-01' };
   const IRREGULAR = { workerCategory: 'IRREGULAR_HOURS', leaveYearStartMonth: 4, payMethod: 'ROLLED_UP_12_07', effectiveFrom: '2026-04-01' };
   const terms = async (body: Record<string, unknown>) => {
     const created = await post(officer, `/payroll/employees/${employeeId}/leave-terms`, body);
@@ -36,6 +36,9 @@ describe('Q35: holiday entitlement and holiday pay (synthetic terms)', () => {
     return created.body.data.id as string;
   };
   const entry = (body: Record<string, unknown>) => post(officer, `/payroll/employees/${employeeId}/leave-entries`, { note: 'Synthetic', ...body });
+  // Contracted weekly hours are entered on the employee's record; agreements and terms copy them.
+  const setHours = (hours: number | null) =>
+    t.prisma.employeeEmployment.updateMany({ where: { employeeId }, data: { contractedWeeklyHours: hours } });
   const position = async (query = 'asOf=2026-11-03') => (await get(officer, `/payroll/employees/${employeeId}/leave?${query}`)).body.data;
 
   beforeAll(async () => {
@@ -51,6 +54,7 @@ describe('Q35: holiday entitlement and holiday pay (synthetic terms)', () => {
     payOfficer = await createStaffUser(t.prisma, { permissions: ['billing.payroll_runs.read', 'billing.payroll_runs.manage', org] });
     payApprover = await createStaffUser(t.prisma, { permissions: ['billing.payroll_runs.read', 'billing.payroll_runs.approve', org] });
     employeeId = (await createCarer(t.prisma)).employeeId;
+    await setHours(37.5);
   });
   afterAll(async () => {
     await t.close();
@@ -76,8 +80,10 @@ describe('Q35: holiday entitlement and holiday pay (synthetic terms)', () => {
     const refused = await post(officer, `/payroll/employees/${employeeId}/leave-terms`, { ...REGULAR, payMethod: 'ROLLED_UP_12_07' });
     expect(refused.status).toBe(400);
     expect(refused.body.message).toMatch(/only be used for a worker with irregular hours or who works part of the year/);
-    expect((await post(officer, `/payroll/employees/${employeeId}/leave-terms`, { ...REGULAR, weeklyHours: undefined })).body.message).toMatch(
-      /hours of a normal working week/,
+    expect((await post(officer, `/payroll/employees/${employeeId}/leave-terms`, { ...REGULAR, weeklyHours: 37.5 })).status).toBe(400);
+    await setHours(null);
+    expect((await post(officer, `/payroll/employees/${employeeId}/leave-terms`, REGULAR)).body.message).toMatch(
+      /contracted weekly hours on the Edit employee page: they are the hours of a normal working week/,
     );
   });
 
@@ -146,7 +152,8 @@ describe('Q35: holiday entitlement and holiday pay (synthetic terms)', () => {
 
   it('new terms replace the earlier ones from their start date; the earlier ones stay as history', async () => {
     await terms(REGULAR);
-    await terms({ ...REGULAR, weeklyHours: 20, effectiveFrom: '2026-10-01' });
+    await setHours(20);
+    await terms({ ...REGULAR, effectiveFrom: '2026-10-01' });
     const listed = (await get(officer, `/payroll/employees/${employeeId}/leave-terms`)).body.data;
     expect(listed.map((r: Record<string, unknown>) => [r.effectiveFrom, r.effectiveTo, r.status, r.weeklyHours])).toEqual([
       ['2026-10-01', null, 'ACTIVE', 20],

@@ -577,6 +577,8 @@ export class ServiceUsersService implements OnModuleInit {
             where: {
               serviceUserId: { in: pageIds },
               status: ServiceUserCarePlanInstanceStatus.PUBLISHED,
+              // Suspended / archived plans are not active review items.
+              lifecycleStatus: 'ACTIVE',
             },
             select: { serviceUserId: true, nextReviewDueAt: true },
           }),

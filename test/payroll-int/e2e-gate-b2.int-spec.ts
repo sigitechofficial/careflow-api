@@ -319,7 +319,9 @@ describe('Gate B2 end to end: employment wages for one synthetic period', () => 
       const created = await post(officer, `/payroll/employees/${employeeId}/leave-terms`, { leaveYearStartMonth: 4, effectiveFrom: '2026-04-01', ...body });
       expect((await post(leaveApprover, `/payroll/leave-terms/${created.body.data.id}/approve`)).status).toBe(201);
     };
-    await terms(people.gus, { workerCategory: 'REGULAR_HOURS', weeklyHours: 14, payMethod: 'NORMAL_REMUNERATION_52_WEEKS' });
+    // The normal week is the contracted weekly hours on the employee's record.
+    await t.prisma.employeeEmployment.updateMany({ where: { employeeId: people.gus }, data: { contractedWeeklyHours: 14 } });
+    await terms(people.gus, { workerCategory: 'REGULAR_HOURS', payMethod: 'NORMAL_REMUNERATION_52_WEEKS' });
     await terms(people.hana, { workerCategory: 'IRREGULAR_HOURS', payMethod: 'ROLLED_UP_12_07' });
     const position = async (employeeId: string) =>
       (await request(server()).get(`/payroll/employees/${employeeId}/leave?asOf=2026-11-30`).set(bearer(t.staffToken(officer.id)))).body.data;

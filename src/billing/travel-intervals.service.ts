@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RecordTravelIntervalDto } from './dto/travel-intervals.dto';
 import { assertDifferentUser } from './financial-controls.util';
 import { detectInterVisitTravel } from './pay-inter-visit-travel.util';
+import { loadTravelGapOptions, withServiceUserLocations } from './travel-gap-settings.store';
 import { isPaySettled } from './pay-settlement.util';
 import { decidedTravelForVisit, intervalIsPayable, travelTreatment } from './travel-interval.util';
 
@@ -92,7 +93,8 @@ export class TravelIntervalsService {
         select: { id: true, visitRef: true, approvedPayStart: true, approvedPayEnd: true, serviceUserId: true },
       });
       if (previous?.approvedPayStart && previous.approvedPayEnd) {
-        const [journey] = detectInterVisitTravel([
+        const travelGapOptions = await loadTravelGapOptions(this.prisma);
+        const [journey] = detectInterVisitTravel(await withServiceUserLocations(this.prisma, [
           {
             reconciliationId: previous.id,
             employeeId: visit.employeeId,
@@ -110,7 +112,7 @@ export class TravelIntervalsService {
             manualTravelMinutes: visit.travelMinutes,
             serviceUserId: visit.serviceUserId,
           },
-        ]);
+        ]), travelGapOptions);
         if (journey) {
           estimate = {
             fromVisitRef: previous.visitRef,
