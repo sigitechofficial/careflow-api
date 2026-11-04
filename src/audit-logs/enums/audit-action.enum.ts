@@ -524,6 +524,7 @@ export enum AuditAction {
   QUOTATION_UPDATED = 'quotation_updated',
   QUOTATION_STATUS_CHANGED = 'quotation_status_changed',
   EMPLOYEE_HOURS_APPROVAL_DECIDED = 'employee_hours_approval_decided',
+  EMPLOYEE_HOURS_APPROVED_BY_REQUESTER = 'employee_hours_approved_by_requester',
   EMPLOYEE_HOURS_APPROVALS_DELETED = 'employee_hours_approvals_deleted',
   EMPLOYEE_CONTRACTED_HOURS_CHANGE_REQUESTED = 'employee_contracted_hours_change_requested',
   EMPLOYEE_EXTRA_WEEKLY_HOURS_GRANTED = 'employee_extra_weekly_hours_granted',
