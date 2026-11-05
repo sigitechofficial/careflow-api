@@ -18,7 +18,9 @@
  * (default admin@careadmin.local / Admin@12345). A non-local API_BASE_URL needs --allow-remote.
  *
  * Input file (JSON) — see create-visits.example.json:
- *   fromDate, toDate?          rota dates to generate (toDate defaults to fromDate + 13 days)
+ *   fromDate?, toDate?         rota dates, as the Visit plan tab's Generate rota step: From defaults to
+ *                              today (organisation time zone), To to the rota horizon (Settings → Dom
+ *                              Rules: N days, or to month end); the nightly rolling rota extends it
  *   carer?                     default carer(s) for every visit with none of its own (one carer → many service users)
  *   amendmentReason?           saved on the visit plan amendment (CQC audit)
  *   respectWorkingPatterns?    true (default, as the app): carers stay off visits outside their working
@@ -88,7 +90,7 @@ type ServiceUserInput = {
   visits: VisitInput[];
 };
 type InputFile = {
-  fromDate: string;
+  fromDate?: string;
   toDate?: string;
   carer?: CarerRef | CarerRef[];
   amendmentReason?: string;
@@ -173,6 +175,44 @@ function parseDays(days: VisitInput['days']): number[] {
   if (days === 'weekends') return [0, 6];
   if (!Array.isArray(days)) throw new Error(`Unknown days "${days}"`);
   return [...new Set(days.map(dayIndex))].sort();
+}
+
+/** Today (YYYY-MM-DD) in the organisation's time zone, as the rota counts days. */
+function todayIn(timeZone: string): string {
+  return new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+}
+
+/** Last day of the month (YYYY-MM-DD) that iso is in. */
+function endOfMonthIso(iso: string): string {
+  const d = new Date(`${iso}T00:00:00.000Z`);
+  d.setUTCMonth(d.getUTCMonth() + 1, 0);
+  return d.toISOString().slice(0, 10);
+}
+
+type RotaDates = { fromDate: string; toDate: string; how: string };
+
+/**
+ * The Generate rota step's dates (resolveGenerateRotaToDate in the admin): From = today, To = the rota
+ * horizon from Settings → Dom Rules (N days inclusive of From, or to month end), unless the file names them.
+ */
+async function rotaDates(file: InputFile): Promise<RotaDates> {
+  const s = (await api<{
+    timezone?: string;
+    domRotaHorizonDays?: number;
+    domRotaHorizonMode?: 'FIXED_DAYS' | 'CALENDAR_MONTH';
+    domAutoExtendRotaEnabled?: boolean;
+  }>('GET', '/settings/general')).data ?? {};
+  const fromDate = file.fromDate ?? todayIn(s.timezone || 'Europe/London');
+  const monthMode = s.domRotaHorizonMode === 'CALENDAR_MONTH';
+  const toDate = file.toDate ?? (monthMode ? endOfMonthIso(fromDate) : addDaysIso(fromDate, (s.domRotaHorizonDays ?? 28) - 1));
+  if (toDate < fromDate) throw new Error('"toDate" is before "fromDate"');
+  const horizon = monthMode ? 'to month end' : `${s.domRotaHorizonDays ?? 28} days`;
+  const how = file.toDate
+    ? 'dates from the file'
+    : `the rota horizon (${horizon}, Settings → Dom Rules)${
+        s.domAutoExtendRotaEnabled ? '; the nightly rolling rota keeps extending it' : '; rolling rota is off'
+      }`;
+  return { fromDate, toDate, how };
 }
 
 function chunks(from: string, to: string): Array<{ fromDate: string; toDate: string }> {
@@ -395,7 +435,7 @@ async function processServiceUser(
   file: InputFile,
   lookups: Lookups,
   taskList: Map<string, { id: string; name: string }>,
-  toDate: string,
+  { fromDate, toDate }: RotaDates,
 ): Promise<Summary> {
   const su = await findServiceUser(input.serviceUser);
   const label = `${su.serviceUserNumber ?? su.id} ${su.firstName} ${su.lastName}`;
@@ -495,7 +535,7 @@ async function processServiceUser(
   const wantedMeds = input.visits.flatMap((v) =>
     (v.medicines ?? []).map((m) => ({ round: v.round.toUpperCase(), visitStart: v.start, ...m })),
   );
-  if (wantedMeds.length) await saveMedicines(su.id, wantedMeds, lookups, file.fromDate, summary);
+  if (wantedMeds.length) await saveMedicines(su.id, wantedMeds, lookups, fromDate, summary);
 
   if (DRY_RUN || !plan) return summary;
 
@@ -526,7 +566,7 @@ async function processServiceUser(
   // 6) Generate the rota for the dates (preview first, as the Generate rota dialog does).
   let created = 0;
   let skipped = 0;
-  for (const range of chunks(file.fromDate, toDate)) {
+  for (const range of chunks(fromDate, toDate)) {
     const qs = new URLSearchParams(range).toString();
     await api('GET', `/service-users/${su.id}/visit-plans/${plan.id}/generate-schedule-preview?${qs}`);
     const gen = await api<{ visitsCreated: number; visitsSkipped: number; weeklyHoursWarning?: string }>(
@@ -538,10 +578,10 @@ async function processServiceUser(
     skipped += gen.data?.visitsSkipped ?? 0;
     if (gen.data?.weeklyHoursWarning) summary.warnings.push(gen.data.weeklyHoursWarning);
   }
-  log(`  rota generated ${file.fromDate} → ${toDate}: ${created} visit(s) created, ${skipped} already there`);
+  log(`  rota generated ${fromDate} → ${toDate}: ${created} visit(s) created, ${skipped} already there`);
 
   // 7) Read the rota back.
-  summary.visits = await checkRota(su.id, file.fromDate, toDate);
+  summary.visits = await checkRota(su.id, fromDate, toDate);
   return summary;
 }
 
@@ -807,14 +847,15 @@ async function main() {
   }
 
   const file = JSON.parse(readFileSync(filePath, 'utf8')) as InputFile;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(file.fromDate ?? '')) throw new Error('"fromDate" must be YYYY-MM-DD');
-  const toDate = file.toDate ?? addDaysIso(file.fromDate, 13);
-  if (toDate < file.fromDate) throw new Error('"toDate" is before "fromDate"');
+  const isoDate = /^\d{4}-\d{2}-\d{2}$/;
+  if (file.fromDate != null && !isoDate.test(file.fromDate)) throw new Error('"fromDate" must be YYYY-MM-DD');
+  if (file.toDate != null && !isoDate.test(file.toDate)) throw new Error('"toDate" must be YYYY-MM-DD');
   if (!file.serviceUsers?.length) throw new Error('"serviceUsers" is empty');
 
   log(`API ${BASE} as ${EMAIL}${DRY_RUN ? ' — DRY RUN (previews only, nothing saved)' : ''}`);
-  log(`Rota dates ${file.fromDate} → ${toDate}`);
   await login();
+  const dates = await rotaDates(file);
+  log(`Rota ${dates.fromDate} → ${dates.toDate}: ${dates.how}`);
 
   const lookups = (await api<Lookups>('GET', '/medication-lookups')).data!;
   const taskList = catalogueTasks((await api('GET', '/task-catalogue')).data);
@@ -822,7 +863,7 @@ async function main() {
   const results: Summary[] = [];
   for (const su of file.serviceUsers) {
     try {
-      results.push(await processServiceUser(su, file, lookups, taskList, toDate));
+      results.push(await processServiceUser(su, file, lookups, taskList, dates));
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       log(`  ✖ ${message}`);
