@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ScheduledVisitStatus as PrismaVisitStatus } from '@prisma/client';
+import { lateCancellationPercent } from '../billing/invoice-late-cancellation.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -121,9 +122,19 @@ export class ScheduledVisitsService {
         reasonLabel: string | null;
         reasonNotes: string | null;
         chargeDecision: string | null;
+        chargeDecisionNotes?: string | null;
+        chargePercent?: number | null;
+        noticeHours?: number | null;
+        /** Invoice the charge is on: locked (final) or on a run still being prepared. */
+        invoice?: { invoiceNumber: string | null; locked: boolean } | null;
       }
     >();
     if (!jobIds.length) return out;
+    // The service user's own invoice number on the run, else the run's number.
+    const suInvoiceNumber = (
+      run: { invoiceNumber: string | null; documents: Array<{ serviceUserId: string; invoiceNumber: string }> },
+      serviceUserId: string,
+    ) => run.documents.find((d) => d.serviceUserId === serviceUserId)?.invoiceNumber ?? run.invoiceNumber;
     const userName = (u: { firstName: string | null; lastName: string | null; email: string } | null) =>
       u ? `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email : null;
     const jobs = await this.prisma.scheduledJob.findMany({
@@ -141,6 +152,22 @@ export class ScheduledVisitsService {
             reasonCode: true,
             reasonNotes: true,
             chargeDecision: true,
+            chargeDecisionNotes: true,
+            chargePercent: true,
+            suggestedChargePercent: true,
+            noticeHours: true,
+            serviceUserId: true,
+            includedInInvoiceRun: {
+              select: { invoiceNumber: true, documents: { select: { serviceUserId: true, invoiceNumber: true } } },
+            },
+            invoiceLines: {
+              select: {
+                invoiceRun: {
+                  select: { invoiceNumber: true, documents: { select: { serviceUserId: true, invoiceNumber: true } } },
+                },
+              },
+              take: 1,
+            },
             cancelledBy: { select: { firstName: true, lastName: true, email: true } },
           },
         },
@@ -161,6 +188,15 @@ export class ScheduledVisitsService {
               reasonLabel: visitCancellationReasonMeta(c.reasonCode).label,
               reasonNotes: c.reasonNotes,
               chargeDecision: c.chargeDecision,
+              chargeDecisionNotes: c.chargeDecisionNotes,
+              chargePercent:
+                c.chargeDecision === 'CHARGE' ? lateCancellationPercent(c.chargePercent, c.suggestedChargePercent) : null,
+              noticeHours: c.noticeHours,
+              invoice: c.includedInInvoiceRun
+                ? { invoiceNumber: suInvoiceNumber(c.includedInInvoiceRun, c.serviceUserId), locked: true }
+                : c.invoiceLines[0]
+                  ? { invoiceNumber: suInvoiceNumber(c.invoiceLines[0].invoiceRun, c.serviceUserId), locked: false }
+                  : null,
             }
           : {
               source: 'PLAN_CHANGE',

@@ -22,7 +22,11 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ScheduledJobsHousekeepingService } from './scheduled-jobs-housekeeping.service';
 import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
-import { CancelJobDto } from './dto/cancel-job.dto';
+import {
+  CancelJobDto,
+  CancellationPolicyQueryDto,
+  ChangeCancellationBillingDto,
+} from './dto/cancel-job.dto';
 import { ReinstateJobDto } from './dto/reinstate-job.dto';
 import { ResetJobDeliveryDto } from './dto/reset-job-delivery.dto';
 import { ResetJobTaskDto } from './dto/reset-job-task.dto';
@@ -192,6 +196,17 @@ export class ScheduledJobsHousekeepingController {
     };
   }
 
+  @Get('jobs/:id/cancellation-policy')
+  @Permissions('scheduled_jobs_housekeeping.cancel')
+  @ApiOperation({ summary: 'What the Job Cancellation rules suggest for cancelling this visit (read only)' })
+  cancellationPolicy(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Query() query: CancellationPolicyQueryDto,
+  ) {
+    return this.service.cancellationPolicyPreview(user, id, query.reasonCode);
+  }
+
   @Patch('jobs/:id/cancel')
   @Permissions('scheduled_jobs_housekeeping.cancel')
   @ApiOperation({ summary: 'Cancel or call off a scheduled job with CQC-compliant record' })
@@ -202,6 +217,18 @@ export class ScheduledJobsHousekeepingController {
     @Req() req: Request,
   ) {
     return this.service.cancelJob(user, id, dto, getRequestAuditMeta(req));
+  }
+
+  @Patch('jobs/:id/cancellation/billing')
+  @Permissions('billing.invoice_runs.manage')
+  @ApiOperation({ summary: 'Change the billing decision of a cancelled visit (finance)' })
+  changeCancellationBilling(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: ChangeCancellationBillingDto,
+    @Req() req: Request,
+  ) {
+    return this.service.changeCancellationBilling(user, id, dto, getRequestAuditMeta(req));
   }
 
   @Patch('jobs/:id/reinstate')

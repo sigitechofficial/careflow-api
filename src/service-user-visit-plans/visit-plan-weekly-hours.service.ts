@@ -70,6 +70,11 @@ export type ServiceUserVisitHoldPayload = {
 };
 
 /** "25h 50m" — same format as the plan page. */
+/** Sleeping and waking nights are not billed hourly, so they never use the timebank. */
+export function isNightDutyVisit(nightDuty: string | null | undefined): boolean {
+  return nightDuty === VisitPlanNightDuty.SLEEPING_NIGHT || nightDuty === VisitPlanNightDuty.WAKING_NIGHT;
+}
+
 export function formatHoursMinutes(minutes: number): string {
   const h = Math.floor(minutes / 60);
   const m = Math.round(minutes % 60);
@@ -398,7 +403,7 @@ export class VisitPlanWeeklyHoursService {
    * visits are over (held when Settings → Dom Rules needs approval). A week already over keeps
    * what it has, but gets nothing new.
    */
-  async classifyNewVisits<T extends { date: string; startsAt: string; minutes: number }>(params: {
+  async classifyNewVisits<T extends { date: string; startsAt: string; minutes: number; noTimebank?: boolean }>(params: {
     client?: HoursClient;
     serviceUserId: string;
     fallbackHours?: string | null;
@@ -437,7 +442,9 @@ export class VisitPlanWeeklyHoursService {
       const room = limitMinutes + (params.budget?.reservedIn(weekStart) ?? 0);
       let over = v.minutes > 0 && after > room;
       let fromTimebankMinutes = 0;
-      if (over && params.budget) {
+      // Night visits (sleeping / waking) never use the bank: their rate is not hourly
+      // (docs/SU_TIMEBANK_INVOICE_PLAN.md T4).
+      if (over && params.budget && !v.noTimebank) {
         const part = after - Math.max(before, room);
         if (params.budget.cover(weekStart, part)) {
           over = false;
@@ -462,6 +469,8 @@ export class VisitPlanWeeklyHoursService {
     durationMinutes: number;
     requiredCarers: number;
     budget?: TimebankBudget;
+    /** Sleeping / waking night: never paid from the bank. */
+    nightDuty?: string | null;
   }): Promise<{
     limitWeeklyHours: number | null;
     dates: Array<{
@@ -480,6 +489,7 @@ export class VisitPlanWeeklyHoursService {
         date,
         startsAt: `${date}T${params.startTime}`,
         minutes: params.durationMinutes * Math.max(1, params.requiredCarers),
+        noTimebank: isNightDutyVisit(params.nightDuty),
       })),
     });
     return {
@@ -507,6 +517,8 @@ export class VisitPlanWeeklyHoursService {
     durationMinutes: number;
     requiredCarers: number;
     budget?: TimebankBudget;
+    /** Sleeping / waking night: never paid from the bank. */
+    nightDuty?: string | null;
   }): Promise<{
     limitWeeklyHours: number | null;
     weekStart: string;
@@ -528,6 +540,7 @@ export class VisitPlanWeeklyHoursService {
       oldMinutes: (original.durationMinutes ?? 0) * Math.max(1, original.requiredCarers ?? 1),
       newMinutes: params.durationMinutes * Math.max(1, params.requiredCarers),
       budget: params.budget,
+      noTimebank: isNightDutyVisit(params.nightDuty),
     });
     return { ...check, blocked: check.over && ctx.rules.visitsNeedApproval };
   }
@@ -543,6 +556,8 @@ export class VisitPlanWeeklyHoursService {
     oldMinutes: number;
     newMinutes: number;
     budget?: TimebankBudget;
+    /** Sleeping / waking night: never paid from the bank. */
+    noTimebank?: boolean;
   }): Promise<{
     limitWeeklyHours: number | null;
     weekStart: string;
@@ -556,7 +571,7 @@ export class VisitPlanWeeklyHoursService {
     const room = limit != null ? Math.round(limit * 60) + (params.budget?.reservedIn(week.weekStart) ?? 0) : null;
     let over = room != null && params.newMinutes > params.oldMinutes && after > room;
     let fromTimebankMinutes = 0;
-    if (over && room != null && params.budget) {
+    if (over && room != null && params.budget && !params.noTimebank) {
       const part = after - Math.max(week.minutes, room);
       if (params.budget.cover(week.weekStart, part)) {
         over = false;

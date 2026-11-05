@@ -23,6 +23,23 @@ export type ServiceUserWeeklyHoursSettings = {
    * is put on the rota). No → the bank is only shown.
    */
   useTimebank: boolean;
+  /**
+   * Over care (docs/SU_OVER_CARE_ADJUST_PLAN.md): Yes → care given over the weekly hours in a
+   * finished week is taken back the next week (its latest visits cancelled). No → only shown.
+   */
+  adjustOverCareNextWeek: boolean;
+  /**
+   * Set by the server, never by the client: the day over care started being taken back. Only weeks
+   * starting on or after it are adjusted (null until the first run or the setting is turned on).
+   */
+  adjustOverCareFrom: string | null;
+  /**
+   * Timebank hours on the invoice (docs/SU_TIMEBANK_INVOICE_PLAN.md): Yes → a finished week's
+   * timebank hours are charged on the weekly invoice, and care later paid from them costs nothing.
+   */
+  chargeTimebankOnInvoice: boolean;
+  /** Set by the server: only weeks starting on or after it are charged (null until set). */
+  chargeTimebankFrom: string | null;
 };
 
 export const DEFAULT_SERVICE_USER_WEEKLY_HOURS_SETTINGS: ServiceUserWeeklyHoursSettings =
@@ -31,6 +48,10 @@ export const DEFAULT_SERVICE_USER_WEEKLY_HOURS_SETTINGS: ServiceUserWeeklyHoursS
     visitsNeedApproval: true,
     specialVisitsCount: true,
     useTimebank: false,
+    adjustOverCareNextWeek: true,
+    adjustOverCareFrom: null,
+    chargeTimebankOnInvoice: true,
+    chargeTimebankFrom: null,
   };
 
 /**
@@ -56,7 +77,42 @@ export function parseServiceUserWeeklyHoursSettings(
     visitsNeedApproval: bool(raw.visitsNeedApproval) ?? legacyVisits ?? d.visitsNeedApproval,
     specialVisitsCount: bool(raw.specialVisitsCount) ?? d.specialVisitsCount,
     useTimebank: bool(raw.useTimebank) ?? d.useTimebank,
+    adjustOverCareNextWeek: bool(raw.adjustOverCareNextWeek) ?? d.adjustOverCareNextWeek,
+    adjustOverCareFrom:
+      typeof raw.adjustOverCareFrom === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.adjustOverCareFrom)
+        ? raw.adjustOverCareFrom
+        : d.adjustOverCareFrom,
+    chargeTimebankOnInvoice: bool(raw.chargeTimebankOnInvoice) ?? d.chargeTimebankOnInvoice,
+    chargeTimebankFrom:
+      typeof raw.chargeTimebankFrom === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.chargeTimebankFrom)
+        ? raw.chargeTimebankFrom
+        : d.chargeTimebankFrom,
   };
+}
+
+/** The saved `chargeTimebankFrom` after a save (same rule as `nextAdjustOverCareFrom`). */
+export function nextChargeTimebankFrom(
+  previous: ServiceUserWeeklyHoursSettings,
+  next: ServiceUserWeeklyHoursSettings,
+  todayIso: string,
+): string | null {
+  if (!next.chargeTimebankOnInvoice) return null;
+  if (previous.chargeTimebankOnInvoice && previous.chargeTimebankFrom) return previous.chargeTimebankFrom;
+  return todayIso;
+}
+
+/**
+ * The saved `adjustOverCareFrom` after a save: kept while the setting stays on, today when it is
+ * turned on (or on with no date yet), cleared when it is turned off.
+ */
+export function nextAdjustOverCareFrom(
+  previous: ServiceUserWeeklyHoursSettings,
+  next: ServiceUserWeeklyHoursSettings,
+  todayIso: string,
+): string | null {
+  if (!next.adjustOverCareNextWeek) return null;
+  if (previous.adjustOverCareNextWeek && previous.adjustOverCareFrom) return previous.adjustOverCareFrom;
+  return todayIso;
 }
 
 /** Whether changing the hours from `previous` to `next` needs a manager's approval. */
