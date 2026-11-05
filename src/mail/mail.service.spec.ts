@@ -6,7 +6,14 @@ const beginSend = jest.fn();
 jest.mock('@azure/communication-email', () => ({
   EmailClient: jest.fn().mockImplementation(() => ({ beginSend })),
 }));
-jest.mock('@azure/identity', () => ({ DefaultAzureCredential: jest.fn() }));
+jest.mock('@azure/identity', () => ({
+  DefaultAzureCredential: jest.fn(),
+  ClientSecretCredential: jest.fn(),
+}));
+import {
+  ClientSecretCredential,
+  DefaultAzureCredential,
+} from '@azure/identity';
 
 const makeService = (mail: Record<string, unknown>) =>
   new MailService({
@@ -56,6 +63,42 @@ describe('MailService — Azure Communication Services (acs)', () => {
       contentType: 'application/pdf',
       contentInBase64: Buffer.from('pdf').toString('base64'),
     });
+  });
+
+  it('uses the email-only Entra app when ACS_TENANT_ID, ACS_CLIENT_ID and ACS_CLIENT_SECRET are set', async () => {
+    acsOk();
+    (ClientSecretCredential as unknown as jest.Mock).mockClear();
+    (DefaultAzureCredential as unknown as jest.Mock).mockClear();
+    const svc = makeService({
+      mode: 'acs',
+      acsEndpoint: 'https://x',
+      from: 'noreply@example.test',
+      acsTenantId: 'tenant',
+      acsClientId: 'client',
+      acsClientSecret: 'secret',
+    });
+    await svc.send({ to: 'a@example.test', subject: 'S', text: 'T' });
+    expect(ClientSecretCredential).toHaveBeenCalledWith(
+      'tenant',
+      'client',
+      'secret',
+    );
+    expect(DefaultAzureCredential).not.toHaveBeenCalled();
+  });
+
+  it('falls back to DefaultAzureCredential when the email-only app is not fully set', async () => {
+    acsOk();
+    (ClientSecretCredential as unknown as jest.Mock).mockClear();
+    (DefaultAzureCredential as unknown as jest.Mock).mockClear();
+    const svc = makeService({
+      mode: 'acs',
+      acsEndpoint: 'https://x',
+      from: 'noreply@example.test',
+      acsClientId: 'client',
+    });
+    await svc.send({ to: 'a@example.test', subject: 'S', text: 'T' });
+    expect(DefaultAzureCredential).toHaveBeenCalled();
+    expect(ClientSecretCredential).not.toHaveBeenCalled();
   });
 
   it('fails clearly when ACS reports the send did not succeed', async () => {

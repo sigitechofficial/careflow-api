@@ -5,7 +5,11 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EmailClient, type EmailMessage } from '@azure/communication-email';
-import { DefaultAzureCredential } from '@azure/identity';
+import {
+  ClientSecretCredential,
+  DefaultAzureCredential,
+  type TokenCredential,
+} from '@azure/identity';
 import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
@@ -172,8 +176,10 @@ export class MailService {
   /**
    * Azure Communication Services Email via Microsoft Entra ID (DefaultAzureCredential):
    * managed identity on Azure (AZURE_CLIENT_ID selects the user-assigned one), `az login`
-   * on a developer machine. The sender must be a MailFrom address on a domain linked to
-   * the ACS resource; ACS ignores a display name in MAIL_FROM.
+   * on a developer machine. When ACS_TENANT_ID, ACS_CLIENT_ID and ACS_CLIENT_SECRET are all
+   * set, that Entra app is used instead (a server with no managed identity, e.g. the VPS).
+   * The sender must be a MailFrom address on a domain linked to the ACS resource; ACS
+   * ignores a display name in MAIL_FROM.
    */
   private async sendViaAcs(input: SendMailInput): Promise<{ messageId: string }> {
     const endpoint = this.config.get<string>('mail.acsEndpoint', '');
@@ -182,7 +188,7 @@ export class MailService {
         'Azure email is not configured. Set ACS_ENDPOINT (e.g. https://<name>.uk.communication.azure.com).',
       );
     }
-    this.acsClient ??= new EmailClient(endpoint, new DefaultAzureCredential());
+    this.acsClient ??= new EmailClient(endpoint, this.acsCredential());
 
     const from = parseFromHeader(this.requireFrom());
     const recipients = (Array.isArray(input.to) ? input.to : [input.to])
@@ -212,6 +218,16 @@ export class MailService {
       throw new ServiceUnavailableException(`Email could not be sent (${reason})`);
     }
     return { messageId: result.id };
+  }
+
+  private acsCredential(): TokenCredential {
+    const tenantId = this.config.get<string>('mail.acsTenantId');
+    const clientId = this.config.get<string>('mail.acsClientId');
+    const clientSecret = this.config.get<string>('mail.acsClientSecret');
+    if (tenantId && clientId && clientSecret) {
+      return new ClientSecretCredential(tenantId, clientId, clientSecret);
+    }
+    return new DefaultAzureCredential();
   }
 
   /** Sender from MAIL_FROM only — never a hard-coded address. */
