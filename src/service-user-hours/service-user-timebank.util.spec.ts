@@ -53,6 +53,57 @@ const base = {
 };
 
 describe('computeTimebankWeeks', () => {
+  it('keeps a cancelled or called-off visit with a Charge decision out of the bank', () => {
+    const charged = (noticeHours: number) => ({
+      party: 'SERVICE_USER' as const,
+      reasonCode: 'CLIENT_REQUEST',
+      notes: null,
+      chargeable: true,
+      noticeHours,
+    });
+    const jobs = [
+      job('a', '2026-10-26T09:00:00Z', 4, ScheduledJobStatus.COMPLETED),
+      job('b', '2026-10-27T09:00:00Z', 3, ScheduledJobStatus.CANCELLED, {
+        cancellation: charged(6),
+      }),
+      job('c', '2026-10-28T09:00:00Z', 2, ScheduledJobStatus.CALLED_OFF, {
+        cancellation: charged(0),
+      }),
+      job('d', '2026-10-29T09:00:00Z', 1, ScheduledJobStatus.CANCELLED, {
+        cancellation: { ...charged(48), chargeable: false },
+      }),
+    ];
+    const [week] = computeTimebankWeeks({
+      ...base,
+      startIso: '2026-10-26',
+      lastWeekStart: '2026-10-26',
+      jobs,
+      recons: [recon('a', 240)],
+      currentWeeklyHours: 10,
+    });
+    expect(week.chargeableCancelMinutes).toBe(300);
+    expect(week.visits.chargeableCancelled).toBe(2);
+    // 10h set − 4h delivered − 5h charged = 1h short: only the visit cancelled without a charge.
+    expect(week.freeMinutes).toBe(60);
+    expect(week.addedToBankMinutes).toBe(60);
+    expect(week.reasons.cancelledByServiceUserMinutes).toBe(60);
+    expect(week.reasons.missedMinutes).toBe(0);
+    expect(week.reasons.notBookedMinutes).toBe(0);
+    const b = week.shortVisits.find((v) => v.jobId === 'b')!;
+    expect(b).toMatchObject({
+      cancelledAs: 'CANCELLED',
+      reason: 'CHARGEABLE_CANCELLATION',
+      shortMinutes: 0,
+      cancelNoticeHours: 6,
+    });
+    expect(week.allVisits.find((v) => v.jobId === 'c')?.outcome).toBe(
+      'CHARGEABLE_CANCELLATION',
+    );
+    expect(week.shortVisits.find((v) => v.jobId === 'c')?.cancelledAs).toBe(
+      'CALLED_OFF',
+    );
+  });
+
   it('puts the hours a finished week did not get in the bank, with the reasons', () => {
     const jobs = [
       job('a', '2026-10-26T09:00:00Z', 4, ScheduledJobStatus.COMPLETED),
@@ -61,6 +112,8 @@ describe('computeTimebankWeeks', () => {
           party: 'SERVICE_USER',
           reasonCode: 'CLIENT_REQUEST',
           notes: null,
+          chargeable: false,
+          noticeHours: null,
         },
       }),
       job('c', '2026-10-28T09:00:00Z', 2, ScheduledJobStatus.MISSED),
@@ -139,6 +192,8 @@ describe('computeTimebankWeeks', () => {
           party: 'OTHER',
           reasonCode: 'OTHER',
           notes: 'Road closed',
+          chargeable: false,
+          noticeHours: null,
         },
       }),
     ];
@@ -207,6 +262,8 @@ describe('computeTimebankWeeks', () => {
       party: 'OTHER' as const,
       reasonCode: 'OTHER',
       notes: 'Weekly contracted hours reduced to 4h',
+      chargeable: false,
+      noticeHours: null,
     };
     const jobs = [
       job('a', '2026-10-26T09:00:00Z', 4, ScheduledJobStatus.COMPLETED),
@@ -378,5 +435,109 @@ describe('timebankCancelParty', () => {
     );
     expect(timebankCancelParty('AGENCY', 'OTHER')).toBe('AGENCY');
     expect(timebankCancelParty(undefined, 'OTHER')).toBe('OTHER');
+  });
+});
+
+describe('computeTimebankWeeks — over care taken back (docs/SU_OVER_CARE_ADJUST_PLAN.md)', () => {
+  it('lowers the next week by what it took back and leaves its cancelled visits out', () => {
+    // Week of 26 Oct: 10h set, 12h given (2h over). Week of 2 Nov takes the 2h back: one 2h visit
+    // cancelled with the over care note, 8h delivered.
+    const overCut = {
+      party: 'OTHER' as const,
+      reasonCode: 'OTHER',
+      notes: 'Over care adjustment — week of 26/10/2026 had 2h over',
+      chargeable: false,
+    };
+    const jobs = [
+      job('o1', '2026-10-27T09:00:00Z', 12, ScheduledJobStatus.COMPLETED),
+      job('n1', '2026-11-02T09:00:00Z', 8, ScheduledJobStatus.COMPLETED),
+      job('n2', '2026-11-03T09:00:00Z', 2, ScheduledJobStatus.CANCELLED, { cancellation: overCut }),
+    ];
+    const adjustment = {
+      overWeekStart: '2026-10-26',
+      adjustWeekStart: '2026-11-02',
+      overMinutes: 120,
+      takenBackMinutes: 120,
+      cancelledMinutes: 120,
+      cancelledVisits: 1,
+      notTakenBackMinutes: 0,
+    };
+    const [over, next] = computeTimebankWeeks({
+      ...base,
+      now: new Date('2026-11-09T12:00:00Z'),
+      startIso: '2026-10-26',
+      lastWeekStart: '2026-11-02',
+      jobs,
+      recons: [recon('o1', 720), recon('n1', 480)],
+      currentWeeklyHours: 10,
+      overCare: [adjustment],
+    });
+    expect(over.overMinutes).toBe(120);
+    expect(over.overCareAdjustment).toEqual(adjustment);
+    expect(next.overCareTakenBack).toEqual(adjustment);
+    // 10h − 2h taken back = 8h set; 8h delivered: not short, nothing into the bank.
+    expect(next.setMinutes).toBe(480);
+    expect(next.freeMinutes).toBe(0);
+    expect(next.addedToBankMinutes).toBe(0);
+    expect(next.visits.cancelled).toBe(0);
+    expect(next.allVisits.find((v) => v.jobId === 'n2')?.outcome).toBe('REMOVED_OVER_CARE');
+  });
+
+  it('takes back nothing without an adjustment', () => {
+    const [week] = computeTimebankWeeks({
+      ...base,
+      startIso: '2026-10-26',
+      lastWeekStart: '2026-10-26',
+      jobs: [job('a', '2026-10-27T09:00:00Z', 12, ScheduledJobStatus.COMPLETED)],
+      recons: [recon('a', 720)],
+      currentWeeklyHours: 10,
+    });
+    expect(week.setMinutes).toBe(600);
+    expect(week.overMinutes).toBe(120);
+    expect(week.overCareAdjustment).toBeNull();
+  });
+});
+
+describe('computeTimebankWeeks — over care only from care given', () => {
+  it('a chargeable cancellation makes the week over contract but not over care', () => {
+    // 10h set: 8h delivered + a 3h visit cancelled late and charged → 1h over contract, no over care.
+    const charged = {
+      party: 'SERVICE_USER' as const,
+      reasonCode: 'CLIENT_REQUEST',
+      notes: null,
+      chargeable: true,
+      noticeHours: 5,
+    };
+    const [week] = computeTimebankWeeks({
+      ...base,
+      now: new Date('2026-11-09T12:00:00Z'),
+      startIso: '2026-11-02',
+      lastWeekStart: '2026-11-02',
+      jobs: [
+        job('d', '2026-11-03T09:00:00Z', 8, ScheduledJobStatus.COMPLETED),
+        job('c', '2026-11-05T09:00:00Z', 3, ScheduledJobStatus.CANCELLED, {
+          cancellation: charged,
+        }),
+      ],
+      recons: [recon('d', 480)],
+      currentWeeklyHours: 10,
+    });
+    expect(week.chargeableCancelMinutes).toBe(180);
+    expect(week.overMinutes).toBe(60);
+    expect(week.overCareMinutes).toBe(0);
+  });
+
+  it('care given over the weekly hours is over care', () => {
+    const [week] = computeTimebankWeeks({
+      ...base,
+      now: new Date('2026-11-09T12:00:00Z'),
+      startIso: '2026-11-02',
+      lastWeekStart: '2026-11-02',
+      jobs: [job('d', '2026-11-03T09:00:00Z', 11, ScheduledJobStatus.COMPLETED)],
+      recons: [recon('d', 660)],
+      currentWeeklyHours: 10,
+    });
+    expect(week.overMinutes).toBe(60);
+    expect(week.overCareMinutes).toBe(60);
   });
 });

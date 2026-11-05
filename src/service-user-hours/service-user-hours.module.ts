@@ -9,6 +9,6 @@ import { ServiceUserTimebankLedgerService } from './service-user-timebank-ledger
   imports: [OrganisationGeneralSettingsModule],
   controllers: [ServiceUserHoursController],
   providers: [ServiceUserHoursService, ServiceUserTimebankService, ServiceUserTimebankLedgerService],
-  exports: [ServiceUserTimebankLedgerService],
+  exports: [ServiceUserTimebankLedgerService, ServiceUserTimebankService],
 })
 export class ServiceUserHoursModule {}

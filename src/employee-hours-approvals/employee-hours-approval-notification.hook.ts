@@ -366,6 +366,34 @@ export class EmployeeHoursApprovalNotificationHook {
     }
   }
 
+  /** Over care taken back this week (docs/SU_OVER_CARE_ADJUST_PLAN.md): one notice per nightly run. */
+  async notifyOverCareTakenBack(params: {
+    overWeekLabel: string;
+    overWeekStart: string;
+    rows: Array<{ label: string }>;
+  }): Promise<void> {
+    if (!this.notifications || !params.rows.length) return;
+    try {
+      const recipientUserIds = await this.approverUserIds();
+      if (!recipientUserIds.length) return;
+      const n = params.rows.length;
+      const shown = params.rows.slice(0, 5).map((r) => r.label);
+      await this.notifications.notifyUsers({
+        recipientUserIds,
+        type: NotificationType.SYSTEM_MESSAGE,
+        title: `Over care taken back: ${n} service user${n === 1 ? '' : 's'}`,
+        message:
+          `Care given over the weekly hours in the week of ${params.overWeekLabel} was taken back this week (latest visits cancelled, no charge): ` +
+          `${shown.join('; ')}${n > shown.length ? ` and ${n - shown.length} more` : ''}. See Reports → Timebank.`,
+        module: NotificationModule.SERVICE_USER,
+        severity: NotificationSeverity.INFO,
+        metadata: { href: `/reports/timebank?week=${params.overWeekStart}` },
+      });
+    } catch (err) {
+      this.logger.warn(`Over care notify failed: ${(err as Error).message}`);
+    }
+  }
+
   /** Requests approved by the person who sent them: the "waiting for you" notifications go. */
   async dismissWaiting(approvalIds: string[], sentBefore: Date): Promise<void> {
     if (!this.notifications || !approvalIds.length) return;

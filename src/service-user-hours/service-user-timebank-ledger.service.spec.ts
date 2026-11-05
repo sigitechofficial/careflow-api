@@ -37,6 +37,7 @@ describe('ServiceUserTimebankLedgerService.settle', () => {
     pendingMinutes: 0,
     scheduledMinutes: 0,
     awaitingMinutes: 0,
+    chargeableCancelMinutes: 0,
     ...over,
   });
 
@@ -103,6 +104,57 @@ describe('ServiceUserTimebankLedgerService.settle', () => {
       [entry('a', 120)],
       [job('a', '2026-11-12T09:00:00Z', { status: ScheduledJobStatus.MISSED })],
       [week({ status: 'complete', deliveredMinutes: 1200, pendingMinutes: 60 })],
+    );
+    await service.settle('su');
+    expect(created).toEqual([expect.objectContaining({ scheduledJobId: 'a', minutes: 60, reason: 'NOT_DELIVERED' })]);
+  });
+
+  it('a visit cancelled with a Charge decision keeps the hours it took from the bank', async () => {
+    const charged = {
+      cancelledAt: new Date('2026-11-12T03:00:00Z'),
+      chargeDecision: 'CHARGE',
+      policySnapshot: { timebank: 'CHARGEABLE_NOT_BANKED' },
+      reinstatedAt: null,
+    };
+    const { service, created } = build(
+      [entry('a', 120)],
+      [job('a', '2026-11-12T09:00:00Z', { status: ScheduledJobStatus.CANCELLED, cancellation: charged })],
+      [week({ createdMinutes: 1200 })],
+    );
+    await service.settle('su');
+    expect(created).toEqual([]);
+  });
+
+  it('an older Charge cancellation (no timebank marker) still gives the hours back', async () => {
+    const { service, created } = build(
+      [entry('a', 120)],
+      [
+        job('a', '2026-11-12T09:00:00Z', {
+          status: ScheduledJobStatus.CANCELLED,
+          cancellation: { cancelledAt: null, chargeDecision: 'CHARGE', policySnapshot: null, reinstatedAt: null },
+        }),
+      ],
+      [week({ createdMinutes: 1200 })],
+    );
+    await service.settle('su');
+    expect(created).toEqual([expect.objectContaining({ scheduledJobId: 'a', minutes: 120, reason: 'VISIT_CANCELLED' })]);
+  });
+
+  it('a finished week does not count a charged visit\'s held hours again for the other visits', async () => {
+    // 20h set: 19h delivered + visit a (1h, held) delivered + visit b (1h, held) charged → over 1h, held by b.
+    const charged = {
+      cancelledAt: null,
+      chargeDecision: 'CHARGE',
+      policySnapshot: { timebank: 'CHARGEABLE_NOT_BANKED' },
+      reinstatedAt: null,
+    };
+    const { service, created } = build(
+      [entry('a', 60), entry('b', 60)],
+      [
+        job('a', '2026-11-10T09:00:00Z', { status: ScheduledJobStatus.COMPLETED }),
+        job('b', '2026-11-12T09:00:00Z', { status: ScheduledJobStatus.CANCELLED, cancellation: charged }),
+      ],
+      [week({ status: 'complete', deliveredMinutes: 1200, chargeableCancelMinutes: 60 })],
     );
     await service.settle('su');
     expect(created).toEqual([expect.objectContaining({ scheduledJobId: 'a', minutes: 60, reason: 'NOT_DELIVERED' })]);

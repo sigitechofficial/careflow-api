@@ -1,5 +1,11 @@
 import { DEFAULT_DOM_JOB_CANCELLATION_RULES } from '../organisation-general-settings/dom-care-settings.util';
-import { evaluateVisitCancellationPolicy, matchCancellationNoticeRule } from './visit-cancellation-policy.util';
+import {
+  TIMEBANK_CHARGEABLE_NOT_BANKED,
+  cancelledByPartyFromReason,
+  evaluateVisitCancellationPolicy,
+  isTimebankChargeableCancellation,
+  matchCancellationNoticeRule,
+} from './visit-cancellation-policy.util';
 
 const rules = DEFAULT_DOM_JOB_CANCELLATION_RULES;
 
@@ -79,5 +85,28 @@ describe('visit cancellation policy', () => {
     expect(
       evaluateVisitCancellationPolicy({ ...input, noticeHours: 48, fundingTypeCode: 'LOCAL_AUTHORITY' }).decision,
     ).toBe('NO_CHARGE');
+  });
+});
+
+describe('timebank chargeable cancellation', () => {
+  const marked = { timebank: TIMEBANK_CHARGEABLE_NOT_BANKED };
+  it('only a Charge decision recorded with the timebank marker, not reinstated, counts', () => {
+    expect(isTimebankChargeableCancellation({ chargeDecision: 'CHARGE', policySnapshot: marked })).toBe(true);
+    expect(isTimebankChargeableCancellation({ chargeDecision: 'CHARGE', policySnapshot: null })).toBe(false);
+    expect(isTimebankChargeableCancellation({ chargeDecision: 'CHARGE', policySnapshot: { basis: 'NOTICE_RULE' } })).toBe(false);
+    for (const d of ['NO_CHARGE', 'WAIVE', 'PENDING_REVIEW']) {
+      expect(isTimebankChargeableCancellation({ chargeDecision: d, policySnapshot: marked })).toBe(false);
+    }
+    expect(
+      isTimebankChargeableCancellation({ chargeDecision: 'CHARGE', policySnapshot: marked, reinstatedAt: new Date() }),
+    ).toBe(false);
+  });
+
+  it('reads who cancelled from the rota reason', () => {
+    expect(cancelledByPartyFromReason('CLIENT_REQUEST')).toBe('SERVICE_USER');
+    expect(cancelledByPartyFromReason('CLIENT_UNAVAILABLE')).toBe('SERVICE_USER');
+    expect(cancelledByPartyFromReason('SERVICE_NOT_REQUIRED')).toBe('SERVICE_USER');
+    expect(cancelledByPartyFromReason('PROVIDER_UNABLE_TO_STAFF')).toBe('AGENCY');
+    expect(cancelledByPartyFromReason('WEATHER_OR_EMERGENCY')).toBe('OTHER');
   });
 });

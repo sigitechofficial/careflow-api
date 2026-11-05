@@ -8,8 +8,9 @@ import {
  * Service user timebank: the weekly hours set for a service user against the care delivered.
  * A finished Monday–Sunday week that got less than its weekly hours puts the difference in the
  * bank. Weeks that got more are shown but take nothing out of the bank (over-delivery is not
- * decided yet). Nothing is stored: every number is worked out from the rota, the visit
- * reconciliations and the weekly hours history each time.
+ * decided yet). A visit cancelled with a Charge decision (Job Cancellation rules) is paid for, so
+ * it counts as covered and never goes in the bank. Nothing is stored: every number is worked out
+ * from the rota, the visit reconciliations and the weekly hours history each time.
  */
 
 /** Approved for invoicing — the same minutes an invoice run bills. */
@@ -56,6 +57,12 @@ export type TimebankJob = {
     party: TimebankCancelParty;
     reasonCode: string;
     notes: string | null;
+    /** Charged under the Job Cancellation rules: the visit is paid for, so nothing goes in the bank. */
+    chargeable: boolean;
+    /** Hours of notice the cancellation gave, when recorded. */
+    noticeHours: number | null;
+    /** Billing notes saved with the Charge decision. */
+    chargeNotes?: string | null;
   } | null;
   /** Carer attended but care was not delivered ("Unable to start"). */
   careNotDelivered: { reasonCode: string | null; notes: string | null } | null;
@@ -86,7 +93,9 @@ export type TimebankShortReason =
   | 'MISSED'
   | 'CALLED_OFF'
   | 'SHORTER'
-  | 'NOT_APPROVED';
+  | 'NOT_APPROVED'
+  /** Cancelled and charged: listed with the visits not delivered, but nothing is short. */
+  | 'CHARGEABLE_CANCELLATION';
 
 export type TimebankShortVisit = {
   jobId: string;
@@ -103,6 +112,12 @@ export type TimebankShortVisit = {
   cancelReasonCode: string | null;
   /** Free text typed with the cancellation (e.g. for "Other"). */
   cancelReasonNotes: string | null;
+  /** Hours of notice a chargeable cancellation gave, when recorded. */
+  cancelNoticeHours?: number | null;
+  /** Chargeable cancellation: cancelled (planned stop) or called off (due but did not happen). */
+  cancelledAs?: 'CANCELLED' | 'CALLED_OFF';
+  /** Chargeable cancellation: billing notes saved with the Charge decision. */
+  chargeNotes?: string | null;
 };
 
 /** What happened to one rota visit of the week. */
@@ -113,7 +128,19 @@ export type TimebankVisitOutcome =
   | 'SCHEDULED'
   | 'UNABLE_TO_START'
   | 'AWAITING_CLOCK_OUT'
-  | 'REMOVED_HOURS_REDUCED';
+  | 'REMOVED_HOURS_REDUCED'
+  | 'REMOVED_OVER_CARE';
+
+/** Over care taken back the next week (docs/SU_OVER_CARE_ADJUST_PLAN.md), one per over week. */
+export type TimebankOverCare = {
+  overWeekStart: string;
+  adjustWeekStart: string;
+  overMinutes: number;
+  takenBackMinutes: number;
+  cancelledMinutes: number;
+  cancelledVisits: number;
+  notTakenBackMinutes: number;
+};
 
 export type TimebankWeekVisit = Omit<TimebankShortVisit, 'reason'> & {
   outcome: TimebankVisitOutcome;
@@ -140,9 +167,17 @@ export type TimebankWeek = {
   scheduledMinutes: number;
   /** Clocked in, never clocked out, planned end past: not delivered and not short until the visit is closed. */
   awaitingMinutes: number;
+  /** Visits cancelled or called off with a Charge decision: paid for, so covered and never in the bank. */
+  chargeableCancelMinutes: number;
   /** Weekly hours not delivered, not waiting for approval, not awaiting clock-out and not still to come. */
   freeMinutes: number;
   overMinutes: number;
+  /**
+   * Over the weekly hours in care given only (delivered + done; a week not finished adds what is
+   * still to come). Chargeable cancellations count in `overMinutes` but are not care given, so
+   * they never make over care (docs/SU_OVER_CARE_ADJUST_PLAN.md).
+   */
+  overCareMinutes: number;
   /** Finished weeks only: what the week put in the bank. */
   addedToBankMinutes: number;
   /** Bank balance after this week (finished weeks only add to it). */
@@ -155,6 +190,7 @@ export type TimebankWeek = {
     awaiting: number;
     cancelled: number;
     missed: number;
+    chargeableCancelled: number;
   };
   reasons: {
     cancelledByServiceUserMinutes: number;
@@ -169,6 +205,10 @@ export type TimebankWeek = {
   shortVisits: TimebankShortVisit[];
   /** Every rota visit of the week, cancelled ones included, in time order. */
   allVisits: TimebankWeekVisit[];
+  /** This week got over care and it was taken back the next week. */
+  overCareAdjustment: TimebankOverCare | null;
+  /** This week's hours were lowered to take back the week before's over care. */
+  overCareTakenBack: TimebankOverCare | null;
 };
 
 /** "Unable to start" / care not delivered, as the completion stores it on the job metadata. */
@@ -274,6 +314,21 @@ export function timebankRemovedByHoursCut(
 }
 
 /**
+ * Visits the system cancelled to take back the week before's over care (the over care service
+ * writes reason OTHER with this note). The week's hours are lowered by the same amount.
+ */
+export const OVER_CARE_NOTE_PREFIX = 'Over care adjustment';
+
+export function timebankRemovedForOverCare(
+  cancellation: TimebankJob['cancellation'],
+): boolean {
+  return (
+    cancellation?.reasonCode === 'OTHER' &&
+    (cancellation.notes ?? '').startsWith(OVER_CARE_NOTE_PREFIX)
+  );
+}
+
+/**
  * Every Monday–Sunday week from the start date's week to `lastWeekStart`, with the bank running
  * through the finished weeks in order.
  */
@@ -290,6 +345,8 @@ export function computeTimebankWeeks(params: {
   specialVisitsCount: boolean;
   /** Org-day start instant of a Monday (weekly hours are read at the start of the week). */
   weekStartInstant: (mondayIso: string) => Date;
+  /** Over care taken back the next week, for this service user. */
+  overCare?: TimebankOverCare[];
 }): TimebankWeek[] {
   const today = dayKeyInTimeZone(params.now, params.timeZone);
   const currentMonday = mondayOfOperationalIso(today);
@@ -339,8 +396,17 @@ export function computeTimebankWeeks(params: {
     );
     const liveDays =
       monday === firstMonday ? daysBetween(params.startIso, sunday) + 1 : 7;
-    const setMinutes =
-      weeklyHours != null ? Math.round((weeklyHours * 60 * liveDays) / 7) : 0;
+    const overCareAdjustment =
+      params.overCare?.find((a) => a.overWeekStart === monday) ?? null;
+    const overCareTakenBack =
+      params.overCare?.find((a) => a.adjustWeekStart === monday) ?? null;
+    // A week taking back over care is set that much lower, so it is not short for it.
+    const setMinutes = Math.max(
+      0,
+      (weeklyHours != null
+        ? Math.round((weeklyHours * 60 * liveDays) / 7)
+        : 0) - (overCareTakenBack?.takenBackMinutes ?? 0),
+    );
 
     const week: TimebankWeek = {
       weekStart: monday,
@@ -354,8 +420,10 @@ export function computeTimebankWeeks(params: {
       pendingMinutes: 0,
       scheduledMinutes: 0,
       awaitingMinutes: 0,
+      chargeableCancelMinutes: 0,
       freeMinutes: 0,
       overMinutes: 0,
+      overCareMinutes: 0,
       addedToBankMinutes: 0,
       balanceMinutes: 0,
       visits: {
@@ -366,6 +434,7 @@ export function computeTimebankWeeks(params: {
         awaiting: 0,
         cancelled: 0,
         missed: 0,
+        chargeableCancelled: 0,
       },
       reasons: {
         cancelledByServiceUserMinutes: 0,
@@ -378,6 +447,8 @@ export function computeTimebankWeeks(params: {
       },
       shortVisits: [],
       allVisits: [],
+      overCareAdjustment,
+      overCareTakenBack,
     };
     const addShort = (v: TimebankShortVisit) => {
       week.shortVisits.push(v);
@@ -400,9 +471,12 @@ export function computeTimebankWeeks(params: {
         plannedMinutes: planned,
       };
 
+      const overCareCut =
+        job.status === ScheduledJobStatus.CANCELLED &&
+        timebankRemovedForOverCare(job.cancellation);
       if (
         job.status === ScheduledJobStatus.CANCELLED &&
-        timebankRemovedByHoursCut(job.cancellation)
+        (timebankRemovedByHoursCut(job.cancellation) || overCareCut)
       ) {
         // Not short: listed in the week only, outside every count.
         week.allVisits.push({
@@ -410,11 +484,37 @@ export function computeTimebankWeeks(params: {
           deliveredMinutes: 0,
           pendingMinutes: 0,
           shortMinutes: 0,
-          outcome: 'REMOVED_HOURS_REDUCED',
+          outcome: overCareCut ? 'REMOVED_OVER_CARE' : 'REMOVED_HOURS_REDUCED',
           cancelReasonCode: null,
           cancelReasonNotes: job.cancellation?.notes ?? null,
           careNotDelivered: null,
         });
+        continue;
+      }
+
+      const chargeable = (counted: 'cancelled' | 'calledOff') => {
+        if (counted === 'cancelled') cancelledMinutes += planned;
+        week.chargeableCancelMinutes += planned;
+        week.visits.chargeableCancelled += 1;
+        addShort({
+          ...base,
+          deliveredMinutes: 0,
+          pendingMinutes: 0,
+          shortMinutes: 0,
+          reason: 'CHARGEABLE_CANCELLATION',
+          cancelReasonCode: job.cancellation?.reasonCode ?? null,
+          cancelReasonNotes: job.cancellation?.notes ?? null,
+          cancelNoticeHours: job.cancellation?.noticeHours ?? null,
+          cancelledAs: counted === 'cancelled' ? 'CANCELLED' : 'CALLED_OFF',
+          chargeNotes: job.cancellation?.chargeNotes ?? null,
+        });
+      };
+
+      if (
+        job.status === ScheduledJobStatus.CANCELLED &&
+        job.cancellation?.chargeable
+      ) {
+        chargeable('cancelled');
         continue;
       }
 
@@ -458,6 +558,16 @@ export function computeTimebankWeeks(params: {
           TIMEBANK_DELIVERED_RECON.includes(r.status) ||
           TIMEBANK_PENDING_RECON.includes(r.status),
       );
+
+      if (
+        !hasRows &&
+        job.status === ScheduledJobStatus.CALLED_OFF &&
+        job.cancellation?.chargeable
+      ) {
+        // Called off and charged: on the rota (already counted as created), nothing short.
+        chargeable('calledOff');
+        continue;
+      }
 
       if (!hasRows) {
         const ended = ENDED_JOB_STATUSES.includes(job.status);
@@ -596,9 +706,15 @@ export function computeTimebankWeeks(params: {
       week.deliveredMinutes +
       week.pendingMinutes +
       week.scheduledMinutes +
-      week.awaitingMinutes;
+      week.awaitingMinutes +
+      week.chargeableCancelMinutes;
     week.freeMinutes = Math.max(0, setMinutes - covered);
     week.overMinutes = Math.max(0, covered - setMinutes);
+    const careGiven =
+      week.deliveredMinutes +
+      week.pendingMinutes +
+      (status === 'complete' ? 0 : week.scheduledMinutes + week.awaitingMinutes);
+    week.overCareMinutes = Math.max(0, careGiven - setMinutes);
     if (status === 'complete') {
       if (week.freeMinutes > 0) week.status = 'short';
       week.addedToBankMinutes = week.freeMinutes;

@@ -5,6 +5,7 @@ import { OrganisationGeneralSettingsService } from '../organisation-general-sett
 import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 import { ServiceUserTimebankService } from './service-user-timebank.service';
 import { mondayOfOperationalIso } from './service-user-timebank.util';
+import { isTimebankChargeableCancellation } from '../scheduled-jobs-housekeeping/visit-cancellation-policy.util';
 
 type LedgerClient = Prisma.TransactionClient | PrismaService;
 
@@ -157,7 +158,7 @@ export class ServiceUserTimebankLedgerService {
 
   /**
    * Gives back reserved time a visit no longer uses, and returns the earned bank:
-   * - visit cancelled or deleted → all of it;
+   * - visit cancelled or deleted → all of it, except a visit cancelled with a Charge decision (kept: it is paid for);
    * - this week or later: the week needs only (rota minutes − weekly hours) → the rest, latest visits first;
    * - finished week: it needed only (care counted − weekly hours) → the rest (missed, shorter, not approved).
    */
@@ -176,7 +177,9 @@ export class ServiceUserTimebankLedgerService {
         status: true,
         deletedAt: true,
         scheduledStartDateTime: true,
-        cancellation: { select: { cancelledAt: true } },
+        cancellation: {
+          select: { cancelledAt: true, chargeDecision: true, policySnapshot: true, reinstatedAt: true },
+        },
       },
     });
     const jobById = new Map(jobs.map((j) => [j.id, j]));
@@ -204,6 +207,8 @@ export class ServiceUserTimebankLedgerService {
 
     // Still held, per week: [jobId, minutes, start] (latest first when a week needs less).
     const stillHeld = new Map<string, Array<{ jobId: string; minutes: number; start: Date }>>();
+    // Held by visits cancelled with a Charge decision: they keep the hours (never given back), per week.
+    const heldByChargeable = new Map<string, number>();
     for (const [jobId, row] of held) {
       const job = jobId ? jobById.get(jobId) : undefined;
       if (!job) {
@@ -212,6 +217,14 @@ export class ServiceUserTimebankLedgerService {
       }
       if (job.deletedAt) {
         giveBack(job.id, row.weekStart, row.minutes, 'VISIT_REMOVED', 'Visit removed from the rota', job.deletedAt);
+        continue;
+      }
+      if (
+        (job.status === ScheduledJobStatus.CANCELLED || job.status === ScheduledJobStatus.CALLED_OFF) &&
+        job.cancellation &&
+        isTimebankChargeableCancellation(job.cancellation)
+      ) {
+        heldByChargeable.set(row.weekStart, (heldByChargeable.get(row.weekStart) ?? 0) + row.minutes);
         continue;
       }
       if (job.status === ScheduledJobStatus.CANCELLED) {
@@ -230,8 +243,13 @@ export class ServiceUserTimebankLedgerService {
       const finished = week != null && (week.status === 'complete' || week.status === 'short');
       let needed: number;
       if (finished) {
-        const covered = week.deliveredMinutes + week.pendingMinutes + week.scheduledMinutes + week.awaitingMinutes;
-        needed = Math.max(0, covered - week.setMinutes);
+        const covered =
+          week.deliveredMinutes +
+          week.pendingMinutes +
+          week.scheduledMinutes +
+          week.awaitingMinutes +
+          week.chargeableCancelMinutes;
+        needed = Math.max(0, covered - week.setMinutes - (heldByChargeable.get(weekStart) ?? 0));
       } else if (week && limitMinutes != null) {
         needed = Math.max(0, week.createdMinutes - limitMinutes);
       } else {
@@ -264,6 +282,19 @@ export class ServiceUserTimebankLedgerService {
       select: { serviceUserId: true },
     });
     for (const r of rows) await this.settle(r.serviceUserId);
+  }
+
+  /**
+   * Timebank minutes each visit still holds (reserved − returned), for the invoice: the part of a
+   * visit paid from bank hours already charged costs nothing (docs/SU_TIMEBANK_INVOICE_PLAN.md).
+   */
+  async heldByJob(serviceUserId: string): Promise<Map<string, number>> {
+    const net = await this.netByJob(this.prisma, serviceUserId);
+    const out = new Map<string, number>();
+    for (const [jobId, row] of net) {
+      if (jobId && row.minutes > 0) out.set(jobId, row.minutes);
+    }
+    return out;
   }
 
   /** Reserved − returned per visit (null = a visit deleted for good). */

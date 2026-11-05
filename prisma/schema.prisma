@@ -3120,6 +3120,8 @@ model ServiceUser {
   visitCareConsents              VisitCareConsent[]
   specialistPathwayCases         SpecialistPathwayCase[]
   timebankEntries                ServiceUserTimebankEntry[]
+  overCareAdjustments            ServiceUserOverCareAdjustment[]
+  timebankCharges                ServiceUserTimebankCharge[]
 
   @@index([deletedAt])
   @@index([statusId])
@@ -3166,6 +3168,60 @@ model ServiceUserTimebankEntry {
   @@index([serviceUserId])
   @@index([scheduledJobId])
   @@index([weekStart])
+  @@schema("service_users")
+}
+
+/// Timebank hours charged on a locked invoice (CHARGED, per week; negative = credit) and charged
+/// hours later used by a visit at no charge (USED, per visit). docs/SU_TIMEBANK_INVOICE_PLAN.md.
+model ServiceUserTimebankCharge {
+  id             String   @id @default(uuid()) @db.Uuid
+  serviceUserId  String   @db.Uuid
+  /// CHARGED | USED
+  kind           String
+  /// CHARGED: Monday of the week the hours came from.
+  weekStart      DateTime? @db.Date
+  /// USED: the visit that used the hours.
+  scheduledJobId String?  @db.Uuid
+  minutes        Int
+  amount         Decimal  @db.Decimal(12, 2)
+  invoiceRunId   String   @db.Uuid
+  createdAt      DateTime @default(now())
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+  invoiceRun  InvoiceRun  @relation(fields: [invoiceRunId], references: [id], onDelete: Restrict)
+
+  @@index([serviceUserId])
+  @@index([invoiceRunId])
+  @@schema("billing")
+}
+
+/// Over care in a finished week taken back the next week (docs/SU_OVER_CARE_ADJUST_PLAN.md):
+/// one row per service user per over week, so a week is only adjusted once.
+model ServiceUserOverCareAdjustment {
+  id                  String   @id @default(uuid()) @db.Uuid
+  serviceUserId       String   @db.Uuid
+  /// Monday of the week that got the over care (org day).
+  overWeekStart       DateTime @db.Date
+  /// Monday of the week the visits were cancelled in.
+  adjustWeekStart     DateTime @db.Date
+  weeklyMinutes       Int
+  /// Delivered + done, not yet approved.
+  careGivenMinutes    Int
+  /// Timebank-paid and manager-approved over minutes, left out.
+  excludedMinutes     Int
+  /// Over care to take back.
+  overMinutes         Int
+  cancelledMinutes    Int
+  /// Over care the adjust week took (its hours are lowered by this much).
+  takenBackMinutes    Int
+  notTakenBackMinutes Int
+  cancelledJobIds     String[] @db.Uuid
+  createdAt           DateTime @default(now())
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
+
+  @@unique([serviceUserId, overWeekStart])
+  @@index([adjustWeekStart])
   @@schema("service_users")
 }
 
@@ -7631,6 +7687,10 @@ model ScheduledJobCancellation {
   suggestedChargeDecision String?
   suggestedChargePercent  Int?
   policySnapshot          Json?
+  /// Percent of the visit fee billed when the decision is Charge (rule percent, else 100).
+  chargePercent           Int?
+  /// Invoice run the charge was locked into (stops it being billed twice).
+  includedInInvoiceRunId  String?   @db.Uuid
   createdAt             DateTime                    @default(now())
   updatedAt             DateTime                    @updatedAt
 
@@ -7638,6 +7698,8 @@ model ScheduledJobCancellation {
   serviceUser  ServiceUser  @relation(fields: [serviceUserId], references: [id], onDelete: Restrict)
   cancelledBy  User?        @relation("ScheduledJobCancellationBy", fields: [cancelledById], references: [id], onDelete: SetNull)
   reinstatedBy User?        @relation("ScheduledJobReinstatedBy", fields: [reinstatedById], references: [id], onDelete: SetNull)
+  includedInInvoiceRun InvoiceRun? @relation("CancellationInvoiceRun", fields: [includedInInvoiceRunId], references: [id], onDelete: SetNull)
+  invoiceLines InvoiceRunLine[]
 
   @@index([serviceUserId])
   @@index([outcome])
@@ -7645,6 +7707,7 @@ model ScheduledJobCancellation {
   @@index([chargeDecision])
   @@index([cancelledAt])
   @@index([reinstatedAt])
+  @@index([includedInInvoiceRunId])
   @@schema("scheduling")
 }
 
@@ -9887,6 +9950,12 @@ enum InvoiceRunAuditAction {
 enum InvoiceRunLineType {
   VISIT_CHARGE
   ADJUSTMENT
+  /// A visit cancelled late with a Charge decision (no visit reconciliation).
+  LATE_CANCELLATION
+  /// Hours a finished week put in the timebank, charged on the invoice (negative = credit).
+  TIMEBANK_HOURS
+  /// The part of a visit paid from timebank hours already charged (negative, so it costs nothing).
+  TIMEBANK_USED
 
   @@schema("billing")
 }
@@ -10388,7 +10457,9 @@ model InvoiceRun {
   documents             InvoiceDocument[]
   auditEvents           InvoiceRunAuditEvent[]
   lockedReconciliations VisitReconciliation[]  @relation("ReconciliationInvoiceRun")
+  lockedCancellations   ScheduledJobCancellation[] @relation("CancellationInvoiceRun")
   paymentAllocations    PaymentAllocation[]
+  timebankCharges       ServiceUserTimebankCharge[]
 
   @@index([status])
   @@index([periodStart, periodEnd])
@@ -10457,7 +10528,10 @@ model InvoiceNumberSequence {
 model InvoiceRunLine {
   id                    String             @id @default(uuid()) @db.Uuid
   invoiceRunId          String             @db.Uuid
-  visitReconciliationId String             @db.Uuid
+  /// Null for a LATE_CANCELLATION line (the visit never happened).
+  visitReconciliationId String?            @db.Uuid
+  /// Set for a LATE_CANCELLATION line.
+  scheduledJobCancellationId String?       @db.Uuid
   serviceUserId         String             @db.Uuid
   funderId              String?            @db.Uuid
   serviceUserFundingId  String?            @db.Uuid
@@ -10471,14 +10545,19 @@ model InvoiceRunLine {
   chargeCardId          String?            @db.Uuid
   visitRef              String?
   exceptionMessage      String?
+  /// TIMEBANK_HOURS: Monday of the week whose timebank hours the line charges.
+  timebankWeekStart     DateTime?          @db.Date
   createdAt             DateTime           @default(now())
 
-  invoiceRun          InvoiceRun          @relation(fields: [invoiceRunId], references: [id], onDelete: Cascade)
-  visitReconciliation VisitReconciliation @relation(fields: [visitReconciliationId], references: [id], onDelete: Restrict)
+  invoiceRun               InvoiceRun                @relation(fields: [invoiceRunId], references: [id], onDelete: Cascade)
+  visitReconciliation      VisitReconciliation?      @relation(fields: [visitReconciliationId], references: [id], onDelete: Restrict)
+  scheduledJobCancellation ScheduledJobCancellation? @relation(fields: [scheduledJobCancellationId], references: [id], onDelete: Restrict)
 
   @@unique([invoiceRunId, visitReconciliationId, serviceUserFundingId, lineType])
+  @@unique([invoiceRunId, scheduledJobCancellationId, serviceUserFundingId, lineType], map: "InvoiceRunLine_cancellation_funding_line_key")
   @@index([invoiceRunId])
   @@index([visitReconciliationId])
+  @@index([scheduledJobCancellationId])
   @@index([serviceUserId])
   @@index([funderId])
   @@schema("billing")

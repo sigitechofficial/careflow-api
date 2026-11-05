@@ -20,6 +20,8 @@ import { VisitPlanDateChangesService } from './visit-plan-date-changes.service';
 import { VisitPlanWeeklyHoursService } from './visit-plan-weekly-hours.service';
 import { EXTRA_VISIT_CREATOR } from '../employee-hours-approvals/extra-visit-creator';
 import { ServiceUserHoursModule } from '../service-user-hours/service-user-hours.module';
+import { ServiceUserOverCareService } from './service-user-over-care.service';
+import { ServiceUserOverCareController } from './service-user-over-care.controller';
 
 @Module({
   imports: [
@@ -40,6 +42,7 @@ import { ServiceUserHoursModule } from '../service-user-hours/service-user-hours
     VisitPlanBulkScheduleController,
     VisitPlanGovernanceController,
     VisitPlanDateChangesController,
+    ServiceUserOverCareController,
   ],
   providers: [
     ServiceUserVisitPlansService,
@@ -47,6 +50,7 @@ import { ServiceUserHoursModule } from '../service-user-hours/service-user-hours
     VisitPlanAmendmentImpactService,
     VisitPlanDateChangesService,
     VisitPlanWeeklyHoursService,
+    ServiceUserOverCareService,
     // Lets an approved "extra visit over weekly hours" request create the visit.
     { provide: EXTRA_VISIT_CREATOR, useExisting: VisitPlanDateChangesService },
   ],
@@ -55,6 +59,7 @@ import { ServiceUserHoursModule } from '../service-user-hours/service-user-hours
     VisitPlanBulkScheduleService,
     VisitPlanAmendmentImpactService,
     VisitPlanWeeklyHoursService,
+    ServiceUserOverCareService,
   ],
 })
 export class ServiceUserVisitPlansModule {}

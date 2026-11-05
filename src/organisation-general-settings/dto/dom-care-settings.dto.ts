@@ -208,4 +208,14 @@ export class ServiceUserWeeklyHoursSettingsDto {
   @IsOptional()
   @IsBoolean()
   useTimebank?: boolean;
+
+  @ApiPropertyOptional({ default: true, description: 'Over care in a finished week is taken back the next week.' })
+  @IsOptional()
+  @IsBoolean()
+  adjustOverCareNextWeek?: boolean;
+
+  @ApiPropertyOptional({ default: true, description: "A finished week's timebank hours are charged on the weekly invoice." })
+  @IsOptional()
+  @IsBoolean()
+  chargeTimebankOnInvoice?: boolean;
 }

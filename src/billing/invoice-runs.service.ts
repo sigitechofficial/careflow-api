@@ -31,6 +31,17 @@ import {
   type InvoiceRunAuditTrailItem,
 } from './invoice-run-audit.util';
 import { loadPerFunderChargeCalculation } from './multi-funder-charge.util';
+import { ChargeCardsService } from './billing-cards.service';
+import { InvoiceTimebankService } from './invoice-timebank.service';
+import { loadBankHolidayDateSet } from './visit-reconciliations.service';
+import {
+  lateCancellationAmount,
+  lateCancellationDescription,
+  lateCancellationMinutes,
+  lateCancellationPercent,
+} from './invoice-late-cancellation.util';
+import { isTimebankChargeableCancellation } from '../scheduled-jobs-housekeeping/visit-cancellation-policy.util';
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 import { BillingRunsQueryDto } from './dto/billing-runs.dto';
 import {
   buildInvoiceExportVisitRow,
@@ -127,6 +138,8 @@ export class InvoiceRunsService {
     private readonly prisma: PrismaService,
     private readonly mail: MailService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
+    private readonly chargeCards: ChargeCardsService,
+    private readonly invoiceTimebank: InvoiceTimebankService,
   ) {}
 
   async list(query?: BillingRunsQueryDto) {
@@ -281,6 +294,17 @@ export class InvoiceRunsService {
       where: { serviceUserId },
       include: {
         invoiceRun: true,
+        // Late cancellation lines have no visit reconciliation: their times come from the visit.
+        scheduledJobCancellation: {
+          select: {
+            noticeHours: true,
+            chargePercent: true,
+            suggestedChargePercent: true,
+            scheduledJob: {
+              select: { jobName: true, scheduledStartDateTime: true, scheduledEndDateTime: true },
+            },
+          },
+        },
       },
       orderBy: [{ createdAt: 'desc' }],
       take: 500,
@@ -292,7 +316,7 @@ export class InvoiceRunsService {
       ),
     ];
     const reconIds = [
-      ...new Set(lines.map((l) => l.visitReconciliationId).filter(Boolean)),
+      ...new Set(lines.map((l) => l.visitReconciliationId).filter((v): v is string => Boolean(v))),
     ];
     const [funders, recons, timeZone] = await Promise.all([
       funderIds.length
@@ -458,8 +482,28 @@ export class InvoiceRunsService {
       .map(({ run, lines: runLines }) => {
         const mappedLines = runLines.map((l) => {
           const funder = l.funderId ? funderMap.get(l.funderId) : null;
-          const recon = reconMap.get(l.visitReconciliationId);
-          const visitDetails = recon
+          const recon = l.visitReconciliationId ? reconMap.get(l.visitReconciliationId) : undefined;
+          const cancelledJob = l.scheduledJobCancellation?.scheduledJob ?? null;
+          const visitDetails = cancelledJob
+            ? buildInvoiceExportVisitRow({
+                visitRef: l.visitRef ?? cancelledJob.jobName,
+                plannedStart: cancelledJob.scheduledStartDateTime,
+                plannedEnd: cancelledJob.scheduledEndDateTime,
+                actualStart: null,
+                actualEnd: null,
+                slot: '',
+                serviceUserName,
+                carerName: '',
+                address,
+                funderName:
+                  funder?.name ??
+                  (l.funderId ? 'Unknown funder' : 'Direct / family'),
+                amountValue: Number(l.amount),
+                paidValue: 0,
+                outstandingValue: 0,
+                timeZone,
+              })
+            : recon
             ? buildInvoiceExportVisitRow({
                 visitRef: recon.visitRef || l.visitRef,
                 plannedStart: recon.plannedStartDateTime,
@@ -483,6 +527,14 @@ export class InvoiceRunsService {
             : null;
           return {
             id: l.id,
+            lineType: l.lineType,
+            cancellationNoticeHours: l.scheduledJobCancellation?.noticeHours ?? null,
+            cancellationChargePercent: l.scheduledJobCancellation
+              ? lateCancellationPercent(
+                  l.scheduledJobCancellation.chargePercent,
+                  l.scheduledJobCancellation.suggestedChargePercent,
+                )
+              : null,
             visitRef: l.visitRef ?? visitDetails?.visitRef ?? null,
             serviceUserId: l.serviceUserId,
             serviceUserName,
@@ -1688,6 +1740,13 @@ export class InvoiceRunsService {
           orderBy: [{ visitRef: 'asc' }, { description: 'asc' }],
           select: {
             visitReconciliationId: true,
+            scheduledJobCancellation: {
+              select: {
+                scheduledJob: {
+                  select: { scheduledStartDateTime: true, scheduledEndDateTime: true },
+                },
+              },
+            },
             serviceUserId: true,
             visitRef: true,
             funderId: true,
@@ -1706,7 +1765,7 @@ export class InvoiceRunsService {
     }
 
     const reconIds = [
-      ...new Set(row.lines.map((l) => l.visitReconciliationId).filter(Boolean)),
+      ...new Set(row.lines.map((l) => l.visitReconciliationId).filter((v): v is string => Boolean(v))),
     ];
     const funderIds = [
       ...new Set(
@@ -1895,7 +1954,8 @@ export class InvoiceRunsService {
     // One CSV row per invoice line (visit × funder share).
     const exportLines: InvoiceRunExportModel['lines'] = [];
     for (const line of row.lines) {
-      const recon = reconMap.get(line.visitReconciliationId);
+      const recon = line.visitReconciliationId ? reconMap.get(line.visitReconciliationId) : undefined;
+      const cancelledJob = line.scheduledJobCancellation?.scheduledJob ?? null;
       const su = suMap.get(recon?.serviceUserId ?? line.serviceUserId);
       const pay = funderPayment(line.funderId);
       const funderName = funderLabel(line.funderId);
@@ -1903,9 +1963,9 @@ export class InvoiceRunsService {
       if (!recon) {
         exportLines.push(
           buildInvoiceExportVisitRow({
-            visitRef: line.visitRef,
-            plannedStart: row.periodStart,
-            plannedEnd: null,
+            visitRef: cancelledJob ? `Late cancellation — ${line.visitRef ?? ''}` : line.visitRef,
+            plannedStart: cancelledJob?.scheduledStartDateTime ?? row.periodStart,
+            plannedEnd: cancelledJob?.scheduledEndDateTime ?? null,
             actualStart: null,
             actualEnd: null,
             slot: '',
@@ -2078,10 +2138,21 @@ export class InvoiceRunsService {
     // not be pulled in here — otherwise an overlapping period would bill the same visit twice.
     const claimedElsewhere = await this.prisma.invoiceRunLine.findMany({
       where: { invoiceRunId: { not: id } },
-      select: { visitReconciliationId: true },
+      select: { visitReconciliationId: true, scheduledJobCancellationId: true },
     });
     const claimedReconIds = [
-      ...new Set(claimedElsewhere.map((l) => l.visitReconciliationId)),
+      ...new Set(
+        claimedElsewhere
+          .map((l) => l.visitReconciliationId)
+          .filter((v): v is string => Boolean(v)),
+      ),
+    ];
+    const claimedCancellationIds = [
+      ...new Set(
+        claimedElsewhere
+          .map((l) => l.scheduledJobCancellationId)
+          .filter((v): v is string => Boolean(v)),
+      ),
     ];
 
     // Late charges: a visit approved after the run for its dates was finished is billed by the next
@@ -2313,6 +2384,31 @@ export class InvoiceRunsService {
       }
     }
 
+    exceptionCount += await this.addLateCancellationLines({
+      runId: id,
+      lineData,
+      serviceUserIds,
+      funderIds,
+      claimedCancellationIds,
+      periodStartBound,
+      periodEndBound,
+      openWindows,
+      runCadence,
+      timeZone,
+    });
+
+    // Timebank hours of the finished weeks, and visits paid from hours already charged (after the
+    // visit lines, which it reads).
+    exceptionCount += await this.invoiceTimebank.addLines({
+      runId: id,
+      lineData,
+      serviceUserIds,
+      funderIds,
+      periodEndIso,
+      runCadence,
+      timeZone,
+    });
+
     const netTotal = lineData.reduce((sum, l) => sum + Number(l.amount), 0);
     let exportStatus: BillingRunExportStatus =
       BillingRunExportStatus.NOT_STARTED;
@@ -2416,10 +2512,184 @@ export class InvoiceRunsService {
     };
   }
 
+  /**
+   * Visits cancelled with a Charge decision (Job Cancellation rules) in the period, as
+   * LATE_CANCELLATION lines: priced like a delivered visit of the planned length × the charge
+   * percent, split between funders like a visit. Returns how many had a problem.
+   */
+  private async addLateCancellationLines(ctx: {
+    runId: string;
+    lineData: Prisma.InvoiceRunLineCreateManyInput[];
+    serviceUserIds: Set<string>;
+    funderIds: Set<string>;
+    claimedCancellationIds: string[];
+    periodStartBound: Date;
+    periodEndBound: Date;
+    openWindows: Array<{ start: Date; end: Date }>;
+    runCadence: 'WEEKLY' | 'MONTHLY' | null;
+    timeZone: string;
+  }): Promise<number> {
+    const rows = (
+      await this.prisma.scheduledJobCancellation.findMany({
+        where: {
+          chargeDecision: 'CHARGE',
+          reinstatedAt: null,
+          includedInInvoiceRunId: null,
+          ...(ctx.claimedCancellationIds.length
+            ? { id: { notIn: ctx.claimedCancellationIds } }
+            : {}),
+          scheduledJob: {
+            deletedAt: null,
+            scheduledStartDateTime: { lte: ctx.periodEndBound },
+          },
+        },
+        include: {
+          scheduledJob: {
+            select: {
+              jobName: true,
+              status: true,
+              scheduledStartDateTime: true,
+              scheduledEndDateTime: true,
+              estimatedDurationMinutes: true,
+              requiredCarers: true,
+            },
+          },
+        },
+        orderBy: { scheduledJob: { scheduledStartDateTime: 'asc' } },
+      })
+    ).filter((c) => {
+      const start = c.scheduledJob.scheduledStartDateTime;
+      // Only cancellations recorded under the timebank / billing rule, still cancelled or called off.
+      if (!isTimebankChargeableCancellation(c)) return false;
+      if (c.scheduledJob.status !== 'CANCELLED' && c.scheduledJob.status !== 'CALLED_OFF') return false;
+      return (
+        start >= ctx.periodStartBound ||
+        !ctx.openWindows.some((w) => start >= w.start && start <= w.end)
+      );
+    });
+    if (!rows.length) return 0;
+
+    let eligible = rows;
+    if (ctx.runCadence) {
+      const suIds = [...new Set(rows.map((r) => r.serviceUserId))];
+      const cadence = new Map(
+        (
+          await this.prisma.serviceUser.findMany({
+            where: { id: { in: suIds } },
+            select: { id: true, invoiceBillingFrequency: true },
+          })
+        ).map((s) => [s.id, s.invoiceBillingFrequency]),
+      );
+      eligible = rows.filter(
+        (r) => (cadence.get(r.serviceUserId) ?? BillingFrequency.WEEKLY) === ctx.runCadence,
+      );
+    }
+    if (!eligible.length) return 0;
+
+    const starts = eligible.map((r) => r.scheduledJob.scheduledStartDateTime.getTime());
+    const bankHolidays = await loadBankHolidayDateSet(
+      this.prisma,
+      new Date(Math.min(...starts)),
+      new Date(Math.max(...starts)),
+      ctx.timeZone,
+    );
+    const isBankHolidayFn = (d: Date) => bankHolidays.has(dayKeyInTimeZone(d, ctx.timeZone));
+
+    let exceptions = 0;
+    for (const c of eligible) {
+      const job = c.scheduledJob;
+      const percent = lateCancellationPercent(c.chargePercent, c.suggestedChargePercent);
+      const minutes = lateCancellationMinutes(job);
+      const carers = Math.max(1, job.requiredCarers ?? 1);
+      const late = job.scheduledStartDateTime < ctx.periodStartBound;
+      const when = `${operationalTodayIso(job.scheduledStartDateTime, ctx.timeZone)} ${job.scheduledStartDateTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: ctx.timeZone })}`;
+      const description = lateCancellationDescription({
+        jobName: job.jobName,
+        when,
+        noticeHours: c.noticeHours,
+        percent,
+        late,
+      });
+
+      const issues: string[] = [];
+      let chargeCardId: string | null = null;
+      let amount: number | null = null;
+      try {
+        const card = (await this.chargeCards.resolveForServiceUser(c.serviceUserId)).data.chargeCard;
+        if (!card) issues.push('Charge card missing');
+        else {
+          chargeCardId = card.id;
+          amount = lateCancellationAmount({
+            rules: card.rules ?? [],
+            defaultChargeMethod: card.defaultChargeMethod ?? 'HOURLY_PRO_RATA',
+            start: job.scheduledStartDateTime,
+            minutes,
+            carers,
+            percent,
+            isBankHolidayFn,
+            timeZone: ctx.timeZone,
+          });
+          if (amount == null) issues.push('No charge rate on the charge card for this visit');
+        }
+      } catch (err) {
+        issues.push(err instanceof Error ? err.message : 'Charge card could not be resolved');
+      }
+
+      ctx.serviceUserIds.add(c.serviceUserId);
+      const base = {
+        invoiceRunId: ctx.runId,
+        visitReconciliationId: null,
+        scheduledJobCancellationId: c.id,
+        serviceUserId: c.serviceUserId,
+        lineType: InvoiceRunLineType.LATE_CANCELLATION,
+        minutes: minutes * carers,
+        chargeCardId,
+        visitRef: job.jobName,
+      };
+
+      const fundingLines = await this.prisma.serviceUserFunding.findMany({
+        where: { serviceUserId: c.serviceUserId, deletedAt: null },
+        include: { funder: { select: { id: true, name: true } } },
+      });
+      const splits = buildFundingSplits(fundingLines);
+      if (!splits.length) issues.push('No active funding contract');
+
+      if (issues.length) {
+        exceptions += 1;
+        ctx.lineData.push({
+          ...base,
+          serviceUserFundingId: splits[0]?.id ?? null,
+          funderId: splits[0]?.funderId ?? null,
+          description,
+          amount: 0,
+          exceptionMessage: issues.join('; '),
+        });
+        continue;
+      }
+
+      for (const split of splitAmount(amount ?? 0, splits)) {
+        if (split.amount <= 0) continue;
+        if (split.funderId) ctx.funderIds.add(split.funderId);
+        ctx.lineData.push({
+          ...base,
+          serviceUserFundingId: split.id,
+          funderId: split.funderId,
+          description: split.funderName ? `${description} (${split.funderName})` : description,
+          splitPercent: split.splitPercent,
+          amount: split.amount,
+          exceptionMessage: null,
+        });
+      }
+    }
+    return exceptions;
+  }
+
   async lock(userId: string, id: string) {
     const run = await this.prisma.invoiceRun.findUnique({
       where: { id },
-      include: { lines: { select: { visitReconciliationId: true } } },
+      include: {
+        lines: { select: { visitReconciliationId: true, scheduledJobCancellationId: true } },
+      },
     });
     if (!run) throw new NotFoundException('Invoice run not found');
     if (run.status !== InvoiceRunStatus.APPROVED) {
@@ -2427,7 +2697,18 @@ export class InvoiceRunsService {
     }
 
     const reconIds = [
-      ...new Set(run.lines.map((l) => l.visitReconciliationId)),
+      ...new Set(
+        run.lines
+          .map((l) => l.visitReconciliationId)
+          .filter((v): v is string => Boolean(v)),
+      ),
+    ];
+    const cancellationIds = [
+      ...new Set(
+        run.lines
+          .map((l) => l.scheduledJobCancellationId)
+          .filter((v): v is string => Boolean(v)),
+      ),
     ];
 
     await this.prisma.$transaction(async (tx) => {
@@ -2449,6 +2730,15 @@ export class InvoiceRunsService {
           data: { includedInInvoiceRunId: id },
         });
       }
+      if (cancellationIds.length) {
+        // Charged cancellations are locked the same way, so the next run never bills them again.
+        await tx.scheduledJobCancellation.updateMany({
+          where: { id: { in: cancellationIds }, includedInInvoiceRunId: null },
+          data: { includedInInvoiceRunId: id },
+        });
+      }
+      // Timebank hours charged and used on this run: recorded so no week or hour is billed twice.
+      await this.invoiceTimebank.recordOnLock(tx, id);
       await recordInvoiceRunAuditEvent(tx, {
         invoiceRunId: id,
         action: InvoiceRunAuditAction.LOCKED,

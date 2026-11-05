@@ -44,9 +44,9 @@ import {
   type VisitCancellationReasonCode,
 } from '../scheduled-jobs-housekeeping/visit-cancellation-reason.util';
 import {
-  COMMISSIONED_FUNDING_TYPE_CODES,
   VISIT_CANCELLATION_REASONS_BY_PARTY,
   evaluateVisitCancellationPolicy,
+  resolveCancellationFundingType,
   type VisitCancellationPolicyResult,
 } from '../scheduled-jobs-housekeeping/visit-cancellation-policy.util';
 import { CANCELLABLE_JOB_STATUSES } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.util';
@@ -311,16 +311,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
 
   /** Commissioned funding wins when a service user has several active funding lines. */
   private async resolveFundingType(serviceUserId: string): Promise<{ code: string; name: string } | null> {
-    const lines = await this.prisma.serviceUserFunding.findMany({
-      where: { serviceUserId, deletedAt: null, isActive: true },
-      orderBy: [{ isPrimary: 'desc' }, { splitPriority: 'asc' }],
-      select: { fundingType: { select: { code: true, name: true } } },
-    });
-    if (!lines.length) return null;
-    const commissioned = lines.find((l) =>
-      (COMMISSIONED_FUNDING_TYPE_CODES as readonly string[]).includes(l.fundingType.code),
-    );
-    return (commissioned ?? lines[0]!).fundingType;
+    return resolveCancellationFundingType(this.prisma, serviceUserId);
   }
 
   /**
@@ -1067,6 +1058,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         startTime: dto.startTime,
         durationMinutes: dto.durationMinutes,
         requiredCarers: dto.requiredCarers,
+        nightDuty: dto.nightDuty ?? null,
         budget: await this.weeklyHours.timebankBudget(serviceUserId),
       });
       limitWeeklyHours = hours.limitWeeklyHours;
@@ -1095,6 +1087,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         exceptionId: dto.editingExceptionId,
         durationMinutes: dto.durationMinutes,
         requiredCarers: dto.requiredCarers,
+        nightDuty: dto.nightDuty ?? null,
         budget: await this.weeklyHours.timebankBudget(serviceUserId),
       });
       if (hours) {
@@ -1252,6 +1245,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         startTime: dto.startTime,
         durationMinutes: dto.durationMinutes,
         requiredCarers: dto.requiredCarers,
+        nightDuty: dto.nightDuty ?? null,
         budget,
       });
       for (const d of hours.dates) {
@@ -1679,12 +1673,24 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
    * picked. A week can stay over when its hours are in visits that can't be cancelled. Nothing is saved.
    */
   async planHoursDecrease(serviceUserId: string, newHours: number): Promise<HoursDecreasePlan> {
-    const limitMinutes = Math.round(newHours * 60);
+    return this.planVisitCut(serviceUserId, Math.round(newHours * 60));
+  }
+
+  /**
+   * The same pick for any limit: `onlyWeek` keeps it to one week (over care taken back,
+   * docs/SU_OVER_CARE_ADJUST_PLAN.md) and `fromDate` moves the first day a visit can go (never
+   * before tomorrow). Nothing is saved.
+   */
+  async planVisitCut(
+    serviceUserId: string,
+    limitMinutes: number,
+    opts: { onlyWeek?: string; fromDate?: string } = {},
+  ): Promise<HoursDecreasePlan> {
     const ctx = await this.weeklyHours.context();
     const { today, edge } = await this.weeklyHours.window(ctx.timeZone);
     const summary = await this.weeklyHours.weeks(this.prisma, serviceUserId);
     const overWeeks = summary.weeks
-      .filter((w) => w.minutes > limitMinutes)
+      .filter((w) => w.minutes > limitMinutes && (!opts.onlyWeek || w.weekStart === opts.onlyWeek))
       .map((w) => ({ weekStart: w.weekStart, minutes: w.minutes }));
     const active = await this.prisma.serviceUserVisitPlan.findFirst({
       where: { serviceUserId, status: VisitPlanStatus.ACTIVE, deletedAt: null, isActive: true },
@@ -1699,7 +1705,8 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     };
     if (!overWeeks.length) return result;
 
-    const tomorrow = addDaysIso(today, 1);
+    const nextDay = addDaysIso(today, 1);
+    const tomorrow = opts.fromDate && opts.fromDate > nextDay ? opts.fromDate : nextDay;
     const planVisits = active
       ? (await this.listCancellable(await this.getPlanOrThrow(serviceUserId, active.id), tomorrow, edge)).filter(
           (v) => v.status === 'ON_ROTA' && v.scheduledJobId,
@@ -1985,8 +1992,30 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     meta?: RequestAuditMeta,
   ): Promise<{ cancelled: number }> {
     const plan = await this.planHoursDecrease(serviceUserId, newHours);
-    if (!plan.toCancel.length) return { cancelled: 0 };
     const note = `Weekly contracted hours reduced to ${newHours}h`;
+    return this.applyVisitCut(
+      userId,
+      serviceUserId,
+      plan,
+      note,
+      `${note} — the visit is no longer part of the package.`,
+      meta,
+    );
+  }
+
+  /**
+   * Cancel the visits a `planVisitCut` picked, through the normal "Cancel visits" path (no charge,
+   * cancelled by "other", `note` as the reason). Special visits are cancelled on the rota.
+   */
+  async applyVisitCut(
+    userId: string,
+    serviceUserId: string,
+    plan: HoursDecreasePlan,
+    note: string,
+    chargeDecisionNotes: string,
+    meta?: RequestAuditMeta,
+  ): Promise<{ cancelled: number }> {
+    if (!plan.toCancel.length) return { cancelled: 0 };
     const planItems = plan.toCancel.filter((v) => v.kind !== 'SPECIAL' && v.visitPlanSlotId);
     if (plan.planId && planItems.length) {
       await this.cancelVisits(
@@ -2001,7 +2030,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
           reasonCode: 'OTHER',
           reasonNotes: note,
           chargeDecision: VisitChargeDecision.NO_CHARGE,
-          chargeDecisionNotes: `${note} — the visit is no longer part of the package.`,
+          chargeDecisionNotes,
           welfareChecked: false,
           familyNotified: false,
           commissionerNotified: false,
@@ -2187,6 +2216,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
           exceptionId,
           durationMinutes: dto.durationMinutes,
           requiredCarers: dto.requiredCarers,
+          nightDuty: dto.nightDuty ?? null,
           budget: editBudget,
         });
     const hoursWeek = hoursCheck?.over
