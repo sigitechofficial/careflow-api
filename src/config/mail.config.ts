@@ -62,6 +62,11 @@ export const mailConfig = registerAs('mail', () => {
       (process.env.MAIL_FROM ?? '').trim() ||
       (process.env.NODE_ENV === 'production' ? '' : LOCAL_FALLBACK_MAIL_FROM),
     acsEndpoint: (process.env.ACS_ENDPOINT ?? '').trim() || undefined,
+    // Optional Entra app used only for email (servers with no managed identity, e.g. the VPS).
+    // Kept apart from AZURE_CLIENT_* so other Azure clients keep their own login.
+    acsTenantId: (process.env.ACS_TENANT_ID ?? '').trim() || undefined,
+    acsClientId: (process.env.ACS_CLIENT_ID ?? '').trim() || undefined,
+    acsClientSecret: (process.env.ACS_CLIENT_SECRET ?? '').trim() || undefined,
     redirectTo:
       process.env.NODE_ENV === 'production'
         ? undefined
