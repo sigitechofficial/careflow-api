@@ -26,7 +26,12 @@ export type SendMailInput = {
   text: string;
   html?: string;
   attachments?: MailAttachment[];
+  /** Leave out the MAIL_BCC copy (emails carrying a login or password-reset link). */
+  skipBcc?: boolean;
 };
+
+/** Resolved by send(): MAIL_BCC addresses not already in `to`. */
+type OutgoingMail = SendMailInput & { bcc: string[] };
 
 export type MailSendMode = 'acs' | 'api' | 'smtp' | 'log';
 
@@ -92,7 +97,7 @@ export class MailService {
     return this.transporter;
   }
 
-  private async sendViaApi(input: SendMailInput): Promise<{ messageId: string }> {
+  private async sendViaApi(input: OutgoingMail): Promise<{ messageId: string }> {
     const apiUrl = this.config.get<string>(
       'mail.apiUrl',
       'https://api.zeptomail.com/v1.1/email',
@@ -114,6 +119,9 @@ export class MailService {
       to: recipients.map((address) => ({
         email_address: { address },
       })),
+      ...(input.bcc.length
+        ? { bcc: input.bcc.map((address) => ({ email_address: { address } })) }
+        : {}),
       subject: input.subject,
       htmlbody: input.html ?? `<pre>${escapeHtml(input.text)}</pre>`,
       textbody: input.text,
@@ -181,7 +189,7 @@ export class MailService {
    * The sender must be a MailFrom address on a domain linked to the ACS resource; ACS
    * ignores a display name in MAIL_FROM.
    */
-  private async sendViaAcs(input: SendMailInput): Promise<{ messageId: string }> {
+  private async sendViaAcs(input: OutgoingMail): Promise<{ messageId: string }> {
     const endpoint = this.config.get<string>('mail.acsEndpoint', '');
     if (!endpoint) {
       throw new ServiceUnavailableException(
@@ -202,7 +210,12 @@ export class MailService {
         plainText: input.text,
         html: input.html ?? `<pre>${escapeHtml(input.text)}</pre>`,
       },
-      recipients: { to: recipients.map((address) => ({ address })) },
+      recipients: {
+        to: recipients.map((address) => ({ address })),
+        ...(input.bcc.length
+          ? { bcc: input.bcc.map((address) => ({ address })) }
+          : {}),
+      },
       attachments: input.attachments?.map((a) => ({
         name: a.filename,
         contentType: a.contentType ?? 'application/octet-stream',
@@ -252,28 +265,39 @@ export class MailService {
     }
     const toList = Array.isArray(input.to) ? input.to : [input.to];
     const to = toList.join(', ');
+    // MAIL_BCC: a silent copy of every email, except ones that opt out (login links) and
+    // except when MAIL_REDIRECT_TO keeps a laptop's mail in one inbox.
+    const inTo = new Set(toList.map((a) => a.trim().toLowerCase()));
+    const bcc =
+      input.skipBcc || redirectTo
+        ? []
+        : (this.config.get<string[]>('mail.bcc') ?? []).filter(
+            (a) => !inTo.has(a.toLowerCase()),
+          );
+    const mail: OutgoingMail = { ...input, bcc };
 
     if (mode === 'log') {
       this.logger.log(
-        `[MAIL log] to=${to} subject=${input.subject} attachments=${input.attachments?.length ?? 0}`,
+        `[MAIL log] to=${to}${bcc.length ? ` bcc=${bcc.join(', ')}` : ''} subject=${input.subject} attachments=${input.attachments?.length ?? 0}`,
       );
       if (input.text) this.logger.debug(input.text.slice(0, 500));
       return { messageId: `log-${Date.now()}`, mode: 'log' };
     }
 
     if (mode === 'acs') {
-      const result = await this.sendViaAcs(input);
+      const result = await this.sendViaAcs(mail);
       return { messageId: result.messageId, mode: 'acs' };
     }
 
     if (mode === 'api') {
-      const result = await this.sendViaApi(input);
+      const result = await this.sendViaApi(mail);
       return { messageId: result.messageId, mode: 'api' };
     }
 
     const info = await this.getTransporter().sendMail({
       from: this.requireFrom(),
       to,
+      ...(bcc.length ? { bcc } : {}),
       subject: input.subject,
       text: input.text,
       html: input.html,

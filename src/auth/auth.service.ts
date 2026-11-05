@@ -720,6 +720,8 @@ export class AuthService {
       .send({
         to: user.email,
         ...buildPasswordResetEmail(user.firstName, link),
+        // The reset link signs in as this user: never copy it to MAIL_BCC.
+        skipBcc: true,
       })
       .catch((err: unknown) => {
         this.logger.warn(
