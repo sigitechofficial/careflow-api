@@ -10,6 +10,7 @@ import {
 import { OPEN_VISIT_PLAN_STATUSES } from '../service-user-dom-care/service-user-weekly-hours-sync.util';
 import { parseWeeklyContractedHours } from '../service-user-visit-plans/visit-plan-contracted-hours.util';
 import { reconciliationBillableMinutes } from './service-user-hours.service';
+import { isTimebankChargeableCancellation } from '../scheduled-jobs-housekeeping/visit-cancellation-policy.util';
 import type {
   ServiceUserTimebankDetailQueryDto,
   ServiceUserTimebankQueryDto,
@@ -24,6 +25,7 @@ import {
   TIMEBANK_REJECTED_RECON,
   type TimebankHoursChange,
   type TimebankJob,
+  type TimebankOverCare,
   type TimebankRecon,
   type TimebankWeek,
 } from './service-user-timebank.util';
@@ -61,6 +63,10 @@ type TimebankContext = {
   today: string;
   currentMonday: string;
   specialVisitsCount: boolean;
+  /** Over care taken back the next week (Settings → Dom Rules) and the first day it applies. */
+  overCare: { on: boolean; from: string | null };
+  /** Settings → Dom Rules "Charge timebank hours on the invoice" and the first day it applies. */
+  chargeTimebank: { on: boolean; from: string | null };
 };
 
 @Injectable()
@@ -126,6 +132,25 @@ export class ServiceUserTimebankService {
           scheduledMinutes: week.scheduledMinutes,
           awaitingMinutes: week.awaitingMinutes,
           awaitingVisits: week.visits.awaiting,
+          // Cancelled with a Charge decision: paid for, covered, never in the bank.
+          chargeableCancelMinutes: week.chargeableCancelMinutes,
+          chargeableCancelVisits: week.visits.chargeableCancelled,
+          // The chargeable visits themselves, for the office to see why each was charged.
+          chargeableCancelVisitList: week.shortVisits
+            .filter((v) => v.reason === 'CHARGEABLE_CANCELLATION')
+            .map((v) => ({
+              jobId: v.jobId,
+              jobName: v.jobName,
+              day: v.day,
+              start: v.start,
+              end: v.end,
+              plannedMinutes: v.plannedMinutes,
+              cancelledAs: v.cancelledAs ?? 'CANCELLED',
+              cancelReasonCode: v.cancelReasonCode,
+              cancelReasonNotes: v.cancelReasonNotes,
+              noticeHours: v.cancelNoticeHours ?? null,
+              chargeNotes: v.chargeNotes ?? null,
+            })),
           // Visits to close (clocked in, never clocked out), for the office to finish from the list.
           awaitingVisitList: week.allVisits
             .filter((v) => v.outcome === 'AWAITING_CLOCK_OUT')
@@ -140,6 +165,11 @@ export class ServiceUserTimebankService {
           freeMinutes: week.freeMinutes,
           // Covered with hours to spare: the visits came to more than the weekly hours.
           overMinutes: week.overMinutes,
+          // Over in care given only (not chargeable cancellations): what over care is about.
+          overCareMinutes: week.overCareMinutes,
+          // Over care taken back the next week, or this week's hours lowered for it.
+          overCareAdjustment: week.overCareAdjustment,
+          overCareTakenBack: week.overCareTakenBack,
           pendingVisits: week.visits.pending,
           // Why the week is short (missed, shorter, cancelled, no visit on the rota).
           reasons: week.reasons,
@@ -155,6 +185,7 @@ export class ServiceUserTimebankService {
       weekEnd: addDaysToOperationalIso(selectedMonday, 6),
       currentWeekStart: ctx.currentMonday,
       isCurrentWeek: selectedMonday === ctx.currentMonday,
+      overCare: ctx.overCare,
       rows,
       facets,
     };
@@ -184,11 +215,34 @@ export class ServiceUserTimebankService {
     const thisWeek = weeks.find((w) => w.status === 'current') ?? null;
     const week = weeks.find((w) => w.weekStart === selectedMonday) ?? null;
     const current = this.currentWeeklyHours(su);
+    // Timebank hours charged on locked invoices (per week) and charged hours used by visits.
+    const charges = await this.prisma.serviceUserTimebankCharge.findMany({
+      where: { serviceUserId },
+      include: {
+        invoiceRun: {
+          select: { id: true, invoiceNumber: true, documents: { select: { serviceUserId: true, invoiceNumber: true } } },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    });
 
     return {
       serviceUser: { ...this.serviceUserRow(su), weeklyHours: current },
       startDate: this.startIso(su, ctx.timeZone),
       currentWeekStart: ctx.currentMonday,
+      overCare: ctx.overCare,
+      chargeTimebank: ctx.chargeTimebank,
+      timebankCharges: charges.map((c) => ({
+        kind: c.kind as 'CHARGED' | 'USED',
+        weekStart: c.weekStart?.toISOString().slice(0, 10) ?? null,
+        scheduledJobId: c.scheduledJobId,
+        minutes: c.minutes,
+        amount: Number(c.amount),
+        invoiceRunId: c.invoiceRun.id,
+        invoiceNumber:
+          c.invoiceRun.documents.find((d) => d.serviceUserId === serviceUserId)?.invoiceNumber ??
+          c.invoiceRun.invoiceNumber,
+      })),
       totals: {
         weeks: finished.length,
         includesCurrentWeek: thisWeek != null,
@@ -196,6 +250,7 @@ export class ServiceUserTimebankService {
         deliveredMinutes: sum(counted, (w) => w.deliveredMinutes),
         invoicedMinutes: sum(counted, (w) => w.invoicedMinutes),
         pendingMinutes: sum(counted, (w) => w.pendingMinutes),
+        chargeableCancelMinutes: sum(counted, (w) => w.chargeableCancelMinutes),
         bankMinutes: this.bankNow(weeks),
         thisWeek: thisWeek
           ? {
@@ -261,6 +316,8 @@ export class ServiceUserTimebankService {
       today,
       currentMonday: mondayOfOperationalIso(today),
       specialVisitsCount: rules.specialVisitsCount,
+      overCare: { on: rules.adjustOverCareNextWeek, from: rules.adjustOverCareFrom },
+      chargeTimebank: { on: rules.chargeTimebankOnInvoice, from: rules.chargeTimebankFrom },
     };
   }
 
@@ -318,7 +375,7 @@ export class ServiceUserTimebankService {
       s.domCare ? [s.domCare.id] : [],
     );
 
-    const [jobs, recons, audits] = await Promise.all([
+    const [jobs, recons, audits, overCareRows] = await Promise.all([
       this.prisma.scheduledJob.findMany({
         where: {
           serviceUserId: { in: ids },
@@ -349,6 +406,11 @@ export class ServiceUserTimebankService {
               cancelledByParty: true,
               reasonCode: true,
               reasonNotes: true,
+              chargeDecision: true,
+              chargeDecisionNotes: true,
+              policySnapshot: true,
+              noticeHours: true,
+              reinstatedAt: true,
             },
           },
         },
@@ -392,7 +454,25 @@ export class ServiceUserTimebankService {
             orderBy: { createdAt: 'asc' },
           })
         : Promise.resolve([]),
+      this.prisma.serviceUserOverCareAdjustment.findMany({
+        where: { serviceUserId: { in: ids } },
+      }),
     ]);
+    const overCareBySu = groupBy(
+      overCareRows.map((a) => ({
+        serviceUserId: a.serviceUserId,
+        row: {
+          overWeekStart: a.overWeekStart.toISOString().slice(0, 10),
+          adjustWeekStart: a.adjustWeekStart.toISOString().slice(0, 10),
+          overMinutes: a.overMinutes,
+          takenBackMinutes: a.takenBackMinutes,
+          cancelledMinutes: a.cancelledMinutes,
+          cancelledVisits: a.cancelledJobIds.length,
+          notTakenBackMinutes: a.notTakenBackMinutes,
+        } satisfies TimebankOverCare,
+      })),
+      (x) => x.serviceUserId,
+    );
 
     const jobsBySu = groupBy(
       jobs.map((j) => ({
@@ -417,6 +497,9 @@ export class ServiceUserTimebankService {
                 ),
                 reasonCode: j.cancellation.reasonCode,
                 notes: j.cancellation.reasonNotes?.trim() || null,
+                chargeable: isTimebankChargeableCancellation(j.cancellation),
+                noticeHours: j.cancellation.noticeHours,
+                chargeNotes: j.cancellation.chargeDecisionNotes?.trim() || null,
               }
             : null,
         } satisfies TimebankJob,
@@ -477,6 +560,7 @@ export class ServiceUserTimebankService {
           specialVisitsCount: ctx.specialVisitsCount,
           weekStartInstant: (iso) =>
             operationalDayBounds(iso, ctx.timeZone).start,
+          overCare: (overCareBySu.get(su.id) ?? []).map((x) => x.row),
         }),
       );
     }

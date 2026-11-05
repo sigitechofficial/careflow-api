@@ -6,7 +6,14 @@ const beginSend = jest.fn();
 jest.mock('@azure/communication-email', () => ({
   EmailClient: jest.fn().mockImplementation(() => ({ beginSend })),
 }));
-jest.mock('@azure/identity', () => ({ DefaultAzureCredential: jest.fn() }));
+jest.mock('@azure/identity', () => ({
+  DefaultAzureCredential: jest.fn(),
+  ClientSecretCredential: jest.fn(),
+}));
+import {
+  ClientSecretCredential,
+  DefaultAzureCredential,
+} from '@azure/identity';
 
 const makeService = (mail: Record<string, unknown>) =>
   new MailService({
@@ -56,6 +63,78 @@ describe('MailService — Azure Communication Services (acs)', () => {
       contentType: 'application/pdf',
       contentInBase64: Buffer.from('pdf').toString('base64'),
     });
+  });
+
+  it('uses the email-only Entra app when ACS_TENANT_ID, ACS_CLIENT_ID and ACS_CLIENT_SECRET are set', async () => {
+    acsOk();
+    (ClientSecretCredential as unknown as jest.Mock).mockClear();
+    (DefaultAzureCredential as unknown as jest.Mock).mockClear();
+    const svc = makeService({
+      mode: 'acs',
+      acsEndpoint: 'https://x',
+      from: 'noreply@example.test',
+      acsTenantId: 'tenant',
+      acsClientId: 'client',
+      acsClientSecret: 'secret',
+    });
+    await svc.send({ to: 'a@example.test', subject: 'S', text: 'T' });
+    expect(ClientSecretCredential).toHaveBeenCalledWith(
+      'tenant',
+      'client',
+      'secret',
+    );
+    expect(DefaultAzureCredential).not.toHaveBeenCalled();
+  });
+
+  it('falls back to DefaultAzureCredential when the email-only app is not fully set', async () => {
+    acsOk();
+    (ClientSecretCredential as unknown as jest.Mock).mockClear();
+    (DefaultAzureCredential as unknown as jest.Mock).mockClear();
+    const svc = makeService({
+      mode: 'acs',
+      acsEndpoint: 'https://x',
+      from: 'noreply@example.test',
+      acsClientId: 'client',
+    });
+    await svc.send({ to: 'a@example.test', subject: 'S', text: 'T' });
+    expect(DefaultAzureCredential).toHaveBeenCalled();
+    expect(ClientSecretCredential).not.toHaveBeenCalled();
+  });
+
+  it('copies every email to MAIL_BCC, skipping addresses already in to', async () => {
+    acsOk();
+    const svc = makeService({
+      mode: 'acs',
+      acsEndpoint: 'https://x',
+      from: 'noreply@example.test',
+      bcc: ['office@example.test', 'a@example.test'],
+    });
+    await svc.send({ to: 'A@example.test', subject: 'S', text: 'T' });
+    const msg = beginSend.mock.calls[0][0] as {
+      recipients: { to: unknown[]; bcc?: unknown[] };
+    };
+    expect(msg.recipients.to).toEqual([{ address: 'A@example.test' }]);
+    expect(msg.recipients.bcc).toEqual([{ address: 'office@example.test' }]);
+  });
+
+  it('sends no MAIL_BCC copy when the email opts out (password reset)', async () => {
+    acsOk();
+    const svc = makeService({
+      mode: 'acs',
+      acsEndpoint: 'https://x',
+      from: 'noreply@example.test',
+      bcc: ['office@example.test'],
+    });
+    await svc.send({
+      to: 'a@example.test',
+      subject: 'Reset',
+      text: 'T',
+      skipBcc: true,
+    });
+    const msg = beginSend.mock.calls[0][0] as {
+      recipients: { bcc?: unknown[] };
+    };
+    expect(msg.recipients.bcc).toBeUndefined();
   });
 
   it('fails clearly when ACS reports the send did not succeed', async () => {

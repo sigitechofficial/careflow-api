@@ -31,7 +31,17 @@ import { assertVisitCancellationCompliance } from './visit-cancellation-validati
 import {
   visitCancellationOutcomeStatus,
   visitCancellationReasonMeta,
+  type VisitCancellationReasonCode,
 } from './visit-cancellation-reason.util';
+import { lateCancellationPercent } from '../billing/invoice-late-cancellation.util';
+import {
+  TIMEBANK_CHARGEABLE_NOT_BANKED,
+  cancelledByPartyFromReason,
+  evaluateVisitCancellationPolicy,
+  resolveCancellationFundingType,
+  type VisitCancellationPolicyResult,
+  type VisitCancelledByParty,
+} from './visit-cancellation-policy.util';
 import { mapTimelineJob, timelineJobInclude, timelineVisitSelect } from '../scheduling/schedule-timeline.mapper';
 import { VisitTimelineService } from '../employee-app/visit-timeline.service';
 import { assessVisitDeliveryFromJobLike } from '../scheduling/visit-delivery-assessment.util';
@@ -54,7 +64,7 @@ import { VisitReconciliationsService } from '../billing/visit-reconciliations.se
 import { ScheduledVisitStatus } from '../scheduled-visits/enums/scheduled-visit-status.enum';
 import { HousekeepingQueryDto } from './dto/housekeeping-query.dto';
 import { CompleteJobDto } from './dto/complete-job.dto';
-import { CancelJobDto } from './dto/cancel-job.dto';
+import { CancelJobDto, ChangeCancellationBillingDto } from './dto/cancel-job.dto';
 import { ReinstateJobDto } from './dto/reinstate-job.dto';
 import { ResetJobDeliveryDto } from './dto/reset-job-delivery.dto';
 import { ResetJobTaskDto } from './dto/reset-job-task.dto';
@@ -1521,6 +1531,52 @@ export class ScheduledJobsHousekeepingService {
     return { message: result.message, data: result.data };
   }
 
+  /**
+   * Job Cancellation rules (Settings → Dom Care Settings) for a visit cancelled from the rota:
+   * notice is worked out here from the planned start, and the rules apply only when the service
+   * user cancelled (who cancelled is read from the reason).
+   */
+  private async rotaCancellationPolicy(
+    job: { scheduledStartDateTime: Date; serviceUserId: string },
+    reasonCode: VisitCancellationReasonCode,
+  ): Promise<{ cancelledBy: VisitCancelledByParty; noticeHours: number; policy: VisitCancellationPolicyResult | null }> {
+    const cancelledBy = cancelledByPartyFromReason(reasonCode);
+    const noticeHours = Math.max(0, (job.scheduledStartDateTime.getTime() - Date.now()) / 3600000);
+    if (cancelledBy !== 'SERVICE_USER') return { cancelledBy, noticeHours, policy: null };
+    const settings = (await this.orgSettings.get()).data;
+    const funding = await resolveCancellationFundingType(this.prisma, job.serviceUserId);
+    const policy = evaluateVisitCancellationPolicy({
+      cancelledBy,
+      reasonCode,
+      noticeHours,
+      rules: settings.domJobCancellationRules,
+      hospitalExemption: settings.domCancellationHospitalExemption,
+      fundingTypeCode: funding?.code ?? null,
+    });
+    return { cancelledBy, noticeHours, policy };
+  }
+
+  /** What the cancellation rules suggest for this rota visit and reason (read only). */
+  async cancellationPolicyPreview(user: RequestUser, id: string, reasonCode: VisitCancellationReasonCode) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), id);
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id, deletedAt: null, isActive: true },
+      select: { scheduledStartDateTime: true, serviceUserId: true },
+    });
+    if (!job) throw new NotFoundException('Scheduled job not found');
+    const { cancelledBy, noticeHours, policy } = await this.rotaCancellationPolicy(job, reasonCode);
+    return {
+      data: {
+        cancelledBy,
+        noticeHours: Math.round(noticeHours * 10) / 10,
+        applies: policy != null,
+        suggestedDecision: policy?.decision ?? null,
+        chargePercent: policy?.chargePercent ?? null,
+        explanation: policy?.explanation ?? null,
+      },
+    };
+  }
+
   async cancelJob(user: RequestUser, id: string, dto: CancelJobDto, meta?: RequestAuditMeta) {
     const userId = user.id;
     await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), id);
@@ -1565,6 +1621,12 @@ export class ScheduledJobsHousekeepingService {
       chargeDecisionNotes: dto.chargeDecisionNotes,
       timeCriticalVisit,
     });
+
+    // The visit plan sends its own policy result; a rota cancellation gets it worked out here.
+    const rota =
+      dto.cancellationSource === 'VISIT_PLAN'
+        ? null
+        : await this.rotaCancellationPolicy(existing, dto.reasonCode);
 
     const reasonMeta = visitCancellationReasonMeta(dto.reasonCode);
     const jobOutcome = visitCancellationOutcomeStatus(dto.outcome);
@@ -1631,14 +1693,26 @@ export class ScheduledJobsHousekeepingService {
         reinstatedAt: null,
         reinstatedById: null,
         reinstateNotes: null,
-        // Who asked for it and what the cancellation policy suggested (set by the visit plan's date changes).
-        cancelledByParty: dto.cancelledByParty ?? null,
+        // Who asked for it and what the cancellation policy suggested (visit plan: sent with the request; rota: worked out above).
+        cancelledByParty: rota ? rota.cancelledBy : (dto.cancelledByParty ?? null),
         cancelledByDescription: dto.cancelledByDescription?.trim() || null,
         cancellationSource: dto.cancellationSource ?? 'ROTA',
-        noticeHours: dto.noticeHours ?? null,
-        suggestedChargeDecision: dto.suggestedChargeDecision ?? null,
-        suggestedChargePercent: dto.suggestedChargePercent ?? null,
-        policySnapshot: (dto.policySnapshot as Prisma.InputJsonValue | undefined) ?? Prisma.JsonNull,
+        noticeHours: rota ? Math.round(rota.noticeHours * 100) / 100 : (dto.noticeHours ?? null),
+        suggestedChargeDecision: rota ? (rota.policy?.decision ?? null) : (dto.suggestedChargeDecision ?? null),
+        suggestedChargePercent: rota ? (rota.policy?.chargePercent ?? null) : (dto.suggestedChargePercent ?? null),
+        // Percent billed for a Charge decision: the rule's percent, else the full visit.
+        chargePercent:
+          dto.chargeDecision === 'CHARGE'
+            ? lateCancellationPercent(
+                null,
+                rota ? (rota.policy?.chargePercent ?? null) : (dto.suggestedChargePercent ?? null),
+              )
+            : null,
+        // The timebank marker: a Charge decision recorded from now on keeps the visit out of the timebank.
+        policySnapshot: {
+          ...((rota ? rota.policy?.snapshot : dto.policySnapshot) ?? {}),
+          timebank: TIMEBANK_CHARGEABLE_NOT_BANKED,
+        } as Prisma.InputJsonValue,
       };
 
       const cancellation =
@@ -1722,6 +1796,129 @@ export class ScheduledJobsHousekeepingService {
     return cancelResult;
   }
 
+  /**
+   * Change the billing decision of a cancelled or called-off visit (finance confirming a charge, or
+   * taking one off). Refused once the charge is on a locked invoice. The timebank reads the decision
+   * live; an open invoice run picks the change up when it is recalculated.
+   */
+  async changeCancellationBilling(
+    user: RequestUser,
+    id: string,
+    dto: ChangeCancellationBillingDto,
+    meta?: RequestAuditMeta,
+  ) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), id);
+    const cancellation = await this.prisma.scheduledJobCancellation.findUnique({
+      where: { scheduledJobId: id },
+      include: {
+        includedInInvoiceRun: {
+          select: { invoiceNumber: true, documents: { select: { serviceUserId: true, invoiceNumber: true } } },
+        },
+      },
+    });
+    if (!cancellation || cancellation.reinstatedAt) {
+      throw new NotFoundException('This visit has no active cancellation');
+    }
+    if (cancellation.includedInInvoiceRunId) {
+      throw new BadRequestException(
+        `The charge is on a locked invoice (${
+          cancellation.includedInInvoiceRun?.documents.find((d) => d.serviceUserId === cancellation.serviceUserId)
+            ?.invoiceNumber ??
+          cancellation.includedInInvoiceRun?.invoiceNumber ??
+          'invoice run'
+        }) and can no longer be changed`,
+      );
+    }
+    const note = dto.note.trim();
+    if (!note) throw new BadRequestException('Add a note explaining the change');
+
+    const snapshot =
+      cancellation.policySnapshot && typeof cancellation.policySnapshot === 'object'
+        ? (cancellation.policySnapshot as Record<string, unknown>)
+        : {};
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const row = await tx.scheduledJobCancellation.update({
+        where: { id: cancellation.id },
+        data: {
+          chargeDecision: dto.chargeDecision,
+          chargeDecisionNotes: note,
+          chargePercent:
+            dto.chargeDecision === 'CHARGE'
+              ? lateCancellationPercent(null, cancellation.suggestedChargePercent)
+              : null,
+          // A decision made now follows the current rule (out of the timebank when charged).
+          policySnapshot: { ...snapshot, timebank: TIMEBANK_CHARGEABLE_NOT_BANKED } as Prisma.InputJsonValue,
+        },
+      });
+      await this.audit.logAudit({
+        tx,
+        userId: user.id,
+        module: AuditModule.SCHEDULING,
+        action: AuditAction.SCHEDULED_JOB_UPDATED,
+        recordType: 'ScheduledJob',
+        recordId: id,
+        oldValues: auditSnapshot({
+          cancellationId: cancellation.id,
+          chargeDecision: cancellation.chargeDecision,
+          chargeDecisionNotes: cancellation.chargeDecisionNotes,
+        }),
+        newValues: auditSnapshot({
+          cancellationId: cancellation.id,
+          chargeDecision: dto.chargeDecision,
+          chargeDecisionNotes: note,
+        }),
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+      // A visit cancelled from the visit plan also keeps the decision on the plan's cancelled date.
+      if (cancellation.scheduledVisitId) {
+        const visit = await tx.scheduledVisit.findUnique({
+          where: { id: cancellation.scheduledVisitId },
+          select: { visitPlanSlotId: true, scheduledJob: { select: { scheduledStartDateTime: true } } },
+        });
+        if (visit?.visitPlanSlotId && visit.scheduledJob) {
+          const dayIso = dayKeyInTimeZone(
+            visit.scheduledJob.scheduledStartDateTime,
+            await this.orgSettings.getOperationalTimezone(),
+          );
+          await tx.visitPlanSlotException.updateMany({
+            where: {
+              visitPlanSlotId: visit.visitPlanSlotId,
+              exceptionDate: new Date(`${dayIso}T00:00:00.000Z`),
+              exceptionType: 'SKIP',
+            },
+            data: { chargeDecision: dto.chargeDecision, chargeDecisionNotes: note },
+          });
+        }
+      }
+      return row;
+    });
+    return {
+      message: 'Billing decision changed',
+      data: {
+        chargeDecision: updated.chargeDecision,
+        chargeDecisionNotes: updated.chargeDecisionNotes,
+        chargePercent: updated.chargePercent,
+      },
+    };
+  }
+
+  /** Invoice number of the locked invoice holding this cancellation's charge, else null. */
+  private async lockedCancellationInvoice(
+    cancellation: { includedInInvoiceRunId: string | null; reinstatedAt: Date | null; serviceUserId: string } | null,
+  ): Promise<string | null> {
+    if (!cancellation?.includedInInvoiceRunId || cancellation.reinstatedAt) return null;
+    const run = await this.prisma.invoiceRun.findUnique({
+      where: { id: cancellation.includedInInvoiceRunId },
+      select: { invoiceNumber: true, documents: { select: { serviceUserId: true, invoiceNumber: true } } },
+    });
+    return (
+      run?.documents.find((d) => d.serviceUserId === cancellation.serviceUserId)?.invoiceNumber ??
+      run?.invoiceNumber ??
+      'an invoice run'
+    );
+  }
+
   async reinstateJob(user: RequestUser, id: string, dto: ReinstateJobDto, meta?: RequestAuditMeta) {
     const userId = user.id;
     await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), id);
@@ -1738,6 +1935,15 @@ export class ScheduledJobsHousekeepingService {
       existing.status !== PrismaJobStatus.CALLED_OFF
     ) {
       throw new BadRequestException('Only cancelled or called-off jobs can be reinstated');
+    }
+    // A late cancellation charge already on a locked invoice: bringing the visit back would bill
+    // the same visit twice (the charge, then the delivered visit on the next run).
+    const lockedInvoice = await this.lockedCancellationInvoice(existing.cancellation);
+    if (lockedInvoice) {
+      throw new BadRequestException(
+        `Can't reinstate: the late cancellation charge is on locked invoice ${lockedInvoice}. ` +
+          'Add an extra visit for that day instead, or raise a credit with finance.',
+      );
     }
 
     const activeCancellation =

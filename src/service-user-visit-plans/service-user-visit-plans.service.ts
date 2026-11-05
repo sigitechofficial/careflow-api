@@ -118,6 +118,7 @@ import {
 } from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
 import {
+  isNightDutyVisit,
   formatHoursMinutes,
   mondayOfIso,
   type ServiceUserVisitHoldPayload,
@@ -1827,6 +1828,7 @@ export class ServiceUserVisitPlansService {
       plannedEndTime: string;
       durationMinutes: number | null;
       isEnabled: boolean;
+      nightDuty?: string | null;
     }>,
     roundNameByCode: Map<string, string>,
   ): Promise<{
@@ -1863,6 +1865,7 @@ export class ServiceUserVisitPlansService {
             toStart: a.plannedStartTime.slice(0, 5),
             toEnd: a.plannedEndTime.slice(0, 5),
             extraMinutes: toMinutes - fromMinutes,
+            night: isNightDutyVisit(a.nightDuty),
           },
         ];
       });
@@ -1902,7 +1905,7 @@ export class ServiceUserVisitPlansService {
       const before = weekTotals.get(weekStart)!;
       const total = before + delta;
       const room = limitMinutes + budget.reservedIn(weekStart);
-      if (total > room && budget.cover(weekStart, total - Math.max(before, room))) {
+      if (total > room && !change.night && budget.cover(weekStart, total - Math.max(before, room))) {
         timebank.push({
           serviceUserId,
           scheduledJobId: job.id,
@@ -3111,7 +3114,12 @@ export class ServiceUserVisitPlansService {
         const before = weekTotals.get(weekStart)!;
         const after = before + visit.durationMinutes * Math.max(1, visit.requiredCarers);
         const limitMinutes = Math.round(hoursLimit * 60) + timebank.reservedIn(weekStart);
-        if (after > limitMinutes && timebank.cover(weekStart, after - Math.max(before, limitMinutes))) {
+        // Night visits never use the bank (docs/SU_TIMEBANK_INVOICE_PLAN.md T4).
+        if (
+          after > limitMinutes &&
+          !isNightDutyVisit(slot.nightDuty) &&
+          timebank.cover(weekStart, after - Math.max(before, limitMinutes))
+        ) {
           timebankByKey.set(key, { weekStart, minutes: after - Math.max(before, limitMinutes) });
           weekTotals.set(weekStart, after);
           return false;

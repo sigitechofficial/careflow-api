@@ -1,3 +1,4 @@
+import type { PrismaService } from '../prisma/prisma.service';
 import type { DomJobCancellationRule } from '../organisation-general-settings/dom-care-settings.util';
 import type { VisitCancellationReasonCode } from './visit-cancellation-reason.util';
 
@@ -17,6 +18,53 @@ export const VISIT_CANCELLATION_REASONS_BY_PARTY: Record<VisitCancelledByParty, 
  * the commissioning contract decides, so finance must confirm before any charge.
  */
 export const COMMISSIONED_FUNDING_TYPE_CODES = ['LOCAL_AUTHORITY', 'NHS', 'DIRECT_PAYMENT', 'MIXED'] as const;
+
+/**
+ * Marker saved in `policySnapshot.timebank` on every cancellation recorded since chargeable
+ * cancellations stopped going into the timebank. Older cancellations have no marker and keep
+ * their old timebank treatment.
+ */
+export const TIMEBANK_CHARGEABLE_NOT_BANKED = 'CHARGEABLE_NOT_BANKED';
+
+/** True when a cancellation was charged under the rule that keeps it out of the timebank. */
+export function isTimebankChargeableCancellation(cancellation: {
+  chargeDecision: string | null;
+  policySnapshot: unknown;
+  reinstatedAt?: Date | null;
+}): boolean {
+  if (cancellation.reinstatedAt) return false;
+  if (cancellation.chargeDecision !== 'CHARGE') return false;
+  const snapshot = cancellation.policySnapshot;
+  return (
+    snapshot != null &&
+    typeof snapshot === 'object' &&
+    (snapshot as { timebank?: unknown }).timebank === TIMEBANK_CHARGEABLE_NOT_BANKED
+  );
+}
+
+/** Who cancelled, read from the reason when nobody chose it (the rota dialog has no "Cancelled by"). */
+export function cancelledByPartyFromReason(reasonCode: string): VisitCancelledByParty {
+  if (reasonCode.startsWith('CLIENT_') || reasonCode === 'SERVICE_NOT_REQUIRED') return 'SERVICE_USER';
+  if (reasonCode.startsWith('PROVIDER_')) return 'AGENCY';
+  return 'OTHER';
+}
+
+/** Funding the cancellation policy looks at: a commissioned line first, else the primary one. */
+export async function resolveCancellationFundingType(
+  prisma: Pick<PrismaService, 'serviceUserFunding'>,
+  serviceUserId: string,
+): Promise<{ code: string; name: string } | null> {
+  const lines = await prisma.serviceUserFunding.findMany({
+    where: { serviceUserId, deletedAt: null, isActive: true },
+    orderBy: [{ isPrimary: 'desc' }, { splitPriority: 'asc' }],
+    select: { fundingType: { select: { code: true, name: true } } },
+  });
+  if (!lines.length) return null;
+  const commissioned = lines.find((l) =>
+    (COMMISSIONED_FUNDING_TYPE_CODES as readonly string[]).includes(l.fundingType.code),
+  );
+  return (commissioned ?? lines[0]!).fundingType;
+}
 
 export type VisitCancellationPolicyInput = {
   cancelledBy: VisitCancelledByParty;

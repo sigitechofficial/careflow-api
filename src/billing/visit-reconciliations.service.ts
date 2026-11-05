@@ -350,7 +350,7 @@ function bankHolidayCalendarKey(date: Date): string {
  * Load active bank-holiday calendar keys covering [from, to] (expanded for TZ edges).
  * Visit matching must use dayKeyInTimeZone(instant, orgTz) against this set.
  */
-async function loadBankHolidayDateSet(
+export async function loadBankHolidayDateSet(
   db: DbClient,
   from: Date,
   to: Date,
