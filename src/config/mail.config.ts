@@ -67,6 +67,12 @@ export const mailConfig = registerAs('mail', () => {
     acsTenantId: (process.env.ACS_TENANT_ID ?? '').trim() || undefined,
     acsClientId: (process.env.ACS_CLIENT_ID ?? '').trim() || undefined,
     acsClientSecret: (process.env.ACS_CLIENT_SECRET ?? '').trim() || undefined,
+    // MAIL_BCC: comma-separated addresses that get a silent copy of every email
+    // (password-reset emails excluded).
+    bcc: (process.env.MAIL_BCC ?? '')
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean),
     redirectTo:
       process.env.NODE_ENV === 'production'
         ? undefined
