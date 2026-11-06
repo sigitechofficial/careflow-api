@@ -12,6 +12,7 @@ import { readActions } from '../cqc-evidence/cqc-evidence.service';
 import { SurveyInsightService } from './survey-insight.service';
 import { SurveysService } from './surveys.service';
 import { surveyAccessFor, surveyResultsAudience, type SurveyAccess } from './survey-access';
+import { usersInSurveyBranches, usersWithResultsAccess } from './survey-office-recipients';
 import { writtenPartsOf } from './survey-text-themes.util';
 import { unitHiddenReason } from './survey-insight.util';
 import { offersAnswerWithoutName } from './survey-respondent-anonymity.util';
@@ -282,10 +283,16 @@ export class SurveyActionsService {
     return { message: 'Action added', data: { id } };
   }
 
+  /**
+   * Tells the person given the action, by the rule the task list uses for its task (role-tasks withoutHiddenSurveyTasks):
+   * no notice to someone whose branches do not cover the survey's; the survey's title only for someone who may see its
+   * results, else generic words.
+   */
   private async notifyOwner(owner: Survey, actionId: string, userId: string | null, by: string) {
     if (!userId || userId === by) return;
     try {
-      const generic = (await this.taskText(owner, '')).title === 'An action from survey results';
+      if (!(await usersInSurveyBranches(this.prisma, owner, [userId])).includes(userId)) return;
+      const generic = !(await usersWithResultsAccess(this.prisma, owner.id, [userId])).includes(userId);
       await this.notifications.notifyUsers({
         recipientUserIds: [userId],
         type: NotificationType.SYSTEM_MESSAGE,

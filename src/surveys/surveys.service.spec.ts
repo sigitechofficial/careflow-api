@@ -110,6 +110,7 @@ const METHODS = [
   'updateMany',
   'groupBy',
   'deleteMany',
+  'upsert',
 ] as const;
 const MODELS = [
   'survey',
@@ -1835,11 +1836,52 @@ describe('SurveysService', () => {
             metadata: { closed: true, closedAtEndDate: true, reason: 'Reached its end date' },
           }),
         );
+        // One notice each (one inactive account never stops the other's).
+        expect(notifications.notifyUsers).toHaveBeenCalledTimes(2);
+        const [n, s] = notifications.notifyUsers.mock.calls.map((c: any) => c[0]);
+        expect([n.recipientUserIds, s.recipientUserIds]).toEqual([['creator-1'], ['scheduler-1']]);
+        for (const x of [n, s]) {
+          expect(x.message).toBe('Winter survey closed at its end date — results are ready');
+          expect(x.metadata.href).toBe('/surveys/one-off/responses');
+        }
+      });
+
+      it('a backlog closing at once sends each person one summary, not one notice per survey', async () => {
+        const many = Array.from({ length: 30 }, (_, i) => due({ id: `old-${i}`, title: `Old survey ${i}`, scheduledById: i < 2 ? 'scheduler-1' : null }));
+        prisma.survey.findMany.mockResolvedValueOnce(many).mockResolvedValue([]);
+        await expect(service.closeSurveysPastEndDate(now)).resolves.toBe(30);
+        expect(notifications.notifyUsers).toHaveBeenCalledTimes(2);
+        const byUser = Object.fromEntries(notifications.notifyUsers.mock.calls.map((c: any) => [c[0].recipientUserIds[0], c[0]]));
+        expect(byUser['creator-1']).toMatchObject({
+          title: 'Surveys closed',
+          message: '30 of your surveys closed at their end date — results are ready',
+          metadata: { href: '/surveys', count: 30, eventType: 'SURVEYS_CLOSED_AT_END_DATE' },
+        });
+        expect(byUser['creator-1'].message).not.toMatch(/Old survey/);
+        expect(byUser['scheduler-1'].message).toBe('2 of your surveys closed at their end date — results are ready');
+        // Still audited one by one.
+        expect(audit.logAudit).toHaveBeenCalledTimes(30);
+      });
+
+      it('more than one batch due: closed in the same run, and told once', async () => {
+        const page = (from: number, n: number) => Array.from({ length: n }, (_, i) => due({ id: `b-${from + i}`, scheduledById: null }));
+        prisma.survey.findMany.mockResolvedValueOnce(page(0, 200)).mockResolvedValueOnce(page(200, 5)).mockResolvedValue([]);
+        await expect(service.closeSurveysPastEndDate(now)).resolves.toBe(205);
+        expect(prisma.survey.findMany).toHaveBeenCalledTimes(2);
         expect(notifications.notifyUsers).toHaveBeenCalledTimes(1);
-        const n = notifications.notifyUsers.mock.calls[0][0];
-        expect(n.recipientUserIds).toEqual(['creator-1', 'scheduler-1']);
-        expect(n.message).toBe('Winter survey closed at its end date — results are ready');
-        expect(n.metadata.href).toBe('/surveys/one-off/responses');
+        expect(notifications.notifyUsers.mock.calls[0][0].message).toBe('205 of your surveys closed at their end date — results are ready');
+        // The next run finds nothing more: no notice.
+        await expect(service.closeSurveysPastEndDate(now)).resolves.toBe(0);
+        expect(notifications.notifyUsers).toHaveBeenCalledTimes(1);
+      });
+
+      it('a full batch it could not close (closed elsewhere) is not read again and again', async () => {
+        const full = Array.from({ length: 200 }, (_, i) => due({ id: `x-${i}` }));
+        prisma.survey.findMany.mockResolvedValue(full);
+        prisma.survey.updateMany.mockResolvedValue({ count: 0 });
+        await expect(service.closeSurveysPastEndDate(now)).resolves.toBe(0);
+        expect(prisma.survey.findMany).toHaveBeenCalledTimes(1);
+        expect(notifications.notifyUsers).not.toHaveBeenCalled();
       });
 
       it('a period copy still closes as before (and its creator is told once when they also scheduled it)', async () => {
@@ -1862,11 +1904,12 @@ describe('SurveysService', () => {
         const [a, b] = await Promise.all([service.closeSurveysPastEndDate(now), service.closeSurveysPastEndDate(now)]);
         expect(a + b).toBe(1);
         expect(audit.logAudit).toHaveBeenCalledTimes(1);
-        expect(notifications.notifyUsers).toHaveBeenCalledTimes(1);
+        // Its creator and its scheduler, once each.
+        expect(notifications.notifyUsers).toHaveBeenCalledTimes(2);
         // A later run finds nothing open.
         prisma.survey.findMany.mockResolvedValue([]);
         await expect(service.closeSurveysPastEndDate(now)).resolves.toBe(0);
-        expect(notifications.notifyUsers).toHaveBeenCalledTimes(1);
+        expect(notifications.notifyUsers).toHaveBeenCalledTimes(2);
       });
 
       it('a failed notification never stops the close', async () => {
@@ -2426,6 +2469,21 @@ describe('SurveysService', () => {
       givenSurvey(surveyRow({ status: 'CLOSED', targetKind: 'EMPLOYEE', answersDeletedAt: new Date('2026-01-01T00:00:00Z') }));
       givenQuestions(1);
       await expect(service.openForResponses(admin, 's1')).rejects.toThrow(/retention period/);
+    });
+
+    it('nor is one whose answers were partly deleted (answersDeletedBefore), whether opened or published again', async () => {
+      const part = { status: 'CLOSED', answersDeletedBefore: new Date('2026-03-01T00:00:00Z') };
+      givenQuestions(1);
+      givenSurvey(surveyRow({ ...part, targetKind: 'EMPLOYEE' }));
+      await expect(service.openForResponses(admin, 's1')).rejects.toThrow(
+        'Some of this survey’s answers were deleted under its retention period, so it cannot be reopened. Duplicate it to run it again.',
+      );
+      givenSurvey(surveyRow({ ...part, targetKind: 'PUBLIC' }));
+      await expect(service.publish(admin, 's1')).rejects.toThrow(/Some of this survey’s answers were deleted/);
+      expect(prisma.survey.update).not.toHaveBeenCalled();
+      // An open public survey whose older answers went (counted from each answer) can still be published again.
+      givenSurvey(surveyRow({ status: 'ACTIVE', targetKind: 'PUBLIC', answersDeletedBefore: new Date('2026-03-01T00:00:00Z') }));
+      await expect(service.publish(admin, 's1')).resolves.toBeDefined();
     });
 
     it('a closed survey can be reopened with Open for responses', async () => {
@@ -5837,6 +5895,78 @@ describe('SurveysService', () => {
         const capture = jest.fn(async () => ({ outcome: 'FAILED' }));
         await expect(withCqc(capture).remove(admin, 's1')).rejects.toThrow(/CQC evidence \(totals only\) could not be kept first/);
         expect(prisma.survey.update).not.toHaveBeenCalled();
+      });
+
+      it('says the real reason (never "try again in a few minutes"), with a code the admin app reads', async () => {
+        givenSurvey(surveyRow({ status: 'CLOSED' }));
+        const failed = jest.fn(async () => ({ outcome: 'FAILED', detail: 'No active CQC framework' }));
+        const err: any = await withCqc(failed).remove(admin, 's1').catch((e) => e);
+        expect(err.message).toBe('This survey could not be deleted yet: its CQC evidence (totals only) could not be kept first. No active CQC framework');
+        expect(err.getResponse()).toMatchObject({ code: 'SURVEY_EVIDENCE_CAPTURE_FAILED' });
+        expect(err.message).not.toMatch(/few minutes/);
+        // The capture threw (it records FAILED with the message, then throws it).
+        const threw = jest.fn(async () => {
+          throw new Error('Choose quality statements from the current CQC framework');
+        });
+        await expect(withCqc(threw).remove(admin, 's1')).rejects.toThrow(/could not be kept first\. Choose quality statements from the current CQC framework$/);
+        expect(prisma.survey.update).not.toHaveBeenCalled();
+      });
+
+      describe('delete anyway without CQC evidence (company-wide admins)', () => {
+        const companyAdmin: any = { id: 'adm-2', roles: ['Admin'], permissions: [], assignedLocationIds: null };
+        const failing = () => jest.fn(async () => ({ outcome: 'FAILED', detail: 'x' }));
+        beforeEach(() => {
+          givenSurvey(surveyRow({ status: 'CLOSED', updatedAt: new Date('2026-11-01T00:00:00.000Z') }));
+          prisma.cqcSurveyCapture.findUnique.mockResolvedValue({ outcome: 'FAILED', detail: 'No active CQC framework', surveyUpdatedAt: new Date('2026-11-01T00:00:00.000Z') });
+        });
+
+        it('records a deliberate "no evidence" with the delete, in one transaction, and audits the reason', async () => {
+          const capture = failing();
+          const res = await withCqc(capture).removeWithoutEvidence(companyAdmin, 's1', '  Survey set up by mistake, no real answers  ');
+          expect(res.data).toEqual({ id: 's1' });
+          expect(capture).not.toHaveBeenCalled();
+          expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+          const data = { surveyUpdatedAt: new Date('2026-11-01T00:00:00.000Z'), outcome: 'NO_EVIDENCE', evidenceCount: 0, detail: 'Deleted without CQC evidence by an admin: Survey set up by mistake, no real answers' };
+          expect(prisma.cqcSurveyCapture.upsert).toHaveBeenCalledWith({
+            where: { surveyId: 's1' },
+            update: expect.objectContaining(data),
+            create: expect.objectContaining({ surveyId: 's1', ...data }),
+          });
+          expect(prisma.survey.update.mock.calls[0][0]).toMatchObject({ where: { id: 's1' }, data: { deletedById: 'adm-2' } });
+          expect(prisma.survey.update.mock.calls[0][0].data.deletedAt).toBeInstanceOf(Date);
+          expect(audit.logAudit).toHaveBeenCalledWith(
+            expect.objectContaining({
+              action: 'survey_deleted',
+              recordId: 's1',
+              metadata: { withoutEvidence: true, reason: 'Survey set up by mistake, no real answers', captureOutcome: 'FAILED', captureDetail: 'No active CQC framework' },
+            }),
+          );
+        });
+
+        it('only for an Admin or Super Admin with every branch', async () => {
+          const branchAdmin = { ...companyAdmin, assignedLocationIds: ['loc-leeds'] };
+          for (const actor of [leedsManager, branchAdmin, { ...companyAdmin, roles: ['Manager'] }]) {
+            await expect(withCqc(failing()).removeWithoutEvidence(actor, 's1', 'A good reason')).rejects.toThrow(/Only an Admin with access to every branch/);
+          }
+          await withCqc(failing()).removeWithoutEvidence(admin, 's1', 'A good reason');
+          expect(prisma.survey.update).toHaveBeenCalledTimes(1);
+        });
+
+        it('needs a reason of 5 to 300 characters', async () => {
+          for (const reason of ['', '  abc ', 'x'.repeat(301), undefined, 42]) {
+            await expect(withCqc(failing()).removeWithoutEvidence(companyAdmin, 's1', reason)).rejects.toThrow(/5 to 300 characters/);
+          }
+          expect(prisma.survey.update).not.toHaveBeenCalled();
+          await withCqc(failing()).removeWithoutEvidence(companyAdmin, 's1', 'x'.repeat(300));
+          expect(prisma.survey.update).toHaveBeenCalledTimes(1);
+        });
+
+        it('a survey whose evidence is not needed (or already taken) is deleted as usual, with no "no evidence" record', async () => {
+          givenSurvey(surveyRow({ status: 'ACTIVE' }));
+          await withCqc(failing()).removeWithoutEvidence(companyAdmin, 's1', 'Not needed now');
+          expect(prisma.cqcSurveyCapture.upsert).not.toHaveBeenCalled();
+          expect(prisma.survey.update).toHaveBeenCalledTimes(1);
+        });
       });
 
       it('nothing to take: already up to date, still open (never captured), or a repeating survey’s own row', async () => {

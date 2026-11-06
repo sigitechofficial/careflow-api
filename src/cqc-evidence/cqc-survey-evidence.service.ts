@@ -46,6 +46,7 @@ import {
 } from '../surveys/survey-pending-responses';
 
 const isRecaptureMark = (d: Date) => d.getTime() === CQC_RECAPTURE_MARK.getTime();
+import { NO_EVIDENCE_OUTCOME } from '../surveys/survey-platform.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import type { CaptureSurveyEvidenceDto } from './dto/cqc-evidence.dto';
 
@@ -106,9 +107,32 @@ type StatementPlan = {
   unmatched: string[];
 };
 
+/** Why a survey was deleted without CQC evidence (CqcSurveyCapture.detail with NO_EVIDENCE_OUTCOME). */
+export const NO_EVIDENCE_LEGACY_DETAIL =
+  'Deleted before answer retention began (7 Nov 2026) without CQC evidence: none is kept, by decision.';
+export const noEvidenceAdminDetail = (reason: string) => `Deleted without CQC evidence by an admin: ${reason}`.slice(0, 500);
+
+/**
+ * Records a deliberate "no CQC evidence" for a survey being (or already) deleted, so answer retention can go ahead
+ * (evidenceReadyForRetention). Totals only are ever kept, and here none: nothing about answers is written.
+ * keepExisting: a capture already there is left as it is (the one-off rule for old deleted surveys); otherwise it is
+ * replaced (an admin deleting anyway after a failed capture).
+ */
+export async function recordNoEvidenceCapture(
+  db: Pick<Prisma.TransactionClient, 'cqcSurveyCapture'>,
+  input: { surveyId: string; surveyUpdatedAt: Date; detail: string; now: Date; keepExisting?: boolean },
+): Promise<void> {
+  const data = { surveyUpdatedAt: input.surveyUpdatedAt, outcome: NO_EVIDENCE_OUTCOME, evidenceCount: 0, detail: input.detail, capturedAt: input.now };
+  await db.cqcSurveyCapture.upsert({
+    where: { surveyId: input.surveyId },
+    update: input.keepExisting ? {} : data,
+    create: { surveyId: input.surveyId, ...data },
+  });
+}
+
 export type CaptureOutcome = {
   surveyId: string;
-  outcome: 'CAPTURED' | 'NO_STATEMENTS' | 'NOT_CLOSED' | 'ANSWERS_DELETED' | 'FAILED';
+  outcome: 'CAPTURED' | 'NO_STATEMENTS' | 'NOT_CLOSED' | 'ANSWERS_DELETED' | 'FAILED' | typeof NO_EVIDENCE_OUTCOME;
   created: number;
   updated: number;
   skipped: number;

@@ -36,6 +36,7 @@ import {
 import { SendSurveyDto } from './dto/send-survey.dto';
 import { ListSurveysQueryDto } from './dto/list-surveys-query.dto';
 import { ReopenSurveyDto } from './dto/reopen-survey.dto';
+import { DeleteWithoutEvidenceDto } from './dto/delete-without-evidence.dto';
 import {
   RecordSurveyResponseDto,
   UpdateRecordedSurveyResponseDto,
@@ -217,6 +218,21 @@ export class SurveysController {
   @ApiOperation({ summary: 'Soft-delete a survey' })
   remove(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
     return this.service.remove(user, id, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/delete-without-evidence')
+  @Permissions('surveys.manage')
+  @ApiOperation({
+    summary:
+      'Delete a closed survey whose CQC evidence could not be taken (company-wide Admin only, with a reason; recorded as no evidence and audited)',
+  })
+  removeWithoutEvidence(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: DeleteWithoutEvidenceDto,
+    @Req() req: Request,
+  ) {
+    return this.service.removeWithoutEvidence(user, id, dto.reason, getRequestAuditMeta(req));
   }
 
   @Post(':id/questions')

@@ -11,18 +11,21 @@ import {
 /**
  * The policy library as catalogue documents (isCatalogue = true): complete policies an organisation
  * adopts as its own drafts from Policies → Ready-made policies. Runs on every deploy. Categories
- * are added when missing (names an admin changed are kept). Catalogue documents belong to CareFlow,
- * so their content is refreshed and ones no longer in the library are retired; nothing an
+ * are added when missing (names an admin changed are kept). Missing catalogue documents are
+ * created; ones still there have their content refreshed, and ones no longer in the library are
+ * retired. A catalogue document that has been removed — deleted, made inactive or archived (by the
+ * organisation, or retired here) — stays removed: it is never brought back or changed. Nothing an
  * organisation adopted or wrote is touched, and catalogue documents never appear in the policy
  * library or on pages (both filter isCatalogue).
  */
 export async function seedPolicyLibrary(
   prisma: PrismaClient,
   files: LibraryFile[] = loadPolicyLibrary(),
-): Promise<{ categoriesCreated: number; created: number; updated: number; retired: number }> {
+): Promise<{ categoriesCreated: number; created: number; updated: number; keptRemoved: number; retired: number }> {
   let categoriesCreated = 0;
   let created = 0;
   let updated = 0;
+  let keptRemoved = 0;
   const titleByRef = new Map(files.flatMap((f) => f.documents.map((d) => [d.reference, d.title] as const)));
   const catalogueRefs = files.flatMap((f) => f.documents.map((d) => catalogueReference(d.reference)));
 
@@ -54,9 +57,14 @@ export async function seedPolicyLibrary(
 
       const existing = await prisma.policyDocument.findFirst({
         where: { reference },
-        select: { id: true, isCatalogue: true, currentVersionId: true },
+        select: { id: true, isCatalogue: true, currentVersionId: true, deletedAt: true, isActive: true, status: true },
       });
       if (existing && !existing.isCatalogue) continue; // never overwrite an organisation's own document
+      // Removed (deleted, inactive or archived): left exactly as it is, never re-activated.
+      if (existing && catalogueRemoved(existing)) {
+        keptRemoved += 1;
+        continue;
+      }
 
       if (!existing) {
         await prisma.$transaction(async (tx) => {
@@ -98,8 +106,6 @@ export async function seedPolicyLibrary(
             description: p.summary,
             documentType: p.documentType as PolicyDocumentType,
             primaryCategoryId: category!.id,
-            isActive: true,
-            deletedAt: null,
           },
         });
         if (existing.currentVersionId) {
@@ -117,5 +123,10 @@ export async function seedPolicyLibrary(
     where: { isCatalogue: true, deletedAt: null, reference: { notIn: catalogueRefs } },
     data: { isActive: false, deletedAt: new Date() },
   });
-  return { categoriesCreated, created, updated, retired: retired.count };
+  return { categoriesCreated, created, updated, keptRemoved, retired: retired.count };
+}
+
+/** A catalogue document taken out of use: deleted, made inactive or archived. The seed never brings it back. */
+export function catalogueRemoved(d: { deletedAt: Date | null; isActive: boolean; status: PolicyStatus | string }): boolean {
+  return Boolean(d.deletedAt) || !d.isActive || d.status === PolicyStatus.ARCHIVED;
 }

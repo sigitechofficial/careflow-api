@@ -492,6 +492,56 @@ describe('survey library: letting people answer without their name', () => {
     expect(update).toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ allowAnonymousResponses: true }) }));
   });
 
+  it('every deploy: refreshes (and restores) catalogue rows only — an organisation’s adopted templates are never touched', async () => {
+    const group = { code: 'PEOPLE_WE_SUPPORT', short: 'PWS' as const, name: 'People we support', displayOrder: 10, researchedOn: '2026-11-05' };
+    const rows: any[] = [
+      { id: 'cat-1', isCatalogue: true, isTemplate: true, libraryReference: 'SUR-PWS-001', title: 'Old', deletedAt: new Date('2026-10-01'), questions: [] },
+      { id: 'cat-gone', isCatalogue: true, isTemplate: true, libraryReference: 'SUR-PWS-099', title: 'Retired', deletedAt: null, questions: [] },
+      // Adopted from the library (same reference), then edited, or deleted, by the organisation.
+      { id: 'own-1', isCatalogue: false, isTemplate: true, libraryReference: 'SUR-PWS-001', librarySourceId: 'cat-1', title: 'Our wording', deletedAt: null, questions: [] },
+      { id: 'own-2', isCatalogue: false, isTemplate: true, libraryReference: 'SUR-PWS-099', librarySourceId: 'cat-gone', title: 'Kept', deletedAt: new Date('2026-09-01'), questions: [] },
+    ];
+    const own = JSON.stringify(rows.filter((r) => !r.isCatalogue));
+    const matches = (r: any, where: any) =>
+      Object.entries(where).every(([k, v]: [string, any]) =>
+        v && typeof v === 'object' && !(v instanceof Date) ? ('notIn' in v ? !v.notIn.includes(r[k]) : true) : r[k] === v,
+      );
+    const writes: any[] = [];
+    const prisma: any = {
+      survey: {
+        findFirst: jest.fn(async ({ where }: any) => rows.find((r) => matches(r, where)) ?? null),
+        create: jest.fn(async ({ data }: any) => rows.push({ id: 'cat-new', ...data })),
+        update: jest.fn(async ({ where, data }: any) => {
+          writes.push(where);
+          const { questions: _q, ...rest } = data;
+          Object.assign(rows.find((r) => r.id === where.id), rest);
+        }),
+        updateMany: jest.fn(async ({ where, data }: any) => {
+          writes.push(where);
+          const hit = rows.filter((r) => matches(r, where));
+          hit.forEach((r) => Object.assign(r, data));
+          return { count: hit.length };
+        }),
+      },
+      surveyQuestion: { deleteMany: jest.fn(async ({ where }: any) => writes.push(where)) },
+      $transaction: jest.fn(async (ops: unknown[]) => Promise.all(ops)),
+    };
+    const res = await seedSurveyLibrary(prisma, [{ group, surveys: [survey()] }], {});
+    expect(res).toMatchObject({ created: 0, updated: 1, retired: 1 });
+    // The catalogue row is refreshed and back in the library; the one no longer in it is retired.
+    expect(rows.find((r) => r.id === 'cat-1')).toMatchObject({ title: 'Annual satisfaction survey', deletedAt: null });
+    expect(rows.find((r) => r.id === 'cat-gone')!.deletedAt).toBeInstanceOf(Date);
+    // Adopted templates: exactly as they were.
+    expect(JSON.stringify(rows.filter((r) => !r.isCatalogue))).toBe(own);
+    // Every read and write was aimed at catalogue rows only.
+    expect(prisma.survey.findFirst.mock.calls.every((c: any) => c[0].where.isCatalogue === true)).toBe(true);
+    for (const w of writes) {
+      if ('id' in w) expect(w.id).toBe('cat-1');
+      else if ('surveyId' in w) expect(w.surveyId).toBe('cat-1');
+      else expect(w.isCatalogue).toBe(true);
+    }
+  });
+
   it('the annual survey of people we support offers it, and says so in its privacy notice', () => {
     const pws003 = loadSurveyLibrary()
       .flatMap((f) => f.surveys)

@@ -7,6 +7,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { SurveysService } from './surveys.service';
+import { NO_EVIDENCE_LEGACY_DETAIL, recordNoEvidenceCapture } from '../cqc-evidence/cqc-survey-evidence.service';
 import {
   MONTH_LABELS,
   runMonthsOf,
@@ -21,7 +22,10 @@ import {
   closedAtOf,
   evidenceReadyForRetention,
   latestDate,
+  LEGACY_DELETED_RETENTION_MONTHS,
+  legacyDeletedWithoutEvidence,
   LEGAL_HOLD_GRACE_DAYS,
+  RETENTION_RELEASED_AT,
   legalHoldWhere,
   libraryRetention,
   readOptionGroups,
@@ -247,7 +251,9 @@ export class SurveyPlatformService {
    * Safeguards: a closed unit's CQC evidence (totals only) must be captured and up to date first; answers and follow-up
    * details linked to a complaint, safeguarding case or incident are held while it is open and for 30 days after it
    * closes (LEGAL_HOLD_GRACE_DAYS), then deleted at the next run; a deleted survey follows the same evidence rule
-   * (evidenceReadyForRetention); answers deleted from a unit that keeps some (counted from each answer, or answers
+   * (evidenceReadyForRetention), except closed surveys deleted before retention was released with no capture
+   * (legacyDeletedWithoutEvidence: no evidence required, recorded as NO_EVIDENCE; with no retention period, their
+   * answers go LEGACY_DELETED_RETENTION_MONTHS after they were deleted); answers deleted from a unit that keeps some (counted from each answer, or answers
    * held for a complaint, case or incident) set answersDeletedBefore, shown in Results, and a later CQC capture keeps
    * the figures taken before; one server at a time
    * per unit (an advisory lock, then looked at again); the survey's updatedAt is left alone (it is what the CQC capture
@@ -280,15 +286,30 @@ export class SurveyPlatformService {
         const found = await this.prisma.survey.findMany({ where: { id: { in: missing } }, select: { id: true, answerRetentionMonths: true, libraryReference: true, libraryMeta: true } });
         for (const id of missing) owners.set(id, found.find((f) => f.id === id) ?? null);
       }
+      // Closed surveys deleted before retention was released: their captures, for the one-off rule (legacyDeletedWithoutEvidence).
+      const oldDeleted = new Set(rows.filter((r) => r.status === 'CLOSED' && r.deletedAt && r.deletedAt.getTime() < RETENTION_RELEASED_AT.getTime()).map((r) => r.id));
+      const oldCaptures = new Map<string, { outcome: string }>();
+      if (oldDeleted.size) {
+        const found = await this.prisma.cqcSurveyCapture.findMany({ where: { surveyId: { in: [...oldDeleted] } }, select: { surveyId: true, outcome: true } });
+        for (const c of found) oldCaptures.set(c.surveyId, c);
+      }
       for (const u of rows) {
         if (units >= RETENTION_BATCH) break;
         const owner = (u.clonedFromId && owners.get(u.clonedFromId)) || u;
-        const rule = await this.retentionRuleFor(owner, cache);
+        const legacy = oldDeleted.has(u.id) && legacyDeletedWithoutEvidence(u, oldCaptures.get(u.id) ?? null);
+        let rule = await this.retentionRuleFor(owner, cache);
+        // Its retention period counts from the close as usual; with none, LEGACY_DELETED_RETENTION_MONTHS after it was deleted.
+        let from = closedAtOf(u);
+        const noPeriod = !rule && legacy;
+        if (noPeriod) {
+          rule = { months: LEGACY_DELETED_RETENTION_MONTHS, basis: 'FROM_CLOSE' };
+          from = u.deletedAt!;
+        }
         if (!rule) continue;
-        const whole = u.status === 'CLOSED' && retentionDue(closedAtOf(u), rule.months) <= now;
+        const whole = u.status === 'CLOSED' && retentionDue(from, rule.months) <= now;
         if (!whole && rule.basis !== 'FROM_ANSWER') continue;
         try {
-          const done = await this.retainUnit(u, rule, whole, now);
+          const done = await this.retainUnit(u, rule, whole, now, legacy);
           if (!done) continue;
           units += 1;
           responses += done.responses;
@@ -298,9 +319,11 @@ export class SurveyPlatformService {
             action: AuditAction.SURVEY_ANSWERS_DELETED_RETENTION,
             recordType: 'Survey',
             recordId: u.id,
-            description: whole
-              ? `Answers to "${u.title}" deleted under the retention period (${rule.months} months after it closed)`
-              : `Answers to "${u.title}" given more than ${rule.months} months ago deleted under the retention period`,
+            description: noPeriod
+              ? `Answers to "${u.title}" deleted ${rule.months} months after the survey was deleted (deleted before answer retention began, with no CQC evidence)`
+              : whole
+                ? `Answers to "${u.title}" deleted under the retention period (${rule.months} months after it closed)`
+                : `Answers to "${u.title}" given more than ${rule.months} months ago deleted under the retention period`,
             // Counts only: never who answered or what.
             newValues: {
               responses: done.responses,
@@ -309,8 +332,9 @@ export class SurveyPlatformService {
               callNotes: done.callNotes,
               held: done.held,
               months: rule.months,
-              basis: rule.basis,
+              basis: noPeriod ? 'FROM_DELETE' : rule.basis,
               whole: whole && !done.held,
+              ...(legacy ? { noEvidence: true } : {}),
             },
           });
         } catch (e) {
@@ -326,7 +350,7 @@ export class SurveyPlatformService {
    * One unit, in one transaction under its own lock. Null when there was nothing to do (or it is not safe yet).
    * whole: everything (the closed unit is due); otherwise answers given on or before the cut-off only.
    */
-  private async retainUnit(u: RetentionUnit, rule: RetentionRule, whole: boolean, now: Date) {
+  private async retainUnit(u: RetentionUnit, rule: RetentionRule, whole: boolean, now: Date, legacy = false) {
     const cutoff = retentionCutoff(now, rule.months);
     const answered = whole ? {} : { submittedAt: { lte: cutoff } };
     const waitingWhere = { surveyId: u.id, ...(whole ? {} : { createdAt: { lte: cutoff } }) };
@@ -338,7 +362,8 @@ export class SurveyPlatformService {
     if (!whole && !due && !waitingDue) return null;
     // A closed unit's CQC evidence (totals) is kept first: captured, and not waiting to be taken again. The same rule
     // for a deleted survey: captured before it was deleted, or never closed (so never captured).
-    if (u.status === 'CLOSED' && (due || waitingDue)) {
+    // An old deleted survey with no capture (legacyDeletedWithoutEvidence): evidence is not required (recorded below).
+    if (u.status === 'CLOSED' && (due || waitingDue) && !legacy) {
       const capture = await this.prisma.cqcSurveyCapture.findUnique({ where: { surveyId: u.id }, select: { outcome: true, surveyUpdatedAt: true } });
       if (!evidenceReadyForRetention(u, capture)) return null;
     }
@@ -348,6 +373,10 @@ export class SurveyPlatformService {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`survey-retention:${u.id}`}))`;
       const fresh = await tx.survey.findUnique({ where: { id: u.id }, select: { answersDeletedAt: true, answersDeletedBefore: true, updatedAt: true } });
       if (!fresh || fresh.answersDeletedAt) return null;
+      // The one-off rule's deliberate "no evidence", recorded with the deletion (a capture already there is kept).
+      if (legacy && (due || waitingDue)) {
+        await recordNoEvidenceCapture(tx, { surveyId: u.id, surveyUpdatedAt: fresh.updatedAt, detail: NO_EVIDENCE_LEGACY_DETAIL, now, keepExisting: true });
+      }
       const ids = (
         await tx.surveyResponse.findMany({
           where: { surveyId: u.id, ...answered, ...(held.responseIds.length ? { id: { notIn: held.responseIds } } : {}) },

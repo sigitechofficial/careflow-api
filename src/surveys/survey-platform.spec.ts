@@ -10,6 +10,7 @@ import {
   asksTwoThings,
   closedAtOf,
   evidenceReadyForRetention,
+  legacyDeletedWithoutEvidence,
   latestDate,
   LEGAL_HOLD_GRACE_DAYS,
   legalHoldActive,
@@ -226,7 +227,9 @@ describe('answer retention', () => {
       surveyPendingResponse: { deleteMany: jest.fn().mockResolvedValue({ count: 1 }) },
       surveyAlert: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
       surveyCallAttempt: { updateMany: jest.fn().mockResolvedValue({ count: 0 }) },
+      cqcSurveyCapture: { upsert: jest.fn() },
     };
+    const capture = opts.capture === undefined ? { outcome: 'CAPTURED', surveyUpdatedAt: new Date('2025-01-10T00:05:00Z') } : opts.capture;
     const prisma: any = {
       survey: {
         findMany: jest.fn(async (args: any) => (args.where?.status ? (args.where.id?.gt ? [] : units) : [])),
@@ -235,7 +238,8 @@ describe('answer retention', () => {
       surveyResponse: { count: jest.fn().mockResolvedValue(2) },
       surveyPendingResponse: { count: jest.fn().mockResolvedValue(1) },
       cqcSurveyCapture: {
-        findUnique: jest.fn().mockResolvedValue(opts.capture === undefined ? { outcome: 'CAPTURED', surveyUpdatedAt: new Date('2025-01-10T00:05:00Z') } : opts.capture),
+        findUnique: jest.fn().mockResolvedValue(capture),
+        findMany: jest.fn(async ({ where }: any) => (capture ? where.surveyId.in.map((surveyId: string) => ({ surveyId, outcome: capture.outcome })) : [])),
       },
       surveyAlert: { findMany: jest.fn().mockResolvedValue(opts.linked ?? []) },
       feedbackRecord: { findMany: jest.fn(async ({ where }: any) => (opts.openComplaints ?? []).filter((id) => where.id.in.includes(id)).map((id) => ({ id }))) },
@@ -429,13 +433,89 @@ describe('answer retention', () => {
     });
 
     it('a survey deleted after closing waits for its evidence; deleted once it was taken, its answers go', async () => {
-      const deleted = unit({ deletedAt: new Date('2025-06-01T00:00:00Z'), updatedAt: new Date('2025-06-01T00:00:00Z') });
+      // Deleted after retention was released (deleting takes the evidence first). Before it: the one-off rule below.
+      const deleted = unit({ deletedAt: new Date('2026-11-08T00:00:00Z'), updatedAt: new Date('2026-11-08T00:00:00Z') });
+      const LATER = new Date('2026-12-01T00:00:00Z');
       const none = setup([deleted], { capture: null });
-      await expect(none.service.runRetention(NOW)).resolves.toEqual({ units: 0, responses: 0 });
+      await expect(none.service.runRetention(LATER)).resolves.toEqual({ units: 0, responses: 0 });
       expect(none.prisma.cqcSurveyCapture.findUnique).toHaveBeenCalled();
       expect(none.tx.surveyResponse.deleteMany).not.toHaveBeenCalled();
       const taken = setup([deleted]);
-      await expect(taken.service.runRetention(NOW)).resolves.toEqual({ units: 1, responses: 2 });
+      await expect(taken.service.runRetention(LATER)).resolves.toEqual({ units: 1, responses: 2 });
+    });
+
+    it('an admin’s deliberate "no evidence" counts once the survey is deleted, never for a live one', () => {
+      const t = new Date('2026-11-20T00:00:00Z');
+      const noEvidence = { outcome: 'NO_EVIDENCE', surveyUpdatedAt: t };
+      expect(evidenceReadyForRetention({ status: 'CLOSED', deletedAt: t, updatedAt: t }, noEvidence)).toBe(true);
+      expect(evidenceReadyForRetention({ status: 'CLOSED', deletedAt: null, updatedAt: t }, noEvidence)).toBe(false);
+    });
+  });
+
+  describe('one-off rule: closed surveys deleted before the release (7 Nov 2026) with no CQC capture', () => {
+    const old = (over: Unit = {}) => unit({ deletedAt: new Date('2026-03-01T00:00:00Z'), updatedAt: new Date('2026-03-01T00:00:00Z'), ...over });
+
+    it('the rule: closed, deleted before the release, and no capture (or the rule’s own "no evidence")', () => {
+      const before = new Date('2026-11-06T23:59:59Z');
+      const at = new Date('2026-11-07T00:00:00Z');
+      expect(legacyDeletedWithoutEvidence({ status: 'CLOSED', deletedAt: before }, null)).toBe(true);
+      expect(legacyDeletedWithoutEvidence({ status: 'CLOSED', deletedAt: before }, { outcome: 'NO_EVIDENCE' })).toBe(true);
+      expect(legacyDeletedWithoutEvidence({ status: 'CLOSED', deletedAt: at }, null)).toBe(false);
+      expect(legacyDeletedWithoutEvidence({ status: 'CLOSED', deletedAt: null }, null)).toBe(false);
+      expect(legacyDeletedWithoutEvidence({ status: 'ACTIVE', deletedAt: before }, null)).toBe(false);
+      // A capture was taken (or failed): the usual rule.
+      expect(legacyDeletedWithoutEvidence({ status: 'CLOSED', deletedAt: before }, { outcome: 'CAPTURED' })).toBe(false);
+      expect(legacyDeletedWithoutEvidence({ status: 'CLOSED', deletedAt: before }, { outcome: 'FAILED' })).toBe(false);
+    });
+
+    it('with a retention period: answers go when it is due (from the close), recorded as a deliberate "no evidence"; audited as counts', async () => {
+      const { service, tx, audit } = setup([old()], { capture: null });
+      await expect(service.runRetention(NOW)).resolves.toEqual({ units: 1, responses: 2 });
+      expect(tx.cqcSurveyCapture.upsert).toHaveBeenCalledWith({
+        where: { surveyId: 'u1' },
+        update: {},
+        create: expect.objectContaining({ surveyId: 'u1', outcome: 'NO_EVIDENCE', evidenceCount: 0, detail: expect.stringMatching(/before answer retention began/) }),
+      });
+      expect(tx.survey.updateMany).toHaveBeenCalledWith({ where: { id: 'u1', answersDeletedAt: null }, data: { answersDeletedAt: NOW, updatedAt: new Date('2026-03-01T00:00:00Z') } });
+      const row = audit.logAudit.mock.calls[0][0];
+      expect(row.newValues).toEqual({ responses: 2, waiting: 1, followUps: 1, callNotes: 0, held: 0, months: 12, basis: 'FROM_CLOSE', whole: true, noEvidence: true });
+      expect(JSON.stringify(row)).not.toMatch(/r1|r2/);
+    });
+
+    it('not yet due under its period: nothing happens', async () => {
+      const recent = old({ closesAt: new Date('2025-12-01T00:00:00Z'), updatedAt: new Date('2026-03-01T00:00:00Z') });
+      const { service, tx } = setup([recent], { capture: null });
+      await expect(service.runRetention(NOW)).resolves.toEqual({ units: 0, responses: 0 });
+      expect(tx.cqcSurveyCapture.upsert).not.toHaveBeenCalled();
+    });
+
+    it('with no retention period: answers go 12 months after it was deleted, never before', async () => {
+      const none = old({ answerRetentionMonths: null });
+      const early = setup([none], { capture: null });
+      await expect(early.service.runRetention(new Date('2027-02-28T23:59:59Z'))).resolves.toEqual({ units: 0, responses: 0 });
+      expect(early.tx.surveyResponse.deleteMany).not.toHaveBeenCalled();
+      const due = setup([none], { capture: null });
+      await expect(due.service.runRetention(new Date('2027-03-01T00:00:00Z'))).resolves.toEqual({ units: 1, responses: 2 });
+      const row = due.audit.logAudit.mock.calls[0][0];
+      expect(row.newValues).toMatchObject({ months: 12, basis: 'FROM_DELETE', whole: true, noEvidence: true });
+      expect(row.description).toMatch(/12 months after the survey was deleted/);
+    });
+
+    it('a later run (answers held for a complaint the first time) still treats it so, keeping the record', async () => {
+      const { service, tx } = setup([old()], { capture: { outcome: 'NO_EVIDENCE', surveyUpdatedAt: new Date('2026-03-01T00:00:00Z') } });
+      await expect(service.runRetention(NOW)).resolves.toEqual({ units: 1, responses: 2 });
+      expect(tx.cqcSurveyCapture.upsert.mock.calls[0][0].update).toEqual({});
+    });
+
+    it('never applies to one deleted on or after the release, one with a failed capture, or (without a period) one with a capture', async () => {
+      const after = setup([old({ deletedAt: new Date('2026-11-07T00:00:00Z'), updatedAt: new Date('2026-11-07T00:00:00Z') })], { capture: null });
+      await expect(after.service.runRetention(new Date('2027-12-01T00:00:00Z'))).resolves.toEqual({ units: 0, responses: 0 });
+      const failed = setup([old()], { capture: { outcome: 'FAILED', surveyUpdatedAt: new Date(0) } });
+      await expect(failed.service.runRetention(NOW)).resolves.toEqual({ units: 0, responses: 0 });
+      // Captured, with no retention period: kept as before (no 12-month rule).
+      const kept = setup([old({ answerRetentionMonths: null })]);
+      await expect(kept.service.runRetention(new Date('2030-01-01T00:00:00Z'))).resolves.toEqual({ units: 0, responses: 0 });
+      for (const s of [after, failed, kept]) expect(s.tx.cqcSurveyCapture.upsert).not.toHaveBeenCalled();
     });
 
     it('a survey deleted while open never had evidence: its old answers go without a capture', async () => {

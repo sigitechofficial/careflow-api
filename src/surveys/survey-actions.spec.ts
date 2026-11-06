@@ -3,8 +3,13 @@ import { mergeEvidenceActions, quotesWrittenAnswer, readItems } from './survey-a
 import { keepActionLinks } from '../cqc-evidence/cqc-evidence.service';
 import { surveyResultsAudience } from './survey-access';
 
+import { usersInSurveyBranches, usersWithResultsAccess } from './survey-office-recipients';
+
 jest.mock('./survey-access', () => ({ ...jest.requireActual('./survey-access'), surveyResultsAudience: jest.fn() }));
+jest.mock('./survey-office-recipients', () => ({ usersInSurveyBranches: jest.fn(), usersWithResultsAccess: jest.fn() }));
 const audience = surveyResultsAudience as jest.Mock;
+const inBranches = usersInSurveyBranches as jest.Mock;
+const withResults = usersWithResultsAccess as jest.Mock;
 
 describe('acting on results (helpers)', () => {
   it('refuses a "You said" that quotes 8 or more words of a written answer', () => {
@@ -94,6 +99,9 @@ function setup(opts: { survey?: any; written?: string[] } = {}) {
   const audit = { logAudit: jest.fn(async (a: any) => created.audits.push(a)) };
   const notifications = { notifyUsers: jest.fn() };
   audience.mockResolvedValue({ restricted: true });
+  // The owner is in the survey's branches but may not see its results, unless a test says otherwise.
+  inBranches.mockReset().mockImplementation(async (_db: unknown, _s: unknown, ids: string[]) => ids);
+  withResults.mockReset().mockResolvedValue([]);
   const service = new SurveyActionsService(prisma, surveys, insight, audit as any, notifications as any);
   return { service, prisma, created, notifications };
 }
@@ -110,6 +118,46 @@ describe('SurveyActionsService', () => {
     expect(created.audits[0]).toMatchObject({ action: 'survey_action_created' });
     expect(JSON.stringify(created.audits[0])).not.toContain('Monthly listening');
     expect(notifications.notifyUsers.mock.calls[0][0].message).not.toContain('Feedback on your manager');
+  });
+
+  describe('telling the person given the action (the task list’s rule)', () => {
+    const open = () => survey({ title: 'Winter carers survey', isAnonymous: false });
+    const add = (service: SurveyActionsService) =>
+      service.createAction(manager, 's1', { source: 'GENERAL', title: 'Monthly listening sessions', ownerRoleId: 'role-rm', ownerUserId: 'u2', dueOn: '2026-12-01' });
+
+    it('names the survey only to an owner who may see its results; otherwise generic words', async () => {
+      const a = setup({ survey: open() });
+      withResults.mockResolvedValue(['u2']);
+      await add(a.service);
+      expect(a.notifications.notifyUsers.mock.calls[0][0]).toMatchObject({
+        recipientUserIds: ['u2'],
+        message: 'An action agreed from the results of "Winter carers survey" has been given to you.',
+      });
+      expect(withResults).toHaveBeenCalledWith(expect.anything(), 's1', ['u2']);
+
+      // An open survey (no restriction) whose results the owner still may not see: generic.
+      const b = setup({ survey: open() });
+      await add(b.service);
+      expect(b.notifications.notifyUsers.mock.calls[0][0].message).toBe('An action agreed from survey results has been given to you.');
+      expect(b.notifications.notifyUsers.mock.calls[0][0].message).not.toContain('Winter carers survey');
+    });
+
+    it('sends nothing to an owner outside the survey’s branches (the task is hidden from them too)', async () => {
+      const { service, notifications, created } = setup({ survey: open() });
+      inBranches.mockResolvedValue([]);
+      withResults.mockResolvedValue(['u2']);
+      await add(service);
+      expect(created.actions).toHaveLength(1);
+      expect(notifications.notifyUsers).not.toHaveBeenCalled();
+      expect(inBranches).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ id: 's1', locationIds: ['L1'] }), ['u2']);
+    });
+
+    it('never tells the person who gave it to themselves', async () => {
+      const { service, notifications } = setup({ survey: open() });
+      await service.createAction(manager, 's1', { source: 'GENERAL', title: 'Monthly listening sessions', ownerRoleId: 'role-rm', ownerUserId: 'u1', dueOn: '2026-12-01' });
+      expect(notifications.notifyUsers).not.toHaveBeenCalled();
+      expect(inBranches).not.toHaveBeenCalled();
+    });
   });
 
   it('refuses an action from a figure that is not shown', async () => {

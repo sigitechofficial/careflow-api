@@ -2962,7 +2962,7 @@ async function main() {
   // Policy library: complete policies adopted from Policies → Ready-made policies.
   const library = await seedPolicyLibrary(prisma);
   console.log(
-    `[seed] Policy library: ${library.created} created, ${library.updated} refreshed, ${library.retired} retired, ` +
+    `[seed] Policy library: ${library.created} created, ${library.updated} refreshed, ${library.keptRemoved} kept removed, ${library.retired} retired, ` +
       `${library.categoriesCreated} categor${library.categoriesCreated === 1 ? 'y' : 'ies'} added.`,
   );
   // Survey library: ready-made surveys adopted as templates from Surveys → Ready-made surveys.

@@ -283,10 +283,35 @@ export function evidenceReadyForRetention(
   capture: { outcome: string; surveyUpdatedAt: Date } | null,
 ): boolean {
   if (u.status !== 'CLOSED') return true;
+  // A deliberate "no evidence" (NO_EVIDENCE_OUTCOME) counts only once the survey is deleted: it is recorded with the
+  // delete itself (an admin deleting anyway, or a survey deleted before retention began), never for a live survey.
+  if (capture?.outcome === NO_EVIDENCE_OUTCOME) return Boolean(u.deletedAt);
   const done = Boolean(capture) && ['CAPTURED', 'NO_STATEMENTS', 'ANSWERS_DELETED'].includes(capture!.outcome);
   if (!done) return false;
   if (u.deletedAt) return true;
   return capture!.surveyUpdatedAt.getTime() >= u.updatedAt.getTime();
+}
+
+/** CqcSurveyCapture.outcome for a deliberate decision to keep no CQC evidence (the survey is deleted without it). */
+export const NO_EVIDENCE_OUTCOME = 'NO_EVIDENCE';
+
+/** The day answer retention (and taking CQC evidence before a delete) was released: 7 Nov 2026 (UK, GMT). */
+export const RETENTION_RELEASED_AT = new Date('2026-11-07T00:00:00.000Z');
+
+/** Months after it was deleted that answers to an old deleted survey (below) with no retention period are deleted. */
+export const LEGACY_DELETED_RETENTION_MONTHS = 12;
+
+/**
+ * One-off rule for closed surveys deleted before RETENTION_RELEASED_AT with no CQC capture: deleting did not take the
+ * evidence then, and a deleted survey is never captured, so they would wait for retention for ever. Evidence is not
+ * required for them (recorded as NO_EVIDENCE_OUTCOME when their answers are deleted, so they still count here after).
+ */
+export function legacyDeletedWithoutEvidence(
+  u: { status: string; deletedAt: Date | null },
+  capture: { outcome: string } | null,
+): boolean {
+  if (u.status !== 'CLOSED' || !u.deletedAt || u.deletedAt.getTime() >= RETENTION_RELEASED_AT.getTime()) return false;
+  return !capture || capture.outcome === NO_EVIDENCE_OUTCOME;
 }
 
 // ─── Wording checker ────────────────────────────────────────────────────
