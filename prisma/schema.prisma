@@ -14411,6 +14411,8 @@ model Survey {
   answerRetentionMonths Int?
   /// When this survey's (or period's) answers were deleted under the retention period.
   answersDeletedAt DateTime?
+  /// Answers given before this were deleted under the retention period (counted from each answer), the survey still holding later ones.
+  answersDeletedBefore DateTime?
   /// A copy sent after a Learning training session (training feedback): the session.
   trainingEventId String? @db.Uuid
   createdAt   DateTime         @default(now())
