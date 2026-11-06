@@ -23,8 +23,11 @@
  *                              Rules: N days, or to month end); the nightly rolling rota extends it
  *   carer?                     default carer(s) for every visit with none of its own (one carer → many service users)
  *   amendmentReason?           saved on the visit plan amendment (CQC audit)
- *   respectWorkingPatterns?    true (default, as the app): carers stay off visits outside their working
- *                              pattern. false = "assign anyway" in the app's working-pattern dialog.
+ *   (carers)                   only carers the app counts available are put on a visit (working pattern,
+ *                              no clash, weekly hours left, not blocked or on leave). An unavailable named
+ *                              carer is swapped for an available one; a visit no available carer can take,
+ *                              or one that would go over the weekly package, is not added. Nothing is
+ *                              left unassigned. ("respectWorkingPatterns" is no longer used.)
  *   serviceUsers[]:
  *     serviceUser              number (SU-1042), full name or id
  *     weeklyContractedHours?   only for a new plan when the DOM Care tab has no hours (the plan must
@@ -368,17 +371,199 @@ function existingSlotInput(slot: PlanSlot): SlotInput {
 const sameSlot = (a: SlotInput, b: SlotInput) =>
   a.slotCode === b.slotCode && a.plannedStartTime === b.plannedStartTime && a.plannedEndTime === b.plannedEndTime;
 
-async function buildSlot(visit: VisitInput, defaultCarers: CarerRef[]): Promise<{ slot: SlotInput; carers: string[] }> {
-  if (!HM.test(visit.start) || !HM.test(visit.end)) throw new Error(`Visit times must be HH:mm (${visit.start}–${visit.end})`);
-  const daysOfWeek = parseDays(visit.days);
-  const allDayRefs = list(visit.carers).length ? list(visit.carers) : defaultCarers;
-  const allDay = await Promise.all(allDayRefs.map(findCarer));
-  const byDay = new Map<number, EmployeeRow[]>();
-  for (const [day, refs] of Object.entries(visit.carersByDay ?? {})) {
-    byDay.set(dayIndex(day), await Promise.all(list(refs).map(findCarer)));
+/** One carer from the visit plan screen's carer check (POST …/visit-plans/suggest-carers). */
+type CarerCandidate = {
+  employeeId: string;
+  displayName?: string;
+  isPreferred?: boolean;
+  isBlocked?: boolean;
+  hasRotaConflict?: boolean;
+  rotaConflictJobs?: string[];
+  availability?: { unavailableDays?: number[]; timeMismatchDays?: number[] };
+  ruleBlocked?: boolean;
+  ruleBlockReasons?: string[];
+  complianceBlocksAllocation?: boolean;
+  timeOff?: unknown;
+  contractedWeeklyHours?: number | null;
+  allowedWeeklyHours?: number | null;
+  assignedWeeklyHours?: number | null;
+  exceedsContractedHours?: boolean;
+};
+
+/** " on Mon" when a check is for one day of a visit. */
+const onDay = (days: number[]) => (days.length === 1 ? ` on ${DAY_NAMES[days[0]]}` : '');
+
+/** Carers this run has already put on visits: no double booking before the rota shows them. */
+const picked: Array<{ employeeId: string; days: number[]; start: number; end: number }> = [];
+/** Weekly minutes this run has added per carer (a dry run saves nothing, so the API cannot count them). */
+const addedMinutes = new Map<string, number>();
+const toMinutes = (hm: string) => {
+  const [h, m] = hm.split(':').map(Number);
+  return h * 60 + m;
+};
+
+/**
+ * Why a carer cannot take this visit, from the visit plan screen's carer check: working pattern,
+ * clash, blocked, rule, compliance, leave, weekly hours. Null = available. Same as the Scripts page.
+ */
+function unavailableReason(
+  c: CarerCandidate,
+  visit: { days: number[]; start: string; end: string },
+  weeklyMinutes: number,
+  alreadyOnVisit: boolean,
+): string | null {
+  const dayNames = (days: number[]) => days.map((d) => DAY_NAMES[d]).join(', ');
+  if (c.isBlocked) return 'blocked for this service user';
+  if (c.timeOff) return 'on leave';
+  if (c.availability?.unavailableDays?.length) return `not working ${dayNames(c.availability.unavailableDays)} (working pattern)`;
+  if (c.availability?.timeMismatchDays?.length) return `outside their working hours on ${dayNames(c.availability.timeMismatchDays)}`;
+  if (c.hasRotaConflict) return `already busy then${c.rotaConflictJobs?.length ? ` (${c.rotaConflictJobs.join(', ')})` : ''}`;
+  if (c.ruleBlocked) return c.ruleBlockReasons?.join('; ') || 'blocked by a rota rule';
+  if (c.complianceBlocksAllocation) return 'compliance blocks allocation';
+  const start = toMinutes(visit.start);
+  const end = start + minutesBetween(visit.start, visit.end);
+  if (picked.some((p) => p.employeeId === c.employeeId && p.days.some((d) => visit.days.includes(d)) && p.start < end && p.end > start)) {
+    return 'already given another visit at that time in this run';
   }
-  const most = Math.max(allDay.length, ...[...byDay.values()].map((c) => c.length), 1);
+  // Weekly hours: what the rota already has + what this run added + this visit (unless already on it).
+  const allowed = (c.allowedWeeklyHours ?? c.contractedWeeklyHours ?? 0) * 60;
+  const used = (c.assignedWeeklyHours ?? 0) * 60 + (addedMinutes.get(c.employeeId) ?? 0) + (alreadyOnVisit ? 0 : weeklyMinutes);
+  if (c.exceedsContractedHours || (allowed > 0 && used > allowed)) return 'no weekly hours left';
+  return null;
+}
+
+/**
+ * The carers for one visit (or one day of it): the named ones the app counts as available, then —
+ * for any place left — available carers the app suggests (preferred carers first, then the least
+ * busy). Null when not enough carers are available: the visit is not added (never left unassigned).
+ */
+async function chooseCarers(
+  serviceUserId: string,
+  visit: { round: string; days: number[]; start: string; end: string },
+  required: number,
+  named: EmployeeRow[],
+  alreadyOn: Set<string>,
+  notes: string[],
+): Promise<EmployeeRow[] | null> {
+  const res = await api<{ candidates?: CarerCandidate[] }>('POST', `/service-users/${serviceUserId}/visit-plans/suggest-carers`, {
+    slotCode: visit.round,
+    daysOfWeek: visit.days,
+    plannedStartTime: visit.start,
+    plannedEndTime: visit.end,
+    requiredCarers: required,
+    ...(named.length ? { includeEmployeeIds: named.map((e) => e.id) } : {}),
+  });
+  const candidates = res.data?.candidates ?? [];
+  const weeklyMinutes = minutesBetween(visit.start, visit.end) * visit.days.length;
+  const chosen: EmployeeRow[] = [];
+  for (const e of named) {
+    const c = candidates.find((x) => x.employeeId === e.id);
+    const why = c ? unavailableReason(c, visit, weeklyMinutes, alreadyOn.has(e.id)) : 'not offered by the carer check';
+    if (why) notes.push(`${carerName(e)} can't take ${visit.round} ${visit.start}${onDay(visit.days)}: ${why}`);
+    else chosen.push(e);
+  }
+  const others = candidates
+    .filter((c) => !named.some((e) => e.id === c.employeeId))
+    .filter((c) => !unavailableReason(c, visit, weeklyMinutes, alreadyOn.has(c.employeeId)))
+    .sort((a, b) => Number(b.isPreferred) - Number(a.isPreferred) || (a.assignedWeeklyHours ?? 0) - (b.assignedWeeklyHours ?? 0));
+  for (const c of others) {
+    if (chosen.length >= required) break;
+    const row: EmployeeRow = { id: c.employeeId, fullName: c.displayName ?? null, firstName: null, lastName: null };
+    carerCache.set(norm(c.displayName ?? c.employeeId), row);
+    chosen.push(row);
+    notes.push(`${c.displayName} put on ${visit.round} ${visit.start}${onDay(visit.days)} instead (available)`);
+  }
+  if (chosen.length < required) return null;
+  const start = toMinutes(visit.start);
+  for (const e of chosen) {
+    picked.push({ employeeId: e.id, days: visit.days, start, end: start + minutesBetween(visit.start, visit.end) });
+    if (!alreadyOn.has(e.id)) addedMinutes.set(e.id, (addedMinutes.get(e.id) ?? 0) + weeklyMinutes);
+  }
+  return chosen;
+}
+
+/**
+ * One visit as a plan slot with its carers — only carers the app counts as available (see
+ * chooseCarers). Null when no available carer can take it (some day of it): the visit is skipped.
+ */
+async function buildSlot(
+  serviceUserId: string,
+  visit: VisitInput,
+  defaultCarers: CarerRef[],
+  existing: SlotInput | undefined,
+  notes: string[],
+): Promise<{ slot: SlotInput; carers: string[] } | null> {
+  if (!HM.test(visit.start) || !HM.test(visit.end)) throw new Error(`Visit times must be HH:mm (${visit.start}–${visit.end})`);
+  const round = visit.round.toUpperCase();
+  let daysOfWeek = parseDays(visit.days);
+  const named = await Promise.all((list(visit.carers).length ? list(visit.carers) : defaultCarers).map(findCarer));
+  const namedByDay = new Map<number, EmployeeRow[]>();
+  for (const [day, refs] of Object.entries(visit.carersByDay ?? {})) {
+    namedByDay.set(dayIndex(day), await Promise.all(list(refs).map(findCarer)));
+  }
+  const most = Math.max(named.length, ...[...namedByDay.values()].map((c) => c.length), 1);
   const requiredCarers = Math.min(4, visit.requiredCarers ?? most);
+  // Carers already on this visit in the plan: its hours are already on their rota.
+  const alreadyOn = new Set(((existing?.carerAssignments ?? []) as CarerAssignment[]).map((a) => a.employeeId));
+
+  const label = `${round} ${visit.start}–${visit.end}`;
+  const slotVisit = (days: number[]) => ({ round, days, start: visit.start, end: visit.end });
+
+  // Carers per day: days with their own carers one by one; the other days together, and — when no
+  // carer is free on all of them — day by day, so each day gets whoever is available that day.
+  const dayCarers = new Map<number, EmployeeRow[]>();
+  const missingDays: number[] = [];
+  for (const [day, dayNamed] of namedByDay) {
+    if (!daysOfWeek.includes(day)) continue;
+    const chosen = await chooseCarers(serviceUserId, slotVisit([day]), requiredCarers, dayNamed, alreadyOn, notes);
+    if (chosen) dayCarers.set(day, chosen);
+    else missingDays.push(day);
+  }
+  const otherDays = daysOfWeek.filter((d) => !namedByDay.has(d));
+  if (otherDays.length) {
+    const tried: string[] = [];
+    const together = await chooseCarers(serviceUserId, slotVisit(otherDays), requiredCarers, named, alreadyOn, tried);
+    if (together) {
+      notes.push(...tried);
+      for (const d of otherDays) dayCarers.set(d, together);
+    } else if (otherDays.length === 1) {
+      notes.push(...tried);
+      missingDays.push(otherDays[0]);
+    } else {
+      for (const d of otherDays) {
+        const chosen = await chooseCarers(serviceUserId, slotVisit([d]), requiredCarers, named, alreadyOn, notes);
+        if (chosen) dayCarers.set(d, chosen);
+        else missingDays.push(d);
+      }
+    }
+  }
+  if (!dayCarers.size) {
+    notes.push(
+      existing
+        ? `${label} kept as it was: no available carer on any of its days`
+        : `${label} not added: no ${requiredCarers > 1 ? `${requiredCarers} carers` : 'carer'} available on any day — try other times`,
+    );
+    return null;
+  }
+  if (missingDays.length) {
+    const days = missingDays.sort().map((d) => DAY_NAMES[d]).join(', ');
+    if (existing) {
+      // An existing visit keeps its days (the script removes nothing you set up).
+      notes.push(`${label}: ${requiredCarers > 1 ? `not enough available carers (${requiredCarers} needed)` : "no available carer"} on ${days} — those visits stay unassigned (remove the days in the Visit plan tab if not needed)`);
+    } else {
+      daysOfWeek = daysOfWeek.filter((d) => dayCarers.has(d));
+      notes.push(`${label}: not added on ${days} (${requiredCarers > 1 ? `not enough available carers` : "no available carer"} those days)`);
+    }
+  }
+  // The carers most days have are the visit's default; the other days get their own rows.
+  const setKey = (carers: EmployeeRow[]) => carers.map((e) => e.id).sort().join(',');
+  const counts = new Map<string, { carers: EmployeeRow[]; n: number }>();
+  for (const carers of dayCarers.values()) {
+    const k = setKey(carers);
+    counts.set(k, { carers, n: (counts.get(k)?.n ?? 0) + 1 });
+  }
+  const allDay = [...counts.values()].sort((a, b) => b.n - a.n)[0].carers;
+  const byDay = new Map([...dayCarers].filter(([, carers]) => setKey(carers) !== setKey(allDay)));
 
   const carerAssignments: CarerAssignment[] = [];
   allDay.forEach((e, i) =>
@@ -441,28 +626,59 @@ async function processServiceUser(
   const label = `${su.serviceUserNumber ?? su.id} ${su.firstName} ${su.lastName}`;
   const summary: Summary = { serviceUser: label, plan: '', slots: [], tasks: [], medicines: [], warnings: [] };
   const reason = file.amendmentReason?.trim() || DEFAULT_REASON;
-  const respect = file.respectWorkingPatterns !== false;
+  // Carers are only put on visits the app counts them available for: working patterns always count.
+  const respect = true;
   log(`\n━━ ${label}`);
 
-  // 1) Visits as visit plan slots, carers on them.
+  // 1) The plan the visit plan tab edits: active first, then draft, then suspended.
+  const plans = (await api<Plan[]>('GET', `/service-users/${su.id}/visit-plans`)).data ?? [];
+  const working =
+    plans.find((p) => p.status === 'ACTIVE') ??
+    plans.find((p) => p.status === 'DRAFT') ??
+    plans.find((p) => p.status === 'SUSPENDED');
+  const existingSlots = (working?.slots ?? []).map(existingSlotInput);
+
+  // 2) Visits as visit plan slots, with available carers only (a visit no available carer can take is skipped).
   const rounds = new Set(lookups.rounds.map((r) => r.code));
   const built: SlotInput[] = [];
   for (const visit of input.visits) {
     if (!rounds.has(visit.round.toUpperCase())) {
       throw new Error(`Unknown round "${visit.round}" (${[...rounds].join(', ')})`);
     }
-    const { slot, carers } = await buildSlot(visit, list(file.carer));
+    const key = { slotCode: visit.round.toUpperCase(), plannedStartTime: visit.start, plannedEndTime: visit.end } as SlotInput;
+    const existing = existingSlots.find((s) => sameSlot(s, key));
+    const done = await buildSlot(su.id, visit, list(file.carer), existing, summary.warnings);
+    if (!done) {
+      summary.slots.push(`${key.slotCode} ${visit.start}–${visit.end} — ${existing ? 'kept as it was' : 'not added'} (no available carer)`);
+      continue;
+    }
+    const { slot, carers } = done;
     built.push(slot);
     const days = slot.daysOfWeek.map((d) => DAY_NAMES[d]).join(',');
-    summary.slots.push(`${slot.slotCode} ${slot.plannedStartTime}–${slot.plannedEndTime} ${days} · ${carers.join(', ') || 'no carer'}`);
+    summary.slots.push(`${slot.slotCode} ${slot.plannedStartTime}–${slot.plannedEndTime} ${days} · ${carers.join(', ')}`);
+  }
+  if (!built.length) {
+    summary.plan = 'nothing added — no visit had an available carer';
+    return summary;
   }
 
-  // 2) The plan the visit plan tab edits: active first, then draft, then suspended.
-  const plans = (await api<Plan[]>('GET', `/service-users/${su.id}/visit-plans`)).data ?? [];
-  const working =
-    plans.find((p) => p.status === 'ACTIVE') ??
-    plans.find((p) => p.status === 'DRAFT') ??
-    plans.find((p) => p.status === 'SUSPENDED');
+  /**
+   * Visits over the service user's weekly hours wait for a manager in Hours approvals (unassigned
+   * until then): drop the last new visit and say why. Returns whether one was dropped.
+   */
+  const dropOverPackage = (over: boolean, limitHours: number | null) => {
+    if (!over || !built.length) return false;
+    const slot = built.pop()!;
+    const label = `${slot.slotCode} ${slot.plannedStartTime}–${slot.plannedEndTime}`;
+    summary.slots = summary.slots.map((s) =>
+      s.startsWith(`${label} `) ? `${label} — not added (over ${su.firstName}'s ${limitHours ?? '?'}h a week package)` : s,
+    );
+    summary.warnings.push(
+      `${label} not added: it would take the week over the ${limitHours ?? '?'}h package, so its visits would wait unassigned in ` +
+        'Hours approvals. Raise the package (DOM Care tab, manager approval) or shorten the visits.',
+    );
+    return true;
+  };
 
   let plan: Plan | undefined;
   if (!working) {
@@ -479,6 +695,16 @@ async function processServiceUser(
       summary.warnings.push(
         `Plan uses the service user's current ${domHours}h a week, not ${fromFile}h — change the hours in the app (manager approval)`,
       );
+    }
+    // No plan yet, so the weekly-hours preview cannot run: count the week as it does (visit minutes × days).
+    const limitHours = Number(weeklyContractedHours);
+    const weekMinutes = () => built.reduce((sum, s) => sum + minutesBetween(s.plannedStartTime, s.plannedEndTime) * s.daysOfWeek.length, 0);
+    while (Number.isFinite(limitHours) && dropOverPackage(weekMinutes() > limitHours * 60, limitHours)) {
+      // dropped one; check again
+    }
+    if (!built.length) {
+      summary.plan = 'nothing added — the visits would go over the weekly package';
+      return summary;
     }
     const numberOfCarers = Math.max(...built.map((s) => Number(s.requiredCarers ?? 1)));
     if (DRY_RUN) {
@@ -497,8 +723,33 @@ async function processServiceUser(
   } else {
     plan = working;
     // Existing visits are kept; a visit with the same round and times is replaced (re-running is safe).
-    const kept = plan.slots.map(existingSlotInput).filter((s) => !built.some((b) => sameSlot(s, b)));
-    const slots = [...kept, ...built];
+    let kept = existingSlots.filter((s) => !built.some((b) => sameSlot(s, b)));
+    let slots = [...kept, ...built];
+    // New visits that would take the week over the package are not added (they would wait unassigned).
+    for (;;) {
+      const hours = (await api<{ limitWeeklyHours: number | null; overLimitWeeks: unknown[]; visitsNeedApproval?: boolean }>(
+        'POST',
+        `/service-users/${su.id}/visit-plans/${plan.id}/weekly-hours-preview`,
+        { slots },
+      )).data;
+      if (!hours?.overLimitWeeks?.length || hours.visitsNeedApproval === false) break;
+      const newIdx = built.map((b) => !existingSlots.some((s) => sameSlot(s, b))).lastIndexOf(true);
+      if (newIdx < 0) {
+        summary.warnings.push(
+          `${su.firstName}'s saved visit plan is already over the ${hours.limitWeeklyHours ?? '?'}h a week package, so some of these ` +
+            'visits wait unassigned in Hours approvals. Remove a visit (Visit plan tab) or raise the package (DOM Care, manager approval).',
+        );
+        break;
+      }
+      built.push(...built.splice(newIdx, 1)); // the new visit last, so dropOverPackage takes it
+      dropOverPackage(true, hours.limitWeeklyHours);
+      kept = existingSlots.filter((s) => !built.some((b) => sameSlot(s, b)));
+      slots = [...kept, ...built];
+    }
+    if (!built.length) {
+      summary.plan = 'nothing added — the visits would go over the weekly package';
+      return summary;
+    }
     // Disabled rows are the plan's unused rounds (every plan has one per round).
     const keptVisits = kept.filter((s) => s.isEnabled !== false).length;
     summary.plan = `${plan.status.toLowerCase()} plan ${plan.id}: ${keptVisits} other visit(s) kept, ${built.length} added/updated`;
@@ -615,7 +866,7 @@ async function previews(
     const when = c.unavailableDayLabels.length ? c.unavailableDayLabels.join(', ') : 'outside their hours';
     summary.warnings.push(
       `Working pattern: ${c.employeeName} not working on ${c.slotLabel} (${when}) — ` +
-        (respect ? 'left off those visits ("respectWorkingPatterns": false assigns anyway)' : 'assigned anyway'),
+        (respect ? 'left off those visits' : 'assigned anyway'),
     );
   }
   let applyScheduleImpact = false;
@@ -856,6 +1107,10 @@ async function main() {
   await login();
   const dates = await rotaDates(file);
   log(`Rota ${dates.fromDate} → ${dates.toDate}: ${dates.how}`);
+  log('Carers: only those available (working pattern, no clash, weekly hours left); others are swapped for available carers.');
+  if (file.respectWorkingPatterns === false) {
+    log('"respectWorkingPatterns": false is ignored — carers are never put on visits they are unavailable for.');
+  }
 
   const lookups = (await api<Lookups>('GET', '/medication-lookups')).data!;
   const taskList = catalogueTasks((await api('GET', '/task-catalogue')).data);
