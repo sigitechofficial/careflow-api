@@ -77,7 +77,7 @@ export class SurveyInsightService {
 
   // ─── Units ──────────────────────────────────────────────────────────────
 
-  private async requireResults(actor: RequestUser, surveyId: string): Promise<{ survey: Survey; access: SurveyAccess }> {
+  async requireResults(actor: RequestUser, surveyId: string): Promise<{ survey: Survey; access: SurveyAccess }> {
     const survey = await this.surveys.visibleSurvey(actor, surveyId);
     if (!survey || survey.isTemplate) throw new NotFoundException('Survey not found');
     const access = await surveyAccessFor(this.prisma, actor, survey);
@@ -338,7 +338,14 @@ export class SurveyInsightService {
     if (owner.targetKind === SurveyTargetKind.PUBLIC) {
       return { message: 'Branch heatmap', data: { ...base, note: 'Surveys for the public are not split by branch.' } };
     }
-    const units = await this.shownUnits(owner, await this.unitsOf(survey), access.threshold);
+    const all = await this.shownUnits(owner, await this.unitsOf(survey), access.threshold);
+    // One period at a time: a branch combined (or left blank) in one period but shown in another would otherwise be
+    // worked out by subtracting one period's heatmap from the all-periods one. A repeating survey shows its latest
+    // shown period; each period's own heatmap is on that period's results.
+    const latest = all.filter((u) => !u.hidden).at(-1) ?? null;
+    const units = all.length > 1 ? (latest ? [latest] : []) : all;
+    const period = all.length > 1 && latest ? { id: latest.unit.id, label: this.unitLabel(owner, latest.unit) } : null;
+    const periodNote = period ? `Showing ${period.label}, the latest period that can be shown; open a period's own results for its branches. ` : '';
     const { responses, questions } = await this.unitAnswers(owner, units);
     const colOf = (r: { locationId: string | null }) => r.locationId ?? UNKNOWN_GROUP_KEY;
     const counts = new Map<string, number>();
@@ -359,10 +366,11 @@ export class SurveyInsightService {
         message: 'Branch heatmap',
         data: {
           ...base,
-          note: responses.length < min
+          note: periodNote + (responses.length < min
             ? `Shown once at least ${min} answers can be counted, so nobody can be identified.`
-            : `Not shown: the branches have too few answers each to compare without pointing at someone.`,
-          unitsLeftOut: units.filter((u) => u.hidden).length,
+            : `Not shown: the branches have too few answers each to compare without pointing at someone.`),
+          unitsLeftOut: all.filter((u) => u.hidden).length,
+          period,
         },
       };
     }
@@ -410,8 +418,9 @@ export class SurveyInsightService {
         ...base,
         columns,
         rows: outRows,
-        unitsLeftOut: units.filter((u) => u.hidden).length,
-        note: `Each branch shows only with at least ${min} answers; smaller branches are combined, and a cell with too few answers is left blank (with the next smallest when needed), so no branch's figures can be worked out from the others.`,
+        unitsLeftOut: all.filter((u) => u.hidden).length,
+        period,
+        note: `${periodNote}Each branch shows only with at least ${min} answers; smaller branches are combined, and a cell with too few answers is left blank (with the next smallest when needed), so no branch's figures can be worked out from the others.`,
       },
     };
   }
@@ -660,6 +669,7 @@ export class SurveyInsightService {
         },
         work: view === 'NOMINATED_INDIVIDUAL' ? null : { eventsWaiting, heldBack, callLists: callTasks },
         trends,
+        actions: await this.actionCounts(results.map((r) => r.id)),
         totals: {
           surveys: visible.length,
           open: open.length,
@@ -667,6 +677,15 @@ export class SurveyInsightService {
         },
       },
     };
+  }
+
+  /** Survey actions (part 6) on surveys whose results the viewer may see: open, overdue, done. */
+  private async actionCounts(surveyIds: string[]) {
+    if (!surveyIds.length) return { open: 0, overdue: 0, done: 0 };
+    const rows = await this.prisma.surveyAction.findMany({ where: { surveyId: { in: surveyIds } }, select: { status: true, dueOn: true } });
+    const today = new Date().toISOString().slice(0, 10);
+    const open = rows.filter((r) => r.status === 'OPEN' || r.status === 'IN_PROGRESS');
+    return { open: open.length, overdue: open.filter((r) => r.dueOn.toISOString().slice(0, 10) < today).length, done: rows.filter((r) => r.status === 'DONE').length };
   }
 
   /** The view that fits the user's role names (Nominated Individual, Branch Manager, else Registered Manager). */
@@ -701,7 +720,7 @@ export class SurveyInsightService {
             const p = pointOf(s);
             if (!p || p.kind !== 'TOP_TWO') continue;
             const section = questions.find((q) => q.id === s.questionId)?.sectionTitle ?? null;
-            const kqs = (section && kqOf.get(section)) || surveyKqs;
+            const kqs = kqsForSection(kqOf, surveyKqs, section);
             for (const kq of kqs) {
               const t = tallies.get(kq) ?? { positive: 0, base: 0, questions: 0 };
               t.positive += p.positive;
@@ -815,7 +834,17 @@ export function keyQuestionsBySection(meta: unknown): Map<string, string[]> {
   return out;
 }
 
-/** The survey's own key questions (libraryMeta.cqc.keyQuestions), for questions whose section names none. */
+/**
+ * The key questions a question's section counts towards. When the survey maps its sections to CQC evidence, a section
+ * that names none ("Overall", "About you") counts towards none; only a survey with no section mapping at all falls
+ * back to its own key questions (otherwise an overall question would be counted under every key question).
+ */
+export function kqsForSection(bySection: ReadonlyMap<string, string[]>, surveyKqs: string[], section: string | null): string[] {
+  if (bySection.size) return (section && bySection.get(section)) || [];
+  return surveyKqs;
+}
+
+/** The survey's own key questions (libraryMeta.cqc.keyQuestions), for a survey whose sections name none. */
 export function surveyKeyQuestions(meta: unknown): string[] {
   const kq = (meta as { cqc?: { keyQuestions?: unknown } } | null)?.cqc?.keyQuestions;
   return Array.isArray(kq) ? kq.filter((k): k is string => typeof k === 'string') : [];

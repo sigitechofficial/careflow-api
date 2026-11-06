@@ -14430,6 +14430,9 @@ model Survey {
   callAttempts   SurveyCallAttempt[]
   heldBack       SurveyHeldBack[]
   eventOccurrences SurveyEventOccurrence[]
+  actions          SurveyAction[]
+  discussions      SurveyDiscussion[]
+  youSaidWeDid     SurveyYouSaidWeDid[]
 
   @@unique([clonedFromId, periodKey])
   @@index([targetKind])
@@ -14885,6 +14888,97 @@ model SurveyHeldBack {
 
   @@index([surveyId])
   @@index([status, freeFrom])
+  @@schema("surveys")
+}
+
+/// An action raised from survey results (Phase 2 part 6): a question's figure, a theme, an alert, a team discussion
+/// or general. The work is a RoleTask (sourceType SURVEY_ACTION) for the owner role; DONE actions with youSaid /
+/// weDid feed CQC evidence. source QUESTION | THEME | ALERT | DISCUSSION | GENERAL; status OPEN | IN_PROGRESS |
+/// DONE | CANCELLED. sourceLabel is the figure as shown when raised, never answer text.
+model SurveyAction {
+  id            String    @id @default(uuid()) @db.Uuid
+  surveyId      String    @db.Uuid
+  periodId      String?   @db.Uuid
+  source        String    @default("GENERAL")
+  sourceKey     String?
+  sourceLabel   String?
+  discussionId  String?   @db.Uuid
+  title         String
+  detail        String?
+  ownerRoleId   String    @db.Uuid
+  ownerUserId   String?   @db.Uuid
+  roleTaskId    String?   @unique @db.Uuid
+  dueOn         DateTime  @db.Date
+  status        String    @default("OPEN")
+  outcome       String?
+  youSaid       String?
+  weDid         String?
+  evidenceNote  String?
+  locationIds   String[]  @default([]) @db.Uuid
+  completedAt   DateTime?
+  completedById String?   @db.Uuid
+  createdById   String?   @db.Uuid
+  updatedById   String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@index([status, dueOn])
+  @@schema("surveys")
+}
+
+/// When survey results were discussed with a team and what was agreed (Phase 2 part 6). kind TEAM_MEETING |
+/// STAFF_FORUM | SUPERVISION_GROUP | MANAGEMENT_MEETING | CLIENT_OR_FAMILY_MEETING | OTHER.
+model SurveyDiscussion {
+  id           String   @id @default(uuid()) @db.Uuid
+  surveyId     String   @db.Uuid
+  periodId     String?  @db.Uuid
+  heldOn       DateTime @db.Date
+  kind         String
+  attendees    Int?
+  summary      String
+  agreed       String?
+  locationIds  String[] @default([]) @db.Uuid
+  recordedById String?  @db.Uuid
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@schema("surveys")
+}
+
+/// "You said, we did" (Phase 2 part 6): published to the portal, the carer app, a printable letter and / or a public
+/// page. items [{ youSaid, weDid, actionId }]; headline = the overall figure as shown when published, else null.
+/// channels PORTAL | APP | LETTER | PUBLIC; status DRAFT | PUBLISHED | WITHDRAWN; audience = the survey's targetKind.
+model SurveyYouSaidWeDid {
+  id            String    @id @default(uuid()) @db.Uuid
+  surveyId      String    @db.Uuid
+  periodId      String?   @db.Uuid
+  title         String
+  intro         String?
+  items         Json
+  headline      Json?
+  channels      String[]  @default([])
+  status        String    @default("DRAFT")
+  publicToken   String?   @unique
+  locationIds   String[]  @default([]) @db.Uuid
+  audience      String
+  publishedAt   DateTime?
+  publishedById String?   @db.Uuid
+  withdrawnAt   DateTime?
+  createdById   String?   @db.Uuid
+  updatedById   String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@index([status])
   @@schema("surveys")
 }
 

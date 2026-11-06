@@ -47,7 +47,7 @@ export function scoredOptions(q: ScoringQuestion): string[] {
 /**
  * One answer's score and the most it could have scored, or null when it does not score (not answered, "Don't know").
  * Choice and scale answers: the first (best) option scores the most (n), the last 1; reversed questions the other way.
- * Ratings: the value above the bottom of the range. Yes / No: 1 / 0 (reversed: 0 / 1).
+ * Ratings: the value (reversed: the other end of the range). Yes / No: 1 / 0 (reversed: 0 / 1).
  */
 export function answerScore(q: ScoringQuestion, a: ScoringAnswer | undefined, reversed: boolean): { score: number; max: number } | null {
   if (!a) return null;
@@ -57,10 +57,10 @@ export function answerScore(q: ScoringQuestion, a: ScoringAnswer | undefined, re
   }
   if (q.questionType === 'RATING') {
     if (typeof a.numberValue !== 'number' || Number.isNaN(a.numberValue)) return null;
+    // The value itself (a 1–5 rating averages 1–5, like a scale's positions); reversed: the other end of the range.
     const { min, max } = ratingRange(q.config);
-    const v = Math.min(max, Math.max(min, a.numberValue)) - min;
-    const top = max - min;
-    return { score: reversed ? top - v : v, max: top };
+    const v = Math.min(max, Math.max(min, a.numberValue));
+    return { score: reversed ? min + max - v : v, max };
   }
   const options = scoredOptions(q);
   const chosen = Array.isArray(a.selectedOptions) ? (a.selectedOptions as unknown[]).filter((v): v is string => typeof v === 'string') : [];

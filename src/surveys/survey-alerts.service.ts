@@ -78,7 +78,7 @@ const SAFEGUARDING_WORDS_RULE = {
   position: -1,
   title: 'Words that may point to harm',
   whenText:
-    'A written answer contains words that may point to harm: physical harm, money or belongings going missing, shouting or threats, unwanted touching, neglect, self-harm, discrimination, or unsafe practice being covered up. CareFlow finds them itself; no answer is sent anywhere to be read.',
+    'A written answer contains words that may point to harm: abuse or assault, physical harm or restraint, money or belongings going missing, shouting or threats, unwanted touching, neglect, self-harm, discrimination, staff exploitation, or unsafe practice being covered up. CareFlow finds them itself; no answer is sent anywhere to be read.',
   actionText:
     'Read the full answer today. If someone may be at risk, follow the safeguarding procedure: make them safe, tell the Safeguarding lead and record a safeguarding concern. The flag is not proof: words such as "never hit" are flagged too, so close it with what you found.',
   conditions: [] as unknown as Prisma.InputJsonValue,

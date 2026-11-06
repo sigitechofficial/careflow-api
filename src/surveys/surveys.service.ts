@@ -4716,7 +4716,9 @@ export class SurveysService {
    * caller has already checked access. Without breakdowns or answer routes (lean).
    */
   async figuresFor(survey: Survey, threshold: number) {
-    const out = await this.buildResults(survey, threshold, null, { lean: true });
+    // Only this survey's own answers: a repeating survey's own (from before it repeated) never brings in its
+    // periods, which insight shows (or hides) as units of their own.
+    const out = await this.buildResults(survey, threshold, null, { lean: true, ownOnly: true });
     const access = { results: true, responses: false, configure: false, threshold } as SurveyAccess;
     return this.gateResults(access, out).data;
   }
@@ -4736,8 +4738,8 @@ export class SurveysService {
     return this.loadPeriods(survey);
   }
 
-  private async buildResults(survey: Survey, threshold = 0, respondentGroup: string | null = null, opts: { lean?: boolean } = {}) {
-    const periods = await this.loadPeriods(survey);
+  private async buildResults(survey: Survey, threshold = 0, respondentGroup: string | null = null, opts: { lean?: boolean; ownOnly?: boolean } = {}) {
+    const periods = opts.ownOnly ? [] : await this.loadPeriods(survey);
     const isSeries = periods.length > 0;
     const surveyIds = [survey.id, ...periods.map((p) => p.id)];
 

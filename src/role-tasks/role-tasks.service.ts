@@ -229,11 +229,14 @@ export class RoleTasksService {
    */
   private async withoutHiddenSurveyTasks<T extends { sourceType: string | null; sourceId: string | null }>(user: RequestUser, rows: T[]): Promise<T[]> {
     const alertIds = rows.filter((r) => r.sourceType === 'SURVEY_ALERT' && r.sourceId).map((r) => r.sourceId!);
-    if (!alertIds.length) return rows;
-    const alerts = await this.prisma.surveyAlert.findMany({ where: { id: { in: alertIds } }, select: { id: true, surveyId: true } });
-    const hiddenSurveys = await surveysWithoutResultsAccess(this.prisma, user, alerts.map((a) => a.surveyId));
-    const hidden = new Set(alerts.filter((a) => hiddenSurveys.has(a.surveyId)).map((a) => a.id));
-    return rows.filter((r) => !(r.sourceType === 'SURVEY_ALERT' && r.sourceId && hidden.has(r.sourceId)));
+    // Survey actions (Phase 2 part 6) follow the same rule: they come from results.
+    const actionIds = rows.filter((r) => r.sourceType === 'SURVEY_ACTION' && r.sourceId).map((r) => r.sourceId!);
+    if (!alertIds.length && !actionIds.length) return rows;
+    const alerts = alertIds.length ? await this.prisma.surveyAlert.findMany({ where: { id: { in: alertIds } }, select: { id: true, surveyId: true } }) : [];
+    const actions = actionIds.length ? await this.prisma.surveyAction.findMany({ where: { id: { in: actionIds } }, select: { id: true, surveyId: true } }) : [];
+    const hiddenSurveys = await surveysWithoutResultsAccess(this.prisma, user, [...alerts, ...actions].map((a) => a.surveyId));
+    const hidden = new Set([...alerts, ...actions].filter((a) => hiddenSurveys.has(a.surveyId)).map((a) => a.id));
+    return rows.filter((r) => !((r.sourceType === 'SURVEY_ALERT' || r.sourceType === 'SURVEY_ACTION') && r.sourceId && hidden.has(r.sourceId)));
   }
 
   /** Tasks for the signed-in user's roles (and branches). */
@@ -309,6 +312,9 @@ export class RoleTasksService {
     }
     // A survey alert is closed on its follow-up, which asks what was done (and, for a contact
     // request, whether the person was reached): never here, where that would be skipped.
+    if (task.sourceType === 'SURVEY_ACTION' && dto.status === RoleTaskStatus.DONE) {
+      throw new BadRequestException('Close a survey action on its page (Open page), saying what was done.');
+    }
     if (task.sourceType === 'SURVEY_ALERT' && dto.status === RoleTaskStatus.DONE) {
       throw new BadRequestException(
         'Close a survey follow-up on its page (Open page), saying what was done.',
@@ -342,6 +348,10 @@ export class RoleTasksService {
       data,
       include: TASK_INCLUDE,
     });
+    // A survey action's progress (open / started) follows its task; closing is done on the action.
+    if (task.sourceType === 'SURVEY_ACTION' && task.sourceId) {
+      await this.prisma.surveyAction.updateMany({ where: { id: task.sourceId, status: { in: ['OPEN', 'IN_PROGRESS'] } }, data: { status: dto.status, updatedById: user.id } });
+    }
     await this.audit.logAudit({
       userId: user.id,
       module: AuditModule.ROLE_TASK,

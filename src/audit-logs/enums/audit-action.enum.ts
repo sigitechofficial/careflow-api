@@ -543,6 +543,14 @@ export enum AuditAction {
   SURVEY_SCORING_CHANGED = 'survey_scoring_changed',
   /** The built-in safeguarding-words alert switched on or off (with the reason). */
   SURVEY_SAFEGUARDING_WORDS_CHANGED = 'survey_safeguarding_words_changed',
+  /** Survey actions (Phase 2 part 6): titles and dates only, never answers. */
+  SURVEY_ACTION_CREATED = 'survey_action_created',
+  SURVEY_ACTION_UPDATED = 'survey_action_updated',
+  SURVEY_ACTION_CLOSED = 'survey_action_closed',
+  SURVEY_DISCUSSION_RECORDED = 'survey_discussion_recorded',
+  SURVEY_YOU_SAID_WE_DID_SAVED = 'survey_you_said_we_did_saved',
+  SURVEY_YOU_SAID_WE_DID_PUBLISHED = 'survey_you_said_we_did_published',
+  SURVEY_YOU_SAID_WE_DID_WITHDRAWN = 'survey_you_said_we_did_withdrawn',
   FEEDBACK_RECORDED = 'feedback_recorded',
   FEEDBACK_UPDATED = 'feedback_updated',
   FEEDBACK_STATUS_CHANGED = 'feedback_status_changed',

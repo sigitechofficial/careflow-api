@@ -1,5 +1,5 @@
 import { surveyAccessFor } from './survey-access';
-import { SurveyInsightService, answerTally, combineScaleResults, keyQuestionsBySection, scalePosition } from './survey-insight.service';
+import { SurveyInsightService, answerTally, combineScaleResults, keyQuestionsBySection, kqsForSection, scalePosition } from './survey-insight.service';
 import { cellsToHide, heatmapMinimum, planColumns, pointOf, poolPoints, questionLineKey, unitHiddenReason, unitYear } from './survey-insight.util';
 import { countThemes, safeguardingKindsIn, themesIn } from './survey-text-themes.util';
 import { duplicateIds, fastFlag, straightLined } from './survey-quality.util';
@@ -274,5 +274,57 @@ describe('SurveyInsightService', () => {
     expect(out2.themes.find((t: any) => t.code === 'TIMEKEEPING')).toMatchObject({ count: 3 });
     expect(out2.themes.find((t: any) => t.code === 'KINDNESS')).toMatchObject({ count: null });
     expect(JSON.stringify(out2)).not.toContain('always late');
+  });
+});
+
+describe('review fixes (part 5)', () => {
+  it('360: a section with no CQC evidence counts towards no key question when the survey maps its sections', () => {
+    const m = keyQuestionsBySection({ sections: [{ title: 'Overall', evidence: [] }, { title: 'Feeling safe', evidence: ['Safe: Safeguarding'] }] });
+    expect(kqsForSection(m, ['SAFE', 'CARING', 'WELL_LED'], 'Overall')).toEqual([]);
+    expect(kqsForSection(m, ['SAFE', 'CARING', 'WELL_LED'], 'Feeling safe')).toEqual(['SAFE']);
+    expect(kqsForSection(m, ['SAFE'], null)).toEqual([]);
+    // A survey with no section mapping at all: its own key questions.
+    expect(kqsForSection(new Map(), ['SAFE', 'CARING'], 'Anything')).toEqual(['SAFE', 'CARING']);
+  });
+
+  it('scoring: a 1–5 rating averages 1–5 (MEAN) and reversed ratings count from the other end', () => {
+    const rating = { id: 'r', key: 'r', questionType: 'RATING', options: null, config: { min: 1, max: 5 } };
+    expect(answerScore(rating, { questionId: 'r', numberValue: 4 }, false)).toEqual({ score: 4, max: 5 });
+    expect(answerScore(rating, { questionId: 'r', numberValue: 4 }, true)).toEqual({ score: 2, max: 5 });
+    const s = { scales: [{ key: 'x', label: 'X', questionKeys: ['r'], reversed: [], method: 'MEAN' as const, bands: [] }] };
+    const people = [4, 5, 3].map((v) => new Map([['r', { questionId: 'r', numberValue: v }]]));
+    expect(scoreScales(s, [rating], people)[0].average).toBe(4);
+    const pct = { scales: [{ ...s.scales[0], method: 'PERCENT_OF_MAX' as const }] };
+    expect(scoreScales(pct, [rating], people)[0].average).toBe(80);
+  });
+
+  it('safeguarding words: abuse, restraint, neglect and staff exploitation; "hit and miss" is not physical harm', () => {
+    expect(safeguardingKindsIn('I think this is abuse')).toContain('ABUSE');
+    expect(safeguardingKindsIn('They used restraint on him')).toContain('PHYSICAL');
+    expect(safeguardingKindsIn('Mum was dehydrated when I came')).toContain('NEGLECT');
+    expect(safeguardingKindsIn('The agency kept my passport and I have to pay back the visa fees')).toContain('EXPLOITATION');
+    expect(safeguardingKindsIn('I want to take my own life')).toContain('SELF_HARM');
+    expect(safeguardingKindsIn('Visits are hit and miss')).toEqual([]);
+    expect(safeguardingKindsIn('At the end my carer always says goodbye')).toEqual([]);
+    expect(safeguardingKindsIn('He hit me')).toContain('PHYSICAL');
+  });
+
+  it('heatmap: a repeating survey compares branches in one period only (no subtracting one period from all)', async () => {
+    const periods = [
+      survey({ id: 'p1', clonedFromId: 's1', title: 'Pulse — Jan 2026', status: 'CLOSED' }),
+      survey({ id: 'p2', clonedFromId: 's1', title: 'Pulse — Feb 2026', status: 'CLOSED' }),
+    ];
+    const q = (sid: string) => ({ id: `q-${sid}`, surveyId: sid, key: 'q', questionText: 'I feel valued', questionType: 'LIKERT', options: null, config: null, sectionTitle: null, sortOrder: 0, optionsFrom: null });
+    const resp = (i: number, sid: string, loc: string) => ({ id: `r${i}`, surveyId: sid, locationId: loc, isAnonymous: false, channel: 'ONLINE', qualityFlags: [], answers: [{ questionId: `q-${sid}`, selectedOptions: ['Agree'], booleanValue: null, textValue: null, numberValue: null, otherText: null, comment: null }] });
+    const { service, prisma } = setup({
+      periods,
+      figures: { p1: figures(10), p2: figures(10) },
+      responses: Array.from({ length: 10 }, (_, i) => resp(i, 'p2', 'L1')),
+      questions: [q('p2')],
+    });
+    const out = (await service.heatmap({ id: 'u', permissions: [] } as any, 's1')).data as any;
+    expect(prisma.surveyResponse.findMany.mock.calls[0][0].where.surveyId.in).toEqual(['p2']);
+    expect(out.period).toEqual({ id: 'p2', label: 'Feb 2026' });
+    expect(out.note).toMatch(/^Showing Feb 2026/);
   });
 });

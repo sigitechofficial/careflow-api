@@ -26,6 +26,14 @@ import { SurveyUnsubscribeController } from './survey-unsubscribe.controller';
 import { SurveyUnsubscribeService } from './survey-unsubscribe.service';
 import { SurveysService } from './surveys.service';
 import { SurveyInsightService } from './survey-insight.service';
+import { SurveyActionsService } from './survey-actions.service';
+import {
+  SurveyActionItemsController,
+  SurveyActionsController,
+  SurveyUpdatesEmployeeAppController,
+  SurveyUpdatesPortalController,
+  SurveyUpdatesPublicController,
+} from './survey-actions.controller';
 import { SurveyInsightController, SurveyInsightOverviewController } from './survey-insight.controller';
 import { SurveyDistributionJob } from './survey-distribution.job';
 import { SurveyLibraryController } from './survey-library.controller';
@@ -86,8 +94,13 @@ import {
     SurveyUnsubscribeController,
     SurveyInsightController,
     SurveyInsightOverviewController,
+    SurveyActionsController,
+    SurveyActionItemsController,
+    SurveyUpdatesPortalController,
+    SurveyUpdatesEmployeeAppController,
+    SurveyUpdatesPublicController,
   ],
-  providers: [SurveysService, SurveyDistributionJob, SurveyLibraryService, SurveyAlertsService, SurveyAccessService, SurveyShareLinksService, SurveyRecipientLinksService, SurveyLinkGuard, SurveySectionsService, SurveyRemindersService, SurveyTextRepliesService, SurveyManagerCopiesService, SurveyContactRuleService, SurveyReviewersService, SurveyEventTriggersService, SurveyOutsidePeopleService, SurveyUnsubscribeService, SurveyInsightService],
+  providers: [SurveysService, SurveyDistributionJob, SurveyLibraryService, SurveyAlertsService, SurveyAccessService, SurveyShareLinksService, SurveyRecipientLinksService, SurveyLinkGuard, SurveySectionsService, SurveyRemindersService, SurveyTextRepliesService, SurveyManagerCopiesService, SurveyContactRuleService, SurveyReviewersService, SurveyEventTriggersService, SurveyOutsidePeopleService, SurveyUnsubscribeService, SurveyInsightService, SurveyActionsService],
   exports: [SurveysService, SurveyAlertsService],
 })
 export class SurveysModule {}

@@ -63,13 +63,14 @@ export const evidenceInclude = {
 
 export type EvidenceRow = Prisma.CqcEvidenceGetPayload<{ include: typeof evidenceInclude }>;
 
-export type YouSaidWeDid = { youSaid: string; weDid: string };
+/** actionId: written by a survey action (Phase 2 part 6), so the action can update its own entry. */
+export type YouSaidWeDid = { youSaid: string; weDid: string; actionId?: string };
 
 export function readActions(value: Prisma.JsonValue | null | undefined): YouSaidWeDid[] {
   if (!Array.isArray(value)) return [];
   return value.flatMap((a) =>
     a && typeof a === 'object' && !Array.isArray(a) && typeof a.youSaid === 'string' && typeof a.weDid === 'string'
-      ? [{ youSaid: a.youSaid, weDid: a.weDid }]
+      ? [{ youSaid: a.youSaid, weDid: a.weDid, ...(typeof a.actionId === 'string' ? { actionId: a.actionId } : {}) }]
       : [],
   );
 }
