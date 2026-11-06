@@ -5,6 +5,7 @@ import { SurveyAlertsService } from './survey-alerts.service';
 import { SurveyRemindersService } from './survey-reminders.service';
 import { SurveyEventTriggersService } from './survey-event-triggers.service';
 import { SurveyPlatformService } from './survey-platform.service';
+import { SurveyActionsService } from './survey-actions.service';
 import { CqcSurveyEvidenceService } from '../cqc-evidence/cqc-survey-evidence.service';
 import { JobHandler } from '../jobs/job-handler.registry';
 import { JobRunner, runCronTick } from '../jobs/job-runner.service';
@@ -27,6 +28,7 @@ export class SurveyDistributionJob {
     @Optional() private readonly reminders?: SurveyRemindersService,
     @Optional() private readonly eventTriggers?: SurveyEventTriggersService,
     @Optional() private readonly platform?: SurveyPlatformService,
+    @Optional() private readonly actions?: SurveyActionsService,
   ) {}
 
   @Cron('* * * * *', { timeZone: 'UTC' })
@@ -92,6 +94,10 @@ export class SurveyDistributionJob {
           return null;
         })
       : null;
+    // Done actions carried onto evidence made since (a later period's), after a capture or once an hour.
+    if ((cqc?.captured ?? 0) > 0 || now.getUTCMinutes() === 7) {
+      await this.actions?.carryForward(now).catch((e: Error) => this.logger.warn('Survey actions not carried forward: ' + e.name));
+    }
     return jobSuccess({
       due: results.length,
       distributed,

@@ -12,6 +12,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { surveysWithoutResultsAccess } from '../surveys/survey-access';
+import { surveyVisibleInScope } from '../surveys/survey-scope.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -234,7 +235,15 @@ export class RoleTasksService {
     if (!alertIds.length && !actionIds.length) return rows;
     const alerts = alertIds.length ? await this.prisma.surveyAlert.findMany({ where: { id: { in: alertIds } }, select: { id: true, surveyId: true } }) : [];
     const actions = actionIds.length ? await this.prisma.surveyAction.findMany({ where: { id: { in: actionIds } }, select: { id: true, surveyId: true } }) : [];
-    const hiddenSurveys = await surveysWithoutResultsAccess(this.prisma, user, [...alerts, ...actions].map((a) => a.surveyId));
+    const surveyIds = [...new Set([...alerts, ...actions].map((a) => a.surveyId))];
+    const hiddenSurveys = await surveysWithoutResultsAccess(this.prisma, user, surveyIds);
+    // A task with no branch (a survey for several branches) shows only to people whose branches cover every branch
+    // the survey is for, as the survey itself does (survey-scope.util).
+    const scope = { locationIds: user.assignedLocationIds ?? null };
+    if (scope.locationIds !== null) {
+      const surveys = await this.prisma.survey.findMany({ where: { id: { in: surveyIds } }, select: { id: true, locationIds: true, isTemplate: true } });
+      for (const s of surveys) if (!surveyVisibleInScope(scope, s)) hiddenSurveys.add(s.id);
+    }
     const hidden = new Set([...alerts, ...actions].filter((a) => hiddenSurveys.has(a.surveyId)).map((a) => a.id));
     return rows.filter((r) => !((r.sourceType === 'SURVEY_ALERT' || r.sourceType === 'SURVEY_ACTION') && r.sourceId && hidden.has(r.sourceId)));
   }
@@ -318,6 +327,10 @@ export class RoleTasksService {
     // A closed action's task is reopened with the action (which takes its CQC evidence entry back), never here.
     if (task.sourceType === 'SURVEY_ACTION' && task.status === RoleTaskStatus.DONE) {
       throw new BadRequestException('Reopen a survey action on its page (Open page).');
+    }
+    // A done follow-up is reopened on its page too (it records what was done), never from the task list.
+    if (task.sourceType === 'SURVEY_ALERT' && task.status === RoleTaskStatus.DONE) {
+      throw new BadRequestException('Reopen a survey follow-up on its page (Open page).');
     }
     if (task.sourceType === 'SURVEY_ALERT' && dto.status === RoleTaskStatus.DONE) {
       throw new BadRequestException(

@@ -936,7 +936,8 @@ export class SurveysService {
     return {
       key: q.key ?? null,
       /** Choice questions: answers shown under headings and reported by group (empty = not grouped). */
-      optionGroups: readOptionGroups(q.optionGroups ?? null),
+      // Named apart from optionGroups (a CareFlow list's groups on the same payload).
+      answerGroups: readOptionGroups(q.optionGroups ?? null),
       otherOption: readOtherOption(q.otherOption),
       /** MULTI_SELECT: choosing one of these clears the other ticks (and ticking another clears it). */
       exclusiveOptions: readExclusiveOptions(q.exclusiveOptions),

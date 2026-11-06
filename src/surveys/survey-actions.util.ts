@@ -92,12 +92,34 @@ export type EvidenceAction = { youSaid: string; weDid: string; actionId?: string
  * when it is no longer done with both parts); entries typed on the evidence itself are kept; an identical typed entry
  * is not repeated.
  */
-export function mergeEvidenceActions(existing: ReadonlyArray<EvidenceAction>, action: { id: string; done: boolean; youSaid: string | null; weDid: string | null }): EvidenceAction[] {
+export function mergeEvidenceActions(
+  existing: ReadonlyArray<EvidenceAction>,
+  action: { id: string; done: boolean; youSaid: string | null; weDid: string | null; completedOn?: string | null },
+): EvidenceAction[] {
   const same = (a: EvidenceAction) => a.youSaid.trim() === (action.youSaid ?? '').trim() && a.weDid.trim() === (action.weDid ?? '').trim();
   const kept = existing.filter((a) => a.actionId !== action.id);
   if (!action.done || !action.youSaid?.trim() || !action.weDid?.trim()) return kept;
   if (kept.some((a) => !a.actionId && same(a))) return kept;
-  return [...kept, { youSaid: action.youSaid.trim(), weDid: action.weDid.trim(), actionId: action.id }];
+  // Labelled with the day it was done, so a later period's evidence shows when it happened.
+  const weDid = action.completedOn ? `${action.weDid.trim()} (done ${dayWords(action.completedOn)})` : action.weDid.trim();
+  return [...kept, { youSaid: action.youSaid.trim(), weDid, actionId: action.id }];
+}
+
+/** Done actions are carried onto later evidence for this long after they were done (decision, November 2026). */
+export const CARRY_FORWARD_MONTHS = 12;
+
+/** "12 Nov 2026" from YYYY-MM-DD. */
+export function dayWords(iso: string): string {
+  const [y, m, d] = iso.slice(0, 10).split('-').map(Number);
+  return `${d} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][m - 1]} ${y}`;
+}
+
+/** Whether a done action still goes onto new evidence (within CARRY_FORWARD_MONTHS of being done). */
+export function carriedForward(completedAt: Date | null, now: Date): boolean {
+  if (!completedAt) return false;
+  const until = new Date(completedAt);
+  until.setUTCMonth(until.getUTCMonth() + CARRY_FORWARD_MONTHS);
+  return now.getTime() <= until.getTime();
 }
 
 /** The role task's status for an action's status. */

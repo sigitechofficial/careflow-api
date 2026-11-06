@@ -103,9 +103,9 @@ Legend: **Have**, **Partly**, **No**. Phase in the last column.
 | Capability | Seen in | CareFlow | Build | Phase |
 |---|---|---|---|---|
 | Anonymous and named answers | QCS, most | **Have**, stronger than others | — | — |
-| Data security assurance (DSPT, UK hosting) | SmartSurvey | To confirm per hosting | State DSPT status and UK hosting in a security page | 2 |
+| Data security assurance (DSPT, UK hosting) | SmartSurvey | Draft statement: docs/SECURITY_AND_HOSTING.md (points to confirm per hosting) | State DSPT status and UK hosting in a security page | 2 |
 | Accessibility WCAG 2.2 AA with a statement | SmartSurvey (DfT statement), GOV.UK | Audited 6 Nov 2026: answer page, portal and admin survey screens fixed and tested; draft statement in docs/ACCESSIBILITY_STATEMENT.md | Confirm the draft's open items, screen-reader pass with NVDA/VoiceOver, then publish | 1–2 |
-| Retention and deletion of single answers | Enterprise tools | No (whole-survey deletion) | Delete answers by retention date | 2 |
+| Retention and deletion of single answers | Enterprise tools | **Have** (Phase 2 part 7: by the privacy notice's period, audited) | Delete answers by retention date | 2 |
 | Response quality checks (speeders, gibberish, duplicates) | SurveyMonkey Genius | **Have** speeders, straight-lining, duplicates, flagged never removed (Phase 2 part 5) | Flag, never delete automatically; one answer per device option | 2 |
 | Spam protection on public links | Most | No | A4 #19 | 1 |
 | Audit of link copying, sends and exports | Enterprise tools | Partly | A6 #24 | 1 |
@@ -275,6 +275,18 @@ Phase 2 part 6 (acting on results: actions, team discussions, "You said, we did"
 | CQC and commissioner pack | Figures below the threshold or from an open anonymous survey in a document that leaves CareFlow; staff named outside the organisation; the pack leaving without a trace. | Every figure from the figures engine under the viewer's threshold (a repeating survey pools only periods that can be shown); no written answers, themes as counts; owners as roles only; opening it is audited as an export (kind PACK) (`survey-actions.spec` "the pack is audited as an export, names owners by role only, and hides figures of an open anonymous survey"). |
 
 Part 5 review decisions (November 2026): themes and the heatmap on repeating surveys show the latest period that can be shown (nothing to subtract); duplicate flags compare only periods that can be shown; scores are locked once anyone has answered (an admin can change them with a reason, audited; otherwise change them on the next copy); drafts with no opening date or period key belong to no year (`survey-insight.spec` "review fixes (part 5, second round)").
+
+Phase 2 part 7 (platform items), checked the same way:
+
+| Feature | Risk looked at | What stops it (and the test that proves it) |
+|---|---|---|
+| Repeats that skip months; a rotating question | A period sent in a month chosen to skip; a rotating question making an answer stand out (a bank question asked of few). | Skipped months move the schedule on without sending, audited; the bank rotates one question per period, every period under the same reporting rules (Trends leave a period blank where its question was not asked) (`survey-platform.spec` "repeats that skip months", "a rotating question"). |
+| Grouped answer choices | A small group pointing at someone on an anonymous or without-name survey. | Group totals fold groups under max(threshold, 5) into "Other groups", and nothing by group shows if that is still small, as the CareFlow-list grouping does (`survey-platform.spec` "grouped answer choices"). |
+| Answer retention | Answers kept longer than the privacy notice says; answers quoted in follow-ups outliving them; deletion losing the CQC record. | Answers (and held answers) deleted once a survey or period has been closed for its period (its own setting, else the ready-made privacy notice); the follow-ups keep what was done but lose the answers they quoted; run after the CQC capture so evidence totals are kept; audited as counts (`survey-platform.spec` "answer retention"). |
+| Wording checker | None new: it reads only the survey's own wording. | Findings only; nothing is changed or blocked. |
+| Training feedback from Learning | Course, date and trainer linking an answer to one attendee of a small session. | Each session is its own copy with the survey's reporting threshold (results hidden below it); anonymous copies send only 5 or more at once; Part A is exempt from the 4-week rule and Part B held back and skipped (decision S4) (`survey-platform.spec` "training feedback"). |
+
+Part 6 review decisions (November 2026): action and alert tasks with no branch show only to people whose branches cover the survey's (and who may see its results); a done alert or action is reopened on its page, never from the task list; done actions for a whole survey are carried onto later periods' CQC evidence for 12 months, labelled with the day they were done (`role-tasks.survey-access.spec`, `survey-actions.spec` "done actions carried forward").
 
 Known limits, said plainly: one-answer-per-device can be beaten with another device or by clearing the browser;
 the per-link limit is per server. Results show the burst caution for that reason.

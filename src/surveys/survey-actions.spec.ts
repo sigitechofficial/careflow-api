@@ -125,7 +125,8 @@ describe('SurveyActionsService', () => {
     expect(prisma.roleTask.update.mock.calls[0][0].data).toMatchObject({ status: 'DONE' });
     expect(prisma.cqcEvidence.update.mock.calls[0][0].data.actions).toEqual([
       { youSaid: 'Typed', weDid: 'Typed' },
-      { youSaid: 'Rota late', weDid: 'Rota two weeks ahead', actionId: 'a1' },
+      // Labelled with the day it was done (carried onto later periods' evidence).
+      { youSaid: 'Rota late', weDid: expect.stringMatching(/^Rota two weeks ahead \(done \d+ \w{3} \d{4}\)$/), actionId: 'a1' },
     ]);
   });
 
@@ -224,5 +225,21 @@ describe('SurveyActionsService', () => {
     for (const call of [...prisma.surveyYouSaidWeDid.findMany.mock.calls, ...prisma.surveyYouSaidWeDid.findFirst.mock.calls]) {
       expect(call[0].where.survey).toEqual({ deletedAt: null });
     }
+  });
+});
+
+describe('done actions carried forward (decision, November 2026)', () => {
+  it('a done action for the whole survey goes onto later evidence for 12 months after it was done, labelled with the day', async () => {
+    const { service, prisma } = setup();
+    const done = (completedAt: string) => ({ id: 'a1', surveyId: 's1', periodId: null, status: 'DONE', youSaid: 'Rota late', weDid: 'Rota two weeks ahead', completedAt: new Date(completedAt) });
+    prisma.cqcEvidence.findMany.mockResolvedValue([{ id: 'new', status: 'CURRENT', actions: [] }]);
+    prisma.surveyAction.findMany.mockResolvedValue([done(new Date(Date.now() - 30 * 86_400_000).toISOString())]);
+    await service.carryForward(new Date());
+    expect(prisma.cqcEvidence.update.mock.calls[0][0].data.actions).toEqual([{ youSaid: 'Rota late', weDid: expect.stringMatching(/\(done /), actionId: 'a1' }]);
+    // Done more than 12 months ago: not put on new evidence.
+    prisma.cqcEvidence.update.mockClear();
+    await service.syncEvidence(done('2024-01-01') as any);
+    expect(prisma.cqcEvidence.update).not.toHaveBeenCalled();
+    expect(prisma.surveyAction.findMany.mock.calls[0][0].where).toMatchObject({ status: 'DONE', periodId: null });
   });
 });

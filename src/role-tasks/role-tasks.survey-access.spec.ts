@@ -63,4 +63,28 @@ describe('RoleTasksService: survey alert tasks and per-survey access', () => {
     const out = await (service as any).withoutHiddenSurveyTasks({ id: 'h', roles: ['HR'], permissions: [] }, rows);
     expect(out.map((r: any) => r.id)).toEqual(['t1', 't2', 't3']);
   });
+
+  it('a task with no branch (a survey for several branches) shows only to people whose branches cover the survey', async () => {
+    prisma.survey.findMany.mockImplementation(async (args: any) =>
+      args?.select?.locationIds
+        ? [{ id: 's-open', locationIds: ['L1', 'L2'], isTemplate: false }]
+        : [{ id: 's-open', clonedFromId: null, createdById: 'x', isAnonymous: false, allowAnonymousResponses: false, libraryReference: null, libraryMeta: null, accessPolicy: null, reportingThreshold: null }],
+    );
+    prisma.surveyAlert.findMany.mockResolvedValueOnce([{ id: 'al-open', surveyId: 's-open' }]);
+    const t = [{ id: 't2', sourceType: 'SURVEY_ALERT', sourceId: 'al-open' }];
+    const oneBranch = await (service as any).withoutHiddenSurveyTasks({ id: 'b', roles: ['Manager'], permissions: [], assignedLocationIds: ['L1'] }, t);
+    expect(oneBranch).toEqual([]);
+    prisma.surveyAlert.findMany.mockResolvedValueOnce([{ id: 'al-open', surveyId: 's-open' }]);
+    const both = await (service as any).withoutHiddenSurveyTasks({ id: 'b', roles: ['Manager'], permissions: [], assignedLocationIds: ['L1', 'L2'] }, t);
+    expect(both.map((r: any) => r.id)).toEqual(['t2']);
+  });
+
+  it('a done survey follow-up is never reopened from the task list', async () => {
+    const user = { id: 'm', roles: ['Manager'], permissions: ['role_tasks.manage'], accountKind: 'user', assignedLocationIds: null };
+    prisma.surveyAlert.findMany.mockResolvedValueOnce([{ id: 'al-open', surveyId: 's-open' }]);
+    prisma.roleTask = { findUnique: jest.fn().mockResolvedValue({ id: 't2', roleId: 'role-m', locationId: null, status: 'DONE', sourceType: 'SURVEY_ALERT', sourceId: 'al-open' }), update: jest.fn() };
+    prisma.role.findMany.mockImplementationOnce(async () => [{ id: 'role-m' }]);
+    await expect(service.updateStatus(user as any, 't2', { status: 'OPEN' } as any)).rejects.toThrow(/Reopen a survey follow-up on its page/);
+    expect(prisma.roleTask.update).not.toHaveBeenCalled();
+  });
 });

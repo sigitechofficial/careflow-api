@@ -25,6 +25,8 @@ import {
   YSWD_TEXT_MAX,
   figureWords,
   mergeEvidenceActions,
+  carriedForward,
+  CARRY_FORWARD_MONTHS,
   quotesWrittenAnswer,
   readItems,
   type ActionSource,
@@ -416,14 +418,40 @@ export class SurveyActionsService {
       where: { sourceType: 'SURVEY_RESULT', sourceId: { in: sourceIds } },
       select: { id: true, actions: true, status: true },
     });
+    const now = new Date();
     for (const e of evidence) {
       const before = readActions(e.actions);
       const current = e.status === 'CURRENT';
-      if (!current && !before.some((a) => a.actionId === action.id)) continue;
-      const next = mergeEvidenceActions(before, { id: action.id, done: action.status === 'DONE', youSaid: action.youSaid, weDid: action.weDid });
+      const has = before.some((a) => a.actionId === action.id);
+      if (!current && !has) continue;
+      // A done action for the whole survey goes onto later periods' evidence too, for 12 months after it was done
+      // (decision, November 2026); evidence that already has it keeps it in step.
+      const done = action.status === 'DONE' && (has || carriedForward(action.completedAt, now));
+      const next = mergeEvidenceActions(before, {
+        id: action.id,
+        done,
+        youSaid: action.youSaid,
+        weDid: action.weDid,
+        completedOn: action.completedAt ? action.completedAt.toISOString().slice(0, 10) : null,
+      });
       if (JSON.stringify(next) === JSON.stringify(before)) continue;
       await this.prisma.cqcEvidence.update({ where: { id: e.id }, data: { actions: next as unknown as Prisma.InputJsonValue } });
     }
+  }
+
+  /**
+   * The survey job: done actions for a whole survey (no period) are put onto CQC evidence made since (a later period's,
+   * when the earlier evidence was superseded), for 12 months after they were done.
+   */
+  async carryForward(now: Date = new Date()): Promise<number> {
+    const since = new Date(now);
+    since.setUTCMonth(since.getUTCMonth() - CARRY_FORWARD_MONTHS);
+    const rows = await this.prisma.surveyAction.findMany({
+      where: { status: 'DONE', periodId: null, completedAt: { gte: since }, youSaid: { not: null }, weDid: { not: null } },
+      take: 500,
+    });
+    for (const a of rows) await this.syncEvidence(a);
+    return rows.length;
   }
 
   // ─── Team discussions ───────────────────────────────────────────────────
@@ -760,6 +788,10 @@ export class SurveyActionsService {
           : [],
         trends: period ? null : { units: trends.data.units, questions: trends.data.questions },
         themes: themes.data.themes,
+        /** A repeating survey's themes come from one period (the latest that can be shown): which one. */
+        themesPeriod: (themes.data as { period?: { id: string; label: string } | null }).period ?? null,
+        /** Periods the pack can be made for (those that can be shown), for the period chooser. */
+        periods: trends.data.units.filter((u) => u.shown).map((u) => ({ id: u.id, label: u.label })),
         scores: scores.data.scales,
         // Owners as roles only: the pack is shared outside the organisation.
         actions: inThisPeriod(o.actions).map((a) => ({ title: a.title, source: a.sourceLabel, ownerRole: a.ownerRole, dueOn: a.dueOn, status: a.status, outcome: a.status === 'DONE' ? a.outcome : null, completedOn: a.completedOn })),

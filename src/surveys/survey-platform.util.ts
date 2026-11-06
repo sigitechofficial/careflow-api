@@ -49,7 +49,8 @@ export function checkSkipMonths(v: unknown): number[] {
 export function libraryNotInMonths(libraryMeta: unknown): number[] {
   const when = (libraryMeta as { timing?: { when?: unknown } } | null)?.timing?.when;
   if (typeof when !== 'string') return [];
-  const m = /\bnot in ([A-Za-z ,]+?)(?:[;,.(]|$)/i.exec(when);
+  // "not in April, September, October or November, when …": the months named up to the end of that clause.
+  const m = /\bnot in ([^;.(]+)/i.exec(when);
   if (!m) return [];
   return MONTH_LABELS.map((name, i) => (new RegExp(`\\b${name}\\b`, 'i').test(m[1]) ? i + 1 : 0)).filter(Boolean);
 }
