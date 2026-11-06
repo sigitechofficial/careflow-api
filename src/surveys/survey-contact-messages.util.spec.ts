@@ -20,7 +20,7 @@ describe('surveyContactMessages', () => {
     expect(m.emailText).toContain('https://care.example/survey/tok-123');
     expect(m.emailText).toContain('personal to you');
     expect(m.text).toContain('https://care.example/survey/tok-123');
-    expect(m.emailSubject).toBe('Reminder: Annual staff survey');
+    expect(m.emailSubject).toBe('Reminder: Annual staff survey (open until 30 November 2026)');
   });
 
   it('anonymous surveys never carry a personal link, in any channel, and never say the person has not answered', () => {

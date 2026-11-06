@@ -51,7 +51,8 @@ import {
   storedRepeatReason,
 } from './survey-contact-rule.util';
 import { staffAnswerPlaces, type StaffAnswerPlaces } from './survey-staff-answer-places';
-import { staffAnswerWhere } from './survey-contact-messages.util';
+import { surveyContactMessages, type ContactMessageInput } from './survey-contact-messages.util';
+import { surveyEmailBranding, surveyEmailFacts } from './survey-email-branding';
 import { eventPeriodFor, readEventTrigger } from './survey-event-triggers.util';
 import { SurveyUnsubscribeService } from './survey-unsubscribe.service';
 import {
@@ -981,6 +982,8 @@ export class SurveysService {
       distributionError: r.distributionError ?? null,
       recurrence: r.recurrence ?? null,
       recurrenceAnchorAt: toIso(r.recurrenceAnchorAt),
+      /** A survey about one person we support (family or GP views on their care): found from their record. */
+      aboutServiceUserId: r.aboutServiceUserId ?? null,
       /** Sent when something happens in the care records (the event's code), into a copy each month. */
       eventTrigger: readEventTrigger(r.eventTrigger)?.event ?? null,
       periodOpenDays: r.periodOpenDays ?? null,
@@ -3477,6 +3480,81 @@ export class SurveysService {
     };
   }
 
+  /**
+   * Who answered for the person, chosen from their People involved (decision P10): that family member or
+   * representative's own survey contact. Named answers by a family member or representative only; never kept
+   * on an answer linked to no one. Must be one of this person's contacts.
+   */
+  private async respondentContactFor(
+    dto: { respondentContactId?: string },
+    ctx: { unlinked: boolean; relation: SurveyRespondentRelation | null; forServiceUsers: boolean; personId: string | null },
+  ): Promise<{ id: string; name: string } | null> {
+    if (!dto.respondentContactId) return null;
+    const fits =
+      !ctx.unlinked &&
+      ctx.forServiceUsers &&
+      ctx.personId &&
+      (ctx.relation === SurveyRespondentRelation.FAMILY_MEMBER || ctx.relation === SurveyRespondentRelation.REPRESENTATIVE);
+    if (!fits) return null;
+    const c = await this.prisma.serviceUserContact.findFirst({
+      where: { id: dto.respondentContactId, serviceUserId: ctx.personId!, deletedAt: null },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    if (!c) throw new BadRequestException('Choose someone from this person’s People involved.');
+    return { id: c.id, name: `${c.firstName} ${c.lastName ?? ''}`.trim() };
+  }
+
+  /**
+   * Surveys about one person we support (A1 #3), for their record: in the viewer's branches, never templates.
+   * Titles and states only; answers stay behind each survey's own access rules.
+   */
+  async listAboutPerson(actor: RequestUser, serviceUserId: string) {
+    const scope = this.scopeOf(actor);
+    await this.orgScope.assertServiceUserInScope(scope, serviceUserId);
+    const rows = await this.prisma.survey.findMany({
+      where: { aboutServiceUserId: serviceUserId, deletedAt: null, isTemplate: false, isCatalogue: false },
+      orderBy: { createdAt: 'desc' },
+      take: 100,
+    });
+    const visible = rows.filter((r) => surveyVisibleInScope(scope, r));
+    const sent = visible.length
+      ? await this.prisma.surveyRecipient.groupBy({ by: ['surveyId'], where: { surveyId: { in: visible.map((r) => r.id) } }, _count: { _all: true } })
+      : [];
+    const sentBy = new Map(sent.map((x) => [x.surveyId, x._count._all]));
+    return {
+      message: 'Surveys about this person',
+      data: visible.map((r) => ({
+        id: r.id,
+        title: r.title,
+        status: r.status,
+        targetKind: r.targetKind,
+        createdAt: r.createdAt.toISOString(),
+        closesAt: toIso(r.closesAt),
+        sentTo: sentBy.get(r.id) ?? 0,
+      })),
+    };
+  }
+
+  /**
+   * Record response: the person's People involved, to say which family member or representative answered
+   * (decision P10). Names and relationships only, never contact details; the person must be in the recorder's
+   * branches. Named surveys only (an anonymous answer never keeps who gave it).
+   */
+  async listRespondentContacts(actor: RequestUser, surveyId: string, serviceUserId: string) {
+    const survey = await this.requireSurvey(actor, surveyId);
+    if (survey.isAnonymous || survey.targetKind !== SurveyTargetKind.SERVICE_USER) return { message: 'People involved', data: [] };
+    await this.orgScope.assertServiceUserInScope(this.scopeOf(actor), serviceUserId);
+    const rows = await this.prisma.serviceUserContact.findMany({
+      where: { serviceUserId, deletedAt: null, isActive: true },
+      select: { id: true, firstName: true, lastName: true, relationshipType: { select: { name: true } } },
+      orderBy: [{ isPrimary: 'desc' }, { firstName: 'asc' }],
+    });
+    return {
+      message: 'People involved',
+      data: rows.map((c) => ({ id: c.id, name: `${c.firstName} ${c.lastName ?? ''}`.trim(), relationship: c.relationshipType?.name ?? null })),
+    };
+  }
+
   private async ownerOf(survey: Survey): Promise<Survey> {
     return survey.clonedFromId ? ((await this.prisma.survey.findUnique({ where: { id: survey.clonedFromId } })) ?? survey) : survey;
   }
@@ -3733,6 +3811,24 @@ export class SurveysService {
       );
     }
 
+    // One branded email layout for every invitation (survey-contact-messages.util.ts).
+    const branding = await surveyEmailBranding(this.prisma);
+    const facts = await surveyEmailFacts(this.prisma, survey.id, await this.timeZone().catch(() => undefined));
+    const emailFor = (input: Omit<ContactMessageInput, 'title' | 'anonymous' | 'reminder' | 'closesOn' | 'organisation' | 'textRepliesSupported'>) =>
+      surveyContactMessages({
+        ...input,
+        title: survey.title,
+        anonymous: survey.isAnonymous,
+        reminder: false,
+        closesOn: facts.closesOn,
+        minutes: facts.minutes,
+        organisation: branding.organisation,
+        contactPhone: branding.contactPhone,
+        contactEmail: branding.contactEmail,
+        logoUrl: branding.logoUrl,
+        textRepliesSupported: false,
+      });
+
     // People who asked not to be contacted about surveys (all channels, or this one) are skipped.
     const optOuts = (await this.reminders?.optOutsFor(recipients).catch(() => null)) ?? new Map<string, Set<string>>();
     const optedOut = (key: string, channel: string) => {
@@ -3762,24 +3858,15 @@ export class SurveysService {
           if (!su || !to || optedOut(`SERVICE_USER:${su.id}`, 'EMAIL')) continue;
           const link = base && !survey.isAnonymous ? `${base}/survey/${r.token}` : null;
           const stopAll = this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id }) ?? null;
-          await this.safeMail(survey.id, {
-            to,
-            subject: `Survey: ${survey.title}`,
-            text: [
-              `Hello ${su.preferredName?.trim() || su.firstName},`,
-              '',
-              `We would value your views in the survey "${survey.title}".`,
-              link ? `Open your survey: ${link}` : 'Please contact us for a paper copy, or to answer by phone.',
-              '',
-              survey.isAnonymous ? 'Your answers are anonymous: they are not linked to your name.' : 'This link is personal to you. Please do not share it.',
-              'A family member or representative can answer on your behalf.',
-              '',
-              stopAll ? `To stop all survey messages from us, for good: ${stopAll}` : '',
-              'Thank you.',
-            ]
-              .filter((line, i, all) => line !== '' || all[i - 1] !== '')
-              .join('\n'),
+          const m = emailFor({
+            kind: 'SERVICE_USER',
+            firstName: su.preferredName?.trim() || su.firstName,
+            link,
+            portalLink: null,
+            paperOnly: true,
+            unsubscribeLink: stopAll,
           });
+          await this.safeMail(survey.id, { to, subject: m.emailSubject, text: m.emailText, html: m.emailHtml });
         }
       }
       const accounts = await this.prisma.serviceUserPortalAccount.findMany({
@@ -3799,22 +3886,14 @@ export class SurveysService {
       for (const a of accounts) {
         if (formerSu.has(a.serviceUserId) || optedOut(`SERVICE_USER:${a.serviceUserId}`, 'PORTAL')) continue;
         const name = a.serviceUser.preferredName?.trim() || a.serviceUser.firstName;
-        await this.safeMail(survey.id, {
-          to: a.email,
-          subject: `New survey in your portal: ${survey.title}`,
-          text: [
-            `Hello ${name},`,
-            '',
-            `Your care team would like your feedback in the survey "${survey.title}".`,
-            base
-              ? `Log in to your portal to answer it: ${base}/portal/surveys`
-              : 'Log in to your service user portal and open Surveys to answer it.',
-            '',
-            'A family member or representative can answer on your behalf.',
-            '',
-            'Thank you.',
-          ].join('\n'),
+        // The portal: they answer signed in, so the email holds no personal link.
+        const m = emailFor({
+          kind: 'SERVICE_USER',
+          firstName: name,
+          link: null,
+          portalLink: base ? `${base}/portal/surveys` : null,
         });
+        await this.safeMail(survey.id, { to: a.email, subject: m.emailSubject, text: m.emailText, html: m.emailHtml });
       }
       return;
     }
@@ -3871,37 +3950,27 @@ export class SurveysService {
       const detail = detailById.get(r.employeeId);
       const to = former.has(r.employeeId) ? personalEmail(detail?.email, domains) : detail?.email;
       if (!to || optedOut(`EMPLOYEE:${r.employeeId}`, 'EMAIL')) continue;
-      await this.safeMail(survey.id, {
-        to,
-        subject: `Survey: ${survey.title}`,
-        text: [
-          detail?.firstName ? `Hi ${detail.firstName},` : 'Hello,',
-          '',
-          `You have been asked to complete the survey "${survey.title}".`,
-          survey.isAnonymous
-            ? staffAnswerWhere(
-                former.has(r.employeeId)
-                  ? { app: false, web: false, webLink: null }
-                  : { ...(places.get(r.employeeId) ?? { app: true, web: false }), webLink: base ? `${base}/my-surveys` : null },
-              )
-            : link
-              ? `Open your survey: ${link}`
-              : 'Please ask your office for your survey link.',
-          '',
-          survey.isAnonymous
-            ? 'Your answers are anonymous: they are not linked to your name.'
-            : 'This link is personal to you — please do not share it.',
-          '',
-          ...(former.has(r.employeeId) && this.unsubscribe
-            ? [`To stop all survey messages from us, for good: ${this.unsubscribe.link(base, { subjectKind: 'EMPLOYEE', subjectId: r.employeeId }) ?? 'reply to this email'}`, '']
-            : []),
-          'Thank you.',
-        ].join('\n'),
+      const m = emailFor({
+        kind: 'EMPLOYEE',
+        firstName: detail?.firstName ?? null,
+        link,
+        portalLink: null,
+        // Anonymous surveys: where they answer signed in (never a token); people who have left: paper.
+        staffPlaces: survey.isAnonymous
+          ? former.has(r.employeeId)
+            ? { app: false, web: false, webLink: null }
+            : { ...(places.get(r.employeeId) ?? { app: true, web: false }), webLink: base ? `${base}/my-surveys` : null }
+          : undefined,
+        unsubscribeLink:
+          former.has(r.employeeId) && this.unsubscribe
+            ? this.unsubscribe.link(base, { subjectKind: 'EMPLOYEE', subjectId: r.employeeId })
+            : null,
       });
+      await this.safeMail(survey.id, { to, subject: m.emailSubject, text: m.emailText, html: m.emailHtml });
     }
   }
 
-  private async safeMail(surveyId: string, input: { to: string; subject: string; text: string }) {
+  private async safeMail(surveyId: string, input: { to: string; subject: string; text: string; html?: string }) {
     try {
       // Survey emails carry personal links or unsubscribe tokens: never copy them to MAIL_BCC.
       await this.mail.send({ ...input, skipBcc: true });
@@ -6254,10 +6323,11 @@ export class SurveysService {
 
     const relation = dto.respondentRelation ?? null;
     const unlinked = anonymous || survey.isAnonymous;
+    const respondentContact = await this.respondentContactFor(dto, { unlinked, relation, forServiceUsers, personId: dto.personId ?? null });
     const respondentName =
       unlinked || !relation || relation === SurveyRespondentRelation.SELF
         ? null
-        : dto.respondentName?.trim() || null;
+        : dto.respondentName?.trim() || respondentContact?.name || null;
 
     let personId: string | null = null;
     if (!anonymous) {
@@ -6415,6 +6485,7 @@ export class SurveysService {
               submittedById: null,
               respondentRelation: relation,
               respondentName,
+              respondentContactId: respondentContact?.id ?? null,
               channel: dto.channel as SurveyResponseChannel,
               recordedById: actor.id,
               isAnonymous: anonymous,
@@ -6712,6 +6783,7 @@ export class SurveysService {
         status: true,
         employeeId: true,
         serviceUserId: true,
+        externalContactId: true,
         sentAt: true,
         createdAt: true,
         reminderCount: true,
@@ -6722,6 +6794,12 @@ export class SurveysService {
       },
     });
     const nameById = await this.loadRecipientNames(rows);
+    // Outside people (named public surveys): who they are and their organisation.
+    const outsideIds = rows.map((r) => r.externalContactId).filter((x): x is string => Boolean(x));
+    const outside = outsideIds.length
+      ? await this.prisma.surveyExternalContact.findMany({ where: { id: { in: outsideIds } }, select: { id: true, name: true, organisation: true, kind: true } })
+      : [];
+    const outsideById = new Map(outside.map((x) => [x.id, x]));
 
     return {
       message: 'Survey recipients',
@@ -6734,6 +6812,13 @@ export class SurveysService {
           employeeName: r.employeeId ? (nameById.get(r.employeeId) ?? 'Employee') : null,
           serviceUserId: r.serviceUserId,
           serviceUserName: r.serviceUserId ? (nameById.get(r.serviceUserId) ?? 'Service user') : null,
+          externalContactId: r.externalContactId,
+          externalName: r.externalContactId
+            ? (() => {
+                const x = outsideById.get(r.externalContactId);
+                return x ? `${x.name}${x.organisation ? ` (${x.organisation})` : ''}` : 'Outside person';
+              })()
+            : null,
           sentAt: toIso(r.sentAt),
           submittedAt: toIso(r.response?.submittedAt),
           respondentRelation: r.response?.respondentRelation ?? null,

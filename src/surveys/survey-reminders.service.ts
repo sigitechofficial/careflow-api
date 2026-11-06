@@ -52,6 +52,7 @@ import {
   type SurveyContactPlan,
 } from './survey-contact-plan.util';
 import { surveyContactMessages } from './survey-contact-messages.util';
+import { surveyEmailBranding, surveyEmailFacts } from './survey-email-branding';
 import { SURVEY_TEXT_STOP_REASON } from './survey-text-replies.service';
 import { SurveyUnsubscribeService } from './survey-unsubscribe.service';
 import { LAPSABLE_STATUSES, SURVEY_UNSUBSCRIBE_REASON, ineligibleRecipientIds, organisationDomains, personalEmail } from './survey-eligibility.util';
@@ -489,6 +490,9 @@ export class SurveyRemindersService {
     const counts = zero();
     const base = this.appBase();
     const organisation = await this.organisationName();
+    // The same branded email as invitations: office contact for other formats, logo, how long it takes.
+    const branding = await surveyEmailBranding(this.prisma);
+    const emailExtras = { contactPhone: branding.contactPhone, contactEmail: branding.contactEmail, logoUrl: branding.logoUrl, minutes: (await surveyEmailFacts(this.prisma, survey.id)).minutes };
     const tz = await this.timeZone();
     const closesOn = survey.closesAt ? formatSurveyDateTime(survey.closesAt, tz) : null;
     const optOuts = await this.optOutsFor(people);
@@ -564,7 +568,7 @@ export class SurveyRemindersService {
         }
         const m = surveyContactMessages({
           kind: 'EMPLOYEE', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName: s.firstName,
-          link, portalLink: null, closesOn, organisation, textRepliesSupported: this.texts.supportsReplies(),
+          link, portalLink: null, closesOn, organisation, ...emailExtras, textRepliesSupported: this.texts.supportsReplies(),
           staffPlaces: survey.isAnonymous
             ? s.employee?.isActive !== false
               ? { ...(places.get(p.employeeId) ?? { app: true, web: false }), webLink }
@@ -587,7 +591,7 @@ export class SurveyRemindersService {
           });
           return report.sent > 0;
         });
-        await tryChannel('EMAIL', Boolean(email), () => this.mailTo(survey.id, email!, m.emailSubject, m.emailText));
+        await tryChannel('EMAIL', Boolean(email), () => this.mailTo(survey.id, email!, m.emailSubject, m.emailText, m.emailHtml));
         const mobile = firstUkMobile(s.mobileTelephone);
         await tryChannel('TEXT', Boolean(mobile) && this.texts.isEnabled(), async () => (await this.texts.send({ to: mobile!, body: m.text })).sent);
       } else if (p.serviceUserId) {
@@ -599,7 +603,7 @@ export class SurveyRemindersService {
         const firstName = su.preferredName?.trim() || su.firstName;
         const m = surveyContactMessages({
           kind: 'SERVICE_USER', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName,
-          link, portalLink, closesOn, organisation, textRepliesSupported: this.texts.supportsReplies(),
+          link, portalLink, closesOn, organisation, ...emailExtras, textRepliesSupported: this.texts.supportsReplies(),
           unsubscribeLink:
             (su as { status?: { code: string } | null }).status?.code === 'DISCHARGED'
               ? (this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id }) ?? null)
@@ -610,9 +614,9 @@ export class SurveyRemindersService {
         const portal = !formerSu && su.isActive && su.portalAccount?.isEnabled && !su.portalAccount.deletedAt ? su.portalAccount.email : null;
         const portalMessages = surveyContactMessages({
           kind: 'SERVICE_USER', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName,
-          link: null, portalLink, closesOn, organisation, textRepliesSupported: this.texts.supportsReplies(),
+          link: null, portalLink, closesOn, organisation, ...emailExtras, textRepliesSupported: this.texts.supportsReplies(),
         });
-        await tryChannel('PORTAL', Boolean(portal), () => this.mailTo(survey.id, portal!, portalMessages.emailSubject, portalMessages.emailText));
+        await tryChannel('PORTAL', Boolean(portal), () => this.mailTo(survey.id, portal!, portalMessages.emailSubject, portalMessages.emailText, portalMessages.emailHtml));
         // Their own email: named surveys only (their own link); never a second copy to the portal address.
         if (formerSu) {
           // Care has ended: their own address (never one on the organisation's domains), never the portal. On an
@@ -620,15 +624,15 @@ export class SurveyRemindersService {
           const own = personalEmail(su.email, suDomains);
           const fm = surveyContactMessages({
             kind: link ? 'SERVICE_USER' : 'EXTERNAL', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName,
-            link, portalLink: null, closesOn, organisation, textRepliesSupported: this.texts.supportsReplies(),
+            link, portalLink: null, closesOn, organisation, ...emailExtras, textRepliesSupported: this.texts.supportsReplies(),
             unsubscribeLink: this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id }) ?? null,
           });
-          await tryChannel('EMAIL', Boolean(own), () => this.mailTo(survey.id, own!, fm.emailSubject, fm.emailText));
+          await tryChannel('EMAIL', Boolean(own), () => this.mailTo(survey.id, own!, fm.emailSubject, fm.emailText, fm.emailHtml));
           const fmobile = firstUkMobile(su.mobile, su.phone);
           await tryChannel('TEXT', Boolean(fmobile) && this.texts.isEnabled(), async () => (await this.texts.send({ to: fmobile!, body: fm.text })).sent);
         } else {
           const ownEmail = su.email?.trim() && su.email.trim().toLowerCase() !== portal?.toLowerCase() ? su.email.trim() : null;
-          await tryChannel('EMAIL', Boolean(ownEmail) && !survey.isAnonymous, () => this.mailTo(survey.id, ownEmail!, m.emailSubject, m.emailText));
+          await tryChannel('EMAIL', Boolean(ownEmail) && !survey.isAnonymous, () => this.mailTo(survey.id, ownEmail!, m.emailSubject, m.emailText, m.emailHtml));
           const mobile = firstUkMobile(su.mobile, su.phone);
           // Anonymous surveys: a text can only point to the portal, so only to people who have one.
           await tryChannel('TEXT', Boolean(mobile) && this.texts.isEnabled() && (!survey.isAnonymous || Boolean(portal)), async () =>
@@ -643,9 +647,9 @@ export class SurveyRemindersService {
         }
         const m = surveyContactMessages({
           kind: 'EXTERNAL', anonymous: false, reminder: opts.reminder, title: survey.title, firstName: x.name.split(/\s+/)[0] ?? null,
-          link, portalLink: null, closesOn, organisation, textRepliesSupported: this.texts.supportsReplies(),
+          link, portalLink: null, closesOn, organisation, ...emailExtras, textRepliesSupported: this.texts.supportsReplies(),
         });
-        await tryChannel('EMAIL', Boolean(x.email), () => this.mailTo(survey.id, x.email!, m.emailSubject, m.emailText));
+        await tryChannel('EMAIL', Boolean(x.email), () => this.mailTo(survey.id, x.email!, m.emailSubject, m.emailText, m.emailHtml));
         const mobile = firstUkMobile(x.mobile, x.phone);
         await tryChannel('TEXT', Boolean(mobile) && this.texts.isEnabled(), async () => (await this.texts.send({ to: mobile!, body: m.text })).sent);
       }
@@ -656,10 +660,10 @@ export class SurveyRemindersService {
     return counts;
   }
 
-  private async mailTo(surveyId: string, to: string, subject: string, text: string): Promise<boolean> {
+  private async mailTo(surveyId: string, to: string, subject: string, text: string, html?: string): Promise<boolean> {
     try {
       // Personal survey links and unsubscribe tokens: never copied to MAIL_BCC.
-      await this.mail.send({ to, subject, text, skipBcc: true });
+      await this.mail.send({ to, subject, text, html, skipBcc: true });
       return true;
     } catch (err) {
       this.logger.warn(`Survey ${surveyId}: a reminder email was not sent (${err instanceof Error ? err.name : 'error'})`);

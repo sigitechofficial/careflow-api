@@ -19,6 +19,7 @@ import { SurveyContactRuleService } from './survey-contact-rule.service';
 import { freeFromDay, librarySentWith } from './survey-contact-rule.util';
 import { SURVEY_UNSUBSCRIBE_REASON } from './survey-eligibility.util';
 import { surveyContactMessages } from './survey-contact-messages.util';
+import { surveyEmailBranding, surveyEmailFacts } from './survey-email-branding';
 import { readContactPlan } from './survey-contact-plan.util';
 import { formatSurveyDateTime } from './survey-recurrence.util';
 import { personalLinkPath } from './survey-recipient-links.service';
@@ -640,6 +641,8 @@ export class SurveyOutsidePeopleService {
     const base = this.appBase(requestOrigin);
     const tz = await this.timeZone();
     const organisation = await this.organisationName();
+    const branding = await surveyEmailBranding(this.prisma);
+    const minutes = (await surveyEmailFacts(this.prisma, survey.id)).minutes;
     const plan = readContactPlan(survey.contactPlan);
     const textOn = Boolean(plan?.channels.includes('TEXT')) && this.texts.isEnabled();
     const opt = await this.optOuts(contacts);
@@ -658,12 +661,16 @@ export class SurveyOutsidePeopleService {
         portalLink: null,
         closesOn: survey.closesAt ? formatSurveyDateTime(survey.closesAt, tz) : null,
         organisation,
+        contactPhone: branding.contactPhone,
+        contactEmail: branding.contactEmail,
+        logoUrl: branding.logoUrl,
+        minutes,
         textRepliesSupported: this.texts.supportsReplies(),
       });
       const blocked = (ch: string) => Boolean(opt.get(c.id)?.has('ALL') || opt.get(c.id)?.has(ch));
       if (c.email && !blocked('EMAIL')) {
         try {
-          await this.mail.send({ to: c.email, subject: m.emailSubject, text: m.emailText, skipBcc: true });
+          await this.mail.send({ to: c.email, subject: m.emailSubject, text: m.emailText, html: m.emailHtml, skipBcc: true });
         } catch (e) {
           this.logger.warn(`Survey ${survey.id}: an outside invitation email failed (${e instanceof Error ? e.name : 'error'})`);
         }
