@@ -59,12 +59,55 @@ export function forLeavers(survey: EligibilitySurvey, owner: EligibilitySurvey):
   );
 }
 
-type Db = Pick<PrismaClient, 'serviceUser' | 'employee' | 'surveyExternalContact'>;
+type Db = Pick<PrismaClient, 'serviceUser' | 'employee' | 'surveyExternalContact'> & { serviceUserContact?: Pick<PrismaClient['serviceUserContact'], 'findMany'> };
+
+/** The bereaved-family survey (SUR-FAM-002, or one sent on a death): the only survey a family is sent after the person died. */
+export function forBereavedFamilies(survey: EligibilitySurvey, owner: EligibilitySurvey): boolean {
+  return [survey.libraryReference, owner.libraryReference].includes('SUR-FAM-002') || readEventTrigger(owner.eventTrigger)?.event === 'DEATH';
+}
+
+/**
+ * Family members from People involved who can no longer be sent this survey (by outside-person id): the
+ * People involved record was removed or made inactive, "Can receive care updates" is no longer ticked
+ * (consent withdrawn), or the person we support has died (except the bereaved-family survey). Read at the
+ * moment of every send, reminder, text, call list and personal link.
+ */
+export async function blockedFamilyContacts(
+  prisma: Db,
+  survey: EligibilitySurvey,
+  owner: EligibilitySurvey,
+  rows: Array<{ id: string; sourceType: string; sourceId: string | null; serviceUserId: string | null }>,
+): Promise<Map<string, 'NO_CONSENT' | 'DIED'>> {
+  const out = new Map<string, 'NO_CONSENT' | 'DIED'>();
+  const family = rows.filter((r) => r.sourceType === 'SERVICE_USER_CONTACT');
+  if (!family.length) return out;
+  const sourceIds = family.map((f) => f.sourceId).filter((x): x is string => Boolean(x));
+  const contacts = sourceIds.length && prisma.serviceUserContact
+    ? await prisma.serviceUserContact.findMany({
+        where: { id: { in: sourceIds } },
+        select: { id: true, deletedAt: true, isActive: true, canReceiveUpdates: true, serviceUserId: true },
+      })
+    : [];
+  const byId = new Map(contacts.map((c) => [c.id, c]));
+  const suIds = [...new Set([...family.map((f) => f.serviceUserId), ...contacts.map((c) => c.serviceUserId)].filter((x): x is string => Boolean(x)))];
+  const sus = suIds.length
+    ? await prisma.serviceUser.findMany({ where: { id: { in: suIds } }, select: { id: true, dateOfDeath: true, status: { select: { code: true } } } })
+    : [];
+  const died = new Set(sus.filter((s) => s.dateOfDeath || s.status?.code === 'DECEASED').map((s) => s.id));
+  const bereaved = forBereavedFamilies(survey, owner);
+  for (const f of family) {
+    const c = f.sourceId ? byId.get(f.sourceId) : undefined;
+    if (!c || c.deletedAt || !c.isActive || !c.canReceiveUpdates) out.set(f.id, 'NO_CONSENT');
+    else if (!bereaved && (died.has(c.serviceUserId) || (f.serviceUserId && died.has(f.serviceUserId)))) out.set(f.id, 'DIED');
+  }
+  return out;
+}
 
 /**
  * The recipients (by recipient id) who can no longer be sent this survey. People we support: died,
  * inactive, not started, or care ended (unless chosen by name or the survey is about care ending). Staff:
- * deleted or inactive (unless the survey is for leavers). Outside people: removed.
+ * deleted or inactive (unless the survey is for leavers). Outside people: removed; family members whose
+ * consent was withdrawn or whose person has died (blockedFamilyContacts).
  */
 export async function ineligibleRecipientIds(
   prisma: Db,
@@ -81,8 +124,21 @@ export async function ineligibleRecipientIds(
       ? prisma.serviceUser.findMany({ where: { id: { in: suIds } }, select: { id: true, deletedAt: true, dateOfDeath: true, status: { select: { code: true } } } })
       : Promise.resolve([]),
     empIds.length ? prisma.employee.findMany({ where: { id: { in: empIds } }, select: { id: true, deletedAt: true, isActive: true } }) : Promise.resolve([]),
-    extIds.length ? prisma.surveyExternalContact.findMany({ where: { id: { in: extIds } }, select: { id: true, deletedAt: true } }) : Promise.resolve([]),
+    extIds.length
+      ? prisma.surveyExternalContact.findMany({ where: { id: { in: extIds } }, select: { id: true, deletedAt: true, sourceType: true, sourceId: true, serviceUserId: true } })
+      : Promise.resolve([]),
   ]);
+  const blockedFamily = await blockedFamilyContacts(
+    prisma,
+    survey,
+    owner,
+    (exts as Array<{ id: string; sourceType?: string | null; sourceId?: string | null; serviceUserId?: string | null }>).map((x) => ({
+      id: x.id,
+      sourceType: x.sourceType ?? 'TYPED',
+      sourceId: x.sourceId ?? null,
+      serviceUserId: x.serviceUserId ?? null,
+    })),
+  );
   const suById = new Map(sus.map((s) => [s.id, s]));
   const empById = new Map(emps.map((e) => [e.id, e]));
   const extById = new Map(exts.map((e) => [e.id, e]));
@@ -101,7 +157,7 @@ export async function ineligibleRecipientIds(
       if (!e || e.deletedAt || (!e.isActive && !leavers && !chosen)) out.add(p.id);
     } else if (p.externalContactId) {
       const x = extById.get(p.externalContactId);
-      if (!x || x.deletedAt) out.add(p.id);
+      if (!x || x.deletedAt || blockedFamily.has(x.id)) out.add(p.id);
     }
   }
   return out;

@@ -167,8 +167,9 @@ export function surveyEmail(
   const lines: string[] = [greeting, ''];
   for (const p of paragraphs) lines.push(plain(p), '');
   if (button) lines.push(`${button.label}: ${button.href}`, '');
-  if (howToAnswer) lines.push(`How to answer: ${howToAnswer}`, '');
+  // Same order as the HTML: button, when it closes, how to answer.
   if (facts) lines.push(plain(facts), '');
+  if (howToAnswer) lines.push(`How to answer: ${howToAnswer}`, '');
   for (const sec of sections) lines.push(sec.heading, sec.body, '');
   if (closing) lines.push(closing, '');
   else lines.push(...signOff, '');

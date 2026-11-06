@@ -120,6 +120,36 @@ describe('outside people: sending', () => {
   });
 });
 
+describe('outside people: family consent and deaths (review)', () => {
+  const fam = contact({ id: 'f1', kind: 'FAMILY', name: 'Ann Lee', email: 'ann@example.com', sourceType: 'SERVICE_USER_CONTACT', sourceId: 'c1', serviceUserId: 'su1' });
+  const record = (over: any = {}) => ({ id: 'c1', firstName: 'Ann', lastName: 'Lee', email: 'ann@example.com', mobile: null, phone: null, relationshipType: null, deletedAt: null, isActive: true, canReceiveUpdates: true, serviceUserId: 'su1', ...over });
+
+  it('a family member chosen as a contact or from a list is not sent it once consent is withdrawn', async () => {
+    const { svc, prisma, mail } = setup({ contacts: [fam] });
+    prisma.serviceUserContact.findFirst.mockResolvedValue(record({ canReceiveUpdates: false }));
+    prisma.serviceUserContact.findMany.mockResolvedValue([record({ canReceiveUpdates: false })]);
+    prisma.serviceUser.findMany = jest.fn(async () => [{ id: 'su1', dateOfDeath: null, status: null }]);
+    const check = await svc.checkSendOutside(actor, 's1', { contactIds: ['f1'] });
+    expect(check.data).toMatchObject({ sendNow: 0, noConsent: 1 });
+    await expect(svc.sendOutside(actor, 's1', { contactIds: ['f1'] })).rejects.toThrow(/Nobody here/);
+    expect(mail.send).not.toHaveBeenCalled();
+  });
+
+  it('never the family of someone who has died, except the bereaved-family survey', async () => {
+    const died = [{ id: 'su1', dateOfDeath: new Date('2026-11-01'), status: { code: 'DECEASED' } }];
+    const a = setup({ contacts: [fam] });
+    a.prisma.serviceUserContact.findFirst.mockResolvedValue(record());
+    a.prisma.serviceUserContact.findMany.mockResolvedValue([record()]);
+    a.prisma.serviceUser.findMany = jest.fn(async () => died);
+    expect((await a.svc.checkSendOutside(actor, 's1', { contactIds: ['f1'] })).data).toMatchObject({ sendNow: 0, died: 1 });
+    const b = setup({ contacts: [fam], survey: survey({ libraryReference: 'SUR-FAM-002' }) });
+    b.prisma.serviceUserContact.findFirst.mockResolvedValue(record());
+    b.prisma.serviceUserContact.findMany.mockResolvedValue([record()]);
+    b.prisma.serviceUser.findMany = jest.fn(async () => died);
+    expect((await b.svc.checkSendOutside(actor, 's1', { contactIds: ['f1'] })).data).toMatchObject({ sendNow: 1, died: 0 });
+  });
+});
+
 describe('the 4-week rule for outside people (one real person), and P10', () => {
   function rule(sent: any[], answered: any[], contacts: any[]) {
     const prisma: any = {

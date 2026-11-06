@@ -413,3 +413,19 @@ describe('SurveyRemindersService — people whose care has ended', () => {
     expect(mail.send).not.toHaveBeenCalled();
   });
 });
+
+describe('SurveyRemindersService — staff who have left (review)', () => {
+  it('a reminder to someone who has left carries the unsubscribe link in the HTML and the plain text', async () => {
+    const rec = { id: 'r1', token: 'tok-1', status: 'SENT', employeeId: 'e1', serviceUserId: null, sentAt: new Date(NOW.getTime() - 4 * DAY), reminderCount: 0, remindedAt: null };
+    const { svc, prisma, mail } = setup({ survey: { libraryReference: 'SUR-STF-015' }, recipients: [rec] });
+    prisma.employeePersonalDetail.findMany.mockResolvedValue([
+      { employeeId: 'e1', firstName: 'Zara', lastName: 'Ali', email: 'zara@example.test', mobileTelephone: null, homeTelephone: null, employee: { isActive: false } },
+    ]);
+    (svc as any).unsubscribe = { link: () => 'https://care.example/survey-unsubscribe/a.b' };
+    await svc.runDue(NOW);
+    const sent = mail.send.mock.calls[0][0];
+    expect(sent.skipBcc).toBe(true);
+    expect(sent.text).toContain('https://care.example/survey-unsubscribe/a.b');
+    expect(sent.html).toContain('href="https://care.example/survey-unsubscribe/a.b"');
+  });
+});

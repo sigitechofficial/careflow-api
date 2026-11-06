@@ -13,11 +13,12 @@ import {
 } from './survey-eligibility.util';
 import { recipientStatusCounts } from './surveys.service';
 
-const db = (opts: { sus?: any[]; emps?: any[]; exts?: any[] } = {}) =>
+const db = (opts: { sus?: any[]; emps?: any[]; exts?: any[]; contacts?: any[] } = {}) =>
   ({
     serviceUser: { findMany: jest.fn(async () => opts.sus ?? []) },
     employee: { findMany: jest.fn(async () => opts.emps ?? []) },
     surveyExternalContact: { findMany: jest.fn(async () => opts.exts ?? []) },
+    serviceUserContact: { findMany: jest.fn(async () => opts.contacts ?? []) },
   }) as any;
 const su = (id: string, code: string | null, over: any = {}) => ({ id, deletedAt: null, dateOfDeath: null, status: code ? { code } : null, ...over });
 const r = (id: string, over: any) => ({ id, employeeId: null, serviceUserId: null, externalContactId: null, ...over });
@@ -106,5 +107,21 @@ describe('former staff, chosen by name (one rule, one window)', () => {
     expect(personalEmail('zara@mail.sunrise-care.co.uk', domains)).toBeNull();
     expect(personalEmail('zara.ali@example.com', domains)).toBe('zara.ali@example.com');
     expect(personalEmail('', domains)).toBeNull();
+  });
+
+  it('family members lapse when consent is withdrawn, their record is removed, or the person has died (not the bereaved-family survey)', async () => {
+    const ext = (id: string, sourceId: string) => ({ id, deletedAt: null, sourceType: 'SERVICE_USER_CONTACT', sourceId, serviceUserId: sourceId === 'c-died' ? 'su-died' : 'su1' });
+    const prisma = db({
+      exts: [ext('ok', 'c-ok'), ext('withdrawn', 'c-no'), ext('gone', 'c-gone'), ext('bereaved', 'c-died'), { id: 'typed', deletedAt: null, sourceType: 'TYPED', sourceId: null, serviceUserId: null }],
+      contacts: [
+        { id: 'c-ok', deletedAt: null, isActive: true, canReceiveUpdates: true, serviceUserId: 'su1' },
+        { id: 'c-no', deletedAt: null, isActive: true, canReceiveUpdates: false, serviceUserId: 'su1' },
+        { id: 'c-died', deletedAt: null, isActive: true, canReceiveUpdates: true, serviceUserId: 'su-died' },
+      ],
+      sus: [su('su1', 'ACTIVE'), su('su-died', 'DECEASED', { dateOfDeath: new Date('2026-11-01') })],
+    });
+    const people = ['ok', 'withdrawn', 'gone', 'bereaved', 'typed'].map((x) => r(`r-${x}`, { externalContactId: x }));
+    expect([...(await ineligibleRecipientIds(prisma, {}, {}, people))].sort()).toEqual(['r-bereaved', 'r-gone', 'r-withdrawn']);
+    expect([...(await ineligibleRecipientIds(prisma, { libraryReference: 'SUR-FAM-002' }, {}, people))].sort()).toEqual(['r-gone', 'r-withdrawn']);
   });
 });

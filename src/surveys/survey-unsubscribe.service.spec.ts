@@ -30,6 +30,11 @@ describe('Unsubscribe from all surveys (former people)', () => {
     expect(svc.read(token)).toEqual({ subjectKind: 'EMPLOYEE', subjectId: EMP });
     expect(svc.read(`${token.split('.')[0]}.AAAA${token.split('.')[1].slice(4)}`)).toBeNull();
     expect(svc.read('nonsense')).toBeNull();
+    // A signature of the right length in characters but not in bytes is refused, never an error.
+    expect(svc.read(`${token.split('.')[0]}.${'é'.repeat(token.split('.')[1].length)}`)).toBeNull();
+    // Another person's id with this person's signature is refused.
+    const other = Buffer.from('EMPLOYEE:22222222-2222-4222-8222-222222222222').toString('base64url');
+    expect(svc.read(`${other}.${token.split('.')[1]}`)).toBeNull();
     expect(svc.link('https://care.example', { subjectKind: 'EMPLOYEE', subjectId: EMP })).toMatch(/^https:\/\/care\.example\/survey-unsubscribe\//);
   });
 

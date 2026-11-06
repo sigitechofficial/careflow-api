@@ -101,7 +101,7 @@ export function renderSurveyEmailHtml(input: SurveyEmailHtmlInput): string {
   const button = input.button
     ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 14px;">
 <tr><td align="center" bgcolor="${brand}" style="border-radius:8px;background:${brand};">
-<a href="${e(input.button.href)}" target="_blank" style="${FONT}display:inline-block;padding:15px 34px;font-size:17px;font-weight:700;line-height:20px;color:#ffffff;text-decoration:none;border-radius:8px;">${e(input.button.label)}&nbsp;&rarr;</a>
+<a href="${e(input.button.href)}" target="_blank" style="${FONT}display:inline-block;padding:15px 34px;font-size:17px;font-weight:700;line-height:20px;color:#ffffff;text-decoration:none;border-radius:8px;">${e(input.button.label)}<span aria-hidden="true">&nbsp;&rarr;</span></a>
 </td></tr></table>`
     : '';
 

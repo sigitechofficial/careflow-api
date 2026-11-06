@@ -3979,7 +3979,8 @@ export class SurveysService {
       await this.mail.send({ ...input, skipBcc: true });
     } catch (err) {
       this.logger.warn(
-        `Survey ${surveyId} email to ${input.to} failed: ${err instanceof Error ? err.message : String(err)}`,
+        // Never the address in the log (logs are kept longer and seen more widely than the survey).
+        `Survey ${surveyId}: an invitation email failed (${err instanceof Error ? err.name : 'error'})`,
       );
     }
   }
@@ -4686,7 +4687,33 @@ export class SurveysService {
    * otherwise show it), and CareFlow-list (equality) questions show a detailed entry only when at
    * least max(threshold, EQUALITY_DETAIL_THRESHOLD) chose it.
    */
-  private async buildResults(survey: Survey, threshold = 0, respondentGroup: string | null = null) {
+  /**
+   * Insight (trends, pooling, heatmap, 360, packs): one survey's or period's figures exactly as Results shows them to
+   * someone with results access but not individual responses (written answers removed), under `threshold`. The
+   * caller has already checked access. Without breakdowns or answer routes (lean).
+   */
+  async figuresFor(survey: Survey, threshold: number) {
+    const out = await this.buildResults(survey, threshold, null, { lean: true });
+    const access = { results: true, responses: false, configure: false, threshold } as SurveyAccess;
+    return this.gateResults(access, out).data;
+  }
+
+  /** Insight: the survey if this user may open it (branch scope), else null. */
+  async visibleSurvey(actor: RequestUser, id: string): Promise<Survey | null> {
+    return this.requireSurvey(actor, id).catch(() => null);
+  }
+
+  /** Insight: whether a survey is in this user's branch scope. */
+  inScope(actor: RequestUser, survey: { locationIds: string[]; isTemplate: boolean }): boolean {
+    return this.surveyVisible(this.scopeOf(actor), survey);
+  }
+
+  /** Insight: periods of a repeating (or event-triggered) survey, newest first. */
+  periodsOf(survey: Survey) {
+    return this.loadPeriods(survey);
+  }
+
+  private async buildResults(survey: Survey, threshold = 0, respondentGroup: string | null = null, opts: { lean?: boolean } = {}) {
     const periods = await this.loadPeriods(survey);
     const isSeries = periods.length > 0;
     const surveyIds = [survey.id, ...periods.map((p) => p.id)];
@@ -4977,12 +5004,12 @@ export class SurveysService {
          * Shared links: days with unusually many answers through them (possible ballot-stuffing),
          * from counts by day only. Null when nothing looks unusual.
          */
-        sharedLinkCaution: await this.sharedLinkCaution(surveyIds),
+        sharedLinkCaution: opts.lean ? null : await this.sharedLinkCaution(surveyIds),
         /** "N% said Very good or Good" for the overall-experience question; null without one (or answers). */
         headline,
         /** By channel and (service-user surveys) who answered; same protection as the breakdowns. */
         // One group's results: no further breakdown (it would cross one group with another).
-        howPeopleAnswered: respondentGroup
+        howPeopleAnswered: respondentGroup || opts.lean
           ? []
           : await this.buildAnswerRoutes(survey, includedIds, includedPeriods, allGroups.filter((g) => !leftOut.has(g.surveyId))),
         /** Who it's for, and (Several groups) how many answered as each group and the group shown. */
@@ -5031,7 +5058,7 @@ export class SurveysService {
         writtenAnswersNote: questionSummaries.some((s) => s.writtenAnswersWithheld)
           ? (survey.isAnonymous ? visibility.note : (withoutNameVisibility?.note ?? null))
           : null,
-        breakdowns: respondentGroup ? [] : await this.buildBreakdowns(survey, includedIds, includedPeriods, answeredWithoutName ?? 0),
+        breakdowns: respondentGroup || opts.lean ? [] : await this.buildBreakdowns(survey, includedIds, includedPeriods, answeredWithoutName ?? 0),
       },
     };
   }

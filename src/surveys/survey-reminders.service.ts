@@ -586,9 +586,20 @@ export class SurveyRemindersService {
         });
         const left = s.employee?.isActive === false;
         if (left && this.unsubscribe) {
+          // Former staff: the unsubscribe link in the email (HTML and plain text, invitation and reminder alike) and the text.
           const stopAll = this.unsubscribe.link(base, { subjectKind: 'EMPLOYEE', subjectId: p.employeeId });
-          m.emailText = m.emailText.replace(/\nThank you\./, `\nTo stop all survey messages from us, for good: ${stopAll}\n\nThank you.`);
-          if (!this.texts.supportsReplies() && stopAll) m.text = `${m.text} Stop all surveys: ${stopAll}`;
+          if (stopAll) {
+            const withStop = surveyContactMessages({
+              kind: 'EMPLOYEE', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName: s.firstName,
+              link, portalLink: null, closesOn, organisation, ...emailExtras, textRepliesSupported: this.texts.supportsReplies(),
+              staffPlaces: survey.isAnonymous ? { app: false, web: false, webLink: null } : undefined,
+              unsubscribeLink: stopAll,
+            });
+            m.emailSubject = withStop.emailSubject;
+            m.emailText = withStop.emailText;
+            m.emailHtml = withStop.emailHtml;
+            m.text = withStop.text;
+          }
         }
         const email = left ? personalEmail(s.email, domains) : s.email;
         await tryChannel('APP', !left, async () => {

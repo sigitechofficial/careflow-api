@@ -41,8 +41,10 @@ export class SurveyUnsubscribeService {
   read(token: string): UnsubscribeSubject | null {
     const [payload, sig] = (token ?? '').split('.');
     if (!payload || !sig) return null;
-    const want = this.mac(payload);
-    if (sig.length !== want.length || !timingSafeEqual(Buffer.from(sig), Buffer.from(want))) return null;
+    // Compared as bytes: a signature with non-ASCII characters is refused, never an error.
+    const got = Buffer.from(sig);
+    const want = Buffer.from(this.mac(payload));
+    if (got.length !== want.length || !timingSafeEqual(got, want)) return null;
     const [subjectKind, subjectId] = Buffer.from(payload, 'base64url').toString('utf8').split(':');
     if (!KINDS.includes(subjectKind) || !/^[0-9a-f-]{36}$/i.test(subjectId ?? '')) return null;
     return { subjectKind: subjectKind as UnsubscribeSubject['subjectKind'], subjectId };
@@ -79,7 +81,8 @@ export class SurveyUnsubscribeService {
       userId: undefined,
       module: AuditModule.SURVEY,
       action: AuditAction.SURVEY_CONTACT_OPT_OUT_CHANGED,
-      recordType: subject.subjectKind === 'EMPLOYEE' ? 'Employee' : subject.subjectKind === 'SERVICE_USER' ? 'ServiceUser' : 'SurveyExternalContact',
+      recordType:
+        subject.subjectKind === 'EMPLOYEE' ? 'Employee' : subject.subjectKind === 'SERVICE_USER' ? 'ServiceUser' : subject.subjectKind === 'CONTACT' ? 'ServiceUserContact' : 'SurveyExternalContact',
       recordId: subject.subjectId,
       description: via === 'STOP' ? 'Unsubscribed from all surveys (replied STOP)' : 'Unsubscribed from all surveys (link in a survey message)',
       newValues: { channels: ['ALL'], permanent: true },

@@ -17,7 +17,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { surveyVisibleInScope } from './survey-scope.util';
 import { SurveyContactRuleService } from './survey-contact-rule.service';
 import { freeFromDay, librarySentWith } from './survey-contact-rule.util';
-import { SURVEY_UNSUBSCRIBE_REASON } from './survey-eligibility.util';
+import { SURVEY_UNSUBSCRIBE_REASON, blockedFamilyContacts } from './survey-eligibility.util';
 import { surveyContactMessages } from './survey-contact-messages.util';
 import { surveyEmailBranding, surveyEmailFacts } from './survey-email-branding';
 import { readContactPlan } from './survey-contact-plan.util';
@@ -504,6 +504,18 @@ export class SurveyOutsidePeopleService {
       }
     }
     rows = await this.refresh(rows);
+    // Family members however they were chosen (a contact, a list, families of a person): consent read again from
+    // People involved now, and never after the person we support has died (except the bereaved-family survey).
+    let died = 0;
+    const owner = survey.clonedFromId ? ((await this.prisma.survey.findUnique({ where: { id: survey.clonedFromId } })) ?? survey) : survey;
+    const blockedFamily = await blockedFamilyContacts(this.prisma, survey, owner, rows);
+    if (blockedFamily.size) {
+      for (const why of blockedFamily.values()) {
+        if (why === 'DIED') died += 1;
+        else noConsent += 1;
+      }
+      rows = rows.filter((r) => !blockedFamily.has(r.id));
+    }
     const plan = readContactPlan(survey.contactPlan);
     const textOn = Boolean(plan?.channels.includes('TEXT')) && this.texts.isEnabled();
     const opt = await this.optOuts(rows);
@@ -541,7 +553,7 @@ export class SurveyOutsidePeopleService {
         else free.push(r);
       }
     }
-    return { free, held, heldRows: reachable.filter((r) => held.some((h) => h.id === r.id)), already: already.size, optedOut, noDetails, noConsent, total: rows.length + noConsent };
+    return { free, held, heldRows: reachable.filter((r) => held.some((h) => h.id === r.id)), already: already.size, optedOut, noDetails, noConsent, died, total: rows.length + noConsent + died };
   }
 
   async checkSendOutside(actor: RequestUser, surveyId: string, input: { contactIds?: string[]; listIds?: string[]; familyContactIds?: string[] }) {
@@ -551,7 +563,7 @@ export class SurveyOutsidePeopleService {
     const r = await this.resolveOutside(actor, survey, input, now);
     return {
       message: 'Send check',
-      data: { total: r.total, sendNow: r.free.length, heldBack: r.held.length, held: r.held, already: r.already, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent },
+      data: { total: r.total, sendNow: r.free.length, heldBack: r.held.length, held: r.held, already: r.already, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent, died: r.died },
     };
   }
 
@@ -611,7 +623,7 @@ export class SurveyOutsidePeopleService {
       recordId: survey.id,
       description: `Survey "${survey.title}" sent to outside people`,
       // Counts (and the reason) only: never who.
-      newValues: { sent: saved.length, heldBack: override ? 0 : r.held.length, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent, ...(override ? { reason: override } : {}) },
+      newValues: { sent: saved.length, heldBack: override ? 0 : r.held.length, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent, died: r.died, ...(override ? { reason: override } : {}) },
       metadata: { surveyId: survey.id, outside: true },
       ...meta,
     });
@@ -620,8 +632,9 @@ export class SurveyOutsidePeopleService {
       r.optedOut ? `${r.optedOut} asked not to be contacted` : '',
       r.noDetails ? `${r.noDetails} have no email${this.texts.isEnabled() ? ' or mobile' : ''}` : '',
       r.noConsent ? `${r.noConsent} family ${r.noConsent === 1 ? 'member has' : 'members have'} not agreed to be contacted` : '',
+      r.died ? `${r.died} family ${r.died === 1 ? 'member was' : 'members were'} not sent it because the person we supported has died` : '',
     ].filter(Boolean);
-    return { message: `Sent to ${saved.length} ${saved.length === 1 ? 'person' : 'people'}${notes.length ? `. ${notes.join('; ')}.` : ''}`, data: { sent: saved.length, heldBack: override ? 0 : r.held.length, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent } };
+    return { message: `Sent to ${saved.length} ${saved.length === 1 ? 'person' : 'people'}${notes.length ? `. ${notes.join('; ')}.` : ''}`, data: { sent: saved.length, heldBack: override ? 0 : r.held.length, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent, died: r.died } };
   }
 
   private appBase(requestOrigin?: string): string | null {
