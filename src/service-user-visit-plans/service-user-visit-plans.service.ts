@@ -111,13 +111,14 @@ import {
 } from './visit-plan-slot-carer-sync.util';
 import { collectCarerPatternConflicts, employmentToPatternContext, type EmployeePatternContext, type SlotCarerPatternInput } from './visit-plan-carer-job-fit.util';
 import { VisitPlanCarerSyncPatternPreviewDto } from './dto/visit-plan-carer-sync-pattern-preview.dto';
-import { clearVisitPlansAndRota } from './clear-visit-plans-and-rota.util';
+import { clearServiceUserVisitPlansAndRota, clearVisitPlansAndRota } from './clear-visit-plans-and-rota.util';
 import {
   resolveGlobalAssignedEmployeeIds,
   slotAssignedEmployeeIds,
 } from './visit-plan-readiness.util';
 import { deriveDurationFromTimes } from './visit-plan-slot-window.util';
 import {
+  isNightDutyVisit,
   formatHoursMinutes,
   mondayOfIso,
   type ServiceUserVisitHoldPayload,
@@ -1827,6 +1828,7 @@ export class ServiceUserVisitPlansService {
       plannedEndTime: string;
       durationMinutes: number | null;
       isEnabled: boolean;
+      nightDuty?: string | null;
     }>,
     roundNameByCode: Map<string, string>,
   ): Promise<{
@@ -1863,6 +1865,7 @@ export class ServiceUserVisitPlansService {
             toStart: a.plannedStartTime.slice(0, 5),
             toEnd: a.plannedEndTime.slice(0, 5),
             extraMinutes: toMinutes - fromMinutes,
+            night: isNightDutyVisit(a.nightDuty),
           },
         ];
       });
@@ -1902,7 +1905,7 @@ export class ServiceUserVisitPlansService {
       const before = weekTotals.get(weekStart)!;
       const total = before + delta;
       const room = limitMinutes + budget.reservedIn(weekStart);
-      if (total > room && budget.cover(weekStart, total - Math.max(before, room))) {
+      if (total > room && !change.night && budget.cover(weekStart, total - Math.max(before, room))) {
         timebank.push({
           serviceUserId,
           scheduledJobId: job.id,
@@ -2386,6 +2389,37 @@ export class ServiceUserVisitPlansService {
       );
     }
     return orgMax;
+  }
+
+  /** One service user's visit plans and rota only (Reset rota → this service user). Others are not touched. */
+  async clearServiceUserVisitPlansAndRota(
+    userId: string,
+    serviceUserId: string,
+    dryRun: boolean,
+    meta?: RequestAuditMeta,
+  ) {
+    const su = await this.ensureServiceUser(serviceUserId);
+    const name = `${su.firstName} ${su.lastName}`.trim();
+    const result = await clearServiceUserVisitPlansAndRota(this.prisma, serviceUserId, { dryRun });
+    if (!dryRun) {
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_VISIT_PLANS_AND_ROTA_CLEARED,
+        recordType: 'ServiceUser',
+        recordId: serviceUserId,
+        newValues: { deleted: result.deleted },
+        metadata: { serviceUserId, serviceUserName: name },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+    }
+    return {
+      data: { dryRun, serviceUserId, serviceUserName: name, counts: result.counts, deleted: result.deleted ?? null },
+      message: dryRun
+        ? `Dry run — ${name}'s visit plans and rota counts only`
+        : `Visit plans and rota cleared for ${name}`,
+    };
   }
 
   private async loadBankHolidayDateKeys(from: Date, to: Date, backfillDays: number): Promise<Set<string>> {
@@ -3131,7 +3165,12 @@ export class ServiceUserVisitPlansService {
         const before = weekTotals.get(weekStart)!;
         const after = before + visit.durationMinutes * Math.max(1, visit.requiredCarers);
         const limitMinutes = Math.round(hoursLimit * 60) + timebank.reservedIn(weekStart);
-        if (after > limitMinutes && timebank.cover(weekStart, after - Math.max(before, limitMinutes))) {
+        // Night visits never use the bank (docs/SU_TIMEBANK_INVOICE_PLAN.md T4).
+        if (
+          after > limitMinutes &&
+          !isNightDutyVisit(slot.nightDuty) &&
+          timebank.cover(weekStart, after - Math.max(before, limitMinutes))
+        ) {
           timebankByKey.set(key, { weekStart, minutes: after - Math.max(before, limitMinutes) });
           weekTotals.set(weekStart, after);
           return false;

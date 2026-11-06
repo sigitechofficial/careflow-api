@@ -1,3 +1,5 @@
+import { ServiceUserHoursModule } from '../service-user-hours/service-user-hours.module';
+import { InvoiceTimebankService } from './invoice-timebank.service';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -46,6 +48,7 @@ import { MileageRatesService } from './mileage-rates.service';
     MailModule,
     AuditLogsModule,
     TravelRoutesModule,
+    ServiceUserHoursModule,
   ],
   controllers: [
     PayCardsController,
@@ -73,6 +76,7 @@ import { MileageRatesService } from './mileage-rates.service';
     VisitReconciliationsService,
     PayrollRunsService,
     InvoiceRunsService,
+    InvoiceTimebankService,
     PaymentsService,
     EmployeePayoutsService,
     EmployeePayoutAutoJob,

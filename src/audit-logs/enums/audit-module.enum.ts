@@ -45,4 +45,6 @@ export enum AuditModule {
   CRM = 'CRM',
   SUPERVISION = 'SUPERVISION',
   CQC_EVIDENCE = 'CQC_EVIDENCE',
+
+  SCRIPTS = 'SCRIPTS',
 }

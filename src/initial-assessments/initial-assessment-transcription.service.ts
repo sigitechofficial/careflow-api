@@ -184,7 +184,13 @@ export class InitialAssessmentTranscriptionService implements OnModuleDestroy {
     const { job, path, save } = item;
     job.status = 'RUNNING';
     const python = process.env.WHISPER_PYTHON || 'python';
-    const script = join(process.cwd(), 'scripts', 'whisper', 'transcribe.py');
+    // The VPS starts pm2 from dist/src, so look beside the build too, not only in the cwd.
+    const script =
+      [
+        join(process.cwd(), 'scripts', 'whisper', 'transcribe.py'),
+        join(__dirname, '..', '..', '..', 'scripts', 'whisper', 'transcribe.py'),
+      ].find((p) => existsSync(p)) ??
+      join(process.cwd(), 'scripts', 'whisper', 'transcribe.py');
     const child = spawn(python, [script, path], {
       env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUNBUFFERED: '1' },
       windowsHide: true,

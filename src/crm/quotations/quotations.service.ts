@@ -23,6 +23,7 @@ import type { RequestAuditMeta } from '../../common/utils/request-audit-meta.uti
 import type { RequestUser } from '../../common/decorators/current-user.decorator';
 import { OrgScopeService } from '../../common/org-scope/org-scope.service';
 import { MailService } from '../../mail/mail.service';
+import { buildQuoteEmail } from './quote-email.util';
 import { OrganisationGeneralSettingsService } from '../../organisation-general-settings/organisation-general-settings.service';
 import { ServiceUserVisitPlansService } from '../../service-user-visit-plans/service-user-visit-plans.service';
 import type { VisitPlanSlotDto } from '../../service-user-visit-plans/dto/visit-plan-slot.dto';
@@ -1963,25 +1964,16 @@ export class QuotationsService {
     try {
       const view = await this.clientView(v, enquiry);
       const pdf = await buildQuotePdf(view);
-      const total = view.totals[0];
+      // The whole quotation is in the message as well as in the attached PDF.
+      const body = buildQuoteEmail(view, {
+        recipientName: comm.recipientName,
+        message: comm.message,
+      });
       const result = await this.mail.send({
         to: comm.recipientEmail!,
         subject: comm.subject ?? `Your care quotation ${view.quotationNumber}`,
-        text: [
-          `Dear ${comm.recipientName || 'Sir or Madam'},`,
-          '',
-          comm.message ||
-            `Please find attached our care quotation ${view.quotationNumber} (version ${view.versionNumber}).`,
-          '',
-          total ? `${total.label}: ${total.amount}` : '',
-          view.validUntil
-            ? `This quotation is valid until ${view.validUntil}.`
-            : '',
-          '',
-          view.provider.name,
-        ]
-          .filter((line) => line !== undefined)
-          .join('\n'),
+        text: body.text,
+        html: body.html,
         attachments: [
           {
             filename: `${view.quotationNumber}-V${view.versionNumber}.pdf`,

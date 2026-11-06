@@ -101,3 +101,20 @@ export class CancelJobDto {
   @IsObject()
   policySnapshot?: Record<string, unknown>;
 }
+
+export class CancellationPolicyQueryDto {
+  @ApiProperty({ enum: VisitCancellationReasonCode })
+  @IsEnum(VisitCancellationReasonCode)
+  reasonCode!: VisitCancellationReasonCode;
+}
+
+export class ChangeCancellationBillingDto {
+  @ApiProperty({ enum: VisitChargeDecision })
+  @IsEnum(VisitChargeDecision)
+  chargeDecision!: VisitChargeDecision;
+
+  @ApiProperty({ description: 'Why the decision changed (required, kept in the audit log)' })
+  @IsString()
+  @MaxLength(4000)
+  note!: string;
+}

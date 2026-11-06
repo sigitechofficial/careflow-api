@@ -22,6 +22,8 @@ import {
   type IncidentTypeSetting,
 } from './incident-management.util';
 import {
+  nextAdjustOverCareFrom,
+  nextChargeTimebankFrom,
   parseServiceUserWeeklyHoursSettings,
   type ServiceUserWeeklyHoursSettings,
 } from './service-user-weekly-hours-settings.util';
@@ -62,7 +64,7 @@ import {
   DEFAULT_ORGANISATION_TIMEZONE,
   isOrganisationTimezone,
 } from './organisation-timezone';
-import { getOperationalTimeZone } from '../common/utils/operational-day.util';
+import { dayKeyInTimeZone, getOperationalTimeZone } from '../common/utils/operational-day.util';
 import {
   resolveDateDisplayFormat,
   resolveTimeDisplayFormat,
@@ -645,6 +647,30 @@ export class OrganisationGeneralSettingsService {
     return clampOrgMaxBackfillDays(row?.domMaxBackfillDays);
   }
 
+  /** Over care: records the first day it is taken back when nothing saved one yet. */
+  async setAdjustOverCareFrom(dayIso: string): Promise<void> {
+    const existing = await this.getOrCreate();
+    const current = parseServiceUserWeeklyHoursSettings(existing.serviceUserWeeklyHoursSettings);
+    if (current.adjustOverCareFrom) return;
+    await this.prisma.organisationGeneralSettings.update({
+      where: { id: existing.id },
+      data: {
+        serviceUserWeeklyHoursSettings: { ...current, adjustOverCareFrom: dayIso },
+      },
+    });
+  }
+
+  /** Timebank on the invoice: records the first day it applies when nothing saved one yet. */
+  async setChargeTimebankFrom(dayIso: string): Promise<void> {
+    const existing = await this.getOrCreate();
+    const current = parseServiceUserWeeklyHoursSettings(existing.serviceUserWeeklyHoursSettings);
+    if (current.chargeTimebankFrom) return;
+    await this.prisma.organisationGeneralSettings.update({
+      where: { id: existing.id },
+      data: { serviceUserWeeklyHoursSettings: { ...current, chargeTimebankFrom: dayIso } },
+    });
+  }
+
   /** Service user weekly hours rules (defaults when never saved). */
   async getServiceUserWeeklyHoursSettings(): Promise<ServiceUserWeeklyHoursSettings> {
     const row = await this.prisma.organisationGeneralSettings.findUnique({
@@ -709,10 +735,19 @@ export class OrganisationGeneralSettingsService {
     if (!hasAnyCheckInMethodEnabled(mergedCheckIn)) {
       throw new BadRequestException('Leave at least one check-in method on.');
     }
+    const data = buildUpdateData(userId, dto);
+    if (data.serviceUserWeeklyHoursSettings !== undefined) {
+      // The over care start day is the server's to keep (docs/SU_OVER_CARE_ADJUST_PLAN.md).
+      const next = data.serviceUserWeeklyHoursSettings as ServiceUserWeeklyHoursSettings;
+      const previous = parseServiceUserWeeklyHoursSettings(existing.serviceUserWeeklyHoursSettings);
+      const todayIso = dayKeyInTimeZone(new Date(), getOperationalTimeZone(existing.timezone));
+      next.adjustOverCareFrom = nextAdjustOverCareFrom(previous, next, todayIso);
+      next.chargeTimebankFrom = nextChargeTimebankFrom(previous, next, todayIso);
+    }
     try {
       const row = await this.prisma.organisationGeneralSettings.update({
         where: { id: existing.id },
-        data: buildUpdateData(userId, dto),
+        data,
       });
       return {
         message: 'General settings updated',
