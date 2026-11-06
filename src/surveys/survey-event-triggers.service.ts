@@ -711,7 +711,8 @@ export class SurveyEventTriggersService {
               select: { attendanceStatus: true, trainingEvent: { select: { status: true } } },
             })
           : null;
-        return !a || !['ATTENDED', 'PARTIALLY_ATTENDED'].includes(a.attendanceStatus) || a.trainingEvent.status === 'CANCELLED' ? 'RECORD_REMOVED' : null;
+        // As when it was found: attended (or partly), on a session not cancelled or put back to draft since.
+        return !a || !['ATTENDED', 'PARTIALLY_ATTENDED'].includes(a.attendanceStatus) || ['CANCELLED', 'DRAFT'].includes(a.trainingEvent.status) ? 'RECORD_REMOVED' : null;
       }
       case 'RETURN_FROM_LONG_ABSENCE': {
         const a = await this.prisma.employeeAbsenceRecord.findUnique({ where: { id }, select: { deletedAt: true, toDateTime: true } });

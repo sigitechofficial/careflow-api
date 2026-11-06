@@ -1,6 +1,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
 import { join } from 'path';
 import { loadPolicyLibrary } from './policy-library';
+import { parseRetentionNotice, type RetentionRule } from './survey-retention';
 
 /**
  * CareFlow survey library: ready-made surveys for a CQC-registered home care provider. An
@@ -1685,6 +1686,11 @@ export type SurveyLibraryMeta = {
   estimatedMinutes: number;
   introduction: string;
   privacyNotice: string;
+  /**
+   * How long answers are kept and from when, as the privacy notice says (Phase 2 part 7; null = it states no period).
+   * Read here, when the library is loaded, so the survey job never guesses from the wording.
+   */
+  retention: RetentionRule | null;
   managerGuidance: LibrarySurveyGuidance;
   relatedPolicies: string[];
   regulatoryBasis: LibrarySource[];
@@ -1740,6 +1746,7 @@ export function surveyLibraryMeta(
     estimatedMinutes: s.estimatedMinutes,
     introduction: s.introduction,
     privacyNotice: s.privacyNotice,
+    retention: parseRetentionNotice(s.privacyNotice),
     managerGuidance: s.managerGuidance,
     relatedPolicies: s.relatedPolicies,
     regulatoryBasis: s.regulatoryBasis,

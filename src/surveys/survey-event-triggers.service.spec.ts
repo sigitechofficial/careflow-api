@@ -446,3 +446,64 @@ describe('SurveyEventTriggersService: review fixes', () => {
 function readTrigger(s: any) {
   return { ...s.eventTrigger };
 }
+
+describe('SurveyEventTriggersService: training feedback from Learning', () => {
+  const E1 = '00000000-0000-4000-8000-0000000000e1';
+  const E2 = '00000000-0000-4000-8000-0000000000e2';
+  const staffSurvey = (over: Record<string, unknown> = {}) =>
+    survey({ targetKind: 'EMPLOYEE', status: 'ACTIVE', eventTrigger: trigger({ event: 'TRAINING_ATTENDED', options: { part: 'A' }, ownerKey: 'REGISTERED_MANAGER' }), ...over });
+
+  it('reads attended or partly attended on sessions not cancelled or draft, one event per attendee per session', async () => {
+    const { svc, prisma } = setup({ survey: staffSurvey() });
+    prisma.employee.findMany.mockResolvedValueOnce([{ id: 'e-a' }, { id: 'e-b' }]);
+    prisma.learningTrainingEventAttendee = {
+      findMany: jest.fn(async () => [
+        { employeeId: 'e-a', trainingEventId: E1, trainingEvent: { endAt: new Date('2026-11-10T16:00:00Z') } },
+        { employeeId: 'e-b', trainingEventId: E1, trainingEvent: { endAt: new Date('2026-11-10T16:00:00Z') } },
+      ]),
+    };
+    const found = await svc.findEvents(staffSurvey() as any, trigger({ event: 'TRAINING_ATTENDED', options: { part: 'A' } }) as any, '2026-11-06', '2026-11-20', TZ);
+    const where = prisma.learningTrainingEventAttendee.findMany.mock.calls[0][0].where;
+    expect(where.attendanceStatus).toEqual({ in: ['ATTENDED', 'PARTIALLY_ATTENDED'] });
+    expect(where.trainingEvent.status).toEqual({ notIn: ['CANCELLED', 'DRAFT'] });
+    expect(found.map((f: any) => f.sourceKey)).toEqual([`training:${E1}:e-a`, `training:${E1}:e-b`]);
+  });
+
+  it('sends each session into its own copy; an anonymous session with fewer than 5 waits (never sent to a small group)', async () => {
+    const anon = staffSurvey({ isAnonymous: true });
+    const { svc, prisma, surveys } = setup({ survey: anon });
+    prisma.learningTrainingEvent = {
+      findUnique: jest.fn(async ({ where }: any) => ({ id: where.id, title: 'Session', endAt: new Date('2026-11-10T16:00:00Z'), trainerName: 'T', course: { title: 'Moving and handling' } })),
+    };
+    const rows = [
+      ...['a', 'b', 'c', 'd', 'e'].map((p) => occ({ id: `o-${p}`, event: 'TRAINING_ATTENDED', serviceUserId: null, employeeId: `e-${p}`, sourceKey: `training:${E1}:e-${p}`, status: 'DUE' })),
+      ...['f', 'g'].map((p) => occ({ id: `o-${p}`, event: 'TRAINING_ATTENDED', serviceUserId: null, employeeId: `e-${p}`, sourceKey: `training:${E2}:e-${p}`, status: 'DUE' })),
+    ];
+    prisma.surveyEventOccurrence.findMany.mockImplementation(async ({ where }: any) =>
+      where?.reason?.startsWith?.('CLAIM:') ? rows.filter((r) => where.id.in.includes(r.id)).map((r) => ({ id: r.id })) : rows,
+    );
+    const sent = await (svc as any).sendRows(anon, rows, NOW, null);
+    expect(sent).toBe(5);
+    expect(surveys.sendForEvents).toHaveBeenCalledTimes(1);
+    expect((surveys.sendForEvents.mock.calls[0] as unknown[])[3]).toMatchObject({ periodKey: `training:${E1}`, trainingEventId: E1 });
+    // The two from the second session wait as a batch.
+    expect(prisma.surveyEventOccurrence.updateMany).toHaveBeenCalledWith({ where: { id: { in: ['o-f', 'o-g'] } }, data: { status: 'BATCH' } });
+  });
+
+  it('is not sent when the attendance was changed, or the session cancelled or put back to draft since', async () => {
+    const { svc, prisma } = setup({ survey: staffSurvey() });
+    const row = occ({ event: 'TRAINING_ATTENDED', serviceUserId: null, employeeId: 'e-a', sourceKey: `training:${E1}:e-a` });
+    for (const [attendanceStatus, status, expected] of [
+      ['ATTENDED', 'COMPLETED', null],
+      ['PARTIALLY_ATTENDED', 'COMPLETED', null],
+      ['ABSENT', 'COMPLETED', 'RECORD_REMOVED'],
+      ['ATTENDED', 'CANCELLED', 'RECORD_REMOVED'],
+      ['ATTENDED', 'DRAFT', 'RECORD_REMOVED'],
+    ] as const) {
+      prisma.employee.findMany.mockResolvedValue([{ id: 'e-a', deletedAt: null, isActive: true }]);
+      prisma.learningTrainingEventAttendee = { findFirst: jest.fn(async () => ({ attendanceStatus, trainingEvent: { status } })) };
+      const checks = await (svc as any).checkRows([row], trigger({ event: 'TRAINING_ATTENDED', options: { part: 'A' } }), NOW, TZ);
+      expect(checks.get(row.id) ?? null).toBe(expected);
+    }
+  });
+});

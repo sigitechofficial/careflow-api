@@ -817,6 +817,11 @@ export class SurveysService {
     return row;
   }
 
+  /** The organisation's time zone (survey months, days and run times). */
+  organisationTimeZone(): Promise<string> {
+    return this.timeZone();
+  }
+
   private async timeZone(): Promise<string> {
     try {
       return (await this.orgSettings.getOperationalTimezone()) || DEFAULT_OPERATIONAL_TIMEZONE;
@@ -1824,10 +1829,15 @@ export class SurveysService {
    * with the request. Returns the end-date change to save with the opening ({} = keep it).
    */
   private async endDateForOpening(
-    existing: { closesAt: Date | null; opensAt: Date | null; status?: SurveyStatus },
+    existing: { closesAt: Date | null; opensAt: Date | null; status?: SurveyStatus; answersDeletedAt?: Date | null },
     dto: ReopenSurveyDto,
     now: Date = new Date(),
   ): Promise<{ closesAt?: Date | null }> {
+    // Its answers were deleted under the retention period: reopened, new answers would never be deleted (and its results
+    // would say they were). Run a copy instead.
+    if (existing.answersDeletedAt) {
+      throw new BadRequestException('This survey’s answers were deleted under its retention period, so it cannot be reopened. Duplicate it to run it again.');
+    }
     if (dto.closesAt === null) return { closesAt: null };
     if (dto.closesAt !== undefined) {
       const closesAt = new Date(dto.closesAt);
@@ -1941,12 +1951,16 @@ export class SurveysService {
     if (existing.status === SurveyStatus.CLOSED) {
       throw new BadRequestException('This survey is already closed.');
     }
-    await this.endOpenEndedPeriods(existing, new Date());
+    const now = new Date();
+    await this.endOpenEndedPeriods(existing, now);
     const updated = await this.setStatus(
       actor,
       existing,
       {
         status: SurveyStatus.CLOSED,
+        // The day it closed is recorded (answer retention and reporting count from it): an empty end date, or one
+        // still to come, becomes now. Reopening asks for a new end date (or none), as for any passed end date.
+        ...(!existing.closesAt || existing.closesAt.getTime() > now.getTime() ? { closesAt: now } : {}),
         distributeAt: null,
         recurrence: null,
         recurrenceAnchorAt: null,
@@ -4238,6 +4252,20 @@ export class SurveysService {
     if (bank.length < 2) return questions;
     const made = await this.prisma.survey.count({ where: { clonedFromId: source.id } });
     const out = rotatedOut(bank, made);
+    // A question asked only after an answer to one left out this period (a condition added after the bank was set)
+    // could never be shown: it goes too, and so on down the chain.
+    const outKeys = new Set(questions.filter((q) => out.has(q.id) && q.key).map((q) => q.key!));
+    for (let changed = true; changed; ) {
+      changed = false;
+      for (const q of questions) {
+        const on = q.showIf && typeof q.showIf === 'object' ? (q.showIf as { questionKey?: unknown }).questionKey : null;
+        if (!out.has(q.id) && typeof on === 'string' && outKeys.has(on)) {
+          out.add(q.id);
+          if (q.key) outKeys.add(q.key);
+          changed = true;
+        }
+      }
+    }
     return questions.filter((q) => !out.has(q.id));
   }
 

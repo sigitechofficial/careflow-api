@@ -108,7 +108,7 @@ type StatementPlan = {
 
 export type CaptureOutcome = {
   surveyId: string;
-  outcome: 'CAPTURED' | 'NO_STATEMENTS' | 'NOT_CLOSED' | 'FAILED';
+  outcome: 'CAPTURED' | 'NO_STATEMENTS' | 'NOT_CLOSED' | 'ANSWERS_DELETED' | 'FAILED';
   created: number;
   updated: number;
   skipped: number;
@@ -470,6 +470,15 @@ export class CqcSurveyEvidenceService {
         outcome: 'NOT_CLOSED',
         detail: 'Close the survey first: evidence is kept from closed surveys and closed periods only.',
       };
+    }
+    // Answers deleted under the retention period: the evidence taken before (totals only) is what remains, and must
+    // never be overwritten with the empty survey's figures. The capture is marked done so the sweep does not retry.
+    if (survey.answersDeletedAt) {
+      await this.prisma.cqcSurveyCapture.updateMany({
+        where: { surveyId },
+        data: { surveyUpdatedAt: survey.updatedAt, capturedAt: now },
+      });
+      return { ...result, outcome: 'ANSWERS_DELETED', detail: 'The answers were deleted under the retention period: the evidence taken before is kept.' };
     }
     try {
       // Answers not linked to anyone still waiting to be written go in first (closed: all of them).

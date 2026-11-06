@@ -6,6 +6,9 @@ import { BadRequestException } from '@nestjs/common';
 import type { SurveyRecurrence } from '@prisma/client';
 import { DEFAULT_OPERATIONAL_TIMEZONE } from '../common/utils/operational-day.util';
 import { nextSurveyDistributeAt } from './survey-recurrence.util';
+import { parseRetentionNotice, type RetentionBasis, type RetentionRule } from '../../prisma/seed-lib/survey-retention';
+
+export { parseRetentionNotice, type RetentionBasis, type RetentionRule };
 
 // ─── Repeats that skip months ────────────────────────────────────────────
 
@@ -30,10 +33,21 @@ export function nextRunSkipping(
   skipMonths: readonly number[] | null | undefined,
 ): Date {
   let at = nextSurveyDistributeAt(anchor, recurrence, after, now, timeZone);
+  // Every month this repeat runs in is skipped (a yearly or quarterly repeat whose months were all chosen): skipping
+  // would put the next run decades away without saying so, so the months are not applied.
+  if (skipMonths?.length && runMonthsOf(anchor, recurrence, timeZone).every((m) => skipMonths.includes(m))) return at;
   for (let guard = 0; guard < 120 && isSkippedMonth(at, skipMonths, timeZone); guard += 1) {
     at = nextSurveyDistributeAt(anchor, recurrence, at, at, timeZone);
   }
   return at;
+}
+
+/** The months (1–12, organisation time) a repeat runs in: every month, or a quarterly / yearly repeat's own. */
+export function runMonthsOf(anchor: Date, recurrence: SurveyRecurrence, timeZone = DEFAULT_OPERATIONAL_TIMEZONE): number[] {
+  const first = monthIn(anchor, timeZone);
+  if (recurrence === 'YEARLY') return [first];
+  if (recurrence === 'QUARTERLY') return [0, 3, 6, 9].map((k) => ((first - 1 + k) % 12) + 1).sort((a, b) => a - b);
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 }
 
 /** Checked skip months: whole numbers 1–12, at most 10 (a repeat must still run). */
@@ -161,15 +175,48 @@ export function groupSummary(
 
 // ─── Answer retention ───────────────────────────────────────────────────
 
+/**
+ * The ready-made survey's retention rule: the one stored with the library details when it was loaded
+ * (libraryMeta.retention, from the notice by parseRetentionNotice), else read from the notice (details loaded before
+ * the rule was stored; the same parser, so the same answer).
+ */
+export function libraryRetention(libraryMeta: unknown): RetentionRule | null {
+  const stored = (libraryMeta as { retention?: unknown } | null)?.retention as Partial<RetentionRule> | null | undefined;
+  if (stored && typeof stored === 'object') {
+    if (Number.isInteger(stored.months) && (stored.months as number) >= 1 && (stored.basis === 'FROM_CLOSE' || stored.basis === 'FROM_ANSWER')) {
+      return { months: stored.months as number, basis: stored.basis };
+    }
+  }
+  if (libraryMeta && typeof libraryMeta === 'object' && 'retention' in libraryMeta && (libraryMeta as { retention?: unknown }).retention === null) return null;
+  return parseRetentionNotice((libraryMeta as { privacyNotice?: unknown } | null)?.privacyNotice);
+}
+
 /** Months the ready-made privacy notice keeps answers for ("We keep your answers for 1 year after the survey closes"). */
 export function libraryRetentionMonths(libraryMeta: unknown): number | null {
-  const notice = (libraryMeta as { privacyNotice?: unknown } | null)?.privacyNotice;
-  if (typeof notice !== 'string') return null;
-  const m = /keep (?:your|the|these|individual|all)?\s*(?:individual\s+)?answers for (\d+|one|two|three|six) (year|month)s?/i.exec(notice);
-  if (!m) return null;
-  const words: Record<string, number> = { one: 1, two: 2, three: 3, six: 6 };
-  const n = /^\d+$/.test(m[1]) ? Number(m[1]) : words[m[1].toLowerCase()];
-  return m[2].toLowerCase() === 'year' ? n * 12 : n;
+  return libraryRetention(libraryMeta)?.months ?? null;
+}
+
+/**
+ * The latest instant whose answers are due for deletion `months` after it (the inverse of retentionDue): an answer
+ * given at or before it has retentionDue(given, months) <= now, never one given after it.
+ */
+export function retentionCutoff(now: Date, months: number): Date {
+  const d = new Date(now);
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() - months);
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, last));
+  return d;
+}
+
+/**
+ * When a closed unit closed, never earlier than it did: its end date when that came first (closed at its end date, or
+ * a period ended at the next one), else its last change (closed by hand before an end date, or with none; a later
+ * change only moves this later, so answers are never deleted early).
+ */
+export function closedAtOf(u: { closesAt: Date | null; updatedAt: Date }): Date {
+  return u.closesAt && u.closesAt.getTime() <= u.updatedAt.getTime() ? u.closesAt : u.updatedAt;
 }
 
 export function checkRetentionMonths(v: unknown): number | null {
@@ -261,11 +308,29 @@ export function promisedMinutes(text: string | null | undefined): number | null 
   return m ? Number(m[2] ?? m[1]) : null;
 }
 
+/** Words that rate something: two joined by "and" / "or" are two questions in one ("kind and on time"). */
+const RATED =
+  '(?:kind|caring|helpful|polite|friendly|respectful|clear|useful|easy|quick|safe|clean|tidy|reliable|punctual|on time|supportive|knowledgeable|skilled|competent|professional|informed|involved|listened to|valued|happy|satisfied|confident|comfortable|well[- ]trained|fair|honest)';
+const TWO_RATINGS = new RegExp(`\\b(${RATED})\\s*,?\\s+(?:and|or)\\s+(?:also\\s+)?(${RATED})\\b`, 'i');
+/** Two questions joined: "…and do you…", "…or were they…", "…and how…". */
+const TWO_QUESTIONS = /\b(?:and|or)\s+(?:(?:do|did|does|are|were|is|was|have|has|can|could|will|would|should)\s+(?:you|they|we|staff|your|our|the)|how|what|why)\b/i;
+
+/**
+ * One idea per question: two rated qualities ("kind and on time") or two questions joined. Lists of things or people
+ * ("wash, dress or use the toilet", "a man or a woman", "culture and beliefs") are one question and never flagged.
+ */
+export function asksTwoThings(text: string): boolean {
+  const m = TWO_RATINGS.exec(text);
+  if (m && m[1].toLowerCase() !== m[2].toLowerCase()) return true;
+  return TWO_QUESTIONS.test(text);
+}
+
 /** The library standard's checks on an organisation's own survey. Findings only; nothing is blocked. */
 export function checkWording(survey: { description: string | null; isAnonymous: boolean }, questions: readonly WordingQuestion[]): WordingFinding[] {
   const out: WordingFinding[] = [];
   const add = (q: WordingQuestion | null, rule: WordingFinding['rule'], severity: WordingFinding['severity'], message: string) =>
     out.push({ rule, severity, questionId: q?.id ?? null, questionText: q?.questionText ?? null, message });
+  const forced: WordingQuestion[] = [];
   for (const q of questions) {
     const t = q.questionText.trim();
     const n = wordsIn(t).length;
@@ -276,13 +341,15 @@ export function checkWording(survey: { description: string | null; isAnonymous: 
       if (m) add(q, 'PLAIN_ENGLISH', 'SUGGESTION', `Say "${plain}" instead of "${m[0]}".`);
     }
     const scaleOrYesNo = ['LIKERT', 'YES_NO', 'RATING'].includes(q.questionType) || (q.questionType === 'SINGLE_SELECT' && optionList(q).length <= 7);
-    if (scaleOrYesNo && /\b(and|or)\b/i.test(t.replace(/\b(kind|kindness|dignity|respect)\s+and\s+(respect|dignity|kind)\b/gi, ''))) {
+    if (scaleOrYesNo && asksTwoThings(t)) {
       add(q, 'ONE_IDEA', 'SUGGESTION', 'It may ask about two things at once ("and" / "or"). Someone who feels differently about each cannot answer: ask them separately.');
     }
     if (q.questionType === 'LIKERT') {
       const opts = optionList(q);
-      if (/\b(not|never|no one|nobody|don't|doesn't|didn't|isn't|aren't|wasn't|can't|cannot|won't|un\w+able)\b/i.test(t)) {
-        add(q, 'NEGATIVE', 'PROBLEM', 'A negative statement on an agree / disagree scale makes people disagree with a "not" (a double negative). Word it positively.');
+      // "supported, not blamed, if…" is a contrast, not a negative statement. A suggestion: some tested questions (the
+      // NHS Staff Survey's "…I would not be treated worse") are kept as worded.
+      if (/\b(not|never|no one|nobody|don't|doesn't|didn't|isn't|aren't|wasn't|can't|cannot|won't|un\w+able)\b/i.test(t.replace(/,\s*not\s+[\w-]+\s*,/gi, ','))) {
+        add(q, 'NEGATIVE', 'SUGGESTION', 'A negative statement on an agree / disagree scale makes people disagree with a "not" (a double negative). Word it positively.');
       }
       const counted = opts.filter((o) => !notCounted(q).includes(o));
       if (counted.length < 4) add(q, 'SCALE', 'PROBLEM', `Only ${counted.length} answers on the scale: use a balanced 5-point scale.`);
@@ -298,16 +365,27 @@ export function checkWording(survey: { description: string | null; isAnonymous: 
       const counted = dk.filter((o) => !notCounted(q).includes(o));
       if (counted.length) add(q, 'SCALE', 'PROBLEM', `"${counted[0]}" is counted in the percentages: mark it "Not counted in percentages".`);
     }
-    if (/\b(how (good|great|helpful|excellent)|don'?t you (agree|think)|wouldn'?t you|excellent service|how much did you (enjoy|like))\b/i.test(t)) {
+    // "How good / helpful was…?" is neutral when the answers run from good to poor (or helpful to not helpful).
+    const balanced = q.questionType === 'RATING' || optionList(q).some((o) => /\b(poor|bad|not|unhelpful|no)\b/i.test(o));
+    if (
+      /\b(how (great|excellent)|don'?t you (agree|think)|wouldn'?t you|excellent service|how much did you (enjoy|like))\b/i.test(t) ||
+      (!balanced && /\bhow (good|helpful)\b/i.test(t))
+    ) {
       add(q, 'LEADING', 'PROBLEM', 'The wording suggests the answer wanted. Ask neutrally, for example "How would you rate…?"');
     }
-    if ((q.questionType === 'TEXT' || q.questionType === 'TEXTAREA') && q.isRequired) {
-      add(q, 'FORCED_WRITING', 'SUGGESTION', 'A written answer is required: people with little to say, or who find writing hard, may give up. Make it optional.');
-    }
-    if (survey.isAnonymous && /\b(your (full )?name|name of|email|e-mail|phone|mobile|address|date of birth|postcode|employee number|staff number)\b/i.test(t)) {
+    if ((q.questionType === 'TEXT' || q.questionType === 'TEXTAREA') && q.isRequired) forced.push(q);
+    // Asking for the detail itself ("your phone number"), not mentioning it ("does someone phone you?").
+    if (
+      survey.isAnonymous &&
+      /\b(your (full |first |last )?name|e-?mail address|(phone|mobile|telephone) number|(your|home) address|date of birth|postcode|(employee|staff|payroll) number|national insurance)\b/i.test(t)
+    ) {
       add(q, 'ANONYMITY', 'PROBLEM', 'This anonymous survey asks for something that can identify the person. Remove it, or make the survey named.');
     }
   }
+  // A form that needs its written answers (a self-assessment, a complaint) has many: said once, not on each.
+  const forcedWhy = 'people with little to say, or who find writing hard, may give up.';
+  if (forced.length > 3) add(null, 'FORCED_WRITING', 'SUGGESTION', `${forced.length} written answers are required: ${forcedWhy} Make them optional unless the survey needs them.`);
+  else for (const q of forced) add(q, 'FORCED_WRITING', 'SUGGESTION', `A written answer is required: ${forcedWhy} Make it optional.`);
   const minutes = Math.ceil(estimateSeconds(questions) / 60);
   const promised = promisedMinutes(survey.description);
   if (promised !== null && minutes > promised + 1) {

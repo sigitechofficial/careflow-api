@@ -87,4 +87,19 @@ describe('RoleTasksService: survey alert tasks and per-survey access', () => {
     await expect(service.updateStatus(user as any, 't2', { status: 'OPEN' } as any)).rejects.toThrow(/Reopen a survey follow-up on its page/);
     expect(prisma.roleTask.update).not.toHaveBeenCalled();
   });
+
+  it('tasks about a survey itself (sends to check, call lists) with no branch follow the survey’s branches too', async () => {
+    prisma.survey.findMany.mockImplementation(async (args: any) => (args?.select?.locationIds ? [{ id: 's-multi', locationIds: ['L1', 'L2'], isTemplate: false }] : []));
+    const t = [
+      { id: 'e1', sourceType: 'SURVEY_EVENT_DUE', sourceId: 's-multi' },
+      { id: 'c1', sourceType: 'SURVEY_CALL_LIST', sourceId: 's-multi' },
+      { id: 'o1', sourceType: null, sourceId: null },
+    ];
+    const oneBranch = await (service as any).withoutHiddenSurveyTasks({ id: 'b', roles: ['Manager'], permissions: [], assignedLocationIds: ['L1'] }, t);
+    expect(oneBranch.map((r: any) => r.id)).toEqual(['o1']);
+    const both = await (service as any).withoutHiddenSurveyTasks({ id: 'b', roles: ['Manager'], permissions: [], assignedLocationIds: ['L1', 'L2'] }, t);
+    expect(both.map((r: any) => r.id)).toEqual(['e1', 'c1', 'o1']);
+    const everyBranch = await (service as any).withoutHiddenSurveyTasks({ id: 'a', roles: ['Manager'], permissions: [], assignedLocationIds: null }, t);
+    expect(everyBranch.map((r: any) => r.id)).toEqual(['e1', 'c1', 'o1']);
+  });
 });

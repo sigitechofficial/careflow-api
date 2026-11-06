@@ -13,6 +13,9 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { surveysWithoutResultsAccess } from '../surveys/survey-access';
 import { surveyVisibleInScope } from '../surveys/survey-scope.util';
+
+/** Role tasks whose sourceId is a survey (or period): sends to check after events, phone call lists. */
+const SURVEY_TASK_SOURCES = ['SURVEY_EVENT_DUE', 'SURVEY_CALL_LIST'];
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -232,21 +235,33 @@ export class RoleTasksService {
     const alertIds = rows.filter((r) => r.sourceType === 'SURVEY_ALERT' && r.sourceId).map((r) => r.sourceId!);
     // Survey actions (Phase 2 part 6) follow the same rule: they come from results.
     const actionIds = rows.filter((r) => r.sourceType === 'SURVEY_ACTION' && r.sourceId).map((r) => r.sourceId!);
-    if (!alertIds.length && !actionIds.length) return rows;
+    // Tasks about a survey itself (sourceId = the survey): who to send it to after an event, the call list. Their
+    // branch rule is the survey's; they name the survey, so they follow its branches like the others.
+    const aboutSurveyIds = rows.filter((r) => SURVEY_TASK_SOURCES.includes(r.sourceType ?? '') && r.sourceId).map((r) => r.sourceId!);
+    if (!alertIds.length && !actionIds.length && !aboutSurveyIds.length) return rows;
     const alerts = alertIds.length ? await this.prisma.surveyAlert.findMany({ where: { id: { in: alertIds } }, select: { id: true, surveyId: true } }) : [];
     const actions = actionIds.length ? await this.prisma.surveyAction.findMany({ where: { id: { in: actionIds } }, select: { id: true, surveyId: true } }) : [];
     const surveyIds = [...new Set([...alerts, ...actions].map((a) => a.surveyId))];
-    const hiddenSurveys = await surveysWithoutResultsAccess(this.prisma, user, surveyIds);
+    const hiddenSurveys = surveyIds.length ? await surveysWithoutResultsAccess(this.prisma, user, surveyIds) : new Set<string>();
     // A task with no branch (a survey for several branches) shows only to people whose branches cover every branch
     // the survey is for, as the survey itself does (survey-scope.util).
     const scope = { locationIds: user.assignedLocationIds ?? null };
     if (scope.locationIds !== null) {
-      const surveys = await this.prisma.survey.findMany({ where: { id: { in: surveyIds } }, select: { id: true, locationIds: true, isTemplate: true } });
+      const ids = [...new Set([...surveyIds, ...aboutSurveyIds])];
+      const surveys = await this.prisma.survey.findMany({ where: { id: { in: ids } }, select: { id: true, locationIds: true, isTemplate: true } });
       for (const s of surveys) if (!surveyVisibleInScope(scope, s)) hiddenSurveys.add(s.id);
     }
     const hidden = new Set([...alerts, ...actions].filter((a) => hiddenSurveys.has(a.surveyId)).map((a) => a.id));
-    return rows.filter((r) => !((r.sourceType === 'SURVEY_ALERT' || r.sourceType === 'SURVEY_ACTION') && r.sourceId && hidden.has(r.sourceId)));
+    return rows.filter(
+      (r) =>
+        !(
+          r.sourceId &&
+          (((r.sourceType === 'SURVEY_ALERT' || r.sourceType === 'SURVEY_ACTION') && hidden.has(r.sourceId)) ||
+            (SURVEY_TASK_SOURCES.includes(r.sourceType ?? '') && hiddenSurveys.has(r.sourceId)))
+        ),
+    );
   }
+
 
   /** Tasks for the signed-in user's roles (and branches). */
   async listMine(user: RequestUser, status: 'open' | 'done' | 'all' = 'open') {

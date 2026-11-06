@@ -5,7 +5,7 @@ assurance"). It says what CareFlow does today, from the code, and marks with **T
 how a particular organisation's CareFlow is hosted and run. Nothing marked **To confirm** may be published as fact
 until the organisation (or CareFlow as the host) has checked it.
 
-Last reviewed: November 2026 (Phase 2 part 7).
+Last reviewed: November 2026 (Phase 2 part 7 review).
 
 ## 1. Who is responsible for what
 
@@ -13,7 +13,8 @@ Last reviewed: November 2026 (Phase 2 part 7).
 |---|---|---|
 | Data controller | The care organisation | It decides why and how people's information is used (privacy notices on every ready-made survey say so). |
 | Data processor | The host of the organisation's CareFlow | **To confirm**: the hosting company named in the organisation's contract, with a data processing agreement (UK GDPR Article 28). |
-| Sub-processors | Microsoft Azure (hosting, Azure Communication Services for email); a text-message provider only if one is switched on | **To confirm** per hosting. The text-message channel runs in "log" mode (nothing sent) until a provider is named. |
+| Sub-processors | Microsoft Azure (hosting); the email service configured (Azure Communication Services, or ZeptoMail / another SMTP service if that is set instead); a text-message provider only if one is switched on | **To confirm** per hosting: which email service is set. The text-message channel runs in "log" mode (nothing sent) until a provider is named. |
+| AI provider (initial assessments only) | Anthropic (Claude API), only when the "AI fill" for initial assessments is switched on (an `AI_API_KEY` is set) | **To confirm** per hosting: whether it is switched on, the data processing terms and the region used. When on, the assessment text a user chooses to fill from is sent to it. Survey answers are never sent (section 5). |
 
 ## 2. Data Security and Protection Toolkit (DSPT)
 
@@ -30,7 +31,10 @@ Last reviewed: November 2026 (Phase 2 part 7).
 - **To confirm** per hosting: that the database, file storage, backups and logs are all in UK regions (UK South / UK
   West), and that no copy is kept outside the UK. The admin web app may be served from a global content network; it
   holds no personal information.
-- Email goes through Azure Communication Services. **To confirm**: the data location set for that service.
+- Email goes through the configured email service (Azure Communication Services where set). **To confirm**: which service,
+  and the data location set for it.
+- **To confirm**: whether a silent copy address (`MAIL_BCC`) is set on this hosting. When set it receives a copy of
+  every email except sign-in links and survey invitations and reminders, so it must be a mailbox the organisation controls.
 
 ## 4. Encryption
 
@@ -41,8 +45,10 @@ Last reviewed: November 2026 (Phase 2 part 7).
 - Extra field encryption: sensitive fields (for example secure fields in initial assessments and payroll gateway
   credentials) are encrypted again by CareFlow itself with AES-256-GCM before they are stored
   (src/common/utils/field-encryption.util.ts). The key is required in production and never stored with the data.
-- Passwords are stored only as bcrypt hashes (cost 12). Staff never see or set another person's password; independent
-  reviewers and new users choose their own from an emailed link.
+- Passwords are stored only as bcrypt hashes (cost 12); nobody, staff or host, can read a password back. People can
+  reset their own from an emailed link. An administrator with the user-management permission can set a password when
+  creating an office user or changing one (that signs the user out everywhere); independent reviewers choose their own
+  from an emailed link. **To confirm**: the organisation's rule that set passwords are changed at first sign-in.
 
 ## 5. Who can see what
 
@@ -65,10 +71,19 @@ Last reviewed: November 2026 (Phase 2 part 7).
 
 ## 7. Keeping and deleting information
 
-- Survey answers: deleted automatically once a survey (or each period) has been closed for its retention period: the
-  survey's own setting, else the ready-made survey's privacy notice (for example 1 year, or 3 years). Totals kept as
-  CQC evidence, who a survey was sent to, and follow-ups (without the answers they quoted) are kept. Whole surveys can
-  still be deleted.
+- Survey answers: deleted automatically (checked every hour) once they reach their retention period: the survey's own
+  setting, else the ready-made survey's privacy notice (for example 1 year, or 3 years). The period counts from where
+  the notice says: from when the survey (or each period) closed, or, for notices that say "after this call", "after
+  your review", "after you answer" and the like, from when each answer was given, so those answers are deleted one by
+  one while the survey stays open.
+- What goes: the answers, answers still waiting to be written, the details a follow-up quoted, and notes taken on
+  survey phone calls. What stays: totals already kept as CQC evidence (a closed survey's answers are not deleted until
+  its evidence has been taken), who a survey was sent to, and follow-ups with their outcomes. Each deletion is audited
+  as counts only. Whole surveys can still be deleted.
+- Legal hold: answers and follow-up details linked to a complaint, safeguarding case or incident that is still open are
+  kept until it closes, then deleted at the next hourly check.
+- Not covered: answers someone downloaded or printed before deletion (exports and paper copies), and copies in
+  backups (below).
 - Other records follow the organisation's Records Management and Retention Policy. **To confirm**: retention of
   backups (how long a deleted record stays in backups).
 
@@ -85,7 +100,8 @@ Last reviewed: November 2026 (Phase 2 part 7).
 
 ## 10. Testing and development
 
-- Development and test copies use made-up data; real email is redirected to test inboxes outside production.
+- Development and test copies use made-up data. Outside production, email can be redirected to test inboxes
+  (`MAIL_REDIRECT_TO`); it is never redirected in production. **To confirm**: that every non-production copy sets it.
 - **To confirm**: the date of the latest independent penetration test and how its findings were closed.
 
 ## 11. Accessibility

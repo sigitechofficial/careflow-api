@@ -2360,6 +2360,29 @@ describe('SurveysService', () => {
       });
     });
 
+    it('closing records the day it closed when there was no end date, or one still to come (retention counts from it)', async () => {
+      for (const closesAt of [null, new Date('2099-01-01T00:00:00Z')]) {
+        prisma.survey.update.mockClear();
+        givenSurvey(surveyRow({ status: 'ACTIVE', closesAt }));
+        const before = Date.now();
+        await service.close(admin, 's1');
+        const set = prisma.survey.update.mock.calls[0][0].data.closesAt as Date;
+        expect(set.getTime()).toBeGreaterThanOrEqual(before);
+        expect(set.getTime()).toBeLessThanOrEqual(Date.now());
+      }
+      // An end date already passed stays as it is.
+      prisma.survey.update.mockClear();
+      givenSurvey(surveyRow({ status: 'ACTIVE', closesAt: new Date('2020-01-01T00:00:00Z') }));
+      await service.close(admin, 's1');
+      expect(prisma.survey.update.mock.calls[0][0].data).not.toHaveProperty('closesAt');
+    });
+
+    it('a survey whose answers were deleted under retention is never reopened (a copy runs it again)', async () => {
+      givenSurvey(surveyRow({ status: 'CLOSED', targetKind: 'EMPLOYEE', answersDeletedAt: new Date('2026-01-01T00:00:00Z') }));
+      givenQuestions(1);
+      await expect(service.openForResponses(admin, 's1')).rejects.toThrow(/retention period/);
+    });
+
     it('a closed survey can be reopened with Open for responses', async () => {
       givenSurvey(surveyRow({ status: 'CLOSED', targetKind: 'EMPLOYEE' }));
       givenQuestions(1);
