@@ -92,6 +92,8 @@ export type PendingResponsePayload = {
   viaSharedLink?: boolean;
   /** Anonymous surveys only: the branch link it came through (it says no more than the branch). */
   shareLinkId?: string | null;
+  /** Quality flags decided when it was given (FAST); never a time. */
+  qualityFlags?: string[];
   answers: PendingAnswer[];
 };
 
@@ -275,6 +277,7 @@ function readPayload(value: Prisma.JsonValue): PendingResponsePayload {
         : null,
     viaSharedLink: v.viaSharedLink === true,
     shareLinkId: typeof v.shareLinkId === 'string' ? v.shareLinkId : null,
+    qualityFlags: Array.isArray(v.qualityFlags) ? v.qualityFlags.filter((f): f is string => typeof f === 'string') : [],
     answers: Array.isArray(v.answers) ? (v.answers as PendingAnswer[]) : [],
   };
 }
@@ -385,6 +388,7 @@ export async function flushPendingResponses(
             channel: row.channel,
             isAnonymous: row.isAnonymous,
             viaSharedLink: payload.viaSharedLink === true,
+            qualityFlags: Array.isArray(payload.qualityFlags) ? payload.qualityFlags.filter((f) => f === 'FAST') : [],
             shareLinkId: row.isAnonymous ? null : (payload.shareLinkId ?? null),
             ...(payload.recorded
               ? {

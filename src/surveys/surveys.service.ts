@@ -220,6 +220,7 @@ import {
 import { usersWithResultsAccess } from './survey-office-recipients';
 import { managerCopyTeamProblemFor } from './survey-manager-copy-team';
 import { fastFlag } from './survey-quality.util';
+import { readScoring } from './survey-scoring.util';
 
 /**
  * Quality flags kept with an answer given by the person themselves (Phase 2 part 5): FAST from how long the answer
@@ -998,6 +999,8 @@ export class SurveysService {
       aboutServiceUserId: r.aboutServiceUserId ?? null,
       /** Sent when something happens in the care records (the event's code), into a copy each month. */
       eventTrigger: readEventTrigger(r.eventTrigger)?.event ?? null,
+      /** Scoring scales (survey-scoring.util); a setting, never answers. */
+      scoring: readScoring(r.scoring),
       periodOpenDays: r.periodOpenDays ?? null,
       periodKey: r.periodKey ?? null,
       clonedFromId: r.clonedFromId ?? null,

@@ -25,6 +25,8 @@ import { SurveyOutsidePeopleService } from './survey-outside-people.service';
 import { SurveyUnsubscribeController } from './survey-unsubscribe.controller';
 import { SurveyUnsubscribeService } from './survey-unsubscribe.service';
 import { SurveysService } from './surveys.service';
+import { SurveyInsightService } from './survey-insight.service';
+import { SurveyInsightController, SurveyInsightOverviewController } from './survey-insight.controller';
 import { SurveyDistributionJob } from './survey-distribution.job';
 import { SurveyLibraryController } from './survey-library.controller';
 import { SurveyLibraryService } from './survey-library.service';
@@ -82,8 +84,10 @@ import {
     SurveyOutsidePeopleController,
     SurveySendOutsideController,
     SurveyUnsubscribeController,
+    SurveyInsightController,
+    SurveyInsightOverviewController,
   ],
-  providers: [SurveysService, SurveyDistributionJob, SurveyLibraryService, SurveyAlertsService, SurveyAccessService, SurveyShareLinksService, SurveyRecipientLinksService, SurveyLinkGuard, SurveySectionsService, SurveyRemindersService, SurveyTextRepliesService, SurveyManagerCopiesService, SurveyContactRuleService, SurveyReviewersService, SurveyEventTriggersService, SurveyOutsidePeopleService, SurveyUnsubscribeService],
+  providers: [SurveysService, SurveyDistributionJob, SurveyLibraryService, SurveyAlertsService, SurveyAccessService, SurveyShareLinksService, SurveyRecipientLinksService, SurveyLinkGuard, SurveySectionsService, SurveyRemindersService, SurveyTextRepliesService, SurveyManagerCopiesService, SurveyContactRuleService, SurveyReviewersService, SurveyEventTriggersService, SurveyOutsidePeopleService, SurveyUnsubscribeService, SurveyInsightService],
   exports: [SurveysService, SurveyAlertsService],
 })
 export class SurveysModule {}

@@ -61,6 +61,13 @@ export class SurveyAnswerItemDto {
 }
 
 export class SubmitSurveyResponseDto {
+  @ApiPropertyOptional({
+    description: 'How many seconds the answer page was open. Used only to flag very fast answers; never stored.',
+  })
+  @IsOptional()
+  @IsNumber()
+  secondsTaken?: number;
+
   @ApiProperty({ type: [SurveyAnswerItemDto] })
   @IsArray()
   @ArrayMinSize(1)

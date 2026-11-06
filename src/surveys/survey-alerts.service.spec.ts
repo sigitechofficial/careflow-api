@@ -52,7 +52,7 @@ function makePrisma(opts: { rules?: unknown[]; survey?: Record<string, unknown> 
       findFirst: jest.fn().mockResolvedValue(null),
     },
     surveyQuestion: { findMany: jest.fn().mockResolvedValue([SAFE_Q, CONTACT_Q, PHONE_Q]) },
-    surveyAlertRule: { findMany: jest.fn().mockResolvedValue(opts.rules ?? [rule()]) },
+    surveyAlertRule: { findMany: jest.fn().mockResolvedValue(opts.rules ?? [rule()]), createMany: jest.fn().mockResolvedValue({ count: 0 }), findFirst: jest.fn(), update: jest.fn() },
     surveyAlertOwnerRole: { findMany: jest.fn().mockResolvedValue([]) },
     role: { findMany: jest.fn().mockResolvedValue([{ id: 'role-rm', name: 'Registered Manager' }, { id: 'role-cc', name: 'Care Coordinator' }]), findFirst: jest.fn() },
     bankHoliday: { findMany: jest.fn().mockResolvedValue([]) },
@@ -122,6 +122,35 @@ describe('SurveyAlertsService', () => {
   afterAll(() => jest.useRealTimers());
 
   describe('named answers', () => {
+    it('safeguarding words in a named answer: an urgent alert naming the question and the kind of words, never the answer', async () => {
+      const sg = rule({ id: 'rule-sg', key: 'safeguarding-words', conditions: [], libraryAlert: null, title: 'Words that may point to harm' });
+      const { prisma, created } = makePrisma({ rules: [sg] });
+      prisma.surveyResponse.findUnique.mockResolvedValue(namedResponse());
+      const { service } = makeService(prisma);
+      await expect(service.checkResponse('resp-1')).resolves.toBe(1);
+      const a = created.alerts[0];
+      expect(a).toMatchObject({ ruleId: 'rule-sg', responseId: 'resp-1', urgent: true, recordKind: 'SAFEGUARDING' });
+      expect(a.details).toContain('"Do you feel safe with your care workers?": Shouting, threats or fear');
+      expect(a.details).not.toContain('They shout at me');
+      expect(created.tasks[0].description).not.toContain('shout');
+    });
+
+    it('the safeguarding-words rule is added to every survey once, and can only be switched off with a reason', async () => {
+      const { prisma } = makePrisma();
+      const { service, audit } = makeService(prisma);
+      await service.ensureRules('s1');
+      expect(prisma.surveyAlertRule.createMany.mock.calls[0][0]).toMatchObject({ skipDuplicates: true, data: [{ key: 'safeguarding-words', urgent: true, recordKind: 'SAFEGUARDING' }] });
+      prisma.survey.findFirst.mockResolvedValue(survey());
+      prisma.surveyAlertRule.findFirst.mockResolvedValue({ id: 'rule-sg', key: 'safeguarding-words', isActive: true });
+      const actor = { id: 'u1', roles: ['admin'], permissions: [] } as any;
+      await expect(service.setSafeguardingWords(actor, 's1', { isActive: false, reason: '' })).rejects.toThrow(/Say why/);
+      await service.setSafeguardingWords(actor, 's1', { isActive: false, reason: 'Covered by the complaints survey' });
+      expect(prisma.surveyAlertRule.update).toHaveBeenCalledWith({ where: { id: 'rule-sg' }, data: { isActive: false, updatedById: 'u1' } });
+      expect(audit.logAudit.mock.calls.at(-1)[0]).toMatchObject({ action: 'survey_safeguarding_words_changed', newValues: { isActive: false, reason: 'Covered by the complaints survey' } });
+      prisma.surveyAlertRule.findFirst.mockResolvedValue({ id: 'rule-sg', key: 'safeguarding-words', surveyId: 's1' });
+      await expect(service.deleteRule(actor, 's1', 'rule-sg')).rejects.toThrow(/cannot be removed/);
+    });
+
     it('raises an alert and a task for the role, naming the person, the answer and their comment', async () => {
       const { prisma, created } = makePrisma();
       prisma.surveyResponse.findUnique.mockResolvedValue(namedResponse());
@@ -220,9 +249,33 @@ describe('SurveyAlertsService', () => {
       expect(a.details).toContain('Never (1), Rarely (1)');
       expect(a.details).not.toMatch(/comment/i);
       expect(a.title).toBe('Feels unsafe');
-      // Answers were never read for written text.
-      expect(prisma.surveyAnswer.findMany.mock.calls[0][0].select).toEqual({ responseId: true, questionId: true, booleanValue: true, numberValue: true, selectedOptions: true });
+      // Written parts are read in memory for the safeguarding-words count only; this alert never carries them.
+      expect(prisma.surveyAnswer.findMany.mock.calls[0][0].select).toMatchObject({ responseId: true, questionId: true, selectedOptions: true });
       expect(notifications.notifyUsers).not.toHaveBeenCalled(); // nobody holds the role or manages surveys here
+    });
+
+    it('safeguarding words in answers linked to no one: one grouped alert at the close, counts by kind only, never the text', async () => {
+      const sg = rule({ id: 'rule-sg', key: 'safeguarding-words', conditions: [], libraryAlert: null, title: 'Words that may point to harm' });
+      const { prisma, created } = makePrisma({ survey: { isAnonymous: true, status: 'CLOSED' }, rules: [sg] });
+      sweepRows(prisma, ids(6));
+      const written = (responseId: string, comment: string | null) => ({ ...safe(responseId, 'Always'), textValue: null, otherText: null, comment });
+      prisma.surveyAnswer.findMany.mockResolvedValue([
+        written('r1', 'My money went missing'),
+        written('r2', 'Lovely carers'),
+        written('r3', null),
+        written('r4', 'She shouted at me'),
+        written('r5', null),
+        written('r6', null),
+      ]);
+      const { service } = makeService(prisma);
+      await expect(service.sweep()).resolves.toMatchObject({ grouped: 1 });
+      const a = created.alerts[0];
+      expect(a).toMatchObject({ unlinked: true, matchCount: 2, responseId: null, urgent: true, recordKind: 'SAFEGUARDING' });
+      expect(a.details).toContain('Money or belongings (1)');
+      expect(a.details).toContain('Shouting, threats or fear (1)');
+      expect(a.details).not.toMatch(/money went missing|shouted at me/i);
+      expect(JSON.stringify(a.matched)).not.toMatch(/money went missing|shouted at me/i);
+      expect(created.tasks[0].title).toBe('Urgent: A survey answer needs follow-up');
     });
 
     it('never looks at answers linked to no one while the survey is open (the sweep query leaves them out)', async () => {
@@ -433,7 +486,8 @@ describe('SurveyAlertsService', () => {
       prisma.$transaction = jest.fn(async (arg: any) => (Array.isArray(arg) ? Promise.all(arg) : arg(prisma)));
       const { service } = makeService(prisma);
       await service.copyRules('s1', 's2', { anonymous: false });
-      expect(prisma.surveyAlertRule.createMany.mock.calls[0][0].data[0]).toMatchObject({ surveyId: 's2', minimumAnswers: 10 });
+      // The first call is the built-in safeguarding-words rule on the source (ensureRules).
+      expect(prisma.surveyAlertRule.createMany.mock.calls.at(-1)[0].data[0]).toMatchObject({ surveyId: 's2', minimumAnswers: 10 });
     });
   });
 

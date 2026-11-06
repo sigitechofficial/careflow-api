@@ -9,6 +9,7 @@ import { SurveyAlertsService } from './survey-alerts.service';
 import {
   ListSurveyFollowUpsQueryDto,
   NeverRouteToDto,
+  SafeguardingWordsDto,
   SaveSurveyAlertRuleDto,
   SetAlertOwnerRoleDto,
   UpdateSurveyFollowUpDto,
@@ -41,6 +42,17 @@ export class SurveyAlertRulesController {
   @ApiOperation({ summary: 'Ready-made surveys: put back the ready-made alert rules' })
   restore(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string) {
     return this.alerts.restoreLibraryRules(user, surveyId);
+  }
+
+  @Put('safeguarding-words')
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'Switch the built-in safeguarding-words alert on or off (off needs a reason)' })
+  safeguardingWords(
+    @CurrentUser() user: RequestUser,
+    @Param('surveyId', ParseUUIDPipe) surveyId: string,
+    @Body() dto: SafeguardingWordsDto,
+  ) {
+    return this.alerts.setSafeguardingWords(user, surveyId, dto);
   }
 
   @Put('never-route-to')

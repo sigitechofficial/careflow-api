@@ -539,6 +539,10 @@ export enum AuditAction {
   SURVEY_REVIEWER_RESPONSE_RECORDED = 'survey_reviewer_response_recorded',
   /** A survey's answers not linked to anyone, counted for one finished day (no row per answer: the date only). */
   SURVEY_UNLINKED_ANSWERS_COUNTED = 'survey_unlinked_answers_counted',
+  /** Scoring scales set, changed or removed on a survey. */
+  SURVEY_SCORING_CHANGED = 'survey_scoring_changed',
+  /** The built-in safeguarding-words alert switched on or off (with the reason). */
+  SURVEY_SAFEGUARDING_WORDS_CHANGED = 'survey_safeguarding_words_changed',
   FEEDBACK_RECORDED = 'feedback_recorded',
   FEEDBACK_UPDATED = 'feedback_updated',
   FEEDBACK_STATUS_CHANGED = 'feedback_status_changed',

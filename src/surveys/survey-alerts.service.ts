@@ -58,6 +58,7 @@ import {
 } from './survey-alert-rules.util';
 import { isContactRequestQuestion, questionsNotAskedWhenUnlinked } from './survey-respondent-anonymity.util';
 import { effectiveLibraryMeta } from './survey-library-variant.util';
+import { safeguardingKindsIn, safeguardingLabel, writtenPartsOf } from './survey-text-themes.util';
 import type {
   ListSurveyFollowUpsQueryDto,
   SaveSurveyAlertRuleDto,
@@ -65,6 +66,43 @@ import type {
 } from './dto/survey-alerts.dto';
 
 const OPEN_TASK: RoleTaskStatus[] = [RoleTaskStatus.OPEN, RoleTaskStatus.IN_PROGRESS];
+
+/**
+ * The built-in rule on every survey: written answers containing words that may point to harm (Phase 2 part 5). Read
+ * inside CareFlow only (survey-text-themes.util); the alert names the question and the kind of words, never the text.
+ * It can be switched off with a reason (audited), never edited or removed.
+ */
+export const SAFEGUARDING_WORDS_KEY = 'safeguarding-words';
+const SAFEGUARDING_WORDS_RULE = {
+  key: SAFEGUARDING_WORDS_KEY,
+  position: -1,
+  title: 'Words that may point to harm',
+  whenText:
+    'A written answer contains words that may point to harm: physical harm, money or belongings going missing, shouting or threats, unwanted touching, neglect, self-harm, discrimination, or unsafe practice being covered up. CareFlow finds them itself; no answer is sent anywhere to be read.',
+  actionText:
+    'Read the full answer today. If someone may be at risk, follow the safeguarding procedure: make them safe, tell the Safeguarding lead and record a safeguarding concern. The flag is not proof: words such as "never hit" are flagged too, so close it with what you found.',
+  conditions: [] as unknown as Prisma.InputJsonValue,
+  ownerKey: 'SAFEGUARDING_LEAD',
+  dueWorkingDays: 0,
+  urgent: true,
+  recordKind: 'SAFEGUARDING',
+  contactRequest: false,
+  isActive: true,
+};
+
+/** Safeguarding words in a response's written answers, as matched conditions (question key and kinds of words). */
+function safeguardingMatches(
+  answers: ReadonlyArray<{ questionId: string; textValue?: string | null; otherText?: string | null; comment?: string | null }>,
+  questions: ReadonlyArray<{ id: string; key: string | null }>,
+): StoredAlertCondition[] {
+  const out: StoredAlertCondition[] = [];
+  for (const a of answers) {
+    const kinds = [...new Set(writtenPartsOf(a).flatMap(safeguardingKindsIn))];
+    const key = questions.find((q) => q.id === a.questionId)?.key;
+    if (kinds.length && key) out.push({ questionKey: key, answers: kinds.map(safeguardingLabel) });
+  }
+  return out;
+}
 /** Who takes an alert when its role is one the survey rates. */
 const ESCALATION = ['DEPUTY_MANAGER', 'REGISTERED_MANAGER', 'NOMINATED_INDIVIDUAL'] as const;
 type OwnerCtx = {
@@ -214,7 +252,8 @@ export class SurveyAlertsService {
       where: { id: surveyId },
       select: { id: true, alertRulesSetUpAt: true, libraryReference: true, libraryMeta: true, isAnonymous: true, isCatalogue: true },
     });
-    if (!survey || survey.alertRulesSetUpAt || survey.isCatalogue) return;
+    if (!survey || survey.isCatalogue) return;
+    if (survey.alertRulesSetUpAt) return this.ensureSafeguardingWords(surveyId);
     const rows = await this.libraryRows(survey);
     await this.prisma.$transaction(async (tx) => {
       // Raw SQL: setting up rules is not a change to the survey (its updatedAt dates CQC evidence).
@@ -227,6 +266,36 @@ export class SurveyAlertsService {
         });
       }
     });
+    await this.ensureSafeguardingWords(surveyId);
+  }
+
+  /** The built-in safeguarding-words rule, once per survey (kept, switched off or on, never made again). */
+  private async ensureSafeguardingWords(surveyId: string): Promise<void> {
+    await this.prisma.surveyAlertRule.createMany({ data: [{ ...SAFEGUARDING_WORDS_RULE, surveyId }], skipDuplicates: true });
+  }
+
+  /** Switch the built-in safeguarding-words alert on or off (off needs a reason; audited). */
+  async setSafeguardingWords(actor: RequestUser, surveyId: string, input: { isActive: boolean; reason?: string | null }) {
+    const survey = await this.requireRuleSurvey(actor, surveyId);
+    const rule = await this.prisma.surveyAlertRule.findFirst({ where: { surveyId, key: SAFEGUARDING_WORDS_KEY } });
+    if (!rule) throw new NotFoundException('Alert rule not found');
+    const reason = (input.reason ?? '').trim();
+    if (!input.isActive && (reason.length < 5 || reason.length > 300)) {
+      throw new BadRequestException('Say why the safeguarding-words alert is switched off (5 to 300 characters).');
+    }
+    await this.prisma.surveyAlertRule.update({ where: { id: rule.id }, data: { isActive: input.isActive, updatedById: actor.id } });
+    await this.audit.logAudit({
+      userId: actor.id,
+      module: AuditModule.SURVEY,
+      action: AuditAction.SURVEY_SAFEGUARDING_WORDS_CHANGED,
+      recordType: 'SurveyAlertRule',
+      recordId: rule.id,
+      description: `Safeguarding-words alert switched ${input.isActive ? 'on' : 'off'} on survey "${survey.title}"`,
+      oldValues: { isActive: rule.isActive },
+      newValues: { isActive: input.isActive, ...(input.isActive ? {} : { reason }) },
+      metadata: { surveyId },
+    });
+    return { message: input.isActive ? 'Safeguarding-words alert switched on' : 'Safeguarding-words alert switched off', data: { id: rule.id, isActive: input.isActive } };
   }
 
   private async libraryRows(survey: { id: string; libraryReference: string | null; libraryMeta: Prisma.JsonValue; isAnonymous: boolean }) {
@@ -443,9 +512,12 @@ export class SurveyAlertsService {
   ) {
     const byKey = new Map(questions.map((q) => [q.key, q]));
     const conditions = readConditions(r.conditions);
-    const problems = conditionProblems(conditions, questions);
+    const builtIn = r.key === SAFEGUARDING_WORDS_KEY ? ('SAFEGUARDING_WORDS' as const) : null;
+    const problems = builtIn ? [] : conditionProblems(conditions, questions);
     return {
       id: r.id,
+      /** A rule CareFlow keeps on every survey: switched on or off only. */
+      builtIn,
       key: r.key,
       title: r.title,
       whenText: r.whenText,
@@ -579,6 +651,7 @@ export class SurveyAlertsService {
     const survey = await this.requireRuleSurvey(actor, surveyId);
     const existing = await this.prisma.surveyAlertRule.findFirst({ where: { id: ruleId, surveyId } });
     if (!existing) throw new NotFoundException('Alert rule not found');
+    if (existing.key === SAFEGUARDING_WORDS_KEY) throw new BadRequestException('The safeguarding-words alert cannot be changed, only switched on or off.');
     const data = await this.validatedRuleInput(survey, dto, dto.keepConditions ? readConditions(existing.conditions) : undefined);
     await this.prisma.surveyAlertRule.update({ where: { id: ruleId }, data: { ...data, updatedById: actor.id } });
     await this.audit.logAudit({
@@ -608,6 +681,7 @@ export class SurveyAlertsService {
     const survey = await this.requireRuleSurvey(actor, surveyId);
     const existing = await this.prisma.surveyAlertRule.findFirst({ where: { id: ruleId, surveyId } });
     if (!existing) throw new NotFoundException('Alert rule not found');
+    if (existing.key === SAFEGUARDING_WORDS_KEY) throw new BadRequestException('The safeguarding-words alert cannot be removed. Switch it off instead, with the reason.');
     // Alerts already raised keep their task and history (ruleId is set to null).
     await this.prisma.surveyAlertRule.delete({ where: { id: ruleId } });
     await this.audit.logAudit({
@@ -755,7 +829,10 @@ export class SurveyAlertsService {
     const questions = await this.questionsOf(survey.id);
     const labels = answerLabelsByKey(questions, response.answers.map((a) => ({ ...a, numberValue: a.numberValue == null ? null : Number(a.numberValue) })));
     const hits = rules
-      .map((rule) => ({ rule, matched: matchConditions(readConditions(rule.conditions), labels) }))
+      .map((rule) => ({
+        rule,
+        matched: rule.key === SAFEGUARDING_WORDS_KEY ? safeguardingMatches(response.answers, questions) : matchConditions(readConditions(rule.conditions), labels),
+      }))
       .filter((h) => h.matched.length);
     const tz = await this.timeZone();
     const now = new Date();
@@ -772,7 +849,10 @@ export class SurveyAlertsService {
         const exists = await tx.surveyAlert.findFirst({ where: { ruleId: rule.id, responseId: response.id }, select: { id: true } });
         if (exists) continue;
         const role = this.resolveRole(rule, ctx);
-        const details = this.namedDetails(survey, response, who!, rule, matched, questions);
+        const details =
+          rule.key === SAFEGUARDING_WORDS_KEY
+            ? this.safeguardingWordsDetails(survey, who!, rule, matched, questions)
+            : this.namedDetails(survey, response, who!, rule, matched, questions);
         const alert = await this.createAlertWithTask(tx, {
           restricted: ctx.restricted,
           survey,
@@ -812,6 +892,25 @@ export class SurveyAlertsService {
         ? `${RESPONDENT_LABEL[response.respondentRelation] ?? 'someone else'}${response.respondentName ? ` (${response.respondentName})` : ''}`
         : null;
     return { name, by, channel: CHANNEL_LABEL[response.channel] ?? null };
+  }
+
+  /** The safeguarding-words alert: the question and the kind of words, never the answer itself. */
+  private safeguardingWordsDetails(
+    survey: Survey,
+    who: { name: string | null; by: string | null; channel: string | null },
+    rule: RuleRow,
+    matched: StoredAlertCondition[],
+    questions: AlertQuestion[],
+  ): string {
+    const byKey = new Map(questions.map((q) => [q.key, q]));
+    return [
+      `${who.name ? `${who.name} answered` : 'Someone answered'} "${survey.title}"${who.channel ? ` ${who.channel}` : ''}${who.by ? `, answered by ${who.by}` : ''}, and a written answer contains words that may point to harm.`,
+      ...matched.map((m) => `• "${byKey.get(m.questionKey)?.questionText ?? m.questionKey}": ${m.answers.join(', ')}`),
+      '',
+      "Read the full answer in the survey's Individual responses.",
+      '',
+      `What to do: ${rule.actionText}`,
+    ].join('\n');
   }
 
   private namedDetails(
@@ -1142,12 +1241,53 @@ export class SurveyAlertsService {
       if (claimed.length < floor) return;
       const answers = await tx.surveyAnswer.findMany({
         where: { responseId: { in: claimed.map((c) => c.id) } },
-        select: { responseId: true, questionId: true, booleanValue: true, numberValue: true, selectedOptions: true },
+        // Written parts are read here only for the safeguarding-words count, in memory; never stored or shown.
+        select: { responseId: true, questionId: true, booleanValue: true, numberValue: true, selectedOptions: true, textValue: true, otherText: true, comment: true },
       });
       const byResponse = new Map<string, typeof answers>();
       for (const a of answers) byResponse.set(a.responseId, [...(byResponse.get(a.responseId) ?? []), a]);
       for (const rule of rules) {
         if (rule.contactRequest) continue; // never asked of anyone answering without a name
+        if (rule.key === SAFEGUARDING_WORDS_KEY) {
+          if (claimed.length < Math.max(floor, rule.minimumAnswers ?? 0)) continue;
+          const kinds = new Map<string, number>();
+          let found = 0;
+          for (const c of claimed) {
+            const k = [...new Set((byResponse.get(c.id) ?? []).flatMap((a) => writtenPartsOf(a).flatMap(safeguardingKindsIn)))];
+            if (!k.length) continue;
+            found += 1;
+            for (const code of k) kinds.set(safeguardingLabel(code), (kinds.get(safeguardingLabel(code)) ?? 0) + 1);
+          }
+          if (!found) continue;
+          const how = survey.isAnonymous ? 'to this anonymous survey' : 'given without a name';
+          const role = this.resolveRole(rule, ctx);
+          const alert = await this.createAlertWithTask(tx, {
+            restricted: ctx.restricted,
+            survey,
+            rule,
+            role,
+            due: ruleDueDate(today, rule, holidays),
+            createdAt: day,
+            title: rule.title,
+            details: [
+              `${found} ${found === 1 ? 'response' : 'responses'} ${how} had written answers with words that may point to harm:`,
+              ...[...kinds].map(([label, n]) => `• ${label} (${n})`),
+              '',
+              'These answers are not linked to anyone, so nobody can be contacted about them and they must never be traced back to a person. Read the written answers in the survey results and act on what they tell you about the service.',
+              '',
+              `What to do: ${rule.actionText}`,
+            ].join('\n'),
+            matched: [{ question: 'Written answers', answers: [...kinds.keys()], counts: Object.fromEntries(kinds) }],
+            responseId: null,
+            unlinked: true,
+            matchCount: found,
+            serviceUserId: null,
+            employeeId: null,
+            locationId: survey.locationIds.length === 1 ? survey.locationIds[0] : null,
+          });
+          raised.push({ alert, roleName: role?.name ?? null });
+          continue;
+        }
         const libraryFloor = rule.libraryAlert !== null ? (libraryMinimum.get(rule.libraryAlert) ?? 0) : 0;
         if (claimed.length < Math.max(floor, rule.minimumAnswers ?? 0, libraryFloor)) continue;
         const conditions = readConditions(rule.conditions);

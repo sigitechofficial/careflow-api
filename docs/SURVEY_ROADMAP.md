@@ -81,13 +81,13 @@ Legend: **Have**, **Partly**, **No**. Phase in the last column.
 | Capability | Seen in | CareFlow | Build | Phase |
 |---|---|---|---|---|
 | Participation, per-question counts and percentages, top-two, CSV | All | **Have** | — | — |
-| Trends across periods; compare surveys | Culture Amp, Activated Insights, QCS | Partly (per period) | Trend line per question across periods and years | 2 |
-| Heatmaps by branch / team / job role | Culture Amp | Partly (breakdown tables) | Heatmap with small-group suppression | 2 |
-| Role-based dashboards (registered manager, branch manager, nominated individual) | Qualtrics | No | A surveys dashboard per role: open surveys, response rates, alerts, actions, trends | 2 |
-| Themes in written answers, word cloud, sentiment | SurveyMonkey, Qualtrics Text iQ | No | Themes and counts, hidden for small groups; safeguarding keyword flag sent to the right role | 2 |
+| Trends across periods; compare surveys | Culture Amp, Activated Insights, QCS | **Have** (Phase 2 part 5: trends by period and year; copies of one template pooled) | Trend line per question across periods and years | 2 |
+| Heatmaps by branch / team / job role | Culture Amp | **Have** by branch (Phase 2 part 5, small-group and complementary suppression) | Heatmap with small-group suppression | 2 |
+| Role-based dashboards (registered manager, branch manager, nominated individual) | Qualtrics | **Have** (Phase 2 part 5, Surveys → Insight) | A surveys dashboard per role: open surveys, response rates, alerts, actions, trends | 2 |
+| Themes in written answers, word cloud, sentiment | SurveyMonkey, Qualtrics Text iQ | **Have** themes and safeguarding words, inside CareFlow only (Phase 2 part 5); no sentiment | Themes and counts, hidden for small groups; safeguarding keyword flag sent to the right role | 2 |
 | Benchmarks against other organisations | SurveyMonkey, Activated Insights | No | Anonymised sector benchmarks for ready-made surveys, opt-in with a data-sharing agreement | 3 |
 | Outcome measure (quality of life), not only satisfaction | ASCOT (national survey) | No | ASCOT under licence; report alongside satisfaction | 3 (licence first) |
-| Cross-survey 360 view (people, families, staff, professionals) | Qualtrics XM | No | One report combining the annual surveys by key question | 2 |
+| Cross-survey 360 view (people, families, staff, professionals) | Qualtrics XM | **Have** (Phase 2 part 5, by CQC key question) | One report combining the annual surveys by key question | 2 |
 | Reports for CQC and commissioners, ready to share | QCS (CQC-linked) | Partly (CQC evidence capture) | One-click summary pack per period: participation, headlines, trends, actions taken, "You said, we did" | 2 |
 
 ### 3.4 Acting on results
@@ -106,7 +106,7 @@ Legend: **Have**, **Partly**, **No**. Phase in the last column.
 | Data security assurance (DSPT, UK hosting) | SmartSurvey | To confirm per hosting | State DSPT status and UK hosting in a security page | 2 |
 | Accessibility WCAG 2.2 AA with a statement | SmartSurvey (DfT statement), GOV.UK | Audited 6 Nov 2026: answer page, portal and admin survey screens fixed and tested; draft statement in docs/ACCESSIBILITY_STATEMENT.md | Confirm the draft's open items, screen-reader pass with NVDA/VoiceOver, then publish | 1–2 |
 | Retention and deletion of single answers | Enterprise tools | No (whole-survey deletion) | Delete answers by retention date | 2 |
-| Response quality checks (speeders, gibberish, duplicates) | SurveyMonkey Genius | No | Flag, never delete automatically; one answer per device option | 2 |
+| Response quality checks (speeders, gibberish, duplicates) | SurveyMonkey Genius | **Have** speeders, straight-lining, duplicates, flagged never removed (Phase 2 part 5) | Flag, never delete automatically; one answer per device option | 2 |
 | Spam protection on public links | Most | No | A4 #19 | 1 |
 | Audit of link copying, sends and exports | Enterprise tools | Partly | A6 #24 | 1 |
 
@@ -248,6 +248,21 @@ Phase 2 part 4 (outside people: families, professionals, commissioners), checked
 | Opt-outs and STOP | An outside person still contacted after asking not to be. | Honoured for invitations, reminders and the call list; STOP replies find outside people and People involved by mobile; audited without contact details (`survey-outside-people.service.spec`, `survey-text-replies`). |
 | Surveys about one person | A survey about someone showing to people outside their branches, or its answers leaking through the record. | Listed on the person's record by title and state only, in the viewer's branches; answers keep the survey's own access rules (`OutsidePeople.test` "a person’s record"). |
 | Audit | Outside people's details in the audit trail. | Contacts and lists audited without names or addresses; sends as counts (and an override's reason). |
+
+Phase 2 part 5 (insight: trends, pooling, heatmap, themes, safeguarding words, quality, scores, dashboards, 360), checked the same way:
+
+| Feature | Risk looked at | What stops it (and the test that proves it) |
+|---|---|---|
+| One figures engine | A new view reading answers by another route and missing a rule (threshold, held "without a name" answers, waiting answers, CareFlow-list detail). | Trends, pooling, dashboards and the 360 report take their figures from the Results engine itself (`SurveysService.figuresFor`: the same build and gate as Results, written answers removed); the heatmap, themes, quality and scores read answers only from units that engine shows, leaving out held "without a name" answers (`survey-insight.spec` "SurveyInsightService"). |
+| Trends across periods and years | A period with few answers shown, or worked out by taking the shown periods from a total; a live point on an anonymous survey ticking up as each answer arrives. | A period shows only from the reporting threshold up and, where an answer can be linked to no one, only once it has closed; a hidden period is left out of the year figure and the total too (`survey-insight.spec` "trends: a small period and an open anonymous period are hidden and left out of every total"). |
+| Pooling copies of one template | Copies the viewer may not see, or in other branches, leaking into a pooled figure; a copy with a stricter rule shown under a weaker one. | Only copies the viewer may open with results access in their branches; each copy under its own threshold; the pooled total needs the highest threshold among them. |
+| Branch heatmap | A small branch (or "No branch recorded") identifying people; a hidden branch worked out as the overall figure minus the shown ones; a show-if question asked of a few people in one branch. | No column under max(threshold, 5); small branches are combined, and when combined they are still small the smallest shown branch joins them (complementary suppression); with one large branch nothing is split. Each row hides cells under the minimum and, when needed, the next smallest. Only closed units on anonymous / without-name surveys; public surveys have no branch view (`survey-insight.spec` "branch heatmap suppression", "heatmap: a branch with too few answers is never shown on its own", "an open anonymous period adds nothing"). |
+| Themes in written answers | Text leaving CareFlow (an outside model or service); a rare theme pointing at the one person who wrote about it; themes from an open anonymous survey dating an answer. | A local dictionary inside CareFlow; nothing is sent, kept or logged; counts only; a theme under 3 shows as "fewer than 3"; nothing until max(threshold, 5) written answers in shown (closed, where unlinked) units (`survey-insight.spec` "themes: nothing until enough written answers, then counts only (never text)"). |
+| Safeguarding words | The words or the answer reaching a task, a notification or the audit; an anonymous answer raising an alert at a time that dates it, or naming a branch. | A built-in rule on every survey, checked by the existing alert sweep inside CareFlow. Named answers: an urgent alert naming the question and the kind of words, never the text ("read the full answer in Individual responses"). Answers linked to no one: one grouped alert at the close, from at least the threshold, counts by kind only, the day only, no branch unless the survey has one. Tasks stay generic; it can be switched off only with a reason, audited (`survey-alerts.service.spec` "safeguarding words"). |
+| Response quality flags | Keeping a time with an anonymous answer (dating it); answers removed without anyone deciding. | The answer page sends how long it took; only a FAST flag is kept (carried through the held-answer store), never the time. Straight-lining and duplicates are worked out when shown. Counts in Results above the threshold; flags per response only with individual-responses access; never removed (`survey-insight.spec` "response quality"). |
+| Scores and bands | A band holding one or two people singling them out. | Scores show only from the threshold up; the people in each band are listed only when every band shown has at least 3 (`survey-insight.spec` "lists bands only when each holds at least 3 people"). |
+| Role dashboards | Counts or rates on surveys the viewer may not see; a rate ticking on an anonymous survey. | Branch scope and per-survey results access as everywhere; response rates only where counts are visible (else "Limited"); alerts as counts; work queues only for people who manage surveys (`SurveyInsight.test` "the dashboard"). |
+| 360 report | A small audience's figures shown beside the others. | Each audience's year unit follows the unit rules (threshold; closed where unlinked); key questions from the library section evidence; no written answers (`SurveyInsight.test` "the 360 report"). |
 
 Known limits, said plainly: one-answer-per-device can be beaten with another device or by clearing the browser;
 the per-link limit is per server. Results show the burst caution for that reason.

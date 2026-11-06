@@ -200,3 +200,16 @@ export class NeverRouteToDto {
   @IsIn(SURVEY_ALERT_OWNER_KEYS, { each: true })
   ownerKeys!: string[];
 }
+
+/** The built-in safeguarding-words alert: on, or off with the reason. */
+export class SafeguardingWordsDto {
+  @ApiProperty()
+  @IsBoolean()
+  isActive!: boolean;
+
+  @ApiPropertyOptional({ nullable: true, maxLength: 300 })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  reason?: string | null;
+}
