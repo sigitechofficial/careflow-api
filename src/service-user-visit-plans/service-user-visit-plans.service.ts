@@ -111,7 +111,7 @@ import {
 } from './visit-plan-slot-carer-sync.util';
 import { collectCarerPatternConflicts, employmentToPatternContext, type EmployeePatternContext, type SlotCarerPatternInput } from './visit-plan-carer-job-fit.util';
 import { VisitPlanCarerSyncPatternPreviewDto } from './dto/visit-plan-carer-sync-pattern-preview.dto';
-import { clearVisitPlansAndRota } from './clear-visit-plans-and-rota.util';
+import { clearServiceUserVisitPlansAndRota, clearVisitPlansAndRota } from './clear-visit-plans-and-rota.util';
 import {
   resolveGlobalAssignedEmployeeIds,
   slotAssignedEmployeeIds,
@@ -2370,6 +2370,37 @@ export class ServiceUserVisitPlansService {
       message: dryRun
         ? 'Dry run — visit plans and rota counts only'
         : 'Visit plans and rota cleared for all service users',
+    };
+  }
+
+  /** One service user's visit plans and rota only (Reset rota → this service user). Others are not touched. */
+  async clearServiceUserVisitPlansAndRota(
+    userId: string,
+    serviceUserId: string,
+    dryRun: boolean,
+    meta?: RequestAuditMeta,
+  ) {
+    const su = await this.ensureServiceUser(serviceUserId);
+    const name = `${su.firstName} ${su.lastName}`.trim();
+    const result = await clearServiceUserVisitPlansAndRota(this.prisma, serviceUserId, { dryRun });
+    if (!dryRun) {
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_VISIT_PLANS_AND_ROTA_CLEARED,
+        recordType: 'ServiceUser',
+        recordId: serviceUserId,
+        newValues: { deleted: result.deleted },
+        metadata: { serviceUserId, serviceUserName: name },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+    }
+    return {
+      data: { dryRun, serviceUserId, serviceUserName: name, counts: result.counts, deleted: result.deleted ?? null },
+      message: dryRun
+        ? `Dry run — ${name}'s visit plans and rota counts only`
+        : `Visit plans and rota cleared for ${name}`,
     };
   }
 
