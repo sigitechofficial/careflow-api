@@ -116,6 +116,15 @@ describe('policy library seed: removed documents stay removed', () => {
     });
   });
 
+  it('an empty library (its folder missing from the deploy) retires nothing, as nothing retired comes back', async () => {
+    const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const { db } = fakeDb([doc(0)]);
+    const res = await seedPolicyLibrary(db, []);
+    expect(res.retired).toBe(0);
+    expect(db.policyDocument.updateMany).not.toHaveBeenCalled();
+    warn.mockRestore();
+  });
+
   it('the rule', () => {
     expect(catalogueRemoved({ deletedAt: null, isActive: true, status: PolicyStatus.APPROVED })).toBe(false);
     expect(catalogueRemoved({ deletedAt: new Date(), isActive: true, status: PolicyStatus.APPROVED })).toBe(true);

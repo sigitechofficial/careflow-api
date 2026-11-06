@@ -1767,7 +1767,15 @@ export class SurveysService {
       r = await this.cqcEvidence.captureSurvey(s.id, { actorId: actor.id, trigger: 'manual', meta });
       detail = r.detail;
     } catch (e) {
-      detail = e instanceof Error ? e.message : null;
+      // A database error's message can hold the query and its values: logged, never shown.
+      const fromDb =
+        e instanceof Prisma.PrismaClientKnownRequestError ||
+        e instanceof Prisma.PrismaClientUnknownRequestError ||
+        e instanceof Prisma.PrismaClientValidationError ||
+        e instanceof Prisma.PrismaClientRustPanicError ||
+        e instanceof Prisma.PrismaClientInitializationError;
+      if (fromDb) this.logger.warn(`Survey ${s.id}: CQC evidence capture before delete failed: ${(e as Error).message}`);
+      detail = fromDb ? 'A database error stopped it (logged for support).' : e instanceof Error ? e.message : null;
     }
     if (!r || r.outcome === 'FAILED' || r.outcome === 'NOT_CLOSED') {
       // The real reason, so it can be put right (or, for a company-wide admin, deleted anyway: removeWithoutEvidence).
@@ -1793,7 +1801,8 @@ export class SurveysService {
   /**
    * Delete a closed survey whose CQC evidence cannot be taken: a company-wide Admin or Super Admin only, with a reason
    * (5–300 characters). Recorded as a deliberate "no evidence" capture (so answer retention can go ahead) in the same
-   * transaction as the delete, and audited with the reason. A survey that needs no evidence is deleted as usual.
+   * transaction as the delete, and audited with the reason. The evidence is tried once more first: a survey that needs
+   * none, or whose evidence is taken this time, is deleted as usual.
    */
   async removeWithoutEvidence(actor: RequestUser, id: string, reasonInput: unknown, meta?: RequestAuditMeta) {
     if (!isAdminActor(actor) || this.scopeOf(actor).locationIds !== null) {
@@ -1805,8 +1814,15 @@ export class SurveysService {
         `Say why it is being deleted without CQC evidence (${DELETE_WITHOUT_EVIDENCE_REASON_MIN} to ${DELETE_WITHOUT_EVIDENCE_REASON_MAX} characters).`,
       );
     }
+    // The evidence is tried once more first (as Delete does): it is left out only when it really cannot be taken now.
+    // A survey that needs none, or whose evidence is taken this time, is deleted as usual (no "no evidence" record).
+    try {
+      return await this.remove(actor, id, meta);
+    } catch (e) {
+      const code = e instanceof BadRequestException ? (e.getResponse() as { code?: unknown } | string) : null;
+      if (!code || typeof code !== 'object' || code.code !== SURVEY_EVIDENCE_CAPTURE_FAILED) throw e;
+    }
     const existing = await this.requireEditableSurvey(actor, id);
-    if (!(await this.evidenceNeededBeforeDelete(existing))) return this.remove(actor, id, meta);
     const failed = await this.prisma.cqcSurveyCapture.findUnique({ where: { surveyId: id }, select: { outcome: true, detail: true } });
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
@@ -4678,60 +4694,64 @@ export class SurveysService {
   async closeSurveysPastEndDate(now: Date = new Date()): Promise<number> {
     let closed = 0;
     const closedFor = new Map<string, Survey[]>();
-    for (let page = 0; page < AUTO_CLOSE_PAGES; page += 1) {
-      const due = await this.prisma.survey.findMany({
-        where: {
-          status: SurveyStatus.ACTIVE,
-          deletedAt: null,
-          isTemplate: false,
-          isCatalogue: false,
-          closesAt: { lte: now },
-          recurrence: null,
-          clones: { none: {} },
-        },
-        orderBy: { closesAt: 'asc' },
-        take: AUTO_CLOSE_BATCH,
-      });
-      let closedThisPage = 0;
-      for (const survey of due) {
-        const res = await this.prisma.survey.updateMany({
-          where: { id: survey.id, status: SurveyStatus.ACTIVE, closesAt: { lte: now } },
-          data: {
-            status: SurveyStatus.CLOSED,
-            distributeAt: null,
-            recurrenceAnchorAt: null,
-            scheduledById: null,
-            updatedById: null,
-            updatedAt: now,
+    // Told about whatever this run closed, even if a later batch fails (a closed survey is never closed, or told, again).
+    try {
+      for (let page = 0; page < AUTO_CLOSE_PAGES; page += 1) {
+        const due = await this.prisma.survey.findMany({
+          where: {
+            status: SurveyStatus.ACTIVE,
+            deletedAt: null,
+            isTemplate: false,
+            isCatalogue: false,
+            closesAt: { lte: now },
+            recurrence: null,
+            clones: { none: {} },
           },
+          orderBy: { closesAt: 'asc' },
+          take: AUTO_CLOSE_BATCH,
         });
-        if (res.count !== 1) continue;
-        closed += 1;
-        closedThisPage += 1;
-        // A system close: nobody is the actor (the audit row has no user).
-        try {
-          await this.audit.logAudit({
-            userId: undefined,
-            module: AuditModule.SURVEY,
-            action: AuditAction.SURVEY_UPDATED,
-            recordType: 'Survey',
-            recordId: survey.id,
-            description: CLOSED_AT_END_DATE_REASON,
-            oldValues: { status: survey.status, closesAt: toIso(survey.closesAt) },
-            newValues: { status: SurveyStatus.CLOSED },
-            metadata: { closed: true, closedAtEndDate: true, reason: CLOSED_AT_END_DATE_REASON },
+        let closedThisPage = 0;
+        for (const survey of due) {
+          const res = await this.prisma.survey.updateMany({
+            where: { id: survey.id, status: SurveyStatus.ACTIVE, closesAt: { lte: now } },
+            data: {
+              status: SurveyStatus.CLOSED,
+              distributeAt: null,
+              recurrenceAnchorAt: null,
+              scheduledById: null,
+              updatedById: null,
+              updatedAt: now,
+            },
           });
-        } catch (err) {
-          this.logger.warn(`Survey ${survey.id}: end-date close not audited: ${err instanceof Error ? err.message : String(err)}`);
+          if (res.count !== 1) continue;
+          closed += 1;
+          closedThisPage += 1;
+          // A system close: nobody is the actor (the audit row has no user).
+          try {
+            await this.audit.logAudit({
+              userId: undefined,
+              module: AuditModule.SURVEY,
+              action: AuditAction.SURVEY_UPDATED,
+              recordType: 'Survey',
+              recordId: survey.id,
+              description: CLOSED_AT_END_DATE_REASON,
+              oldValues: { status: survey.status, closesAt: toIso(survey.closesAt) },
+              newValues: { status: SurveyStatus.CLOSED },
+              metadata: { closed: true, closedAtEndDate: true, reason: CLOSED_AT_END_DATE_REASON },
+            });
+          } catch (err) {
+            this.logger.warn(`Survey ${survey.id}: end-date close not audited: ${err instanceof Error ? err.message : String(err)}`);
+          }
+          for (const userId of unique([survey.createdById, survey.scheduledById].filter((v): v is string => Boolean(v)))) {
+            closedFor.set(userId, [...(closedFor.get(userId) ?? []), survey]);
+          }
         }
-        for (const userId of unique([survey.createdById, survey.scheduledById].filter((v): v is string => Boolean(v)))) {
-          closedFor.set(userId, [...(closedFor.get(userId) ?? []), survey]);
-        }
+        // A full page may leave more: carry on (those this run closed no longer match), but never round the same ones.
+        if (due.length < AUTO_CLOSE_BATCH || !closedThisPage) break;
       }
-      // A full page may leave more: carry on (those this run closed no longer match), but never round the same ones.
-      if (due.length < AUTO_CLOSE_BATCH || !closedThisPage) break;
+    } finally {
+      for (const [userId, surveys] of closedFor) await this.notifyClosedAtEndDate(userId, surveys);
     }
-    for (const [userId, surveys] of closedFor) await this.notifyClosedAtEndDate(userId, surveys);
     return closed;
   }
 

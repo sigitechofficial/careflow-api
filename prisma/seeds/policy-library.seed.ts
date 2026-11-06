@@ -119,6 +119,11 @@ export async function seedPolicyLibrary(
     }
   }
 
+  // An empty library (its folder missing from the deploy) retires nothing: a retired document is never brought back.
+  if (!catalogueRefs.length) {
+    console.warn('[seed] Policy library: no library documents found, so none were retired.');
+    return { categoriesCreated, created, updated, keptRemoved, retired: 0 };
+  }
   const retired = await prisma.policyDocument.updateMany({
     where: { isCatalogue: true, deletedAt: null, reference: { notIn: catalogueRefs } },
     data: { isActive: false, deletedAt: new Date() },

@@ -5910,6 +5910,14 @@ describe('SurveysService', () => {
         });
         await expect(withCqc(threw).remove(admin, 's1')).rejects.toThrow(/could not be kept first\. Choose quality statements from the current CQC framework$/);
         expect(prisma.survey.update).not.toHaveBeenCalled();
+        // A database error's message (the query and its values) is never shown.
+        const dbError = jest.fn(async () => {
+          throw new Prisma.PrismaClientValidationError('Invalid `prisma.cqcEvidence.create()` invocation: secret value', { clientVersion: '6' });
+        });
+        const dbErr: any = await withCqc(dbError).remove(admin, 's1').catch((e) => e);
+        expect(dbErr.message).toMatch(/A database error stopped it \(logged for support\)\.$/);
+        expect(dbErr.message).not.toMatch(/secret value|prisma/);
+        expect(dbErr.getResponse()).toMatchObject({ code: 'SURVEY_EVIDENCE_CAPTURE_FAILED' });
       });
 
       describe('delete anyway without CQC evidence (company-wide admins)', () => {
@@ -5924,7 +5932,8 @@ describe('SurveysService', () => {
           const capture = failing();
           const res = await withCqc(capture).removeWithoutEvidence(companyAdmin, 's1', '  Survey set up by mistake, no real answers  ');
           expect(res.data).toEqual({ id: 's1' });
-          expect(capture).not.toHaveBeenCalled();
+          // Tried once more first (it failed again): only then deleted without it.
+          expect(capture).toHaveBeenCalledTimes(1);
           expect(prisma.$transaction).toHaveBeenCalledTimes(1);
           const data = { surveyUpdatedAt: new Date('2026-11-01T00:00:00.000Z'), outcome: 'NO_EVIDENCE', evidenceCount: 0, detail: 'Deleted without CQC evidence by an admin: Survey set up by mistake, no real answers' };
           expect(prisma.cqcSurveyCapture.upsert).toHaveBeenCalledWith({
@@ -5941,6 +5950,22 @@ describe('SurveysService', () => {
               metadata: { withoutEvidence: true, reason: 'Survey set up by mistake, no real answers', captureOutcome: 'FAILED', captureDetail: 'No active CQC framework' },
             }),
           );
+        });
+
+        it('takes the evidence when it can be taken now: deleted as usual, with no "no evidence" record', async () => {
+          const capture = jest.fn(async () => ({ outcome: 'CAPTURED' }));
+          const res = await withCqc(capture).removeWithoutEvidence(companyAdmin, 's1', 'Capture failed earlier today');
+          expect(res.message).toBe('Survey deleted');
+          expect(capture).toHaveBeenCalledTimes(1);
+          expect(prisma.cqcSurveyCapture.upsert).not.toHaveBeenCalled();
+          expect(prisma.survey.update).toHaveBeenCalledTimes(1);
+        });
+
+        it('any other error (not a failed capture) stops it: never deleted without evidence by mistake', async () => {
+          const capture = jest.fn(async () => ({ outcome: 'CAPTURED' }));
+          prisma.survey.update.mockRejectedValueOnce(new Error('connection lost'));
+          await expect(withCqc(capture).removeWithoutEvidence(companyAdmin, 's1', 'A good reason')).rejects.toThrow('connection lost');
+          expect(prisma.cqcSurveyCapture.upsert).not.toHaveBeenCalled();
         });
 
         it('only for an Admin or Super Admin with every branch', async () => {
