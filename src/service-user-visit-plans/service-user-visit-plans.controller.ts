@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { OrgScopeService } from '../common/org-scope/org-scope.service';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -30,7 +31,24 @@ import { PreviewVisitPlanWeeklyHoursDto } from './dto/preview-visit-plan-weekly-
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('service-users/:id/visit-plans')
 export class ServiceUserVisitPlansController {
-  constructor(private readonly service: ServiceUserVisitPlansService) {}
+  constructor(
+    private readonly service: ServiceUserVisitPlansService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
+
+  @Post('dev/clear-visit-plans-and-rota')
+  @AnyPermission('service_users.visit_plan.write', 'service_users.update', 'scheduling.write')
+  @ApiOperation({ summary: "Delete this service user's visit plans and rota only (Reset rota → this service user)" })
+  async clearServiceUserVisitPlansAndRota(
+    @CurrentUser() user: RequestUser,
+    @Param('id', new ParseUUIDPipe()) serviceUserId: string,
+    @Query('dryRun') dryRun: string | undefined,
+    @Req() req: Request,
+  ) {
+    await this.orgScope.assertServiceUserInScope(this.orgScope.fromRequestUser(user), serviceUserId);
+    const isDryRun = dryRun === 'true' || dryRun === '1';
+    return this.service.clearServiceUserVisitPlansAndRota(user.id, serviceUserId, isDryRun, getRequestAuditMeta(req));
+  }
 
   @Get()
   @AnyPermission('service_users.visit_plan.read', 'service_users.read')

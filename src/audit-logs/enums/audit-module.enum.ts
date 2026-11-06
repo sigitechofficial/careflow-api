@@ -43,4 +43,5 @@ export enum AuditModule {
   BILLING = 'BILLING',
   SAFEGUARDING = 'SAFEGUARDING',
   CRM = 'CRM',
+  SCRIPTS = 'SCRIPTS',
 }
