@@ -118,4 +118,13 @@ export class SendSurveyDto {
   @IsString()
   @MaxLength(300)
   repeatReason?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Send now to people who left or whose care ended in the last 3 months (chosen by name): why (5–300 characters). Not needed on leavers’ or care-ended surveys. Audited.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  formerReason?: string;
 }

@@ -35,6 +35,7 @@ export const LAPSABLE_STATUSES: SurveyRecipientStatus[] = [SurveyRecipientStatus
 /** The survey (and, for a period or month copy, the survey it was copied from). */
 export type EligibilitySurvey = {
   audienceServiceUserIds?: string[] | null;
+  audienceEmployeeIds?: string[] | null;
   audienceGroup?: string | null;
   libraryReference?: string | null;
   eventTrigger?: unknown;
@@ -95,7 +96,9 @@ export async function ineligibleRecipientIds(
       if (!su || su.deletedAt || su.dateOfDeath || never || (ended && !careEndedAllowed(survey, owner, p.serviceUserId))) out.add(p.id);
     } else if (p.employeeId) {
       const e = empById.get(p.employeeId);
-      if (!e || e.deletedAt || (!e.isActive && !leavers)) out.add(p.id);
+      // Someone who has left stays reachable on a leavers' survey, or one they were chosen for by name (former people).
+      const chosen = (survey.audienceEmployeeIds ?? []).includes(p.employeeId) || (owner.audienceEmployeeIds ?? []).includes(p.employeeId);
+      if (!e || e.deletedAt || (!e.isActive && !leavers && !chosen)) out.add(p.id);
     } else if (p.externalContactId) {
       const x = extById.get(p.externalContactId);
       if (!x || x.deletedAt) out.add(p.id);

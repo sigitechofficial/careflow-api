@@ -53,12 +53,18 @@ import {
 import { staffAnswerPlaces, type StaffAnswerPlaces } from './survey-staff-answer-places';
 import { staffAnswerWhere } from './survey-contact-messages.util';
 import { eventPeriodFor, readEventTrigger } from './survey-event-triggers.util';
+import { SurveyUnsubscribeService } from './survey-unsubscribe.service';
 import {
   CARE_ENDED_STATUS,
   CHOSEN_EXCLUDED_SERVICE_USER_STATUSES,
   ELIGIBLE_EMPLOYEE_WHERE,
   LAPSABLE_STATUSES,
-  formerStaffAllowed,
+  FORMER_REASON_MAX,
+  FORMER_REASON_MIN,
+  chosenServiceUsersWhere,
+  forLeavers,
+  formerPeopleNeedNoReason,
+  formerServiceUsersWhere,
   formerStaffWhere,
   organisationDomains,
   personalEmail,
@@ -709,6 +715,8 @@ export class SurveysService {
     @Optional() private readonly reminders?: SurveyRemindersService,
     /** The 4-week contact rule and sampling (survey-contact-rule.service.ts). */
     @Optional() private readonly contactRule?: SurveyContactRuleService,
+    /** "Unsubscribe from all surveys" links for former people (survey-unsubscribe.service.ts). */
+    @Optional() private readonly unsubscribe?: SurveyUnsubscribeService,
   ) {}
 
   /** Check a saved named response against the alert rules. Never fails or delays the caller. */
@@ -2477,7 +2485,7 @@ export class SurveysService {
           where: {
             AND: [
               chosen,
-              notWithStatus(CHOSEN_EXCLUDED_SERVICE_USER_STATUSES),
+              chosenServiceUsersWhere(new Date(), (await this.formerContext(survey)).noReason),
             ],
           },
         }),
@@ -2487,7 +2495,7 @@ export class SurveysService {
       }
       if (current !== serviceUserIds.length) {
         throw new BadRequestException(
-          'Some of the chosen people cannot be sent surveys (they have died, are inactive, or their care has not started). Remove them and try again.',
+          'Some of the chosen people cannot be sent surveys (they have died, are inactive, their care has not started, or it ended more than 3 months ago). Remove them and try again.',
         );
       }
     }
@@ -2516,8 +2524,9 @@ export class SurveysService {
     audience: SurveyAudience,
     preferredBranches: string[] | null = null,
     /** repeating: a repeating survey's period, which never goes to anyone whose care has ended. */
-    /** formerStaff: chosen staff may include people who left within the window (leavers' surveys only). */
-    opts: { withoutPortal?: boolean; repeating?: boolean; formerStaff?: boolean } = {},
+    /** formerStaff: chosen staff may include people who left within the window. */
+    /** careEndedSurvey: chosen people whose care ended may be included at any time (else within the window). */
+    opts: { withoutPortal?: boolean; repeating?: boolean; formerStaff?: boolean; careEndedSurvey?: boolean } = {},
   ): Promise<ResolvedTargets> {
     if (targetKind === SurveyTargetKind.SERVICE_USER) {
       const suWhere: Prisma.ServiceUserWhereInput = {
@@ -2525,10 +2534,9 @@ export class SurveysService {
         ...notWithStatus(SURVEY_EXCLUDED_SERVICE_USER_STATUSES),
       };
       if (audience.serviceUserIds.length) {
-        const chosenWhere: Prisma.ServiceUserWhereInput = {
-          deletedAt: null,
-          ...notWithStatus(opts.repeating ? SURVEY_EXCLUDED_SERVICE_USER_STATUSES : CHOSEN_EXCLUDED_SERVICE_USER_STATUSES),
-        };
+        const chosenWhere: Prisma.ServiceUserWhereInput = opts.repeating
+          ? { deletedAt: null, ...notWithStatus(SURVEY_EXCLUDED_SERVICE_USER_STATUSES) }
+          : { deletedAt: null, ...chosenServiceUsersWhere(new Date(), Boolean(opts.careEndedSurvey)) };
         return this.resolveChosenServiceUsers(db, chosenWhere, audience.serviceUserIds, preferredBranches, opts);
       }
       if (audience.locationIds.length) suWhere.locationId = { in: audience.locationIds };
@@ -2834,8 +2842,23 @@ export class SurveysService {
       survey.targetKind,
       audience,
       scope.locationIds,
-      { withoutPortal: !survey.isAnonymous, formerStaff: await this.formerStaffSurvey(survey) },
+      { withoutPortal: !survey.isAnonymous, formerStaff: true, careEndedSurvey: (await this.formerContext(survey)).noReason },
     );
+    // Former people (left, or care ended, in the last 3 months), chosen by name: now only, and with a reason
+    // unless the survey is for them (leavers, care ending).
+    const formerIds = await this.formerAmong(survey.targetKind, targets.ids);
+    const formerReason = dto.formerReason?.trim() || null;
+    if (formerIds.length) {
+      if (isFuture || recurrence) {
+        throw new BadRequestException('People who have left or whose care has ended can only be sent a survey now, not on a schedule or a repeat.');
+      }
+      const { noReason } = await this.formerContext(survey);
+      if (!noReason && (!formerReason || formerReason.length < FORMER_REASON_MIN || formerReason.length > FORMER_REASON_MAX)) {
+        throw new BadRequestException(
+          `Say why ${formerIds.length === 1 ? 'someone who has left or whose care has ended' : 'people who have left or whose care has ended'} should be sent this survey (${FORMER_REASON_MIN} to ${FORMER_REASON_MAX} characters).`,
+        );
+      }
+    }
     if (targets.ids.length === 0) {
       throw new BadRequestException(targets.emptyMessage);
     }
@@ -3094,6 +3117,8 @@ export class SurveysService {
         notSentHeld: ruled.skipped.length,
         notSampled: ruled.sampledOut,
         status: result.updated.status,
+        // Former people: the count and the reason, never who.
+        ...(formerIds.length ? { formerPeople: formerIds.length, ...(formerReason ? { formerReason } : {}) } : {}),
       },
       metadata: { surveyId, targetKind: survey.targetKind, audience },
       ...meta,
@@ -3411,7 +3436,8 @@ export class SurveysService {
     const targets = await this.resolveTargets(this.prisma, source.targetKind, chosen, source.locationIds.length ? source.locationIds : null, {
       withoutPortal: !source.isAnonymous,
       // Leavers' surveys: someone whose leaving record was entered after they left is still sent it.
-      formerStaff: await this.formerStaffSurvey(source),
+      formerStaff: await this.leaversSurvey(source),
+      careEndedSurvey: (await this.formerContext(source)).noReason,
     });
     const reachable = new Set(targets.ids);
     const unreachable = remaining.filter((id) => !reachable.has(id));
@@ -3451,56 +3477,118 @@ export class SurveysService {
     };
   }
 
-  /** May this survey be sent by name to staff who have already left (in the window)? One rule: survey-eligibility.util. */
-  private async formerStaffSurvey(survey: Survey): Promise<boolean> {
+  private async ownerOf(survey: Survey): Promise<Survey> {
+    return survey.clonedFromId ? ((await this.prisma.survey.findUnique({ where: { id: survey.clonedFromId } })) ?? survey) : survey;
+  }
+
+  /** Leavers' surveys (events only ever reach former staff on these). */
+  private async leaversSurvey(survey: Survey): Promise<boolean> {
     if (survey.targetKind !== SurveyTargetKind.EMPLOYEE) return false;
-    const owner = survey.clonedFromId ? ((await this.prisma.survey.findUnique({ where: { id: survey.clonedFromId } })) ?? survey) : survey;
-    return formerStaffAllowed(survey, owner);
+    return forLeavers(survey, await this.ownerOf(survey));
+  }
+
+  /** Former people on this survey: whether it is for them by nature (no reason needed). One rule: survey-eligibility.util. */
+  private async formerContext(survey: Survey): Promise<{ noReason: boolean }> {
+    const owner = await this.ownerOf(survey);
+    const kind = survey.targetKind === SurveyTargetKind.EMPLOYEE ? 'EMPLOYEE' : 'SERVICE_USER';
+    return { noReason: formerPeopleNeedNoReason(survey, owner, kind) };
+  }
+
+  /** Of these people, those who have left (staff) or whose care has ended (people we support). */
+  private async formerAmong(targetKind: SurveyTargetKind, ids: string[]): Promise<string[]> {
+    if (!ids.length) return [];
+    if (targetKind === SurveyTargetKind.EMPLOYEE) {
+      const rows = await Promise.resolve()
+        .then(() => this.prisma.employee.findMany({ where: { id: { in: ids }, isActive: false }, select: { id: true, isActive: true } }))
+        .catch(() => [] as Array<{ id: string; isActive: boolean }>);
+      return rows.filter((r) => r.isActive === false).map((r) => r.id);
+    }
+    if (targetKind === SurveyTargetKind.SERVICE_USER) {
+      const rows = await Promise.resolve()
+        .then(() => this.prisma.serviceUser.findMany({ where: { id: { in: ids }, status: { is: { code: CARE_ENDED_STATUS } } }, select: { id: true, status: { select: { code: true } } } }))
+        .catch(() => [] as Array<{ id: string; status: { code: string } | null }>);
+      return rows.filter((r) => r.status?.code === CARE_ENDED_STATUS).map((r) => r.id);
+    }
+    return [];
   }
 
   /**
-   * Leavers' surveys: staff who left in the last 3 months, to choose by name. Sent to the personal email on
-   * their staff record (never a work address, never the carer app); named surveys carry their own link,
-   * anonymous ones ask for a paper copy.
+   * People who have left (staff) or whose care ended (people we support) in the last 3 months, to choose by
+   * name. Sent to the personal email on their record (never a work address, never the carer app or portal),
+   * with a one-click "unsubscribe from all surveys"; named surveys carry their own link, anonymous ones ask for
+   * a paper copy. A reason is needed unless the survey is for them (leavers, care ending).
    */
-  async listFormerStaff(actor: RequestUser, surveyId: string, search?: string) {
+  async listFormerPeople(actor: RequestUser, surveyId: string, search?: string) {
     const survey = await this.requireSurvey(actor, surveyId);
-    if (!(await this.formerStaffSurvey(survey))) {
-      throw new BadRequestException('Only leavers’ surveys can be sent to people who have already left.');
-    }
+    if (survey.targetKind === SurveyTargetKind.PUBLIC) throw new BadRequestException('Public surveys are not sent to staff or people we support.');
+    if (survey.recurrence) throw new BadRequestException('A repeating survey never goes to people who have left.');
     const scope = this.scopeOf(actor);
     const q = search?.trim();
-    const inScope = this.orgScope.employeeEmploymentScopeWhere(scope);
-    const rows = await this.prisma.employee.findMany({
+    const now = new Date();
+    const tz = await this.timeZone();
+    const domains = organisationDomains(
+      await Promise.resolve().then(() => this.prisma.companyProfile.findFirst({ select: { email: true, companyWebsite: true } })).catch(() => null),
+    );
+    const { noReason } = await this.formerContext(survey);
+    if (survey.targetKind === SurveyTargetKind.EMPLOYEE) {
+      const inScope = this.orgScope.employeeEmploymentScopeWhere(scope);
+      const rows = await this.prisma.employee.findMany({
+        where: {
+          AND: [
+            formerStaffWhere(now),
+            ...(inScope ? [inScope] : []),
+            ...(q ? [{ personalDetail: { OR: [{ firstName: { contains: q, mode: 'insensitive' as const } }, { lastName: { contains: q, mode: 'insensitive' as const } }] } }] : []),
+          ],
+        },
+        select: {
+          id: true,
+          personalDetail: { select: { firstName: true, lastName: true, email: true } },
+          leavingRecords: { where: { deletedAt: null }, orderBy: { leavingDate: 'desc' }, take: 1, select: { leavingDate: true } },
+          employment: { select: { endDate: true } },
+        },
+        take: 100,
+      });
+      return {
+        message: 'Former people',
+        data: {
+          kind: 'EMPLOYEE',
+          needsReason: !noReason,
+          people: rows.map((e) => {
+            const left = e.leavingRecords[0]?.leavingDate ?? e.employment?.endDate ?? null;
+            return {
+              id: e.id,
+              name: `${e.personalDetail?.firstName ?? ''} ${e.personalDetail?.lastName ?? ''}`.trim() || 'Former employee',
+              leftOn: left ? dayKeyInTimeZone(left, tz) : null,
+              hasPersonalEmail: Boolean(personalEmail(e.personalDetail?.email, domains)),
+            };
+          }),
+        },
+      };
+    }
+    const inScope = this.orgScope.serviceUserScopeWhere(scope);
+    const rows = await this.prisma.serviceUser.findMany({
       where: {
         AND: [
-          formerStaffWhere(new Date()),
+          formerServiceUsersWhere(now),
           ...(inScope ? [inScope] : []),
-          ...(q ? [{ personalDetail: { OR: [{ firstName: { contains: q, mode: 'insensitive' as const } }, { lastName: { contains: q, mode: 'insensitive' as const } }] } }] : []),
+          ...(q ? [{ OR: [{ firstName: { contains: q, mode: 'insensitive' as const } }, { lastName: { contains: q, mode: 'insensitive' as const } }] }] : []),
         ],
       },
-      select: {
-        id: true,
-        personalDetail: { select: { firstName: true, lastName: true, email: true } },
-        leavingRecords: { where: { deletedAt: null }, orderBy: { leavingDate: 'desc' }, take: 1, select: { leavingDate: true } },
-        employment: { select: { endDate: true } },
-      },
+      select: { id: true, firstName: true, lastName: true, email: true, serviceEndDate: true },
       take: 100,
     });
-    const domains = organisationDomains(await this.prisma.companyProfile.findFirst({ select: { email: true, companyWebsite: true } }).catch(() => null));
-    const tz = await this.timeZone();
     return {
-      message: 'Former staff',
-      data: rows.map((e) => {
-        const left = e.leavingRecords[0]?.leavingDate ?? e.employment?.endDate ?? null;
-        return {
-          id: e.id,
-          name: `${e.personalDetail?.firstName ?? ''} ${e.personalDetail?.lastName ?? ''}`.trim() || 'Former employee',
-          leftOn: left ? dayKeyInTimeZone(left, tz) : null,
-          /** A personal email on their record (never a work address): how they are sent it. */
-          hasPersonalEmail: Boolean(personalEmail(e.personalDetail?.email, domains)),
-        };
-      }),
+      message: 'Former people',
+      data: {
+        kind: 'SERVICE_USER',
+        needsReason: !noReason,
+        people: rows.map((r) => ({
+          id: r.id,
+          name: `${r.firstName} ${r.lastName ?? ''}`.trim(),
+          leftOn: r.serviceEndDate ? dayKeyInTimeZone(r.serviceEndDate, tz) : null,
+          hasPersonalEmail: Boolean(r.email?.trim()),
+        })),
+      },
     };
   }
 
@@ -3653,6 +3741,40 @@ export class SurveysService {
     };
 
     if (survey.targetKind === SurveyTargetKind.SERVICE_USER) {
+      // People whose care has ended (chosen by name): their own email, never the portal (it closes with care).
+      const formerSu = new Set(
+        await this.formerAmong(
+          SurveyTargetKind.SERVICE_USER,
+          recipients.map((r) => r.serviceUserId).filter((id): id is string => Boolean(id)),
+        ),
+      );
+      if (formerSu.size) {
+        const people = await this.prisma.serviceUser.findMany({ where: { id: { in: [...formerSu] } }, select: { id: true, firstName: true, preferredName: true, email: true } });
+        for (const r of recipients) {
+          const su = r.serviceUserId ? people.find((p) => p.id === r.serviceUserId) : undefined;
+          if (!su?.email?.trim() || optedOut(`SERVICE_USER:${su.id}`, 'EMAIL')) continue;
+          const link = base && !survey.isAnonymous ? `${base}/survey/${r.token}` : null;
+          const stopAll = this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id }) ?? null;
+          await this.safeMail(survey.id, {
+            to: su.email.trim(),
+            subject: `Survey: ${survey.title}`,
+            text: [
+              `Hello ${su.preferredName?.trim() || su.firstName},`,
+              '',
+              `We would value your views in the survey "${survey.title}".`,
+              link ? `Open your survey: ${link}` : 'Please contact us for a paper copy, or to answer by phone.',
+              '',
+              survey.isAnonymous ? 'Your answers are anonymous: they are not linked to your name.' : 'This link is personal to you. Please do not share it.',
+              'A family member or representative can answer on your behalf.',
+              '',
+              stopAll ? `To stop all survey messages from us, for good: ${stopAll}` : '',
+              'Thank you.',
+            ]
+              .filter((line, i, all) => line !== '' || all[i - 1] !== '')
+              .join('\n'),
+          });
+        }
+      }
       const accounts = await this.prisma.serviceUserPortalAccount.findMany({
         where: {
           serviceUserId: {
@@ -3668,7 +3790,7 @@ export class SurveysService {
         },
       });
       for (const a of accounts) {
-        if (optedOut(`SERVICE_USER:${a.serviceUserId}`, 'PORTAL')) continue;
+        if (formerSu.has(a.serviceUserId) || optedOut(`SERVICE_USER:${a.serviceUserId}`, 'PORTAL')) continue;
         const name = a.serviceUser.preferredName?.trim() || a.serviceUser.firstName;
         await this.safeMail(survey.id, {
           to: a.email,
@@ -3763,6 +3885,9 @@ export class SurveysService {
             ? 'Your answers are anonymous: they are not linked to your name.'
             : 'This link is personal to you — please do not share it.',
           '',
+          ...(former.has(r.employeeId) && this.unsubscribe
+            ? [`To stop all survey messages from us, for good: ${this.unsubscribe.link(base, { subjectKind: 'EMPLOYEE', subjectId: r.employeeId }) ?? 'reply to this email'}`, '']
+            : []),
           'Thank you.',
         ].join('\n'),
       });

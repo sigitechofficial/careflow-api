@@ -29,6 +29,8 @@ export type ContactMessageInput = {
    * app only (older callers). webLink: the web app's My surveys page (base/my-surveys), when known.
    */
   staffPlaces?: { app: boolean; web: boolean; webLink: string | null };
+  /** Former people (left, or care ended): a one-click "unsubscribe from all surveys" link in every message. */
+  unsubscribeLink?: string | null;
 };
 
 /** Where a member of staff answers without a personal link, in words (never a token). */
@@ -92,7 +94,8 @@ export function surveyContactMessages(input: ContactMessageInput): ContactMessag
   const opening = input.reminder
     ? `This is a reminder that the survey "${input.title}" is still open and we would value your answers.${until}`
     : `We would value your answers to the survey "${input.title}".${until}`;
-  const emailText = [hello, '', opening, where, '', privacy, onBehalf, thanksIfDone, '', 'Thank you.', input.organisation ?? '']
+  const stopAll = input.unsubscribeLink ? `To stop all survey messages from us, for good: ${input.unsubscribeLink}` : '';
+  const emailText = [hello, '', opening, where, '', privacy, onBehalf, thanksIfDone, '', stopAll, 'Thank you.', input.organisation ?? '']
     .filter((line, i, all) => line !== '' || (all[i - 1] !== '' && i > 0))
     .join('\n')
     .trim();
@@ -116,7 +119,7 @@ export function surveyContactMessages(input: ContactMessageInput): ContactMessag
     `${from}${input.reminder ? 'Reminder: ' : ''}please answer our survey "${shortTitle(input.title)}".`,
     input.anonymous ? 'It is anonymous.' : '',
     textWhere,
-    input.textRepliesSupported ? 'Reply STOP to stop survey texts.' : '',
+    input.textRepliesSupported ? 'Reply STOP to stop survey texts.' : input.unsubscribeLink ? `Stop all surveys: ${input.unsubscribeLink}` : '',
   ]
     .filter(Boolean)
     .join(' ');

@@ -53,6 +53,7 @@ import {
 } from './survey-contact-plan.util';
 import { surveyContactMessages } from './survey-contact-messages.util';
 import { SURVEY_TEXT_STOP_REASON } from './survey-text-replies.service';
+import { SurveyUnsubscribeService } from './survey-unsubscribe.service';
 import { LAPSABLE_STATUSES, SURVEY_UNSUBSCRIBE_REASON, ineligibleRecipientIds, organisationDomains, personalEmail } from './survey-eligibility.util';
 import { staffAnswerPlaces, type StaffAnswerPlaces } from './survey-staff-answer-places';
 
@@ -100,6 +101,7 @@ export class SurveyRemindersService {
     private readonly notifications: NotificationsService,
     private readonly orgScope: OrgScopeService,
     @Optional() private readonly orgSettings?: OrganisationGeneralSettingsService,
+    @Optional() private readonly unsubscribe?: SurveyUnsubscribeService,
   ) {}
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -501,6 +503,7 @@ export class SurveyRemindersService {
               phone: true,
               isActive: true,
               portalAccount: { select: { email: true, isEnabled: true, deletedAt: true } },
+              status: { select: { code: true } },
             },
           })
         : [],
@@ -549,6 +552,11 @@ export class SurveyRemindersService {
             : undefined,
         });
         const left = s.employee?.isActive === false;
+        if (left && this.unsubscribe) {
+          const stopAll = this.unsubscribe.link(base, { subjectKind: 'EMPLOYEE', subjectId: p.employeeId });
+          m.emailText = m.emailText.replace(/\nThank you\./, `\nTo stop all survey messages from us, for good: ${stopAll}\n\nThank you.`);
+          if (!this.texts.supportsReplies() && stopAll) m.text = `${m.text} Stop all surveys: ${stopAll}`;
+        }
         const email = left ? personalEmail(s.email, domains) : s.email;
         await tryChannel('APP', !left, async () => {
           const report = await this.push.sendToEmployees([p.employeeId!], {
@@ -572,8 +580,14 @@ export class SurveyRemindersService {
         const m = surveyContactMessages({
           kind: 'SERVICE_USER', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName,
           link, portalLink, closesOn, organisation, textRepliesSupported: this.texts.supportsReplies(),
+          unsubscribeLink:
+            (su as { status?: { code: string } | null }).status?.code === 'DISCHARGED'
+              ? (this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id }) ?? null)
+              : null,
         });
-        const portal = su.isActive && su.portalAccount?.isEnabled && !su.portalAccount.deletedAt ? su.portalAccount.email : null;
+        // Care has ended (a former person chosen by name): never the portal; their own email, with an unsubscribe link.
+        const formerSu = (su as { status?: { code: string } | null }).status?.code === 'DISCHARGED';
+        const portal = !formerSu && su.isActive && su.portalAccount?.isEnabled && !su.portalAccount.deletedAt ? su.portalAccount.email : null;
         const portalMessages = surveyContactMessages({
           kind: 'SERVICE_USER', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName,
           link: null, portalLink, closesOn, organisation, textRepliesSupported: this.texts.supportsReplies(),

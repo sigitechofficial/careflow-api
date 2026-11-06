@@ -2,6 +2,9 @@ import {
   FORMER_PERSON_WINDOW_DAYS,
   careEndedAllowed,
   forLeavers,
+  formerPeopleNeedNoReason,
+  formerServiceUsersWhere,
+  chosenServiceUsersWhere,
   formerStaffAllowed,
   formerStaffWhere,
   ineligibleRecipientIds,
@@ -74,15 +77,26 @@ describe('who can still be sent a survey (the same rules as sending)', () => {
 
 describe('former staff, chosen by name (one rule, one window)', () => {
   it('only leavers’ surveys, and only people who left in about the last 3 months', () => {
-    expect(formerStaffAllowed({ libraryReference: 'SUR-STF-015' }, {})).toBe(true);
-    expect(formerStaffAllowed({}, { libraryReference: 'SUR-STF-015' })).toBe(true);
-    expect(formerStaffAllowed({ libraryReference: 'SUR-STF-001' }, {})).toBe(false);
+    // Any survey by name (decision, November 2026); leavers' and care-ended surveys need no reason.
+    expect(formerStaffAllowed({ libraryReference: 'SUR-STF-001' }, {})).toBe(true);
+    expect(formerPeopleNeedNoReason({ libraryReference: 'SUR-STF-015' }, {}, 'EMPLOYEE')).toBe(true);
+    expect(formerPeopleNeedNoReason({ libraryReference: 'SUR-STF-001' }, {}, 'EMPLOYEE')).toBe(false);
+    expect(formerPeopleNeedNoReason({ libraryReference: 'SUR-PWS-008' }, {}, 'SERVICE_USER')).toBe(true);
+    expect(formerPeopleNeedNoReason({ libraryReference: 'SUR-PWS-003' }, {}, 'SERVICE_USER')).toBe(false);
     expect(FORMER_PERSON_WINDOW_DAYS).toBe(92);
     const now = new Date('2026-11-06T12:00:00Z');
     const where = formerStaffWhere(now) as any;
     expect(where).toMatchObject({ deletedAt: null, isActive: false });
     const since = where.OR[0].leavingRecords.some.leavingDate.gte as Date;
     expect(Math.round((now.getTime() - since.getTime()) / 86_400_000)).toBe(92);
+  });
+
+  it('people whose care ended: by name within 3 months (never died, never a guessed end date), or any time on a care-ended survey', () => {
+    const now = new Date('2026-11-06T12:00:00Z');
+    expect(formerServiceUsersWhere(now)).toMatchObject({ dateOfDeath: null, status: { is: { code: 'DISCHARGED' } }, serviceEndDate: { lte: now } });
+    expect(JSON.stringify(chosenServiceUsersWhere(now, false))).toMatch(/serviceEndDate/);
+    expect(JSON.stringify(chosenServiceUsersWhere(now, true))).not.toMatch(/serviceEndDate/);
+    expect(JSON.stringify(chosenServiceUsersWhere(now, true))).toMatch(/DECEASED/);
   });
 
   it('a personal email only: never an address on the organisation’s own domains', () => {

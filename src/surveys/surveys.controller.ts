@@ -101,11 +101,11 @@ export class SurveysController {
     return this.service.listRecordCandidates(user, id, search);
   }
 
-  @Get(':id/former-staff')
+  @Get(':id/former-people')
   @Permissions('surveys.manage')
-  @ApiOperation({ summary: "Leavers' surveys: staff who left in the last 3 months, to choose by name (sent to their personal email)" })
-  formerStaff(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Query('search') search?: string) {
-    return this.service.listFormerStaff(user, id, search);
+  @ApiOperation({ summary: 'People who left or whose care ended in the last 3 months, to choose by name (with a reason unless the survey is for them)' })
+  formerPeople(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Query('search') search?: string) {
+    return this.service.listFormerPeople(user, id, search);
   }
 
   @Get(':id/send-candidates')

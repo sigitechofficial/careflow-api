@@ -993,7 +993,7 @@ describe('SurveysService', () => {
           { id: 'emp-2', employment: { locationId: 'loc-leeds' } },
         ]);
 
-      it('leavers’ survey: staff who left in the last 3 months can be chosen by name; other surveys never reach them', async () => {
+      it('staff who left in the last 3 months can be chosen by name: no reason on leavers’ surveys, a reason on any other', async () => {
         givenSurvey(surveyRow({ libraryReference: 'SUR-STF-015', audienceEmployeeIds: ['emp-left'] }));
         givenQuestions(1);
         prisma.employee.count.mockResolvedValue(1);
@@ -1004,13 +1004,16 @@ describe('SurveysService', () => {
         expect(where.isActive).toBeUndefined();
         expect(where.OR[0]).toEqual({ isActive: true });
         expect(where.OR[1]).toMatchObject({ isActive: false, deletedAt: null });
-        // Any other survey: active staff only.
-        prisma.employee.findMany.mockClear();
+        // Any other survey (decision, November 2026): they can be chosen by name too, but only with a reason.
         givenSurvey(surveyRow({ libraryReference: 'SUR-STF-001', audienceEmployeeIds: ['emp-left'] }));
-        await svc.send(admin, 's1', { employeeIds: ['emp-left'] }).catch(() => null);
-        const other = prisma.employee.findMany.mock.calls.find((c: any) => c[0]?.where?.id?.in?.includes('emp-left'))[0].where;
-        expect(other).toMatchObject({ isActive: true });
-        expect(other.OR).toBeUndefined();
+        prisma.employee.findMany.mockResolvedValue([{ id: 'emp-left', isActive: false, employment: { locationId: 'loc-leeds' } }]);
+        await expect(svc.send(admin, 's1', { employeeIds: ['emp-left'] })).rejects.toThrow(/Say why someone who has left/);
+        audit.logAudit.mockClear();
+        await svc.send(admin, 's1', { employeeIds: ['emp-left'], formerReason: 'Exit views on the new rota' });
+        const sent = audit.logAudit.mock.calls.map((c: any) => c[0]).find((e: any) => e.action === 'survey_sent');
+        expect(sent.newValues).toMatchObject({ formerPeople: 1, formerReason: 'Exit views on the new rota' });
+        // Never on a schedule or a repeat.
+        await expect(svc.send(admin, 's1', { employeeIds: ['emp-left'], distributeAt: '2030-01-06T09:00:00Z', formerReason: 'Exit views' })).rejects.toThrow(/only be sent a survey now/);
       });
 
       it('former staff: never the carer app, and only a personal email (never a work address)', async () => {
@@ -6488,7 +6491,7 @@ describe('SurveysService', () => {
       prisma.serviceUser.count.mockReset();
       prisma.serviceUser.count.mockResolvedValueOnce(1).mockResolvedValueOnce(0);
       await expect(service.send(leedsManager, 's1', { serviceUserIds: ['su-gone'] })).rejects.toThrow(
-        /cannot be sent surveys \(they have died, are inactive, or their care has not started\)/,
+        /cannot be sent surveys \(they have died, are inactive, their care has not started, or it ended more than 3 months ago\)/,
       );
       // Someone whose care has ended can still be chosen (the "When your care ends" survey).
       const statusWhere = JSON.stringify(prisma.serviceUser.count.mock.calls[1][0].where);
@@ -6563,9 +6566,10 @@ describe('SurveysService', () => {
       expect(out[0].ok).toBe(false);
       expect(out[0].detail).toMatch(/have died, are inactive, have not started care/);
       const where = prisma.serviceUser.findMany.mock.calls[0][0].where;
-      // A one-off schedule may still reach someone whose care has ended (care-ending survey).
-      expect(JSON.stringify(where.NOT)).toMatch(/DECEASED/);
-      expect(JSON.stringify(where.NOT)).not.toMatch(/DISCHARGED/);
+      // A one-off schedule never reaches anyone who has died; someone whose care ended only within 3 months
+      // (or at any time on a survey about care ending).
+      expect(JSON.stringify(where)).toMatch(/DECEASED/);
+      expect(JSON.stringify(where)).toMatch(/serviceEndDate/);
     });
 
     it('a repeating survey never sends a period to someone whose care has ended', async () => {
