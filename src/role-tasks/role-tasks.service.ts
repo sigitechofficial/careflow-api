@@ -315,6 +315,10 @@ export class RoleTasksService {
     if (task.sourceType === 'SURVEY_ACTION' && dto.status === RoleTaskStatus.DONE) {
       throw new BadRequestException('Close a survey action on its page (Open page), saying what was done.');
     }
+    // A closed action's task is reopened with the action (which takes its CQC evidence entry back), never here.
+    if (task.sourceType === 'SURVEY_ACTION' && task.status === RoleTaskStatus.DONE) {
+      throw new BadRequestException('Reopen a survey action on its page (Open page).');
+    }
     if (task.sourceType === 'SURVEY_ALERT' && dto.status === RoleTaskStatus.DONE) {
       throw new BadRequestException(
         'Close a survey follow-up on its page (Open page), saying what was done.',

@@ -1,0 +1,319 @@
+/**
+ * Platform items (Phase 2 part 7): repeats that skip months, a rotating question, grouped answer choices, answer
+ * retention, and the wording checker. Pure helpers; SurveyPlatformService does the database work.
+ */
+import { BadRequestException } from '@nestjs/common';
+import type { SurveyRecurrence } from '@prisma/client';
+import { DEFAULT_OPERATIONAL_TIMEZONE } from '../common/utils/operational-day.util';
+import { nextSurveyDistributeAt } from './survey-recurrence.util';
+
+// ─── Repeats that skip months ────────────────────────────────────────────
+
+export const MONTH_LABELS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+/** The month (1–12) of an instant in the organisation's time zone. */
+export function monthIn(at: Date, timeZone = DEFAULT_OPERATIONAL_TIMEZONE): number {
+  return Number(new Intl.DateTimeFormat('en-GB', { timeZone, month: 'numeric' }).format(at));
+}
+
+export function isSkippedMonth(at: Date, skipMonths: readonly number[] | null | undefined, timeZone = DEFAULT_OPERATIONAL_TIMEZONE): boolean {
+  return Boolean(skipMonths?.length) && skipMonths!.includes(monthIn(at, timeZone));
+}
+
+/** The next run after `after` / `now` that is not in a skipped month. */
+export function nextRunSkipping(
+  anchor: Date,
+  recurrence: SurveyRecurrence,
+  after: Date,
+  now: Date,
+  timeZone: string,
+  skipMonths: readonly number[] | null | undefined,
+): Date {
+  let at = nextSurveyDistributeAt(anchor, recurrence, after, now, timeZone);
+  for (let guard = 0; guard < 120 && isSkippedMonth(at, skipMonths, timeZone); guard += 1) {
+    at = nextSurveyDistributeAt(anchor, recurrence, at, at, timeZone);
+  }
+  return at;
+}
+
+/** Checked skip months: whole numbers 1–12, at most 10 (a repeat must still run). */
+export function checkSkipMonths(v: unknown): number[] {
+  if (v === null || v === undefined) return [];
+  if (!Array.isArray(v) || v.some((m) => !Number.isInteger(m) || m < 1 || m > 12)) throw new BadRequestException('Months to skip must be from 1 (January) to 12 (December).');
+  const months = [...new Set(v as number[])].sort((a, b) => a - b);
+  if (months.length > 10) throw new BadRequestException('A repeating survey must run in at least 2 months of the year.');
+  return months;
+}
+
+/** Months the ready-made survey says it does not run in ("not in April, September…" in timing.when). */
+export function libraryNotInMonths(libraryMeta: unknown): number[] {
+  const when = (libraryMeta as { timing?: { when?: unknown } } | null)?.timing?.when;
+  if (typeof when !== 'string') return [];
+  const m = /\bnot in ([A-Za-z ,]+?)(?:[;,.(]|$)/i.exec(when);
+  if (!m) return [];
+  return MONTH_LABELS.map((name, i) => (new RegExp(`\\b${name}\\b`, 'i').test(m[1]) ? i + 1 : 0)).filter(Boolean);
+}
+
+// ─── A rotating question ────────────────────────────────────────────────
+
+/**
+ * The question ids a period copy leaves out: of the bank (in question order), all but the one whose turn it is
+ * (the period's number, counted from 0, modulo the bank's size).
+ */
+export function rotatedOut(bankInOrder: readonly string[], periodNumber: number): Set<string> {
+  if (bankInOrder.length < 2) return new Set();
+  const keep = bankInOrder[((periodNumber % bankInOrder.length) + bankInOrder.length) % bankInOrder.length];
+  return new Set(bankInOrder.filter((id) => id !== keep));
+}
+
+export type RotationQuestion = { id: string; key: string | null; questionText: string; questionType: string; showIf: unknown; sortOrder: number };
+
+/** Checks a bank: 2–12 of the survey's questions, none that another depends on or that has its own condition. */
+export function checkRotation(ids: unknown, questions: readonly RotationQuestion[]): string[] {
+  if (ids === null || ids === undefined) return [];
+  if (!Array.isArray(ids) || ids.some((x) => typeof x !== 'string')) throw new BadRequestException('Choose the questions that take turns.');
+  const bank = [...new Set(ids as string[])];
+  if (bank.length === 0) return [];
+  if (bank.length < 2 || bank.length > 12) throw new BadRequestException('A rotating question needs 2 to 12 questions that take turns.');
+  const byId = new Map(questions.map((q) => [q.id, q]));
+  const dependedOn = new Set(
+    questions.map((q) => (q.showIf && typeof q.showIf === 'object' ? (q.showIf as { questionKey?: string }).questionKey : null)).filter((k): k is string => Boolean(k)),
+  );
+  for (const id of bank) {
+    const q = byId.get(id);
+    if (!q) throw new BadRequestException('A question chosen to take turns is no longer on the survey.');
+    if (q.showIf) throw new BadRequestException(`"${q.questionText}" is asked only after another answer, so it cannot take turns.`);
+    if (q.key && dependedOn.has(q.key)) throw new BadRequestException(`Another question depends on "${q.questionText}", so it cannot take turns.`);
+    if (/^would you like someone to contact you/i.test(q.questionText.trim())) throw new BadRequestException('The contact-me question cannot take turns.');
+  }
+  return bank.sort((a, b) => byId.get(a)!.sortOrder - byId.get(b)!.sortOrder);
+}
+
+// ─── Grouped answer choices ─────────────────────────────────────────────
+
+export type OptionGroup = { heading: string; options: string[] };
+export const MAX_OPTION_GROUPS = 12;
+
+export function readOptionGroups(v: unknown): OptionGroup[] {
+  return Array.isArray(v)
+    ? v.flatMap((g) =>
+        g && typeof g === 'object' && typeof (g as OptionGroup).heading === 'string' && Array.isArray((g as OptionGroup).options)
+          ? [{ heading: (g as OptionGroup).heading, options: (g as OptionGroup).options.filter((o): o is string => typeof o === 'string') }]
+          : [],
+      )
+    : [];
+}
+
+/** Checks groups against a choice question's answers; null clears them. */
+export function checkOptionGroups(v: unknown, questionType: string, options: readonly string[]): OptionGroup[] | null {
+  if (v === null || v === undefined || (Array.isArray(v) && v.length === 0)) return null;
+  if (questionType !== 'SINGLE_SELECT' && questionType !== 'MULTI_SELECT') throw new BadRequestException('Only single- and multi-choice questions can group their answers.');
+  if (!Array.isArray(v)) throw new BadRequestException('Groups must be a list of headings with their answers.');
+  if (v.length < 2 || v.length > MAX_OPTION_GROUPS) throw new BadRequestException(`Use 2 to ${MAX_OPTION_GROUPS} groups.`);
+  const used = new Set<string>();
+  const headings = new Set<string>();
+  const out: OptionGroup[] = [];
+  for (const g of v as Array<Record<string, unknown>>) {
+    const heading = typeof g?.heading === 'string' ? g.heading.trim().slice(0, 80) : '';
+    if (!heading) throw new BadRequestException('Each group needs a heading.');
+    if (headings.has(heading.toLowerCase())) throw new BadRequestException(`Two groups are called "${heading}".`);
+    headings.add(heading.toLowerCase());
+    const opts = Array.isArray(g.options) ? (g.options as unknown[]).filter((o): o is string => typeof o === 'string') : [];
+    if (!opts.length) throw new BadRequestException(`"${heading}" has no answers.`);
+    for (const o of opts) {
+      if (!options.includes(o)) throw new BadRequestException(`"${o}" is not one of the question's answers.`);
+      if (used.has(o)) throw new BadRequestException(`"${o}" is in two groups.`);
+      used.add(o);
+    }
+    out.push({ heading, options: opts });
+  }
+  return out;
+}
+
+/**
+ * Results by group: each group's count (single choice: the options' counts added; multi choice: people who chose any
+ * option in the group) and share of the people who answered. On surveys where an answer can be linked to no one, a
+ * group under `min` people is folded into "Other groups" (and the whole breakdown is withheld if that is still small).
+ */
+export function groupSummary(
+  groups: readonly OptionGroup[],
+  answers: ReadonlyArray<readonly string[]>,
+  opts: { min: number; fold: boolean },
+): { groups: Array<{ heading: string; count: number; percent: number }>; note: string | null } | null {
+  if (!groups.length) return null;
+  const answered = answers.filter((a) => a.length > 0).length;
+  if (!answered) return { groups: [], note: null };
+  const raw = groups.map((g) => ({ heading: g.heading, count: answers.filter((a) => a.some((o) => g.options.includes(o))).length }));
+  const pct = (n: number) => Math.round((n / answered) * 100);
+  if (!opts.fold) return { groups: raw.map((g) => ({ ...g, percent: pct(g.count) })), note: null };
+  const shown = raw.filter((g) => g.count >= opts.min);
+  const small = raw.filter((g) => g.count > 0 && g.count < opts.min);
+  const smallPeople = answers.filter((a) => a.length && small.some((g) => groups.find((x) => x.heading === g.heading)!.options.some((o) => a.includes(o)))).length;
+  if (small.length && smallPeople < opts.min) {
+    return { groups: [], note: `Groups are shown once each has at least ${opts.min} answers, so nobody can be identified.` };
+  }
+  return {
+    groups: [...shown.map((g) => ({ ...g, percent: pct(g.count) })), ...(small.length ? [{ heading: `Other groups (fewer than ${opts.min} each)`, count: smallPeople, percent: pct(smallPeople) }] : [])],
+    note: small.length ? `Groups chosen by fewer than ${opts.min} people are combined.` : null,
+  };
+}
+
+// ─── Answer retention ───────────────────────────────────────────────────
+
+/** Months the ready-made privacy notice keeps answers for ("We keep your answers for 1 year after the survey closes"). */
+export function libraryRetentionMonths(libraryMeta: unknown): number | null {
+  const notice = (libraryMeta as { privacyNotice?: unknown } | null)?.privacyNotice;
+  if (typeof notice !== 'string') return null;
+  const m = /keep (?:your|the|these|individual|all)?\s*(?:individual\s+)?answers for (\d+|one|two|three|six) (year|month)s?/i.exec(notice);
+  if (!m) return null;
+  const words: Record<string, number> = { one: 1, two: 2, three: 3, six: 6 };
+  const n = /^\d+$/.test(m[1]) ? Number(m[1]) : words[m[1].toLowerCase()];
+  return m[2].toLowerCase() === 'year' ? n * 12 : n;
+}
+
+export function checkRetentionMonths(v: unknown): number | null {
+  if (v === null || v === undefined) return null;
+  if (!Number.isInteger(v) || (v as number) < 1 || (v as number) > 120) throw new BadRequestException('Keep answers for 1 to 120 months after the survey closes.');
+  return v as number;
+}
+
+/** The day answers to a unit closed on `closedAt` are deleted, `months` later (end of the same day of month). */
+export function retentionDue(closedAt: Date, months: number): Date {
+  const d = new Date(closedAt);
+  const day = d.getUTCDate();
+  d.setUTCDate(1);
+  d.setUTCMonth(d.getUTCMonth() + months);
+  const last = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+  d.setUTCDate(Math.min(day, last));
+  return d;
+}
+
+// ─── Wording checker ────────────────────────────────────────────────────
+
+export type WordingQuestion = {
+  id: string;
+  questionText: string;
+  questionType: string;
+  options: unknown;
+  config?: unknown;
+  isRequired: boolean;
+  sectionTitle?: string | null;
+};
+export type WordingFinding = {
+  rule: 'PLAIN_ENGLISH' | 'ONE_IDEA' | 'SCALE' | 'NEGATIVE' | 'LEADING' | 'FORCED_WRITING' | 'ANONYMITY' | 'TIME';
+  severity: 'PROBLEM' | 'SUGGESTION';
+  questionId: string | null;
+  questionText: string | null;
+  message: string;
+};
+
+export const WORDING_RULE_LABELS: Record<WordingFinding['rule'], string> = {
+  PLAIN_ENGLISH: 'Plain English',
+  ONE_IDEA: 'One idea per question',
+  SCALE: 'Answer scales',
+  NEGATIVE: 'Negative statements',
+  LEADING: 'Leading wording',
+  FORCED_WRITING: 'Written answers',
+  ANONYMITY: 'Anonymity',
+  TIME: 'Honest time',
+};
+
+/** Words with plainer ones (GOV.UK style guide and the library standard). */
+const PLAINER: Array<[RegExp, string]> = [
+  [/\butili[sz](e|es|ed|ing|ation)\b/i, 'use'],
+  [/\bfacilitat\w*\b/i, 'help, run or arrange'],
+  [/\bcommenc\w*\b/i, 'start'],
+  [/\bendeavour\w*\b/i, 'try'],
+  [/\bascertain\w*\b/i, 'find out'],
+  [/\bin respect of\b/i, 'about'],
+  [/\bwith regards? to\b/i, 'about'],
+  [/\bprior to\b/i, 'before'],
+  [/\bsubsequent(ly)?\b/i, 'later, after'],
+  [/\bin order to\b/i, 'to'],
+  [/\bpertaining to\b/i, 'about'],
+  [/\bservice users?\b/i, 'people we support (or "you")'],
+  [/\bdomiciliary\b/i, 'home care'],
+  [/\bmulti-?disciplinary\b/i, 'different professionals'],
+  [/\bperson-centred\b/i, 'what matters to you'],
+  [/\bstakeholders?\b/i, 'people involved'],
+  [/\bleverag\w*\b/i, 'use'],
+  [/\bensure\b/i, 'make sure'],
+];
+
+const AGREE = ['Strongly agree', 'Agree', 'Neither agree nor disagree', 'Disagree', 'Strongly disagree'];
+const optionList = (q: WordingQuestion): string[] =>
+  Array.isArray(q.options) ? (q.options as unknown[]).filter((o): o is string => typeof o === 'string') : q.questionType === 'LIKERT' ? AGREE : [];
+const notCounted = (q: WordingQuestion): string[] => {
+  const c = q.config as { notCountedOptions?: unknown } | null | undefined;
+  return Array.isArray(c?.notCountedOptions) ? (c!.notCountedOptions as unknown[]).filter((o): o is string => typeof o === 'string') : [];
+};
+const wordsIn = (t: string) => t.trim().split(/\s+/).filter(Boolean);
+
+/** Seconds people usually take: a choice or scale 10, a number or short text 20, a long written answer 60. */
+export function estimateSeconds(questions: readonly WordingQuestion[]): number {
+  return questions.reduce((n, q) => n + (q.questionType === 'TEXTAREA' ? 60 : q.questionType === 'TEXT' || q.questionType === 'NUMBER' ? 20 : 10), 30);
+}
+
+/** The minutes the introduction promises ("takes about 5 minutes"), or null. */
+export function promisedMinutes(text: string | null | undefined): number | null {
+  const m = typeof text === 'string' ? /(\d+)\s*(?:to\s*(\d+)\s*)?min(?:ute)?s?/i.exec(text) : null;
+  return m ? Number(m[2] ?? m[1]) : null;
+}
+
+/** The library standard's checks on an organisation's own survey. Findings only; nothing is blocked. */
+export function checkWording(survey: { description: string | null; isAnonymous: boolean }, questions: readonly WordingQuestion[]): WordingFinding[] {
+  const out: WordingFinding[] = [];
+  const add = (q: WordingQuestion | null, rule: WordingFinding['rule'], severity: WordingFinding['severity'], message: string) =>
+    out.push({ rule, severity, questionId: q?.id ?? null, questionText: q?.questionText ?? null, message });
+  for (const q of questions) {
+    const t = q.questionText.trim();
+    const n = wordsIn(t).length;
+    if (n > 25) add(q, 'PLAIN_ENGLISH', 'PROBLEM', `${n} words: keep a question under 20 words so it can be read once and answered.`);
+    else if (n > 20) add(q, 'PLAIN_ENGLISH', 'SUGGESTION', `${n} words: can it be shorter?`);
+    for (const [re, plain] of PLAINER) {
+      const m = re.exec(t);
+      if (m) add(q, 'PLAIN_ENGLISH', 'SUGGESTION', `Say "${plain}" instead of "${m[0]}".`);
+    }
+    const scaleOrYesNo = ['LIKERT', 'YES_NO', 'RATING'].includes(q.questionType) || (q.questionType === 'SINGLE_SELECT' && optionList(q).length <= 7);
+    if (scaleOrYesNo && /\b(and|or)\b/i.test(t.replace(/\b(kind|kindness|dignity|respect)\s+and\s+(respect|dignity|kind)\b/gi, ''))) {
+      add(q, 'ONE_IDEA', 'SUGGESTION', 'It may ask about two things at once ("and" / "or"). Someone who feels differently about each cannot answer: ask them separately.');
+    }
+    if (q.questionType === 'LIKERT') {
+      const opts = optionList(q);
+      if (/\b(not|never|no one|nobody|don't|doesn't|didn't|isn't|aren't|wasn't|can't|cannot|won't|un\w+able)\b/i.test(t)) {
+        add(q, 'NEGATIVE', 'PROBLEM', 'A negative statement on an agree / disagree scale makes people disagree with a "not" (a double negative). Word it positively.');
+      }
+      const counted = opts.filter((o) => !notCounted(q).includes(o));
+      if (counted.length < 4) add(q, 'SCALE', 'PROBLEM', `Only ${counted.length} answers on the scale: use a balanced 5-point scale.`);
+      if (counted.length % 2 === 0 && counted.length >= 4) add(q, 'SCALE', 'SUGGESTION', 'An even number of answers has no middle: people who feel neither way are pushed to one side.');
+    }
+    if (q.questionType === 'RATING') {
+      const c = q.config as { min?: number; max?: number } | null | undefined;
+      const span = (c?.max ?? 10) - (c?.min ?? 0);
+      if (span > 10) add(q, 'SCALE', 'SUGGESTION', 'A rating with more than 11 points is hard to answer: 0 to 10 is the most people can tell apart.');
+    }
+    if (['LIKERT', 'SINGLE_SELECT', 'MULTI_SELECT'].includes(q.questionType)) {
+      const dk = optionList(q).filter((o) => /don'?t know|does not apply|not applicable|prefer not to say/i.test(o));
+      const counted = dk.filter((o) => !notCounted(q).includes(o));
+      if (counted.length) add(q, 'SCALE', 'PROBLEM', `"${counted[0]}" is counted in the percentages: mark it "Not counted in percentages".`);
+    }
+    if (/\b(how (good|great|helpful|excellent)|don'?t you (agree|think)|wouldn'?t you|excellent service|how much did you (enjoy|like))\b/i.test(t)) {
+      add(q, 'LEADING', 'PROBLEM', 'The wording suggests the answer wanted. Ask neutrally, for example "How would you rate…?"');
+    }
+    if ((q.questionType === 'TEXT' || q.questionType === 'TEXTAREA') && q.isRequired) {
+      add(q, 'FORCED_WRITING', 'SUGGESTION', 'A written answer is required: people with little to say, or who find writing hard, may give up. Make it optional.');
+    }
+    if (survey.isAnonymous && /\b(your (full )?name|name of|email|e-mail|phone|mobile|address|date of birth|postcode|employee number|staff number)\b/i.test(t)) {
+      add(q, 'ANONYMITY', 'PROBLEM', 'This anonymous survey asks for something that can identify the person. Remove it, or make the survey named.');
+    }
+  }
+  const minutes = Math.ceil(estimateSeconds(questions) / 60);
+  const promised = promisedMinutes(survey.description);
+  if (promised !== null && minutes > promised + 1) {
+    add(null, 'TIME', 'PROBLEM', `The introduction promises ${promised} minutes; ${questions.length} questions take about ${minutes}. Say ${minutes} minutes, or ask fewer questions.`);
+  } else if (promised === null && questions.length) {
+    add(null, 'TIME', 'SUGGESTION', `Tell people how long it takes: about ${minutes} minute${minutes === 1 ? '' : 's'} for these ${questions.length} questions.`);
+  }
+  if (minutes > 15) add(null, 'TIME', 'SUGGESTION', `About ${minutes} minutes is long: people give up. Keep a survey under 10 minutes.`);
+  return out;
+}

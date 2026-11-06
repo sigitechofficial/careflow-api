@@ -27,20 +27,47 @@ export const YSWD_TEXT_MAX = 600;
 /** Words in a row shared with a written answer that make an item read as a quote. */
 export const QUOTE_RUN_WORDS = 8;
 
-const words = (t: string) => normaliseText(t).replace(/[^a-z0-9\s]/g, ' ').split(/\s+/).filter(Boolean);
+/**
+ * Words for the quote check: any language's letters and digits (accents folded, so "café" and "cafe" match),
+ * punctuation, case and line breaks ignored.
+ */
+const words = (t: string) =>
+  normaliseText(t.normalize('NFKD').replace(/\p{M}/gu, ''))
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .split(/\s+/)
+    .filter(Boolean);
 
 /**
- * Whether `text` repeats QUOTE_RUN_WORDS or more words in a row from any written answer. A quote can point to who wrote
- * it (their way of putting things, a detail only they know), so "You said, we did" must say it in other words.
+ * Keys for runs of `run` words, tolerant of one changed, added or left-out word: the run itself, the run with each word
+ * in turn wildcarded (one word changed), and each run+1 with one word dropped (one word added on this side).
+ */
+function runKeys(w: string[], run: number): Set<string> {
+  const keys = new Set<string>();
+  for (let i = 0; i + run <= w.length; i++) {
+    const g = w.slice(i, i + run);
+    keys.add(g.join(' '));
+    for (let k = 0; k < run; k++) keys.add(`${g.slice(0, k).join(' ')} \u0000 ${g.slice(k + 1).join(' ')}`);
+  }
+  for (let i = 0; i + run + 1 <= w.length; i++) {
+    const g = w.slice(i, i + run + 1);
+    for (let k = 1; k < run; k++) keys.add([...g.slice(0, k), ...g.slice(k + 1)].join(' '));
+  }
+  return keys;
+}
+
+/**
+ * Whether `text` repeats QUOTE_RUN_WORDS or more words in a row from any written answer, or nearly does (one word
+ * changed, added or left out inside the run). A quote can point to who wrote it (their way of putting things, a
+ * detail only they know), so "You said, we did" must say it in other words.
  */
 export function quotesWrittenAnswer(text: string, writtenAnswers: ReadonlyArray<string>, run = QUOTE_RUN_WORDS): boolean {
   const w = words(text);
   if (w.length < run) return false;
-  const grams = new Set<string>();
-  for (let i = 0; i + run <= w.length; i++) grams.add(w.slice(i, i + run).join(' '));
+  const mine = runKeys(w, run);
   for (const a of writtenAnswers) {
     const aw = words(a);
-    for (let i = 0; i + run <= aw.length; i++) if (grams.has(aw.slice(i, i + run).join(' '))) return true;
+    if (aw.length < run) continue;
+    for (const k of runKeys(aw, run)) if (mine.has(k)) return true;
   }
   return false;
 }

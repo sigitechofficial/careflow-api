@@ -4,6 +4,7 @@ import { SurveysService } from './surveys.service';
 import { SurveyAlertsService } from './survey-alerts.service';
 import { SurveyRemindersService } from './survey-reminders.service';
 import { SurveyEventTriggersService } from './survey-event-triggers.service';
+import { SurveyPlatformService } from './survey-platform.service';
 import { CqcSurveyEvidenceService } from '../cqc-evidence/cqc-survey-evidence.service';
 import { JobHandler } from '../jobs/job-handler.registry';
 import { JobRunner, runCronTick } from '../jobs/job-runner.service';
@@ -25,6 +26,7 @@ export class SurveyDistributionJob {
     @Optional() private readonly alerts?: SurveyAlertsService,
     @Optional() private readonly reminders?: SurveyRemindersService,
     @Optional() private readonly eventTriggers?: SurveyEventTriggersService,
+    @Optional() private readonly platform?: SurveyPlatformService,
   ) {}
 
   @Cron('* * * * *', { timeZone: 'UTC' })
@@ -82,6 +84,14 @@ export class SurveyDistributionJob {
       this.logger.warn(`CQC evidence capture failed: ${e.message}`);
       return null;
     });
+    // Answer retention (Phase 2 part 7), once an hour and after the CQC capture above, so evidence (totals only) is
+    // always kept before answers go.
+    const retention = now.getUTCMinutes() === 7
+      ? await this.platform?.runRetention(now).catch((e: Error) => {
+          this.logger.warn('Survey answer retention not run: ' + e.name);
+          return null;
+        })
+      : null;
     return jobSuccess({
       due: results.length,
       distributed,
@@ -96,6 +106,7 @@ export class SurveyDistributionJob {
       surveyEventsFound: events?.found ?? 0,
       surveyEventSends: events?.sent ?? 0,
       surveyContactStoppedAfterDeath: events?.stopped ?? 0,
+      surveyAnswerUnitsDeleted: retention?.units ?? 0,
     });
   }
 }

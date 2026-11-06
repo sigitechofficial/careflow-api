@@ -1,5 +1,6 @@
 import { SurveyActionsService } from './survey-actions.service';
 import { mergeEvidenceActions, quotesWrittenAnswer, readItems } from './survey-actions.util';
+import { keepActionLinks } from '../cqc-evidence/cqc-evidence.service';
 import { surveyResultsAudience } from './survey-access';
 
 jest.mock('./survey-access', () => ({ ...jest.requireActual('./survey-access'), surveyResultsAudience: jest.fn() }));
@@ -25,6 +26,30 @@ describe('acting on results (helpers)', () => {
     // The same words already typed on the evidence are not repeated.
     expect(mergeEvidenceActions([typed], { id: 'a2', done: true, youSaid: 'Rota late', weDid: 'Rota out 2 weeks ahead' })).toEqual([typed]);
     expect(readItems([{ youSaid: 'a', weDid: 'b' }, { bad: 1 }])).toEqual([{ youSaid: 'a', weDid: 'b', actionId: null }]);
+  });
+  it('catches quotes through punctuation, case, line breaks, accents and other alphabets', () => {
+    const written = ['The night carer, Zofia, never ever turns up on time and I have to wait in bed.'];
+    expect(quotesWrittenAnswer('THE NIGHT CARER ZOFIA\nnever-ever turns up on time!', written)).toBe(true);
+    expect(quotesWrittenAnswer('Café staff are rude every single morning when we arrive there', ['cafe staff are rude every single morning when we arrive'])).toBe(true);
+    expect(quotesWrittenAnswer('опікун ніколи не приходить вчасно і я чекаю в ліжку', ['Мій опікун ніколи не приходить вчасно і я чекаю в ліжку щодня'])).toBe(true);
+  });
+
+  it('catches near-copies: one word changed, added or left out', () => {
+    const written = ['The carers are always rushing and never have time to sit and talk with my mum'];
+    expect(quotesWrittenAnswer('carers are always hurrying and never have time to sit', written)).toBe(true);
+    expect(quotesWrittenAnswer('carers are always rushing about and never have time to sit', written)).toBe(true);
+    expect(quotesWrittenAnswer('carers are always rushing never have time to sit and talk', written)).toBe(true);
+    // Its own words: fine.
+    expect(quotesWrittenAnswer('You told us visits could feel hurried, so we added travel time between calls', written)).toBe(false);
+  });
+
+  it('an evidence form save keeps a survey action’s link on its unchanged entry', () => {
+    const existing = [{ youSaid: 'Rota late', weDid: 'Out two weeks ahead', actionId: 'a1' }, { youSaid: 'Typed', weDid: 'Typed' }];
+    expect(keepActionLinks(existing, [{ youSaid: ' Rota late ', weDid: 'Out two weeks ahead' }, { youSaid: 'Typed', weDid: 'Typed' }])).toEqual([
+      { youSaid: 'Rota late', weDid: 'Out two weeks ahead', actionId: 'a1' },
+      { youSaid: 'Typed', weDid: 'Typed' },
+    ]);
+    expect(keepActionLinks(existing, [{ youSaid: 'Rota late', weDid: 'Reworded by hand' }])).toEqual([{ youSaid: 'Rota late', weDid: 'Reworded by hand' }]);
   });
 });
 
@@ -53,7 +78,7 @@ function setup(opts: { survey?: any; written?: string[] } = {}) {
     surveyYouSaidWeDid: { findFirst: jest.fn(), findMany: jest.fn().mockResolvedValue([]), create: jest.fn(async ({ data }: any) => ({ id: 'y1', status: 'DRAFT', channels: [], ...data })), update: jest.fn() },
     surveyAnswer: { findMany: jest.fn().mockResolvedValue((opts.written ?? []).map((t) => ({ textValue: t, otherText: null, comment: null }))) },
     surveyAlert: { findFirst: jest.fn() },
-    cqcEvidence: { findMany: jest.fn().mockResolvedValue([{ id: 'e1', actions: [{ youSaid: 'Typed', weDid: 'Typed' }] }]), update: jest.fn() },
+    cqcEvidence: { findMany: jest.fn().mockResolvedValue([{ id: 'e1', status: 'CURRENT', actions: [{ youSaid: 'Typed', weDid: 'Typed' }] }]), update: jest.fn() },
     serviceUser: { findUnique: jest.fn().mockResolvedValue({ locationId: 'L1' }) },
     employeeEmployment: { findUnique: jest.fn() },
     companyProfile: { findFirst: jest.fn().mockResolvedValue({ displayName: 'Allfor Care', companyName: 'Allfor Care Ltd', displayLogoUrl: null, phoneNumber: '0100', email: 'a@b' }) },
@@ -150,5 +175,54 @@ describe('SurveyActionsService', () => {
     expect(JSON.stringify(out)).not.toContain('Bloggs');
     expect(out.figuresShown).toBe(false);
     expect(out.questions).toEqual([]);
+  });
+  it('refuses a quote in the title or introduction too, at save and again at publish', async () => {
+    const quote = 'I was told off in front of the whole team at the meeting last week';
+    const { service, prisma } = setup({ written: [quote] });
+    const item = [{ youSaid: 'Feedback felt public', weDid: 'Feedback in private now' }];
+    await expect(service.saveUpdate(manager, 's1', null, { title: 'What changed', intro: `Someone said: ${quote}`, items: item, channels: ['APP'] })).rejects.toThrow(/introduction looks like a quote/);
+    prisma.surveyYouSaidWeDid.findFirst.mockResolvedValue({ id: 'y1', surveyId: 's1', status: 'DRAFT', channels: ['APP'], items: item, title: 'Told off in front of the whole team at the meeting', intro: null });
+    await expect(service.publishUpdate(manager, 's1', 'y1', true)).rejects.toThrow(/title looks like a quote/);
+  });
+
+  it('refuses a quote in an action’s outcome or "You said", and in what a discussion agreed', async () => {
+    const quote = 'my manager shouts at me when the rota changes at short notice';
+    const { service, prisma } = setup({ written: [quote] });
+    prisma.surveyAction.findUnique.mockResolvedValue({ id: 'a1', surveyId: 's1', status: 'OPEN', ownerRoleId: 'role-rm', ownerUserId: 'u2', outcome: null, dueOn: new Date('2026-12-01') });
+    await expect(service.updateAction(manager, 'a1', { status: 'DONE', outcome: `Spoke to the team: ${quote}` })).rejects.toThrow(/What was done looks like a quote/);
+    await expect(service.createAction(manager, 's1', { source: 'GENERAL', title: 'Rota changes', youSaid: quote, ownerRoleId: 'role-rm', dueOn: '2026-12-01' })).rejects.toThrow(/"You said" looks like a quote/);
+    await expect(service.createDiscussion(manager, 's1', { heldOn: '2026-10-01', kind: 'TEAM_MEETING', summary: 'Results talked through', agreed: quote })).rejects.toThrow(/agreed looks like a quote/);
+    expect(prisma.roleTask.update).not.toHaveBeenCalled();
+  });
+
+  it('a closed action keeps what was done; a non-manager cannot reopen a cancelled one', async () => {
+    const { service, prisma } = setup();
+    prisma.surveyAction.findUnique.mockResolvedValue({ id: 'a1', surveyId: 's1', status: 'DONE', ownerRoleId: 'role-rm', ownerUserId: 'u2', outcome: 'Rota out early', dueOn: new Date('2026-12-01') });
+    await expect(service.updateAction(manager, 'a1', { outcome: '' })).rejects.toThrow(/Say what was done/);
+    prisma.surveyAction.findUnique.mockResolvedValue({ id: 'a1', surveyId: 's1', status: 'CANCELLED', ownerRoleId: 'role-rm', ownerUserId: 'u2', outcome: 'No longer needed', dueOn: new Date('2026-12-01') });
+    await expect(service.updateAction({ id: 'u2', permissions: ['surveys.read'] } as any, 'a1', { status: 'OPEN' })).rejects.toThrow(/cancelled action/);
+  });
+
+  it('reopening takes the action’s entry off superseded evidence too, and leaves other superseded evidence alone', async () => {
+    const { service, prisma } = setup();
+    prisma.cqcEvidence.findMany.mockResolvedValue([
+      { id: 'old', status: 'SUPERSEDED', actions: [{ youSaid: 'Rota late', weDid: 'Rota two weeks ahead', actionId: 'a1' }] },
+      { id: 'other', status: 'SUPERSEDED', actions: [{ youSaid: 'Typed', weDid: 'Typed' }] },
+    ]);
+    prisma.surveyAction.findUnique.mockResolvedValue({ id: 'a1', surveyId: 's1', status: 'DONE', ownerRoleId: 'role-rm', ownerUserId: 'u2', outcome: 'Done it', dueOn: new Date('2026-12-01') });
+    await service.updateAction(manager, 'a1', { status: 'IN_PROGRESS' });
+    expect(prisma.cqcEvidence.update.mock.calls).toEqual([[{ where: { id: 'old' }, data: { actions: [] } }]]);
+  });
+
+  it('feeds and the public page leave out summaries of deleted surveys', async () => {
+    const { service, prisma } = setup();
+    prisma.employeeEmployment.findUnique.mockResolvedValue({ locationId: 'L1', baseLocationId: null });
+    prisma.surveyYouSaidWeDid.findFirst.mockResolvedValue(null);
+    await service.forPortal('su1');
+    await service.forEmployeeApp('e1');
+    await expect(service.forPublic('x'.repeat(24))).rejects.toThrow(/no longer available/);
+    for (const call of [...prisma.surveyYouSaidWeDid.findMany.mock.calls, ...prisma.surveyYouSaidWeDid.findFirst.mock.calls]) {
+      expect(call[0].where.survey).toEqual({ deletedAt: null });
+    }
   });
 });

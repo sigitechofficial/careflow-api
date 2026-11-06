@@ -14403,6 +14403,16 @@ model Survey {
   /// Scoring for scored tools (src/surveys/survey-scoring.util.ts): { scales: [{ key, label, questionKeys, reversed,
   /// method, bands }] }. Null = no scores. A repeating survey's periods use their source survey's.
   scoring          Json?
+  /// Repeats skip these months (1–12, organisation time). Phase 2 part 7.
+  recurrenceSkipMonths Int[] @default([])
+  /// A repeating survey's bank of rotating questions (its own question ids): each period asks one, in turn.
+  rotatingQuestionIds String[] @default([]) @db.Uuid
+  /// Months after closing that answers are kept (null = the ready-made privacy notice's period, else kept).
+  answerRetentionMonths Int?
+  /// When this survey's (or period's) answers were deleted under the retention period.
+  answersDeletedAt DateTime?
+  /// A copy sent after a Learning training session (training feedback): the session.
+  trainingEventId String? @db.Uuid
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   deletedAt   DateTime?
@@ -14444,6 +14454,7 @@ model Survey {
   @@index([librarySourceId])
   @@index([createdFromTemplateId])
   @@index([aboutServiceUserId])
+  @@index([trainingEventId])
   @@schema("surveys")
 }
 
@@ -14476,6 +14487,8 @@ model SurveyQuestion {
   commentConfig Json?
   /// Ask only when an earlier question's answer is one of a list: { questionKey, answers: string[] }.
   showIf       Json?
+  /// Grouped answer choices: [{ heading, options }] shown to people answering and reported by group (Phase 2 part 7).
+  optionGroups Json?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   deletedAt    DateTime?

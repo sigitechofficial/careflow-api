@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Header, Param, ParseUUIDPipe, Patch, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
@@ -123,6 +123,7 @@ export class SurveyUpdatesPortalController {
   constructor(private readonly actions: SurveyActionsService) {}
 
   @Get()
+  @Header('Cache-Control', 'no-store')
   @ApiOperation({ summary: '"You said, we did" published for the signed-in person’s branch' })
   list(@CurrentUser() user: RequestUser) {
     return this.actions.forPortal(user.serviceUserId!);
@@ -138,6 +139,7 @@ export class SurveyUpdatesEmployeeAppController {
   constructor(private readonly actions: SurveyActionsService) {}
 
   @Get()
+  @Header('Cache-Control', 'no-store')
   @ApiOperation({ summary: '"You said, we did" from staff surveys for the signed-in employee’s branch' })
   list(@CurrentUser() user: RequestUser) {
     return this.actions.forEmployeeApp(user.employeeId!);
@@ -153,6 +155,9 @@ export class SurveyUpdatesPublicController {
   @Public()
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @Get(':token')
+  // Never kept by a browser or proxy: a withdrawn page must stop showing at once.
+  @Header('Cache-Control', 'no-store')
+  @Header('Referrer-Policy', 'no-referrer')
   @ApiOperation({ summary: 'A published "You said, we did" page' })
   show(@Param('token') token: string) {
     return this.actions.forPublic(token);

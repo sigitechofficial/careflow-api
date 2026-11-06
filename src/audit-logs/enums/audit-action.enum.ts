@@ -551,6 +551,10 @@ export enum AuditAction {
   SURVEY_YOU_SAID_WE_DID_SAVED = 'survey_you_said_we_did_saved',
   SURVEY_YOU_SAID_WE_DID_PUBLISHED = 'survey_you_said_we_did_published',
   SURVEY_YOU_SAID_WE_DID_WITHDRAWN = 'survey_you_said_we_did_withdrawn',
+  /** Phase 2 part 7: repeat months, rotating question, answer retention, grouped answers (settings, never answers). */
+  SURVEY_PLATFORM_SETTINGS_CHANGED = 'survey_platform_settings_changed',
+  /** Answers deleted under the retention period (counts only). */
+  SURVEY_ANSWERS_DELETED_RETENTION = 'survey_answers_deleted_retention',
   FEEDBACK_RECORDED = 'feedback_recorded',
   FEEDBACK_UPDATED = 'feedback_updated',
   FEEDBACK_STATUS_CHANGED = 'feedback_status_changed',

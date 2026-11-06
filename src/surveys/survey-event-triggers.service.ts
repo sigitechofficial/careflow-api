@@ -23,7 +23,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { surveyVisibleInScope } from './survey-scope.util';
 import { surveyAccessFor, surveyResultsAudience } from './survey-access';
 import { roleForOwner } from './survey-alert-rules.util';
-import { SurveysService } from './surveys.service';
+import { SurveysService, type EventSession } from './surveys.service';
 import {
   EVENT_ANONYMOUS_BATCH,
   EVENT_REPEAT_GAP_DAYS,
@@ -46,6 +46,8 @@ import {
   type SurveyEventTrigger,
   type SurveyTriggerEvent,
   type TriggerAudience,
+  trainingContactRule,
+  trainingSession,
 } from './survey-event-triggers.util';
 
 export const SURVEY_EVENT_DUE_TASK_SOURCE = 'SURVEY_EVENT_DUE';
@@ -219,6 +221,8 @@ export class SurveyEventTriggersService {
       if (!checked.ok) throw new BadRequestException(checked.message);
       after = checked.trigger;
       data = { eventTrigger: after as unknown as Prisma.InputJsonValue, updatedById: actor.id };
+      // Training feedback (decision S4): Part A is exempt from the 4-week rule; Part B is held back and skipped.
+      if (after.event === 'TRAINING_ATTENDED') data.contactRule = trainingContactRule(after.options.part ?? 'A') as unknown as Prisma.InputJsonValue;
       // A branch manager's switch-on never reaches beyond their branches.
       const scope = this.orgScope.fromRequestUser(actor);
       if (!survey.locationIds.length && scope.locationIds) data.locationIds = scope.locationIds;
@@ -374,7 +378,8 @@ export class SurveyEventTriggersService {
       // An event that happens once (care ending, a sign-off): one survey per person, even if the record is edited.
       if (!repeats && (theirs.length || added.length)) continue;
       // A burst of the same event for one person (e.g. several medicine changes): one survey.
-      if (repeats) {
+      // Training: every session is its own event (a copy each), never merged into one.
+      if (repeats && trigger.event !== 'TRAINING_ATTENDED') {
         const near = [...theirs.map((k) => dayKeyInTimeZone(k.eventOn, tz)), ...added.map((d) => dayKeyInTimeZone(d.eventOn as Date, tz))].some(
           (d) => Math.abs(daysBetween(d, f.eventDay)) < EVENT_REPEAT_GAP_DAYS,
         );
@@ -564,6 +569,20 @@ export class SurveyEventTriggersService {
           .filter((x): x is { r: (typeof rows)[number]; day: string } => Boolean(x.day))
           .map(({ r, day }) => ({ personId: r.employeeId, sourceKey: `leaving:${r.id}`, eventDay: day }));
       }
+      case 'TRAINING_ATTENDED': {
+        const rows = await this.prisma.learningTrainingEventAttendee.findMany({
+          where: {
+            attendanceStatus: { in: ['ATTENDED', 'PARTIALLY_ATTENDED'] },
+            trainingEvent: { status: { notIn: ['CANCELLED', 'DRAFT'] }, endAt: { gte, lt }, ...(o.courseIds?.length ? { courseId: { in: o.courseIds } } : {}) },
+            employeeId: { in: (await this.prisma.employee.findMany({ where: empWhere, select: { id: true } })).map((e) => e.id) },
+          },
+          select: { employeeId: true, trainingEventId: true, trainingEvent: { select: { endAt: true } } },
+        });
+        return rows
+          .map((r) => ({ r, day: inDays(r.trainingEvent.endAt) }))
+          .filter((x): x is { r: (typeof rows)[number]; day: string } => Boolean(x.day))
+          .map(({ r, day }) => ({ personId: r.employeeId, sourceKey: `training:${r.trainingEventId}:${r.employeeId}`, eventDay: day }));
+      }
       case 'RETURN_FROM_LONG_ABSENCE': {
         // The first day back is the day after the absence ends.
         const rows = await this.prisma.employeeAbsenceRecord.findMany({
@@ -685,6 +704,15 @@ export class SurveyEventTriggersService {
         const a = await this.prisma.serviceUserAbsence.findUnique({ where: { id }, select: { deletedAt: true, isActive: true, endDate: true } });
         return !a || a.deletedAt || !a.isActive || !a.endDate || dayKeyInTimeZone(a.endDate, tz) !== eventDay ? 'RECORD_REMOVED' : null;
       }
+      case 'TRAINING_ATTENDED': {
+        const a = r.employeeId
+          ? await this.prisma.learningTrainingEventAttendee.findFirst({
+              where: { trainingEventId: id, employeeId: r.employeeId },
+              select: { attendanceStatus: true, trainingEvent: { select: { status: true } } },
+            })
+          : null;
+        return !a || !['ATTENDED', 'PARTIALLY_ATTENDED'].includes(a.attendanceStatus) || a.trainingEvent.status === 'CANCELLED' ? 'RECORD_REMOVED' : null;
+      }
       case 'RETURN_FROM_LONG_ABSENCE': {
         const a = await this.prisma.employeeAbsenceRecord.findUnique({ where: { id }, select: { deletedAt: true, toDateTime: true } });
         return !a || a.deletedAt || addDays(dayKeyInTimeZone(a.toDateTime, tz), 1) !== eventDay ? 'ABSENCE_CHANGED' : null;
@@ -749,6 +777,33 @@ export class SurveyEventTriggersService {
   /** Send these rows now (the job, or staff's Send). Anonymous surveys: only 5 or more at once (else BATCH). */
   private async sendRows(survey: Survey, rows: Occurrence[], now: Date, actorId: string | null): Promise<number> {
     if (!rows.length) return 0;
+    // Training feedback: each session is sent into its own copy (course, date and trainer on every answer).
+    if (readEventTrigger(survey.eventTrigger)?.event === 'TRAINING_ATTENDED') {
+      const bySession = new Map<string, Occurrence[]>();
+      for (const r of rows) {
+        const sessionId = r.sourceKey.split(':')[1] ?? '';
+        bySession.set(sessionId, [...(bySession.get(sessionId) ?? []), r]);
+      }
+      let total = 0;
+      for (const [sessionId, list] of bySession) total += await this.sendRowsTo(survey, list, now, actorId, await this.trainingSessionFor(sessionId));
+      return total;
+    }
+    return this.sendRowsTo(survey, rows, now, actorId, null);
+  }
+
+  /** The copy for a training session: course, end day and trainer. */
+  private async trainingSessionFor(eventId: string): Promise<EventSession | null> {
+    if (!/^[0-9a-f-]{36}$/i.test(eventId)) return null;
+    const e = await this.prisma.learningTrainingEvent.findUnique({
+      where: { id: eventId },
+      select: { id: true, title: true, endAt: true, trainerName: true, course: { select: { title: true } } },
+    });
+    if (!e) return null;
+    return trainingSession({ id: e.id, title: e.title, courseTitle: e.course?.title ?? null, endDay: dayKeyInTimeZone(e.endAt, await this.timeZone()), trainer: e.trainerName });
+  }
+
+  private async sendRowsTo(survey: Survey, rows: Occurrence[], now: Date, actorId: string | null, session: EventSession | null): Promise<number> {
+    if (!rows.length) return 0;
     if (survey.isAnonymous && rows.length < EVENT_ANONYMOUS_BATCH) {
       await this.prisma.surveyEventOccurrence.updateMany({ where: { id: { in: rows.map((r) => r.id) } }, data: { status: 'BATCH' } });
       return 0;
@@ -776,7 +831,9 @@ export class SurveyEventTriggersService {
     const personOf = (r: Occurrence) => (r.serviceUserId ?? r.employeeId)!;
     let result: Awaited<ReturnType<SurveysService['sendForEvents']>>;
     try {
-      result = await this.surveys.sendForEvents(survey, rows.map(personOf), now);
+      result = session
+        ? await this.surveys.sendForEvents(survey, rows.map(personOf), now, session)
+        : await this.surveys.sendForEvents(survey, rows.map(personOf), now);
     } catch (e) {
       // Put them back as they were: tried again next run (still within their last day).
       for (const r of rows) await this.prisma.surveyEventOccurrence.update({ where: { id: r.id }, data: { status: prior.get(r.id), reason: null, resolvedAt: null, resolvedById: null } });

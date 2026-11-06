@@ -16,6 +16,7 @@ export const SURVEY_TRIGGER_EVENTS = [
   'NEW_STARTER_SIGN_OFF',
   'NOTICE_GIVEN',
   'RETURN_FROM_LONG_ABSENCE',
+  'TRAINING_ATTENDED',
 ] as const;
 export type SurveyTriggerEvent = (typeof SURVEY_TRIGGER_EVENTS)[number];
 
@@ -42,6 +43,10 @@ export type SurveyTriggerOptions = {
   reviewType?: NewStarterReviewType;
   /** RETURN_FROM_LONG_ABSENCE: absence of at least this many days (default 28). */
   minDays?: number;
+  /** TRAINING_ATTENDED: Part A (straight after the course, the default) or Part B (the follow-up weeks later). */
+  part?: 'A' | 'B';
+  /** TRAINING_ATTENDED: only these Learning courses (empty = every course). */
+  courseIds?: string[];
 };
 
 export type SurveyTriggerEventInfo = {
@@ -126,6 +131,14 @@ export const SURVEY_TRIGGER_EVENT_INFO: Record<SurveyTriggerEvent, SurveyTrigger
     builtIn: ['Never after a death in service'],
     repeats: false,
   },
+  TRAINING_ATTENDED: {
+    label: 'Training attended',
+    description:
+      'Attendance recorded as attended (or partly attended) on a Learning training session that was not cancelled; the event day is the end of the session. Each session gets its own copy of the survey, named with the course, date and trainer.',
+    audiences: ['EMPLOYEE'],
+    builtIn: ['Not sent if they have left', 'Not sent if their attendance was changed or the session cancelled'],
+    repeats: true,
+  },
   RETURN_FROM_LONG_ABSENCE: {
     label: 'Back from a long absence',
     description: 'The first day back after sickness, maternity or paternity leave of at least 4 weeks (or the days chosen).',
@@ -182,6 +195,9 @@ export const LIBRARY_EVENT_TRIGGERS: Record<string, LibraryEventTrigger> = {
   'SUR-STF-015': { event: 'NOTICE_GIVEN', delayDays: 1, windowDays: 3, exclusions: [], checkFirst: true },
   // About 20 working days after the first shift back after 4 weeks or more away.
   'SUR-STF-022': { event: 'RETURN_FROM_LONG_ABSENCE', delayDays: 28, windowDays: 7, exclusions: [], options: { minDays: 28 }, checkFirst: false },
+  // Part A at the end of each course (decision S4: part of the course, exempt from the 4-week rule); a Part B copy
+  // for practical courses is switched on separately with part B, about 6 weeks later.
+  'SUR-STF-005': { event: 'TRAINING_ATTENDED', delayDays: 0, windowDays: 7, exclusions: [], options: { part: 'A' }, checkFirst: false },
   // Between 6 and 8 weeks after the death; staff make the contact.
   'SUR-FAM-002': { event: 'DEATH', delayDays: 42, windowDays: 14, exclusions: [], checkFirst: true },
   // Fourth week after the final response to a family member's complaint.

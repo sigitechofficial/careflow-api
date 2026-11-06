@@ -127,6 +127,16 @@ function cleanOptions(event: SurveyTriggerEvent, raw: unknown): { ok: true; opti
       if (o.minDays !== undefined && !int(o.minDays, 7, 365)) return { ok: false, message: 'The absence length must be a whole number of days from 7 to 365.' };
       out.minDays = (o.minDays as number | undefined) ?? 28;
       break;
+    case 'TRAINING_ATTENDED': {
+      if (o.part !== undefined && o.part !== 'A' && o.part !== 'B') return { ok: false, message: 'Choose Part A (straight after the course) or Part B (the follow-up).' };
+      out.part = (o.part as 'A' | 'B' | undefined) ?? 'A';
+      const ids = o.courseIds;
+      if (ids !== undefined && (!Array.isArray(ids) || ids.length > 50 || ids.some((x) => typeof x !== 'string' || !/^[0-9a-f-]{36}$/i.test(x)))) {
+        return { ok: false, message: 'Choose up to 50 courses.' };
+      }
+      if (Array.isArray(ids) && ids.length) out.courseIds = [...new Set(ids as string[])];
+      break;
+    }
     default:
       break;
   }
@@ -252,6 +262,21 @@ export function detectionRange(t: SurveyEventTrigger, today: string): { from: st
   const from = oldest > t.since ? oldest : t.since;
   const to = t.delayDays < 0 ? addDays(today, -t.delayDays) : today;
   return from > to ? null : { from, to };
+}
+
+/** Decision S4: Part A is part of the course (exempt); Part B is the lowest staff priority (held back and skipped). */
+export function trainingContactRule(part: 'A' | 'B') {
+  return part === 'A'
+    ? { holdBack: false, countsAsContact: false, whenHeld: 'DELAY' as const, reason: 'Part A is part of the course (library decision S4)' }
+    : { holdBack: true, countsAsContact: true, whenHeld: 'SKIP' as const, reason: 'Part B is the lowest staff priority: skipped, not delayed (library decision S4)' };
+}
+
+/** A training session's copy: key, title words (course, day, trainer), open for 14 days. */
+export function trainingSession(e: { id: string; title: string; courseTitle: string | null; endDay: string; trainer: string | null }) {
+  const [y, m, d] = e.endDay.split('-').map(Number);
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const label = [e.courseTitle || e.title, `${d} ${months[m - 1]} ${y}`, e.trainer].filter(Boolean).join(', ');
+  return { periodKey: `training:${e.id}`, label: label.slice(0, 150), trainingEventId: e.id, openDays: 14 };
 }
 
 /** The month copy an event send goes into: key "2026-11", label "Nov 2026", open until 4 weeks after the month. */

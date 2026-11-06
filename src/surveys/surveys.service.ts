@@ -221,6 +221,7 @@ import { usersWithResultsAccess } from './survey-office-recipients';
 import { managerCopyTeamProblemFor } from './survey-manager-copy-team';
 import { fastFlag } from './survey-quality.util';
 import { readScoring } from './survey-scoring.util';
+import { groupSummary, isSkippedMonth, nextRunSkipping, readOptionGroups, rotatedOut } from './survey-platform.util';
 
 /**
  * Quality flags kept with an answer given by the person themselves (Phase 2 part 5): FAST from how long the answer
@@ -570,6 +571,15 @@ const jsonOrNull = (value: unknown) =>
  * as they are, so "Show only if" rules (which point at keys) keep pointing at the same questions;
  * a question without a key (none should be left) gets a new one.
  */
+/** A training session's own copy (Phase 2 part 7): its period key, title and how long it stays open. */
+export type EventSession = { periodKey: string; label: string; trainingEventId: string; openDays: number };
+
+const addDaysIso = (iso: string, days: number) => {
+  const d = new Date(`${iso}T00:00:00.000Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+
 export function copiedQuestionLogic(
   q: {
     key: string | null;
@@ -577,6 +587,7 @@ export function copiedQuestionLogic(
     exclusiveOptions: Prisma.JsonValue;
     commentConfig: Prisma.JsonValue;
     showIf: Prisma.JsonValue;
+    optionGroups?: Prisma.JsonValue;
   },
   takenKeys: Set<string>,
 ) {
@@ -586,6 +597,8 @@ export function copiedQuestionLogic(
     key,
     otherOption: jsonOrNull(q.otherOption),
     exclusiveOptions: jsonOrNull(q.exclusiveOptions),
+    // Grouped answer choices (Phase 2 part 7) travel with the question.
+    optionGroups: jsonOrNull(q.optionGroups ?? null),
     commentConfig: jsonOrNull(q.commentConfig),
     showIf: jsonOrNull(q.showIf),
   };
@@ -915,12 +928,15 @@ export class SurveysService {
       exclusiveOptions?: Prisma.JsonValue;
       commentConfig?: Prisma.JsonValue;
       showIf?: Prisma.JsonValue;
+      optionGroups?: Prisma.JsonValue;
     },
     idByKey?: ReadonlyMap<string, string>,
   ) {
     const showIf = readShowIf(q.showIf);
     return {
       key: q.key ?? null,
+      /** Choice questions: answers shown under headings and reported by group (empty = not grouped). */
+      optionGroups: readOptionGroups(q.optionGroups ?? null),
       otherOption: readOtherOption(q.otherOption),
       /** MULTI_SELECT: choosing one of these clears the other ticks (and ticking another clears it). */
       exclusiveOptions: readExclusiveOptions(q.exclusiveOptions),
@@ -1001,6 +1017,12 @@ export class SurveysService {
       eventTrigger: readEventTrigger(r.eventTrigger)?.event ?? null,
       /** Scoring scales (survey-scoring.util); a setting, never answers. */
       scoring: readScoring(r.scoring),
+      /** Phase 2 part 7: months a repeat skips, the rotating question bank, answer retention, a training session. */
+      recurrenceSkipMonths: r.recurrenceSkipMonths ?? [],
+      rotatingQuestionIds: r.rotatingQuestionIds ?? [],
+      answerRetentionMonths: r.answerRetentionMonths ?? null,
+      answersDeletedAt: toIso(r.answersDeletedAt ?? null),
+      trainingEventId: r.trainingEventId ?? null,
       periodOpenDays: r.periodOpenDays ?? null,
       periodKey: r.periodKey ?? null,
       clonedFromId: r.clonedFromId ?? null,
@@ -3374,25 +3396,30 @@ export class SurveysService {
    * repeating survey's period (one per month, unique), open until 4 weeks after the month ends. Null when
    * this month's copy was closed by hand (nothing more is sent this month).
    */
-  async ensureEventPeriod(source: Survey, now: Date): Promise<Survey | null> {
+  async ensureEventPeriod(source: Survey, now: Date, session?: EventSession | null): Promise<Survey | null> {
     const tz = await this.timeZone();
     const today = dayKeyInTimeZone(now, tz);
-    const { periodKey, monthStart, closesOn } = eventPeriodFor(today);
+    const month = eventPeriodFor(today);
+    // A training session (Phase 2 part 7) gets a copy of its own: course, date and trainer on every answer.
+    const periodKey = session?.periodKey ?? month.periodKey;
     const found = await this.prisma.survey.findFirst({ where: { clonedFromId: source.id, periodKey } });
     if (found) return found.status === SurveyStatus.ACTIVE && !found.deletedAt ? found : null;
-    const questions = await this.prisma.surveyQuestion.findMany({ where: { surveyId: source.id, deletedAt: null }, orderBy: QUESTION_ORDER });
+    const questions = await this.questionsForPeriod(source);
     if (!questions.length) throw new SurveyDistributionError('NO_QUESTIONS', 'The survey has no questions.');
-    const opensAt = startOfOperationalDayUtc(monthStart, tz);
+    const opensAt = session ? now : startOfOperationalDayUtc(month.monthStart, tz);
     try {
       const created = await this.prisma.survey.create({
-        data: this.periodCopyData(source, questions, {
-          periodKey,
-          label: surveyPeriodLabel(opensAt, SurveyRecurrence.MONTHLY, tz),
-          opensAt,
-          closesAt: startOfOperationalDayUtc(closesOn, tz),
-          actorId: source.updatedById ?? source.createdById ?? null,
-          now,
-        }),
+        data: {
+          ...this.periodCopyData(source, questions, {
+            periodKey,
+            label: session?.label ?? surveyPeriodLabel(opensAt, SurveyRecurrence.MONTHLY, tz),
+            opensAt,
+            closesAt: session ? startOfOperationalDayUtc(addDaysIso(today, session.openDays), tz) : startOfOperationalDayUtc(month.closesOn, tz),
+            actorId: source.updatedById ?? source.createdById ?? null,
+            now,
+          }),
+          ...(session ? { trainingEventId: session.trainingEventId } : {}),
+        },
       });
       await this.audit.logAudit({
         userId: undefined,
@@ -3400,7 +3427,7 @@ export class SurveysService {
         action: AuditAction.SURVEY_CREATED,
         recordType: 'Survey',
         recordId: created.id,
-        description: `Month copy "${created.title}" made for sends after events`,
+        description: session ? `Session copy "${created.title}" made for training feedback` : `Month copy "${created.title}" made for sends after events`,
         metadata: { surveyId: created.id, eventSourceSurveyId: source.id, periodKey },
       });
       return created;
@@ -3419,7 +3446,7 @@ export class SurveysService {
    * skipped), opt-outs, invitations, texts and reminders. Anonymous surveys: nothing goes unless at least
    * the anonymous minimum would be sent at once (the caller batches). Audited as counts only.
    */
-  async sendForEvents(source: Survey, personIds: string[], now: Date): Promise<{
+  async sendForEvents(source: Survey, personIds: string[], now: Date, session?: EventSession | null): Promise<{
     periodId: string | null;
     sent: string[];
     held: string[];
@@ -3433,7 +3460,7 @@ export class SurveysService {
     const none = { periodId: null, sent: [], held: [], skipped: [], already: [], unreachable: [], deferred: false };
     const ids = unique(personIds);
     if (!ids.length) return none;
-    const period = await this.ensureEventPeriod(source, now);
+    const period = await this.ensureEventPeriod(source, now, session);
     if (!period) return { ...none, unreachable: ids, periodClosed: true };
     const forServiceUsers = source.targetKind === SurveyTargetKind.SERVICE_USER;
     const kind = forServiceUsers ? 'SERVICE_USER' : 'EMPLOYEE';
@@ -4031,7 +4058,21 @@ export class SurveysService {
       if (following.getTime() > now.getTime()) break;
       periodAt = following;
     }
-    const nextAt = nextSurveyDistributeAt(anchor, recurrence, periodAt, now, tz);
+    // Months this repeat skips (Phase 2 part 7): the schedule always moves on to a month it runs in.
+    const nextAt = nextRunSkipping(anchor, recurrence, periodAt, now, tz, source.recurrenceSkipMonths);
+    if (isSkippedMonth(periodAt, source.recurrenceSkipMonths, tz)) {
+      await this.prisma.survey.update({ where: { id: source.id }, data: { distributeAt: nextAt, distributedAt: null } });
+      await this.audit.logAudit({
+        userId: undefined,
+        module: AuditModule.SURVEY,
+        action: AuditAction.SURVEY_PLATFORM_SETTINGS_CHANGED,
+        recordType: 'Survey',
+        recordId: source.id,
+        description: `Repeating survey "${source.title}": ${surveyPeriodLabel(periodAt, recurrence, tz)} skipped (a month it does not run in)`,
+        newValues: { skippedPeriod: surveyPeriodKey(periodAt, recurrence, tz), nextAt: toIso(nextAt) },
+      });
+      return { cloneId: null as unknown as string, sent: 0, skippedNoPortal: 0, noPortalIds: [] as string[], nextAt, alreadySent: false, skippedMonth: true };
+    }
     const periodKey = surveyPeriodKey(periodAt, recurrence, tz);
     const actorId = source.scheduledById ?? source.createdById ?? null;
     const advance = () =>
@@ -4049,10 +4090,7 @@ export class SurveysService {
       return { cloneId: done.id, sent: 0, skippedNoPortal: 0, noPortalIds: [] as string[], nextAt, alreadySent: true };
     }
 
-    const questions = await this.prisma.surveyQuestion.findMany({
-      where: { surveyId: source.id, deletedAt: null },
-      orderBy: QUESTION_ORDER,
-    });
+    const questions = await this.questionsForPeriod(source);
     if (questions.length === 0) {
       throw new SurveyDistributionError('NO_QUESTIONS', 'The survey has no questions.');
     }
@@ -4189,6 +4227,19 @@ export class SurveysService {
   }
 
   /** A period copy of a repeating (or event-sent) survey: its questions, origin and settings as they are now. */
+  /**
+   * A period's questions: the repeating survey's, with the rotating question bank (Phase 2 part 7) down to the one
+   * whose turn it is (the number of periods made so far, modulo the bank).
+   */
+  private async questionsForPeriod(source: Survey): Promise<SurveyQuestion[]> {
+    const questions = await this.prisma.surveyQuestion.findMany({ where: { surveyId: source.id, deletedAt: null }, orderBy: QUESTION_ORDER });
+    const bank = questions.filter((q) => (source.rotatingQuestionIds ?? []).includes(q.id)).map((q) => q.id);
+    if (bank.length < 2) return questions;
+    const made = await this.prisma.survey.count({ where: { clonedFromId: source.id } });
+    const out = rotatedOut(bank, made);
+    return questions.filter((q) => !out.has(q.id));
+  }
+
   private periodCopyData(
     source: Survey,
     questions: SurveyQuestion[],
@@ -4435,12 +4486,13 @@ export class SurveysService {
         survey.distributeAt &&
         !(e instanceof SurveyDistributionError && e.code === 'NO_QUESTIONS');
       if (skipPeriod) {
-        const nextAt = nextSurveyDistributeAt(
+        const nextAt = nextRunSkipping(
           survey.recurrenceAnchorAt ?? survey.distributeAt!,
           survey.recurrence!,
           survey.distributeAt!,
           now,
           tz,
+          survey.recurrenceSkipMonths,
         );
         await this.prisma.survey.update({
           where: { id: survey.id },
@@ -4958,6 +5010,20 @@ export class SurveysService {
         writtenAnswers: [],
       };
     });
+
+    // Grouped answer choices (Phase 2 part 7): each group's count; folded like the CareFlow-list groups where an
+    // answer can be linked to no one.
+    const groupedSummaries = questionSummaries.map((sum) => {
+      const q = ownQuestions.find((x) => x.id === sum.questionId);
+      const groups = readOptionGroups((q as { optionGroups?: Prisma.JsonValue } | undefined)?.optionGroups ?? null);
+      if (!q || !groups.length) return sum;
+      const chosen = answersIn
+        .filter((a) => a.question.id === q.id || a.question.sourceQuestionId === q.id)
+        .map((a) => (Array.isArray(a.selectedOptions) ? a.selectedOptions.filter((v): v is string => typeof v === 'string') : []));
+      const unlinked = survey.isAnonymous || offersAnswerWithoutName(survey);
+      return { ...sum, optionGroupSummary: groupSummary(groups, chosen, { min: Math.max(MIN_ANONYMOUS_GROUP_SIZE, threshold), fold: unlinked }) };
+    });
+    questionSummaries.splice(0, questionSummaries.length, ...(groupedSummaries as typeof questionSummaries));
 
     // Responses whose answers are in the figures: written out (not waiting in the pending store) and
     // not held back. Each question's "not asked or skipped" and the completeness totals use these.

@@ -75,6 +75,23 @@ export function readActions(value: Prisma.JsonValue | null | undefined): YouSaid
   );
 }
 
+/**
+ * Entries saved from the evidence form: an entry written by a survey action, saved back with the same words, keeps its
+ * actionId (the form never sends it), so the action can still update or withdraw it. Changed words become typed ones.
+ */
+export function keepActionLinks(existing: ReadonlyArray<YouSaidWeDid>, incoming: ReadonlyArray<{ youSaid: string; weDid: string }>): YouSaidWeDid[] {
+  const linked = existing.filter((a) => a.actionId);
+  const used = new Set<string>();
+  return incoming.map((a) => {
+    const youSaid = a.youSaid.trim();
+    const weDid = a.weDid.trim();
+    const match = linked.find((l) => !used.has(l.actionId!) && l.youSaid.trim() === youSaid && l.weDid.trim() === weDid);
+    if (!match) return { youSaid, weDid };
+    used.add(match.actionId!);
+    return { youSaid, weDid, actionId: match.actionId };
+  });
+}
+
 export function readMetrics(value: Prisma.JsonValue | null | undefined): CqcSurveyMetrics | null {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   return (value as { kind?: unknown }).kind === 'survey-result' ? (value as unknown as CqcSurveyMetrics) : null;
@@ -386,7 +403,7 @@ export class CqcEvidenceService {
     if (dto.categoryCode !== undefined) data.categoryCode = this.assertCategory(framework, dto.categoryCode);
     if (dto.locationIds !== undefined) data.locationIds = await this.assertWritableBranches(scope, dto.locationIds);
     if (dto.actions !== undefined) {
-      data.actions = dto.actions.map((a) => ({ youSaid: a.youSaid.trim(), weDid: a.weDid.trim() }));
+      data.actions = keepActionLinks(readActions(existing.actions), dto.actions);
     }
     if (dto.reviewDueAt !== undefined) data.reviewDueAt = parseDate(dto.reviewDueAt);
     // Survey figures and their period come from the survey; they are not edited by hand.

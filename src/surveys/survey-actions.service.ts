@@ -223,6 +223,7 @@ export class SurveyActionsService {
     await this.checkOwner(input.ownerRoleId, input.ownerUserId ?? null);
     const period = await this.periodOf(owner, input.periodId);
     const label = await this.sourceLabel(actor, owner, source, input.sourceKey ?? null, input.discussionId ?? null);
+    await this.assertNoQuotes(owner, [['The title', title], ['"You said"', input.youSaid], ['"We did"', input.weDid]]);
     const id = randomUUID();
     const taskId = randomUUID();
     const task = await this.taskText(owner, title);
@@ -315,6 +316,7 @@ export class SurveyActionsService {
     const data: Prisma.SurveyActionUpdateInput = { updatedById: actor.id };
     const managerOnly = ['title', 'detail', 'ownerRoleId', 'ownerUserId', 'dueOn'] as const;
     if (!manage && managerOnly.some((k) => input[k] !== undefined)) throw new ForbiddenException('Only people who manage surveys can change the action itself.');
+    if (!manage && action.status === 'CANCELLED') throw new ForbiddenException('A cancelled action can only be reopened by someone who manages surveys.');
     if (input.title !== undefined) {
       const t = text(input.title, 200);
       if (t.length < 3) throw new BadRequestException('Give the action a short title.');
@@ -345,14 +347,26 @@ export class SurveyActionsService {
         throw new BadRequestException(status === 'DONE' ? 'Say what was done before closing the action.' : 'Say why the action is cancelled.');
       }
       data.status = status;
-      if (status === 'DONE') {
+      if (status === action.status) {
+        // Unchanged: the completion stamp stays as it was.
+      } else if (status === 'DONE') {
         data.completedAt = new Date();
         data.completedById = actor.id;
       } else {
         data.completedAt = null;
         data.completedById = null;
       }
+    } else if ((status === 'DONE' || status === 'CANCELLED') && input.outcome !== undefined && text(input.outcome, 2000).length < 5) {
+      // A closed action keeps what was done (or why it was cancelled): it is the record CQC and the pack show.
+      throw new BadRequestException(status === 'DONE' ? 'Say what was done.' : 'Say why the action is cancelled.');
     }
+    await this.assertNoQuotes(owner, [
+      ['The title', input.title],
+      ['What was done', input.outcome],
+      ['"You said"', input.youSaid],
+      ['"We did"', input.weDid],
+    ]);
+    const statusChanged = input.status !== undefined && status !== action.status;
     const saved = await this.prisma.$transaction(async (tx) => {
       const row = await tx.surveyAction.update({ where: { id: actionId }, data });
       if (row.roleTaskId) {
@@ -364,8 +378,13 @@ export class SurveyActionsService {
             roleId: row.ownerRoleId,
             dueDate: row.dueOn,
             ...task,
-            ...(status === 'DONE' || status === 'CANCELLED' ? { completedAt: new Date(), completedById: actor.id } : { completedAt: null, completedById: null }),
-            ...(status === 'IN_PROGRESS' ? { startedAt: new Date() } : {}),
+            // Completion is stamped when the status changes, not again on every later edit.
+            ...(statusChanged
+              ? status === 'DONE' || status === 'CANCELLED'
+                ? { completedAt: new Date(), completedById: actor.id }
+                : { completedAt: null, completedById: null }
+              : {}),
+            ...(statusChanged && status === 'IN_PROGRESS' ? { startedAt: new Date() } : {}),
           },
         });
       }
@@ -391,12 +410,18 @@ export class SurveyActionsService {
   async syncEvidence(action: ActionRow) {
     const periods = await this.prisma.survey.findMany({ where: { clonedFromId: action.surveyId }, select: { id: true } });
     const sourceIds = action.periodId ? [action.periodId] : [action.surveyId, ...periods.map((p) => p.id)];
+    // Every status: an entry this action wrote on evidence since superseded or archived must still follow a reopen or
+    // an edit. New entries go on current evidence only.
     const evidence = await this.prisma.cqcEvidence.findMany({
-      where: { sourceType: 'SURVEY_RESULT', sourceId: { in: sourceIds }, status: 'CURRENT' },
-      select: { id: true, actions: true },
+      where: { sourceType: 'SURVEY_RESULT', sourceId: { in: sourceIds } },
+      select: { id: true, actions: true, status: true },
     });
     for (const e of evidence) {
-      const next = mergeEvidenceActions(readActions(e.actions), { id: action.id, done: action.status === 'DONE', youSaid: action.youSaid, weDid: action.weDid });
+      const before = readActions(e.actions);
+      const current = e.status === 'CURRENT';
+      if (!current && !before.some((a) => a.actionId === action.id)) continue;
+      const next = mergeEvidenceActions(before, { id: action.id, done: action.status === 'DONE', youSaid: action.youSaid, weDid: action.weDid });
+      if (JSON.stringify(next) === JSON.stringify(before)) continue;
       await this.prisma.cqcEvidence.update({ where: { id: e.id }, data: { actions: next as unknown as Prisma.InputJsonValue } });
     }
   }
@@ -415,6 +440,7 @@ export class SurveyActionsService {
       throw new BadRequestException('Attendees must be a number from 1 to 1000.');
     }
     const period = await this.periodOf(owner, input.periodId);
+    await this.assertNoQuotes(owner, [['What was discussed', summary], ['What was agreed', input.agreed]]);
     const row = await this.prisma.surveyDiscussion.create({
       data: {
         surveyId: owner.id,
@@ -486,6 +512,22 @@ export class SurveyActionsService {
     return rows.flatMap(writtenPartsOf);
   }
 
+  /**
+   * Refuses words that quote a written answer (8 words in a row, or nearly). Used on everything that leaves the people
+   * with results access: "You said, we did", and an action's or discussion's words that reach CQC evidence, the role
+   * task and the pack.
+   */
+  private async assertNoQuotes(owner: Survey, fields: ReadonlyArray<readonly [label: string, value: string | null | undefined]>) {
+    const filled = fields.filter(([, v]) => typeof v === 'string' && v.trim());
+    if (!filled.length) return;
+    const written = await this.writtenAnswers(owner);
+    for (const [label, v] of filled) {
+      if (quotesWrittenAnswer(v!, written)) {
+        throw new BadRequestException(`${label} looks like a quote from a written answer, which could point to who wrote it. Say it in your own words.`);
+      }
+    }
+  }
+
   private async checkItems(owner: Survey, raw: unknown): Promise<YswdItem[]> {
     if (!Array.isArray(raw) || raw.length < 1) throw new BadRequestException('Add at least one "You said, we did".');
     if (raw.length > YSWD_MAX_ITEMS) throw new BadRequestException(`At most ${YSWD_MAX_ITEMS}.`);
@@ -528,11 +570,13 @@ export class SurveyActionsService {
     if (owner.targetKind === 'EMPLOYEE' && channels.includes('PORTAL')) throw new BadRequestException('A staff survey is shared with staff (the carer app), not on the portal.');
     if (owner.targetKind !== 'EMPLOYEE' && channels.includes('APP')) throw new BadRequestException('Only staff surveys are shared in the carer app.');
     const items = await this.checkItems(owner, input.items);
+    const intro = text(input.intro, 1500) || null;
+    await this.assertNoQuotes(owner, [['The title', title], ['The introduction', intro]]);
     const period = await this.periodOf(owner, input.periodId);
     const data = {
       periodId: period?.id ?? null,
       title,
-      intro: text(input.intro, 1500) || null,
+      intro,
       items: items as unknown as Prisma.InputJsonValue,
       channels,
       updatedById: actor.id,
@@ -563,6 +607,7 @@ export class SurveyActionsService {
       if (!row.channels.length) throw new BadRequestException('Choose where to share it.');
       // Checked again: answers may have been written since it was saved.
       await this.checkItems(owner, readItems(row.items));
+      await this.assertNoQuotes(owner, [['The title', row.title], ['The introduction', row.intro]]);
       saved = await this.prisma.surveyYouSaidWeDid.update({
         where: { id: row.id },
         data: {
@@ -607,7 +652,7 @@ export class SurveyActionsService {
   async forPortal(serviceUserId: string) {
     const su = await this.prisma.serviceUser.findUnique({ where: { id: serviceUserId }, select: { locationId: true } });
     const rows = await this.prisma.surveyYouSaidWeDid.findMany({
-      where: { status: 'PUBLISHED', channels: { has: 'PORTAL' }, audience: { in: ['SERVICE_USER', 'PUBLIC'] }, ...this.branchMatch([], su?.locationId ?? null) },
+      where: { status: 'PUBLISHED', channels: { has: 'PORTAL' }, audience: { in: ['SERVICE_USER', 'PUBLIC'] }, survey: { deletedAt: null }, ...this.branchMatch([], su?.locationId ?? null) },
       orderBy: { publishedAt: 'desc' },
       take: 20,
     });
@@ -618,7 +663,7 @@ export class SurveyActionsService {
   async forEmployeeApp(employeeId: string) {
     const emp = await this.prisma.employeeEmployment.findUnique({ where: { employeeId }, select: { locationId: true, baseLocationId: true } });
     const rows = await this.prisma.surveyYouSaidWeDid.findMany({
-      where: { status: 'PUBLISHED', channels: { has: 'APP' }, audience: 'EMPLOYEE', ...this.branchMatch([], emp?.locationId ?? emp?.baseLocationId ?? null) },
+      where: { status: 'PUBLISHED', channels: { has: 'APP' }, audience: 'EMPLOYEE', survey: { deletedAt: null }, ...this.branchMatch([], emp?.locationId ?? emp?.baseLocationId ?? null) },
       orderBy: { publishedAt: 'desc' },
       take: 20,
     });
@@ -627,7 +672,7 @@ export class SurveyActionsService {
 
   /** The public page (no login), only while published with the public link. */
   async forPublic(token: string) {
-    const row = typeof token === 'string' && token.length >= 16 ? await this.prisma.surveyYouSaidWeDid.findFirst({ where: { publicToken: token, status: 'PUBLISHED', channels: { has: 'PUBLIC' } } }) : null;
+    const row = typeof token === 'string' && token.length >= 16 ? await this.prisma.surveyYouSaidWeDid.findFirst({ where: { publicToken: token, status: 'PUBLISHED', channels: { has: 'PUBLIC' }, survey: { deletedAt: null } } }) : null;
     if (!row) throw new NotFoundException('This page is no longer available.');
     return { message: 'You said, we did', data: { organisation: await this.organisation(), update: this.publicShape(row) } };
   }

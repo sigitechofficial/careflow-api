@@ -39,6 +39,26 @@ describe('RoleTasksService: survey alert tasks and per-survey access', () => {
     await expect(service.updateStatus(user as any, 't1', { status: 'IN_PROGRESS' } as any)).rejects.toThrow(/belongs to another role/);
   });
 
+  it('hides a survey action task the same way, and never closes or reopens one from the task list', async () => {
+    prisma.surveyAction = { findMany: jest.fn().mockResolvedValue([{ id: 'act-hr', surveyId: 's-hr' }, { id: 'act-open', surveyId: 's-open' }]), updateMany: jest.fn() };
+    const actionRows = [
+      { id: 'a1', sourceType: 'SURVEY_ACTION', sourceId: 'act-hr' },
+      { id: 'a2', sourceType: 'SURVEY_ACTION', sourceId: 'act-open' },
+    ];
+    const out = await (service as any).withoutHiddenSurveyTasks({ id: 'm', roles: ['Manager'], permissions: ['role_tasks.manage'] }, actionRows);
+    expect(out.map((r: any) => r.id)).toEqual(['a2']);
+
+    const user = { id: 'm', roles: ['Manager'], permissions: ['role_tasks.manage'], accountKind: 'user', assignedLocationIds: null };
+    prisma.roleTask = { findUnique: jest.fn().mockResolvedValue({ id: 'a2', roleId: 'role-m', locationId: null, status: 'OPEN', sourceType: 'SURVEY_ACTION', sourceId: 'act-open' }), update: jest.fn() };
+    prisma.role.findMany.mockImplementationOnce(async () => [{ id: 'role-m' }]);
+    await expect(service.updateStatus(user as any, 'a2', { status: 'DONE' } as any)).rejects.toThrow(/Close a survey action on its page/);
+    prisma.roleTask.findUnique.mockResolvedValue({ id: 'a2', roleId: 'role-m', locationId: null, status: 'DONE', sourceType: 'SURVEY_ACTION', sourceId: 'act-open' });
+    prisma.role.findMany.mockImplementationOnce(async () => [{ id: 'role-m' }]);
+    await expect(service.updateStatus(user as any, 'a2', { status: 'OPEN' } as any)).rejects.toThrow(/Reopen a survey action on its page/);
+    expect(prisma.roleTask.update).not.toHaveBeenCalled();
+    expect(prisma.surveyAction.updateMany).not.toHaveBeenCalled();
+  });
+
   it('shows it to HR', async () => {
     const out = await (service as any).withoutHiddenSurveyTasks({ id: 'h', roles: ['HR'], permissions: [] }, rows);
     expect(out.map((r: any) => r.id)).toEqual(['t1', 't2', 't3']);
