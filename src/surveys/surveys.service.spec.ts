@@ -1016,6 +1016,27 @@ describe('SurveysService', () => {
         await expect(svc.send(admin, 's1', { employeeIds: ['emp-left'], distributeAt: '2030-01-06T09:00:00Z', formerReason: 'Exit views' })).rejects.toThrow(/only be sent a survey now/);
       });
 
+      it('someone whose care ended: their own email (never the portal), their own link and an unsubscribe link', async () => {
+        prisma.serviceUser.findMany
+          .mockResolvedValueOnce([{ id: 'su-ended', status: { code: 'DISCHARGED' } }])
+          .mockResolvedValueOnce([{ id: 'su-ended', firstName: 'Ada', preferredName: null, email: 'ada@example.com' }]);
+        const portal = prisma.serviceUserPortalAccount;
+        prisma.serviceUserPortalAccount = { findMany: jest.fn(async () => [{ email: 'portal@example.com', serviceUserId: 'su-ended', serviceUser: { firstName: 'Ada', preferredName: null } }]) };
+        const unsubscribe = { link: jest.fn(() => 'https://care.example/survey-unsubscribe/abc.def') };
+        (service as any).unsubscribe = unsubscribe;
+        mail.send.mockClear();
+        await (service as any).deliverToRecipients(
+          { id: 's1', title: 'Your care', targetKind: 'SERVICE_USER', isAnonymous: false },
+          [{ employeeId: null, serviceUserId: 'su-ended', token: 'tok-ended' }],
+          'https://care.example',
+        );
+        expect(mail.send.mock.calls.map((c: any) => c[0].to)).toEqual(['ada@example.com']);
+        expect(mail.send.mock.calls[0][0].text).toContain('/survey/tok-ended');
+        expect(mail.send.mock.calls[0][0].text).toContain('https://care.example/survey-unsubscribe/abc.def');
+        (service as any).unsubscribe = undefined;
+        prisma.serviceUserPortalAccount = portal;
+      });
+
       it('former staff: never the carer app, and only a personal email (never a work address)', async () => {
         prisma.employeePersonalDetail.findMany.mockResolvedValue([
           { employeeId: 'emp-left', firstName: 'Zara', email: 'zara@sunrise.example' },
@@ -6496,7 +6517,8 @@ describe('SurveysService', () => {
       // Someone whose care has ended can still be chosen (the "When your care ends" survey).
       const statusWhere = JSON.stringify(prisma.serviceUser.count.mock.calls[1][0].where);
       expect(statusWhere).toContain('DECEASED');
-      expect(statusWhere).not.toContain('DISCHARGED');
+      // Someone whose care ended is allowed only within 3 months of their service end date.
+      expect(statusWhere).toContain('serviceEndDate');
       expect(prisma.surveyRecipient.createMany).not.toHaveBeenCalled();
     });
 
