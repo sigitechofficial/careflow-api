@@ -247,8 +247,9 @@ export class SurveyPlatformService {
    * Safeguards: a closed unit's CQC evidence (totals only) must be captured and up to date first; answers and follow-up
    * details linked to a complaint, safeguarding case or incident are held while it is open and for 30 days after it
    * closes (LEGAL_HOLD_GRACE_DAYS), then deleted at the next run; a deleted survey follows the same evidence rule
-   * (evidenceReadyForRetention); answers deleted from a unit that stays (counted from each answer) set
-   * answersDeletedBefore, shown in Results and kept out of a later CQC capture; one server at a time
+   * (evidenceReadyForRetention); answers deleted from a unit that keeps some (counted from each answer, or answers
+   * held for a complaint, case or incident) set answersDeletedBefore, shown in Results, and a later CQC capture keeps
+   * the figures taken before; one server at a time
    * per unit (an advisory lock, then looked at again); the survey's updatedAt is left alone (it is what the CQC capture
    * and this job read as "changed"). Who it was sent to, the follow-ups and their outcomes are kept. Audited as counts.
    */
@@ -377,9 +378,12 @@ export class SurveyPlatformService {
       const finished = whole && !heldCount;
       if (finished) {
         await tx.survey.updateMany({ where: { id: u.id, answersDeletedAt: null }, data: { answersDeletedAt: now, updatedAt: fresh.updatedAt } });
-      } else if (!whole && (r.count || w.count)) {
-        // Counted from each answer: Results say which answers are gone, and the CQC capture keeps its earlier figures.
-        const before = fresh.answersDeletedBefore && fresh.answersDeletedBefore.getTime() > cutoff.getTime() ? fresh.answersDeletedBefore : cutoff;
+      } else if (r.count || w.count) {
+        // Some answers gone, others stay: counted from each answer (those before the cut-off), or a due unit with
+        // answers held for a complaint, case or incident (all others, so up to now). Results say which answers are
+        // gone, and a later CQC capture keeps its earlier figures (never lowered by the few held answers).
+        const mark = whole ? now : cutoff;
+        const before = fresh.answersDeletedBefore && fresh.answersDeletedBefore.getTime() > mark.getTime() ? fresh.answersDeletedBefore : mark;
         await tx.survey.updateMany({ where: { id: u.id }, data: { answersDeletedBefore: before, updatedAt: fresh.updatedAt } });
       }
       if (!r.count && !w.count && !f.count && !c.count && !finished) return null;

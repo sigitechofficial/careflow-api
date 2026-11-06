@@ -305,7 +305,10 @@ describe('answer retention', () => {
     await expect(service.runRetention(NOW)).resolves.toEqual({ units: 1, responses: 1 });
     expect(tx.surveyResponse.findMany.mock.calls[0][0].where).toMatchObject({ surveyId: 'u1', id: { notIn: ['r1'] } });
     expect(tx.surveyAlert.updateMany.mock.calls[0][0].where).toMatchObject({ id: { notIn: ['al-open'] } });
-    expect(tx.survey.updateMany).not.toHaveBeenCalled();
+    // Not marked as all deleted (the next run looks again), but marked as partly deleted (updatedAt kept): Results
+    // show it, and a later CQC capture keeps the figures taken before instead of lowering them to the held answers.
+    expect(tx.survey.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.survey.updateMany).toHaveBeenCalledWith({ where: { id: 'u1' }, data: { answersDeletedBefore: NOW, updatedAt: new Date('2025-01-10T00:05:00Z') } });
     expect(audit.logAudit.mock.calls[0][0].newValues).toMatchObject({ held: 2, whole: false });
   });
 
@@ -378,7 +381,7 @@ describe('answer retention', () => {
       expect(tx.surveyResponse.findMany.mock.calls[0][0].where).toMatchObject({ id: { notIn: ['r1'] } });
       expect(tx.surveyAlert.updateMany.mock.calls[0][0].where).toMatchObject({ id: { notIn: ['al-c', 'al-i'] } });
       // Held: not marked as fully deleted, so the next run looks again once the 30 days are up.
-      expect(tx.survey.updateMany).not.toHaveBeenCalled();
+      expect(tx.survey.updateMany).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ answersDeletedAt: expect.anything() }) }));
     });
   });
 
