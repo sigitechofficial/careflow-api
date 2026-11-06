@@ -136,9 +136,16 @@ export const SURVEY_UI_STRINGS: Record<string, string> = {
   answerWithName: 'Answer with my name',
   answerWithoutName:
     'Answer without my name — we will not be able to reply to you',
+  withoutNameAbout:
+    'You can answer without your name. Your answers are then not linked to you, so we cannot follow them up or contact you about them.',
+  withoutNameNote:
+    'Staff can see that you have answered, but not which answers are yours.',
   searchList: 'Search the list',
   searchPlaceholder: 'Type to narrow the list',
   answersCount: '{n} answers',
+  answersMatch: '{n} answers match',
+  answerMatches: '1 answer matches',
+  chosen: 'Chosen: {list}',
   nothingMatches: 'Nothing matches. Try fewer letters.',
   thankYouTitle: 'Response recorded',
   thankYou: 'Thank you for completing this survey.',
@@ -148,6 +155,24 @@ export const SURVEY_UI_STRINGS: Record<string, string> = {
   highContrast: 'High contrast',
   readableFont: 'Easier-to-read font',
   moreSpacing: 'More space between lines',
+  paperHowTo: 'Tick a box like this ☑ or write in the space. Questions marked * need an answer.',
+  paperNoNameAnonymous:
+    'Please do not write your name anywhere on this form. Your answers are anonymous.',
+  paperPersonName: 'Name of the person we support',
+  paperYourName: 'Your name',
+  paperWhoFilling: 'Who is filling this in? Tick one box.',
+  paperTickOne: 'Tick one box.',
+  paperTickAll: 'Tick all that apply.',
+  paperCircleOne: 'Circle one number.',
+  paperWriteAnswer: 'Write your answer',
+  paperWriteNumber: 'Write a number',
+  paperOnlyIf: 'Only answer this if you answered {answers} to question {n}.',
+  paperOr: 'or',
+  paperIfAnswered: 'If you answered {answers}:',
+  paperNoNames: 'Please do not write any names.',
+  paperThankYou: 'Thank you.',
+  paperGiveBack:
+    'Please give this form back to the person who gave it to you, or send it to {organisation}.',
 };
 
 export type SourceString = {
