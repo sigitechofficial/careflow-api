@@ -96,6 +96,7 @@ jobs:
           tar -czf careflow-api-release.tar.gz \
             dist \
             prisma \
+            scripts/whisper \
             package.json \
             package-lock.json \
             nest-cli.json \
