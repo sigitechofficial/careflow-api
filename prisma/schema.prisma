@@ -14524,6 +14524,7 @@ model Survey {
   actions          SurveyAction[]
   discussions      SurveyDiscussion[]
   youSaidWeDid     SurveyYouSaidWeDid[]
+  translations     SurveyTranslation[]
 
   @@unique([clonedFromId, periodKey])
   @@index([targetKind])
@@ -17263,4 +17264,27 @@ model CqcSurveyCapture {
   capturedAt      DateTime @default(now())
 
   @@schema("quality")
+}
+
+/// Phase 3: a survey in another language or easy read. `content` holds the translated texts by what they
+/// translate (see survey-translation.util.ts); answers are always stored in English.
+model SurveyTranslation {
+  id          String    @id @default(uuid()) @db.Uuid
+  surveyId    String    @db.Uuid
+  /// BCP 47 code ("pl", "ur", "pa-Arab" …); easy read is "en-x-easyread".
+  language    String
+  /// DRAFT (staff only) or PUBLISHED (offered to people answering).
+  status      String    @default("DRAFT")
+  content     Json      @default("{}")
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@unique([surveyId, language])
+  @@index([surveyId])
+  @@schema("surveys")
 }

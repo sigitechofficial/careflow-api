@@ -1608,7 +1608,7 @@ describe('SurveysService', () => {
       expect(JSON.stringify(res.data)).not.toContain('Speak to your manager');
       prisma.survey.findUnique.mockResolvedValue({ closingMessage: '  Thank you. Speak to your manager if worried.  ' });
       const done: any = await (service as any).withClosingMessage('s1', { message: 'Survey response submitted', data: { id: 'r1' } });
-      expect(done.data).toEqual({ id: 'r1', closingMessage: 'Thank you. Speak to your manager if worried.' });
+      expect(done.data).toEqual({ id: 'r1', closingMessage: 'Thank you. Speak to your manager if worried.', closingMessages: {} });
       prisma.survey.findUnique.mockResolvedValue({ closingMessage: null });
       expect(((await (service as any).withClosingMessage('s1', { message: 'x', data: {} })) as any).data.closingMessage).toBeNull();
     });

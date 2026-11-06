@@ -1,3 +1,4 @@
+import { copySurveyTranslations, translationsForAnswerPage } from './survey-translations.answer-page';
 import {
   BadRequestException,
   ConflictException,
@@ -1462,6 +1463,10 @@ export class SurveysService {
       metadata: { ...metadata, questionCount: questions.length },
       ...meta,
     });
+    // Translations go with the questions (matched in order; drafts on the copy until published).
+    await copySurveyTranslations(this.prisma, source.id, created.id).catch((e: unknown) =>
+      this.logger.warn(`Survey ${created.id}: translations not copied (${e instanceof Error ? e.message : String(e)})`),
+    );
     // Alert rules go with the questions (contact-me follow-ups never onto an anonymous survey).
     if (this.alerts) {
       await this.alerts.copyRules(source.id, created.id, { anonymous: created.isAnonymous }).catch((e: unknown) =>
@@ -4966,6 +4971,11 @@ export class SurveysService {
     return this.gateResults(access, out).data;
   }
 
+  /** A survey this user may change (branch scope; a shared company template only with every branch). */
+  async editableSurvey(actor: RequestUser, id: string): Promise<Survey> {
+    return this.requireEditableSurvey(actor, id);
+  }
+
   /** Insight: the survey if this user may open it (branch scope), else null. */
   async visibleSurvey(actor: RequestUser, id: string): Promise<Survey | null> {
     return this.requireSurvey(actor, id).catch(() => null);
@@ -7679,9 +7689,16 @@ export class SurveysService {
     result: T,
   ): Promise<T & { data: T['data'] & { closingMessage: string | null } }> {
     const row = await this.prisma.survey
-      .findUnique({ where: { id: surveyId }, select: { closingMessage: true } })
+      .findUnique({
+        where: { id: surveyId },
+        select: { id: true, title: true, description: true, closingMessage: true, sectionIntros: true, clonedFromId: true },
+      })
       .catch(() => null);
-    return { ...result, data: { ...result.data, closingMessage: row?.closingMessage?.trim() || null } };
+    // In each published language too, so the page can show it in the language the person answered in.
+    const closingMessages = row?.closingMessage?.trim()
+      ? (await translationsForAnswerPage(this.prisma, row).catch(() => ({ closingMessages: {} as Record<string, string> }))).closingMessages
+      : {};
+    return { ...result, data: { ...result.data, closingMessage: row?.closingMessage?.trim() || null, closingMessages } };
   }
 
   private async buildPublicForm(
@@ -7697,6 +7714,8 @@ export class SurveysService {
       sectionIntros?: Prisma.JsonValue | null;
       libraryMeta?: Prisma.JsonValue | null;
       closingMessage?: string | null;
+      /** A period's repeating survey (its translations apply). */
+      clonedFromId?: string | null;
     },
     opts: {
       alreadyCompleted: boolean;
@@ -7739,6 +7758,15 @@ export class SurveysService {
     const notAsked = unlinked ? questionsNotAskedWhenUnlinked(questions) : new Set<string>();
     // Who to contact instead when it cannot be answered (the organisation's public phone and email).
     const contact = availability.canSubmit ? null : await this.organisationContact();
+    // Other languages and easy read (Phase 3): published translations, texts still matching the English.
+    const translated = await translationsForAnswerPage(this.prisma, {
+      id: survey.id,
+      title: survey.title,
+      description: survey.description,
+      closingMessage: survey.closingMessage ?? null,
+      sectionIntros: survey.sectionIntros ?? null,
+      clonedFromId: survey.clonedFromId ?? null,
+    }).catch(() => ({ languages: [], translations: {} as Record<string, Record<string, string>> }));
 
     return {
       message: 'Public survey',
@@ -7782,6 +7810,13 @@ export class SurveysService {
          * answers to knowledge questions, so it is never in the form people answer).
          */
         closingMessage: opts.alreadyCompleted ? survey.closingMessage?.trim() || null : null,
+        /**
+         * Other languages and easy read the page can be shown in: { code, name, nativeName, dir }. Their texts
+         * are in `translations[code]`, keyed as survey-translation.util.ts describes; anything missing shows in
+         * English. Answers are always sent with the English answer values.
+         */
+        languages: translated.languages,
+        translations: translated.translations,
       },
     };
   }
