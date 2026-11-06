@@ -18,9 +18,9 @@ describe('surveyContactMessages', () => {
   it('named surveys carry the person’s own link and say it is personal', () => {
     const m = surveyContactMessages(base);
     expect(m.emailText).toContain('https://care.example/survey/tok-123');
-    expect(m.emailText).toContain('personal to you');
+    expect(m.emailText).toContain('just for you');
     expect(m.text).toContain('https://care.example/survey/tok-123');
-    expect(m.emailSubject).toBe('Reminder: Annual staff survey (open until 30 November 2026)');
+    expect(m.emailSubject).toBe('Reminder: Annual staff survey');
   });
 
   it('anonymous surveys never carry a personal link, in any channel, and never say the person has not answered', () => {
@@ -46,7 +46,7 @@ describe('surveyContactMessages', () => {
   });
 
   it('tells people we support that someone can answer for them', () => {
-    expect(surveyContactMessages({ ...base, kind: 'SERVICE_USER' }).emailText).toContain('on your behalf');
+    expect(surveyContactMessages({ ...base, kind: 'SERVICE_USER' }).emailText).toContain('answer for you');
   });
 
   it('anonymous staff surveys point to wherever the person can answer signed in, never a link or token', () => {

@@ -8,7 +8,7 @@
  * answered since. No message ever holds an answer.
  */
 
-import { renderSurveyEmailHtml } from './survey-email-html.util';
+import { surveyEmail } from './survey-email-content';
 
 export type ContactMessageInput = {
   /** EXTERNAL: an outside person (family, professional, commissioner) on a named public survey. */
@@ -42,6 +42,20 @@ export type ContactMessageInput = {
   logoUrl?: string | null;
   /** No portal or app to answer in (care has ended): paper or phone, unless they have their own link. */
   paperOnly?: boolean;
+  /** "Monday 30 November 2026" for emails; and whole days left (reminder subjects). */
+  closesDate?: string | null;
+  daysLeft?: number | null;
+  /** Footer and colours: legal name, company number, CQC provider ID, website, brand colour. */
+  brand?: {
+    legalName?: string | null;
+    companyNumber?: string | null;
+    cqcProviderId?: string | null;
+    website?: string | null;
+    brandColour?: string | null;
+  } | null;
+  /** A ready-made survey's own invitation wording, when it has some ({{firstName}} allowed in the subject). */
+  inviteSubject?: string | null;
+  inviteIntro?: string | null;
 };
 
 /** Where a member of staff answers without a personal link, in words (never a token). */
@@ -79,8 +93,6 @@ function shortTitle(title: string): string {
 
 export function surveyContactMessages(input: ContactMessageInput): ContactMessages {
   const link = input.anonymous ? null : input.link;
-  const hello = input.firstName?.trim() ? `Hello ${input.firstName.trim()},` : 'Hello,';
-  const until = input.closesOn ? ` It is open until ${input.closesOn}.` : '';
   const where =
     input.paperOnly && !link
       ? 'Please contact us for a paper copy, or to answer by phone.'
@@ -97,87 +109,8 @@ export function surveyContactMessages(input: ContactMessageInput): ContactMessag
         : input.portalLink
           ? `Log in to your portal to answer it: ${input.portalLink}`
           : 'Log in to your portal and open Surveys to answer it, or ask the office for a paper copy or a call.';
-  const privacy = input.anonymous
-    ? 'Your answers are anonymous: they are not linked to your name.'
-    : link
-      ? 'This link is personal to you. Please do not share it.'
-      : '';
-  const onBehalf = input.kind === 'SERVICE_USER' ? 'A family member or representative can answer on your behalf.' : '';
-  const thanksIfDone = input.reminder ? 'If you have answered since this was sent, thank you, and please ignore this message.' : '';
 
-  const org = input.organisation?.trim() || null;
-  const minutes = input.minutes && input.minutes > 0 ? Math.round(input.minutes) : null;
-  const about =
-    input.kind === 'EMPLOYEE'
-      ? 'Your answers help us improve how we support you at work.'
-      : input.kind === 'SERVICE_USER'
-        ? 'Your answers help us improve your care and support.'
-        : 'Your answers help us improve our service.';
-  const takes = minutes ? ` It takes about ${minutes} minute${minutes === 1 ? '' : 's'}.` : '';
-  const emailSubject = input.reminder
-    ? `Reminder: ${input.title}${input.closesOn ? ` (open until ${input.closesOn})` : ''}`
-    : org
-      ? `${org} would value your views: ${input.title}`
-      : `We would value your views: ${input.title}`;
-  const opening = input.reminder
-    ? `This is a reminder that the survey "${input.title}" is still open and we would value your answers.${until}`
-    : `We would value your answers to the survey "${input.title}".${takes}${until}`;
-  const stopAll = input.unsubscribeLink ? `To stop all survey messages from us, for good: ${input.unsubscribeLink}` : '';
-  const contactBits = [input.contactPhone?.trim(), input.contactEmail?.trim()].filter(Boolean) as string[];
-  const help = contactBits.length
-    ? `Questions, or would you like it on paper, by phone or in large print? Contact ${org ?? 'us'} on ${contactBits.join(' or ')}.`
-    : 'Questions, or would you like it on paper, by phone or in large print? Please contact the office.';
-  const emailText = [hello, '', opening, about, '', where, '', privacy, onBehalf, thanksIfDone, '', help, '', stopAll, 'Thank you.', org ?? '']
-    .filter((line, i, all) => line !== '' || (all[i - 1] !== '' && i > 0))
-    .join('\n')
-    .trim();
-
-  // HTML: a button only for a named survey's own link, or a sign-in page that holds no token.
-  const webOnlyLink =
-    input.kind === 'EMPLOYEE' && !link && input.staffPlaces?.web && input.staffPlaces.webLink ? input.staffPlaces.webLink : null;
-  const button = link
-    ? { label: input.reminder ? 'Answer the survey' : 'Start the survey', href: link }
-    : input.kind === 'SERVICE_USER' && input.portalLink
-      ? { label: 'Open your portal', href: input.portalLink }
-      : webOnlyLink && !input.staffPlaces?.app
-        ? { label: 'Open My surveys', href: webOnlyLink }
-        : null;
-  const howToAnswer = button ? null : where;
-  const details: Array<{ label: string; value: string }> = [];
-  if (minutes) details.push({ label: 'Takes about', value: `${minutes} minute${minutes === 1 ? '' : 's'}` });
-  if (input.closesOn) details.push({ label: 'Open until', value: input.closesOn });
-  details.push({
-    label: 'Your answers',
-    value: input.anonymous ? 'Anonymous: not linked to your name' : link ? 'Linked to your name, so we can follow up if needed' : 'Linked to your name',
-  });
-  const notes = [privacy && !input.anonymous ? privacy : '', onBehalf, thanksIfDone].filter(Boolean);
-  const footer = [
-    org
-      ? input.kind === 'EMPLOYEE'
-        ? `You are receiving this because you work with ${org}.`
-        : input.kind === 'SERVICE_USER'
-          ? `You are receiving this because ${org} provides your care.`
-          : `You are receiving this from ${org}.`
-      : '',
-    'Please do not reply to this email.',
-  ].filter(Boolean);
-  const emailHtml = renderSurveyEmailHtml({
-    organisation: org,
-    logoUrl: input.logoUrl,
-    preheader: [minutes ? `About ${minutes} minutes` : '', input.closesOn ? `open until ${input.closesOn}` : '', input.anonymous ? 'anonymous' : '']
-      .filter(Boolean)
-      .join(' · ') || about,
-    heading: input.reminder ? `Reminder: ${input.title}` : input.title,
-    greeting: hello,
-    paragraphs: [opening, about],
-    button,
-    howToAnswer,
-    details,
-    notes,
-    help,
-    footer,
-    unsubscribe: input.unsubscribeLink ? { label: 'Stop all survey messages from us, for good', href: input.unsubscribeLink } : null,
-  });
+  const { subject: emailSubject, text: emailText, html: emailHtml } = surveyEmail(input, link, where);
 
   const pushTitle = input.reminder ? 'Survey reminder' : 'New survey';
   const pushBody = input.reminder

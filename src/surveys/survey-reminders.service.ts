@@ -490,10 +490,19 @@ export class SurveyRemindersService {
     const counts = zero();
     const base = this.appBase();
     const organisation = await this.organisationName();
+    const tz = await this.timeZone();
     // The same branded email as invitations: office contact for other formats, logo, how long it takes.
     const branding = await surveyEmailBranding(this.prisma);
-    const emailExtras = { contactPhone: branding.contactPhone, contactEmail: branding.contactEmail, logoUrl: branding.logoUrl, minutes: (await surveyEmailFacts(this.prisma, survey.id)).minutes };
-    const tz = await this.timeZone();
+    const facts = await surveyEmailFacts(this.prisma, survey.id, tz);
+    const emailExtras = {
+      contactPhone: branding.contactPhone,
+      contactEmail: branding.contactEmail,
+      logoUrl: branding.logoUrl,
+      brand: branding,
+      minutes: facts.minutes,
+      closesDate: facts.closesDate,
+      daysLeft: facts.daysLeft,
+    };
     const closesOn = survey.closesAt ? formatSurveyDateTime(survey.closesAt, tz) : null;
     const optOuts = await this.optOutsFor(people);
     const want = new Set(channels);

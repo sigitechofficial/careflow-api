@@ -642,7 +642,7 @@ export class SurveyOutsidePeopleService {
     const tz = await this.timeZone();
     const organisation = await this.organisationName();
     const branding = await surveyEmailBranding(this.prisma);
-    const minutes = (await surveyEmailFacts(this.prisma, survey.id)).minutes;
+    const facts = await surveyEmailFacts(this.prisma, survey.id, tz);
     const plan = readContactPlan(survey.contactPlan);
     const textOn = Boolean(plan?.channels.includes('TEXT')) && this.texts.isEnabled();
     const opt = await this.optOuts(contacts);
@@ -664,7 +664,10 @@ export class SurveyOutsidePeopleService {
         contactPhone: branding.contactPhone,
         contactEmail: branding.contactEmail,
         logoUrl: branding.logoUrl,
-        minutes,
+        brand: branding,
+        minutes: facts.minutes,
+        closesDate: facts.closesDate,
+        daysLeft: facts.daysLeft,
         textRepliesSupported: this.texts.supportsReplies(),
       });
       const blocked = (ch: string) => Boolean(opt.get(c.id)?.has('ALL') || opt.get(c.id)?.has(ch));
