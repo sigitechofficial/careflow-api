@@ -60,6 +60,8 @@ export type SurveyTriggerEventInfo = {
   beforeAllowed?: boolean;
   /** The fewest days after the event it may be sent (e.g. never sooner than 6 weeks after a death). */
   minDelayDays?: number;
+  /** TRAINING_ATTENDED: the library's days after the session for Part B (the follow-up), used when Part B is chosen. */
+  partBDelayDays?: number;
   /** An event that can happen again for the same person. */
   repeats: boolean;
 };
@@ -137,6 +139,8 @@ export const SURVEY_TRIGGER_EVENT_INFO: Record<SurveyTriggerEvent, SurveyTrigger
       'Attendance recorded as attended (or partly attended) on a Learning training session that was not cancelled; the event day is the end of the session. Each session gets its own copy of the survey, named with the course, date and trainer.',
     audiences: ['EMPLOYEE'],
     builtIn: ['Not sent if they have left', 'Not sent if their attendance was changed or the session cancelled'],
+    // SUR-STF-005 Part B: the follow-up about 6 weeks after the course (library standard).
+    partBDelayDays: 42,
     repeats: true,
   },
   RETURN_FROM_LONG_ABSENCE: {

@@ -91,6 +91,11 @@ export type CqcSurveyMetrics = {
   /** Fewer responses than the threshold: no percentages are kept at all. */
   suppressed: boolean;
   note: string | null;
+  /**
+   * Set when answers given before this were deleted under the retention period (counted from each answer) before
+   * these figures were taken: they cover only the answers given from it. Absent on older evidence.
+   */
+  answersFrom?: string | null;
   headline: QuestionResult | null;
   questions: QuestionResult[];
   capturedAt: string;
@@ -185,6 +190,8 @@ export type BuildSurveyMetricsInput = {
   questionIds: ReadonlySet<string> | null;
   now: Date;
   threshold?: number;
+  /** Answers given before this had been deleted under the retention period (the figures cover later ones only). */
+  answersDeletedBefore?: Date | null;
 };
 
 const MAX_QUESTIONS = 12;
@@ -225,13 +232,24 @@ export function buildSurveyMetrics(input: BuildSurveyMetricsInput): CqcSurveyMet
     responseRate: isPublic || input.recipients <= 0 ? null : Math.round((input.completed / input.recipients) * 100),
     threshold,
     suppressed,
-    note: suppressed
-      ? `Fewer than ${threshold} responses, so results are not broken down to protect the people who answered.`
-      : null,
+    note:
+      [
+        suppressed ? `Fewer than ${threshold} responses, so results are not broken down to protect the people who answered.` : null,
+        input.answersDeletedBefore ? answersFromNote(input.answersDeletedBefore) : null,
+      ]
+        .filter(Boolean)
+        .join(' ') || null,
+    answersFrom: input.answersDeletedBefore ? input.answersDeletedBefore.toISOString() : null,
     headline,
     questions,
     capturedAt: input.now.toISOString(),
   };
+}
+
+/** The figures cover only answers given from a day: earlier ones were deleted under the retention period. */
+export function answersFromNote(d: Date): string {
+  const day = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/London' });
+  return `Covers answers given from ${day} only: earlier answers had been deleted under the retention period.`;
 }
 
 /** One-line summary for the evidence list: "42 responses (38% of 110 asked). 86% said Very good or Good overall." */
@@ -246,6 +264,7 @@ export function surveyMetricsSummary(m: CqcSurveyMetrics): string {
   if (m.answeredWithoutName && m.answeredWithoutNamePercent !== null && m.answeredWithoutNamePercent !== undefined) {
     parts.push(`${m.answeredWithoutName} (${m.answeredWithoutNamePercent}%) answered without their name.`);
   }
+  if (m.answersFrom) parts.push(answersFromNote(new Date(m.answersFrom)));
   if (m.suppressed) parts.push(`Fewer than ${m.threshold} responses, so no breakdown is kept.`);
   else if (m.headline?.percent !== null && m.headline?.percent !== undefined) {
     parts.push(`${m.headline.percent}% said ${m.headline.positiveLabels.join(' or ')} overall.`);

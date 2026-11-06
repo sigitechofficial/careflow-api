@@ -58,6 +58,14 @@ const occ = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
+/** Role holders: u9 company-wide; uL in Leeds; uY in York; uE with no account branches but employed in Leeds. */
+const USERS = [
+  { id: 'u9', email: 'u9@x', userRoles: [{ role: { name: 'Admin' } }], userLocations: [] },
+  { id: 'uL', email: 'ul@x', userRoles: [{ role: { name: 'Care Coordinator' } }], userLocations: [{ locationId: 'leeds' }] },
+  { id: 'uY', email: 'uy@x', userRoles: [{ role: { name: 'Care Coordinator' } }], userLocations: [{ locationId: 'york' }] },
+  { id: 'uE', email: 'ue@x', userRoles: [{ role: { name: 'Care Coordinator' } }], userLocations: [] },
+];
+
 function setup(opts: { survey?: any; rows?: any[]; serviceUsers?: any[] } = {}) {
   const s = opts.survey ?? survey();
   const prisma: any = {
@@ -88,11 +96,17 @@ function setup(opts: { survey?: any; rows?: any[]; serviceUsers?: any[] } = {}) 
     feedbackRecord: { findMany: jest.fn(async () => []), findUnique: jest.fn() },
     employee: { findMany: jest.fn(async () => []) },
     employeeLeavingRecord: { findMany: jest.fn(async () => []) },
-    employeePersonalDetail: { findMany: jest.fn(async () => []) },
+    employeePersonalDetail: {
+      findMany: jest.fn(async () => []),
+      findFirst: jest.fn(async ({ where }: any) =>
+        where.email.equals === 'ue@x' ? { employee: { employment: { locationId: 'leeds', baseLocationId: null, floorLocations: [] } } } : null,
+      ),
+    },
     roleTask: { findMany: jest.fn(async () => []), findFirst: jest.fn(async () => null), create: jest.fn(), update: jest.fn() },
     role: { findMany: jest.fn(async () => [{ id: 'r1', name: 'Care Coordinator' }]) },
     surveyAlertOwnerRole: { findUnique: jest.fn(async () => null) },
     userRole: { findMany: jest.fn(async () => [{ userId: 'u9' }]) },
+    user: { findMany: jest.fn(async ({ where }: any) => USERS.filter((u) => where.id.in.includes(u.id))) },
   };
   prisma.$executeRaw = jest.fn(async () => 1);
   prisma.$transaction = jest.fn(async (fn: any) => fn(prisma));
@@ -412,6 +426,22 @@ describe('SurveyEventTriggersService: review fixes', () => {
     await svc.saveSettings(manager, 's1', { event: 'HOSPITAL_DISCHARGE', delayDays: 12, windowDays: 4, exclusions: [], options: { minNights: 1 } });
     const move = prisma.surveyEventOccurrence.updateMany.mock.calls.find((c: any) => c[0].where.id === 'o1')[0];
     expect(move.data).toEqual({ dueOn: day('2026-11-22'), lastDay: day('2026-11-26') });
+  });
+
+  it('the notice goes only to role holders who will see the task: the task list’s branch rule', async () => {
+    const leeds = survey({ eventTrigger: trigger({ checkFirst: true }), locationIds: ['leeds'] });
+    const { svc, prisma, notifications } = setup({ survey: leeds });
+    prisma.userRole.findMany.mockResolvedValue(['u9', 'uL', 'uY', 'uE'].map((userId) => ({ userId })));
+    prisma.surveyEventOccurrence.groupBy.mockResolvedValueOnce([{ surveyId: 's1', _count: { _all: 2 } }]);
+    await svc.syncTasks(NOW);
+    expect(notifications.notifyUsers.mock.calls[0][0].recipientUserIds.sort()).toEqual(['u9', 'uE', 'uL']);
+
+    // A survey for several branches: only those whose branches cover all of them (and company-wide users).
+    const both = setup({ survey: survey({ eventTrigger: trigger({ checkFirst: true }), locationIds: ['leeds', 'york'] }) });
+    both.prisma.userRole.findMany.mockResolvedValue(['u9', 'uL', 'uY', 'uE'].map((userId) => ({ userId })));
+    both.prisma.surveyEventOccurrence.groupBy.mockResolvedValueOnce([{ surveyId: 's1', _count: { _all: 2 } }]);
+    await both.svc.syncTasks(NOW);
+    expect(both.notifications.notifyUsers.mock.calls[0][0].recipientUserIds).toEqual(['u9']);
   });
 
   it('one staff task per survey even when two servers run at once (a lock, then look again)', async () => {

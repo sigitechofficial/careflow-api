@@ -577,6 +577,34 @@ describe('CqcSurveyEvidenceService.statementPlan — ready-made origin', () => {
       expect(none.capture()).toMatchObject({ surveyId: 'old', surveyUpdatedAt: closed.updatedAt, outcome: 'FAILED' });
     });
 
+    describe('answers deleted under the retention period, counted from each answer (some answers gone)', () => {
+      const before = new Date('2026-03-01T00:00:00.000Z');
+      const partly = { ...closed, answersDeletedBefore: before, updatedAt: new Date('2026-10-01T00:00:00.000Z') };
+
+      it('never lowers the figures already taken: an edit after the deletion keeps the evidence as it was', async () => {
+        const { service, prisma, capture } = harness({ surveyUpdatedAt: new Date('2026-06-30T00:00:00.000Z') });
+        prisma.survey.findFirst = jest.fn(async () => partly);
+        prisma.cqcEvidence.findUnique = jest.fn(async () => ({ id: 'ev-old', status: 'CURRENT', summary: null, metrics: { kind: 'survey-result', responses: 40 } }));
+        prisma.cqcEvidence.update = jest.fn();
+        const r = await service.captureSurvey('old', { actorId: null, trigger: 'sweep', now });
+        expect(prisma.cqcEvidence.update).not.toHaveBeenCalled();
+        expect(prisma.cqcEvidence.create).not.toHaveBeenCalled();
+        expect(r).toMatchObject({ outcome: 'CAPTURED', updated: 0, created: 0, kept: 1, evidenceIds: ['ev-old'] });
+        expect(r.detail).toMatch(/evidence taken before is kept/);
+        // Recorded as up to date with the edit, so answer retention can carry on.
+        expect(capture()).toMatchObject({ outcome: 'CAPTURED', surveyUpdatedAt: partly.updatedAt });
+      });
+
+      it('evidence first taken after some answers were deleted says it covers later answers only', async () => {
+        const { service, prisma } = harness(null);
+        prisma.survey.findFirst = jest.fn(async () => partly);
+        await service.captureSurvey('old', { actorId: null, trigger: 'sweep', now });
+        const data = prisma.cqcEvidence.create.mock.calls[0][0].data;
+        expect(data.metrics.answersFrom).toBe(before.toISOString());
+        expect(data.metrics.note).toMatch(/Covers answers given from 1 March 2026 only: earlier answers had been deleted under the retention period\./);
+        expect(data.summary).toMatch(/Covers answers given from 1 March 2026 only/);
+      });
+    });
     it('a late answer written while the capture was counting marks it to be taken again', async () => {
       // Counted 6; by the time it is recorded a seventh has been written (its flush found no capture to mark).
       const late = harness(null, { responseCounts: [6, 7] });

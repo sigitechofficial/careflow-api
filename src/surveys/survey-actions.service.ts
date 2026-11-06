@@ -58,6 +58,8 @@ export type ActionInput = {
 };
 
 type ActionRow = Prisma.SurveyActionGetPayload<object>;
+/** The survey job carries done actions forward a page at a time. */
+const CARRY_FORWARD_PAGE = 500;
 
 /**
  * Acting on results (Phase 2 part 6): actions (a RoleTask each, feeding CQC evidence), team discussion records,
@@ -446,12 +448,21 @@ export class SurveyActionsService {
   async carryForward(now: Date = new Date()): Promise<number> {
     const since = new Date(now);
     since.setUTCMonth(since.getUTCMonth() - CARRY_FORWARD_MONTHS);
-    const rows = await this.prisma.surveyAction.findMany({
-      where: { status: 'DONE', periodId: null, completedAt: { gte: since }, youSaid: { not: null }, weDid: { not: null } },
-      take: 500,
-    });
-    for (const a of rows) await this.syncEvidence(a);
-    return rows.length;
+    // Every one, a page at a time in a fixed order (by id), so none is missed however many there are.
+    let count = 0;
+    let after: string | null = null;
+    for (;;) {
+      const rows: ActionRow[] = await this.prisma.surveyAction.findMany({
+        where: { status: 'DONE', periodId: null, completedAt: { gte: since }, youSaid: { not: null }, weDid: { not: null }, ...(after ? { id: { gt: after } } : {}) },
+        orderBy: { id: 'asc' },
+        take: CARRY_FORWARD_PAGE,
+      });
+      for (const a of rows) await this.syncEvidence(a);
+      count += rows.length;
+      if (rows.length < CARRY_FORWARD_PAGE) break;
+      after = rows[rows.length - 1]!.id;
+    }
+    return count;
   }
 
   // ─── Team discussions ───────────────────────────────────────────────────

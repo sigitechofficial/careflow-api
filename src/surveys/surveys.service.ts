@@ -221,7 +221,7 @@ import { usersWithResultsAccess } from './survey-office-recipients';
 import { managerCopyTeamProblemFor } from './survey-manager-copy-team';
 import { fastFlag } from './survey-quality.util';
 import { readScoring } from './survey-scoring.util';
-import { groupSummary, isSkippedMonth, nextRunSkipping, readOptionGroups, rotatedOut } from './survey-platform.util';
+import { evidenceReadyForRetention, groupSummary, latestDate, isSkippedMonth, nextRunSkipping, readOptionGroups, rotatedOut } from './survey-platform.util';
 
 /**
  * Quality flags kept with an answer given by the person themselves (Phase 2 part 5): FAST from how long the answer
@@ -1028,6 +1028,7 @@ export class SurveysService {
       rotatingQuestionIds: r.rotatingQuestionIds ?? [],
       answerRetentionMonths: r.answerRetentionMonths ?? null,
       answersDeletedAt: toIso(r.answersDeletedAt ?? null),
+      answersDeletedBefore: toIso(r.answersDeletedBefore ?? null),
       trainingEventId: r.trainingEventId ?? null,
       periodOpenDays: r.periodOpenDays ?? null,
       periodKey: r.periodKey ?? null,
@@ -1717,6 +1718,7 @@ export class SurveysService {
 
   async remove(actor: RequestUser, id: string, meta?: RequestAuditMeta) {
     const existing = await this.requireEditableSurvey(actor, id);
+    await this.keepEvidenceBeforeDelete(actor, existing, meta);
     await this.prisma.survey.update({
       where: { id },
       data: { deletedAt: new Date(), deletedById: actor.id, updatedById: actor.id },
@@ -1733,6 +1735,23 @@ export class SurveysService {
     });
 
     return { message: 'Survey deleted', data: { id } };
+  }
+
+  /**
+   * Deleting a closed survey (or period) takes its CQC evidence (totals only) first when it is not already taken and up
+   * to date: a deleted survey is never captured again, and answer retention deletes its answers only once evidence
+   * was taken (or it never closed). Refused when the evidence cannot be taken now. A repeating survey's own row holds
+   * no answers once it repeats (its periods are captured on their own).
+   */
+  private async keepEvidenceBeforeDelete(actor: RequestUser, s: Survey, meta?: RequestAuditMeta) {
+    if (s.status !== SurveyStatus.CLOSED || s.isTemplate || s.isCatalogue || !this.cqcEvidence) return;
+    const capture = await this.prisma.cqcSurveyCapture.findUnique({ where: { surveyId: s.id }, select: { outcome: true, surveyUpdatedAt: true } });
+    if (evidenceReadyForRetention(s, capture)) return;
+    if (await this.prisma.survey.count({ where: { clonedFromId: s.id } })) return;
+    const r = await this.cqcEvidence.captureSurvey(s.id, { actorId: actor.id, trigger: 'manual', meta }).catch(() => null);
+    if (!r || r.outcome === 'FAILED' || r.outcome === 'NOT_CLOSED') {
+      throw new BadRequestException('This survey could not be deleted yet: its CQC evidence (totals only) could not be kept first. Try again in a few minutes.');
+    }
   }
 
   // ─── Status actions ───────────────────────────────────────────────────────
@@ -4076,6 +4095,12 @@ export class SurveysService {
     // Months this repeat skips (Phase 2 part 7): the schedule always moves on to a month it runs in.
     const nextAt = nextRunSkipping(anchor, recurrence, periodAt, now, tz, source.recurrenceSkipMonths);
     if (isSkippedMonth(periodAt, source.recurrenceSkipMonths, tz)) {
+      // The previous period still ends now, when this one would have started: never left open through the skipped
+      // month (one made before its months were skipped, with no end date of its own).
+      await this.prisma.survey.updateMany({
+        where: { clonedFromId: source.id, status: SurveyStatus.ACTIVE, deletedAt: null, OR: [{ closesAt: null }, { closesAt: { gt: now } }] },
+        data: { status: SurveyStatus.CLOSED, closesAt: now },
+      });
       await this.prisma.survey.update({ where: { id: source.id }, data: { distributeAt: nextAt, distributedAt: null } });
       await this.audit.logAudit({
         userId: undefined,
@@ -4143,6 +4168,10 @@ export class SurveysService {
     }
 
     const label = surveyPeriodLabel(periodAt, recurrence, tz);
+    // An open-ended period ends when the next one starts; when the next run is in a skipped month, at the time that
+    // run would have been (closed then by the end-date close), never left open through the skipped months.
+    const normalNext = nextSurveyDistributeAt(anchor, recurrence, periodAt, periodAt, tz);
+    const openEndedClose = normalNext.getTime() < nextAt.getTime() ? normalNext : null;
     const forServiceUsers = source.targetKind === SurveyTargetKind.SERVICE_USER;
     let result: { clone: Survey; created: CreatedRecipient[] };
     try {
@@ -4167,7 +4196,7 @@ export class SurveysService {
             periodKey,
             label,
             opensAt: periodAt,
-            closesAt: source.periodOpenDays ? addOperationalDays(periodAt, source.periodOpenDays, tz) : null,
+            closesAt: source.periodOpenDays ? addOperationalDays(periodAt, source.periodOpenDays, tz) : openEndedClose,
             actorId,
             now,
           }),
@@ -4734,7 +4763,24 @@ export class SurveysService {
     const survey = await this.requireSurvey(actor, surveyId);
     const access = await surveyAccessFor(this.prisma, actor, survey);
     if (!access.results) throw new ForbiddenException(RESULTS_RESTRICTED);
-    return this.gateResults(access, await this.buildResults(survey, access.threshold, opts.respondentGroup?.trim() || null));
+    const out = this.gateResults(access, await this.buildResults(survey, access.threshold, opts.respondentGroup?.trim() || null));
+    return { ...out, data: { ...out.data, retention: await this.retentionMarker(survey) } };
+  }
+
+  /**
+   * What the retention period has deleted from this survey (and, for a repeating survey, its periods): all answers
+   * (deletedAt), or those given before a day while later ones stay (deletedBefore, counted from each answer).
+   */
+  private async retentionMarker(survey: Survey): Promise<{ deletedAt: string | null; deletedBefore: string | null; periodsDeleted: number }> {
+    const periods = await this.prisma.survey.findMany({
+      where: { clonedFromId: survey.id, deletedAt: null },
+      select: { answersDeletedAt: true, answersDeletedBefore: true },
+    });
+    return {
+      deletedAt: toIso(survey.answersDeletedAt ?? null),
+      deletedBefore: toIso(latestDate([survey.answersDeletedBefore, ...periods.map((p) => p.answersDeletedBefore)])),
+      periodsDeleted: periods.filter((p) => p.answersDeletedAt).length,
+    };
   }
 
   /**

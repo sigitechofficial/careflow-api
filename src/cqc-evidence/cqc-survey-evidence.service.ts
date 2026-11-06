@@ -114,6 +114,8 @@ export type CaptureOutcome = {
   skipped: number;
   evidenceIds: string[];
   detail: string | null;
+  /** Evidence kept as taken before, because some answers were deleted under the retention period since. */
+  kept?: number;
 };
 
 /**
@@ -542,6 +544,7 @@ export class CqcSurveyEvidenceService {
       const threshold = Math.max(CQC_MIN_REPORTING_RESPONSES, await surveyThreshold(this.prisma, survey));
       for (const statement of plan.statements) {
         const metrics = buildSurveyMetrics({
+          answersDeletedBefore: survey.answersDeletedBefore,
           threshold,
           survey,
           libraryReference: plan.libraryReference,
@@ -562,7 +565,12 @@ export class CqcSurveyEvidenceService {
           continue;
         }
         let evidenceId: string;
-        if (existing) {
+        if (existing && survey.answersDeletedBefore) {
+          // Some answers were deleted under the retention period (counted from each answer): the figures taken before
+          // are kept as they are, never lowered by taking the survey again with fewer answers.
+          evidenceId = existing.id;
+          result.kept = (result.kept ?? 0) + 1;
+        } else if (existing) {
           const previous = readMetrics(existing.metrics);
           const autoSummary = previous ? surveyMetricsSummary(previous) : null;
           await this.prisma.cqcEvidence.update({
@@ -621,10 +629,12 @@ export class CqcSurveyEvidenceService {
           created: result.created,
           updated: result.updated,
           skipped: result.skipped,
+          kept: result.kept ?? 0,
           responses,
         },
         ...(opts.meta ?? {}),
       });
+      if (result.kept) result.detail = 'Some answers were deleted under the retention period: the evidence taken before is kept.';
       await record(result);
       // Late answers written while this capture was counting (an answer that raced the close, written
       // by the survey job) are not in these figures — and a flush before this capture was first

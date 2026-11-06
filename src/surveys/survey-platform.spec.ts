@@ -9,6 +9,11 @@ import {
   libraryNotInMonths,
   asksTwoThings,
   closedAtOf,
+  evidenceReadyForRetention,
+  latestDate,
+  LEGAL_HOLD_GRACE_DAYS,
+  legalHoldActive,
+  legalHoldWhere,
   libraryRetention,
   libraryRetentionMonths,
   nextRunSkipping,
@@ -22,7 +27,7 @@ import {
 import { SurveyPlatformService } from './survey-platform.service';
 import { SurveysService } from './surveys.service';
 import { checkEventTriggerInput, trainingContactRule, trainingSession } from './survey-event-triggers.util';
-import { LIBRARY_EVENT_TRIGGERS } from '../../prisma/seed-lib/survey-event-triggers';
+import { LIBRARY_EVENT_TRIGGERS, SURVEY_TRIGGER_EVENT_INFO } from '../../prisma/seed-lib/survey-event-triggers';
 import { loadSurveyLibrary, surveyDescription, surveyLibraryMeta, surveyQuestionRows } from '../../prisma/seed-lib/survey-library';
 import { CqcSurveyEvidenceService } from '../cqc-evidence/cqc-survey-evidence.service';
 
@@ -202,10 +207,17 @@ describe('answer retention', () => {
     ...over,
   });
 
-  function setup(units: Unit[], opts: { capture?: any; linked?: any[]; openComplaints?: string[]; responses?: string[]; deletedAt?: Date | null } = {}) {
+  function setup(units: Unit[], opts: { capture?: any; linked?: any[]; openComplaints?: string[]; responses?: string[]; deletedAt?: Date | null; deletedBefore?: Date | null } = {}) {
     const tx: any = {
       $executeRaw: jest.fn(),
-      survey: { findUnique: jest.fn(async ({ where }: any) => ({ answersDeletedAt: opts.deletedAt ?? null, updatedAt: units.find((u) => u.id === where.id)!.updatedAt })), updateMany: jest.fn() },
+      survey: {
+        findUnique: jest.fn(async ({ where }: any) => ({
+          answersDeletedAt: opts.deletedAt ?? null,
+          answersDeletedBefore: opts.deletedBefore ?? null,
+          updatedAt: units.find((u) => u.id === where.id)!.updatedAt,
+        })),
+        updateMany: jest.fn(),
+      },
       surveyResponse: {
         findMany: jest.fn(async () => (opts.responses ?? ['r1', 'r2']).map((id) => ({ id }))),
         deleteMany: jest.fn(async ({ where }: any) => ({ count: where.id.in.length })),
@@ -306,8 +318,9 @@ describe('answer retention', () => {
     expect(tx.surveyPendingResponse.deleteMany).toHaveBeenCalledWith({ where: { surveyId: 'u1', createdAt: { lte: cut } } });
     expect(tx.surveyAlert.updateMany.mock.calls[0][0].where.OR).toEqual([{ responseId: { in: ['r-old'] } }, { responseId: null, createdAt: { lte: cut } }]);
     expect(tx.surveyCallAttempt.updateMany.mock.calls[0][0].where).toMatchObject({ createdAt: { lte: cut } });
-    // Still open: never marked as all deleted.
-    expect(tx.survey.updateMany).not.toHaveBeenCalled();
+    // Still open: never marked as all deleted, but marked with the day before which answers are gone (updatedAt kept).
+    expect(tx.survey.updateMany).toHaveBeenCalledTimes(1);
+    expect(tx.survey.updateMany).toHaveBeenCalledWith({ where: { id: 'u1' }, data: { answersDeletedBefore: cut, updatedAt: calls.updatedAt } });
     expect(audit.logAudit.mock.calls[0][0].newValues).toMatchObject({ basis: 'FROM_ANSWER', whole: false });
   });
 
@@ -328,6 +341,106 @@ describe('answer retention', () => {
       args.where?.status ? (args.where.id?.gt ? [] : [period]) : [{ id: 'src', answerRetentionMonths: 120, libraryReference: null, libraryMeta: null }],
     );
     await expect(service.runRetention(NOW)).resolves.toEqual({ units: 0, responses: 0 });
+  });
+  describe('legal hold: while open and for 30 days after it closes', () => {
+    const DAY = 24 * 60 * 60 * 1000;
+    it('the rule: open holds; closed holds for 30 days (from closedAt, else its last change); deleted never holds', () => {
+      expect(LEGAL_HOLD_GRACE_DAYS).toBe(30);
+      const at = (days: number) => new Date(NOW.getTime() - days * DAY);
+      expect(legalHoldActive({ status: 'INVESTIGATING', closedAt: null, updatedAt: at(400) }, NOW)).toBe(true);
+      expect(legalHoldActive({ status: 'CLOSED', closedAt: at(10), updatedAt: at(10) }, NOW)).toBe(true);
+      expect(legalHoldActive({ status: 'CLOSED', closedAt: at(29.9), updatedAt: at(1) }, NOW)).toBe(true);
+      expect(legalHoldActive({ status: 'CLOSED', closedAt: at(30), updatedAt: at(1) }, NOW)).toBe(false);
+      expect(legalHoldActive({ status: 'CLOSED', closedAt: at(31), updatedAt: at(1) }, NOW)).toBe(false);
+      expect(legalHoldActive({ status: 'CLOSED', closedAt: null, updatedAt: at(5) }, NOW)).toBe(true);
+      expect(legalHoldActive({ status: 'CLOSED', closedAt: null, updatedAt: at(45) }, NOW)).toBe(false);
+      expect(legalHoldActive({ status: 'INVESTIGATING', closedAt: null, updatedAt: at(1), deletedAt: at(1) }, NOW)).toBe(false);
+      // The query says the same.
+      const since = at(30);
+      expect(legalHoldWhere(NOW)).toEqual({
+        OR: [{ status: { not: 'CLOSED' } }, { status: 'CLOSED', closedAt: { gt: since } }, { status: 'CLOSED', closedAt: null, updatedAt: { gt: since } }],
+      });
+    });
+
+    it('asks for complaints, cases and incidents still open or closed within 30 days; one closed longer ago is deleted at the next run', async () => {
+      const linked = [
+        { id: 'al-c', responseId: 'r1', linkedRecordType: 'COMPLAINT', linkedRecordId: 'c-recent' },
+        { id: 'al-s', responseId: 'r2', linkedRecordType: 'SAFEGUARDING', linkedRecordId: 's-old' },
+        { id: 'al-i', responseId: null, linkedRecordType: 'INCIDENT', linkedRecordId: 'i-1' },
+      ];
+      // c-recent closed 10 days ago (still held); s-old closed 40 days ago (released); i-1 open.
+      const { service, tx, prisma } = setup([unit()], { linked, openComplaints: ['c-recent'], responses: ['r2'] });
+      prisma.incident.findMany.mockResolvedValue([{ id: 'i-1' }]);
+      await service.runRetention(NOW);
+      for (const m of [prisma.feedbackRecord.findMany, prisma.safeguardingCase.findMany, prisma.incident.findMany]) {
+        expect(m.mock.calls[0][0].where).toMatchObject({ deletedAt: null, ...legalHoldWhere(NOW) });
+      }
+      expect(tx.surveyResponse.findMany.mock.calls[0][0].where).toMatchObject({ id: { notIn: ['r1'] } });
+      expect(tx.surveyAlert.updateMany.mock.calls[0][0].where).toMatchObject({ id: { notIn: ['al-c', 'al-i'] } });
+      // Held: not marked as fully deleted, so the next run looks again once the 30 days are up.
+      expect(tx.survey.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('a retention marker on a survey that stays open (counted from each answer)', () => {
+    const calls = () => unit({ status: 'ACTIVE', closesAt: null, answerRetentionMonths: null, libraryMeta: { retention: { months: 36, basis: 'FROM_ANSWER' } } });
+
+    it('never moves the marker back to an earlier day', async () => {
+      const later = new Date('2030-01-01T00:00:00Z');
+      const { service, tx } = setup([calls()], { responses: ['r-old'], deletedBefore: later });
+      await service.runRetention(NOW);
+      expect(tx.survey.updateMany.mock.calls[0][0].data.answersDeletedBefore).toEqual(later);
+    });
+
+    it('is not set when no answer was deleted (only follow-up notes)', async () => {
+      const { service, tx } = setup([calls()], { responses: [] });
+      tx.surveyPendingResponse.deleteMany.mockResolvedValue({ count: 0 });
+      await service.runRetention(NOW);
+      expect(tx.survey.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('reads the latest day across a survey and its periods for the settings panel', () => {
+      expect(latestDate([null, new Date('2026-01-01'), undefined, new Date('2026-03-01')])?.toISOString()).toBe('2026-03-01T00:00:00.000Z');
+      expect(latestDate([null, undefined])).toBeNull();
+    });
+  });
+
+  describe('deleted surveys: evidence captured first, or never captured because deleted before closing', () => {
+    it('the rule', () => {
+      const t = new Date('2025-01-10T00:05:00Z');
+      const done = { outcome: 'CAPTURED', surveyUpdatedAt: t };
+      // Never closed (open, or deleted while open): nothing to capture.
+      expect(evidenceReadyForRetention({ status: 'ACTIVE', deletedAt: null, updatedAt: t }, null)).toBe(true);
+      expect(evidenceReadyForRetention({ status: 'ACTIVE', deletedAt: t, updatedAt: t }, null)).toBe(true);
+      // Closed, not deleted: done and up to date.
+      expect(evidenceReadyForRetention({ status: 'CLOSED', deletedAt: null, updatedAt: t }, done)).toBe(true);
+      expect(evidenceReadyForRetention({ status: 'CLOSED', deletedAt: null, updatedAt: new Date(t.getTime() + 1) }, done)).toBe(false);
+      expect(evidenceReadyForRetention({ status: 'CLOSED', deletedAt: null, updatedAt: t }, { outcome: 'FAILED', surveyUpdatedAt: t })).toBe(false);
+      expect(evidenceReadyForRetention({ status: 'CLOSED', deletedAt: null, updatedAt: t }, null)).toBe(false);
+      // Closed then deleted: the deletion moved updatedAt, and a deleted survey is never captured again: done is enough.
+      const later = new Date('2025-06-01T00:00:00Z');
+      expect(evidenceReadyForRetention({ status: 'CLOSED', deletedAt: later, updatedAt: later }, done)).toBe(true);
+      expect(evidenceReadyForRetention({ status: 'CLOSED', deletedAt: later, updatedAt: later }, { outcome: 'NO_STATEMENTS', surveyUpdatedAt: t })).toBe(true);
+      expect(evidenceReadyForRetention({ status: 'CLOSED', deletedAt: later, updatedAt: later }, null)).toBe(false);
+      expect(evidenceReadyForRetention({ status: 'CLOSED', deletedAt: later, updatedAt: later }, { outcome: 'FAILED', surveyUpdatedAt: t })).toBe(false);
+    });
+
+    it('a survey deleted after closing waits for its evidence; deleted once it was taken, its answers go', async () => {
+      const deleted = unit({ deletedAt: new Date('2025-06-01T00:00:00Z'), updatedAt: new Date('2025-06-01T00:00:00Z') });
+      const none = setup([deleted], { capture: null });
+      await expect(none.service.runRetention(NOW)).resolves.toEqual({ units: 0, responses: 0 });
+      expect(none.prisma.cqcSurveyCapture.findUnique).toHaveBeenCalled();
+      expect(none.tx.surveyResponse.deleteMany).not.toHaveBeenCalled();
+      const taken = setup([deleted]);
+      await expect(taken.service.runRetention(NOW)).resolves.toEqual({ units: 1, responses: 2 });
+    });
+
+    it('a survey deleted while open never had evidence: its old answers go without a capture', async () => {
+      const deletedOpen = unit({ status: 'ACTIVE', closesAt: null, deletedAt: new Date('2025-06-01T00:00:00Z'), answerRetentionMonths: null, libraryMeta: { retention: { months: 6, basis: 'FROM_ANSWER' } } });
+      const { service, prisma } = setup([deletedOpen], { capture: null, responses: ['r-old'] });
+      await expect(service.runRetention(NOW)).resolves.toEqual({ units: 1, responses: 1 });
+      expect(prisma.cqcSurveyCapture.findUnique).not.toHaveBeenCalled();
+    });
   });
 });
 
@@ -424,5 +537,14 @@ describe('training feedback from Learning (decision S4)', () => {
     expect(ok).toMatchObject({ ok: true, trigger: { options: { part: 'B' } } });
     expect(checkEventTriggerInput({ event: 'TRAINING_ATTENDED', delayDays: 0, windowDays: 7 }, { audience: 'SERVICE_USER', today: '2026-11-07' })).toMatchObject({ ok: false });
     expect(LIBRARY_EVENT_TRIGGERS['SUR-STF-005']).toMatchObject({ event: 'TRAINING_ATTENDED', options: { part: 'A' } });
+  });
+
+  it('Part B switched on without days takes the library’s 42 days (6 weeks); days given are kept (editable)', () => {
+    expect(SURVEY_TRIGGER_EVENT_INFO.TRAINING_ATTENDED.partBDelayDays).toBe(42);
+    const ctx = { audience: 'EMPLOYEE' as const, today: '2026-11-07' };
+    expect(checkEventTriggerInput({ event: 'TRAINING_ATTENDED', windowDays: 14, options: { part: 'B' } }, ctx)).toMatchObject({ ok: true, trigger: { delayDays: 42 } });
+    expect(checkEventTriggerInput({ event: 'TRAINING_ATTENDED', delayDays: 56, windowDays: 14, options: { part: 'B' } }, ctx)).toMatchObject({ ok: true, trigger: { delayDays: 56 } });
+    // Part A has no default: the days must be given.
+    expect(checkEventTriggerInput({ event: 'TRAINING_ATTENDED', windowDays: 7, options: { part: 'A' } }, ctx)).toMatchObject({ ok: false });
   });
 });

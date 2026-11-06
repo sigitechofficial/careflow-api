@@ -78,10 +78,14 @@ Last reviewed: November 2026 (Phase 2 part 7 review).
   one while the survey stays open.
 - What goes: the answers, answers still waiting to be written, the details a follow-up quoted, and notes taken on
   survey phone calls. What stays: totals already kept as CQC evidence (a closed survey's answers are not deleted until
-  its evidence has been taken), who a survey was sent to, and follow-ups with their outcomes. Each deletion is audited
-  as counts only. Whole surveys can still be deleted.
-- Legal hold: answers and follow-up details linked to a complaint, safeguarding case or incident that is still open are
-  kept until it closes, then deleted at the next hourly check.
+  its evidence has been taken; once some answers are gone, evidence already taken is never taken again with fewer, and
+  evidence first taken after says it covers later answers only), who a survey was sent to, and follow-ups with their
+  outcomes. Where answers are deleted one by one, Results say "Answers given before <date> have been deleted under the
+  retention period". Each deletion is audited as counts only. Whole surveys can still be deleted: deleting a closed
+  survey takes its CQC evidence first (refused if that cannot be done), and its answers then follow the same
+  retention period; a survey deleted before it closed never had evidence to take.
+- Legal hold: answers and follow-up details linked to a complaint, safeguarding case or incident are kept while it is
+  open and for 30 days after it closes (time to reopen it or ask for a review), then deleted at the next hourly check.
 - Not covered: answers someone downloaded or printed before deletion (exports and paper copies), and copies in
   backups (below).
 - Other records follow the organisation's Records Management and Retention Policy. **To confirm**: retention of

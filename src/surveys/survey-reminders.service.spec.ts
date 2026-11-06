@@ -182,6 +182,19 @@ describe('SurveyRemindersService — the survey job', () => {
     expect(JSON.stringify(task)).not.toMatch(/Zara|Ali/);
   });
 
+  it('tells only the call role holders who will see the task (the task list’s branch rule)', async () => {
+    const callPlan = { ...plan, call: { afterDays: 3, roleId: null, ownerKey: 'CARE_COORDINATOR', withinDays: 5 } };
+    const { svc, prisma, notifications } = setup({ survey: { contactPlan: callPlan, locationIds: ['leeds'] } });
+    prisma.userRole.findMany.mockResolvedValue([{ userId: 'boss' }, { userId: 'leeds-cc' }, { userId: 'york-cc' }]);
+    prisma.user.findMany.mockResolvedValue([
+      { id: 'boss', email: 'b@x', userRoles: [{ role: { name: 'Super Admin' } }], userLocations: [] },
+      { id: 'leeds-cc', email: 'l@x', userRoles: [{ role: { name: 'Care Coordinator' } }], userLocations: [{ locationId: 'leeds' }] },
+      { id: 'york-cc', email: 'y@x', userRoles: [{ role: { name: 'Care Coordinator' } }], userLocations: [{ locationId: 'york' }] },
+    ]);
+    await svc.runDue(NOW);
+    expect(notifications.notifyUsers.mock.calls[0][0].recipientUserIds).toEqual(['boss', 'leeds-cc']);
+  });
+
   it('uses generic task wording when the survey’s answers are limited to some people', async () => {
     audience.mockResolvedValue({ restricted: true, roleIds: new Set(['x']), userIds: [], createdById: 'u1' });
     const callPlan = { ...plan, call: { afterDays: 3, roleId: null, ownerKey: 'CARE_COORDINATOR', withinDays: 5 } };

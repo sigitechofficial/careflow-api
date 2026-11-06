@@ -236,6 +236,59 @@ export function retentionDue(closedAt: Date, months: number): Date {
   return d;
 }
 
+/** The latest of some dates (null when none). */
+export function latestDate(dates: ReadonlyArray<Date | null | undefined>): Date | null {
+  let best: Date | null = null;
+  for (const d of dates) if (d && (!best || d.getTime() > best.getTime())) best = d;
+  return best;
+}
+
+/** Days a linked complaint, safeguarding case or incident still holds answers after it closes (time to reopen it). */
+export const LEGAL_HOLD_GRACE_DAYS = 30;
+
+/**
+ * A linked complaint, safeguarding case or incident holds answers while it is open and for LEGAL_HOLD_GRACE_DAYS
+ * after it closed (its closedAt; a closed record with none counts from its last change). Deleted records hold nothing.
+ */
+export function legalHoldActive(r: { status: string; closedAt: Date | null; updatedAt: Date; deletedAt?: Date | null }, now: Date): boolean {
+  if (r.deletedAt) return false;
+  if (r.status !== 'CLOSED') return true;
+  const closed = r.closedAt ?? r.updatedAt;
+  return closed.getTime() > now.getTime() - LEGAL_HOLD_GRACE_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/** legalHoldActive as a query (the same rule, for FeedbackRecord, SafeguardingCase and Incident). */
+export function legalHoldWhere(now: Date) {
+  const since = new Date(now.getTime() - LEGAL_HOLD_GRACE_DAYS * 24 * 60 * 60 * 1000);
+  return {
+    OR: [
+      { status: { not: 'CLOSED' as const } },
+      { status: 'CLOSED' as const, closedAt: { gt: since } },
+      { status: 'CLOSED' as const, closedAt: null, updatedAt: { gt: since } },
+    ],
+  };
+}
+
+/**
+ * Whether answers to a unit may be deleted as far as its CQC evidence goes. Evidence (totals only) is taken from
+ * closed units, so:
+ * - never closed (open, or deleted before it closed): there is no evidence to take; nothing to wait for;
+ * - closed and not deleted: the capture must be done (CAPTURED or NO_STATEMENTS, or ANSWERS_DELETED once partly
+ *   deleted) and up to date with the unit's last change (an edit is captured again first);
+ * - closed, then deleted: a deleted survey is never captured again (deleting takes the capture first), so a done
+ *   capture is enough; with none it waits (never deleted without evidence).
+ */
+export function evidenceReadyForRetention(
+  u: { status: string; deletedAt: Date | null; updatedAt: Date },
+  capture: { outcome: string; surveyUpdatedAt: Date } | null,
+): boolean {
+  if (u.status !== 'CLOSED') return true;
+  const done = Boolean(capture) && ['CAPTURED', 'NO_STATEMENTS', 'ANSWERS_DELETED'].includes(capture!.outcome);
+  if (!done) return false;
+  if (u.deletedAt) return true;
+  return capture!.surveyUpdatedAt.getTime() >= u.updatedAt.getTime();
+}
+
 // ─── Wording checker ────────────────────────────────────────────────────
 
 export type WordingQuestion = {

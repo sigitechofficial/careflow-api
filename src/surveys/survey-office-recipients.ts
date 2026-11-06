@@ -37,6 +37,30 @@ export async function usersWithResultsAccess(db: Db, surveyId: string, userIds: 
   return out;
 }
 
+/**
+ * Of `userIds`, those whose branches cover this survey, by the rule the task list uses for tasks about a survey
+ * (role-tasks withoutHiddenSurveyTasks: surveyVisibleInScope): company-wide users always; users limited to branches
+ * only when every branch the survey is for is one of theirs (a survey for no branch: none of them). Branches as at
+ * sign-in: the account's, else its employment's, else none. Used for notices that go with such a task.
+ */
+export async function usersInSurveyBranches(db: Db, survey: { locationIds: string[]; isTemplate: boolean }, userIds: readonly string[]): Promise<string[]> {
+  if (!userIds.length) return [];
+  const users = await db.user.findMany({
+    where: { id: { in: [...userIds] }, deletedAt: null, isActive: true },
+    select: { id: true, email: true, userRoles: { select: { role: { select: { name: true } } } }, userLocations: { select: { locationId: true } } },
+  });
+  const out: string[] = [];
+  for (const u of users) {
+    const companyWide = u.userRoles.some((r) => COMPANY_WIDE_IDENTITY_ROLES.has(r.role.name));
+    if (!companyWide) {
+      const branches = u.userLocations.length ? u.userLocations.map((l) => l.locationId) : await employmentBranches(db, u.email);
+      if (!surveyVisibleInScope({ locationIds: branches }, survey)) continue;
+    }
+    out.push(u.id);
+  }
+  return out;
+}
+
 /** The branches of the employment record with this email (as UsersService works out a user's branches). */
 async function employmentBranches(db: Db, email: string): Promise<string[]> {
   const personal = await db.employeePersonalDetail.findFirst({

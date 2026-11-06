@@ -819,6 +819,28 @@ describe('SurveysService', () => {
     });
   });
 
+  describe('results say what the retention period deleted', () => {
+    it('answers given before a day (counted from each answer, survey still open); the latest day across periods', async () => {
+      givenSurvey(surveyRow({ status: 'ACTIVE', answersDeletedBefore: new Date('2026-02-01T00:00:00Z') }));
+      prisma.survey.findMany.mockImplementation(async (args: any) =>
+        args?.where?.clonedFromId === 's1' && args?.select?.answersDeletedBefore
+          ? [
+              { answersDeletedAt: null, answersDeletedBefore: new Date('2026-03-01T00:00:00Z') },
+              { answersDeletedAt: new Date('2026-04-01T00:00:00Z'), answersDeletedBefore: null },
+            ]
+          : [],
+      );
+      const res: any = await service.results(admin, 's1');
+      expect(res.data.retention).toEqual({ deletedAt: null, deletedBefore: '2026-03-01T00:00:00.000Z', periodsDeleted: 1 });
+    });
+
+    it('nothing deleted: nothing said', async () => {
+      givenSurvey(surveyRow({ status: 'CLOSED' }));
+      const res: any = await service.results(admin, 's1');
+      expect(res.data.retention).toEqual({ deletedAt: null, deletedBefore: null, periodsDeleted: 0 });
+    });
+  });
+
   /* ─── 3 & 4. Sending, scheduling and audience ─────────────────────────────── */
 
   describe('send / schedule', () => {
@@ -1710,6 +1732,29 @@ describe('SurveysService', () => {
       expect(closes[1]).toMatchObject({ data: { status: 'CLOSED' } });
     });
 
+    describe('a skipped month never leaves the previous open-ended period open through it', () => {
+      it('an open-ended period whose next month is skipped ends when that run would have been', async () => {
+        // November's period; December skipped: the next run is January, but November still ends on 1 Dec.
+        const run = await service.runRecurringPeriod({ ...source(), periodOpenDays: null, recurrenceSkipMonths: [12] }, now);
+        expect(run.nextAt.toISOString()).toBe('2027-01-01T09:00:00.000Z');
+        expect(prisma.survey.create.mock.calls[0][0].data.closesAt.toISOString()).toBe('2026-12-01T09:00:00.000Z');
+      });
+
+      it('with no month skipped it stays open-ended (the next period closes it)', async () => {
+        await service.runRecurringPeriod({ ...source(), periodOpenDays: null, recurrenceSkipMonths: [] }, now);
+        expect(prisma.survey.create.mock.calls[0][0].data.closesAt).toBeNull();
+      });
+
+      it('a run that lands on a skipped month closes the open period then (one made before the month was skipped)', async () => {
+        const run = await service.runRecurringPeriod({ ...source(), periodOpenDays: null, recurrenceSkipMonths: [11] }, now);
+        expect(run).toMatchObject({ skippedMonth: true, sent: 0 });
+        expect(prisma.survey.create).not.toHaveBeenCalled();
+        expect(prisma.survey.updateMany).toHaveBeenCalledWith({
+          where: { clonedFromId: 's1', status: 'ACTIVE', deletedAt: null, OR: [{ closesAt: null }, { closesAt: { gt: now } }] },
+          data: { status: 'CLOSED', closesAt: now },
+        });
+      });
+    });
     it('never sends the same period twice', async () => {
       prisma.survey.findFirst.mockResolvedValue({ id: 'existing-period' });
       const run = await service.runRecurringPeriod(source(), now);
@@ -5756,6 +5801,59 @@ describe('SurveysService', () => {
       });
     });
 
+    describe('deleting a closed survey keeps its CQC evidence first', () => {
+      const withCqc = (captureSurvey: jest.Mock) =>
+        new SurveysService(
+          prisma,
+          audit as any,
+          config as any,
+          mail as any,
+          push as any,
+          notifications as any,
+          new OrgScopeService(prisma),
+          orgSettings as any,
+          { captureSurvey } as any,
+        );
+
+      it('takes the evidence (totals only) before deleting when it was not taken or is out of date', async () => {
+        const order: string[] = [];
+        const capture = jest.fn(async () => {
+          order.push('capture');
+          return { outcome: 'CAPTURED' };
+        });
+        prisma.survey.update.mockImplementation(async (args: any) => {
+          order.push('delete');
+          return surveyRow({ id: args.where.id, ...args.data });
+        });
+        givenSurvey(surveyRow({ status: 'CLOSED', updatedAt: new Date('2026-10-02T00:00:00.000Z') }));
+        prisma.cqcSurveyCapture.findUnique.mockResolvedValue({ outcome: 'CAPTURED', surveyUpdatedAt: new Date('2026-10-01T00:00:00.000Z') });
+        await withCqc(capture).remove(admin, 's1');
+        expect(capture).toHaveBeenCalledWith('s1', expect.objectContaining({ actorId: admin.id, trigger: 'manual' }));
+        expect(order).toEqual(['capture', 'delete']);
+      });
+
+      it('is refused when the evidence cannot be taken now (never deleted without it)', async () => {
+        givenSurvey(surveyRow({ status: 'CLOSED' }));
+        const capture = jest.fn(async () => ({ outcome: 'FAILED' }));
+        await expect(withCqc(capture).remove(admin, 's1')).rejects.toThrow(/CQC evidence \(totals only\) could not be kept first/);
+        expect(prisma.survey.update).not.toHaveBeenCalled();
+      });
+
+      it('nothing to take: already up to date, still open (never captured), or a repeating survey’s own row', async () => {
+        const capture = jest.fn();
+        givenSurvey(surveyRow({ status: 'CLOSED', updatedAt: new Date('2026-10-01T00:00:00.000Z') }));
+        prisma.cqcSurveyCapture.findUnique.mockResolvedValue({ outcome: 'NO_STATEMENTS', surveyUpdatedAt: new Date('2026-10-01T00:00:00.000Z') });
+        await withCqc(capture).remove(admin, 's1');
+        givenSurvey(surveyRow({ status: 'ACTIVE' }));
+        await withCqc(capture).remove(admin, 's1');
+        givenSurvey(surveyRow({ status: 'CLOSED', recurrence: 'MONTHLY' }));
+        prisma.cqcSurveyCapture.findUnique.mockResolvedValue(null);
+        prisma.survey.count.mockResolvedValue(3);
+        await withCqc(capture).remove(admin, 's1');
+        expect(capture).not.toHaveBeenCalled();
+        expect(prisma.survey.update).toHaveBeenCalledTimes(3);
+      });
+    });
     describe('closing', () => {
       it('writes the held answers before the results are kept as CQC evidence', async () => {
         const order: string[] = [];

@@ -195,7 +195,9 @@ export function checkEventTriggerInput(
             : 'That event is not about people we support: choose another.',
     };
   }
-  const delay = r.delayDays;
+  // Part B of training feedback, switched on without days: the library's follow-up delay (42 days), editable after.
+  const partB = event === 'TRAINING_ATTENDED' && (r.options as { part?: unknown } | undefined)?.part === 'B';
+  const delay = r.delayDays === undefined && partB ? info.partBDelayDays : r.delayDays;
   if (typeof delay !== 'number' || !Number.isInteger(delay) || delay < TRIGGER_DELAY_MIN || delay > TRIGGER_DELAY_MAX) {
     return { ok: false, message: `The number of days must be a whole number from ${TRIGGER_DELAY_MIN} to ${TRIGGER_DELAY_MAX}.` };
   }

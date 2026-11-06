@@ -242,4 +242,19 @@ describe('done actions carried forward (decision, November 2026)', () => {
     expect(prisma.cqcEvidence.update).not.toHaveBeenCalled();
     expect(prisma.surveyAction.findMany.mock.calls[0][0].where).toMatchObject({ status: 'DONE', periodId: null });
   });
+
+  it('goes through every done action, a page at a time in a fixed order (never just the first 500)', async () => {
+    const { service, prisma } = setup();
+    prisma.cqcEvidence.findMany.mockResolvedValue([]);
+    const all = Array.from({ length: 1203 }, (_, i) => ({ id: `a${String(i).padStart(5, '0')}`, surveyId: 's1', periodId: null, status: 'DONE', youSaid: 'x', weDid: 'y', completedAt: new Date() }));
+    prisma.surveyAction.findMany.mockImplementation(async ({ where, orderBy, take }: any) => {
+      expect(orderBy).toEqual({ id: 'asc' });
+      return all.filter((a) => !where.id || a.id > where.id.gt).slice(0, take);
+    });
+    const sync = jest.spyOn(service, 'syncEvidence');
+    await expect(service.carryForward(new Date())).resolves.toBe(1203);
+    expect(prisma.surveyAction.findMany).toHaveBeenCalledTimes(3);
+    expect(new Set(sync.mock.calls.map((c) => c[0].id)).size).toBe(1203);
+    expect(prisma.surveyAction.findMany.mock.calls[2][0].where.id).toEqual({ gt: 'a00999' });
+  });
 });

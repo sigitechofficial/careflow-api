@@ -19,6 +19,10 @@ import {
   estimateSeconds,
   libraryNotInMonths,
   closedAtOf,
+  evidenceReadyForRetention,
+  latestDate,
+  LEGAL_HOLD_GRACE_DAYS,
+  legalHoldWhere,
   libraryRetention,
   readOptionGroups,
   retentionCutoff,
@@ -81,7 +85,7 @@ export class SurveyPlatformService {
     const library = libraryRetention(meta);
     const libraryMonths = library?.months ?? null;
     const effectiveMonths = owner.answerRetentionMonths ?? libraryMonths;
-    const periods = await this.prisma.survey.findMany({ where: { clonedFromId: owner.id, deletedAt: null }, select: { id: true, answersDeletedAt: true } });
+    const periods = await this.prisma.survey.findMany({ where: { clonedFromId: owner.id, deletedAt: null }, select: { id: true, answersDeletedAt: true, answersDeletedBefore: true } });
     return {
       message: 'Repeats, retention and checks',
       data: {
@@ -100,6 +104,9 @@ export class SurveyPlatformService {
           /** Where the period starts: the close (FROM_CLOSE) or each answer (FROM_ANSWER), as the privacy notice says. */
           basis: effectiveMonths ? (library?.basis ?? 'FROM_CLOSE') : null,
           deletedAt: owner.answersDeletedAt?.toISOString() ?? null,
+          /** Counted from each answer: answers given before this have been deleted (the latest across its periods). */
+          deletedBefore: latestDate([owner.answersDeletedBefore, ...periods.map((p) => p.answersDeletedBefore)])?.toISOString() ?? null,
+          legalHoldGraceDays: LEGAL_HOLD_GRACE_DAYS,
           periodsDeleted: periods.filter((p) => p.answersDeletedAt).length,
         },
       },
@@ -238,7 +245,10 @@ export class SurveyPlatformService {
    * once it is that old, while the survey stays open, then the rest when the closed unit is due.
    *
    * Safeguards: a closed unit's CQC evidence (totals only) must be captured and up to date first; answers and follow-up
-   * details linked to an open complaint, safeguarding case or incident are held until it closes; one server at a time
+   * details linked to a complaint, safeguarding case or incident are held while it is open and for 30 days after it
+   * closes (LEGAL_HOLD_GRACE_DAYS), then deleted at the next run; a deleted survey follows the same evidence rule
+   * (evidenceReadyForRetention); answers deleted from a unit that stays (counted from each answer) set
+   * answersDeletedBefore, shown in Results and kept out of a later CQC capture; one server at a time
    * per unit (an advisory lock, then looked at again); the survey's updatedAt is left alone (it is what the CQC capture
    * and this job read as "changed"). Who it was sent to, the follow-ups and their outcomes are kept. Audited as counts.
    */
@@ -325,20 +335,17 @@ export class SurveyPlatformService {
       this.prisma.surveyPendingResponse.count({ where: waitingWhere }),
     ]);
     if (!whole && !due && !waitingDue) return null;
-    // A closed unit's CQC evidence (totals) is kept first: captured, and not waiting to be taken again.
-    if (u.status === 'CLOSED' && !u.deletedAt && (due || waitingDue)) {
+    // A closed unit's CQC evidence (totals) is kept first: captured, and not waiting to be taken again. The same rule
+    // for a deleted survey: captured before it was deleted, or never closed (so never captured).
+    if (u.status === 'CLOSED' && (due || waitingDue)) {
       const capture = await this.prisma.cqcSurveyCapture.findUnique({ where: { surveyId: u.id }, select: { outcome: true, surveyUpdatedAt: true } });
-      const upToDate =
-        Boolean(capture) &&
-        (capture!.outcome === 'CAPTURED' || capture!.outcome === 'NO_STATEMENTS') &&
-        capture!.surveyUpdatedAt.getTime() >= u.updatedAt.getTime();
-      if (!upToDate) return null;
+      if (!evidenceReadyForRetention(u, capture)) return null;
     }
-    const held = await this.legalHolds(u.id);
+    const held = await this.legalHolds(u.id, now);
     return this.prisma.$transaction(async (tx) => {
       // One server at a time per unit; then look again (another may have just done it).
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`survey-retention:${u.id}`}))`;
-      const fresh = await tx.survey.findUnique({ where: { id: u.id }, select: { answersDeletedAt: true, updatedAt: true } });
+      const fresh = await tx.survey.findUnique({ where: { id: u.id }, select: { answersDeletedAt: true, answersDeletedBefore: true, updatedAt: true } });
       if (!fresh || fresh.answersDeletedAt) return null;
       const ids = (
         await tx.surveyResponse.findMany({
@@ -370,6 +377,10 @@ export class SurveyPlatformService {
       const finished = whole && !heldCount;
       if (finished) {
         await tx.survey.updateMany({ where: { id: u.id, answersDeletedAt: null }, data: { answersDeletedAt: now, updatedAt: fresh.updatedAt } });
+      } else if (!whole && (r.count || w.count)) {
+        // Counted from each answer: Results say which answers are gone, and the CQC capture keeps its earlier figures.
+        const before = fresh.answersDeletedBefore && fresh.answersDeletedBefore.getTime() > cutoff.getTime() ? fresh.answersDeletedBefore : cutoff;
+        await tx.survey.updateMany({ where: { id: u.id }, data: { answersDeletedBefore: before, updatedAt: fresh.updatedAt } });
       }
       if (!r.count && !w.count && !f.count && !c.count && !finished) return null;
       return { responses: r.count, waiting: w.count, followUps: f.count, callNotes: c.count, held: heldCount };
@@ -377,10 +388,11 @@ export class SurveyPlatformService {
   }
 
   /**
-   * Legal holds: follow-ups linked to a complaint, safeguarding case or incident that is still open. Their answers
-   * (named ones) and quoted details are kept until it closes; everything else follows the retention period.
+   * Legal holds: follow-ups linked to a complaint, safeguarding case or incident that is still open, or that closed
+   * less than LEGAL_HOLD_GRACE_DAYS ago (time to reopen it or ask for a review). Their answers (named ones) and quoted
+   * details are kept until then and deleted at the next run after; everything else follows the retention period.
    */
-  private async legalHolds(surveyId: string): Promise<{ responseIds: string[]; alertIds: string[] }> {
+  private async legalHolds(surveyId: string, now: Date): Promise<{ responseIds: string[]; alertIds: string[] }> {
     const linked = await this.prisma.surveyAlert.findMany({
       where: { surveyId, linkedRecordId: { not: null }, linkedRecordType: { in: ['COMPLAINT', 'SAFEGUARDING', 'INCIDENT'] } },
       select: { id: true, responseId: true, linkedRecordType: true, linkedRecordId: true },
@@ -388,16 +400,13 @@ export class SurveyPlatformService {
     if (!linked.length) return { responseIds: [], alertIds: [] };
     const idsOf = (t: string) => linked.filter((a) => a.linkedRecordType === t).map((a) => a.linkedRecordId!);
     const none: Array<{ id: string }> = [];
+    const holdWhere = (ids: string[]) => ({ id: { in: ids }, deletedAt: null, ...legalHoldWhere(now) });
     const [complaints, cases, incidents] = await Promise.all([
-      idsOf('COMPLAINT').length
-        ? this.prisma.feedbackRecord.findMany({ where: { id: { in: idsOf('COMPLAINT') }, deletedAt: null, status: { not: 'CLOSED' } }, select: { id: true } })
-        : none,
+      idsOf('COMPLAINT').length ? this.prisma.feedbackRecord.findMany({ where: holdWhere(idsOf('COMPLAINT')) as Prisma.FeedbackRecordWhereInput, select: { id: true } }) : none,
       idsOf('SAFEGUARDING').length
-        ? this.prisma.safeguardingCase.findMany({ where: { id: { in: idsOf('SAFEGUARDING') }, deletedAt: null, status: { not: 'CLOSED' } }, select: { id: true } })
+        ? this.prisma.safeguardingCase.findMany({ where: holdWhere(idsOf('SAFEGUARDING')) as Prisma.SafeguardingCaseWhereInput, select: { id: true } })
         : none,
-      idsOf('INCIDENT').length
-        ? this.prisma.incident.findMany({ where: { id: { in: idsOf('INCIDENT') }, deletedAt: null, status: { not: 'CLOSED' } }, select: { id: true } })
-        : none,
+      idsOf('INCIDENT').length ? this.prisma.incident.findMany({ where: holdWhere(idsOf('INCIDENT')) as Prisma.IncidentWhereInput, select: { id: true } }) : none,
     ]);
     const open = new Set([...complaints, ...cases, ...incidents].map((x) => x.id));
     const holding = linked.filter((a) => open.has(a.linkedRecordId!));

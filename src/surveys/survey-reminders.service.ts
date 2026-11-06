@@ -32,6 +32,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { TextMessageService } from '../text-messages/text-message.service';
 import { firstUkMobile, normaliseUkMobile } from '../text-messages/uk-mobile.util';
 import { surveyVisibleInScope } from './survey-scope.util';
+import { usersInSurveyBranches } from './survey-office-recipients';
 import { surveyAccessFor, surveyResultsAudience } from './survey-access';
 import { roleForOwner } from './survey-alert-rules.util';
 import { personalLinkPath } from './survey-recipient-links.service';
@@ -946,9 +947,11 @@ export class SurveyRemindersService {
     });
     try {
       const holders = await this.prisma.userRole.findMany({ where: { roleId: role.id, user: { deletedAt: null, isActive: true } }, select: { userId: true } });
-      if (holders.length) {
+      // Only those who will see the task: the same branch rule as the task list (survey-office-recipients).
+      const recipients = await usersInSurveyBranches(this.prisma, survey, [...new Set(holders.map((h) => h.userId))]);
+      if (recipients.length) {
         await this.notifications.notifyUsers({
-          recipientUserIds: [...new Set(holders.map((h) => h.userId))],
+          recipientUserIds: recipients,
           type: NotificationType.SYSTEM_MESSAGE,
           module: NotificationModule.SYSTEM,
           severity: NotificationSeverity.INFO,
