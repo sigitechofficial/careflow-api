@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { createHash, createHmac, timingSafeEqual } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
@@ -10,65 +9,70 @@ import { SURVEY_UNSUBSCRIBE_REASON } from './survey-eligibility.util';
 export type UnsubscribeSubject = { subjectKind: 'EMPLOYEE' | 'SERVICE_USER' | 'EXTERNAL' | 'CONTACT'; subjectId: string };
 const KINDS = ['EMPLOYEE', 'SERVICE_USER', 'EXTERNAL', 'CONTACT'];
 
+/** 32 random bytes, base64url: 43 characters. */
+const TOKEN_SHAPE = /^[A-Za-z0-9_-]{43}$/;
+
+const hashOf = (token: string) => createHash('sha256').update(token).digest('hex');
+
 /**
  * "Unsubscribe from all surveys" (former people, decision November 2026): a permanent opt-out from every
- * survey message, one click from any invitation, also set by STOP. The link names the person, never a survey
- * or an answer (so it is safe on anonymous surveys too), and is signed so it cannot be guessed. Staff cannot
- * lift it (SurveyRemindersService.setOptOuts and the outside-people screen keep it).
+ * survey message, one click from any invitation, also set by STOP. Staff cannot lift it
+ * (SurveyRemindersService.setOptOuts and the outside-people screen keep it).
+ *
+ * Each link holds an opaque random token (256 bits), new for every message. Only its SHA-256 hash is stored
+ * (surveys.SurveyUnsubscribeToken, with the person it stands for), so the link reveals nothing (no person,
+ * survey or answer) and a copy of the database cannot be turned back into working links. The earlier signed
+ * links that carried the person's id are refused: none was ever sent to a former person.
  */
 @Injectable()
 export class SurveyUnsubscribeService {
-  private readonly key: Buffer;
-
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
-    config: ConfigService,
-  ) {
-    const secret = config.get<string>('JWT_ACCESS_TOKEN_SECRET') ?? '';
-    this.key = createHash('sha256').update(`survey-unsubscribe:${secret}`).digest();
+  ) {}
+
+  /** A new token for this person (stored hashed). */
+  async token(subject: UnsubscribeSubject): Promise<string> {
+    if (!KINDS.includes(subject.subjectKind)) throw new Error('Unknown unsubscribe subject');
+    const token = randomBytes(32).toString('base64url');
+    await this.prisma.$executeRaw`
+      INSERT INTO "surveys"."SurveyUnsubscribeToken" ("id", "tokenHash", "subjectKind", "subjectId")
+      VALUES (${randomUUID()}::uuid, ${hashOf(token)}, ${subject.subjectKind}, ${subject.subjectId}::uuid)`;
+    return token;
   }
 
-  private mac(payload: string): string {
-    return createHmac('sha256', this.key).update(payload).digest('base64url').slice(0, 32);
+  /** Who a token stands for, or null (wrong shape, unknown, or an old signed link). */
+  async read(token: string): Promise<UnsubscribeSubject | null> {
+    if (typeof token !== 'string' || !TOKEN_SHAPE.test(token)) return null;
+    const rows = await this.prisma.$queryRaw<Array<{ subjectKind: string; subjectId: string }>>`
+      SELECT "subjectKind", "subjectId"::text AS "subjectId" FROM "surveys"."SurveyUnsubscribeToken" WHERE "tokenHash" = ${hashOf(token)} LIMIT 1`;
+    const row = rows[0];
+    if (!row || !KINDS.includes(row.subjectKind)) return null;
+    return { subjectKind: row.subjectKind as UnsubscribeSubject['subjectKind'], subjectId: row.subjectId };
   }
 
-  token(subject: UnsubscribeSubject): string {
-    const payload = Buffer.from(`${subject.subjectKind}:${subject.subjectId}`).toString('base64url');
-    return `${payload}.${this.mac(payload)}`;
+  /** The address for an invitation: base + /survey-unsubscribe/<token>, or null with no web address. */
+  async link(base: string | null, subject: UnsubscribeSubject): Promise<string | null> {
+    if (!base) return null;
+    return `${base}/survey-unsubscribe/${await this.token(subject)}`;
   }
 
-  read(token: string): UnsubscribeSubject | null {
-    const [payload, sig] = (token ?? '').split('.');
-    if (!payload || !sig) return null;
-    // Compared as bytes: a signature with non-ASCII characters is refused, never an error.
-    const got = Buffer.from(sig);
-    const want = Buffer.from(this.mac(payload));
-    if (got.length !== want.length || !timingSafeEqual(got, want)) return null;
-    const [subjectKind, subjectId] = Buffer.from(payload, 'base64url').toString('utf8').split(':');
-    if (!KINDS.includes(subjectKind) || !/^[0-9a-f-]{36}$/i.test(subjectId ?? '')) return null;
-    return { subjectKind: subjectKind as UnsubscribeSubject['subjectKind'], subjectId };
-  }
-
-  /** The address for an invitation: base + /survey-unsubscribe/<token>. */
-  link(base: string | null, subject: UnsubscribeSubject): string | null {
-    return base ? `${base}/survey-unsubscribe/${this.token(subject)}` : null;
-  }
-
-  /** Whether the link is real (the page says so before the person confirms). */
-  check(token: string): { valid: boolean; alreadyDone: boolean } | Promise<{ valid: boolean; alreadyDone: boolean }> {
-    const subject = this.read(token);
+  /** Whether the link is real (the page says so before the person confirms). Nothing else. */
+  async check(token: string): Promise<{ valid: boolean; alreadyDone: boolean }> {
+    const subject = await this.read(token);
     if (!subject) return { valid: false, alreadyDone: false };
-    return this.prisma.surveyContactOptOut
-      .findFirst({ where: { ...subject, channel: 'ALL', reason: SURVEY_UNSUBSCRIBE_REASON }, select: { id: true } })
-      .then((r) => ({ valid: true, alreadyDone: Boolean(r) }));
+    const r = await this.prisma.surveyContactOptOut.findFirst({ where: { ...subject, channel: 'ALL', reason: SURVEY_UNSUBSCRIBE_REASON }, select: { id: true } });
+    return { valid: true, alreadyDone: Boolean(r) };
   }
 
   /** Stop every survey message to them, for good. Audited without the person's details. */
   async unsubscribe(token: string, via: 'LINK' | 'STOP' = 'LINK'): Promise<{ done: boolean }> {
-    const subject = this.read(token);
+    const subject = await this.read(token);
     if (!subject) throw new BadRequestException('This link is not valid.');
-    return this.apply(subject, via);
+    const result = await this.apply(subject, via);
+    await this.prisma.$executeRaw`
+      UPDATE "surveys"."SurveyUnsubscribeToken" SET "usedAt" = now() WHERE "tokenHash" = ${hashOf(token)} AND "usedAt" IS NULL`;
+    return result;
   }
 
   async apply(subject: UnsubscribeSubject, via: 'LINK' | 'STOP'): Promise<{ done: boolean }> {

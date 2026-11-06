@@ -30,7 +30,7 @@ import {
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { TextMessageService } from '../text-messages/text-message.service';
-import { firstUkMobile } from '../text-messages/uk-mobile.util';
+import { firstUkMobile, normaliseUkMobile } from '../text-messages/uk-mobile.util';
 import { surveyVisibleInScope } from './survey-scope.util';
 import { surveyAccessFor, surveyResultsAudience } from './survey-access';
 import { roleForOwner } from './survey-alert-rules.util';
@@ -55,7 +55,7 @@ import { surveyContactMessages } from './survey-contact-messages.util';
 import { surveyEmailBranding, surveyEmailFacts } from './survey-email-branding';
 import { SURVEY_TEXT_STOP_REASON } from './survey-text-replies.service';
 import { SurveyUnsubscribeService } from './survey-unsubscribe.service';
-import { LAPSABLE_STATUSES, SURVEY_UNSUBSCRIBE_REASON, ineligibleRecipientIds, organisationDomains, personalEmail } from './survey-eligibility.util';
+import { LAPSABLE_STATUSES, SURVEY_UNSUBSCRIBE_REASON, ineligibleRecipientIds, noAutomaticContactIds, organisationDomains, personalEmail } from './survey-eligibility.util';
 import { staffAnswerPlaces, type StaffAnswerPlaces } from './survey-staff-answer-places';
 
 /** RoleTask.sourceType of the phone call list task (sourceId = the survey or period). */
@@ -175,6 +175,40 @@ export class SurveyRemindersService {
       } else add(`${r.subjectKind}:${r.subjectId}`, r.channel);
     }
     return map;
+  }
+
+  /**
+   * Outside people's details as they are now: a family member from People involved is read again from that
+   * record (name, email, mobile), as a first send does, so a changed or removed email is never used.
+   */
+  async outsideCurrentDetails(where: Prisma.SurveyExternalContactWhereInput): Promise<Array<{ id: string; name: string; organisation: string | null; email: string | null; mobile: string | null; phone: string | null }>> {
+    const rows = await this.prisma.surveyExternalContact.findMany({
+      where,
+      select: { id: true, name: true, organisation: true, email: true, mobile: true, phone: true, sourceType: true, sourceId: true },
+    });
+    const sourceIds = rows.filter((r) => r.sourceType === 'SERVICE_USER_CONTACT' && r.sourceId).map((r) => r.sourceId!);
+    const records = sourceIds.length
+      ? await this.prisma.serviceUserContact.findMany({ where: { id: { in: sourceIds } }, select: { id: true, firstName: true, lastName: true, email: true, mobile: true, phone: true } })
+      : [];
+    const byId = new Map(records.map((c) => [c.id, c]));
+    const out: Array<{ id: string; name: string; organisation: string | null; email: string | null; mobile: string | null; phone: string | null }> = [];
+    for (const r of rows) {
+      if (r.sourceType !== 'SERVICE_USER_CONTACT') {
+        out.push({ id: r.id, name: r.name, organisation: r.organisation, email: r.email, mobile: r.mobile, phone: r.phone });
+        continue;
+      }
+      const c = r.sourceId ? byId.get(r.sourceId) : undefined;
+      if (!c) continue; // the record is gone: nothing to use
+      out.push({
+        id: r.id,
+        name: `${c.firstName} ${c.lastName ?? ''}`.trim(),
+        organisation: null,
+        email: c.email?.trim() || null,
+        mobile: normaliseUkMobile(c.mobile) ?? normaliseUkMobile(c.phone),
+        phone: c.phone?.trim() || c.mobile?.trim() || null,
+      });
+    }
+    return out;
   }
 
   private static optedOut(opts: Map<string, Set<string>>, p: { employeeId: string | null; serviceUserId: string | null; externalContactId?: string | null }, channel: string): boolean {
@@ -412,12 +446,16 @@ export class SurveyRemindersService {
     if (!people.length) return people;
     const owner = await this.planOwner(survey);
     const bad = await ineligibleRecipientIds(this.prisma, survey, owner, people);
-    if (!bad.size) return people;
-    await this.prisma.surveyRecipient.updateMany({
-      where: { id: { in: [...bad] }, status: { in: LAPSABLE_STATUSES } },
-      data: { status: SurveyRecipientStatus.LAPSED, invitationTextPending: false },
-    });
-    return people.filter((p) => !bad.has(p.id));
+    if (bad.size) {
+      await this.prisma.surveyRecipient.updateMany({
+        where: { id: { in: [...bad] }, status: { in: LAPSABLE_STATUSES } },
+        data: { status: SurveyRecipientStatus.LAPSED, invitationTextPending: false },
+      });
+    }
+    // After a death: some outside people may still answer the link they were sent, but are never chased
+    // (a complaint follow-up to the family member who complained; professionals on a survey about that person).
+    const quiet = await noAutomaticContactIds(this.prisma, survey, owner, people.filter((p) => !bad.has(p.id)));
+    return people.filter((p) => !bad.has(p.id) && !quiet.has(p.id));
   }
 
   private async remind(
@@ -538,7 +576,7 @@ export class SurveyRemindersService {
     // Outside people (named public surveys): their current details (removed ones are not reminded).
     const outsideIds = people.map((p) => p.externalContactId).filter((x): x is string => Boolean(x));
     const outside = outsideIds.length
-      ? await this.prisma.surveyExternalContact.findMany({ where: { id: { in: outsideIds }, deletedAt: null }, select: { id: true, name: true, email: true, mobile: true, phone: true } })
+      ? await this.outsideCurrentDetails({ id: { in: outsideIds }, deletedAt: null })
       : [];
     const outsideById = new Map(outside.map((x) => [x.id, x]));
     // Anonymous staff surveys: where each person answers signed in (carer app, My surveys on the web).
@@ -587,7 +625,7 @@ export class SurveyRemindersService {
         const left = s.employee?.isActive === false;
         if (left && this.unsubscribe) {
           // Former staff: the unsubscribe link in the email (HTML and plain text, invitation and reminder alike) and the text.
-          const stopAll = this.unsubscribe.link(base, { subjectKind: 'EMPLOYEE', subjectId: p.employeeId });
+          const stopAll = await this.unsubscribe.link(base, { subjectKind: 'EMPLOYEE', subjectId: p.employeeId });
           if (stopAll) {
             const withStop = surveyContactMessages({
               kind: 'EMPLOYEE', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName: s.firstName,
@@ -621,16 +659,14 @@ export class SurveyRemindersService {
           continue;
         }
         const firstName = su.preferredName?.trim() || su.firstName;
+        // Care has ended (a former person chosen by name): never the portal; their own email, with an unsubscribe link.
+        const formerSu = (su as { status?: { code: string } | null }).status?.code === 'DISCHARGED';
+        const stopSu = formerSu ? ((await this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id })) ?? null) : null;
         const m = surveyContactMessages({
           kind: 'SERVICE_USER', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName,
           link, portalLink, closesOn, organisation, ...emailExtras, textRepliesSupported: this.texts.supportsReplies(),
-          unsubscribeLink:
-            (su as { status?: { code: string } | null }).status?.code === 'DISCHARGED'
-              ? (this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id }) ?? null)
-              : null,
+          unsubscribeLink: stopSu,
         });
-        // Care has ended (a former person chosen by name): never the portal; their own email, with an unsubscribe link.
-        const formerSu = (su as { status?: { code: string } | null }).status?.code === 'DISCHARGED';
         const portal = !formerSu && su.isActive && su.portalAccount?.isEnabled && !su.portalAccount.deletedAt ? su.portalAccount.email : null;
         const portalMessages = surveyContactMessages({
           kind: 'SERVICE_USER', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName,
@@ -645,7 +681,7 @@ export class SurveyRemindersService {
           const fm = surveyContactMessages({
             kind: link ? 'SERVICE_USER' : 'EXTERNAL', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName,
             link, portalLink: null, closesOn, organisation, ...emailExtras, textRepliesSupported: this.texts.supportsReplies(),
-            unsubscribeLink: this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id }) ?? null,
+            unsubscribeLink: stopSu,
           });
           await tryChannel('EMAIL', Boolean(own), () => this.mailTo(survey.id, own!, fm.emailSubject, fm.emailText, fm.emailHtml));
           const fmobile = firstUkMobile(su.mobile, su.phone);
@@ -1000,7 +1036,7 @@ export class SurveyRemindersService {
     const suById = new Map(supported.map((s) => [s.id, s]));
     const extIds = people.map((p) => (p as { externalContactId?: string | null }).externalContactId).filter((x): x is string => Boolean(x));
     const outside = extIds.length
-      ? await this.prisma.surveyExternalContact.findMany({ where: { id: { in: extIds } }, select: { id: true, name: true, organisation: true, mobile: true, phone: true } })
+      ? await this.outsideCurrentDetails({ id: { in: extIds } })
       : [];
     const extById = new Map(outside.map((x) => [x.id, x]));
     const userIds = [...new Set(people.flatMap((p) => p.callAttempts.map((a) => a.calledById)).filter((x): x is string => Boolean(x)))];

@@ -150,6 +150,54 @@ describe('outside people: family consent and deaths (review)', () => {
   });
 });
 
+describe('outside people: after a death, resend, branches (decisions)', () => {
+  const died = [{ id: 'su-d', dateOfDeath: new Date('2026-11-01'), status: { code: 'DECEASED' } }];
+
+  it('a survey about one person who has died: professionals only with a recorded reason', async () => {
+    const { svc, prisma, audit, mail } = setup({ survey: survey({ aboutServiceUserId: 'su-d' }) });
+    prisma.serviceUser.findMany = jest.fn(async () => died);
+    expect((await svc.checkSendOutside(actor, 's1', { contactIds: ['x1'] })).data).toMatchObject({ sendNow: 0, afterDeath: 1 });
+    await expect(svc.sendOutside(actor, 's1', { contactIds: ['x1'] })).rejects.toThrow(/Nobody here/);
+    await expect(svc.sendOutside(actor, 's1', { contactIds: ['x1'], afterDeathReason: 'no' })).rejects.toThrow(/5 to 300/);
+    const res = await svc.sendOutside(actor, 's1', { contactIds: ['x1'], afterDeathReason: 'End-of-life care review' });
+    expect(res.data.sent).toBe(1);
+    const entry = audit.logAudit.mock.calls.at(-1)[0];
+    expect(entry.newValues).toMatchObject({ afterDeath: 1, afterDeathReason: 'End-of-life care review' });
+    expect(JSON.stringify(entry)).not.toMatch(/Patel|hill\.example/);
+    await new Promise((r) => setImmediate(r));
+    expect(mail.send).toHaveBeenCalledTimes(1);
+  });
+
+  it('send again (lapsed): the same checks, then their own link by the agreed email, never copied to MAIL_BCC', async () => {
+    const { svc, prisma, mail } = setup({ survey: survey({ aboutServiceUserId: 'su-d' }) });
+    prisma.surveyExternalContact.findFirst.mockResolvedValue(contact());
+    prisma.serviceUser.findMany = jest.fn(async () => died);
+    const s1 = survey({ aboutServiceUserId: 'su-d' }) as any;
+    await expect(svc.checkResend(s1, 'x1')).rejects.toThrow(/has died\. Say why/);
+    const ok = await svc.checkResend(s1, 'x1', 'End-of-life care review');
+    expect(ok.reasonUsed).toBe('End-of-life care review');
+    await svc.deliverOne(s1, 'tok-9', ok.row, undefined);
+    const sent = mail.send.mock.calls[0][0];
+    expect(sent).toMatchObject({ to: 'sam@hill.example', skipBcc: true });
+    expect(sent.text).toContain('https://care.example/survey/tok-9');
+    expect(sent.html).toContain('tok-9');
+    // Opted out of everything: refused.
+    const opted = setup({ optOuts: [{ subjectKind: 'EXTERNAL', subjectId: 'x1', channel: 'ALL' }] });
+    opted.prisma.surveyExternalContact.findFirst.mockResolvedValue(contact());
+    await expect(opted.svc.checkResend(survey() as any, 'x1')).rejects.toThrow(/asked not to be contacted/);
+  });
+
+  it('pathway professionals are listed and added only from cases in the user’s branches', async () => {
+    const { svc, prisma } = setup();
+    const scoped = { fromRequestUser: () => ({ locationIds: ['loc-1'] }), serviceUserScopeWhere: () => ({ locationId: { in: ['loc-1'] } }) };
+    (svc as any).orgScope = scoped;
+    prisma.specialistPathwayProfessional = { findMany: jest.fn(async () => []), count: jest.fn(async () => 0) };
+    await svc.listSources(actor, 'PATHWAY_PROFESSIONAL');
+    expect(prisma.specialistPathwayProfessional.findMany.mock.calls[0][0].where).toMatchObject({ case: { serviceUser: { locationId: { in: ['loc-1'] } } } });
+    await expect(svc.addFromSource(actor, 'PATHWAY_PROFESSIONAL', 'p-other')).rejects.toThrow(/Not found/);
+  });
+});
+
 describe('the 4-week rule for outside people (one real person), and P10', () => {
   function rule(sent: any[], answered: any[], contacts: any[]) {
     const prisma: any = {

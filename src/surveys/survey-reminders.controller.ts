@@ -10,6 +10,7 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { SurveyRemindersService } from './survey-reminders.service';
 import { SurveysService } from './surveys.service';
 import { RecordSurveyCallDto, SaveSurveyContactPlanDto, SetSurveyOptOutsDto, SurveyOptOutQueryDto } from './dto/survey-reminders.dto';
+import { ResendLapsedDto } from './dto/survey-outside-people.dto';
 
 /** Reminders and follow-up (contact plan), "Remind now", and the phone call list. */
 @ApiTags('Survey reminders')
@@ -63,8 +64,9 @@ export class SurveyRemindersController {
     @Param('surveyId', ParseUUIDPipe) surveyId: string,
     @Param('recipientId', ParseUUIDPipe) recipientId: string,
     @Req() req: Request,
+    @Body() dto: ResendLapsedDto = {},
   ) {
-    return this.surveys.resendLapsed(user, surveyId, recipientId, getRequestAuditMeta(req), req.headers.origin);
+    return this.surveys.resendLapsed(user, surveyId, recipientId, getRequestAuditMeta(req), req.headers.origin, dto?.reason ?? null);
   }
 
   @Get('calls')

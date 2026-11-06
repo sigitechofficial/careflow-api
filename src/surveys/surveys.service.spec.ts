@@ -649,6 +649,31 @@ describe('SurveysService', () => {
       expect(prisma.surveyRecipient.update).toHaveBeenCalledWith({ where: { id: 'r1' }, data: { status: 'SENT', sentAt: expect.any(Date) } });
     });
 
+    it('an outside person is sent it again through the outside-people path (checks first, then their own link); a refusal changes nothing', async () => {
+      givenSurvey(surveyRow({ status: 'ACTIVE', targetKind: 'PUBLIC' }));
+      prisma.surveyRecipient.findFirst.mockResolvedValue({ id: 'r9', token: 'tok-9', status: 'LAPSED', employeeId: null, serviceUserId: null, externalContactId: 'x1' });
+      prisma.surveyRecipient.update.mockClear();
+      const row = { id: 'x1', name: 'Dr Sam Patel', email: 'sam@hill.example' };
+      const outside = {
+        checkResend: jest.fn(async () => ({ row, reasonUsed: 'End-of-life care review' })),
+        deliverOne: jest.fn(async () => undefined),
+      };
+      (service as any).outside = outside;
+      await service.resendLapsed(admin, 's1', 'r9', undefined, undefined, 'End-of-life care review');
+      expect(outside.checkResend).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), 'x1', 'End-of-life care review');
+      expect(prisma.surveyRecipient.update).toHaveBeenCalledWith({ where: { id: 'r9' }, data: { status: 'SENT', sentAt: expect.any(Date) } });
+      expect(outside.deliverOne).toHaveBeenCalledWith(expect.objectContaining({ id: 's1' }), 'tok-9', row, undefined);
+      const entry = audit.logAudit.mock.calls.at(-1)[0];
+      expect(entry.newValues).toMatchObject({ afterDeathReason: 'End-of-life care review' });
+      expect(JSON.stringify(entry)).not.toMatch(/Patel|hill\.example/);
+      // Refused (e.g. needs a reason): never marked sent.
+      prisma.surveyRecipient.update.mockClear();
+      outside.checkResend.mockRejectedValueOnce(new Error('The person this survey is about has died. Say why'));
+      await expect(service.resendLapsed(admin, 's1', 'r9')).rejects.toThrow(/Say why/);
+      expect(prisma.surveyRecipient.update).not.toHaveBeenCalled();
+      (service as any).outside = undefined;
+    });
+
     it('stores an anonymous answer without the recipient link and with the date only', async () => {
       const survey = surveyRow({ isAnonymous: true, status: 'ACTIVE' });
       prisma.surveyRecipient.findUnique.mockResolvedValue({

@@ -17,7 +17,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { surveyVisibleInScope } from './survey-scope.util';
 import { SurveyContactRuleService } from './survey-contact-rule.service';
 import { freeFromDay, librarySentWith } from './survey-contact-rule.util';
-import { SURVEY_UNSUBSCRIBE_REASON, blockedFamilyContacts } from './survey-eligibility.util';
+import { SURVEY_UNSUBSCRIBE_REASON, outsideContactBlocks } from './survey-eligibility.util';
 import { surveyContactMessages } from './survey-contact-messages.util';
 import { surveyEmailBranding, surveyEmailFacts } from './survey-email-branding';
 import { readContactPlan } from './survey-contact-plan.util';
@@ -262,6 +262,7 @@ export class SurveyOutsidePeopleService {
   /** Funders (commissioners) and pathway professionals that can be added; already added ones say so. */
   async listSources(actor: RequestUser, type: 'FUNDER' | 'PATHWAY_PROFESSIONAL', search?: string) {
     const q = search?.trim();
+    const suScope = this.orgScope.serviceUserScopeWhere(this.orgScope.fromRequestUser(actor));
     const rows =
       type === 'FUNDER'
         ? (
@@ -274,7 +275,12 @@ export class SurveyOutsidePeopleService {
           ).map((f) => ({ id: f.id, name: f.contactName || f.name, organisation: f.name, role: null as string | null, email: f.email, phone: f.phone }))
         : (
             await this.prisma.specialistPathwayProfessional.findMany({
-              where: { deletedAt: null, ...(q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { organisation: { contains: q, mode: 'insensitive' } }] } : {}) },
+              where: {
+                deletedAt: null,
+                // Only professionals on cases of people in the user's branches (as the rest of outside people).
+                ...(suScope ? { case: { serviceUser: suScope } } : {}),
+                ...(q ? { OR: [{ name: { contains: q, mode: 'insensitive' } }, { organisation: { contains: q, mode: 'insensitive' } }] } : {}),
+              },
               select: { id: true, name: true, role: true, organisation: true, email: true, phone: true },
               take: 200,
               orderBy: { name: 'asc' },
@@ -289,6 +295,11 @@ export class SurveyOutsidePeopleService {
   /** Add a funder's contact (commissioner) or a pathway professional; their details are read again at each send. */
   async addFromSource(actor: RequestUser, type: 'FUNDER' | 'PATHWAY_PROFESSIONAL', sourceId: string, meta?: RequestAuditMeta) {
     const scope = this.orgScope.fromRequestUser(actor);
+    const suScope = this.orgScope.serviceUserScopeWhere(scope);
+    if (type === 'PATHWAY_PROFESSIONAL' && suScope) {
+      const visible = await this.prisma.specialistPathwayProfessional.count({ where: { id: sourceId, deletedAt: null, case: { serviceUser: suScope } } });
+      if (!visible) throw new NotFoundException('Not found');
+    }
     const existing = await this.prisma.surveyExternalContact.findFirst({ where: { sourceType: type, sourceId } });
     if (existing && !existing.deletedAt) return { message: 'Already added', data: { id: existing.id } };
     const details = await this.sourceDetails(type, sourceId);
@@ -476,7 +487,12 @@ export class SurveyOutsidePeopleService {
   }
 
   /** Who the send would reach: contacts, list members and families, with who cannot be sent it and why. */
-  async resolveOutside(actor: RequestUser, survey: Survey, input: { contactIds?: string[]; listIds?: string[]; familyContactIds?: string[] }, now: Date) {
+  async resolveOutside(
+    actor: RequestUser,
+    survey: Survey,
+    input: { contactIds?: string[]; listIds?: string[]; familyContactIds?: string[]; aboutServiceUserId?: string | null },
+    now: Date,
+  ) {
     const ids = new Set(input.contactIds ?? []);
     if (input.listIds?.length) {
       const members = await this.prisma.surveyContactListMember.findMany({ where: { listId: { in: input.listIds }, list: { deletedAt: null } }, select: { contactId: true } });
@@ -505,17 +521,20 @@ export class SurveyOutsidePeopleService {
     }
     rows = await this.refresh(rows);
     // Family members however they were chosen (a contact, a list, families of a person): consent read again from
-    // People involved now, and never after the person we support has died (except the bereaved-family survey).
+    // People involved now, and never after the person we support has died (except the bereaved-family survey, and
+    // the complaint follow-up to the family member who complained). Anyone else on a survey about one person who
+    // has died: only with a recorded reason.
     let died = 0;
     const owner = survey.clonedFromId ? ((await this.prisma.survey.findUnique({ where: { id: survey.clonedFromId } })) ?? survey) : survey;
-    const blockedFamily = await blockedFamilyContacts(this.prisma, survey, owner, rows);
-    if (blockedFamily.size) {
-      for (const why of blockedFamily.values()) {
-        if (why === 'DIED') died += 1;
-        else noConsent += 1;
-      }
-      rows = rows.filter((r) => !blockedFamily.has(r.id));
+    const about = { ...survey, aboutServiceUserId: input.aboutServiceUserId !== undefined ? input.aboutServiceUserId : survey.aboutServiceUserId };
+    const blocks = await outsideContactBlocks(this.prisma, about, owner, rows, 'STAFF');
+    const needsReason = new Set<string>();
+    for (const [id, why] of blocks) {
+      if (why === 'DIED') died += 1;
+      else if (why === 'NO_CONSENT') noConsent += 1;
+      else if (why === 'NEEDS_REASON') needsReason.add(id);
     }
+    rows = rows.filter((r) => !blocks.has(r.id) || needsReason.has(r.id));
     const plan = readContactPlan(survey.contactPlan);
     const textOn = Boolean(plan?.channels.includes('TEXT')) && this.texts.isEnabled();
     const opt = await this.optOuts(rows);
@@ -553,17 +572,33 @@ export class SurveyOutsidePeopleService {
         else free.push(r);
       }
     }
-    return { free, held, heldRows: reachable.filter((r) => held.some((h) => h.id === r.id)), already: already.size, optedOut, noDetails, noConsent, died, total: rows.length + noConsent + died };
+    const afterDeathRows = free.filter((r) => needsReason.has(r.id));
+    free = free.filter((r) => !needsReason.has(r.id));
+    const afterDeath = reachable.filter((r) => needsReason.has(r.id)).length;
+    return {
+      free,
+      held,
+      heldRows: reachable.filter((r) => held.some((h) => h.id === r.id)),
+      afterDeathRows,
+      needsReason,
+      afterDeath,
+      already: already.size,
+      optedOut,
+      noDetails,
+      noConsent,
+      died,
+      total: rows.length + noConsent + died,
+    };
   }
 
-  async checkSendOutside(actor: RequestUser, surveyId: string, input: { contactIds?: string[]; listIds?: string[]; familyContactIds?: string[] }) {
+  async checkSendOutside(actor: RequestUser, surveyId: string, input: { contactIds?: string[]; listIds?: string[]; familyContactIds?: string[]; aboutServiceUserId?: string | null }) {
     const survey = await this.requireSurvey(actor, surveyId);
     const now = new Date();
     this.assertSendable(survey, now);
     const r = await this.resolveOutside(actor, survey, input, now);
     return {
       message: 'Send check',
-      data: { total: r.total, sendNow: r.free.length, heldBack: r.held.length, held: r.held, already: r.already, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent, died: r.died },
+      data: { total: r.total, sendNow: r.free.length, heldBack: r.held.length, held: r.held, already: r.already, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent, died: r.died, afterDeath: r.afterDeath },
     };
   }
 
@@ -575,7 +610,15 @@ export class SurveyOutsidePeopleService {
   async sendOutside(
     actor: RequestUser,
     surveyId: string,
-    input: { contactIds?: string[]; listIds?: string[]; familyContactIds?: string[]; aboutServiceUserId?: string | null; contactRuleOverride?: { reason: string } },
+    input: {
+      contactIds?: string[];
+      listIds?: string[];
+      familyContactIds?: string[];
+      aboutServiceUserId?: string | null;
+      contactRuleOverride?: { reason: string };
+      /** A survey about one person who has died: why these people are being asked now (e.g. an end-of-life care review). */
+      afterDeathReason?: string;
+    },
     meta?: RequestAuditMeta,
     requestOrigin?: string,
   ) {
@@ -593,8 +636,16 @@ export class SurveyOutsidePeopleService {
       const ok = await this.prisma.serviceUser.count({ where: { AND: [{ id: input.aboutServiceUserId, deletedAt: null }, ...(inScope ? [inScope] : [])] } });
       if (!ok) throw new BadRequestException('That person is not in your branches.');
     }
+    const deathReason = input.afterDeathReason?.trim() || null;
+    if (input.afterDeathReason !== undefined && (!deathReason || deathReason.length < 5 || deathReason.length > 300)) {
+      throw new BadRequestException('Say why they should be asked now that the person has died (5 to 300 characters).');
+    }
     const r = await this.resolveOutside(actor, survey, input, now);
-    const send = override ? [...r.free, ...r.heldRows] : r.free;
+    const send = [
+      ...r.free,
+      ...(deathReason ? r.afterDeathRows : []),
+      ...(override ? r.heldRows.filter((h) => !r.needsReason.has(h.id) || deathReason) : []),
+    ];
     if (!send.length) throw new BadRequestException('Nobody here can be sent this survey now.');
     const rows = send.map((c) => ({ id: randomUUID(), externalContactId: c.id, token: randomUUID() }));
     await this.prisma.$transaction(async (tx) => {
@@ -623,7 +674,17 @@ export class SurveyOutsidePeopleService {
       recordId: survey.id,
       description: `Survey "${survey.title}" sent to outside people`,
       // Counts (and the reason) only: never who.
-      newValues: { sent: saved.length, heldBack: override ? 0 : r.held.length, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent, died: r.died, ...(override ? { reason: override } : {}) },
+      newValues: {
+        sent: saved.length,
+        heldBack: override ? 0 : r.held.length,
+        optedOut: r.optedOut,
+        noDetails: r.noDetails,
+        noConsent: r.noConsent,
+        died: r.died,
+        afterDeath: r.afterDeath,
+        ...(override ? { reason: override } : {}),
+        ...(deathReason && r.afterDeath ? { afterDeathReason: deathReason } : {}),
+      },
       metadata: { surveyId: survey.id, outside: true },
       ...meta,
     });
@@ -633,8 +694,38 @@ export class SurveyOutsidePeopleService {
       r.noDetails ? `${r.noDetails} have no email${this.texts.isEnabled() ? ' or mobile' : ''}` : '',
       r.noConsent ? `${r.noConsent} family ${r.noConsent === 1 ? 'member has' : 'members have'} not agreed to be contacted` : '',
       r.died ? `${r.died} family ${r.died === 1 ? 'member was' : 'members were'} not sent it because the person we supported has died` : '',
+      !deathReason && r.afterDeath ? `${r.afterDeath} ${r.afterDeath === 1 ? 'was' : 'were'} not sent it because the person this survey is about has died (send with a reason if it is needed)` : '',
     ].filter(Boolean);
-    return { message: `Sent to ${saved.length} ${saved.length === 1 ? 'person' : 'people'}${notes.length ? `. ${notes.join('; ')}.` : ''}`, data: { sent: saved.length, heldBack: override ? 0 : r.held.length, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent, died: r.died } };
+    return { message: `Sent to ${saved.length} ${saved.length === 1 ? 'person' : 'people'}${notes.length ? `. ${notes.join('; ')}.` : ''}`, data: { sent: saved.length, heldBack: override ? 0 : r.held.length, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent, died: r.died, afterDeath: deathReason ? 0 : r.afterDeath } };
+  }
+
+  /**
+   * Before sending again to one outside person whose invitation lapsed (SurveysService.resendLapsed): the same
+   * rules as a send by name (consent, deaths, a reason after the death of the person the survey is about,
+   * opt-outs). Returns their current details, and the reason when one was needed (for the audit).
+   */
+  async checkResend(survey: Survey, externalContactId: string, reason?: string | null): Promise<{ row: ExternalRow; reasonUsed: string | null }> {
+    const found = await this.prisma.surveyExternalContact.findFirst({ where: { id: externalContactId, deletedAt: null } });
+    const [row] = found ? await this.refresh([found]) : [];
+    if (!row) throw new BadRequestException('This person has been removed, or their record no longer exists.');
+    const owner = survey.clonedFromId ? ((await this.prisma.survey.findUnique({ where: { id: survey.clonedFromId } })) ?? survey) : survey;
+    const why = (await outsideContactBlocks(this.prisma, survey, owner, [row], 'STAFF')).get(row.id);
+    if (why === 'NO_CONSENT') throw new BadRequestException('They have not agreed to be contacted (People involved).');
+    if (why === 'DIED') throw new BadRequestException('The person we supported has died, so this survey is not sent to their family.');
+    const r = reason?.trim() || null;
+    if (why === 'NEEDS_REASON' && (!r || r.length < 5 || r.length > 300)) {
+      throw new BadRequestException('The person this survey is about has died. Say why they should be asked now (5 to 300 characters).');
+    }
+    if ((await this.optOuts([row])).get(row.id)?.has('ALL')) throw new BadRequestException('They asked not to be contacted about surveys.');
+    if (!row.email && !row.mobile) throw new BadRequestException('They have no email or mobile.');
+    return { row, reasonUsed: why === 'NEEDS_REASON' ? r : null };
+  }
+
+  /** Their own link again, by the agreed email (and text when the plan includes texts). Never fails the caller. */
+  async deliverOne(survey: Survey, token: string, row: ExternalRow, requestOrigin?: string): Promise<void> {
+    await this.deliver(survey, [{ token, externalContactId: row.id }], [row], requestOrigin).catch((e: unknown) =>
+      this.logger.warn(`Survey ${survey.id}: an outside invitation was not sent again (${e instanceof Error ? e.name : 'error'})`),
+    );
   }
 
   private appBase(requestOrigin?: string): string | null {

@@ -14400,6 +14400,9 @@ model Survey {
   eventTrigger     Json?
   /// A survey about one person we support (family or GP views on their care); found from their record.
   aboutServiceUserId String?   @db.Uuid
+  /// Scoring for scored tools (src/surveys/survey-scoring.util.ts): { scales: [{ key, label, questionKeys, reversed,
+  /// method, bands }] }. Null = no scores. A repeating survey's periods use their source survey's.
+  scoring          Json?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   deletedAt   DateTime?
@@ -14569,6 +14572,8 @@ model SurveyResponse {
   viaSharedLink      Boolean  @default(false)
   /// The branch shared link it came through (SurveyShareLink), when one was used.
   shareLinkId        String?  @db.Uuid
+  /// Response quality flags (FAST; src/surveys/survey-quality.util.ts). Flagged, never removed. Never a time.
+  qualityFlags       String[] @default([])
   submittedAt   DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -14988,6 +14993,20 @@ model SurveyContactOptOut {
   createdAt    DateTime @default(now())
 
   @@unique([subjectKind, subjectId, channel])
+  @@schema("surveys")
+}
+
+/// "Unsubscribe from all surveys" link (former people): an opaque random token per message, kept only as its
+/// SHA-256 hash with the person it stands for (subjectKind EMPLOYEE | SERVICE_USER | EXTERNAL | CONTACT).
+model SurveyUnsubscribeToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  tokenHash   String    @unique
+  subjectKind String
+  subjectId   String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  usedAt      DateTime?
+
+  @@index([subjectKind, subjectId])
   @@schema("surveys")
 }
 

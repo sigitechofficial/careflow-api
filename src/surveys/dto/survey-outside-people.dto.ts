@@ -58,4 +58,13 @@ export class SendOutsideDto {
   @ApiPropertyOptional({ description: 'Also send to people surveyed in the last 4 weeks, with the reason (audited)' })
   @IsOptional() @ValidateNested() @Type(() => OverrideDto)
   contactRuleOverride?: OverrideDto;
+
+  @ApiPropertyOptional({ description: 'A survey about one person who has died: why these people are asked now (audited)' })
+  @IsOptional() @IsString() @MaxLength(300)
+  afterDeathReason?: string;
+}
+
+/** Send a lapsed invitation again: the reason, when the person the survey is about has died (outside people). */
+export class ResendLapsedDto {
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(300) reason?: string;
 }

@@ -39,6 +39,8 @@ export type EligibilitySurvey = {
   audienceGroup?: string | null;
   libraryReference?: string | null;
   eventTrigger?: unknown;
+  /** A survey about one person we support (A1 #3). */
+  aboutServiceUserId?: string | null;
 };
 
 /** Surveys about care ending (a complaint follow-up still due) may still go to someone discharged. */
@@ -59,48 +61,145 @@ export function forLeavers(survey: EligibilitySurvey, owner: EligibilitySurvey):
   );
 }
 
-type Db = Pick<PrismaClient, 'serviceUser' | 'employee' | 'surveyExternalContact'> & { serviceUserContact?: Pick<PrismaClient['serviceUserContact'], 'findMany'> };
+type Db = Pick<PrismaClient, 'serviceUser' | 'employee' | 'surveyExternalContact'> & {
+  serviceUserContact?: Pick<PrismaClient['serviceUserContact'], 'findMany'>;
+  feedbackRecord?: Pick<PrismaClient['feedbackRecord'], 'findMany'>;
+};
 
 /** The bereaved-family survey (SUR-FAM-002, or one sent on a death): the only survey a family is sent after the person died. */
 export function forBereavedFamilies(survey: EligibilitySurvey, owner: EligibilitySurvey): boolean {
   return [survey.libraryReference, owner.libraryReference].includes('SUR-FAM-002') || readEventTrigger(owner.eventTrigger)?.event === 'DEATH';
 }
 
+/** "After your complaint (family member or representative)": after a death, staff may send it to the person who complained. */
+export function forFamilyComplaint(survey: EligibilitySurvey, owner: EligibilitySurvey): boolean {
+  return [survey.libraryReference, owner.libraryReference].includes('SUR-FAM-005');
+}
+
 /**
- * Family members from People involved who can no longer be sent this survey (by outside-person id): the
- * People involved record was removed or made inactive, "Can receive care updates" is no longer ticked
- * (consent withdrawn), or the person we support has died (except the bereaved-family survey). Read at the
- * moment of every send, reminder, text, call list and personal link.
+ * Who is making the contact. AUTO: reminders, texts and the call list (nothing a member of staff decided for
+ * this person). STAFF: a member of staff sending by name (Send to people, Send again). LINK: the person
+ * opening or answering a link they were already sent.
  */
-export async function blockedFamilyContacts(
+export type ContactContext = 'AUTO' | 'STAFF' | 'LINK';
+
+/**
+ * Why an outside person cannot be contacted now:
+ * - NO_CONSENT: a People involved record that was removed, made inactive, or no longer has "Can receive care
+ *   updates" ticked (always; their invitation lapses).
+ * - DIED: family of a person who has died (always; lapses), except the bereaved-family survey, and the family
+ *   complaint follow-up (SUR-FAM-005) to the family member who made the complaint.
+ * - NO_AUTO: never reached automatically (no reminder, text or call list) but not lapsed: the family member who
+ *   complained, on SUR-FAM-005, after the death; anyone else on a survey about one person who has died.
+ * - NEEDS_REASON: a survey about one person who has died, sent by staff by name: only with a recorded reason.
+ */
+export type OutsideBlock = 'NO_CONSENT' | 'DIED' | 'NO_AUTO' | 'NEEDS_REASON';
+
+export type OutsideRow = { id: string; sourceType: string; sourceId: string | null; serviceUserId: string | null };
+
+const digitsTail = (v: string | null | undefined): string | null => {
+  const d = (v ?? '').replace(/\D/g, '');
+  return d.length >= 10 ? d.slice(-10) : null;
+};
+
+/**
+ * The complaint's reply-to details name this People involved contact: the same email address or phone number.
+ * Complaints do not link to People involved, so a name alone never counts (fails closed).
+ */
+export function complaintFromContact(fromContact: string | null | undefined, c: { email?: string | null; mobile?: string | null; phone?: string | null }): boolean {
+  const text = (fromContact ?? '').toLowerCase();
+  if (!text.trim()) return false;
+  const email = c.email?.trim().toLowerCase();
+  if (email && (text.match(/[^\s,;<>()]+@[^\s,;<>()]+/g) ?? []).some((e) => e.replace(/\.+$/, '') === email)) return true;
+  const numbers = (text.match(/\+?\d[\d\s().-]{8,}\d/g) ?? []).map(digitsTail).filter((n): n is string => Boolean(n));
+  return [c.mobile, c.phone].map(digitsTail).some((n) => Boolean(n && numbers.includes(n)));
+}
+
+export async function outsideContactBlocks(
   prisma: Db,
   survey: EligibilitySurvey,
   owner: EligibilitySurvey,
-  rows: Array<{ id: string; sourceType: string; sourceId: string | null; serviceUserId: string | null }>,
-): Promise<Map<string, 'NO_CONSENT' | 'DIED'>> {
-  const out = new Map<string, 'NO_CONSENT' | 'DIED'>();
+  rows: OutsideRow[],
+  context: ContactContext,
+): Promise<Map<string, OutsideBlock>> {
+  const out = new Map<string, OutsideBlock>();
+  if (!rows.length) return out;
   const family = rows.filter((r) => r.sourceType === 'SERVICE_USER_CONTACT');
-  if (!family.length) return out;
   const sourceIds = family.map((f) => f.sourceId).filter((x): x is string => Boolean(x));
-  const contacts = sourceIds.length && prisma.serviceUserContact
-    ? await prisma.serviceUserContact.findMany({
-        where: { id: { in: sourceIds } },
-        select: { id: true, deletedAt: true, isActive: true, canReceiveUpdates: true, serviceUserId: true },
-      })
-    : [];
+  const contacts =
+    sourceIds.length && prisma.serviceUserContact
+      ? await prisma.serviceUserContact.findMany({
+          where: { id: { in: sourceIds } },
+          select: { id: true, deletedAt: true, isActive: true, canReceiveUpdates: true, serviceUserId: true, email: true, mobile: true, phone: true },
+        })
+      : [];
   const byId = new Map(contacts.map((c) => [c.id, c]));
-  const suIds = [...new Set([...family.map((f) => f.serviceUserId), ...contacts.map((c) => c.serviceUserId)].filter((x): x is string => Boolean(x)))];
+  const aboutId = survey.aboutServiceUserId ?? owner.aboutServiceUserId ?? null;
+  const suIds = [...new Set([aboutId, ...family.map((f) => f.serviceUserId), ...contacts.map((c) => c.serviceUserId)].filter((x): x is string => Boolean(x)))];
   const sus = suIds.length
     ? await prisma.serviceUser.findMany({ where: { id: { in: suIds } }, select: { id: true, dateOfDeath: true, status: { select: { code: true } } } })
     : [];
   const died = new Set(sus.filter((s) => s.dateOfDeath || s.status?.code === 'DECEASED').map((s) => s.id));
   const bereaved = forBereavedFamilies(survey, owner);
+  const complaintSurvey = forFamilyComplaint(survey, owner);
+  // Family complaints about people who have died: read only when it matters.
+  const diedFamilyPeople = [...new Set(contacts.filter((c) => died.has(c.serviceUserId)).map((c) => c.serviceUserId))];
+  const complaints =
+    complaintSurvey && !bereaved && diedFamilyPeople.length && prisma.feedbackRecord
+      ? await prisma.feedbackRecord.findMany({
+          where: { deletedAt: null, type: 'COMPLAINT', fromKind: 'FAMILY', aboutServiceUserId: { in: diedFamilyPeople } },
+          select: { aboutServiceUserId: true, fromContact: true },
+        })
+      : [];
   for (const f of family) {
     const c = f.sourceId ? byId.get(f.sourceId) : undefined;
-    if (!c || c.deletedAt || !c.isActive || !c.canReceiveUpdates) out.set(f.id, 'NO_CONSENT');
-    else if (!bereaved && (died.has(c.serviceUserId) || (f.serviceUserId && died.has(f.serviceUserId)))) out.set(f.id, 'DIED');
+    if (!c || c.deletedAt || !c.isActive || !c.canReceiveUpdates) {
+      out.set(f.id, 'NO_CONSENT');
+      continue;
+    }
+    const personDied = died.has(c.serviceUserId) || Boolean(f.serviceUserId && died.has(f.serviceUserId));
+    if (!personDied || bereaved) continue;
+    const complained = complaintSurvey && complaints.some((k) => k.aboutServiceUserId === c.serviceUserId && complaintFromContact(k.fromContact, c));
+    if (!complained) out.set(f.id, 'DIED');
+    else if (context === 'AUTO') out.set(f.id, 'NO_AUTO');
+  }
+  // Anyone else on a survey about one person who has died (a GP's or commissioner's view of their care): never
+  // automatic; by name with a reason; a link already sent still works.
+  if (aboutId && died.has(aboutId) && context !== 'LINK') {
+    for (const r of rows) {
+      if (r.sourceType === 'SERVICE_USER_CONTACT') continue;
+      out.set(r.id, context === 'AUTO' ? 'NO_AUTO' : 'NEEDS_REASON');
+    }
   }
   return out;
+}
+
+/** Family members who can no longer be sent this survey at all (NO_CONSENT or DIED), by outside-person id. */
+export async function blockedFamilyContacts(
+  prisma: Db,
+  survey: EligibilitySurvey,
+  owner: EligibilitySurvey,
+  rows: OutsideRow[],
+): Promise<Map<string, 'NO_CONSENT' | 'DIED'>> {
+  const all = await outsideContactBlocks(prisma, survey, owner, rows, 'LINK');
+  return new Map([...all].filter((e): e is [string, 'NO_CONSENT' | 'DIED'] => e[1] === 'NO_CONSENT' || e[1] === 'DIED'));
+}
+
+/**
+ * Recipients never reached automatically (reminders, texts, call list) but whose invitation stays open, by
+ * recipient id (outsideContactBlocks NO_AUTO).
+ */
+export async function noAutomaticContactIds(
+  prisma: Db,
+  survey: EligibilitySurvey,
+  owner: EligibilitySurvey,
+  people: Array<{ id: string; externalContactId?: string | null }>,
+): Promise<Set<string>> {
+  const extIds = [...new Set(people.map((p) => p.externalContactId).filter((x): x is string => Boolean(x)))];
+  if (!extIds.length) return new Set();
+  const exts = await prisma.surveyExternalContact.findMany({ where: { id: { in: extIds } }, select: { id: true, sourceType: true, sourceId: true, serviceUserId: true } });
+  const blocks = await outsideContactBlocks(prisma, survey, owner, exts, 'AUTO');
+  return new Set(people.filter((p) => p.externalContactId && blocks.get(p.externalContactId) === 'NO_AUTO').map((p) => p.id));
 }
 
 /**

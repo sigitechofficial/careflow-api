@@ -8,17 +8,21 @@ import {
   formerStaffAllowed,
   formerStaffWhere,
   ineligibleRecipientIds,
+  noAutomaticContactIds,
+  outsideContactBlocks,
+  complaintFromContact,
   organisationDomains,
   personalEmail,
 } from './survey-eligibility.util';
 import { recipientStatusCounts } from './surveys.service';
 
-const db = (opts: { sus?: any[]; emps?: any[]; exts?: any[]; contacts?: any[] } = {}) =>
+const db = (opts: { sus?: any[]; emps?: any[]; exts?: any[]; contacts?: any[]; complaints?: any[] } = {}) =>
   ({
     serviceUser: { findMany: jest.fn(async () => opts.sus ?? []) },
     employee: { findMany: jest.fn(async () => opts.emps ?? []) },
     surveyExternalContact: { findMany: jest.fn(async () => opts.exts ?? []) },
     serviceUserContact: { findMany: jest.fn(async () => opts.contacts ?? []) },
+    feedbackRecord: { findMany: jest.fn(async () => opts.complaints ?? []) },
   }) as any;
 const su = (id: string, code: string | null, over: any = {}) => ({ id, deletedAt: null, dateOfDeath: null, status: code ? { code } : null, ...over });
 const r = (id: string, over: any) => ({ id, employeeId: null, serviceUserId: null, externalContactId: null, ...over });
@@ -123,5 +127,54 @@ describe('former staff, chosen by name (one rule, one window)', () => {
     const people = ['ok', 'withdrawn', 'gone', 'bereaved', 'typed'].map((x) => r(`r-${x}`, { externalContactId: x }));
     expect([...(await ineligibleRecipientIds(prisma, {}, {}, people))].sort()).toEqual(['r-bereaved', 'r-gone', 'r-withdrawn']);
     expect([...(await ineligibleRecipientIds(prisma, { libraryReference: 'SUR-FAM-002' }, {}, people))].sort()).toEqual(['r-gone', 'r-withdrawn']);
+  });
+
+  describe('after a death (decisions 1 and 2)', () => {
+    const famExt = (id: string, sourceId: string) => ({ id, deletedAt: null, sourceType: 'SERVICE_USER_CONTACT', sourceId, serviceUserId: 'su-d' });
+    const record = (id: string, over: any = {}) => ({ id, deletedAt: null, isActive: true, canReceiveUpdates: true, serviceUserId: 'su-d', email: null, mobile: null, phone: null, ...over });
+    const died = [su('su-d', 'DECEASED', { dateOfDeath: new Date('2026-11-01') })];
+    const prof = { id: 'gp', deletedAt: null, sourceType: 'TYPED', sourceId: null, serviceUserId: null };
+
+    it('the complaint follow-up (SUR-FAM-005) reaches only the family member who complained, and never automatically', async () => {
+      const prisma = db({
+        exts: [famExt('ann', 'c-ann'), famExt('bob', 'c-bob')],
+        contacts: [record('c-ann', { email: 'Ann@Example.com', mobile: '07700 900123' }), record('c-bob', { email: 'bob@example.com' })],
+        sus: died,
+        complaints: [{ aboutServiceUserId: 'su-d', fromContact: 'Daughter, ann@example.com, 07700 900123' }],
+      });
+      const fam005 = { libraryReference: 'SUR-FAM-005' };
+      const rows = [famExt('ann', 'c-ann'), famExt('bob', 'c-bob')];
+      expect(Object.fromEntries(await outsideContactBlocks(prisma, fam005, {}, rows, 'STAFF'))).toEqual({ bob: 'DIED' });
+      expect(Object.fromEntries(await outsideContactBlocks(prisma, fam005, {}, rows, 'AUTO'))).toEqual({ ann: 'NO_AUTO', bob: 'DIED' });
+      expect(Object.fromEntries(await outsideContactBlocks(prisma, fam005, {}, rows, 'LINK'))).toEqual({ bob: 'DIED' });
+      const people = [r('r-ann', { externalContactId: 'ann' }), r('r-bob', { externalContactId: 'bob' })];
+      // Lapsed: only the family member who did not complain. Not chased: the one who did.
+      expect([...(await ineligibleRecipientIds(prisma, fam005, {}, people))]).toEqual(['r-bob']);
+      expect([...(await noAutomaticContactIds(prisma, fam005, {}, people))]).toEqual(['r-ann']);
+      // Any other family survey: neither.
+      expect([...(await ineligibleRecipientIds(prisma, { libraryReference: 'SUR-FAM-001' }, {}, people))].sort()).toEqual(['r-ann', 'r-bob']);
+    });
+
+    it('a complaint matches a contact by email or phone only, never by name', () => {
+      expect(complaintFromContact('ann@example.com', { email: 'ANN@example.com' })).toBe(true);
+      expect(complaintFromContact('Tel: +44 7700 900123', { mobile: '07700900123' })).toBe(true);
+      expect(complaintFromContact('Ann Lee', { email: 'ann@example.com' })).toBe(false);
+      expect(complaintFromContact('ann@example.com.au', { email: 'ann@example.com' })).toBe(false);
+      expect(complaintFromContact(null, { email: 'ann@example.com' })).toBe(false);
+    });
+
+    it('a survey about one person who has died: others never automatically, by name only with a reason; links already sent still work', async () => {
+      const prisma = db({ exts: [prof], sus: died });
+      const about = { aboutServiceUserId: 'su-d' };
+      expect((await outsideContactBlocks(prisma, about, {}, [prof], 'AUTO')).get('gp')).toBe('NO_AUTO');
+      expect((await outsideContactBlocks(prisma, about, {}, [prof], 'STAFF')).get('gp')).toBe('NEEDS_REASON');
+      expect((await outsideContactBlocks(prisma, about, {}, [prof], 'LINK')).has('gp')).toBe(false);
+      const people = [r('r-gp', { externalContactId: 'gp' })];
+      expect((await ineligibleRecipientIds(prisma, about, {}, people)).size).toBe(0);
+      expect([...(await noAutomaticContactIds(prisma, {}, about, people))]).toEqual(['r-gp']);
+      // While the person is alive: nothing.
+      const alive = db({ exts: [prof], sus: [su('su-d', 'ACTIVE')] });
+      expect((await noAutomaticContactIds(alive, about, {}, people)).size).toBe(0);
+    });
   });
 });

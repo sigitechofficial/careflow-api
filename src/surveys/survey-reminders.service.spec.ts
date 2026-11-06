@@ -429,3 +429,31 @@ describe('SurveyRemindersService — staff who have left (review)', () => {
     expect(sent.html).toContain('href="https://care.example/survey-unsubscribe/a.b"');
   });
 });
+
+describe('SurveyRemindersService — outside people (decisions)', () => {
+  const rec = { id: 'r5', token: 'tok-5', status: 'SENT', employeeId: null, serviceUserId: null, externalContactId: 'f1', sentAt: new Date(NOW.getTime() - 4 * DAY), reminderCount: 0, remindedAt: null } as any;
+  const fam = { id: 'f1', name: 'Ann Old', organisation: null, email: 'old@example.com', mobile: null, phone: null, sourceType: 'SERVICE_USER_CONTACT', sourceId: 'c1', serviceUserId: 'su1' };
+  const record = { id: 'c1', firstName: 'Ann', lastName: 'Lee', email: 'new@example.com', mobile: null, phone: null, deletedAt: null, isActive: true, canReceiveUpdates: true, serviceUserId: 'su1' };
+
+  it('a family member from People involved is reminded at their current email, read from the record now', async () => {
+    const { svc, prisma, mail } = setup({ survey: { targetKind: 'PUBLIC', contactPlan: { ...plan, channels: ['EMAIL'] } }, recipients: [rec] });
+    prisma.surveyExternalContact = { findMany: jest.fn(async () => [fam]) };
+    prisma.serviceUserContact = { findMany: jest.fn(async () => [record]) };
+    prisma.serviceUser.findMany.mockResolvedValue([{ id: 'su1', dateOfDeath: null, status: null }]);
+    await svc.runDue(NOW);
+    expect(mail.send.mock.calls.map((c: any) => c[0].to)).toEqual(['new@example.com']);
+    expect(mail.send.mock.calls[0][0].skipBcc).toBe(true);
+  });
+
+  it('after the person a survey is about has died, nobody on it is chased (and their link is not closed)', async () => {
+    const prof = { ...fam, id: 'f1', sourceType: 'TYPED', sourceId: null, serviceUserId: null, email: 'gp@example.com' };
+    const { svc, prisma, mail } = setup({ survey: { targetKind: 'PUBLIC', aboutServiceUserId: 'su-d', contactPlan: { ...plan, channels: ['EMAIL'] } }, recipients: [rec] });
+    prisma.surveyExternalContact = { findMany: jest.fn(async () => [prof]) };
+    prisma.serviceUserContact = { findMany: jest.fn(async () => []) };
+    prisma.serviceUser.findMany.mockResolvedValue([{ id: 'su-d', dateOfDeath: new Date('2026-11-01'), status: { code: 'DECEASED' } }]);
+    prisma.surveyRecipient.updateMany = jest.fn();
+    await svc.runDue(NOW);
+    expect(mail.send).not.toHaveBeenCalled();
+    expect(prisma.surveyRecipient.updateMany).not.toHaveBeenCalledWith(expect.objectContaining({ data: expect.objectContaining({ status: 'LAPSED' }) }));
+  });
+});

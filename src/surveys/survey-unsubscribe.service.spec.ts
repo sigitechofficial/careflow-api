@@ -4,10 +4,25 @@ import { SurveyRemindersService } from './survey-reminders.service';
 import { SURVEY_UNSUBSCRIBE_REASON } from './survey-eligibility.util';
 import { surveyContactMessages } from './survey-contact-messages.util';
 
-const config = { get: (k: string) => (k === 'JWT_ACCESS_TOKEN_SECRET' ? 'test-secret' : undefined) } as any;
 const EMP = '11111111-1111-4111-8111-111111111111';
 
+/** The token table, in memory: what the service writes ($executeRaw) and reads back ($queryRaw). */
+function tokenTable() {
+  const rows: Array<{ tokenHash: string; subjectKind: string; subjectId: string; usedAt: Date | null }> = [];
+  const executeRaw = jest.fn(async (strings: TemplateStringsArray, ...values: any[]) => {
+    const sql = strings.join('?');
+    if (sql.includes('INSERT')) rows.push({ tokenHash: values[1], subjectKind: values[2], subjectId: values[3], usedAt: null });
+    if (sql.includes('UPDATE')) rows.filter((r) => r.tokenHash === values[0]).forEach((r) => (r.usedAt = new Date()));
+    return 1;
+  });
+  const queryRaw = jest.fn(async (_s: TemplateStringsArray, hash: string) =>
+    rows.filter((r) => r.tokenHash === hash).map((r) => ({ subjectKind: r.subjectKind, subjectId: r.subjectId })),
+  );
+  return { rows, executeRaw, queryRaw };
+}
+
 function setup() {
+  const table = tokenTable();
   const prisma: any = {
     surveyContactOptOut: {
       upsert: jest.fn(async () => ({})),
@@ -18,35 +33,55 @@ function setup() {
     },
     employee: { findUnique: jest.fn(async () => ({ isActive: false })) },
     serviceUser: { findUnique: jest.fn(async () => null) },
+    $executeRaw: table.executeRaw,
+    $queryRaw: table.queryRaw,
   };
   const audit = { logAudit: jest.fn() };
-  return { svc: new SurveyUnsubscribeService(prisma, audit as any, config), prisma, audit };
+  return { svc: new SurveyUnsubscribeService(prisma, audit as any), prisma, audit, table };
 }
 
 describe('Unsubscribe from all surveys (former people)', () => {
-  it('a signed link names the person only; a changed link is refused', () => {
-    const { svc } = setup();
-    const token = svc.token({ subjectKind: 'EMPLOYEE', subjectId: EMP });
-    expect(svc.read(token)).toEqual({ subjectKind: 'EMPLOYEE', subjectId: EMP });
-    expect(svc.read(`${token.split('.')[0]}.AAAA${token.split('.')[1].slice(4)}`)).toBeNull();
-    expect(svc.read('nonsense')).toBeNull();
-    // A signature of the right length in characters but not in bytes is refused, never an error.
-    expect(svc.read(`${token.split('.')[0]}.${'é'.repeat(token.split('.')[1].length)}`)).toBeNull();
-    // Another person's id with this person's signature is refused.
-    const other = Buffer.from('EMPLOYEE:22222222-2222-4222-8222-222222222222').toString('base64url');
-    expect(svc.read(`${other}.${token.split('.')[1]}`)).toBeNull();
-    expect(svc.link('https://care.example', { subjectKind: 'EMPLOYEE', subjectId: EMP })).toMatch(/^https:\/\/care\.example\/survey-unsubscribe\//);
+  it('the link is an opaque random token: it holds no id, is stored only hashed, and a changed or guessed one is refused', async () => {
+    const { svc, table } = setup();
+    const token = await svc.token({ subjectKind: 'EMPLOYEE', subjectId: EMP });
+    expect(token).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(Buffer.from(token, 'base64url').toString('latin1')).not.toContain(EMP);
+    expect(token).not.toContain(Buffer.from(EMP).toString('base64url').slice(0, 12));
+    // Only the hash is kept.
+    expect(table.rows[0].tokenHash).toMatch(/^[0-9a-f]{64}$/);
+    expect(JSON.stringify(table.rows)).not.toContain(token);
+    expect(await svc.read(token)).toEqual({ subjectKind: 'EMPLOYEE', subjectId: EMP });
+    // A new token for every message.
+    expect(await svc.token({ subjectKind: 'EMPLOYEE', subjectId: EMP })).not.toBe(token);
+    // One character changed, a guess, the wrong shape, or an old signed link (payload.signature): refused.
+    const changed = `${token.slice(0, -1)}${token.endsWith('A') ? 'B' : 'A'}`;
+    expect(await svc.read(changed)).toBeNull();
+    expect(await svc.read('A'.repeat(43))).toBeNull();
+    expect(await svc.read('nonsense')).toBeNull();
+    expect(await svc.read(`${Buffer.from(`EMPLOYEE:${EMP}`).toString('base64url')}.${'a'.repeat(32)}`)).toBeNull();
+    expect(await svc.read('é'.repeat(43))).toBeNull();
+    expect(await svc.link('https://care.example', { subjectKind: 'EMPLOYEE', subjectId: EMP })).toMatch(/^https:\/\/care\.example\/survey-unsubscribe\/[A-Za-z0-9_-]{43}$/);
+    expect(await svc.link(null, { subjectKind: 'EMPLOYEE', subjectId: EMP })).toBeNull();
+  });
+
+  it('checking a link changes nothing and reveals only whether it is real', async () => {
+    const { svc, prisma } = setup();
+    const token = await svc.token({ subjectKind: 'EMPLOYEE', subjectId: EMP });
+    expect(await svc.check(token)).toEqual({ valid: true, alreadyDone: false });
+    expect(await svc.check('A'.repeat(43))).toEqual({ valid: false, alreadyDone: false });
+    expect(prisma.surveyContactOptOut.upsert).not.toHaveBeenCalled();
   });
 
   it('one click stops every survey message, for good; audited without the person’s details', async () => {
-    const { svc, prisma, audit } = setup();
-    await svc.unsubscribe(svc.token({ subjectKind: 'EMPLOYEE', subjectId: EMP }));
+    const { svc, prisma, audit, table } = setup();
+    await svc.unsubscribe(await svc.token({ subjectKind: 'EMPLOYEE', subjectId: EMP }));
     expect(prisma.surveyContactOptOut.upsert).toHaveBeenCalledWith({
       where: { subjectKind_subjectId_channel: { subjectKind: 'EMPLOYEE', subjectId: EMP, channel: 'ALL' } },
       create: { subjectKind: 'EMPLOYEE', subjectId: EMP, channel: 'ALL', reason: SURVEY_UNSUBSCRIBE_REASON, recordedById: null },
       update: { reason: SURVEY_UNSUBSCRIBE_REASON },
     });
     expect(audit.logAudit.mock.calls[0][0].newValues).toEqual({ channels: ['ALL'], permanent: true });
+    expect(table.rows[0].usedAt).not.toBeNull();
     await expect(svc.unsubscribe('bad.token')).rejects.toThrow(/not valid/);
   });
 

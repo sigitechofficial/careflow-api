@@ -55,6 +55,7 @@ import { surveyContactMessages, type ContactMessageInput } from './survey-contac
 import { surveyEmailBranding, surveyEmailFacts } from './survey-email-branding';
 import { eventPeriodFor, readEventTrigger } from './survey-event-triggers.util';
 import { SurveyUnsubscribeService } from './survey-unsubscribe.service';
+import { SurveyOutsidePeopleService } from './survey-outside-people.service';
 import {
   CARE_ENDED_STATUS,
   CHOSEN_EXCLUDED_SERVICE_USER_STATUSES,
@@ -218,6 +219,15 @@ import {
 } from './survey-unlinked-answer-days';
 import { usersWithResultsAccess } from './survey-office-recipients';
 import { managerCopyTeamProblemFor } from './survey-manager-copy-team';
+import { fastFlag } from './survey-quality.util';
+
+/**
+ * Quality flags kept with an answer given by the person themselves (Phase 2 part 5): FAST from how long the answer
+ * page was open. Only the flag is kept, never the time.
+ */
+function qualityFlagsAtSubmit(dto: { secondsTaken?: number | null; answers?: unknown[] }): string[] {
+  return fastFlag(dto.secondsTaken, Array.isArray(dto.answers) ? dto.answers.length : 0) ? ['FAST'] : [];
+}
 
 /** Why some responses are counted but not yet in the answers; null when none. */
 export function responsesBeingAddedNote(waiting: number): string | null {
@@ -718,6 +728,8 @@ export class SurveysService {
     @Optional() private readonly contactRule?: SurveyContactRuleService,
     /** "Unsubscribe from all surveys" links for former people (survey-unsubscribe.service.ts). */
     @Optional() private readonly unsubscribe?: SurveyUnsubscribeService,
+    /** Outside people: sending a lapsed invitation again by their own path (survey-outside-people.service.ts). */
+    @Optional() private readonly outside?: SurveyOutsidePeopleService,
   ) {}
 
   /** Check a saved named response against the alert rules. Never fails or delays the caller. */
@@ -3694,7 +3706,7 @@ export class SurveysService {
    * care restarted) and the survey is still open. Needs individual responses access (who has not answered is
    * part of them). Audited without the person's name.
    */
-  async resendLapsed(actor: RequestUser, surveyId: string, recipientId: string, meta?: RequestAuditMeta, requestOrigin?: string) {
+  async resendLapsed(actor: RequestUser, surveyId: string, recipientId: string, meta?: RequestAuditMeta, requestOrigin?: string, reason?: string | null) {
     const survey = await this.requireSurvey(actor, surveyId);
     if (survey.isAnonymous) {
       throw new BadRequestException('Anonymous surveys never single out one person: choosing whom to send it again would show they had not answered.');
@@ -3712,9 +3724,17 @@ export class SurveysService {
     if ((await ineligibleRecipientIds(this.prisma, survey, owner, [recipient])).size) {
       throw new BadRequestException('They still cannot be sent this survey (for example their care has not restarted).');
     }
+    // Outside people: the same checks as a send by name (consent, deaths, a reason, opt-outs), then their own link.
+    let outsideSend: Awaited<ReturnType<SurveyOutsidePeopleService['checkResend']>> | null = null;
+    if (recipient.externalContactId) {
+      if (!this.outside) throw new BadRequestException('Outside people cannot be sent surveys here.');
+      outsideSend = await this.outside.checkResend(survey, recipient.externalContactId, reason);
+    }
     await this.prisma.surveyRecipient.update({ where: { id: recipient.id }, data: { status: SurveyRecipientStatus.SENT, sentAt: new Date() } });
     if (recipient.employeeId || recipient.serviceUserId) {
       this.deliverInBackground(survey, [{ employeeId: recipient.employeeId, serviceUserId: recipient.serviceUserId, token: recipient.token }], requestOrigin);
+    } else if (outsideSend && this.outside) {
+      void this.outside.deliverOne(survey, recipient.token, outsideSend.row, requestOrigin);
     }
     await this.audit.logAudit({
       userId: actor.id,
@@ -3723,8 +3743,8 @@ export class SurveysService {
       recordType: 'SurveyRecipient',
       recordId: recipient.id,
       description: `Survey "${survey.title}" sent again to one person whose invitation had lapsed`,
-      newValues: { sent: 1, resentAfterLapse: true },
-      metadata: { surveyId: survey.id },
+      newValues: { sent: 1, resentAfterLapse: true, ...(outsideSend?.reasonUsed ? { afterDeathReason: outsideSend.reasonUsed } : {}) },
+      metadata: { surveyId: survey.id, ...(outsideSend ? { outside: true } : {}) },
       ...meta,
     });
     return { message: 'Sent again', data: { sent: 1 } };
@@ -3860,7 +3880,7 @@ export class SurveysService {
           const to = personalEmail(su?.email, domains);
           if (!su || !to || optedOut(`SERVICE_USER:${su.id}`, 'EMAIL')) continue;
           const link = base && !survey.isAnonymous ? `${base}/survey/${r.token}` : null;
-          const stopAll = this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id }) ?? null;
+          const stopAll = (await this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id })) ?? null;
           const m = emailFor({
             kind: 'SERVICE_USER',
             firstName: su.preferredName?.trim() || su.firstName,
@@ -3966,7 +3986,7 @@ export class SurveysService {
           : undefined,
         unsubscribeLink:
           former.has(r.employeeId) && this.unsubscribe
-            ? this.unsubscribe.link(base, { subjectKind: 'EMPLOYEE', subjectId: r.employeeId })
+            ? await this.unsubscribe.link(base, { subjectKind: 'EMPLOYEE', subjectId: r.employeeId })
             : null,
       });
       await this.safeMail(survey.id, { to, subject: m.emailSubject, text: m.emailText, html: m.emailHtml });
@@ -7601,6 +7621,7 @@ export class SurveysService {
           answers: toPendingAnswers(this.mapAnswersForCreate(questions, answerByQuestion, null)),
           viaSharedLink: true,
           shareLinkId: survey.shareLink?.id ?? null,
+          qualityFlags: qualityFlagsAtSubmit(dto),
         },
       });
       progress.kept = true;
@@ -7621,6 +7642,7 @@ export class SurveysService {
         shareLinkId: survey.shareLink?.id ?? null,
         locationId: survey.shareLink?.locationId ?? null,
         submittedAt: stamp,
+        qualityFlags: qualityFlagsAtSubmit(dto),
         answers: {
           create: this.mapAnswersForCreate(questions, answerByQuestion, null),
         },
@@ -7697,6 +7719,7 @@ export class SurveysService {
         answers: toPendingAnswers(this.mapAnswersForCreate(questions, answerByQuestion, null)),
         viaSharedLink: true,
         shareLinkId: survey.isAnonymous ? (survey.shareLink?.id ?? null) : null,
+        qualityFlags: qualityFlagsAtSubmit(dto),
       },
     });
     progress.kept = true;
@@ -8021,7 +8044,7 @@ export class SurveysService {
             isAnonymous: withoutName,
             channel,
             day: stamp,
-            payload: { locationId: segment.locationId, respondentRelation, answers },
+            payload: { locationId: segment.locationId, respondentRelation, answers, qualityFlags: qualityFlagsAtSubmit(dto) },
           })
         ).id;
       } catch (err) {
@@ -8054,6 +8077,7 @@ export class SurveysService {
             respondentName,
             channel,
             submittedAt: stamp,
+            qualityFlags: qualityFlagsAtSubmit(dto),
             answers: {
               create: this.mapAnswersForCreate(questions, answerByQuestion, null),
             },
