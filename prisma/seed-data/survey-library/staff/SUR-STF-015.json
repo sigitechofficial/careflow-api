@@ -1,0 +1,558 @@
+{
+  "reference": "SUR-STF-015",
+  "revision": 1,
+  "title": "Leaving us",
+  "audience": "EMPLOYEE",
+  "audienceGroup": "LEAVERS",
+  "respondents": "Every employee who is leaving, after their notice is accepted and until 14 days after their last working day",
+  "summary": "A confidential exit survey: why people leave, where they go, what would have kept them, support while they worked here, bullying and harassment, and any concern they want to raise now. Every leaver is also offered a version that does not record who they are. About 9 minutes.",
+  "purpose": "Finds out why people leave, where they go, what would have kept them, and whether anything about our practice or culture worries them now they have less to lose. In home care the push factors are specific (pay, insecure hours, rotas, unpaid or unrealistic travel, short visits, lone-working stress, support from the office), and the survey names them. It is the exit questionnaire in the Compliments, Feedback and Involvement Procedure and the Bullying, Harassment and Sexual Harassment Policy, a speaking-up route for leavers under the Whistleblowing (Speaking Up) Policy, and feeds retention actions, the stress risk assessment and the workforce equality report.",
+  "timing": {
+    "when": "Within 2 working days of notice being accepted, open until 14 days after the last working day; never during an open disciplinary or safeguarding process involving the leaver, and never after a death in service",
+    "recurrence": null,
+    "trigger": "Notice accepted",
+    "contactRule": {"holdBack": false, "countsAsContact": true, "reason": "Leaving survey (safety and welfare, priority 1): goes on time; notice cancels other named staff surveys."}
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "TELEPHONE", "PAPER"],
+  "estimatedMinutes": 9,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING", "WELL_LED"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Workforce wellbeing and enablement",
+      "Shared direction and culture",
+      "Capable, compassionate and inclusive leaders",
+      "Freedom to speak up",
+      "Workforce equality, diversity and inclusion"
+    ]
+  },
+  "introduction": "Thank you for working with {{organisation}}. We would like to know why you are leaving and what we could do better. It takes about 9 minutes; before your last day you can do it in paid time.\n\nYour answers are linked to your name so we can follow up anything you raise. Your line manager never reads them, and they will not affect your reference. If you would rather not give your name, ask the HR Manager for the version that does not record who you are.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager. In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to keep good staff and to put things right. Our legal reason is our legitimate interest in being a good employer.\n\nYour answers are linked to your name. They are read by the HR Manager and the Registered Manager (or our Nominated Individual, if your concern is about one of them), never your line manager; reports show combined themes only, for groups of 5 or more. If you raise a concern, it is handled under our Whistleblowing (Speaking Up) Policy, which covers people who have left, and a reference never mentions that anyone spoke up. If we sponsor your visa, ending your job means we must tell the Home Office that your sponsorship has ended; your survey answers are not included in that report, unless you tell us you have not kept to your visa conditions, which a sponsor must report.\n\nWe keep your answers for 1 year after the survey closes, under our Records Management and Retention Policy. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "closingMessage": "Thank you for telling us. If you asked us to contact you, the HR Manager or Registered Manager will be in touch. You can still raise a concern after you leave: our Whistleblowing (Speaking Up) Policy covers people who have left, and you can also contact CQC, the council's adult safeguarding team or Protect.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-working-for-us",
+          "text": "Overall, how would you rate working for us?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "evidence": "Well-led: Shared direction and culture"
+        }
+      ]
+    },
+    {
+      "title": "Why you are leaving",
+      "questions": [
+        {
+          "id": "stf-leave-main",
+          "text": "What is the main reason you are leaving?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Pay",
+            "Not enough hours, or hours not guaranteed",
+            "Workload or too many hours",
+            "The rota, such as late changes, split shifts or weekend work",
+            "Travel between visits, or travel costs",
+            "Visits too short to give good care",
+            "Stress or burnout",
+            "Not feeling valued",
+            "Support from my manager or the office",
+            "How we are run, or poor communication",
+            "Problems with colleagues",
+            "Bullying or harassment",
+            "Being treated unfairly",
+            "Not feeling safe at work",
+            "Not enough training",
+            "Not enough chances to progress",
+            "The job was not what I expected",
+            "Wanting a different kind of work",
+            "My own health",
+            "Family or caring responsibilities",
+            "Moving away",
+            "Studying",
+            "Retiring",
+            "My visa or sponsorship"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-leave-other",
+          "text": "Are there any other reasons you are leaving? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Pay",
+            "Not enough hours, or hours not guaranteed",
+            "Workload or too many hours",
+            "The rota, such as late changes, split shifts or weekend work",
+            "Travel between visits, or travel costs",
+            "Visits too short to give good care",
+            "Stress or burnout",
+            "Not feeling valued",
+            "Support from my manager or the office",
+            "How we are run, or poor communication",
+            "Problems with colleagues",
+            "Bullying or harassment",
+            "Being treated unfairly",
+            "Not feeling safe at work",
+            "Not enough training",
+            "Not enough chances to progress",
+            "The job was not what I expected",
+            "Wanting a different kind of work",
+            "My own health",
+            "Family or caring responsibilities",
+            "Moving away",
+            "Studying",
+            "Retiring",
+            "My visa or sponsorship",
+            "No other reasons"
+          ],
+          "exclusiveOptions": ["No other reasons"],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-next",
+          "text": "What will you do next?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Another home care job",
+            "A job in a care home or other social care service",
+            "A job in the NHS or other health care",
+            "A job outside health and care",
+            "Studying or training",
+            "Retiring",
+            "Taking a break from work",
+            "Not sure yet",
+            "Prefer not to say"
+          ],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-stay",
+          "text": "Could anything have made you stay?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Maybe", "No"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "text": "What would have made you stay?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names.",
+          "showIf": {
+            "question": "q-stay",
+            "answers": ["Yes", "Maybe"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your support",
+      "questions": [
+        {
+          "id": "q-induction-prepared",
+          "text": "Did your induction prepare you to work on your own?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Your induction includes your training and shadowing visits. Choose \"Does not apply to me\" if you did not work on visits.",
+          "options": ["Yes, fully", "Partly", "No", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-supported",
+          "text": "How often did you feel supported by your supervisor or manager?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "q-valued-past",
+          "text": "How often did you feel valued for your work?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-hours-wanted",
+          "text": "Did you get the number of hours you wanted?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you were on fixed hours.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-fair-past",
+          "text": "I was treated fairly at work, whoever I am.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, whatever your age, race, religion, sex, sexuality, disability or background.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        }
+      ]
+    },
+    {
+      "title": "Safety and concerns",
+      "introduction": "These questions are about bullying, harassment and your safety at work. You do not have to answer the questions about bullying and harassment.",
+      "questions": [
+        {
+          "id": "stf-bh-experienced",
+          "text": "While you worked for us, did any of these happen to you at work? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "helpText": "Bullying is offensive, frightening or insulting behaviour, or misuse of power, that upsets, humiliates or harms you. Harassment is unwanted behaviour linked to who you are, such as your race, religion, sex, sexuality, disability or age. Sexual harassment is unwanted sexual comments, messages, looks or touching.",
+          "options": [
+            "Bullying by a colleague or manager",
+            "Harassment by a colleague or manager",
+            "Sexual harassment by a colleague or manager",
+            "Abuse or harassment from a person we support, their family or visitors",
+            "Sexual harassment from a person we support, their family or visitors",
+            "None of these",
+            "Prefer not to say"
+          ],
+          "exclusiveOptions": ["None of these", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "stf-bh-reported",
+          "text": "Did you report it to us?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes, all of it", "Yes, some of it", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "showIf": {
+            "question": "stf-bh-experienced",
+            "answers": [
+              "Bullying by a colleague or manager",
+              "Harassment by a colleague or manager",
+              "Sexual harassment by a colleague or manager",
+              "Abuse or harassment from a person we support, their family or visitors",
+              "Sexual harassment from a person we support, their family or visitors"
+            ]
+          },
+          "comment": {
+            "prompt": "What stopped you reporting it? Please do not include names.",
+            "showWhen": ["Yes, some of it", "No"]
+          },
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "q-concern",
+          "text": "Is there anything at work that worries you and that you want to tell us about?",
+          "type": "YES_NO",
+          "required": true,
+          "helpText": "For example, poor care, abuse, records that are not true, or someone at risk.",
+          "comment": {
+            "prompt": "Please tell us. The Registered Manager will look into it. Our Whistleblowing (Speaking Up) Policy covers people who have left, and a reference never mentions that anyone spoke up.",
+            "showWhen": ["Yes"]
+          },
+          "evidence": "Well-led: Freedom to speak up"
+        }
+      ]
+    },
+    {
+      "title": "Looking ahead",
+      "questions": [
+        {
+          "id": "q-work-again",
+          "text": "Would you consider working for us again?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Maybe", "No"],
+          "evidence": "Well-led: Shared direction and culture"
+        },
+        {
+          "id": "stf-recommend",
+          "text": "I would recommend working here to a friend.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Shared direction and culture"
+        },
+        {
+          "text": "Is there anything else you would like to tell us about working here?",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, the HR Manager or Registered Manager, not your line manager, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it. Keep one copy of this template open for the year (for example \"Leavers 2027\") and, within 2 working days of notice being accepted, add the leaver with Send or schedule, chosen employee. The emailed link is their own and needs no login, so they can still answer after their last working day, when the work phone is returned and app access ends. Check the email on their staff record is a personal address they will keep: CareFlow never emails someone who has left at a work address. Someone who has already left (for example, notice not recorded in time) can still be chosen by name for up to 3 months after leaving, under \"People who have left (last 3 months)\" in the send dialog: they are emailed their own link at the personal address on their staff record, and texted if Text message is ticked in Reminders and follow-up. Give an end date of 14 days after the last working day per copy, or close the yearly copy in January. For a dismissal, send only if the HR Manager judges it appropriate; never during an open disciplinary or safeguarding process involving the leaver; never after a death in service. Offer it alongside the exit conversation with someone other than the line manager. Under the 4-week rule CareFlow never holds this survey back, because leaving is time-limited and notice cancels every other pending named staff survey; it counts as a contact.",
+      "Every leaver is also offered a way to answer that does not record who they are. Each month, at New survey, make a copy from this template's anonymous version (for example \"Leavers March 2027, without names\") with an end date 14 days after sending: it leaves out the contact question, the question about worries at work and the alerts that need a name. Its answers cannot be followed up, so the covering message names the routes instead (Speaking Up Lead, CQC, the council's adult safeguarding team, Protect). CareFlow refuses an anonymous survey that reaches fewer than 5 people, so send each month's copy to that month's leavers together, holding a group of fewer than 5 to the next month. Its invitations carry no personal link: they point to the CareFlow app, or My surveys in the CareFlow web app for staff with a web login that matches their staff record, which a leaver can use only until their last working day. People who have already left can be included for up to 3 months after leaving, under \"People who have left (last 3 months)\": they are emailed at the personal address on their staff record (and texted if Text message is ticked in Reminders and follow-up), with no link, asking them to answer on paper. When one asks, post a copy with a prepaid envelope addressed to the HR Manager, who enters it alone with Record response, recorded as anonymous. Its comments and its alert (a count of sexual harassment answers) appear only when it closes, and only once 5 or more have answered, so it is a check on patterns, not a report: the Registered Manager reviews the sexual harassment risk assessment within 7 days of the copy closing. A month with fewer answers raises nothing. Harassment a leaver wants acted on comes by name, through the route the survey gives them (HR Manager or any manager): record it as a Harassment or Sexual Harassment incident, and for sexual harassment, the 7-day risk assessment review runs from that report. In the anonymous copy, a comment describing wrongdoing is a speaking-up concern with the Nominated Individual as case owner, possible abuse goes to the safeguarding lead the same working day, and nobody tries to identify the writer.",
+      "Telephone answers only with the HR Manager or Registered Manager, never the line manager; paper on request, entered with Record response. Plain English; a translated version or phone option on request. Send one reminder: by hand, or set one in Reminders and follow-up.",
+      "Who may open individual answers: the HR Manager and the Registered Manager, or the Nominated Individual where the leaver reported to either of them; never the leaver's line manager, Field Care Supervisor or Care Coordinator. This is set in Who can see the answers: individual responses are limited to the HR Manager, the Registered Manager and the Nominated Individual, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "The HR Manager reads each response the working day it arrives and acts under the alerts below. \"What would have made you stay?\" goes verbatim, with names removed, into the quarterly retention review. Compliments for a named colleague are recorded the same working day and shared within 5 working days.",
+      "How to count: report the main reason and all reasons (main plus other) separately, on a rolling 12 months; never a group under 5, flagged under 10, by branch only at 5 or more. Join to staff-record details (length of service under 12 months, role, contract type) for the retention analysis and the workforce equality report; never show individual answers. Report the response rate against all leavers.",
+      "Themes go quarterly to the Monthly Quality and Governance Meeting and the governance report (turnover target below 30% over 12 months, under the Governance and Quality Assurance Policy), exit themes to the quarterly stress and wellbeing report under the Work-Related Stress and Staff Wellbeing Policy, and exit reasons by characteristic to the workforce equality report. Keep individual answers for 1 year after the survey closes; a concern passed on becomes a speaking-up log entry kept under the Whistleblowing (Speaking Up) Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Is there anything at work that worries you?\" answered Yes, or any comment describing poor care, abuse, records that are not true or other wrongdoing.",
+        "action": "The HR Manager passes it to the Registered Manager the same working day; it goes in the speaking-up log and the case owner decides the route within 5 working days, under the Whistleblowing (Speaking Up) Policy. Possible abuse or neglect goes to the safeguarding lead the same working day (risk assessed within 1 hour). A concern about the Registered Manager, Deputy Manager or HR Manager goes to the Nominated Individual.",
+        "rule": {
+          "task": "Leaver raised a concern: speaking-up log",
+          "if": [
+            {
+              "question": "q-concern",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0,
+          "urgent": true
+        }
+      },
+      {
+        "when": "Any bullying or harassment experienced, or \"Bullying or harassment\" as a reason for leaving.",
+        "action": "Treat it as a report under the Bullying, Harassment and Sexual Harassment Policy: the HR Manager tells the Registered Manager the same working day; the Registered Manager (or a manager of the sex the person prefers) speaks with the leaver privately within 2 working days and decides the route within 2 working days. If they have already left, it is investigated if the person complained about still works for us, otherwise the Registered Manager reviews it within 5 working days.",
+        "rule": {
+          "task": "Leaver reports bullying or harassment",
+          "if": [
+            {
+              "question": "stf-bh-experienced",
+              "answers": [
+                "Bullying by a colleague or manager",
+                "Harassment by a colleague or manager",
+                "Sexual harassment by a colleague or manager",
+                "Abuse or harassment from a person we support, their family or visitors",
+                "Sexual harassment from a person we support, their family or visitors"
+              ]
+            },
+            {
+              "question": "stf-leave-main",
+              "answers": ["Bullying or harassment"]
+            },
+            {
+              "question": "stf-leave-other",
+              "answers": ["Bullying or harassment"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 2,
+          "urgent": true
+        }
+      },
+      {
+        "when": "Sexual harassment experienced, from a colleague or from people we support or their households.",
+        "action": "The Registered Manager reviews the sexual harassment risk assessment within 7 days under the Sexual Safety Policy (other new third-party risks within 1 month).",
+        "rule": {
+          "task": "Sexual harassment reported by a leaver: review risk",
+          "if": [
+            {
+              "question": "stf-bh-experienced",
+              "answers": [
+                "Sexual harassment by a colleague or manager",
+                "Sexual harassment from a person we support, their family or visitors"
+              ]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 7
+        }
+      },
+      {
+        "when": "\"Not feeling safe at work\" as the main or another reason for leaving.",
+        "action": "The Registered Manager reviews the lone working and behaviour and aggression risk assessments for the leaver's runs within 10 working days (library timescale), under the Lone Working and Staff Personal Safety Policy and the Violence and Aggression Towards Staff Policy.",
+        "rule": {
+          "task": "Leaver did not feel safe: review risk assessments",
+          "if": [
+            {
+              "question": "stf-leave-main",
+              "answers": ["Not feeling safe at work"]
+            },
+            {
+              "question": "stf-leave-other",
+              "answers": ["Not feeling safe at work"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 10
+        }
+      },
+      {
+        "when": "\"Being treated unfairly\" as the main or another reason for leaving, or \"I was treated fairly\" answered Disagree or Strongly disagree.",
+        "action": "The Registered Manager offers a conversation within 5 working days (library timescale); any discrimination complaint is logged by the HR Manager and counted in the workforce equality report, under the Equality, Diversity and Inclusion Policy.",
+        "rule": {
+          "task": "Leaver treated unfairly: offer a conversation",
+          "if": [
+            {
+              "question": "stf-leave-main",
+              "answers": ["Being treated unfairly"]
+            },
+            {
+              "question": "stf-leave-other",
+              "answers": ["Being treated unfairly"]
+            },
+            {
+              "question": "q-fair-past",
+              "answers": ["Disagree", "Strongly disagree"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"My visa or sponsorship\" as the main or another reason for leaving.",
+        "action": "The HR Manager directs the leaver to regulated immigration advice within 2 working days under the Right to Work and Sponsored Workers Policy. Any sign of fees, held documents, debt or control is a modern slavery concern reported the same day under the Modern Slavery and Human Trafficking Policy.",
+        "rule": {
+          "task": "Sponsored leaver: direct to immigration advice",
+          "if": [
+            {
+              "question": "stf-leave-main",
+              "answers": ["My visa or sponsorship"]
+            },
+            {
+              "question": "stf-leave-other",
+              "answers": ["My visa or sponsorship"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "\"Stress or burnout\" or \"Workload or too many hours\" as the main or another reason for leaving.",
+        "action": "The theme goes into the quarterly stress and wellbeing report. If the person is still working their notice, the HR Manager offers the employee assistance programme and starts an individual stress risk assessment within 5 working days, under the Work-Related Stress and Staff Wellbeing Policy.",
+        "rule": {
+          "task": "Leaver stressed: offer support if still working",
+          "if": [
+            {
+              "question": "stf-leave-main",
+              "answers": ["Stress or burnout", "Workload or too many hours"]
+            },
+            {
+              "question": "stf-leave-other",
+              "answers": ["Stress or burnout", "Workload or too many hours"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Could anything have made you stay?\" answered Yes while the person is still working their notice, and they asked to be contacted.",
+        "action": "The Registered Manager may talk with them within 2 working days about whether a change would let them stay (library decision). Never contact them about this otherwise.",
+        "rule": {
+          "task": "Leaver might stay and asked for contact: talk",
+          "if": [
+            {
+              "all": [
+                {
+                  "question": "q-stay",
+                  "answers": ["Yes"]
+                },
+                {
+                  "question": "q-contact",
+                  "answers": ["Yes"]
+                }
+              ]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The HR Manager or Registered Manager, never the line manager, contacts the leaver within 5 working days.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "alertsNeverTo": ["FIELD_CARE_SUPERVISOR", "CARE_COORDINATOR"],
+  "access": {
+    "responses": ["HR_MANAGER", "REGISTERED_MANAGER", "NOMINATED_INDIVIDUAL"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER", "NOMINATED_INDIVIDUAL"],
+    "reportingThreshold": 5
+  },
+  "anonymousVariant": {
+    "introduction": "Thank you for working with {{organisation}}. We would like to know why you are leaving and what we could do better. It takes about 9 minutes; before your last day you can do it in paid time. This version is anonymous: we cannot see who answered, so we cannot reply or act on a single answer.\n\nIf you faced bullying, harassment or sexual harassment and want action, tell the HR Manager or any manager (you can ask for a manager of the sex you prefer); we decide what to do within 2 working days, even after you leave. For other concerns, speak to our Speaking Up Lead, or contact CQC, the council's safeguarding team or the charity Protect.\n\nThis survey is not for urgent concerns. If you or someone else is at risk, phone the office or the On-call Manager. In an emergency, call 999.",
+    "privacyNotice": "{{organisation}} uses your answers to keep good staff and to put things right. Our legal reason is our legitimate interest in being a good employer.\n\nThis version is anonymous: we do not record your name, so your answers cannot be traced to you and we cannot reply. CareFlow notes only that you answered (so you are not reminded) and your branch, never which answers are yours. Please do not write names or anything that could identify you. Only the HR Manager, the Registered Manager and the Nominated Individual open individual answers, never your line manager, and reports show combined results only for groups of 5 or more leavers. Comments are read when the survey closes; if one tells us someone may be at risk of harm, we will act on it as far as we can.\n\nWe keep answers for 1 year after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+    "closingMessage": "Thank you for telling us. We cannot reply to these answers because we do not know who you are. You can still raise a concern after you leave. To report bullying, harassment or sexual harassment so we can act on it, tell the HR Manager or any manager. Our Speaking Up Lead, CQC, the council's adult safeguarding team and Protect all take concerns from people who have left.",
+    "leaveOut": ["q-concern"],
+    "leaveOutAlerts": [
+      2,
+      4,
+      5,
+      6,
+      7
+    ]
+  },
+  "relatedPolicies": [
+    "POL-HR-018",
+    "POL-GOV-006",
+    "POL-HR-013",
+    "POL-SG-010",
+    "POL-HR-012",
+    "POL-HS-015",
+    "POL-HS-003",
+    "POL-HS-004",
+    "POL-HR-003",
+    "POL-SG-015",
+    "POL-SG-007",
+    "POL-GOV-019",
+    "POL-GOV-002",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Acas, Responding to an employee's resignation: exit interviews and questionnaires to understand why people leave",
+      "url": "https://www.acas.org.uk/resignation/responding-to-an-employees-resignation"
+    },
+    {
+      "source": "DHSC, Work-related quality of life of the adult social care workforce in England in 2025: not feeling valued or supported is a main reason for intending to leave",
+      "url": "https://www.gov.uk/government/publications/work-related-quality-of-life-of-the-adult-social-care-workforce-in-england-in-2025"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from staff",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

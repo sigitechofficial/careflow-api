@@ -1,0 +1,537 @@
+{
+  "reference": "SUR-CQC-001",
+  "revision": 1,
+  "title": "Independent quality review: talking with people we support",
+  "audience": "SERVICE_USER",
+  "respondents": "A sample of people we support, chosen by the independent quality reviewer, who agree to a phone call or home visit; a representative only where the person cannot give their views even with help",
+  "summary": "The independent reviewer's conversation guide for talking with a sample of people we support each year, by phone or home visit, across the five key questions: feeling safe, care at the right times, consent, dignity, choice, known care workers, information, raising concerns and how well we are organised. About 15 minutes.",
+  "purpose": "The Governance and Quality Assurance Policy requires an independent quality review every 12 months by a reviewer with no other role here, covering the five key questions. This is the reviewer's structured conversation guide for the people's experience part of that review. Using the same core questions as our quality checks and annual survey lets the reviewer compare what people tell an outsider with what they tell us; any gap is itself a finding. The results test the Registered Manager's quarterly self-assessment (SUR-CQC-003). It is not a mock inspection and never prepares anyone for CQC: nobody is told what CQC might ask, coached, or asked afterwards what they said.",
+  "timing": {
+    "when": "Once a year during the independent quality review, recommended March to April so the report reaches the Directors' meeting held by mid-May; each conversation at least 4 weeks after the person's last survey",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": false,
+  "channels": ["TELEPHONE", "IN_PERSON"],
+  "estimatedMinutes": 15,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Safeguarding",
+      "Safe and effective staffing",
+      "Medicines optimisation",
+      "Involving people to manage risks",
+      "Consent to care and treatment",
+      "Assessing needs",
+      "Supporting people to live healthier lives",
+      "Kindness, compassion and dignity",
+      "Independence, choice and control",
+      "Care provision, integration and continuity",
+      "Providing information",
+      "Listening to and involving people",
+      "Governance, management and sustainability",
+      "Capable, compassionate and inclusive leaders"
+    ]
+  },
+  "introduction": "{{organisation}} has asked an independent reviewer, who does not work for us, to talk with some of the people we support about their care. It takes about 15 minutes. It is your choice, and it will not affect your care. Your care workers will not see what you say. There are no right or wrong answers, and you can skip any question.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} collects your answers through an independent reviewer to check and improve our care. Our legal reason is our legitimate interest in running a good, safe service. The reviewer works for us under a written contract and keeps your answers confidential.\n\nYour answers are linked to your name so we can act if you need us to. They are seen only by the reviewer and our Nominated Individual; staff who follow something up are told only what they need, and your care workers never see them. Reports show combined results only. If you tell us someone may be at risk of harm, we must act on it.\n\nWe keep your answers for 3 years after the review closes, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care over the last few months. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        }
+      ]
+    },
+    {
+      "title": "Feeling safe",
+      "introduction": "These questions are about feeling safe and how your care is given. You can skip any of them.",
+      "questions": [
+        {
+          "id": "q-safe",
+          "text": "Do you feel safe with your care workers?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "If you do not feel safe, please do not wait for this survey. Phone the office now, or call 999 in an emergency.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us what would help you feel safer.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-ontime",
+          "text": "Do your care workers arrive on time?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "On time means within about half an hour of the time agreed with you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more, for example which visits are late.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-med-right-times",
+          "text": "Do you get help with your medicines at the right times?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, before food, or at the times your doctor or pharmacist said. Choose \"Does not apply to me\" if we do not help you with medicines.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us what happens.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-risk-talk",
+          "text": "When there is a risk to you, such as falling, do we talk with you about how to manage it?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "Partly", "No", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Partly", "No"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        }
+      ]
+    },
+    {
+      "title": "Your care",
+      "questions": [
+        {
+          "id": "q-consent-ask",
+          "text": "Do your care workers ask for your agreement before they help you?",
+          "type": "LIKERT",
+          "required": false,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us what happens.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Effective: Consent to care and treatment"
+        },
+        {
+          "id": "q-asked-plan",
+          "text": "Do we ask what you want when we plan or review your care?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Your care plan sets out the help you get from us and how you like it to be given. Choose \"Don't know\" if you cannot remember.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Effective: Assessing needs"
+        },
+        {
+          "id": "q-unwell-help",
+          "text": "If you feel unwell, do your care workers help you get the help you need?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose \"Does not apply to me\" if you have not felt unwell.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Effective: Supporting people to live healthier lives"
+        }
+      ]
+    },
+    {
+      "title": "How you are treated",
+      "questions": [
+        {
+          "id": "q-dignity",
+          "text": "Do your care workers treat you with dignity and respect?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "For example, keeping you covered during personal care and taking care of your home.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-yourway",
+          "text": "Do your care workers do things the way you want them done?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "For example, asking you first and listening to how you like things done.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Independence, choice and control"
+        }
+      ]
+    },
+    {
+      "title": "Your visits and information",
+      "questions": [
+        {
+          "id": "q-known",
+          "text": "Are you visited by care workers you know?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "We mean your regular care workers, or new ones who have been introduced to you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        },
+        {
+          "id": "q-information",
+          "text": "Is the information we give you easy for you to use?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "For example, letters, your care plan and your list of visit times. We can give you information in large print, easy read, audio or another language.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "What would make our information easier for you?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Providing information"
+        }
+      ]
+    },
+    {
+      "title": "Getting in touch with us",
+      "questions": [
+        {
+          "id": "q-tell-us",
+          "text": "If you were unhappy with your care, would you feel able to tell us?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "This includes making a complaint. Choose \"Don't know\" if you are not sure.",
+          "options": ["Yes, and I know how", "Yes, but I am not sure how", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What would make it easier to tell us?",
+            "showWhen": ["No"]
+          },
+          "evidence": "Responsive: Listening to and involving people"
+        },
+        {
+          "id": "q-office-help",
+          "text": "When you contact our office, do you get the help you need?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "This includes phoning us in the evening or at the weekend. Choose \"Does not apply to me\" if you have not contacted us in the last few months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Listening to and involving people"
+        },
+        {
+          "id": "q-well-organised",
+          "text": "Do you think our service is well organised?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "Mostly", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What could we organise better?",
+            "showWhen": ["No"]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-who-to-speak",
+          "text": "Do you know who to speak to at our office if something is not right?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What is the best thing about the care you get from us?",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "text": "What one thing would you change about your care?",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days. We can only do this if we know who you are."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The independent reviewer commissioned by the Directors runs the conversations (Governance and Quality Assurance Policy); never an employee. This is a conversation, not a send: never use Send or schedule for it. Each year publish a copy of this template (for example \"Independent review 2027: people we support\") open for responses during the review. The reviewer records the answers in CareFlow with their own account. In the survey's Independent reviewers panel, the Nominated Individual chooses \"Add a reviewer\" and gives the reviewer's name and email (never a staff email: CareFlow refuses it). This makes a CareFlow account with only the \"Independent reviewer\" role, which has no access of its own, and emails the reviewer an invitation to set their own password; the link lasts 72 hours, and it arrives only if the organisation's email is set up. Making the account and giving access need \"Surveys\" (act). Once the sample is chosen, give that account access to this survey only (on a repeating survey, the period being run, never the repeating survey itself), for up to 90 days, with the people in the sample by name (up to 100). The reviewer signs in at the normal CareFlow login and sees only \"Surveys to record\", with their sample, and enters each conversation with Record response the same working day (channel Telephone, In person or Paper), recording in \"Who is answering\" anyone who answers for the person. They never see results, counts or anyone else's answers. To add a replacement, end the access and give it again with the new sample. When the review ends, choose End access, then switch the account off (Settings, Users); next year, switch it on and give it access again. The reviewer still phones anything in the alerts below through the same working day.",
+      "Choosing people: the Nominated Individual gives the reviewer a list by CareFlow reference number with only the fields needed to choose a mixed sample (living alone, dementia or communication needs, no family involved, double-handed visits, end of life, new in the last 3 months, a recent complaint, council-funded or self-funding); the reviewer chooses at least 10 people or 10% of people supported in the branch, whichever is more, up to 30, and at least a third by home visit, including people with no carer or advocate. Then the Care Coordinator asks each chosen person, in their preferred format and without influence, with a neutral script: \"An independent reviewer is checking the quality of our service and would like to hear your views. It is your choice.\" Record refusals; the reviewer chooses replacements. Nobody is told what will be asked, and staff never choose, steer or prepare anyone (the same rule as the Inspection Readiness and Working with Regulators Guideline sets for CQC).",
+      "In the conversation: home visits only with the person's own agreement; the reviewer gives their name and shows identification. Ask about feeling safe and dignity only once the person confirms they can talk privately, never with a care worker present, and use only a professional interpreter, never a family member. Use the same wording for everyone; the reviewer may repeat or explain a question but never suggests an answer, and records Don't know or Does not apply only when that is the person's answer. Show large print answer cards on visits. Where the person cannot give their views even with help, speak with the representative in the care plan and record them in \"Who is answering\"; report representatives' answers separately.",
+      "It counts as a survey contact: not with anyone sent another survey or check in the previous 4 weeks unless the reviewer specifically chooses them, after safeguarding follow-up and event surveys; a quality check due within 4 weeks is brought forward, never combined. Nobody asks the person later what they told the reviewer.",
+      "Who may open individual answers: the Nominated Individual only, until the reviewer's report is received; nobody else sees the records before then (Governance and Quality Assurance Policy). The Nominated Individual passes on only what each follow-up needs, never the record; the reviewer phones anything urgent through the same working day. The reviewer's account never shows results, so the Nominated Individual sends the reviewer the results for the report. This is set in Who can see the answers: individual responses and results are limited to the Nominated Individual, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so the Nominated Individual should publish the copy, and those roles should be kept to staff who may open them. Before the reviewer receives any data, enter them in the register of processors with a written contract (Data Protection Policy)."
+    ],
+    "actingOnResults": [
+      "The reviewer reports by key question, comparing each core question with the latest quality checks and annual survey, with counts as well as percentages; groups under 5 are never shown and results resting on fewer than 10 are flagged. Positive means Always or Usually, Very good or Good, Yes, or Yes, and I know how, leaving out Don't know and Does not apply to me. Equity is tested by comparing answers across the sample's groups, not by a question.",
+      "The Nominated Individual receives the report; its findings go into the service improvement plan within 5 working days of being received, and the Registered Manager compares each key question with the latest self-assessment (SUR-CQC-003). The Directors use it, with the satisfaction survey, to set the year's priorities at the governance meeting held by mid-May (Governance and Quality Assurance Policy). Keep answers for 3 years after the review closes, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe with your care workers?\" answered Sometimes, Rarely or Never, or any comment suggesting abuse or neglect.",
+        "action": "The Nominated Individual passes on only what is needed, never the record. The reviewer phones the Registered Manager (the Deputy Manager or Nominated Individual if the concern is about the Registered Manager) the same working day, after calling 999 if the person is in immediate danger. The safeguarding lead is told the same working day and assesses the risk within 1 hour of the report (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure).",
+        "rule": {
+          "task": "Possible safeguarding concern from independent review",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"Do you feel safe with your care workers?\" answered Usually.",
+        "action": "The Nominated Individual passes on only what is needed, never the record. The Care Coordinator contacts the person within 5 working days, once they confirm they can talk privately, to ask what would help them feel safer.",
+        "rule": {
+          "task": "Ask what would help them feel safer",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Usually"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do your care workers treat you with dignity and respect?\" or \"Do your care workers ask for your agreement before they help you?\" answered Rarely or Never, or a comment describing unfair or degrading treatment.",
+        "action": "The Nominated Individual passes on only what is needed, never the record. The Registered Manager is told the same working day and records it as a complaint; the Care Coordinator contacts the person within 5 working days. Where discrimination by our staff is described, the Registered Manager decides within 1 hour whether it is a safeguarding concern and the complaint is graded High (Complaints Policy and Procedure).",
+        "rule": {
+          "task": "Dignity or consent concern from independent review",
+          "if": [
+            {
+              "question": "q-dignity",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-consent-ask",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 0,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "\"Do you get help with your medicines at the right times?\" answered Rarely or Never.",
+        "action": "The Nominated Individual passes on only what is needed, never the record. The Care Coordinator checks the eMAR timings the same working day; a missed or mistimed dose is logged in the incident log the same day (Medication Errors, Near Misses and Incidents Procedure).",
+        "rule": {
+          "task": "Medicines not at the right times: check eMAR today",
+          "if": [
+            {
+              "question": "q-med-right-times",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "On time or care workers you know answered Rarely or Never.",
+        "action": "The Nominated Individual passes on only what is needed, never the record. Within 7 days the Care Coordinator checks the person's check-in and check-out records, travel time and continuity for the last 3 months and agrees changes with them.",
+        "rule": {
+          "task": "Check visit records and continuity",
+          "if": [
+            {
+              "question": "q-ontime",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-known",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueCalendarDays": 7
+        }
+      },
+      {
+        "when": "Asked about the plan or care given your way answered Rarely or Never.",
+        "action": "The Nominated Individual passes on only what is needed, never the record. Within 7 days the Care Coordinator contacts the person and, where the care plan no longer matches their needs or wishes, holds a focused review under the Care Plan Review Procedure.",
+        "rule": {
+          "task": "Care not as they want it: contact and review",
+          "if": [
+            {
+              "question": "q-asked-plan",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-yourway",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueCalendarDays": 7
+        }
+      },
+      {
+        "when": "\"Is the information we give you easy for you to use?\" answered Rarely or Never.",
+        "action": "The Nominated Individual passes on only what is needed, never the record. The Care Coordinator asks within 5 working days what format or support would help and puts it in place within a further 5 working days (Communication and Accessible Information Policy).",
+        "rule": {
+          "task": "Agree an information format that works for them",
+          "if": [
+            {
+              "question": "q-information",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Risks, help when unwell, office help or organisation answered No, Rarely or Never; knowing who to speak to answered No or Not sure; or the overall question Poor or Very poor, with no particular concern.",
+        "action": "The Nominated Individual passes on only what is needed, never the record. The Care Coordinator contacts the person within 5 working days to agree what we will do; where they do not know who to speak to, send the office contact details in their recorded format.",
+        "rule": {
+          "task": "Independent review: follow up with the person",
+          "if": [
+            {
+              "question": "q-risk-talk",
+              "answers": ["No"]
+            },
+            {
+              "question": "q-unwell-help",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-office-help",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-well-organised",
+              "answers": ["No"]
+            },
+            {
+              "question": "q-who-to-speak",
+              "answers": ["No", "Not sure"]
+            },
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"If you were unhappy with your care, would you feel able to tell us?\" answered \"Yes, but I am not sure how\", No or Don't know.",
+        "action": "The Nominated Individual passes on only what is needed, never the record. Within 5 working days the Care Coordinator sends the How to raise a concern or make a complaint leaflet in the person's recorded format. For No, a Field Care Supervisor who is not in the person's core care team also talks with the person privately about what would make it easier, and offers details of the local independent advocacy service.",
+        "rule": {
+          "task": "Send the complaints leaflet",
+          "if": [
+            {
+              "question": "q-tell-us",
+              "answers": ["Yes, but I am not sure how", "No", "Don't know"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Any dissatisfaction that needs a response.",
+        "action": "Record a complaint the same working day; acknowledge it within 3 working days (Complaints Policy and Procedure). The reviewer tells the person this will happen."
+      },
+      {
+        "when": "A missed visit, medicines problem, fall or harm described.",
+        "action": "Log it in the incident log the same working day (Incident Reporting, Investigation and Learning Policy; Medication Errors, Near Misses and Incidents Procedure)."
+      },
+      {
+        "when": "A compliment.",
+        "action": "Record it the same working day and share it within 5 working days (Compliments, Feedback and Involvement Procedure)."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Nominated Individual passes on only what is needed, never the record. The Care Coordinator, never a member of the person's core care team, contacts the person within 5 working days.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["NOMINATED_INDIVIDUAL"],
+    "results": ["NOMINATED_INDIVIDUAL"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-GOV-002",
+    "POL-GOV-023",
+    "POL-GOV-006",
+    "POL-SG-002",
+    "POL-GOV-005",
+    "POL-GOV-007",
+    "POL-MED-014",
+    "POL-CD-006",
+    "POL-CD-003",
+    "POL-GOV-013",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(a) and (e): assess, monitor and improve the quality of services, and seek and act on feedback from people using them",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

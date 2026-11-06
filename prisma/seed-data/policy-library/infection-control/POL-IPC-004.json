@@ -1,0 +1,693 @@
+{
+  "reference": "POL-IPC-004",
+  "revision": 1,
+  "title": "Sharps Safety and Needlestick Injury Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we prevent injuries from needles, lancets and other sharps in people's homes, which sharps tasks our staff may carry out, how sharps containers are provided, used and collected, and what happens after a needlestick, bite, scratch or splash of blood or body fluid: first aid, emergency department, follow-up care, recording, investigation and RIDDOR. For all staff, managers and the IPC lead.",
+  "keyPoints": {
+    "intro": "Most people we support who use needles or lancets look after them themselves, but you may give a delegated injection, find a loose needle or be bitten or splashed. This procedure tells you how to stay safe and exactly what to do if it happens.",
+    "points": [
+      "If a sharp pricks or cuts you, or a person bites or scratches you, let the wound bleed, wash it under running water with soap, never scrub or suck it, and cover it. Rinse a splash to the eyes, nose or mouth with running water.",
+      "Make the person safe, phone the office or On-call Manager, then go straight to the nearest emergency department. Do not wait until the end of your shift: treatment to prevent HIV works best when it starts as soon as possible.",
+      "Tell the emergency department you are a care worker with a work exposure, whether the source is known and whether you have had hepatitis B vaccination. The office cancels or moves your remaining visits and pays for a taxi if you cannot drive safely.",
+      "Never recap, bend, break or take apart a used needle, and never pass a sharp from hand to hand. Put it into the sharps container yourself, straight away, at the place you used it.",
+      "Use only the sharps the care plan names for a delegated task you are signed off for. Never draw up an injection, use a sharp prescribed for anyone else, or carry sharps or a sharps container between homes.",
+      "Never put a sharp in a waste bag. Never push sharps down, reach into a sharps container or fill it above the fill line. Close the temporary lid after every use and tell the office when it is half full.",
+      "If you find a loose needle and there is a sharps container in the home, put gloves on, pick it up by the barrel with the point away from you and drop it in. Otherwise leave it, keep everyone away and phone the office.",
+      "Your exposure is recorded in the incident log the same day, and the details of the person you were caring for are never shared with colleagues. Occupational health contacts you for follow-up tests and support, in paid time.",
+      "We offer you free hepatitis B vaccination and strongly advise you to have it. Keep your sharps training and any delegated task sign-off in date: you will not be given a sharps task once either expires."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "INCIDENT",
+    "RISK_ASSESSMENT",
+    "MEDICATION",
+    "EMPLOYEE",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-002",
+    "POL-IPC-005",
+    "POL-IPC-009",
+    "POL-MED-015",
+    "POL-HS-002",
+    "POL-HS-007",
+    "POL-GOV-007"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety (Sharp Instruments in Healthcare) Regulations 2013 (SI 2013/645), regulations 2 to 8 and Schedules 1 and 2",
+      "url": "https://www.legislation.gov.uk/uksi/2013/645/contents/made"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 9 (diseases caused by biological agents) and Schedule 2 paragraph 10 (dangerous occurrence: biological agents)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/schedule/2"
+    },
+    {
+      "source": "Health and Safety Executive, HSIS1 Reporting injuries, diseases and dangerous occurrences in health and social care: guidance for employers (sharps injuries and injuries to people not at work)",
+      "url": "https://www.hse.gov.uk/pubns/hsis1.pdf"
+    },
+    {
+      "source": "Control of Substances Hazardous to Health Regulations 2002, Schedule 3 paragraph 4 (list of employees exposed to Group 3 or Group 4 biological agents)",
+      "url": "https://www.legislation.gov.uk/uksi/2002/2677/schedule/3"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(a), (b), (c), (e) and (h) safe care and treatment",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Safety Executive, Managing the risk of needlestick or sharps injuries (updated 18 December 2024)",
+      "url": "https://www.hse.gov.uk/healthservices/needlesticks/actions.htm"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Standard infection control precautions in adult social care (28 October 2026): sharps and occupational exposure management",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/standard-infection-control-precautions-in-adult-social-care"
+    },
+    {
+      "source": "NHS England, National infection prevention and control manual for England, Chapter 1 Standard infection control precautions: safe disposal of sharps and occupational safety (prevention and exposure management)",
+      "url": "https://www.england.nhs.uk/national-infection-prevention-and-control-manual-nipcm-for-england/"
+    },
+    {
+      "source": "UK Health Security Agency, Immunisation against infectious disease (the Green Book), chapter 18 Hepatitis B (chapter dated 5 February 2026): individuals at occupational risk and post-exposure immunisation",
+      "url": "https://www.gov.uk/government/publications/hepatitis-b-the-green-book-chapter-18"
+    },
+    {
+      "source": "British Association for Sexual Health and HIV and British HIV Association, UK guideline for the use of HIV post-exposure prophylaxis 2021 (HIV Medicine, 2022), occupational exposures",
+      "url": "https://lshtm-eprints-repo-prod.lshtm-eprints.cdl.cosector.com/4666296/2/Cresswell_etal_2022_UK-guideline-for-the-use.pdf"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} is committed to preventing injuries from needles and other sharps, and exposure to blood and body fluids, for everyone who works for us and for the people we support and their households. A needlestick injury from a used needle can pass on hepatitis B, hepatitis C or HIV."
+        },
+        {
+          "p": "Our staff use sharps only for delegated tasks that need them, with safer sharps and a container at the point of use, and anyone injured or exposed gets first aid, emergency assessment, follow-up and support without loss of pay."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure makes sure that sharps in the homes where we work are identified, controlled, used, disposed of and found safely, and that every injury or exposure is treated promptly, recorded, investigated, reported under RIDDOR where required and learned from."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who works for us or on our behalf, including bank and agency workers and students, on every visit and in our offices. It covers medical sharps used by our staff in delegated tasks; sharps used by the people we support, their families or visiting health professionals; razors and other household sharps used in personal care; sharps found loose in a home; and every exposure to blood or body fluids, including human bites, scratches and splashes, as defined below."
+        },
+        {
+          "p": "Covered elsewhere: delegation and sign-off of each healthcare task (Delegated Healthcare Activities and Specialised Medicines Tasks Policy); other care waste (Waste Management in People's Homes Procedure); PPE (Standard Infection Control Precautions Procedure); vaccination (Staff Vaccination and Immunisation Policy); making RIDDOR reports (RIDDOR Reporting Procedure); animal bites (First Aid Procedure); and aggression towards staff (Violence and Aggression Towards Staff Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Medical sharp",
+                "A needle, lancet or other object used in healthcare that can cut or pierce the skin, such as an insulin pen needle, a finger-prick lancet or a pre-filled syringe."
+              ],
+              [
+                "Safer sharp",
+                "A medical sharp with a built-in safety feature that shields, retracts or blunts the point after use."
+              ],
+              [
+                "Sharps container",
+                "A yellow rigid container made to BS EN ISO 23907-1, with a temporary closure and a manufacturer's fill line, used only for sharps."
+              ],
+              [
+                "Exposure",
+                "A needlestick or cut from a used sharp; a human bite or scratch that breaks the skin; or blood or body fluid getting into the eyes, nose or mouth or onto broken skin, including through a torn glove."
+              ],
+              [
+                "Source person",
+                "The person whose blood or body fluid was involved in an exposure, if known."
+              ],
+              [
+                "Blood-borne virus (BBV)",
+                "A virus carried in blood that can be passed on through an exposure, mainly hepatitis B, hepatitis C and HIV."
+              ],
+              [
+                "Post-exposure prophylaxis (PEP)",
+                "Medicine or vaccination given after an exposure to reduce the chance of infection."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this procedure and fund what it needs: sharps pick-up kits, occupational health follow-up, counselling, hepatitis B vaccination, travel to hospital and paid time for treatment."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (IPC lead)",
+          "blocks": [
+            {
+              "bullets": [
+                "Owns this procedure and approves every delegated sharps task before it starts, including any use of a sharp without a safety feature.",
+                "Decides whether each injury or exposure is reportable under RIDDOR and makes the report.",
+                "Is the only person who shares a source person's information with the clinician treating an exposed worker."
+              ]
+            },
+            {
+              "p": "The Deputy Manager covers these duties when the Registered Manager is absent, except approving delegated sharps tasks, and investigates injuries and exposures as set out below."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator",
+          "blocks": [
+            {
+              "p": "Arranges sharps containers, replacements and collections where we are responsible for them, asks prescribers for safer sharps, reallocates the visits of an injured worker, and makes sure only workers signed off for a sharps task are allocated to it."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Record sharps in the initial assessment and home environment risk assessment, carry a sharps pick-up kit and remove found sharps, check sharps practice and containers at spot checks, and debrief any worker who has had an exposure."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Carry out sharps tasks only where signed off and named in the care plan, give first aid and report every injury, exposure, near miss and unsafe container straight away."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            {
+              "p": "Take the injured worker's call and carry out the office actions set out under \"What the office does\" below."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "Refers every exposed worker to occupational health, arranges counselling, keeps the COSHH exposure register and vaccination records, and tracks sharps training and competency dates."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law requires and how we apply it",
+      "blocks": [
+        {
+          "bullets": [
+            "The Health and Safety (Sharp Instruments in Healthcare) Regulations 2013 apply to employers whose main activity is the management, organisation and provision of healthcare, and to contractors serving them. They require sharps to be avoided and safer sharps used so far as reasonably practicable; no recapping unless a risk assessment requires it and a device controls the risk; secure, clearly marked containers and written disposal instructions close to where sharps are used; information and training; review of procedures at suitable intervals; and, after an injury, recording, investigation, immediate medical advice, any treatment a doctor advises including PEP, and consideration of counselling. Employees must tell their employer of a sharps injury as soon as practicable.",
+            "Most of our work is personal care rather than healthcare, so the Regulations may not strictly apply to us. Our policy is to meet them in full for everyone who works for us.",
+            "The Control of Substances Hazardous to Health Regulations 2002 require us to control exposure to biological agents, including blood-borne viruses, and to keep a list of exposed employees for at least 40 years from the last entry unless the risk assessment shows no significant risk. Our policy is to record every exposure in this list, the COSHH exposure register."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing sharps in the home",
+      "blocks": [
+        {
+          "p": "At the initial assessment and every care plan review, the assessor records in the home environment risk assessment:"
+        },
+        {
+          "bullets": [
+            "every sharp used in the home, what it is for and who uses it: the person, a family member, a district nurse or our staff;",
+            "whether a sharps container is in place, where it is kept, who obtains replacements and who arranges collection;",
+            "risks to anyone else in the home, such as children, pets, visitors or a person who is confused, has poor sight or may handle sharps unsafely;",
+            "any known history of biting, scratching or spitting, and any illicit drug use where needles may be left about;",
+            "any known blood-borne virus, which is never written where visitors can see it."
+          ]
+        },
+        {
+          "p": "The care plan states where the sharps container is kept and what our staff do, and do not do, with sharps in that home. Where a person has a history of biting or scratching that breaks the skin, the care plan records the triggers and the safe approach. A delegated sharps task always has its own task risk assessment, approved before the first visit at which it happens."
+        }
+      ]
+    },
+    {
+      "heading": "Sharps tasks carried out by our staff",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Which tasks we accept",
+          "blocks": [
+            {
+              "p": "Our staff use medical sharps only for these Level 3 delegated tasks, accepted under the Medicines Management Policy and the Delegated Healthcare Activities and Specialised Medicines Tasks Policy and approved by the Registered Manager for a named person and named care workers:"
+            },
+            {
+              "bullets": [
+                "insulin or another injection given with a pre-filled pen;",
+                "capillary blood glucose testing with a single-use lancet;",
+                "a subcutaneous injection from a pre-filled syringe with a safety device, such as a blood-thinning injection."
+              ]
+            },
+            {
+              "p": "In an emergency, any care worker may use the person's own adrenaline auto-injector under the First Aid Procedure. Our staff never draw up a medicine from a vial or ampoule, load a cartridge into a reusable pen, mix or reconstitute a medicine, give any other injection, insert or remove a cannula or needle, or take blood from a vein. They never touch the controls of, adjust, silence, switch off, disconnect or re-site a syringe driver, and keep the driver and its line secure when helping the person move. These tasks remain with the community nursing team."
+            }
+          ]
+        },
+        {
+          "heading": "Safer sharps",
+          "blocks": [
+            {
+              "p": "Before a delegated sharps task starts, the Care Coordinator asks the prescriber in writing to prescribe safer sharps, such as safety pen needles and single-use retracting lancets. A sharp without a safety feature is used only where the prescriber has declined and the Registered Manager has approved it in the task risk assessment, with the extra controls recorded. The Care Coordinator asks the prescriber again at every care plan review."
+            }
+          ]
+        },
+        {
+          "heading": "Using a sharp safely",
+          "blocks": [
+            {
+              "steps": [
+                "Check the care plan and eMAR, and that a sharps container with space below the fill line is within reach. If there is none, phone the office before you start: the Field Care Supervisor or On-call Manager brings a container from their pick-up kit, and the office takes pharmacist or GP advice if the dose will be late. Office staff restock the pick-up kit by the end of the next working day.",
+                "Clean your hands and put on gloves. Make sure the person is settled and you have good light and room to work.",
+                "Take the sharps container to where you are working and open the temporary closure.",
+                "Carry out the task as you were trained. If the person moves suddenly or becomes distressed, stop and make the sharp safe before carrying on.",
+                "Activate the safety feature straight away, then put the sharp into the container yourself. Never hand it to anyone else to dispose of.",
+                "Remove a standard pen needle only with the needle-removal slot on the container lid or the pen needle remover supplied, never by putting the cap back on by hand.",
+                "Close the temporary closure, check nothing is left on the bed, chair or floor, and record the task on the eMAR."
+              ]
+            },
+            {
+              "p": "A used adrenaline auto-injector is handed to the ambulance crew, or placed in the sharps container if there is one."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Sharps containers in people's homes",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Getting a container",
+          "blocks": [
+            {
+              "p": "A person who uses sharps at home gets their sharps containers on prescription from their GP. Where our staff carry out a sharps task, the Care Coordinator makes sure a prescribed container is in the home before the first visit at which the task happens. Where the person or family use sharps but have no container, the assessor explains how to get one and, with the person's agreement, the Care Coordinator asks the GP practice to prescribe one within 2 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Rules for every container our staff use",
+          "blocks": [
+            {
+              "bullets": [
+                "Assembled as the manufacturer directs, with the lid fully clicked on, and labelled with the date of assembly and the person's postcode by whoever assembles it.",
+                "Kept on a stable surface, off the floor, out of reach of children and pets and of any person who may handle it unsafely, in the place the care plan names.",
+                "Temporary closure shut whenever the container is not being used.",
+                "Never filled above the fill line, shaken, pressed down or reached into, and never used for anything but sharps. A sharp from a cytotoxic medicine, such as a methotrexate pen, goes only in the purple-lidded container prescribed for it.",
+                "Care workers tell the office when it is half full, and the Care Coordinator orders a replacement within 2 working days so a new container is in the home before the old one is locked.",
+                "Locked when it reaches the fill line or 3 months after assembly, whichever is first (our policy), by the care worker who finds it so, who adds the locking date to the label and tells the office the same day.",
+                "Locked containers are kept in the place agreed in the care plan, and the Care Coordinator arranges collection within 5 working days through the local route on the Local IPC and Health Protection Contacts sheet."
+              ]
+            },
+            {
+              "p": "Staff never carry used sharps or used sharps containers between homes, in their car or in their kit box; the only containers carried are the empty ones in pick-up kits. Where the person or family manage their own container, our staff phone the office if it is overfilled, open, damaged or within reach of children, and the Care Coordinator raises it with the person and, where relevant, their community nurse the same working day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Other people's sharps, razors and found sharps",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Sharps used by the person, family or health professionals",
+          "blocks": [
+            {
+              "p": "Sharps the person or family use themselves are their responsibility; our staff do not use, move or dispose of them unless the care plan says so. Visiting professionals are responsible for their own sharps: one left behind is treated as a found sharp, and the Care Coordinator tells the professional's team the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Razors",
+          "blocks": [
+            {
+              "p": "Staff use only the person's own razor and never share razors between people. A used disposable razor or blade is put, with its guard on, into the sharps container where there is one; otherwise it is left guarded in the place the care plan names, for the household to dispose of. A razor or blade is never put loose in a waste bag."
+            }
+          ]
+        },
+        {
+          "heading": "Finding a loose sharp",
+          "blocks": [
+            {
+              "steps": [
+                "Stop, warn the person and anyone present, and keep them and any pets away from the sharp.",
+                "If there is a sharps container in the home, put on gloves, take the container to the sharp, pick the sharp up by the barrel or body with the point away from you, and drop it in. Never use your fingers near the point and never try to recap it.",
+                "If there is no sharps container, do not pick it up. Phone the office or On-call Manager before you leave.",
+                "The office sends the Field Care Supervisor, or out of hours the On-call Manager, with a sharps pick-up kit (an empty sharps container, tongs and gloves) the same day. Where the person or anyone else in the home could be injured before they arrive, you stay and keep the area clear, and the office reallocates your next visits.",
+                "The Field Care Supervisor or On-call Manager removes the sharp with tongs into the kit container, locks and labels it, leaves it in a safe place agreed with the person, and the Care Coordinator arranges collection within 5 working days.",
+                "Record what you found and what you did in the daily visit notes. A found sharp is recorded as a hazard in the incident log before the end of the shift."
+              ]
+            },
+            {
+              "p": "Where needles suggest illicit drug use, staff record only what they saw, without judgement. The Care Coordinator reviews the home environment risk assessment within 7 days and decides with the Registered Manager whether the Self-Neglect and Hoarding Procedure or the Safeguarding Adults Policy applies."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What to do after an injury or exposure",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Immediate actions",
+          "blocks": [
+            {
+              "p": "Our message is: bleed it, wash it, cover it, report it. The exposure card issued at induction and kept in your kit box repeats these steps."
+            },
+            {
+              "steps": [
+                "Make the person safe in the seconds it takes: put the sharp in the container if you are holding it, and make sure the person is sitting or lying safely.",
+                "For a needlestick, cut, bite or scratch: encourage the wound to bleed by gently pressing around it, wash it under running tepid water with soap, never scrub or suck it, dry it and cover it with a waterproof dressing.",
+                "For a splash to the eyes, nose or mouth: rinse with plenty of running water, without rubbing, and remove contact lenses after rinsing. For a splash onto broken skin: wash it with soap and water.",
+                "Phone the office or On-call Manager and say what happened and whose blood or body fluid it was, if known. If nobody answers, phone the Registered Manager or Deputy Manager directly; if the person can be left safely, do not wait for an answer.",
+                "Check out in CareFlow and go straight to the nearest emergency department. Do not finish your shift first. If the person cannot be left safely, the office sends another worker or the On-call Manager at once, and you leave as soon as they arrive.",
+                "At the emergency department, say that this is an occupational exposure, describe the injury, and say whether the source person is known and whether you have had hepatitis B vaccination. Do not name the person to anyone other than the clinician."
+              ]
+            },
+            {
+              "p": "A cut from a sharp that has definitely not been used is not an exposure: give first aid, phone the office and record it in the incident log. If a person we support or a visitor is injured by a used sharp that is not their own, give the same first aid and phone the office; the Care Coordinator or On-call Manager arranges for them to go to the emergency department."
+            }
+          ]
+        },
+        {
+          "heading": "What the office does",
+          "blocks": [
+            {
+              "steps": [
+                "Confirm the worker is on their way to the emergency department and has a safe way of getting there. If they cannot drive safely or have no transport, the office books a taxi at our cost.",
+                "Cancel or reallocate the worker's remaining visits for that shift, and send another worker to finish any essential care left undone at the interrupted visit.",
+                "Open the incident log entry from the call and record the time of the exposure and of the call.",
+                "Tell the Registered Manager or Deputy Manager straight away in office hours. Out of hours, the On-call Manager tells them by 10am on the next working day, or at once if the source person is known to have a blood-borne virus.",
+                "Phone the worker within 4 hours of the exposure to check they have been seen, and record it."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Medical treatment, follow-up and support",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Emergency treatment",
+          "blocks": [
+            {
+              "p": "The emergency department assesses the risk, takes a baseline blood sample and decides on treatment. National guidance says HIV PEP should start as soon as possible and is too late if started more than 72 hours after the exposure; hepatitis B vaccination after an exposure should ideally start within 24 hours. We pay for any prescription the clinician gives for the exposure."
+            }
+          ]
+        },
+        {
+          "heading": "Information about the source person",
+          "blocks": [
+            {
+              "p": "Only the Registered Manager, or the Deputy Manager in their absence, tells the clinician treating the worker what we know about the source person's blood-borne virus status, sharing only what the clinician needs, with the person's consent where they can give it without delaying the worker's treatment, otherwise on the public interest ground in the Confidentiality and Information Sharing Policy, and records what was shared, with whom and why in the incident log. If the clinician or occupational health wants the source person tested, the Registered Manager asks the person's GP to discuss it with them; a test needs the person's own consent, and where they lack capacity any test is for their own clinicians to decide under the Mental Capacity Act 2005. Our staff never ask the person or family about their status or to be tested, and never discuss it with colleagues."
+            }
+          ]
+        },
+        {
+          "heading": "Follow-up and support for the worker",
+          "blocks": [
+            {
+              "bullets": [
+                "The HR Manager refers the worker to our occupational health provider, asking for contact within 72 hours of the exposure as national PEP guidance recommends, for follow-up blood tests at the intervals the clinician or occupational health set, and for advice on vaccination.",
+                "The HR Manager offers counselling through our occupational health provider at the same time, for every exposure where a blood-borne virus could have been passed on.",
+                "Time at the emergency department and follow-up appointments is paid at the worker's normal rate, and mileage or taxi costs are reimbursed.",
+                "Absence caused by the exposure or by side effects of PEP is paid at the normal rate and does not count towards review points under the Sickness Absence Policy.",
+                "Care work does not involve exposure-prone procedures, so a worker taking PEP or waiting for results carries on working unless occupational health or their doctor advises otherwise.",
+                "The Field Care Supervisor offers a debrief within 3 working days."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting, investigation and learning",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Timescales",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "What happens",
+                  "Who",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "Incident log entry opened",
+                    "Office staff or On-call Manager, from the call",
+                    "The same shift"
+                  ],
+                  [
+                    "Worker adds their own account to the incident log",
+                    "Injured or exposed worker",
+                    "Before their next shift"
+                  ],
+                  [
+                    "Near miss, found sharp or unsafe container recorded",
+                    "Any member of staff",
+                    "Incident log before the end of the shift"
+                  ],
+                  [
+                    "Incident reviewed and immediate controls set",
+                    "Registered Manager or Deputy Manager",
+                    "By the end of the next working day"
+                  ],
+                  [
+                    "Occupational health referral, counselling offer and COSHH exposure register entry",
+                    "HR Manager",
+                    "The day of the report (next working day if out of hours)"
+                  ],
+                  [
+                    "Investigation completed",
+                    "Deputy Manager, or the Registered Manager where the Deputy Manager was involved",
+                    "Within 10 working days"
+                  ],
+                  [
+                    "Risk assessment and care plan updated",
+                    "Field Care Supervisor",
+                    "Before the next visit to that person"
+                  ],
+                  [
+                    "Anonymised learning shared with all staff",
+                    "Registered Manager",
+                    "Within 2 weeks of the investigation closing"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Investigation",
+          "blocks": [
+            {
+              "p": "Every injury and exposure is investigated under the Incident Reporting, Investigation and Learning Policy, recording the task and device, whether the safer sharp and container were used correctly, how the person's behaviour or the home contributed, the worker's training and competency dates, whether their hepatitis B vaccination status was known, and how quickly they reached the emergency department. Actions go into the service improvement plan with owners and deadlines. The Disciplinary Policy and Procedure applies only to a deliberate or reckless breach."
+            }
+          ]
+        },
+        {
+          "heading": "Reporting to the Health and Safety Executive",
+          "blocks": [
+            {
+              "p": "The Registered Manager reports under the RIDDOR Reporting Procedure, whose deadlines are shorter than these legal limits:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Event",
+                  "RIDDOR category",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "Sharps injury from a sharp known to be contaminated with hepatitis B, hepatitis C or HIV",
+                    "Dangerous occurrence",
+                    "Without delay, with a full report within 10 days"
+                  ],
+                  [
+                    "Our policy (HSE guidance names only the case above): a sharps injury where the source's infection becomes known later, and a bite, scratch or splash from a source known to carry one of these viruses, treated as within Schedule 2 paragraph 10",
+                    "Dangerous occurrence",
+                    "Without delay once known, with a full report within 10 days"
+                  ],
+                  [
+                    "The worker is diagnosed with an infection caused by the exposure",
+                    "Occupational disease",
+                    "Without delay on receiving the diagnosis"
+                  ],
+                  [
+                    "The injury itself keeps the worker off normal work for more than 7 consecutive days, not counting the day it happened",
+                    "Over-7-day injury",
+                    "Within 15 days of the injury"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "An injury from a sharp that was not contaminated, or whose source cannot be traced, is not reportable unless one of the other categories applies. A person we support or a visitor injured by a sharp connected with our work is reportable if taken from the scene straight to hospital for treatment, not only for tests. The Registered Manager records the decision and reasons in the incident log in every case."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Sharps arrangements in the home: the initial assessment, risk assessments and care plan. Delegated sharps tasks given: the eMAR.",
+            "Injuries, exposures, near misses, found sharps, investigations and RIDDOR decisions: the incident log, kept for at least 10 years from closure, as the Records Management and Retention Policy sets out.",
+            "Occupational health referrals, results, counselling offers and hepatitis B vaccination status: the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions).",
+            "The COSHH exposure register (each exposed employee, the type of work, the agent where known and the exposure record): the restricted section of the staff record, kept for 40 years from the last entry. Each employee may see their own entry; the occupational health doctor and any employee with specific responsibility for colleagues' health and safety may see the register.",
+            "Sharps training and delegated task sign-offs: training and compliance records."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Sharps safety and exposure response: the risks, the law, safe use and disposal, found sharps, first aid, reporting, support we provide, and the benefits and drawbacks of hepatitis B vaccination",
+                "All care staff, as part of IPC induction",
+                "Before working without a shadowing colleague",
+                "Every 12 months, in the IPC refresher"
+              ],
+              [
+                "Sharps and exposure awareness",
+                "Office, HR and staff allocation roles",
+                "Within the first week",
+                "Every 12 months"
+              ],
+              [
+                "Delegated sharps task, including the safer sharp used, signed off by the delegating professional for the named person",
+                "Named care workers",
+                "Before carrying out the task",
+                "As the delegating professional sets, at least every 12 months, and when the device changes"
+              ],
+              [
+                "Found sharps pick-up",
+                "Field Care Supervisors and On-call Managers",
+                "Before carrying a pick-up kit",
+                "Every 12 months"
+              ],
+              [
+                "Exposure call handling and source information",
+                "Office staff, Care Coordinators and On-call Managers",
+                "Before taking calls alone or the first on-call shift",
+                "Every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every member of staff who gives personal care or carries a sharps pick-up kit is offered free hepatitis B vaccination, before starting where they are named for a sharps task or support a person whose care plan records biting or scratching that breaks the skin, under the Staff Vaccination and Immunisation Policy; vaccination is never a condition of employment. A worker who has a sharps injury caused by their own practice is signed off again by the delegating professional before doing that task alone. The HR Manager tells each worker and the Care Coordinator 30 days before sharps training expires and 8 weeks before a delegated task sign-off expires; a worker whose training or sign-off has expired is not allocated a sharps task until it is renewed."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Sharps practice and containers",
+                "At every spot check of a visit that includes a sharps task",
+                "Field Care Supervisors",
+                "Deputy Manager monthly"
+              ],
+              [
+                "Containers in homes where we carry out sharps tasks: label, fill level, age, location",
+                "At each in-home medicines check, at least every 3 months",
+                "The person carrying out the check",
+                "Care Coordinator, for action"
+              ],
+              [
+                "Injuries, exposures, near misses and found sharps: time to the emergency department, RIDDOR decisions, investigations on time",
+                "Monthly, in the infection surveillance review",
+                "Registered Manager (IPC lead)",
+                "Directors in the quarterly IPC report"
+              ],
+              [
+                "Sharps training, task sign-offs and hepatitis B offers",
+                "Monthly",
+                "HR Manager",
+                "IPC lead"
+              ],
+              [
+                "This procedure in practice",
+                "Every 12 months, in the March IPC audit",
+                "IPC lead with the Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Targets: 100% of exposed workers seen at an emergency department on the day of the exposure, of investigations completed within 10 working days and of RIDDOR reports on time. Any shortfall becomes an action in the service improvement plan. Exposures are also reviewed at the quarterly Health and Safety Meeting."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager as IPC lead, consulting representatives of employee safety, and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in law or national guidance, any RIDDOR-reportable sharps event, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

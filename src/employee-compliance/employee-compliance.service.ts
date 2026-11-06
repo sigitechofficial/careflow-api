@@ -28,6 +28,7 @@ import {
 } from './compliance-requirement.matcher';
 import { CARE_COMPLIANCE_CODE_ORDER } from './care-compliance-catalog-order';
 import { applyImmigrationRtwRequirementFlags } from './immigration-rtw-requirement.util';
+import { defaultExpiryFromValidity } from '../common/utils/validity-default.util';
 
 const documentUploaderSelect = {
   id: true,
@@ -202,11 +203,18 @@ export class EmployeeComplianceService {
 
   async create(userId: string, employeeId: string, dto: CreateEmployeeComplianceDto, meta?: RequestAuditMeta) {
     await this.ensureEmployee(employeeId);
-    this.assertIssueBeforeExpiry(dto.issueDate, dto.expiryDate);
     const type = await this.prisma.complianceType.findFirst({
       where: { id: dto.complianceTypeId, deletedAt: null },
     });
     if (!type) throw new NotFoundException('Compliance type not found');
+    // No expiry sent: the type's validity period from the start date (Settings → Compliance types).
+    const expiryDate =
+      dto.expiryDate !== undefined
+        ? dto.expiryDate
+        : type.hasExpiry
+          ? defaultExpiryFromValidity(dto.issueDate, type.defaultValidityMonths)
+          : null;
+    this.assertIssueBeforeExpiry(dto.issueDate, expiryDate);
 
     const requirementId = await this.resolveRequirementId(
       employeeId,
@@ -221,7 +229,7 @@ export class EmployeeComplianceService {
           complianceTypeId: dto.complianceTypeId,
           requirementId,
           issueDate: dto.issueDate ?? null,
-          expiryDate: dto.expiryDate ?? null,
+          expiryDate: expiryDate ?? null,
           notes: dto.notes ?? null,
           createdById: userId,
           status: EmployeeComplianceStatus.REQUIRED,
@@ -275,7 +283,17 @@ export class EmployeeComplianceService {
       if (!existing) throw new NotFoundException('Compliance record not found');
 
       const issueDate = dto.issueDate === undefined ? existing.issueDate : dto.issueDate;
-      const expiryDate = dto.expiryDate === undefined ? existing.expiryDate : dto.expiryDate;
+      let expiryDate = dto.expiryDate === undefined ? existing.expiryDate : dto.expiryDate;
+      // A start date added to a record with no expiry (and none sent): default it from the type.
+      let defaultedExpiry: Date | null = null;
+      if (dto.expiryDate === undefined && !existing.expiryDate && dto.issueDate) {
+        const type =
+          dto.complianceTypeId && dto.complianceTypeId !== existing.complianceTypeId
+            ? await tx.complianceType.findFirst({ where: { id: dto.complianceTypeId, deletedAt: null } })
+            : existing.complianceType;
+        if (type?.hasExpiry) defaultedExpiry = defaultExpiryFromValidity(dto.issueDate, type.defaultValidityMonths);
+        if (defaultedExpiry) expiryDate = defaultedExpiry;
+      }
       this.assertIssueBeforeExpiry(issueDate, expiryDate);
 
       let requirementId = existing.requirementId;
@@ -300,6 +318,7 @@ export class EmployeeComplianceService {
       }
       if (dto.issueDate !== undefined) data.issueDate = dto.issueDate;
       if (dto.expiryDate !== undefined) data.expiryDate = dto.expiryDate;
+      else if (defaultedExpiry) data.expiryDate = defaultedExpiry;
       if (dto.notes !== undefined) data.notes = dto.notes;
       if (dto.submittedAt !== undefined) data.submittedAt = dto.submittedAt;
       if (dto.clearVerification) {
@@ -811,6 +830,9 @@ export class EmployeeComplianceService {
         complianceTypeId: typeId,
         code: type?.code ?? null,
         name: type?.name ?? '—',
+        /** The form pre-fills expiry = start date + this many months (null = no default). */
+        hasExpiry: type?.hasExpiry ?? true,
+        defaultValidityMonths: type?.hasExpiry === false ? null : (type?.defaultValidityMonths ?? null),
         isMandatory,
         requirementId: req?.id ?? null,
         record,

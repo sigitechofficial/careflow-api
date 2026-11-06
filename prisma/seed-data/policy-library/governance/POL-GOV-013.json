@@ -1,0 +1,783 @@
+{
+  "reference": "POL-GOV-013",
+  "revision": 1,
+  "title": "Data Protection Policy",
+  "documentType": "POLICY",
+  "summary": "How we comply with the UK GDPR and the Data Protection Act 2018 for everyone whose information we hold: the people we support, their families, staff, applicants and contacts. Sets out our data protection roles, including the Data Protection Officer and Caldicott Guardian, the lawful bases we rely on, privacy notices, impact assessments, suppliers, rights, complaints and our registration with the Information Commission. For all staff.",
+  "keyPoints": {
+    "intro": "You handle personal information on every visit and every call. This policy tells you how to keep it safe, when you may share it and what to do at once when something goes wrong.",
+    "points": [
+      "Use information about the people we support and colleagues only for your work. Look only at the records you need, and never discuss anyone where you could be overheard, including in another person's home, in public or in a car with others.",
+      "Phone the office (On-call Manager out of hours) at once if information or your work phone is lost or stolen, or information reaches anyone not entitled to it. Record it in the incident log before your shift ends, or ask the office to.",
+      "Record care in CareFlow on your work phone, using paper only where our policies allow, such as the money and shopping record. Never keep personal notes, use your own phone for care information, or send it by text, personal email or messaging apps.",
+      "Take body map photographs, videos and voice notes only in the CareFlow app on your work phone, as the Consent to Care Policy allows. Never keep them on the phone or record anyone else speaking.",
+      "Keep your work phone locked when you are not using it and with you at all times. Never leave it in a person's home or on view in a vehicle, and never share your CareFlow login.",
+      "Key safe codes are held only in CareFlow and the encrypted business continuity access file. Never write a code down or tell it to anyone except fire or ambulance crews in an emergency, then tell the office.",
+      "Before telling a relative, visitor or caller anything, check what the person has agreed in the Consent and decisions part of the care plan. If unsure, say the office will reply. Never confirm to an unknown caller that a person receives our care.",
+      "Pass any request to see, correct or delete personal information to the office the same working day, whatever words are used. The law gives us one month to answer.",
+      "Pass any complaint about how we use personal information to the office the same working day. It is handled under the Complaints Policy and Procedure.",
+      "In an emergency, give paramedics and other health professionals the information they need to treat the person, then tell the office.",
+      "Complete information governance training in your first week, before you see any care record, and every 12 months after that.",
+      "Looking up, using or sharing personal information without a work reason is a disciplinary matter and can be a criminal offence."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "EMPLOYEE",
+    "HR",
+    "RECRUITMENT"
+  ],
+  "relatedReferences": [
+    "POL-GOV-014",
+    "POL-GOV-015",
+    "POL-GOV-016",
+    "POL-GOV-017",
+    "POL-GOV-018",
+    "POL-GOV-019",
+    "POL-HR-019",
+    "POL-GOV-005"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "UK General Data Protection Regulation, Article 5 (principles relating to processing of personal data, including accountability)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/5"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 6 (lawfulness of processing, including point (ea) recognised legitimate interests, in force from 5 February 2026)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/6"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 9 (processing of special categories of personal data)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/9"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Annex 1 (recognised legitimate interests, inserted from 5 February 2026)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/annex/1"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 28 (processors)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/28"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 30 (records of processing activities)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/30"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 33 (notification of a personal data breach to the Information Commission)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/33"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 35 (data protection impact assessment)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/35"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 37 (designation of the data protection officer)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/37"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 38 (position of the data protection officer)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/38"
+    },
+    {
+      "source": "Data (Use and Access) Act 2025, section 76 (time limits for responding to data subject requests, inserting UK GDPR Article 12A, in force 5 February 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/18/section/76"
+    },
+    {
+      "source": "Data Protection Act 2018, section 164A (complaints by data subjects to controllers, fully in force from 19 June 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/164A"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 1 (paragraph 1 employment, needing an appropriate policy document; paragraph 2 health or social care purposes)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/part/1"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 2 (paragraph 5 appropriate policy document; paragraphs 8, 10 and 18)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/part/2"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, paragraph 18 (safeguarding of children and of individuals at risk)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/18"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 4 (appropriate policy document and additional safeguards)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/part/4"
+    },
+    {
+      "source": "Data Protection (Charges and Information) Regulations 2018, regulation 2 (charge and information given to the Information Commission within the first 21 days of each charge period)",
+      "url": "https://www.legislation.gov.uk/uksi/2018/480/regulation/2"
+    },
+    {
+      "source": "Health and Social Care Act 2012, section 251B (duty to share information for care)",
+      "url": "https://www.legislation.gov.uk/ukpga/2012/7/section/251B"
+    },
+    {
+      "source": "Health and Social Care Act 2012, section 251C (providers covered: those providing care under arrangements made with a public body)",
+      "url": "https://www.legislation.gov.uk/ukpga/2012/7/section/251C"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 17(2)(c) and (d) (records)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care (National Data Guardian) Act 2018, section 1 (duty to have regard to the National Data Guardian's guidance)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/31/section/1"
+    },
+    {
+      "source": "National Data Guardian: Guidance about the appointment of Caldicott Guardians, their role and responsibilities (August 2021)",
+      "url": "https://www.gov.uk/government/publications/national-data-guardian-guidance-on-the-appointment-of-caldicott-guardians-their-role-and-responsibilities"
+    },
+    {
+      "source": "GOV.UK: Information Commission succeeds the ICO as UK's data protection regulator (30 September 2026)",
+      "url": "https://www.gov.uk/government/news/information-commission-succeeds-the-ico-as-uks-data-protection-regulator"
+    },
+    {
+      "source": "Digital Care Hub: How to document your data processing (adult social care)",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/how-to-document-your-data-processing/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} holds detailed personal information about the people we support, much of it about their health, their homes and their families, and about the staff who care for them. People let us into their homes and their lives on the understanding that we will use that information only to care for them well, keep it safe and be open about what we do with it. Getting this wrong can expose a person to harm, such as a key safe code reaching the wrong person, and breaks the trust our care depends on."
+        },
+        {
+          "p": "{{organisation}} is the controller of the personal information it holds and complies with the UK General Data Protection Regulation (UK GDPR), the Data Protection Act 2018 and the common law duty of confidentiality. The Directors are accountable for that compliance and for being able to show it."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Everyone who works for us handles personal information lawfully, safely and only as far as their work needs.",
+            "Every use of personal information has a recorded purpose, lawful basis and retention period, and the people concerned are told about it.",
+            "Privacy risks are reduced before new processing starts, and suppliers handling our information are checked and bound by contract.",
+            "People can exercise their rights and complain easily, and get answers within the legal time limits.",
+            "We can show the Information Commission, CQC and commissioners how we comply."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to all personal information we hold, in CareFlow, on work phones and computers, in email, in phone calls and on paper, whether in the branch office, in a person's home, in a vehicle or where an On-call Manager works from home. It covers information about the people we support, their families, representatives and visitors, employees, applicants, agency workers, students, contractors, professionals and commissioners. It applies to the Directors and every employee, and through their agreements to agency workers, students, contractors and suppliers."
+        },
+        {
+          "p": "This is the parent policy for data protection. Detailed arrangements are in: the Subject Access and Individual Rights Procedure (requests); the Personal Data Breach Procedure (breaches); the Confidentiality and Information Sharing Policy (sharing decisions); the Records Management and Retention Policy (records and retention); the Information and Cyber Security Policy (technical security and the Data Security and Protection Toolkit); the Acceptable Use of IT and Devices Policy (work devices, email and artificial intelligence tools); the Mobile Phones and Social Media Policy (phones, photographs and social media); the Consent to Care Policy (consent to photographs, video and recordings); and the Staff Personal Data and HR Records Policy (staff and applicant records). Complaints about data handling follow the Complaints Policy and Procedure."
+        },
+        {
+          "p": "Data protection law does not apply to people who have died. We still keep their information confidential and handle requests for it under the Subject Access and Individual Rights Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Personal data",
+                "Any information about a living person who can be identified from it, alone or with other information, including a name, address, CareFlow reference number, photograph, voice note, recording or check-in/check-out record."
+              ],
+              [
+                "Special category data",
+                "Information about health, racial or ethnic origin, religious or philosophical beliefs, sex life or sexual orientation, genetics, biometrics, political opinions or trade union membership. Almost everything in a care record is health information."
+              ],
+              [
+                "Criminal offence data",
+                "Information about criminal convictions, offences and alleged offences, including DBS certificates and self-declarations."
+              ],
+              [
+                "Controller and processor",
+                "The controller decides why and how personal data is used; {{organisation}} is the controller of the information in this policy. A processor handles it only on our instructions, such as the supplier of CareFlow or our payroll bureau."
+              ],
+              [
+                "Record of processing activities",
+                "Our written record, required by UK GDPR Article 30, of each purpose for which we process personal data, with its lawful basis, recipients, retention period and security."
+              ],
+              [
+                "Appropriate policy document",
+                "The document the Data Protection Act 2018, Schedule 1 requires before we rely on certain conditions for special category or criminal offence data."
+              ],
+              [
+                "Data protection impact assessment (DPIA)",
+                "A documented assessment of the privacy risks of a new or changed use of personal data, and how they will be reduced, completed before the use starts."
+              ],
+              [
+                "Information Commission",
+                "The UK data protection regulator, which took over from the Information Commissioner and the Information Commissioner's Office (ICO) on 30 September 2026."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for data protection. They appoint the Data Protection Officer, Senior Information Risk Owner and Caldicott Guardian; each year at the Directors' governance meeting held by mid-May, name one Director to act for the Nominated Individual (Governance and Quality Assurance Policy) and approve the record of processing activities, the appropriate policy document and the privacy notices; decide on any DPIA whose remaining risk is High; receive the data protection section of each quarterly governance report and the Data Protection Officer's annual report; and provide the resources this policy needs."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual: Senior Information Risk Owner and data protection lead",
+          "blocks": [
+            {
+              "p": "The Nominated Individual leads data protection for the Directors and is the information asset owner for governance records. They keep the record of processing activities, the information asset register, the appropriate policy document, the privacy notices, the register of processors and sharing agreements, and the DPIA register; approve DPIAs, processor contracts and data sharing agreements; decide whether a breach is reported to the Information Commission under the Personal Data Breach Procedure; pay the annual data protection charge; and are the Data Protection Officer's first point of contact. When the Nominated Individual is absent, cannot be reached within 1 hour or is involved in a breach, the Director named to act for them does so; the Registered Manager does not, because they are Caldicott Guardian."
+            }
+          ]
+        },
+        {
+          "heading": "Data Protection Officer",
+          "blocks": [
+            {
+              "p": "UK GDPR Article 37 requires a Data Protection Officer where a controller's core activities consist of processing special category data on a large scale. Personal care depends on recording detailed health information about every person we support, continuously and across many homes, so the Directors treat our processing as large scale. The role is provided by an external data protection service under a written contract; nobody who decides how we use personal data may hold it."
+            },
+            {
+              "p": "The Data Protection Officer advises the Directors and staff, monitors our compliance and training, advises on every DPIA and every possibly reportable breach, is the contact point for the Information Commission, and can be contacted directly by anyone whose information we hold. They report to the Directors, have the access they need, receive no instructions about how to carry out their tasks and are never penalised for doing so (Article 38). Their contact details are on our website and given to the Information Commission. They meet the Nominated Individual every quarter and present an annual compliance report to the Directors' governance meeting held by mid-May."
+            }
+          ]
+        },
+        {
+          "heading": "Caldicott Guardian",
+          "blocks": [
+            {
+              "p": "The law requires providers of adult social care under arrangements with a local authority or the NHS to have regard to the National Data Guardian's guidance (Health and Social Care (National Data Guardian) Act 2018, section 1). That guidance expects them to appoint a Caldicott Guardian and to register their details on the Caldicott Guardian Register. The Nominated Individual registers the Caldicott Guardian within 1 month of appointment and names them in our Data Security and Protection Toolkit submission. Our Caldicott Guardian is the Registered Manager (the owning Registered Manager where there are several branches), with the Deputy Manager as deputy. They make sure the Caldicott principles are followed, advise on difficult decisions about using or sharing information about the people we support, including sharing without consent under the Confidentiality and Information Sharing Policy, and record each piece of advice and its reasons in the Caldicott decision log in the governance records."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager makes this policy work in their branch. They are the information asset owner for the care records and branch records; make sure every person we support receives our privacy notice; handle requests and complaints from the people we support and others under the Subject Access and Individual Rights Procedure and the Complaints Policy and Procedure; make sure care workers reach care records only through the CareFlow app, which shows each worker only the people on their round; make sure leavers' access ends on their last working day; and make sure staff complete information governance training before they see any care record."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager is the information asset owner for staff, applicant and recruitment records and for Directors' records, including fit and proper person files. They issue the applicant and staff privacy notices, handle requests from staff, former staff and applicants under the Subject Access and Individual Rights Procedure, and keep health, DBS and other restricted information in the restricted section of the staff record."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out the annual records and data protection audit, includes data protection figures in the monthly quality dashboard, and covers the Registered Manager's duties under this policy, including as deputy Caldicott Guardian, in their absence."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors and assessors",
+          "blocks": [
+            {
+              "p": "Assessors give and explain the privacy notice at the assessment visit and record in the Consent and decisions and People involved parts of the care plan what the person agrees may be shared and with whom. Care Coordinators keep that record and contact details current. Field Care Supervisors check data protection practice at every spot check and keep the copy of the care plan in the home limited to what the person and staff need."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Managers and Office staff",
+          "blocks": [
+            {
+              "p": "They check a caller's identity and entitlement before giving out any information, never confirm to an unknown caller that a person receives our care, receive breach reports and act on them at once under the Personal Data Breach Procedure, record every complaint about personal information the same working day, and pass every rights request to the manager handling it the same working day (On-call Managers by 10am the next working day). On-call Managers working from home use only work devices, take calls where they cannot be overheard and keep screens out of sight of others."
+            }
+          ]
+        },
+        {
+          "heading": "Everyone who works for us",
+          "blocks": [
+            {
+              "p": "Every employee follows this policy and the documents beneath it, accesses only the information they need for their work, keeps it confidential during and after their employment, reports breaches and requests at once, and completes their training. Misuse of personal information is handled under the Disciplinary Policy and Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The data protection principles in our work",
+      "blocks": [
+        {
+          "p": "UK GDPR Article 5 sets seven principles. This is how we apply them."
+        },
+        {
+          "table": {
+            "columns": [
+              "Principle",
+              "What it means for us"
+            ],
+            "rows": [
+              [
+                "Lawful, fair and transparent",
+                "Every use has a lawful basis recorded in the record of processing activities, and people are told how their information is used before or when we collect it. We use information in ways people would reasonably expect."
+              ],
+              [
+                "Purpose limitation",
+                "Information is used only for the purposes in our privacy notices. A new purpose is added to the record of processing activities, assessed by the Nominated Individual with the Data Protection Officer, and explained to the people concerned before it starts."
+              ],
+              [
+                "Data minimisation",
+                "We collect only what we need. Daily visit notes record care and observations, not unrelated household matters; information about family members and visitors is recorded only where it affects care or risk; governance papers use CareFlow reference numbers, not names."
+              ],
+              [
+                "Accuracy",
+                "Personal details and the Consent and decisions part of the care plan are checked at every care plan review; staff details at each annual appraisal. Errors in a care record are corrected under the Records Management and Retention Policy without deleting the original entry."
+              ],
+              [
+                "Storage limitation",
+                "Records are kept for the periods in the Records Management and Retention Policy and then securely destroyed, unless needed for an open investigation, complaint, safeguarding enquiry, inquest or claim."
+              ],
+              [
+                "Integrity and confidentiality",
+                "Care information lives in CareFlow, protected by individual logins and role-based access, and is shared only under the Confidentiality and Information Sharing Policy."
+              ],
+              [
+                "Accountability",
+                "We keep the records listed in this policy to show how we comply, and audit our practice every year."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Why we use personal information: lawful bases",
+      "blocks": [
+        {
+          "p": "Every use of personal information needs a lawful basis under UK GDPR Article 6. Special category data also needs a condition under Article 9 and, where the law requires, Schedule 1 to the Data Protection Act 2018; criminal offence data needs a Schedule 1 condition. We do not rely on consent as the lawful basis for providing care, because data protection consent can be withdrawn at any time and we must keep care records by law. A person's agreement to care, to sharing and to photographs, video and recorded assessment conversations is still sought and recorded in CareFlow under the Consent to Care Policy, as the common law duty of confidentiality and respect for their dignity require."
+        },
+        {
+          "table": {
+            "columns": [
+              "Purpose",
+              "Article 6 basis",
+              "Special category or criminal offence condition"
+            ],
+            "rows": [
+              [
+                "Assessing, planning, delivering and recording care: assessment recordings and transcripts, care plan, risk assessments, daily visit notes and voice notes, eMAR, body maps with any photographs or videos, and check-in/check-out records",
+                "Contract (6(1)(b)) where the person or someone acting for them contracts with us; legal obligation (6(1)(c)) for the records regulation 17(2)(c) of the Regulated Activities Regulations requires; legitimate interests (6(1)(f)) for care a local authority or the NHS arranges where we have no contract with the person",
+                "Health or social care purposes: Article 9(2)(h) with Schedule 1, paragraph 2; every employee is bound by a duty of confidentiality, as section 11 requires"
+              ],
+              [
+                "Sharing with the GP, pharmacy, district nurses, hospital and other providers for the person's care",
+                "The same basis as the row above. For care arranged by a local authority or the NHS, section 251B of the Health and Social Care Act 2012 also places a duty on us to share information that is likely to help the person's care and is in their best interests, unless the person objects; it does not cover care a person arranges privately",
+                "Article 9(2)(h) with Schedule 1, paragraph 2"
+              ],
+              [
+                "Emergencies where the person cannot agree, such as information given to paramedics",
+                "Vital interests (6(1)(d))",
+                "Vital interests (Article 9(2)(c))"
+              ],
+              [
+                "Safeguarding referrals and sharing with the local authority and police",
+                "Recognised legitimate interest (6(1)(ea), Annex 1, paragraphs 6 to 8)",
+                "With the person's agreement, Article 9(2)(h) with Schedule 1, paragraph 2; without it, Schedule 1, paragraph 18 (safeguarding)"
+              ],
+              [
+                "Reporting or helping to prevent or investigate crime, including violence towards staff",
+                "Recognised legitimate interest (6(1)(ea), Annex 1, paragraph 5)",
+                "Schedule 1, paragraph 10, only where asking for agreement would prejudice that purpose"
+              ],
+              [
+                "CQC notifications and requests, complaints, incidents, duty of candour, Ombudsman and Safeguarding Adults Board requests, and records of managing the service",
+                "Legal obligation (6(1)(c)) under the Regulated Activities Regulations, the CQC Registration Regulations, the Local Government Act 1974 and section 45 of the Care Act 2014",
+                "Article 9(2)(h) with Schedule 1, paragraph 2 (management of social care services); Article 9(2)(f) where a legal claim is made or expected"
+              ],
+              [
+                "Quality checks, surveys and commissioner monitoring returns",
+                "Legitimate interests (6(1)(f))",
+                "Article 9(2)(h) with Schedule 1, paragraph 2; equality questions under Schedule 1, paragraph 8"
+              ],
+              [
+                "Publicity, testimonials and stories used outside the person's care",
+                "Consent (6(1)(a))",
+                "Explicit consent (Article 9(2)(a)), signed as the Consent to Care Policy requires"
+              ],
+              [
+                "Recruitment and pre-employment checks, including the Schedule 3 information and DBS checks",
+                "Legal obligation (6(1)(c)) under regulation 19 and Schedule 3 of the Regulated Activities Regulations and immigration law; steps before a contract (6(1)(b))",
+                "Employment obligations: Article 9(2)(b) with Schedule 1, paragraph 1 (health data), and paragraph 1 for criminal offence data; occupational health: Article 9(2)(h) with paragraph 2"
+              ],
+              [
+                "Employment, pay, pensions, sickness, supervision, training and sponsor duties",
+                "Contract (6(1)(b)) and legal obligation (6(1)(c))",
+                "Article 9(2)(b) with Schedule 1, paragraph 1; occupational health under Article 9(2)(h) with paragraph 2"
+              ],
+              [
+                "Equality monitoring of the people we support, staff and applicants",
+                "Legitimate interests (6(1)(f))",
+                "Schedule 1, paragraph 8 (equality of opportunity or treatment)"
+              ],
+              [
+                "Electronic call monitoring and lone working information about staff",
+                "Legitimate interests (6(1)(f)), used only for safety, checking that care was delivered, rota and travel planning, pay, invoicing and investigations, as the Missed, Late and Short Visits Procedure sets out",
+                "None normally; any health information is handled as employment data"
+              ],
+              [
+                "Contact details of family members, representatives, professionals and suppliers",
+                "Legitimate interests (6(1)(f))",
+                "Not applicable"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Recognised legitimate interests (6(1)(ea)) cover only the Annex 1 purposes, such as safeguarding and crime, never routine care. For each use relying on legitimate interests, the Nominated Individual records a legitimate interests assessment with the Data Protection Officer's advice in the record of processing activities before the use starts."
+        },
+        {
+          "p": "We never sell personal information or use it for marketing. We do not use or disclose information about the people we support for research or service planning beyond their own care; any request to do so is decided by the Nominated Individual on the advice of the Caldicott Guardian and the Data Protection Officer, with a DPIA. We make no decision about anyone based solely on automated processing: alerts from electronic call monitoring and other CareFlow reports are reviewed by a manager before any action is taken about a person or an employee."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Appropriate policy document",
+          "blocks": [
+            {
+              "p": "We keep one appropriate policy document covering every condition in Schedule 1 that requires one and that we rely on: paragraph 1 (employment, including DBS and other criminal offence data), paragraph 8 (equality monitoring), paragraph 10 (unlawful acts) and paragraph 18 (safeguarding). It explains how we comply with each Article 5 principle for that processing and how long the information is kept. The Nominated Individual keeps it in the governance records, reviews it with the record of processing activities every year and whenever a condition is added, and gives it free of charge to the Information Commission on request. The law requires it to be kept until at least 6 months after the processing ends; we keep every version for 6 years. For each of these conditions the record of processing activities states the condition, the Article 6 basis and whether the retention period is followed, with reasons if not."
+            }
+          ]
+        },
+        {
+          "heading": "Record of processing activities and information asset register",
+          "blocks": [
+            {
+              "p": "Because we process special category and criminal offence data routinely, the small-organisation exemption in Article 30(5) does not apply to us, and we keep a full record of processing activities. Each information asset owner (Registered Manager, HR Manager and Nominated Individual) keeps their assets in the information asset register: each system or place where personal information is held, the special category data in it, who can access it and the main risks. Owners review their entries by 31 March each year and within 1 month of a change. The Nominated Individual updates the record of processing activities from the register, and adds any new purpose, system or recipient before the processing starts."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Telling people how we use their information",
+      "blocks": [
+        {
+          "p": "We publish four privacy notices on our website and give each in the person's recorded format: for the people we support and their representatives; for employees, agency workers and students; for applicants; and for families, professionals, suppliers and website users. Each says who we are, how to contact the Data Protection Officer, what we collect and why, the lawful basis, who we share it with, how long we keep it, people's rights, and how to complain to us or to the Information Commission."
+        },
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "When they receive it",
+              "Who gives it"
+            ],
+            "rows": [
+              [
+                "Person we support",
+                "At the assessment visit, before any recording of the conversation starts, explained in person and left in the welcome pack; receipt recorded in the Consent and decisions part of the care plan. Where the person lacks capacity to understand it, it is given to their attorney, deputy or representative and explained to the person as far as they can understand.",
+                "The assessor"
+              ],
+              [
+                "Applicant",
+                "With the application form",
+                "HR Manager"
+              ],
+              [
+                "Employee, agency worker or student",
+                "With the offer letter or before the first shift, and gone through at induction",
+                "HR Manager"
+              ],
+              [
+                "Family members and professionals",
+                "On our website; a family member whose details we record is told by the assessor where to find it",
+                "The assessor"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Nominated Individual reviews the privacy notices with the record of processing activities every year. When a change affects how we use someone's information, the revised notice is sent to the people affected at least 2 weeks before the change takes effect, in their recorded format."
+        }
+      ]
+    },
+    {
+      "heading": "Data protection by design and impact assessments",
+      "blocks": [
+        {
+          "p": "We consider privacy at the start of every change, not after it. Defaults protect privacy: care workers see in CareFlow only the people on their round, meaning those they visit regularly or are rostered to visit in the next 14 days; other roles see only what their work needs; and new forms ask only for what is needed."
+        },
+        {
+          "p": "A DPIA is completed and approved before any of the following starts:"
+        },
+        {
+          "bullets": [
+            "a new system, app or module that holds personal data, or a change to how CareFlow holds or shares it;",
+            "a new processor that will handle special category data, or any transfer of personal data outside the UK;",
+            "new monitoring of staff or of the people we support, including location tracking, sensors, cameras or telecare information we receive;",
+            "any artificial intelligence tool that would process personal data; no personal data is entered into any such tool until its DPIA is approved;",
+            "a new routine sharing arrangement for purposes other than the person's direct care, or a new use of existing data;",
+            "any processing on the Information Commission's published list of processing that needs a DPIA."
+          ]
+        },
+        {
+          "p": "The manager leading the change screens it with the Data Protection Officer and, where a DPIA is needed, writes it with their advice, including the views of people affected where practicable (for example through the People's Voice group or staff representatives). The Nominated Individual approves it; where the remaining risk is High, the Directors decide whether to proceed. If a high risk cannot be reduced, the Nominated Individual consults the Information Commission before the processing starts, as Article 36 requires. DPIAs are reviewed whenever the processing changes and at least every 3 years. We hold DPIAs for CareFlow care records (including photographs, videos, voice notes and assessment recordings) and the eMAR, electronic call monitoring, work phones used in people's homes, and lone worker devices with their alarm receiving centre. A DPIA is in addition to the change risk assessment required by the Risk Management Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Suppliers, processors and sharing partners",
+      "blocks": [
+        {
+          "p": "Before any supplier handles personal data for us, the Nominated Individual checks and records that:"
+        },
+        {
+          "steps": [
+            "the supplier gives sufficient guarantees of security: a published Data Security and Protection Toolkit assessment at Standards Met for any supplier holding care records, and Cyber Essentials certification or equivalent independent assurance for others;",
+            "the data is stored and processed in the UK, or in a country the UK Government has approved for transfers; any other transfer needs a DPIA, the Data Protection Officer's advice, the Directors' approval and a lawful transfer safeguard;",
+            "a written contract contains every term Article 28 requires, including acting only on our instructions, confidentiality, security, our approval of sub-processors, help with rights requests and breaches, return or deletion at the end, and audit;",
+            "the supplier must tell us of any breach affecting our data within 24 hours of becoming aware of it, so that we can meet the 72-hour reporting deadline;",
+            "the supplier, including the independent quality reviewer, is entered in the register of processors before it receives any data."
+          ]
+        },
+        {
+          "p": "The Nominated Individual reviews every processor in the register each year and when a contract is renewed. Routine sharing for a person's direct care needs no agreement beyond the record in the care plan. Regular sharing for other purposes, such as commissioner monitoring data or a local shared care record, is covered by a written data sharing agreement approved by the Nominated Individual on the Data Protection Officer's advice, and data protection terms in commissioner contracts are checked by the Nominated Individual before the Directors sign them."
+        }
+      ]
+    },
+    {
+      "heading": "Data protection on visits and away from the office",
+      "blocks": [
+        {
+          "p": "Our care workers work alone in people's homes and travel between them, so most of our information risk is outside the office. These rules apply on every visit; the Confidentiality and Information Sharing Policy, the Mobile Phones and Social Media Policy and the Acceptable Use of IT and Devices Policy give the detail. A care worker unsure whether to share something phones the office, or the On-call Manager out of hours, before sharing it."
+        },
+        {
+          "bullets": [
+            "Care is recorded in CareFlow on the work phone, during the visit and before check-out. Paper is used only as the Records Management and Retention Policy allows, which in the home means the copy of the care plan, the money and shopping record, the between-visits record and a back-up MAR sheet when the office says CareFlow is unavailable. No personal notes, notebooks, personal phones, personal email or personal messaging apps are used for care information.",
+            "Body map photographs, body map videos and voice notes are made only in the CareFlow app on the work phone, as the Consent to Care Policy allows, and never kept on the phone. Care workers never record conversations, calls or visits; only assessors record assessment conversations, with consent recorded in CareFlow first.",
+            "The work phone is locked when not in use, kept on the care worker, never left in a home or on view in a vehicle, and reported to the office at once if lost or stolen.",
+            "Key safe codes are held only in CareFlow and the encrypted business continuity access file, and passed on only as the Key Holding, Key Safes and Access to People's Homes Procedure allows.",
+            "Papers in the home are kept where the person chooses and never contain key safe codes, infection or blood-borne virus status, safeguarding information, staff contact details or other people's risks, such as a relative's history of violence.",
+            "Care workers share information with family members and visitors only as the Consent and decisions and People involved parts of the care plan record, and refer anything else to the office. They never discuss one person in another person's home.",
+            "Care workers give district nurses, GPs and other agencies' staff at the visit what they need for the person's care after checking their identity badge, give paramedics in an emergency what they need at once, and tell the office. At a no-reply visit, care workers leave no note and speak to a neighbour only where the care plan names them or the office agrees, saying only that they have called (No Reply, No Access and Missing Person Procedure).",
+            "Where a person or their family has cameras or video doorbells in the home, that is their own choice. The assessor asks at the assessment, records it in the environmental risk assessment, and the Care Coordinator tells care workers before their first visit.",
+            "In the branch office, papers are locked away when not in use, and paper received is scanned into CareFlow and destroyed as the Records Management and Retention Policy sets out."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Individual rights and data protection complaints",
+      "blocks": [
+        {
+          "p": "People have rights to be informed, of access, to correction, to erasure or restriction in some circumstances, to object to processing based on legitimate interests, to data portability, and about solely automated decisions. Care records cannot be erased on request while we must keep them under the Records Management and Retention Policy; we explain this and record the person's view on the record."
+        },
+        {
+          "p": "A request can be made to any employee, in any form and in any words. Whoever receives it passes it to the office the same working day, where it is recorded and passed to the Registered Manager (people we support and others), the HR Manager (staff, former staff and applicants) or, where it comes from or mainly concerns either of them, the Nominated Individual, who handles it under the Subject Access and Individual Rights Procedure. The law requires an answer within one month, extendable by two further months for complex or numerous requests with notice and reasons before the first month ends (UK GDPR Article 12A). The month begins with the latest of receipt of the request, receipt of any information we reasonably ask for to confirm the requester's identity, and payment of any fee the law allows; time spent waiting for clarification we reasonably need of what an access request covers does not count. We do not charge, except as the law allows for manifestly unfounded or excessive requests. While a safeguarding enquiry or allegation is open, the local authority and police are asked before records are released."
+        },
+        {
+          "p": "Anyone may complain to us about how we have used their personal information. Such complaints are handled under the Complaints Policy and Procedure and graded High as possible misuse of personal data: acknowledged within 3 working days (the law allows 30 days: Data Protection Act 2018, section 164A), investigated, and answered with the outcome without undue delay, as the law requires, and always within the Stage 1 timescale of 20 working days. The Data Protection Officer is consulted before the response is sent. Every response tells the person they may complain to the Information Commission. Where data may have been lost, disclosed, altered or seen by someone not entitled to it, the Personal Data Breach Procedure is followed as well."
+        }
+      ]
+    },
+    {
+      "heading": "Personal data breaches",
+      "blocks": [
+        {
+          "p": "A personal data breach is any loss, theft, wrong disclosure, unauthorised access, alteration or unavailability of personal information, such as a lost work phone, a message sent to the wrong family, a care plan left in the wrong home or a key safe code seen by someone else. Anyone who discovers or suspects one phones the office (the On-call Manager out of hours) at once, before leaving the visit where it happens on a visit, and records it in the incident log before the end of the shift; the office records it during the call where the worker cannot, for example after losing their work phone. Reporting a breach promptly, including your own mistake, is never in itself a reason for disciplinary action; hiding one is."
+        },
+        {
+          "p": "The Nominated Individual is told the same day of every breach that may need reporting, and the Data Protection Officer is asked for advice the same day. A breach likely to result in a risk to people's rights and freedoms is reported to the Information Commission without undue delay and, where feasible, within 72 hours of our becoming aware of it (UK GDPR Article 33); where the risk to people is high they are told without undue delay. Containment, assessment, reporting, telling the commissioner of anyone they fund, and learning are set out in the Personal Data Breach Procedure. Every breach, reported or not, is recorded."
+        }
+      ]
+    },
+    {
+      "heading": "Registration with the Information Commission",
+      "blocks": [
+        {
+          "p": "The law requires every controller that is not exempt to pay a data protection charge to the Information Commission within the first 21 days of each 12-month charge period and to give its name, address and staff and turnover bands (Data Protection (Charges and Information) Regulations 2018, regulation 2). The Nominated Individual pays it by direct debit and confirms the correct tier against our staff numbers and turnover on the first day of each charge period. Our registration entry is updated within 10 working days of a change to our name, address, legal entity or Data Protection Officer."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "Record of processing activities, information asset register, appropriate policy document and privacy notices",
+                "Governance records, every version kept",
+                "6 years after each version is replaced"
+              ],
+              [
+                "DPIAs, legitimate interests assessments, register of processors, processor contracts and data sharing agreements",
+                "Governance records",
+                "6 years after the processing, contract or agreement ends"
+              ],
+              [
+                "Data Protection Officer annual reports",
+                "With the Directors' papers in the governance records",
+                "Life of the organisation plus 6 years"
+              ],
+              [
+                "Data Protection Officer contract and Caldicott decision log",
+                "Governance records; a Caldicott decision about a person is also noted in their care record",
+                "6 years after the contract ends or the decision is made"
+              ],
+              [
+                "Privacy notice given, and what the person agrees may be shared",
+                "Consent and decisions part of the care plan; staff record for employees",
+                "With the care record or staff record"
+              ],
+              [
+                "Data protection charge confirmations",
+                "Governance records",
+                "6 years"
+              ],
+              [
+                "Rights requests, breaches and data protection complaints",
+                "As the Subject Access and Individual Rights Procedure, the Personal Data Breach Procedure and the Complaints Policy and Procedure set out",
+                "As those documents set out"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "Information governance: data protection, confidentiality, record keeping and cyber security, with a knowledge assessment (pass mark 80%)",
+                "In the first week, before any access to care records; every 12 months"
+              ],
+              [
+                "Assessors",
+                "Giving and explaining the privacy notice and recording agreement to sharing",
+                "Before their first assessment"
+              ],
+              [
+                "Office staff and On-call Managers",
+                "Checking callers' identity, recognising requests, complaints and breaches, and the first steps of the Personal Data Breach Procedure",
+                "Before taking calls alone or their first on-call shift; every 12 months"
+              ],
+              [
+                "Registered Managers, Deputy Manager and HR Manager",
+                "Handling rights requests and data protection complaints, and the information asset owner role",
+                "Within 3 months of appointment and before handling or checking their first request; every 3 years"
+              ],
+              [
+                "Nominated Individual",
+                "Senior Information Risk Owner training",
+                "Within 3 months of appointment; every 3 years"
+              ],
+              [
+                "Caldicott Guardian and deputy",
+                "Caldicott Guardian training",
+                "Within 3 months of appointment; every 3 years"
+              ],
+              [
+                "Managers leading a change",
+                "Screening for and writing a DPIA",
+                "Before their first DPIA"
+              ],
+              [
+                "Directors",
+                "Data protection accountability briefing",
+                "Within 1 month of appointment and at the annual governance update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Field Care Supervisors check at every spot check that the care worker's work phone is locked, kept with them and holds no photographs or recordings outside CareFlow, no paper notes or personal phones are used for care information, and nothing is said in front of others that should not be. A care worker who falls short is taken through the rules at once and rechecked at their next spot check, or within 4 weeks where the spot check is recorded as a shortfall under the Quality Audit and Monitoring Procedure. Training is recorded in the training and compliance records."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Who and how often",
+              "Reported to",
+              "Target"
+            ],
+            "rows": [
+              [
+                "Information governance training in date",
+                "HR Manager, monthly",
+                "Quality dashboard and Monthly Quality and Governance Meeting",
+                "95%; any figure below 90% to the Nominated Individual"
+              ],
+              [
+                "Breaches, rights requests and data protection complaints, with timescales met",
+                "Deputy Manager, monthly",
+                "Quality dashboard by the 7th working day",
+                "100% on time"
+              ],
+              [
+                "Data protection practice on visits",
+                "Field Care Supervisors, at every spot check",
+                "Supervision and appraisal records",
+                "Every shortfall acted on"
+              ],
+              [
+                "Compliance review of registers, DPIAs and processors",
+                "Nominated Individual with the Data Protection Officer, quarterly",
+                "Data protection section of the quarterly governance report to the Directors",
+                "No overdue DPIA, review or contract"
+              ],
+              [
+                "Records and data protection audit: 10 care records and 10 staff records (all if fewer) for privacy notices given, sharing records, access and retention",
+                "Deputy Manager, every December",
+                "Next Directors' governance meeting",
+                "Green under the Quality Audit and Monitoring Procedure"
+              ],
+              [
+                "Annual compliance report",
+                "Data Protection Officer",
+                "Directors' governance meeting held by mid-May",
+                "Actions agreed and added to the service improvement plan"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan within 5 working days. A breach reported to the Information Commission is added to the risk register within 5 working days under the Risk Management Policy."
+        },
+        {
+          "p": "The Registered Manager reviews this policy every 12 months, and sooner after a change in data protection law or guidance, a breach reported to the Information Commission, any action by the Information Commission, an inspection or audit finding, or when monitoring shows the arrangements are not working. The Directors approve it under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

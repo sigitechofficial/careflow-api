@@ -1,0 +1,746 @@
+{
+  "reference": "POL-HS-004",
+  "revision": 1,
+  "title": "Violence and Aggression Towards Staff Policy",
+  "documentType": "POLICY",
+  "summary": "How we prevent, respond to and learn from abuse, threats, harassment and violence towards our staff from the people we support, their families, visitors and the public, in homes, in the community, in the office and online. It covers assessing and sharing the risk, controls for visits, what staff do during and after an incident, police and regulatory reporting, support for staff, and how we change or end a service when staff cannot be kept safe. For all staff.",
+  "keyPoints": {
+    "intro": "Abuse, threats and violence are never part of your job. These are the rules for keeping yourself safe, getting help and making sure every incident is acted on.",
+    "points": [
+      "If you feel unsafe, leave at once, even if care is unfinished. Call 999 if you are in danger, then phone the office or On-call Manager from a safe place. You will never be disciplined for leaving in good faith.",
+      "Report every incident, including swearing, threats, racist or sexual comments, unwanted touching, spitting and abusive calls or messages. Phone the office or On-call Manager before you leave the area and record it in the incident log before your shift ends.",
+      "Before your first visit to anyone, read their risk assessments and My care at a glance, and follow the approaches and controls they set out, including when two workers must attend.",
+      "At the door, look and listen before you go in. If anything makes you feel unsafe, or a second worker is needed and has not arrived, do not go in: wait somewhere safe, such as your locked car, and phone the office or On-call Manager.",
+      "Watch for early signs of distress or anger. Stay calm, keep your distance and your route to the door clear, speak slowly, listen, and stop or put off the task that is causing distress.",
+      "Never restrain, push or hit anyone, other than an emergency intervention under the Restraint and Restrictive Practice Policy, and never argue, threaten or retaliate. If grabbed, use only your breakaway training or, without it, the least force needed to free yourself, then get away.",
+      "If a bite or scratch breaks your skin, let it bleed, wash it and cover it; if spit gets in your eyes, nose or mouth, rinse it. Then phone the office and go straight to the nearest emergency department.",
+      "Phone the office before you leave if a person's behaviour is new, sudden or worse than usual, as it can be a sign of pain, infection, a medicine problem or abuse. If they are newly confused or seem seriously unwell, call 999 first.",
+      "Write what happened factually in the incident log, using the words that were said. Never label a person as aggressive or difficult in any record.",
+      "After an incident you may stop for the rest of that day, paid. Your Field Care Supervisor calls within 1 working day; you are offered a debrief within 3 working days, counselling and help to report a crime, and need never return to that home.",
+      "Never reply to abuse by text or online and never post about an incident on social media. Keep the messages and tell the office the same day."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INCIDENT",
+    "RISK_ASSESSMENT",
+    "CARE_PLAN",
+    "SAFEGUARDING",
+    "TRAINING",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-HS-001",
+    "POL-HS-002",
+    "POL-HS-003",
+    "POL-HS-007",
+    "POL-HS-015",
+    "POL-SG-006",
+    "POL-HR-013",
+    "POL-GOV-007"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 2 (employer's duty to ensure, so far as is reasonably practicable, employees' health, safety and welfare, including safe systems of work, information, instruction, training and supervision)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/2"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 3 (suitable and sufficient risk assessment, review, and recording of significant findings and groups especially at risk)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3"
+    },
+    {
+      "source": "Equality Act 2010, section 40(1A) to (1C) (employer must not permit a third party to harass an employee; it does so if it failed to take all reasonable steps to prevent it), inserted by the Employment Rights Act 2025, section 21, in force 30 October 2026 under S.I. 2026/1065",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40"
+    },
+    {
+      "source": "Equality Act 2010, section 40A (duty to take all reasonable steps to prevent sexual harassment of employees; 'all' inserted from 30 October 2026 by the Employment Rights Act 2025, section 20)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40A"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 44(1A) (worker's right not to suffer detriment for leaving, or refusing to return to, serious and imminent danger, or taking appropriate steps to protect themselves or others)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/44"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13(4)(b) and (7) (care must not include acts to control or restrain a person that are not necessary to prevent, or not a proportionate response to, a risk of harm)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 18(1) and (2)(a), (e) and (f) (notification without delay of serious injury to a service user, abuse or allegations of abuse, and incidents reported to or investigated by the police, occurring while services are provided)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Criminal Justice and Immigration Act 2008, section 76 (reasonable force for the purposes of self-defence: force that is disproportionate in the circumstances is not reasonable)",
+      "url": "https://www.legislation.gov.uk/ukpga/2008/4/section/76"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 6(1)(ea) and Annex 1, paragraph 5 (recognised legitimate interest: detecting, investigating or preventing crime)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/annex/1"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, paragraph 10 (preventing, investigating or detecting unlawful acts, where asking for consent would prejudice those purposes), as amended from 5 February 2026 by the Data (Use and Access) Act 2025",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/10"
+    },
+    {
+      "source": "Health and Safety Executive, Violence and aggression at work: guidance for employers (definition of work-related violence, including verbal abuse and threats in person, by phone or online)",
+      "url": "https://www.hse.gov.uk/violence/employer/index.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Violence in health and social care: overview (under-reporting; staff should not accept violence as normal)",
+      "url": "https://www.hse.gov.uk/healthservices/violence/overview.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Violence and aggression in health and social care: what you need to do (generic and individual assessments, referral information, community visits, training, reporting minor incidents, debriefing)",
+      "url": "https://www.hse.gov.uk/healthservices/violence/do.htm"
+    },
+    {
+      "source": "Health and Safety Executive, RIDDOR key definitions (an accident is separate, identifiable, unintended and causes physical injury, and includes acts of non-consensual violence to people at work; over-7-day incapacitation)",
+      "url": "https://www.hse.gov.uk/riddor/key-definitions.htm"
+    },
+    {
+      "source": "GOV.UK, Claim compensation if you were the victim of a violent crime (crime reported to the police; claim usually within 2 years)",
+      "url": "https://www.gov.uk/claim-compensation-criminal-injury"
+    },
+    {
+      "source": "Restraint Reduction Network, Training Standards (certified training in de-escalation and the safest use of physical intervention, certified by the Bild Association of Certified Training)",
+      "url": "https://restraintreductionnetwork.org/training-standards/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} does not accept violence, threats, harassment or abuse towards anyone who works for us. Our staff work alone in people's homes and in the community, and nobody is expected to put up with being abused, threatened, harassed or assaulted as part of the job. Every incident, however minor, is reported, taken seriously and acted on."
+        },
+        {
+          "p": "Much of the distressed or aggressive behaviour our staff meet arises from dementia, delirium, pain, mental illness, a learning disability, autism or a brain injury, and is often how the person shows fear or an unmet need. We respond by finding and reducing its causes, never by blaming or punishing the person. Deliberate abuse, from a person who understands what they are doing or from a relative or visitor, is challenged firmly and can lead to the service being changed or ended. Whatever the cause, {{organisation}} never asks anyone to work where harm is foreseeable and has not been controlled."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy applies section 2 of the Health and Safety at Work etc. Act 1974 and regulation 3 of the Management of Health and Safety at Work Regulations 1999 to the risk of work-related violence. Since 30 October 2026 the Equality Act 2010 has made an employer liable for harassment of its employees by third parties, such as the people we support and their families, where it failed to take all reasonable steps to prevent it, and has required all reasonable steps to prevent sexual harassment of employees. This policy is one of those steps. It sets out how we assess, share and control the risk, respond to and report incidents, support staff, and respond to repeated or deliberate behaviour."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee, bank and agency worker and student, in people's homes, travelling, in public places in connection with their work, in our offices and when working from home. It covers abuse, threats, harassment and violence from people we support, their families and friends, visitors, neighbours and the public, in person, by phone, in writing or online."
+        },
+        {
+          "table": {
+            "columns": [
+              "Related matter",
+              "Document"
+            ],
+            "rows": [
+              [
+                "Check-in and check-out, raising the alarm, the code phrase and lost contact with a worker",
+                "Lone Working and Staff Personal Safety Policy"
+              ],
+              [
+                "The risk rating method and the home environment risk assessment",
+                "Risk Assessment and Home Environment Risk Assessment Procedure"
+              ],
+              [
+                "Harassment or violence by a colleague, manager, agency worker or contractor, and complaints about it",
+                "Bullying, Harassment and Sexual Harassment Policy"
+              ],
+              [
+                "Additional steps where a person we support behaves sexually towards staff",
+                "Sexual Safety Policy"
+              ],
+              [
+                "Abuse or neglect of the people we support; domestic abuse in their household",
+                "Safeguarding Adults Policy; Domestic Abuse Policy"
+              ],
+              [
+                "Any restriction of a person's movement or freedom",
+                "Restraint and Restrictive Practice Policy"
+              ],
+              [
+                "Investigating incidents and sharing learning",
+                "Incident Reporting, Investigation and Learning Policy"
+              ],
+              [
+                "What the office does for the person when a visit is cut short or missed",
+                "Missed, Late and Short Visits Procedure"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Work-related violence",
+                "Any incident in which a person is abused, threatened or assaulted in circumstances relating to their work (HSE definition), including verbal abuse and threats in person, by phone or online."
+              ],
+              [
+                "Threatening behaviour",
+                "Threats to harm a worker or their family, intimidating gestures, blocking an exit, showing a weapon, setting an animal on a worker or damaging property to intimidate."
+              ],
+              [
+                "Physical violence",
+                "Any use of force against a worker, such as hitting, kicking, pushing, biting, scratching, pinching, hair pulling or spitting, whatever the person intended."
+              ],
+              [
+                "Sexual harassment",
+                "Unwanted conduct of a sexual nature, such as sexual comments, requests, touching, exposure or sexual images or messages."
+              ],
+              [
+                "Discriminatory abuse",
+                "Abuse or harassment related to a worker's race, religion or belief, sex, sexual orientation, gender reassignment, disability, age or another protected characteristic, including refusing a worker for that reason, other than a preference about the worker's sex that the Equality, Diversity and Human Rights in Care Policy allows."
+              ],
+              [
+                "Distressed behaviour",
+                "Behaviour that may harm staff or others and arises from a person's health condition, disability, pain, fear or unmet need."
+              ],
+              [
+                "Deliberate abuse",
+                "Abuse, threats, harassment or violence by someone who understands what they are doing and could choose to act differently."
+              ],
+              [
+                "Behaviour support plan",
+                "A plan written by a specialist, such as a community learning disability team, setting out a person's triggers, early signs and the approaches that help."
+              ],
+              [
+                "Breakaway technique",
+                "A trained way of freeing yourself from a grab or hold without harming the other person, used only to get away. It is not restraint."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and fund second workers, lone worker devices, training and the employee assistance programme. The Nominated Individual is told of any physical or sexual assault on a member of staff and whenever the police are called about violence or abuse towards staff, within the timescales in After an incident, decides whether a service is ended because of violence or abuse, and reviews every staged response, suspension and ending each quarter for the Directors."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as Health and Safety Lead and safeguarding lead, keeps the general violence and aggression risk assessment, approves controls for High and Very high risks, reviews every incident and makes the decisions this policy gives them. The Deputy Manager does all of this in the Registered Manager's absence and carries out the monthly check of incident records."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators gather risk information before the first visit, allocate only workers trained for the known risks, brief workers, change rotas after an incident, and make the GP, specialist and commissioner contacts set out below."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors complete and review behaviour and aggression risk assessments, write the approaches that help into the care plan, check at spot checks that workers use them, and hold stage 1 conversations about deliberate abuse."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours, the On-call Manager makes sure the worker is safe and the person's care is covered, decides how the next visit takes place, may suspend or change visits, and hands over to the Registered Manager or Deputy Manager by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager and Office staff",
+          "blocks": [
+            {
+              "p": "The HR Manager keeps training records, arranges occupational health referrals and records absence caused by work-related violence as sickness absence in the staff record, noting that it followed a work-related injury and the incident log entry. Office staff deal with abusive calls and visitors as this policy sets out and pass every report at once to the Registered Manager or Deputy Manager."
+            }
+          ]
+        },
+        {
+          "heading": "Every member of staff",
+          "blocks": [
+            {
+              "p": "Every member of staff follows the approaches and controls in each care plan and risk assessment, reports every incident and never retaliates. A worker who harms or threatens a person, or uses force that was not a necessary and proportionate emergency intervention, is dealt with under the Managing Allegations Against Staff Procedure and the Disciplinary Policy and Procedure, whatever the person did first."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Our approach to behaviour and staff safety",
+      "blocks": [
+        {
+          "bullets": [
+            "Behaviour has a cause. After every incident we ask what the person may have been communicating and what triggered it, such as pain, infection, a late or rushed visit, an unfamiliar worker, a change of routine, fear, alcohol or a new medicine. Staff receive the same protection whatever the cause.",
+            "Warnings and the ending of a service are used only for deliberate abuse. Behaviour arising from a person's condition leads to a review of their care and specialist help, never a sanction. Where a person's capacity to understand or control their behaviour is in doubt, it is assessed under the Mental Capacity Act and Best Interests Policy first.",
+            "Staff never restrain, punish, threaten or withhold care from anyone. Apart from freeing themselves, the only physical action they may take is an emergency intervention to stop immediate serious harm, under the Restraint and Restrictive Practice Policy. Regulation 13 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 forbids acts to control or restrain a person that are not necessary to prevent, or not a proportionate response to, a risk of harm; any restriction must be approved under the Restraint and Restrictive Practice Policy.",
+            "We do not allocate workers by race, religion or belief, sexual orientation or any other protected characteristic at anyone's request. A person may still ask not to have a named worker or state a preference about the sex of the worker giving personal care, and, where the Registered Manager approves it under the Equality, Diversity and Human Rights in Care Policy because of religion, past abuse or a similar dignity or safety reason, have care workers of the same sex at every visit. Where a person refuses a worker for any other reason linked to a protected characteristic, that worker is not sent back, and the refusal is recorded in the incident log as discriminatory abuse and handled under the staged response where it is deliberate.",
+            "Staff are never blamed for being harmed. If a worker's practice contributed, it is addressed through supportive supervision and training, unless they deliberately ignored the care plan or this policy."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing the risk",
+      "subsections": [
+        {
+          "heading": "General violence and aggression risk assessment",
+          "blocks": [
+            {
+              "p": "The Registered Manager keeps this general risk assessment and reviews it every 12 months and within 7 days after a significant incident, as the Health and Safety Policy requires. It covers lone, late and night visits; arriving at and leaving homes, including key safes and parking; tasks that often cause distress, such as personal care and medicines; handling money and keys; dementia, delirium, mental illness, substance misuse and family carers under strain; animals and weapons; abuse at the office, by phone and online; and staff especially at risk, such as new, pregnant and lone night workers and those who may face discriminatory abuse."
+            }
+          ]
+        },
+        {
+          "heading": "Before the first visit",
+          "blocks": [
+            {
+              "p": "As well as asking the referrer, person and family about any history of violence, as the Lone Working and Staff Personal Safety Policy requires, the Care Coordinator asks for any behaviour support plan, crisis plan or risk information held by the local authority, the NHS or the police, and records the answers in the initial assessment. Where information is missing or suggests a risk of aggression, the assessor or first visitor is accompanied by a second member of staff, as that policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Behaviour and aggression risk assessment",
+          "blocks": [
+            {
+              "p": "Where the referral, assessment or any incident shows a risk of aggression from the person or anyone in the household, the Field Care Supervisor completes a behaviour and aggression risk assessment, as one of the person's individual risk assessments, before the first visit. For a short-notice start, whoever carries out the first visit (the Field Care Supervisor, or out of hours the On-call Manager) records the essential points there before any other worker visits, and the Field Care Supervisor completes it in full within 7 days. It is done with the person, their family and professionals who know them, rated with the method in the Risk Assessment and Home Environment Risk Assessment Procedure, and records:"
+            },
+            {
+              "bullets": [
+                "what has happened before, how often and how seriously;",
+                "triggers, early signs of distress or anger, what helps and what makes things worse;",
+                "health factors, such as dementia, delirium, pain, sensory loss, mental illness, learning disability, autism, brain injury, alcohol, drugs and medicines;",
+                "anyone else in the household or visiting who may be aggressive, weapons and animals;",
+                "how the riskiest tasks are done, where staff position themselves and how they leave;",
+                "the controls and the residual risk rating."
+              ]
+            },
+            {
+              "p": "Any specialist behaviour support plan is followed in full, and its key points are copied into the care plan."
+            }
+          ]
+        },
+        {
+          "heading": "Reviews, health checks and specialist advice",
+          "blocks": [
+            {
+              "p": "The Field Care Supervisor reviews the assessment within 7 days after any incident, and before the next visit where the incident involved physical violence, a weapon, sexual harassment or threats to harm. It is also reviewed when the person's condition, medicines or household change, at every care plan review, and at least every 3 months while the risk is High."
+            },
+            {
+              "p": "Care workers phone the office before leaving when a person's behaviour is new, sudden or noticeably worse, and call 999 first if the person is newly confused or seems seriously unwell, as the Infection Prevention and Control Policy sets out. The Care Coordinator, or the On-call Manager out of hours, contacts the GP the same day, or NHS 111 out of hours, because delirium, infection, pain, constipation, dehydration or a medicine may be the cause. The Care Coordinator asks the GP or the community mental health, learning disability or dementia service in writing for specialist advice within 2 working days when an incident causes injury, when there are two or more incidents of physical violence or threats in 4 weeks, or when the approaches in the care plan are not working. Within the same 2 working days they ask the commissioner to review the package if more staff time or a second worker is needed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Sharing information",
+      "blocks": [
+        {
+          "bullets": [
+            "As well as the My care at a glance entry and briefing required for High and Very high risks, where the risk of aggression is Medium or above the Care Coordinator phones every worker before their first visit to that person, including bank and agency workers and On-call Managers, and records the briefing on the risk assessment.",
+            "Records describe what happened, what was said, what came before and what helped, never labels such as aggressive or difficult.",
+            "A relative's or visitor's history of violence, and anything received from the police, is kept in the risk assessment in CareFlow and never in the copy of the care plan kept in the home.",
+            "When the police, local authority or NHS tell us of a risk at an address, the Registered Manager or Deputy Manager reviews the risk assessment before the next visit."
+          ]
+        },
+        {
+          "p": "The Registered Manager or Deputy Manager decides what is shared with other agencies, under the Confidentiality and Information Sharing Policy, with the person's agreement wherever possible. Without agreement, we share only the minimum needed to report, prevent or help investigate a crime, including warning another agency whose staff visit the same person where the risk is High or Very high. The lawful basis is UK GDPR Article 6(1)(ea) with Annex 1 paragraph 5 (crime) and, for health information, Data Protection Act 2018 Schedule 1 paragraph 10, which applies only where asking for agreement would prejudice that purpose and is covered by the appropriate policy document kept under the Data Protection Policy. The reasons are recorded on the risk assessment. When the person moves to hospital, another provider or a care home, the risk and the approaches that help go with their other information."
+        }
+      ]
+    },
+    {
+      "heading": "Controls for visits",
+      "blocks": [
+        {
+          "p": "Controls follow the residual risk rating and the approval rules in the Risk Assessment and Home Environment Risk Assessment Procedure. At Medium, workers in their first 4 weeks of lone working are not sent alone and lone visits are made with a lone worker device. At High, two workers attend every visit unless the Registered Manager or Deputy Manager approves another arrangement first; neither goes in alone, and the first to arrive waits somewhere safe as the Lone Working and Staff Personal Safety Policy sets out. At Very high, the visit does not go ahead as planned, the Registered Manager or Deputy Manager (out of hours the On-call Manager) decides a safe alternative the same day, and only the Registered Manager approves visits resuming. Controls are agreed with the person wherever possible and include:"
+        },
+        {
+          "bullets": [
+            "two workers, or a second worker for the tasks that cause most distress;",
+            "a small, consistent team the person knows, each introduced on a joint visit;",
+            "visit times moved to daylight, to when the person is calmer or to when a particular relative or visitor is not there;",
+            "tasks done at the person's pace, in a different order, in smaller steps or offered again later;",
+            "asking the household to shut animals away, keep weapons out of sight, not drink or use drugs during visits, or keep a particular person out of the room;",
+            "meeting a family member about disagreements at the office or by phone rather than in the home;",
+            "a written agreement about behaviour under the staged response below."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "At the door and during an incident",
+      "blocks": [
+        {
+          "steps": [
+            "At the door, look and listen before you open the key safe or go in. If anything makes you feel unsafe, such as raised voices, someone who appears drunk or drugged, a weapon or a loose dog, or a second worker is needed and has not arrived, do not go in: wait somewhere safe, such as your locked car, and phone the office or On-call Manager. If you are waiting only for the second worker, phone if they have not arrived 10 minutes after the planned start, as the Lone Working and Staff Personal Safety Policy sets out.",
+            "Notice the early signs in the care plan and others, such as a raised voice, pacing, clenched fists or staring. Pause or stop the task that is causing distress.",
+            "Calm the situation: speak slowly and quietly, listen, acknowledge how the person feels, offer choices, and do not argue, touch or crowd them. Use the approaches the care plan says help, and step out of the room for a few minutes if that is safe.",
+            "Keep your phone and keys on you and your route to the door clear. If things get worse, a weapon appears or you feel unsafe, leave at once, even if care is unfinished.",
+            "If you are grabbed, use the breakaway techniques you were trained in or, if you have not had breakaway training, the least force needed to free yourself, and then leave. The law allows reasonable force in self-defence, but our staff use only what is needed to get away and never strike or restrain anyone.",
+            "From a safe place, call 999 if anyone is in danger or injured or a crime is happening, then phone the office or On-call Manager and speak to a person before you leave the area; if nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. Say whether the person is safe, what care is still due and whether you could secure the door and key safe, and check out on CareFlow or give the office the time you left.",
+            "If a bite or scratch has broken the skin, let it bleed, wash it and cover it; if spit has gone into your eyes, nose or mouth, rinse it. Phone the office and go straight to the nearest emergency department, as the Infection Prevention and Control Policy and the Sharps Safety and Needlestick Injury Procedure set out.",
+            "Do not go back in until the Registered Manager, Deputy Manager or On-call Manager tells you it is safe.",
+            "Before the end of your shift, record in the incident log what happened before, during and after, the exact words used, any injury, who was present and what helped. Record in the daily visit notes the care you gave and did not give."
+          ]
+        },
+        {
+          "p": "The office or On-call Manager phones the person or their chosen contact at once and arranges the essential care still due, with two workers or another safe arrangement such as a family member, under the Missed, Late and Short Visits Procedure, calling 999 where the person is at risk and acting under the Medicines Management Policy if a time-sensitive medicine is missed. Where the home or key safe was left unsecured, they arrange for it to be secured under the Key Holding, Key Safes and Access to People's Homes Procedure; the worker never goes back alone to do it."
+        },
+        {
+          "p": "Office staff warn an abusive caller once that the call will end if the abuse continues, end it if it does, record it in the incident log and tell the Registered Manager or Deputy Manager at once. Abusive visitors are asked to leave and the police are called if they refuse. Staff who receive abuse by text, email or social media do not reply, keep the messages, tell the office the same day and record it in the incident log; the Registered Manager or Deputy Manager asks for the content to be removed and decides whether to involve the police. Staff never post about an incident online, as the Mobile Phones and Social Media Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "After an incident",
+      "subsections": [
+        {
+          "heading": "Actions and timescales",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Action",
+                  "Who",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "Confirm the worker is safe, arrange medical help, send a colleague to meet them if shaken, arrange a taxi at our cost if they should not drive, and reallocate their remaining visits if needed",
+                    "Office staff or On-call Manager",
+                    "At once"
+                  ],
+                  [
+                    "Decide how the next visit takes place. After an assault, a threat with a weapon or sexual harassment, two workers attend until the Registered Manager has reviewed the risk assessment and approved future arrangements, as the Lone Working and Staff Personal Safety Policy requires",
+                    "On-call Manager, Registered Manager or Deputy Manager",
+                    "Before the next visit"
+                  ],
+                  [
+                    "Review the incident under the Incident Reporting, Investigation and Learning Policy and decide on police, safeguarding, RIDDOR, CQC notification and any staged response",
+                    "Registered Manager or Deputy Manager",
+                    "The initial review timescale in that policy: at once for a Critical incident; the same working day for Medium or High (by 12 noon the next working day if reported out of hours); by the end of the next working day for Low"
+                  ],
+                  [
+                    "Tell the Nominated Individual of any physical or sexual assault on staff, and whenever the police are called about violence or abuse towards staff",
+                    "Registered Manager",
+                    "At once for a Critical incident and the same day for a High one (police involvement is always at least High), as the Incident Reporting, Investigation and Learning Policy sets out; otherwise within 24 hours"
+                  ],
+                  [
+                    "Phone the worker to check how they are",
+                    "Field Care Supervisor",
+                    "Within 1 working day"
+                  ],
+                  [
+                    "Offer the worker, and any colleague who witnessed it, a debrief",
+                    "Registered Manager or Deputy Manager",
+                    "Within 3 working days"
+                  ],
+                  [
+                    "4-week check on how the worker is coping: the Field Care Supervisor's conversation, plus the confidential survey after a difficult event, which only the HR Manager reads",
+                    "Field Care Supervisor; the HR Manager sends the survey in the same week",
+                    "Within 4 weeks"
+                  ],
+                  [
+                    "Share learning, without naming the person, and review trends",
+                    "Registered Manager",
+                    "Next team meeting; quarterly Health and Safety Meeting"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Safeguarding",
+          "blocks": [
+            {
+              "p": "An incident may show that someone else is at risk: a relative who is violent to staff may also be harming the person, the person's behaviour may be harming a family carer, or the person may be left without care. The Registered Manager, as safeguarding lead, considers this for every incident and follows the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure where there is a concern."
+            }
+          ]
+        },
+        {
+          "heading": "The police",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "What happens"
+                ],
+                "rows": [
+                  [
+                    "A crime against a worker, such as assault, threats to kill, criminal damage, stalking or a hate crime",
+                    "The worker has the right to report it and we support them. If they ask, the Registered Manager or Deputy Manager reports it for them the same day."
+                  ],
+                  [
+                    "A weapon was used or threatened, an injury needed hospital treatment, or others remain at risk",
+                    "After telling the worker, the Registered Manager or Deputy Manager reports it the same day, even if the worker would rather not."
+                  ],
+                  [
+                    "A sexual assault on a worker",
+                    "The worker decides whether to report it and is told how to contact the police and a sexual assault referral centre. If they decide not to and others remain at risk, the Registered Manager gives the police the information they need without naming the worker."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Where the behaviour arises from the person's condition, the worker keeps the right to report it and the Registered Manager explains what the police are likely to do. The Registered Manager decides whether a report under the second row is still needed or whether the risk is better managed through the care plan and safeguarding, and records the reason. We record any crime reference number in the incident log, provide records and statements when asked, and give the worker paid time, with the Registered Manager or Deputy Manager to accompany them if they wish, for police interviews and court."
+            }
+          ]
+        },
+        {
+          "heading": "RIDDOR and CQC",
+          "blocks": [
+            {
+              "p": "Under RIDDOR, non-consensual physical violence to a person at work is an accident, reportable to HSE when it causes a death, a specified injury or incapacity for routine work for more than 7 consecutive days, not counting the day of the incident. Verbal abuse, threats and psychological harm without physical injury are not RIDDOR accidents. The Registered Manager decides under the RIDDOR Reporting Procedure. The law requires us to notify CQC without delay of any incident during our care that is reported to or investigated by the police, such as an assault during a visit, and of any abuse or allegation of abuse of the person we support or injury to them that a health care professional judges serious, under the Statutory Notifications to CQC Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Supporting staff",
+      "blocks": [
+        {
+          "p": "Violence and abuse can harm mental as well as physical health. Every worker affected is offered:"
+        },
+        {
+          "bullets": [
+            "the choice to stop work for the rest of that day, with their visits covered and the rest of that day's rostered hours paid in full, not counted as sickness absence;",
+            "a call from the Registered Manager or Deputy Manager before their next shift to agree whether they are ready to work alone;",
+            "a private debrief within 3 working days on how they feel, what support they need and what would make visits safer; it is offered, never required; the worker never has to describe the event, and the facts go to the incident investigation;",
+            "free, confidential counselling through our employee assistance programme, available 24 hours a day;",
+            "a referral to our occupational health provider if they wish, and always after more than 7 days' absence;",
+            "the right never to return to a home where they were harmed: the Care Coordinator removes them from that person's visits the same day unless they ask to return;",
+            "absence caused by work-related violence recorded as a work-related injury and not counted towards the absence levels that trigger action under the Sickness Absence Policy;",
+            "information on criminal injuries compensation, which requires the crime to be reported to the police and a claim usually within 2 years;",
+            "an individual stress risk assessment under the Work-Related Stress and Staff Wellbeing Policy where they show signs of stress."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Repeated or deliberate behaviour",
+      "blocks": [
+        {
+          "p": "Behaviour arising from a person's condition is met with care review, specialist advice and controls, never a warning. Deliberate abuse by the person, a relative, friend or visitor follows these stages:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Stage",
+              "When",
+              "What happens and who"
+            ],
+            "rows": [
+              [
+                "1. Conversation",
+                "A first incident of deliberate abuse",
+                "The Field Care Supervisor or Registered Manager explains privately, within 5 working days, the effect on staff, what we expect and what will happen if it continues, and confirms it in writing."
+              ],
+              [
+                "2. Written warning",
+                "Further abuse within 6 months of stage 1, or a first incident of deliberate physical violence, threats to harm or damage to property. Discriminatory abuse and sexual harassment start here",
+                "The Registered Manager writes within 5 working days setting out the behaviour, what must change, the controls now in place and that the service may be changed or ended, and offers a written agreement about behaviour. Any commissioner receives a copy and the person is told this."
+              ],
+              [
+                "3. Change or end the service",
+                "Abuse continues after stage 2, or a single incident involving a weapon, an injury needing hospital treatment, sexual assault or threats to kill",
+                "The service is changed, suspended or ended as set out below."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where a relative or visitor is responsible, we speak to the person we support alone first, because they may also be at risk. A stage lapses after 6 months without a further incident."
+        }
+      ]
+    },
+    {
+      "heading": "Changing, suspending or ending a service",
+      "blocks": [
+        {
+          "p": "Where staff cannot be kept safe even with two workers, the Registered Manager or Deputy Manager, or out of hours the On-call Manager until it is confirmed or changed by 10am on the next working day, may suspend or change visits. Before visits stop, the manager arranges how essential care will be met, such as by family, the NHS or the local authority's out-of-hours service. The commissioner, or for a person who pays for their own care or uses a direct payment their representative, is told by phone the same day and in writing by the end of the next working day; a safeguarding referral is made the same day if the person would be at risk; and the person receives the reasons in writing within 1 working day. The Registered Manager reviews a suspension with the person and commissioner at least every 5 working days, and only the Registered Manager approves full visits resuming."
+        },
+        {
+          "p": "Ending a service is a last resort. The Registered Manager's written recommendation covers the seriousness and frequency of the behaviour, its likely cause, the person's capacity, the controls and specialist help tried, the effect on the person, and the views of the person, family, commissioner and professionals. Any commissioner is consulted in writing, and the Nominated Individual decides within 5 working days of receiving the recommendation. Notice follows the contract or service agreement, and care continues through it with the controls needed, or is suspended as above where staff cannot be kept safe. The person is told in writing of the reasons, the date and how to complain under the Complaints Policy and Procedure, and is offered a meeting. Where the person may be left without the care they need, the Registered Manager tells the local authority and makes a safeguarding referral. The Directors are told at their next meeting."
+        },
+        {
+          "p": "The welcome pack and service agreement tell every person and family that staff must be treated with respect, that abuse may be reported to the police, and that deliberate abuse may lead to the service being changed or ended."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Incidents, injuries, police references, RIDDOR reports, CQC notifications and managers' decisions",
+                "The incident log, kept 10 years from closure (20 years for serious incidents and incidents involving a person who lacked capacity for the matter) under the Incident Reporting, Investigation and Learning Policy, and never destroyed while an investigation, prosecution or claim is open or expected"
+              ],
+              [
+                "Behaviour and aggression risk assessment, briefings and information-sharing decisions",
+                "The person's risk assessments"
+              ],
+              [
+                "Triggers, early signs and approaches that help",
+                "The person's care plan"
+              ],
+              [
+                "Staged response letters, agreements, suspensions and endings",
+                "Attached to the incident log entry and noted in the Reviews part of the care plan"
+              ],
+              [
+                "Debriefs and follow-up; occupational health advice and work-related absence",
+                "Supervision and appraisal records; the restricted part of the staff record"
+              ],
+              [
+                "Training",
+                "Training and compliance records"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Lone working and personal safety, including warning signs, calming aggression, leaving safely and reporting, as the Lone Working and Staff Personal Safety Policy sets out",
+                "Care staff, Field Care Supervisors, Care Coordinators who visit and On-call Managers",
+                "At induction, before the first lone visit",
+                "Every 3 years, and after any violent incident involving the worker"
+              ],
+              [
+                "Abusive calls, messages and visitors",
+                "Office staff",
+                "Within the first 4 weeks",
+                "Every 3 years"
+              ],
+              [
+                "Understanding distressed behaviour and positive behaviour support",
+                "Core team of anyone with a behaviour support plan or a Medium or higher risk of aggression arising from their condition; Field Care Supervisors",
+                "Before the first visit without a shadowing colleague; before a Field Care Supervisor's first behaviour and aggression risk assessment",
+                "Every 3 years"
+              ],
+              [
+                "Practical breakaway techniques, from a provider certified against the Restraint Reduction Network Training Standards",
+                "Workers allocated to a person whose risk assessment rates grabbing, hitting, biting or hair pulling as Medium or higher",
+                "Before their first visit to that person",
+                "Every 12 months"
+              ],
+              [
+                "Managing incidents, debriefing and the staged response",
+                "Registered Manager, Deputy Manager, Field Care Supervisors and On-call Managers",
+                "Within 3 months of appointment and before the first on-call shift",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Dementia awareness and learning disability and autism training follow the Person-Centred Care, Dignity and Respect Policy. We do not train staff in holding or restraint; where a restriction is approved for a person, the Restraint and Restrictive Practice Policy sets the training. At spot checks the Field Care Supervisor asks the worker to explain the person's approaches and what they would do if they felt unsafe; a worker who falls short gets feedback the same day, retraining and a further observation within 4 weeks. A worker whose breakaway training has expired is not allocated visits that require it. Every employee acknowledges this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every violence and aggression incident record against this policy's timescales: manager review, risk assessment review, debrief, police, safeguarding, RIDDOR and CQC decisions, GP and specialist contacts. Target 100%",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager; Nominated Individual in the monthly health and safety indicators"
+              ],
+              [
+                "Incidents by type, source, person, task, time of day and worker, with repeat addresses",
+                "Quarterly",
+                "Registered Manager",
+                "Health and Safety Meeting; Directors in the quarterly governance report"
+              ],
+              [
+                "Under-reporting: each worker asked whether they have had abuse or violence they did not report, which is then recorded",
+                "Every supervision",
+                "Field Care Supervisor",
+                "Registered Manager by exception"
+              ],
+              [
+                "Staff views in the annual anonymous lone working survey on abuse and aggression, reporting it and the support given",
+                "Every 12 months, with the general risk assessment review",
+                "Registered Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Staged responses, suspensions and endings, for fairness and timescales",
+                "Quarterly",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Training compliance: targets 100% induction, 95% refreshers in date",
+                "Monthly",
+                "HR Manager",
+                "Health and Safety Meeting"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is given an action, an owner and a deadline in the service improvement plan and tracked at the Health and Safety Meeting until complete. This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

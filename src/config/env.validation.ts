@@ -155,6 +155,16 @@ class EnvironmentVariables {
   @IsString()
   MAIL_MODE?: string;
 
+  /** Survey text messages: `log` (default; masked number and length written to the log, nothing sent) | `off`. */
+  @IsOptional()
+  @IsString()
+  TEXT_MESSAGE_MODE?: string;
+
+  /** Exact public https address set at the text message provider for STOP / START replies (unset: replies refused). */
+  @IsOptional()
+  @IsString()
+  TEXT_MESSAGE_REPLY_URL?: string;
+
   /** Admin site origin used for password reset links (`<base>/auth/reset-password?token=…`). */
   @IsOptional()
   @IsString()

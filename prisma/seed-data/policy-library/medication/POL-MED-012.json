@@ -1,0 +1,596 @@
+{
+  "reference": "POL-MED-012",
+  "revision": 1,
+  "title": "Ordering, Collecting, Storing and Disposing of Medicines Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we agree who orders, collects, stores and returns each person's medicines, and how we carry out the tasks the care plan gives us: stock checks and repeat ordering, checking new supplies, collecting from the pharmacy, original packs and monitored dosage systems, safe storage and fridge medicines, and returning unwanted medicines to a pharmacy. For care workers, Senior Care Workers, Care Coordinators and managers.",
+  "keyPoints": {
+    "intro": "Most people and families order, collect and return their own medicines. These are the rules when the care plan gives us any of those tasks, and the checks you make at every medicines visit. 'The office' means the branch office, or the On-call Manager out of hours.",
+    "points": [
+      "Do only the supply tasks the care plan gives us. Never use the person's NHS App, online account or passwords.",
+      "If a medicine has run out when a dose is due, record Unavailable on the eMAR and phone the office before you leave.",
+      "At the stock check visit, count what is left of each medicine and record it in the daily visit notes.",
+      "With no new supply in the home, tell the office the same day when a time-sensitive or family-ordered medicine has 7 days or less, and phone before you leave when any medicine has 3 days or less.",
+      "Before the first dose from a new supply, check it against the eMAR: name, medicine, strength, form, directions, expiry date and seals, and record each item's quantity. If anything differs, give nothing from it and phone the office before you leave.",
+      "When you collect medicines, wear your ID badge and go straight from the pharmacy to the person's home. Keep them out of sight, never leave them in a vehicle and never take them to your home or the office.",
+      "If the pharmacy cannot supply everything, phone the office before you leave the pharmacy. Pay only with the person's cash as the care plan allows, and declare a free prescription only where the care plan records it.",
+      "Keep medicines in their pharmacy packs in the place the care plan names, put fridge medicines into the fridge in the box we supply, and lock any lockable storage after use.",
+      "Where the care plan asks, read the fridge thermometer and record it in the daily visit notes. Phone the office before you leave if it is below 2°C or above 8°C, or a fridge medicine has frozen.",
+      "Never put a medicine or used patch in the bin, sink or toilet, give it to anyone or keep it. Put stopped, out-of-date or damaged medicines and sealed doses in the return bag, and folded used patches in the used-patch container.",
+      "Return medicines only when the care plan gives us the task: straight from the home to the pharmacy, on the return record the pharmacy signs, which you bring to the office by the end of your shift.",
+      "Never give a delivery driver the key safe code. Never take medicines out of the home except as the care plan or Care Coordinator says, and after a death leave every medicine where it is, even if family ask."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Carer/Domestic",
+    "Senior Carer/Nurse",
+    "Care Coordinator",
+    "Manager"
+  ],
+  "moduleLinks": [
+    "MEDICATION",
+    "CARE_PLAN",
+    "RISK_ASSESSMENT"
+  ],
+  "relatedReferences": [
+    "POL-MED-001",
+    "POL-MED-004",
+    "POL-MED-006",
+    "POL-MED-010",
+    "POL-MED-013",
+    "POL-IPC-004",
+    "POL-IPC-005",
+    "POL-CD-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(g) the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "The National Health Service (Pharmaceutical and Local Pharmaceutical Services) Regulations 2013, Schedule 4, paragraphs 13 and 14 (disposal service for unwanted drugs from private households)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/349/schedule/4/paragraph/14"
+    },
+    {
+      "source": "The Controlled Waste (England and Wales) Regulations 2012, Schedule 1 (clinical waste produced at domestic property treated as household waste)",
+      "url": "https://www.legislation.gov.uk/uksi/2012/811/schedule/1"
+    },
+    {
+      "source": "The Human Medicines Regulations 2012, regulation 225 Emergency sale etc by pharmacist: at patient's request",
+      "url": "https://www.legislation.gov.uk/uksi/2012/1916/regulation/225"
+    },
+    {
+      "source": "The Human Medicines (Amendment Relating to Original Pack Dispensing) (England and Wales and Scotland) Regulations 2023, inserting regulations 217B (original pack dispensing within 10%) and 217C (valproate in the original pack) into the Human Medicines Regulations 2012",
+      "url": "https://www.legislation.gov.uk/uksi/2023/1015/made"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024): medicines ordering, supply and disposal, monitored dosage systems and reasonable adjustments to packaging, summarising NICE guideline NG67",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    },
+    {
+      "source": "Rotherham Metropolitan Borough Council, Rotherham Medication Support Guidance: Contracted Home Care and Support Services (issued June 2023), sections 15 Ordering prescribed medicines and 16 Transporting, storing, and disposing medicines",
+      "url": "https://rotherham.gov.uk/downloads/file/3478/rotherham-contracted-home-care-and-support-medication-support-guidance"
+    },
+    {
+      "source": "NHS, How to order a repeat prescription (request up to 5 working days before the medicine is needed)",
+      "url": "https://www.nhs.uk/nhs-services/prescriptions/how-to-order-a-repeat-prescription/"
+    },
+    {
+      "source": "NHS, Emergency prescriptions (running out of medicine, NHS 111 and pharmacy emergency supply)",
+      "url": "https://www.nhs.uk/nhs-services/prescriptions/emergency-prescriptions/"
+    },
+    {
+      "source": "NHS, Collect a prescription for someone else (consent, details needed, identification for controlled medicines, proof of exemption)",
+      "url": "https://www.nhs.uk/nhs-services/prescriptions/collect-prescription-for-someone-else/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Running out of a medicine, a wrong supply, storage where medicines spoil or others take them, or stopped medicines left in the cupboard can seriously harm a person. {{organisation}} is committed to making sure that, wherever we take on part of supplying a person's medicines, the right medicines are in the home when needed, stored safely and returned when no longer needed."
+        },
+        {
+          "p": "This procedure adds detail to the Medicines Management Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "The care plan states who orders, collects, stores and returns each medicine, and we do only our tasks.",
+            "Where we order, medicines arrive before they run out and supplies are checked against orders.",
+            "New supplies are checked before use, stored correctly and leave the home only by a safe, recorded route."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to every employee, including bank and agency workers placed with us, who plans, carries out or audits a supply task the care plan gives us, including collecting medicines for a person who manages them. The new-supply and storage checks apply to medicines we support at Level 1, 2 or 3; for Level 0 medicines we report concerns under the Self-Administration of Medicines Procedure."
+        },
+        {
+          "p": "Covered elsewhere: controlled drug ordering, counts, storage and returns (Controlled Drugs in the Community Procedure, whose stricter rules apply to every counted controlled drug); lockable storage approval (Self-Administration of Medicines Procedure); giving medicines (Administering and Supporting People with Medicines Procedure); buying over-the-counter medicines (Over-the-Counter Medicines and Homely Remedies Guideline); new and changed medicines and hospital stays (Medicines Changes, Transfers of Care and Hospital Discharge Procedure); sharps (Sharps Safety and Needlestick Injury Procedure); the person's money (Handling Money, Property and Shopping Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Run-out date",
+                "The date the current supply of a medicine will run out at the dose on the eMAR."
+              ],
+              [
+                "Order and receipt record",
+                "The record the Care Coordinator keeps in the person's documents in CareFlow of each medicine's run-out date, each order and what was received against it."
+              ],
+              [
+                "Medicines return record",
+                "The paper record of each return of medicines other than counted controlled drugs to a pharmacy, signed by the pharmacy and then scanned into the person's documents in CareFlow."
+              ],
+              [
+                "Return bag",
+                "A sealable bag we supply, marked 'For return to pharmacy' with the person's name, kept inside their medicines storage."
+              ],
+              [
+                "Used-patch container",
+                "A lidded container labelled with the person's name, which the Care Coordinator provides before the first patch visit and which is kept in the medicines storage. Used patches are folded sticky sides together into it (Administering and Supporting People with Medicines Procedure)."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as medicines lead, owns this procedure. The Registered Manager or Deputy Manager approves best interests decisions about returns and reviews every supply-related medicines incident."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator",
+          "blocks": [
+            {
+              "p": "Records supply responsibilities in the care plan, completes transport risk assessments, places and tracks orders, schedules stock checks, collections and returns, resolves discrepancies with the pharmacy and GP practice, and keeps the order and receipt record."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisor and Senior Care Worker",
+          "blocks": [
+            {
+              "p": "At every in-home medicines check, Field Care Supervisors and authorised Senior Care Workers check storage, stock, fridge readings, expiry dates and items awaiting return."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers",
+          "blocks": [
+            {
+              "p": "Carry out the supply tasks the care plan gives them and phone the office before leaving the home about any problem."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Act on supply calls in office hours and, for the On-call Manager, out of hours; obtain urgent supplies and clinical advice when a medicine has run out; and record what they did in the daily visit notes or the incident log."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Agreeing who does what",
+      "blocks": [
+        {
+          "p": "At the medicines assessment the authorised assessor asks how the person and family order, collect, store and dispose of each medicine. We take on a supply task only where the person cannot do it, even with aids or family help, and wants us to. Pharmacy services come first: many pharmacies deliver, and national guidance notes that pharmacies must make reasonable adjustments to packaging, such as easy-open tops, under the Equality Act 2010."
+        },
+        {
+          "p": "The medicines section of the care plan records, for each medicine: who orders it and by which route; whether it is delivered or collected, and by whom; where it is stored and who has authorised access; who returns unwanted medicines; and the stock check visit. Where family share a task, it says exactly what they do and how they tell us. The Registered Manager agrees our supply tasks with the commissioner (for a self-funder, in the service agreement) before they start; they are included in the notification to the GP practice and pharmacy."
+        },
+        {
+          "p": "The Care Coordinator adds at least 10 minutes to each stock check visit and schedules every collection and return as its own rota item, with travel and waiting time paid as working time under the Working Time, Rest Breaks and Travel Time Policy."
+        },
+        {
+          "p": "A care worker who finds that the person or family can no longer carry out a supply task phones the office the same day. The Care Coordinator secures the next supply within 1 working day and reviews the arrangement at home within 7 days. Where someone who orders, collects or keeps the person's medicines may be withholding or misusing them, the care worker phones before leaving, the concern is handled under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and the Care Coordinator agrees with the person and commissioner whether we take over that task."
+        }
+      ]
+    },
+    {
+      "heading": "Ordering repeat medicines",
+      "blocks": [
+        {
+          "p": "We never hand ordering to the pharmacy through a pharmacy-managed repeat service unless the person or their family have asked for this and agreed it with the GP practice. Where the GP has set up electronic repeat dispensing, asking the pharmacy for the next issue is our order."
+        },
+        {
+          "steps": [
+            "The Care Coordinator records each medicine's run-out date in the order and receipt record and asks the GP practice and pharmacy to bring repeat medicines onto one cycle where they can.",
+            "At the visit the care plan names, 10 days before the run-out date (3 weeks before where it falls between 20 December and 5 January or over Easter), the care worker counts what is left of each medicine (whole packs, loose tablets, the level of a liquid or the sealed compartments of a monitored dosage system) and records it in the daily visit notes, with how often each when required medicine has been used. If that visit is missed or moved, the Care Coordinator moves the check to the next visit.",
+            "The Care Coordinator orders by the route the GP practice has agreed, such as its online request form, secure email or the repeat slip, at least 7 days and at least 5 working days before the run-out date, and at least 10 working days ahead for supplies running out between 20 December and 5 January or over Easter. Staff never use the person's NHS App, online account, log-in or password.",
+            "Only what is needed is ordered. When required medicines are ordered from the stock in the home and recent use, never automatically each cycle. A medicine on the repeat list that is no longer used is not ordered, and the GP practice is told the same working day.",
+            "The Care Coordinator records the order: date, each medicine's name, strength, form and quantity, route, pharmacy and who ordered it.",
+            "At least 2 working days before the run-out date, the Care Coordinator confirms with the pharmacy that the supply is ready or booked for delivery, and chases the GP practice the same day if the prescription has not arrived."
+          ]
+        },
+        {
+          "p": "New and short-course medicines, such as antibiotics, follow the Medicines Changes, Transfers of Care and Hospital Discharge Procedure; the Care Coordinator makes sure the supply is in the home before the first dose is due."
+        }
+      ]
+    },
+    {
+      "heading": "Running low, running out and stock problems",
+      "blocks": [
+        {
+          "p": "With no new supply in the home, care workers tell the office the same day when a time-sensitive medicine, or one the person or family orders, has 7 days' supply or less, and phone before leaving when any medicine we support has 3 days or less. The Care Coordinator confirms the next supply with the pharmacy, or the ordering family, within 1 working day (the same day at 3 days or less)."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What the care worker does",
+              "What the office does"
+            ],
+            "rows": [
+              [
+                "A medicine has run out or cannot be found when a dose is due",
+                "Looks in the agreed storage place with the person, records Unavailable on the eMAR and phones the office before leaving.",
+                "Obtains advice on the missed dose straight away and a supply the same day: the GP practice in hours; out of hours, NHS 111, which may refer to a pharmacy for an emergency supply (Human Medicines Regulations 2012, regulation 225). Any charge is paid only with the person's cash, on a trip that starts and ends at their home. The office arranges for the medicine to reach the home before the next dose, or obtains advice on each dose missed meanwhile."
+              ],
+              [
+                "The pharmacy supplies only part and gives an owing slip",
+                "Keeps the slip with the person's medicines and phones the office.",
+                "Agrees with the pharmacy when the balance will arrive; if after the run-out date, asks the prescriber or pharmacist for an alternative the same day."
+              ],
+              [
+                "The pharmacy cannot obtain a medicine because of a shortage",
+                "Phones the office.",
+                "Asks the prescriber the same working day for an alternative, which is not given until its eMAR entry is set up and second-checked."
+              ],
+              [
+                "More than 8 weeks' supply of a regular medicine, or medicines hidden or stockpiled",
+                "Records what was found and phones the office before leaving.",
+                "The same working day, pauses ordering it, tells the GP practice and pharmacy, arranges return of the excess with agreement, and assesses overdose or hoarding risk (Self-Neglect and Hoarding Procedure)."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A dose recorded as Unavailable where we order the medicine is a medicines incident, logged by Office staff the same working day. Where family order, the Care Coordinator discusses it with them within 2 working days and reviews the arrangement."
+        }
+      ]
+    },
+    {
+      "heading": "Receiving and checking new supplies",
+      "blocks": [
+        {
+          "p": "Every new supply is checked before the first dose from it, whether we collected it, the pharmacy delivered it or family brought it, by the care worker at the first medicines visit after it arrives:"
+        },
+        {
+          "steps": [
+            "Check each item against the eMAR: the person's name, the medicine's name, strength and form, and the directions. Check the expiry date, that packs and seals are intact and that a leaflet is included. For a monitored dosage system, also check the start date, every seal, and that the pharmacy's list and tablet descriptions match the eMAR.",
+            "Put fridge medicines in the fridge first. Store the rest in the agreed place, behind the current supply so older stock is used first.",
+            "Record 'New supply checked' in the daily visit notes with the name, strength and quantity of each item. Count and record counted controlled drugs under the Controlled Drugs in the Community Procedure.",
+            "If anything differs, give nothing from that item and phone the office before leaving. Where the current supply still matches the eMAR, keep using it until the office advises."
+          ]
+        },
+        {
+          "p": "Within 1 working day the Care Coordinator records the receipt in the order and receipt record and compares it with the order. The law allows a pharmacy, in some circumstances, to supply up to 10% more or less than the prescribed quantity so that a medicine stays in its original pack (Human Medicines Regulations 2012, regulation 217B), so a different quantity is checked with the pharmacy before it is treated as an error."
+        },
+        {
+          "table": {
+            "columns": [
+              "What the check finds",
+              "What the office does"
+            ],
+            "rows": [
+              [
+                "An item missing, or a different quantity",
+                "Checks with the pharmacy the same day and makes sure enough is in the home before the run-out date."
+              ],
+              [
+                "Wrong medicine, strength or form, another person's medicine, or a stopped medicine",
+                "Tells the pharmacy the same day, logs a dispensing error in the incident log and gets a corrected supply before the next dose; another person's medicine goes back to the pharmacy the same day."
+              ],
+              [
+                "Directions differ from the eMAR",
+                "Obtains the prescriber's or pharmacist's advice for the next dose straight away; nothing is given on the new directions until the eMAR entry is updated and second-checked."
+              ],
+              [
+                "Damaged, unsealed or out of date, or expiring before it will be used up",
+                "Asks the pharmacy for a replacement the same day; the item goes in the return bag."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Care workers sign a pharmacy delivery note only to confirm that a delivery arrived. The Care Coordinator agrees delivery times when the person, family or a care worker will be in, and asks the pharmacy never to leave medicines on the doorstep or with a neighbour. We never give a delivery driver a key safe code. A care worker who finds medicines left outside brings them in, checks them and phones the office the same day. Medicines are never delivered to or held at the branch office."
+        }
+      ]
+    },
+    {
+      "heading": "Collecting and transporting medicines",
+      "blocks": [
+        {
+          "p": "A care worker collects medicines only where the care plan gives us collection, the person has agreed, pharmacy delivery is not available or suitable, and the Care Coordinator has completed a transport risk assessment in the person's risk assessments. It covers how the care worker travels and how far, controlled drugs and fridge medicines, weight (no bag over 5 kg, as the Moving and Handling of People Policy sets), pharmacy opening times and the care worker's safety. Care workers who drive hold clearance to drive under the Driving at Work Policy. A connected care worker under the Professional Boundaries Policy never collects or pays for that person's medicines."
+        },
+        {
+          "steps": [
+            "The Care Coordinator schedules the collection immediately before a visit to that person, so the medicines go straight from the pharmacy to the home. Where a charge is payable and the person or family does not pay the pharmacy themselves, it is a trip that starts and ends at the person's home (Handling Money, Property and Shopping Procedure).",
+            "Wear your ID badge and give the person's name, address and date of birth. Show identification if the pharmacy asks, as it may for controlled medicines.",
+            "Pay any charge only with the person's cash as the care plan allows, recorded with the receipt on the money and shopping record. Declare a free prescription exemption only as the care plan records it, and show the proof it names if asked; never make a declaration you cannot confirm.",
+            "Check every expected item is in the bag. If anything is missing or the pharmacist raises a concern, phone the office before you leave the pharmacy.",
+            "Carry medicines in the sealed pharmacy bag, out of sight: in a locked boot while driving, or in a closed bag kept on you. Never leave them unattended in a vehicle, and never take them to your home, the branch office or another person's home.",
+            "On arrival, make the new-supply check and record the collection in the daily visit notes. If you cannot get in, keep the medicines on you (No Reply, No Access and Missing Person Procedure) and, if the visit cannot go ahead, return them straight to the pharmacy to hold until the office arranges delivery."
+          ]
+        },
+        {
+          "p": "Medicines lost or stolen in transit are phoned to the office at once. The office reports any theft to the police, logs it in the incident log, asks the GP practice for a replacement prescription and obtains advice on any dose that will be missed; a counted controlled drug also follows the Controlled Drugs in the Community Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Original packs and monitored dosage systems",
+      "blocks": [
+        {
+          "p": "Medicines are supplied and given from the pharmacy's original labelled packs."
+        },
+        {
+          "bullets": [
+            "A monitored dosage system is requested only where a pharmacist has assessed that the person needs one. We never ask for one for our own convenience, or ask the GP for 7-day prescriptions to obtain one.",
+            "These stay in original packs: when required medicines, liquids, inhalers, creams, drops and patches; counted controlled drugs; anything the pharmacist says is unstable outside its pack; and valproate medicines, which the law requires in the manufacturer's original pack unless the pharmacy has a risk assessment for other packaging (regulation 217C).",
+            "Medicines in one compartment always have the same level of support; where the person manages some medicines and we support others, the pharmacy supplies them separately.",
+            "The Care Coordinator asks for a tablet description list and leaflets with every monitored dosage system supply.",
+            "Nobody alters, refills or moves doses between compartments. When a medicine in the pack changes or stops mid-cycle, the Care Coordinator asks the pharmacy the same working day for a replacement before the next affected dose; the old pack is marked 'Do not use' and goes in the return bag."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Storing medicines in the home",
+      "blocks": [
+        {
+          "p": "The person decides where their medicines are kept unless this creates a risk; lockable storage is agreed and approved under the Self-Administration of Medicines Procedure. Our standards are:"
+        },
+        {
+          "bullets": [
+            "One agreed place, recorded in the care plan, with medicines in their pharmacy packs: cool and dry, away from the cooker, radiators, sunlight and the bathroom, and below the highest temperature on the label.",
+            "Out of sight and reach of children and visitors, and apart from other household members' medicines. The care plan names everyone with authorised access; storage codes are handled like key safe codes.",
+            "Medicines awaiting return are kept in the return bag or used-patch container, never mixed with medicines in use. Thickening powder is kept closed and out of reach of anyone who could swallow it (Nutrition and Hydration Policy).",
+            "Home oxygen is supplied and collected by the person's home oxygen service; we never order, move or return cylinders. Fire risks from oxygen and emollients follow the Fire Safety in People's Homes Policy."
+          ]
+        },
+        {
+          "p": "Storage is reviewed at every medicines review and whenever the risk changes. Care workers phone the office before leaving if medicines are not where agreed, storage is open or damaged, or someone else may have taken them."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Medicines that need a fridge",
+          "blocks": [
+            {
+              "p": "Fridge medicines are kept in the main compartment of the person's fridge, away from the freezer box and back wall, in a lidded box we supply labelled with the person's name. Where we support a fridge medicine, {{organisation}} supplies a fridge thermometer free of charge and, with the person's agreement, the care worker reads it weekly at the visit the care plan names and records it in the daily visit notes."
+            },
+            {
+              "p": "Medicines labelled for a fridge are kept at 2°C to 8°C; an opened medicine whose leaflet allows room temperature once in use, such as an insulin pen, is kept as the leaflet says. If the reading is outside 2°C to 8°C, a medicine has frozen or the fridge has failed, the care worker tells the person, adjusts the dial with their permission and phones the office before leaving. The office obtains the pharmacist's advice before the next dose on whether each medicine can still be used; a frozen medicine is never given. Where there is no working fridge, the Care Coordinator asks the pharmacist the same day how to store the medicine."
+            }
+          ]
+        },
+        {
+          "heading": "Expiry and opened dates",
+          "blocks": [
+            {
+              "p": "An out-of-date medicine found at any visit goes in the return bag and the office is phoned before leaving. At each stock check the care worker also checks emergency and when required medicines, such as GTN spray, reliever inhalers and adrenaline auto-injectors; one expiring within 4 weeks is reported the same day and the Care Coordinator requests a replacement within 2 working days."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Returning and disposing of medicines",
+      "blocks": [
+        {
+          "p": "Waste produced at a person's home, including medicine waste, is their household waste, not ours (Controlled Waste (England and Wales) Regulations 2012, Schedule 1), and NHS community pharmacies must accept unwanted medicines from private households for disposal (NHS (Pharmaceutical and Local Pharmaceutical Services) Regulations 2013, Schedule 4, paragraphs 13 and 14). Our policy is that every unwanted medicine goes back to a community pharmacy, normally the supplying one, or the dispensing GP practice. No medicine is ever put in a bin, sink or toilet, given to anyone else, kept for later, or kept at the branch office, in a vehicle or at an employee's home."
+        },
+        {
+          "p": "Returns include stopped medicines once their eMAR entry has ended; out-of-date, damaged or unlabelled medicines; items past their use-within date; sealed declined, dropped or spat-out doses; the used-patch container; old monitored dosage system packs; excess stock; and empty packs showing the person's details, unless the person prefers to dispose of these themselves."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Agreement",
+          "blocks": [
+            {
+              "p": "We return medicines only with the agreement of the person or, where they lack capacity for the decision, a verified attorney or deputy with authority, or under a best interests decision approved by the Registered Manager or Deputy Manager. A person with capacity who keeps a stopped or out-of-date medicine is told the risk; it is kept in a separate labelled bag, the Care Coordinator tells the GP or pharmacist the same working day, and the risk is recorded under the Positive Risk-Taking Policy."
+            },
+            {
+              "p": "Where family return medicines, the Care Coordinator reminds them when an item is ready and care workers record in the daily visit notes when it has gone. Anything still in the home 14 days after the reminder is raised again, and we offer to return it with their agreement."
+            }
+          ]
+        },
+        {
+          "heading": "Making a return",
+          "blocks": [
+            {
+              "p": "Where returns are our task, items go back within 7 days of no longer being needed, and the used-patch container and sealed doses at least every 4 weeks."
+            },
+            {
+              "steps": [
+                "The Care Coordinator schedules the return as a journey straight from the home to the pharmacy, with no visit in between.",
+                "With the person or named contact where possible, complete the medicines return record: the person's name, each medicine's name, strength, form and quantity, the date, the pharmacy and your name. Counted controlled drugs go on the controlled drug return record instead.",
+                "Hand the medicines to pharmacy staff and ask them to sign the record, or record the name of the person who received them if they will not sign. If the pharmacy is closed or refuses them, take them back to the home, store them in the return bag and phone the office.",
+                "Record the return in the daily visit notes and bring the record to the office by the end of your shift, in a sealed envelope through its letterbox if closed. Office staff scan it into the person's CareFlow documents within 2 working days, then shred it."
+              ]
+            },
+            {
+              "p": "Sharps and sharps containers are never carried by staff (Sharps Safety and Needlestick Injury Procedure). Hazardous medicines are bagged and returned as the prescribing team's or pharmacist's written advice says (Hazardous Substances (COSHH) Procedure). Anticipatory medicines and syringe drivers are never touched, moved or returned by us (End of Life Care Policy)."
+            }
+          ]
+        },
+        {
+          "heading": "Support ending and death",
+          "blocks": [
+            {
+              "p": "Medicines going with a person into hospital or elsewhere follow the Medicines Changes, Transfers of Care and Hospital Discharge Procedure. When support ends, the Care Coordinator agrees with the person or named contact who returns medicines no longer needed and records it in the care plan."
+            },
+            {
+              "p": "After a death, staff leave every medicine where it is and never take any away, even if the family ask, and follow any instruction from the police or a coroner's officer. The same working day (by 12 noon the next working day after an out-of-hours death), the Care Coordinator tells the family or representative that the medicines must go back to a pharmacy and never be used by anyone else; where nobody can return them, the Care Coordinator asks the pharmacy, GP practice or community nursing team the same working day how they will be removed and records the answer."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept in CareFlow"
+            ],
+            "rows": [
+              [
+                "Supply responsibilities, storage place and access, stock check visit, fridge and return arrangements",
+                "Medicines section of the care plan"
+              ],
+              [
+                "Run-out dates, orders and receipts",
+                "Order and receipt record in the person's documents"
+              ],
+              [
+                "Stock checks, new-supply checks, collections, fridge readings, medicines leaving the home and returns",
+                "Daily visit notes"
+              ],
+              [
+                "Unavailable doses, and controlled drug receipts and balances",
+                "eMAR"
+              ],
+              [
+                "Dispensing errors, supply failures reaching the person, losses and thefts",
+                "Incident log"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training or check",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Stock checks, new-supply checks, collection, storage, fridge readings and returns, within full medicines training (pass mark 80%)",
+                "Everyone who gives medicines support",
+                "Before giving medicines support, then every 12 months"
+              ],
+              [
+                "A new-supply check and storage, observed in a person's home within observed medicines competency",
+                "Everyone who gives medicines support",
+                "Before checking a new supply unsupervised, then every 12 months"
+              ],
+              [
+                "Ordering, the order and receipt record, discrepancies and arranging returns",
+                "Care Coordinators and anyone who places orders",
+                "Before placing a first order, then every 12 months"
+              ],
+              [
+                "Obtaining urgent supplies and advice when a medicine has run out, within eMAR monitoring training",
+                "Office staff and On-call Managers",
+                "Before monitoring alone or the first on-call shift, then every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Staff acknowledge this procedure in CareFlow by the deadline in the Induction and Care Certificate Procedure, within 14 days of starting a new role and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Unavailable doses and supply calls",
+                "At the four daily eMAR checks",
+                "Office staff; On-call Manager out of hours",
+                "Care Coordinator; incident log where needed"
+              ],
+              [
+                "Storage, fridge readings, stock, expiry and opened dates, items awaiting return",
+                "Every in-home medicines check, at least every 3 months",
+                "Field Care Supervisor or authorised Senior Care Worker",
+                "Deputy Manager"
+              ],
+              [
+                "Order and receipt records for 10 people we order for (all if fewer), and every return record",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager and the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "New-supply check and storage practice",
+                "Within observed medicines practice spot checks, at least every 6 months per care worker",
+                "Field Care Supervisor",
+                "Supervision and appraisal records"
+              ],
+              [
+                "Supply incidents, dispensing errors and trends",
+                "Quarterly, in the medicines governance report",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of orders placed by the deadlines above, no dose Unavailable because of our ordering, 100% of new supplies checked before first use, 100% of fridge medicines with a weekly reading and 100% of return records signed and scanned within 2 working days."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in the law or national guidance, a serious medicines incident, an inspection finding, or when monitoring shows that our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

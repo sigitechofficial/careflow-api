@@ -1,0 +1,567 @@
+{
+  "reference": "POL-CD-017",
+  "revision": 1,
+  "title": "Handling Money, Property and Shopping Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How care workers help people with shopping and small cash payments, look after held cash, respect and protect people's possessions, and recognise and report financial abuse and scams at visits. Sets the spending limits, the money and shopping record, the checks made by Care Coordinators, Field Care Supervisors and the Deputy Manager, and what happens when money or property goes missing. For all staff.",
+  "keyPoints": {
+    "intro": "You may be trusted with a person's cash and you work in their home alone. These rules keep their money safe and protect you from any suspicion.",
+    "points": [
+      "Handle a person's money only where their care plan says so, in the way it says, within its spending limit. If you are asked to do anything else with money, politely decline and phone the office.",
+      "Never know, ask for or use a PIN, bank card, contactless card, prepaid card, cheque book or online banking, and never withdraw cash for anyone, even if the person or family insists.",
+      "Never borrow, lend, buy, sell, take a tip, or use your own money, purse, loyalty card or discount for a person's shopping. Keep their cash only in the shopping wallet we give you.",
+      "Count the cash with the person before you go, get an itemised receipt for everything, and count the change back with them when you return. A shopping trip starts and ends at their home in the same visit.",
+      "If you cannot get back into the home after shopping, phone the office from the doorstep and keep the money, receipt and shopping on you. Never leave them at the door or with anyone the office has not named.",
+      "Buy medicines only at the pharmacy the care plan names, never in a shop or supermarket, and never leave them unattended in a vehicle.",
+      "Record every transaction on the money and shopping record in the home and in the daily visit notes before you check out: amount received, amount spent, change returned and receipt number.",
+      "If the money, change, receipts or cash box balance do not add up, never make up the difference or change an entry. Recount, phone the office before you leave and record it in the incident log before the end of your shift.",
+      "If a person says money or belongings are missing, or you see signs of financial abuse or a scam, phone the office or On-call Manager before you leave. Call 999 if someone is waiting to take money or cards now.",
+      "Take nothing out of a person's home except waste, cash for an agreed shopping trip, letters to post, medicines returns and things they take on an outing, unless the Care Coordinator agrees. Never look after their valuables, cards or documents, or search a home alone.",
+      "If you break or damage something, tell the office the same day and record it in the incident log before the end of your shift. You will never be asked to pay for it.",
+      "Never act as attorney, deputy, appointee or executor, never witness a will or financial document, and never sign anything about a person's money."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "VISIT",
+    "SAFEGUARDING",
+    "AUDIT"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-002",
+    "POL-SG-008",
+    "POL-SG-009",
+    "POL-SG-007",
+    "POL-CD-004",
+    "POL-SG-004",
+    "POL-HS-013"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13, including paragraph (6)(c): abuse includes theft, misuse or misappropriation of money or property belonging to a service user",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Department of Health and Social Care, Care and support statutory guidance (updated 30 October 2026), chapter 14, paragraphs 14.17 (financial or material abuse), 14.25 to 14.26 (indicators), 14.27 to 14.29 (theft, fraud and scams, reported to the police and Trading Standards) and 14.31 (informing the Office of the Public Guardian or the Department for Work and Pensions)",
+      "url": "https://www.gov.uk/government/publications/care-act-2014-supporting-implementation/care-and-support-statutory-guidance"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 5 (acts in connection with care or treatment)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/5"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 8 (expenditure: using money in the person's possession for acts in connection with care)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/8"
+    },
+    {
+      "source": "Fraud Act 2006, section 4 (fraud by abuse of position)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/35/section/4"
+    },
+    {
+      "source": "Office of the Public Guardian, Report a concern about an attorney, deputy or guardian (GOV.UK)",
+      "url": "https://www.gov.uk/report-concern-about-attorney-deputy-guardian"
+    },
+    {
+      "source": "Department for Work and Pensions, Become an appointee for someone claiming benefits (GOV.UK)",
+      "url": "https://www.gov.uk/become-appointee-for-someone-claiming-benefits"
+    },
+    {
+      "source": "GOV.UK, Find your local Trading Standards office",
+      "url": "https://www.gov.uk/find-local-trading-standards-office"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} helps people we support with shopping and small everyday payments. Our care workers work alone in people's homes, close to their money, cards and possessions. Theft, misuse or misappropriation of a person's money or property is abuse in law, and a worker who dishonestly abuses a position of trust over a person's money for gain commits fraud."
+        },
+        {
+          "p": "We handle a person's money only where their care plan says so, with a record and an itemised receipt for every transaction, so that the person stays in control and our staff are never open to suspicion. Every member of staff reports signs of financial abuse by anyone at once."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure puts the financial rules in the Safeguarding Adults Policy into practice: money support is agreed first, every pound can be traced, and loss, damage, discrepancies and signs of financial abuse are acted on within set timescales."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to every employee, including bank staff and managers, and sets the rules agency workers, students and volunteers must follow when they are in a person's home. It covers shopping, small cash payments, held cash, the person's possessions, and financial abuse and scams at visits."
+        },
+        {
+          "p": "Owned elsewhere: gifts, tips, hospitality and wills (Gifts, Hospitality, Wills and Legacies Policy); buying and collecting medicines (see Other payments and errands); keys and key safes (Key Holding, Key Safes and Access to People's Homes Procedure); connected workers and personal contact (Professional Boundaries Policy); economic abuse by a partner or relative (Domestic Abuse Policy); and staff expenses and mileage (Working Time, Rest Breaks and Travel Time Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Money support",
+                "Any task in which staff handle, spend, count or look after a person's money, including shopping paid for in cash."
+              ],
+              [
+                "Person-checked shopping",
+                "The person hands the care worker cash at the visit and checks the shopping, receipt and change themselves."
+              ],
+              [
+                "Held cash",
+                "Cash kept in a lockable cash box in the person's home, from which care workers pay for purchases the care plan lists, with a running balance."
+              ],
+              [
+                "Money and shopping record",
+                "The paper record we supply, kept in the person's home with a receipts wallet: one numbered, signed line per transaction, showing date, time, worker, purpose, amounts received, spent and returned, any held cash balance and the receipt number."
+              ],
+              [
+                "Financial representative",
+                "A verified attorney under a property and financial affairs lasting power of attorney or registered enduring power of attorney, a property and affairs deputy appointed by the Court of Protection, or a Department for Work and Pensions appointee (benefit income only). A relative without one of these roles may supply cash at the person's request but cannot decide for them."
+              ],
+              [
+                "Discrepancy",
+                "Any difference, of any amount, between the money and shopping record, the receipts, the daily visit notes and the cash."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this procedure and keep public liability insurance that covers accidental damage to people's property and loss of their money while in our staff's care; the Nominated Individual confirms the cover at each renewal. The Nominated Individual is told the same day of any allegation that a member of staff took or misused money or property, within 24 hours of any other money concern involving the police, and receives the quarterly money report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as safeguarding lead, and the Deputy Manager, as deputy safeguarding lead, lead on money concerns. Either of them approves held cash arrangements, spending limits above £50 and best interests decisions about purchases with a person's money. The Registered Manager checks each commissioner contract's rules on handling money at the start and whenever terms change, records any restriction in each funded person's care plan and applies the stricter rule."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators record money support in the care plan, roster shopping time, supply shopping wallets, receipts wallets and record forms, review money entries weekly and follow up discrepancies."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors set up held cash, carry out money checks and observe money handling at spot checks."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            {
+              "p": "Office staff, and the On-call Manager out of hours, take calls about money, missing property, scams and damage, give the decisions this procedure sets, and log them. The On-call Manager hands every out-of-hours money concern to the Registered Manager or Deputy Manager by 10am the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Care workers follow the care plan and this procedure exactly, record every transaction, and report every discrepancy, request and sign of abuse."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Rules that apply at every visit",
+      "blocks": [
+        {
+          "p": "These rules apply to every member of staff, whatever the person, family or anyone else asks. A request to break any of them is reported as a safeguarding concern, phoned to the office or On-call Manager before you leave the home. If nobody answers any call this procedure requires within 15 minutes, phone the Registered Manager or Deputy Manager directly. A request for shopping or an errand the care plan does not include is declined and passed to the office the same day, and the Care Coordinator decides with the person."
+        },
+        {
+          "bullets": [
+            "Never know, ask for, write down or use a person's PIN, password or security details, and never use their bank card, contactless card, store or credit card, direct payment or other prepaid card, cheque book, online banking, shopping account or payment app.",
+            "Never withdraw cash for a person, take money to or from a bank or post office, collect a pension or benefit, cash a cheque, or buy anything on credit or sign an agreement for them.",
+            "Never pay a bill, rent, council tax, care charge or invoice for a person, including ours: people pay us only by the methods in their service agreement.",
+            "Handle cash only where the care plan says so, within its limit, and record every transaction with a receipt.",
+            "Never mix a person's money with your own: keep it in the shopping wallet we supply, never in your purse, pocket or car, and never pay for anything of theirs with your own money, even a few pence.",
+            "Never borrow from, lend to, buy from or sell to a person, and never accept cash or any gift except as the Gifts, Hospitality, Wills and Legacies Policy allows.",
+            "Never use your own loyalty, cashback or staff discount card on a person's shopping, or keep points, vouchers or coupons from it.",
+            "Never act as a person's attorney, deputy, appointee, executor or trustee, and never witness or sign a will or any financial or legal document for them."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Agreeing money support",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Assessment and the care plan",
+          "blocks": [
+            {
+              "p": "At the initial assessment and every care plan review, the assessor asks who helps with shopping and payments now, whether anyone holds financial authority or has access to the person's money or cards, and whether they have had worrying calls, letters or callers. We take on money support only where the person, family or a home delivery cannot meet the need, and the person wants our help."
+            },
+            {
+              "p": "The assessor records in the care plan: the tasks agreed (My needs and support and the Visit plans); the arrangement (person-checked shopping or held cash), the shops, the spending limit and how cash is provided; any financial representative, verified as the Consent to Care Policy requires (People involved); the person's agreement or the best interests decision (Consent and decisions); and any risk of financial abuse or scams with its control measures (Risks). Bank, card and PIN details are never recorded anywhere."
+            }
+          ]
+        },
+        {
+          "heading": "Capacity and legal authority",
+          "blocks": [
+            {
+              "p": "A person with capacity decides how their money is used, including choices others think unwise, such as buying lottery tickets or giving money to family, but pressure or coercion is always reported. Where there is a doubt about their capacity to decide about day-to-day spending, it is assessed under the Mental Capacity Act and Best Interests Policy."
+            },
+            {
+              "p": "Where the person lacks capacity for the decision, a verified financial representative decides and provides the money. A health and welfare attorney has no authority over money. Where nobody holds authority, the law allows us to use money in the person's possession to pay for things bought as part of care given in their best interests (Mental Capacity Act 2005, sections 5 and 8). We do so only for purchases listed in a best interests decision approved by the Registered Manager or Deputy Manager, always through held cash; managing the person's money and property is never our decision. The Care Coordinator writes to the local authority within 2 working days asking it to consider who should manage the person's finances, and tells it the same working day if the person's cash will run out."
+            }
+          ]
+        },
+        {
+          "heading": "Arrangements, limits and approval",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Arrangement",
+                  "When used",
+                  "Approved by",
+                  "Limit"
+                ],
+                "rows": [
+                  [
+                    "Person-checked shopping",
+                    "The person can count money and check a receipt and change, with aids if needed",
+                    "The approver of the care plan",
+                    "£50 a trip, or up to £100 where the Registered Manager or Deputy Manager approves a higher limit for a stated need such as a weekly shop"
+                  ],
+                  [
+                    "Held cash",
+                    "The person cannot reliably check money, lacks capacity for the decision, or prefers it",
+                    "Registered Manager or Deputy Manager, before first use",
+                    "Same trip limits; the box never holds more than £150"
+                  ],
+                  [
+                    "No money support",
+                    "Everyone else",
+                    "Not applicable",
+                    "Staff handle no money"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Money tasks are done only by staff who have completed money handling training. They are never done by a worker on a shadow shift, a student, a volunteer, an agency worker, a connected worker under the Professional Boundaries Policy, or a worker who is the subject of an open money concern. Alcohol, tobacco, vapes, lottery tickets and scratchcards are bought only where the care plan lists them and only by a care worker aged 18 or over."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Shopping",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Planning the trip",
+          "blocks": [
+            {
+              "p": "The Care Coordinator rosters shopping either within a visit whose planned length includes it or as its own rota item. Every trip using the person's money starts and ends at their home in the same visit or rota item. You never carry a person's money to another person's visit, the branch office or your own home, or keep it overnight; the only exceptions are money pressed on you as a gift, which follows the Gifts, Hospitality, Wills and Legacies Policy, and no access on your return, below. Use the shops the care plan names. Shopping never shortens the person's care: if the trip will make the visit run more than 15 minutes over, phone the office before the expected finish."
+            }
+          ]
+        },
+        {
+          "heading": "Steps",
+          "blocks": [
+            {
+              "steps": [
+                "Agree the list with the person: items, brands, the order of priority and which substitutes they accept. Where the person cannot take part, use the list in the care plan or from their financial representative.",
+                "Count the cash with the person, or count the held cash box before and after taking the money. Write the amount received on the money and shopping record and ask the person to sign or initial it. Put the cash in the shopping wallet.",
+                "Before you go, make sure the person is safe, with their alarm or phone within reach, and secure the home and key safe as at the end of a visit.",
+                "Go straight to the shop. Buy only what is on the list and ask for an itemised receipt. Never shop for yourself on the same trip.",
+                "If the money will not cover the list, buy in the agreed order of priority and stop. If an item is not available, buy only an agreed substitute. If there is no money for essential food, phone the office before you leave the home; the Nutrition and Hydration Policy applies.",
+                "Keep the wallet on you. Carry no more than 5 kg in each bag, keep shopping in the boot if you drive, buy chilled and frozen food last, and go straight back to the home.",
+                "Unpack with the person, check the items against the receipt and count the change back into their hand or into the box, in front of them.",
+                "Complete the line on the money and shopping record (amount spent, change returned, balance for held cash, receipt number) and ask the person to sign. Write the line number on the receipt and put it in the receipts wallet.",
+                "Before you check out, record in the daily visit notes: Money and shopping, amount received, shop, amount spent, change returned, receipt number, and whether the person checked it."
+              ]
+            },
+            {
+              "p": "Where the person cannot sign or check, write why on the record. On a double-handed visit the second worker counts the money and countersigns; otherwise the weekly review and the money check are the second check."
+            }
+          ]
+        },
+        {
+          "heading": "Home deliveries and online orders",
+          "blocks": [
+            {
+              "p": "You may help write the list or read a website to the person on their own device, but they or their family enter every log-in and payment detail. Check a delivery that arrives during a visit with the person, note missing items in the daily visit notes and never pay the driver."
+            }
+          ]
+        },
+        {
+          "heading": "Loss, theft or no access on a trip",
+          "blocks": [
+            {
+              "p": "If you cannot get back in, phone the office from the doorstep and follow the No Reply, No Access and Missing Person Procedure, keeping the wallet, receipt and shopping on you, never at the door or with anyone the office has not named. If you are released without getting in, the office decides whether you hand them to a key holder named in the care plan or bring them to the branch office by the end of your shift (out of hours, the On-call Manager meets you there), where Office staff or the On-call Manager count the cash with you, lock it away and put chilled and frozen food in the office fridge, labelled with the person's name and the date. Record the handover in the daily visit notes. A Field Care Supervisor returns everything to the person or their financial representative within 2 working days of either being able to receive it. Office staff throw away chilled food not returned by its use-by date and frozen food not returned within 24 hours, and record it with its receipt value in the incident log; the person is repaid that amount as below."
+            },
+            {
+              "p": "If the wallet, cash or receipt is lost or stolen, phone the office at once and record it in the incident log before the end of your shift. The office reports a theft to the police the same day. Never replace money yourself. Where a person loses money while it is in our staff's care, the Registered Manager decides on repayment within 5 working days and the person is repaid by bank transfer or cheque, never in cash through a care worker."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Other payments and errands",
+      "blocks": [
+        {
+          "bullets": [
+            "Prepayment energy: where the care plan lists it, you may top up the person's gas or electricity key or card with their cash at a payment point, keep the top-up receipt and record it like shopping. Switching on emergency credit follows the Severe Weather and Extreme Temperatures Procedure.",
+            "Prescription charges and medicines: collection follows the Ordering, Collecting, Storing and Disposing of Medicines Procedure and buying medicines the Over-the-Counter Medicines and Homely Remedies Guideline; the cash, receipt and record follow this procedure. A medicine, even one a supermarket sells, is bought only at the pharmacy the care plan names, never in a shop, and is never left unattended in a vehicle. Where a charge is payable and the person or family does not pay the pharmacy themselves, the Care Coordinator rosters the collection as a trip that starts and ends at the person's home.",
+            "Escorted trips: a person who can manage keeps their own purse. Otherwise their spending money is handled as person-checked shopping or held cash. Your own entry, parking, travel and refreshment costs are paid by us as expenses, never by the person.",
+            "Post: open or read post only when the person asks and the care plan includes it. With the person's agreement, tell the office the same day about final demands, debt letters or post that looks like a scam."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Held cash",
+      "blocks": [
+        {
+          "steps": [
+            "The Field Care Supervisor sets up the box with the person or financial representative: a lockable cash box they supply (we supply it where there is no representative), kept in the person's home where they choose, with its key in a place recorded in the care plan in CareFlow but never in its home copy. The key never leaves the home and the box never goes in the key safe.",
+            "The opening balance is counted by the Field Care Supervisor with the representative, or with a second member of staff, and both sign the record.",
+            "Only the person or representative tops up the box, counting the cash in front of the care worker; both sign the record. Where a person who lacks capacity has no representative, the box holds only cash already in their possession, added by the Field Care Supervisor (or the Care Coordinator returning a gift under the Gifts, Hospitality, Wills and Legacies Policy) with a second member of staff, who both sign the record. Staff never fetch, collect or ask for top-ups. Tell the office the same day if the balance will not cover the next planned shop or would go above £150.",
+            "At the monthly money check the Field Care Supervisor counts the box in the person's presence. The Care Coordinator sends a copy of the reconciliation to the representative within 5 working days.",
+            "When the service ends, the Field Care Supervisor completes a final count with the person or representative within 5 working days of the last visit and gives them a copy of the final reconciliation."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Money checks",
+      "blocks": [
+        {
+          "p": "A Field Care Supervisor who has not handled the person's money carries out a money check in the home monthly for held cash and at least every 3 months for person-checked shopping, as well as at every spot check where staff handle cash. They reconcile the record, receipts, daily visit notes and any box, sign the record, scan the pages and receipts to the person's documents in CareFlow the same day, and ask the person privately whether they are happy with how their money is handled."
+        }
+      ]
+    },
+    {
+      "heading": "The person's possessions",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Respecting property",
+          "blocks": [
+            {
+              "p": "Use the person's belongings only for the care the care plan describes, never for yourself, and their phone only in an emergency or for a call they ask for. You take out of the home only waste and recycling, cash for an agreed shopping trip, letters the person asks you to post, medicines returns and items the person takes on an escorted trip; anything else needs the Care Coordinator's agreement, recorded in the daily visit notes."
+            }
+          ]
+        },
+        {
+          "heading": "Valuables and documents",
+          "blocks": [
+            {
+              "p": "We never look after a person's valuables, cards, jewellery, passports, bank documents or wills, and never move them unless the person asks during care and can see you. If you see more than £500 in cash, or valuables left where visitors could take them, tell the office the same day. The Care Coordinator discusses safer storage and insurance with the person, or their representative, within 5 working days and records the risk."
+            }
+          ]
+        },
+        {
+          "heading": "Damage",
+          "blocks": [
+            {
+              "p": "If you break or damage something, make it safe, tell the person, phone the office the same day (before you leave if it affects safety, such as broken glass or damaged equipment) and record it in the incident log before the end of your shift. The Care Coordinator reports damaged equipment to its owner the same working day. The Registered Manager decides within 5 working days on repair, replacement or payment, through our insurer where needed, and writes to the person. Staff never pay personally and nothing is deducted from pay. Deliberate or reckless damage goes to the Disciplinary Policy and Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Missing items",
+          "blocks": [
+            {
+              "p": "If the person says money or something else is missing, never search the home alone. You may help look only when the person asks and is with you. Then follow the discrepancies table below."
+            }
+          ]
+        },
+        {
+          "heading": "Hospital admission and death",
+          "blocks": [
+            {
+              "p": "At a hospital admission you never take charge of the person's money, cards or valuables; the held cash box stays locked in the home and the Care Coordinator tells the financial representative or key holder the same working day. After a death no member of staff handles the person's money or possessions; the Care Coordinator tells the family, executor or administrator the last recorded balance within 2 working days, and the Field Care Supervisor completes the final count with them."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Discrepancies and concerns",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What you do",
+              "What the office and managers do"
+            ],
+            "rows": [
+              [
+                "Change, receipts, record or box balance do not match, by any amount",
+                "Recount with the person. Never make up the difference or alter an entry. Record what you found, phone the office before you leave, and record it in the incident log before the end of your shift.",
+                "Care Coordinator checks receipts and entries within 1 working day. A recording error is corrected by a new dated entry, never by deleting, and the worker is supported in supervision. Anything not fully explained within 1 working day goes to the safeguarding lead that day."
+              ],
+              [
+                "The person or family says money or property is missing, or you notice it",
+                "Safeguarding concern: phone before you leave and report it in the CareFlow app as a Safeguarding Concern incident before the end of your shift.",
+                "Safeguarding lead assesses within 1 hour; police the same day where theft may have happened, unless a person with capacity does not want this, nobody else is at risk and no member of staff is implicated; check-in/check-out records used to identify everyone who visited."
+              ],
+              [
+                "A scam is happening now: a caller waiting to collect money or cards, or the person about to hand over or send money",
+                "Call 999, stay with the person if safe, then phone the office.",
+                "Office supports the police response and tells the safeguarding lead at once."
+              ],
+              [
+                "Possible abuse of position by an attorney, deputy or appointee",
+                "Phone before you leave.",
+                "Safeguarding lead refers to the local authority and, after discussion with it, informs the Office of the Public Guardian or the Department for Work and Pensions within 2 working days."
+              ],
+              [
+                "A colleague may have taken, misused or borrowed money or property",
+                "Phone the Registered Manager or Deputy Manager (the On-call Manager out of hours) at once, before you leave if you are on a visit.",
+                "Managing Allegations Against Staff Procedure: interim measures decided the same day, with a key safe code change offered that day; Nominated Individual told the same day; police the same day where theft or fraud may have occurred; no internal investigation until the police and local authority agree."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Recognising financial abuse and scams",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Signs to report",
+          "blocks": [
+            {
+              "p": "As well as the signs in the Safeguarding Adults Policy, report:"
+            },
+            {
+              "bullets": [
+                "final demands or bailiff letters, someone refusing to buy essentials or collecting the person's pension, or the person not knowing where their money goes;",
+                "doorstep traders, unrequested building work, or visitors the person seems afraid of or secretive about;",
+                "piles of prize draw post, unwanted parcels, or frequent calls from strangers;",
+                "callers claiming to be from the bank, police or HMRC asking for money, card details or a cash collection, or online friendships that move on to money."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "What you do",
+          "blocks": [
+            {
+              "p": "Do not confront anyone, argue, or take over the person's phone or door. Where a caller is at the door, you may tell them the person is busy if the person agrees. Call 999 if money or cards are about to change hands; otherwise phone the office before you leave, from outside if someone who may be responsible can overhear. Report the facts in the CareFlow app as a Safeguarding Concern incident before the end of your shift; the daily visit notes say only that a concern was reported."
+            }
+          ]
+        },
+        {
+          "heading": "What the office does",
+          "blocks": [
+            {
+              "p": "The safeguarding lead assesses the concern within 1 hour and acts under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, reporting scams and doorstep crime to the police and Trading Standards. With the person's consent, the office helps them phone their bank straight away. Within 5 working days the Care Coordinator, with the person's agreement, offers a call blocker, Telephone Preference Service registration, a no cold callers door notice and involvement of family they trust, and updates the risk assessment and care plan."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Money records are part of the person's care record and are kept for the period in the Records Management and Retention Policy, and never destroyed while an enquiry, police investigation or claim is open or expected. Completed record pages stay in the home until the Field Care Supervisor collects them at the final count when care ends; receipts belong to the person and stay with them."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "Care staff complete money handling and financial abuse training at induction, before working without a shadowing colleague and before any money task, including completing a money and shopping record in a practical exercise. It is refreshed every 12 months with the safeguarding refresher. Staff acknowledge this procedure in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version.",
+            "A worker who makes two recording errors in 3 months, or any unexplained discrepancy, repeats the training and is observed handling money within 4 weeks before handling money alone again.",
+            "Care Coordinators and Field Care Supervisors are trained in the weekly review, held cash checks and reconciliations before doing them, then every 12 months at the auditor briefing.",
+            "Office staff and On-call Managers are briefed on the discrepancies table and scam response before taking calls alone."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Who",
+              "How often"
+            ],
+            "rows": [
+              [
+                "Money entries in the daily visit notes: arithmetic, receipt numbers, limits, who handled the money",
+                "Care Coordinator",
+                "Weekly, by the end of the second working day for the previous week"
+              ],
+              [
+                "Money check",
+                "Field Care Supervisor",
+                "As set out in Money checks"
+              ],
+              [
+                "Money records and receipts for 5 people (all if fewer), at least half using held cash, chosen by risk and at random",
+                "Deputy Manager (Registered Manager audits any the Deputy Manager handled)",
+                "Quarterly, reported to the Registered Manager under the Quality Audit and Monitoring Procedure"
+              ],
+              [
+                "Discrepancies, losses, damage, missing property and money-related safeguarding concerns by person, worker and theme",
+                "Registered Manager",
+                "Quarterly report to the Nominated Individual and the quarterly governance report to the Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Targets: 100% of transactions with a receipt and a complete record; 100% of money checks on time; every discrepancy followed up within 1 working day."
+        },
+        {
+          "p": "The Registered Manager reviews this procedure every 12 months, and sooner when the Policy Management and Document Control Policy requires; the Directors approve it."
+        }
+      ]
+    }
+  ]
+}

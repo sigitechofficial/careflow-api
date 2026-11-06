@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { IDENTITY_ROLE } from '../common/org-scope/org-scope.types';
+import { INDEPENDENT_REVIEWER_ROLE } from '../common/auth/independent-reviewer';
 
 @Injectable()
 export class RolesService {
@@ -47,7 +48,13 @@ export class RolesService {
     return this.prisma.role.create({ data });
   }
 
-  update(id: string, data: { name?: string; description?: string; isActive?: boolean }) {
+  async update(id: string, data: { name?: string; description?: string; isActive?: boolean }) {
+    // The reviewer role is recognised by its name (JwtAuthGuard): renaming it would turn reviewer
+    // accounts into ordinary signed-in accounts.
+    const role = await this.prisma.role.findFirst({ where: { id, deletedAt: null }, select: { name: true } });
+    if (role?.name === INDEPENDENT_REVIEWER_ROLE && data.name !== undefined && data.name.trim() !== INDEPENDENT_REVIEWER_ROLE) {
+      throw new BadRequestException(`The ${INDEPENDENT_REVIEWER_ROLE} role cannot be renamed.`);
+    }
     return this.prisma.role.update({ where: { id }, data });
   }
 
@@ -61,6 +68,9 @@ export class RolesService {
     });
     if (!role) throw new NotFoundException('Role not found');
 
+    if (role.name === INDEPENDENT_REVIEWER_ROLE && permissionKeys.some((k) => k.trim())) {
+      throw new BadRequestException(`The ${INDEPENDENT_REVIEWER_ROLE} role has no permissions: access comes only from each survey's grant.`);
+    }
     if (
       role.name === IDENTITY_ROLE.SUPER_ADMIN &&
       !actor.roles.includes(IDENTITY_ROLE.SUPER_ADMIN)

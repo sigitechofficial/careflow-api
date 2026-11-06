@@ -1,0 +1,913 @@
+{
+  "reference": "POL-GOV-004",
+  "revision": 1,
+  "title": "Risk Management Policy",
+  "documentType": "POLICY",
+  "summary": "How we identify, score, control, escalate and review the risks to the people we support, our staff, our service and the business: one scoring method and risk appetite, branch and organisation risk registers, escalation thresholds and timescales, review frequencies, and reporting to the Monthly Quality and Governance Meeting and the Directors. For Directors, managers and Care Coordinators who raise, own or act on organisational risks.",
+  "keyPoints": {
+    "intro": "What this policy means for you as a Director, the Nominated Individual, a manager or a Care Coordinator who raises, owns, reviews or acts on organisational risks.",
+    "points": [
+      "Raise any risk to people's safety, staff, visits, finances, information or compliance with the Registered Manager or Deputy Manager at once (the On-call Manager out of hours). It is assessed within 5 working days, or the same day if possibly High or Very high.",
+      "Score every risk by multiplying likelihood (1 to 5) by the highest impact (1 to 5) from the tables in this policy: Low 1 to 4, Medium 5 to 9, High 10 to 15, Very high 16 to 25.",
+      "A Very high risk goes to the Nominated Individual the same day and to the Directors within 1 working day. Put interim controls in place the same day and write an action plan within 2 working days.",
+      "A High risk goes to the Nominated Individual within 2 working days and onto the organisation risk register, with an action plan within 5 working days.",
+      "Every risk needs one owner, its controls and the evidence that they work, inherent, current and target scores, actions with owners and deadlines, and a review date. Use CareFlow reference numbers, never names.",
+      "Review Very high risks weekly, High monthly, Medium every 3 months and Low every 6 months, and any risk within 5 working days of a related incident, complaint, Red audit, control failure or change in law.",
+      "Only the Directors may accept a risk above our risk appetite. A Very high risk to the safety of people we support or staff is never accepted: the activity is changed or stopped.",
+      "Add a risk within 5 working days when a document review is over 1 month overdue, an improvement action is over 3 months overdue or any safety action is overdue, an audit is Red again at its re-audit, or new packages are paused.",
+      "Before a new contract, service, branch, office move or IT system, the Registered Manager (the Nominated Individual for a change across branches) completes a change risk assessment for approval before the Directors decide.",
+      "Never approve the closure of a risk you own. A risk closes only when its cause has gone, or it has stayed at or below target and within appetite at reviews spanning at least 3 months. Its full history stays in the risk register."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Admin",
+    "Manager",
+    "Care Coordinator"
+  ],
+  "moduleLinks": [
+    "RISK_ASSESSMENT",
+    "AUDIT",
+    "BUSINESS_CONTINUITY",
+    "BRANCH"
+  ],
+  "relatedReferences": [
+    "POL-GOV-002",
+    "POL-GOV-003",
+    "POL-GOV-007",
+    "POL-GOV-018",
+    "POL-GOV-020",
+    "POL-HS-001",
+    "POL-HS-002",
+    "POL-CD-016"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 (Good governance), including 17(2)(b) and 17(3)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 (Safe care and treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 3 (Risk assessment)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 15(1)(f) (Notice of changes: receivers and liquidators)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/15"
+    },
+    {
+      "source": "Care Act 2014, section 48 (Business failure)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/48"
+    },
+    {
+      "source": "HM Treasury, The Orange Book: Management of Risk - Principles and Concepts (May 2023 edition)",
+      "url": "https://www.gov.uk/government/publications/orange-book"
+    },
+    {
+      "source": "Digital Care Hub, Data Security and Protection Toolkit: before you start",
+      "url": "https://www.digitalcarehub.co.uk/dspt/before-you-start/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} manages risk so that the people we support are safe, our staff are protected, and the service stays available to the people who depend on it. Care in people's own homes is never free of risk. We find the risks that matter early, decide how much risk we will accept, put controls in place, check that they work, and act before a risk becomes harm, a missed visit or a failure that others discover before we do."
+        },
+        {
+          "p": "The law requires us to operate systems that enable us to assess, monitor and mitigate the risks relating to the health, safety and welfare of the people we support and others that arise from the care we provide (Regulation 17(2)(b) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014), to assess the risks to people of receiving care and do all that is reasonably practicable to mitigate them (Regulation 12(2)(a) and (b)), and, as an employer, to make a suitable and sufficient assessment of the risks to our employees and to others affected by our work and, because we employ five or more people, to record its significant findings (regulation 3 of the Management of Health and Safety at Work Regulations 1999)."
+        },
+        {
+          "p": "Our policy is that the Directors set how much risk we accept and decide on our most serious risks, the Nominated Individual leads risk management on their behalf, and every branch uses one scoring method and one register format, so that the Directors see one consistent, evidence-based picture of risk across {{organisation}}."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that:"
+        },
+        {
+          "bullets": [
+            "organisational risks are identified early, from every source of information we hold;",
+            "every branch scores risk in the same way, using the same likelihood and severity scale as our individual risk assessments;",
+            "every significant risk has one owner, checked controls, actions with deadlines and a target score within our risk appetite;",
+            "risks reach the Nominated Individual and the Directors at fixed thresholds and within fixed times; and",
+            "we can show CQC, commissioners and insurers how we understand and control risk, including in any report CQC requests under Regulation 17(3)."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to {{organisation}} as a whole, every branch and service, and everyone who raises, owns or acts on risk, from the Directors to Office staff. It covers organisational risks to the quality and safety of care, the workforce, finances and contracts, information and IT, compliance, our branch offices, equipment we supply and suppliers, continuity of service and reputation, and the risks of changes we plan."
+        },
+        {
+          "p": "Other documents own these subjects, and feed this policy when their risks become organisational: risk assessments for each person and their home, general risk assessments and staff individual risk assessments (Risk Assessment and Home Environment Risk Assessment Procedure, under the Health and Safety Policy); risks a person chooses to take in their own life (Positive Risk-Taking Policy); recording and investigating incidents (Incident Reporting, Investigation and Learning Policy); audits (Quality Audit and Monitoring Procedure); business continuity plans (Business Continuity and Emergency Planning Policy); information security controls and the Data Security and Protection Toolkit (Information and Cyber Security Policy); and data protection impact assessments (Data Protection Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Organisational risk",
+                "Something that may happen and would affect the people we support, staff, the service or our legal compliance, arising from how we run a branch or the whole service rather than from one person's care or home."
+              ],
+              [
+                "Risk register",
+                "The record of organisational risks, kept in the governance records: a branch risk register for each branch and one organisation risk register."
+              ],
+              [
+                "Risk owner",
+                "The manager accountable for a risk and its controls: a Director, the Nominated Individual, a Registered Manager, the Deputy Manager or the HR Manager."
+              ],
+              [
+                "Control",
+                "Something already in place that reduces the likelihood or impact of a risk, such as a policy, a check, training, equipment, a contract term or insurance."
+              ],
+              [
+                "Assurance",
+                "Evidence that a control works, such as an audit result, a dashboard indicator, a spot check or an independent review."
+              ],
+              [
+                "Inherent score",
+                "The score the risk would have if none of its controls were in place."
+              ],
+              [
+                "Current score",
+                "The score with the controls working as they actually do today, judged from evidence. It is the residual risk, and it decides escalation and review."
+              ],
+              [
+                "Target score",
+                "The score the risk will have once the planned actions are complete. It must be within our risk appetite, unless the Directors have accepted the risk above appetite, when it is the score they accepted."
+              ],
+              [
+                "Risk appetite",
+                "The level of risk the Directors are prepared to accept in each category, expressed as the highest target score allowed."
+              ],
+              [
+                "Standing risk",
+                "A risk held on the organisation risk register at all times because of its potential impact."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors hold overall accountability for risk management. They approve this policy, the risk appetite statement and the standing risks, review the organisation risk register every quarter, and decide on every Very high risk and every risk proposed for acceptance above appetite. They provide the resources needed to bring risks within appetite or, when that is not possible, change or stop the activity, including declining or renegotiating a package or contract that cannot be delivered safely."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual leads risk management on the Directors' behalf: keeping the organisation risk register and appointing the owner of each organisation risk, challenging each branch risk register every month, escalating to the Directors as this policy sets out, presenting the quarterly horizon scan, approving change risk assessments, reviewing our insurance cover against the organisation register before each renewal, and testing the register in the annual governance review."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "Each branch's Registered Manager keeps the branch risk register and owns most of its operational risks. They assess every risk raised by staff, add the risks this policy requires, appoint a risk owner for each branch risk, escalate to the Nominated Individual within the times in this policy, and enter on the branch risk register every High or Very high residual risk in a general risk assessment. When the Registered Manager is absent, the Deputy Manager carries out these duties, as the Registered Manager Role and Absence Cover Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager and HR Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager produces the monthly risk register report with the quality dashboard, checks the evidence before a risk action owned by someone else is closed, and owns the risks the Registered Manager assigns. The HR Manager owns workforce risks such as recruitment, retention and training compliance, supports the Nominated Individual on sponsor licence risks where we sponsor workers, and provides the workforce figures that show whether controls work."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors and On-call Managers",
+          "blocks": [
+            {
+              "p": "They often see risks first, such as runs that cannot be covered or leave too little travel time, double-handed visits short of a second worker, repeated no-access visits or key safe failures, delays from the community equipment service or pharmacy, and gaps in care records. They raise these with the Registered Manager and carry out the controls and actions assigned to them. Out of hours, an On-call Manager who identifies a risk that could be Very high escalates it under the immediate escalation arrangements in the Governance and Quality Assurance Policy (if the Nominated Individual cannot be reached within 1 hour, the Director named to act for them is told) and includes it in the handover to the Registered Manager or Deputy Manager by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "All staff",
+          "blocks": [
+            {
+              "p": "Everyone who works for us raises any risk they notice with their manager, at supervision, at a team meeting or under the Whistleblowing (Speaking Up) Policy. A care worker who finds a danger to the person or to themselves during a visit phones the office (the On-call Manager out of hours) before leaving, or as soon as they are safely outside if the danger is serious and imminent, under the Risk Assessment and Home Environment Risk Assessment Procedure; that danger is managed in the person's risk assessments and the incident log. A problem that keeps affecting visits or several people, such as the CareFlow app or work phone failing during visits, is an organisational risk and is raised as set out under Raising a risk. Nobody is criticised for raising a risk in good faith, even when it turns out to be already controlled."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Identifying risks",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Sources of risk information",
+          "blocks": [
+            {
+              "p": "Risk owners and the Registered Manager look for new and changing risks in:"
+            },
+            {
+              "bullets": [
+                "incidents, near misses and hazard reports in the incident log, and their trends;",
+                "safeguarding concerns, complaints, compliments and feedback from people we support, families and informal carers, staff, and community professionals such as GPs, district nurses, community pharmacies and social workers;",
+                "visit delivery: missed, late and short visits and check-in/check-out compliance from electronic call monitoring, runs without enough travel time, double-handed visits covered by one worker, and no-reply or no-access visits;",
+                "access to people's homes: lost keys, key safe codes that may be known to someone not entitled to them, and key safe failures (Key Holding, Key Safes and Access to People's Homes Procedure);",
+                "audit results, spot checks, the monthly quality dashboard and its escalations;",
+                "staffing and recruitment data: vacancies, sickness, turnover, agency use, training and supervision compliance, and visa expiry dates of sponsored workers;",
+                "finance and contracts: fee rates against cost increases such as each April's National Living Wage rise, cash flow, contract renewal and re-tender dates, short-notice hospital discharge starts, packages suspended or handed back, and how much of our work depends on one commissioner;",
+                "IT, cyber and data: CareFlow, phone and electronic call monitoring outages, personal data breaches, supplier contracts and the result of the Data Security and Protection Toolkit we publish in each toolkit year (1 July to 30 June);",
+                "CQC assessments and framework changes, commissioners' contract monitoring, safety alerts and changes in the law;",
+                "severe weather, infectious disease, fuel or transport disruption and changes in the local care market; and",
+                "the independent quality review, the independent health and safety audit and the Nominated Individual's branch visits."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Events that always go on the risk register",
+          "blocks": [
+            {
+              "p": "The Registered Manager, or the Nominated Individual for an organisation risk, adds or updates a risk within 5 working days of any of these events, and the same working day where the risk could be High or Very high:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Event",
+                  "Set by"
+                ],
+                "rows": [
+                  [
+                    "A review of any policy, procedure, protocol or guideline more than 1 month overdue",
+                    "Policy Management and Document Control Policy"
+                  ],
+                  [
+                    "An improvement action more than 3 months overdue, or any overdue action addressing a risk to safety or a breach of the regulations",
+                    "Governance and Quality Assurance Policy"
+                  ],
+                  [
+                    "An audit Red at its re-audit",
+                    "Quality Audit and Monitoring Procedure"
+                  ],
+                  [
+                    "A care plan review more than 3 months overdue",
+                    "Care Plan Review Procedure"
+                  ],
+                  [
+                    "New packages paused because the rota cannot safely cover existing care, or a dashboard indicator escalated to the Nominated Individual for 2 consecutive months",
+                    "This policy, applying the Governance and Quality Assurance Policy"
+                  ],
+                  [
+                    "A CQC rating below Good, warning notice or other enforcement step; a commissioner's formal quality concern, suspension of new work, or default or termination notice; an HSE or local authority enforcement notice",
+                    "This policy; also the Inspection Readiness and Working with Regulators Guideline and the RIDDOR Reporting Procedure"
+                  ],
+                  [
+                    "Business continuity arrangements activated; a personal data breach reported to the Information Commission (formerly the ICO); a cyber incident affecting CareFlow",
+                    "This policy; also the Business Continuity and Emergency Planning Policy, the Personal Data Breach Procedure and the Information and Cyber Security Policy"
+                  ],
+                  [
+                    "Notice, re-tender or non-renewal of a contract worth 10% or more of annual turnover, or a fee rate settlement below the increase in our pay costs",
+                    "This policy"
+                  ],
+                  [
+                    "The Registered Manager gives notice or is expected to be absent for 28 days or more; failure of a key supplier such as CareFlow, telephony, an agency or a protective equipment supplier; a Home Office compliance visit or other sponsor licence concern",
+                    "This policy; also the Registered Manager Role and Absence Cover Policy"
+                  ],
+                  [
+                    "Three or more people in a branch with the same High or Very high residual risk arising from our service rather than their own choices, such as a shortage of double-up capacity",
+                    "This policy"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Other documents add further triggers within their own subjects, such as a supplier holding care records that has not published Data Security and Protection Toolkit Standards Met (Information and Cyber Security Policy); these apply as well, within the same timescales unless that document sets a shorter one."
+            }
+          ]
+        },
+        {
+          "heading": "Raising a risk",
+          "blocks": [
+            {
+              "steps": [
+                "The member of staff tells the Registered Manager or Deputy Manager, by phone where the risk is urgent, or the On-call Manager out of hours. A care worker may instead tell their Care Coordinator or Field Care Supervisor, who passes it to the Registered Manager or Deputy Manager the same working day.",
+                "The Registered Manager assesses the risk within 5 working days, or the same working day where it could be High or Very high, scoring it as this policy sets out.",
+                "The Registered Manager either adds it to the branch risk register with an owner and a review date, links it to an existing risk, or records in the governance records why it is not an organisational risk, for example because it belongs in a person's risk assessment.",
+                "The Registered Manager tells the person who raised it what was decided, and why, within 2 working days of the assessment."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Horizon scanning and planned change",
+          "blocks": [
+            {
+              "p": "At each quarterly Directors' governance meeting the Nominated Individual presents a horizon scan of changes expected in the next 12 months in law and regulation, CQC's assessment framework, commissioners' plans and fees, the workforce market, immigration rules and technology. Each change likely to affect us becomes a new or updated risk."
+            },
+            {
+              "p": "Before the Directors decide on a new contract or tender, a new type of service, a new branch or area, an office move, a new or replacement IT system or a new supplier holding personal data, the Registered Manager of the branch affected, or the Nominated Individual for a change affecting more than one branch, completes a change risk assessment in the governance records, recording the risks of the change, their scores and controls, and any risk that would join the register. The Nominated Individual approves it, or a Director does where the Nominated Individual wrote it, and it goes to the Directors with the papers for their decision. For a new contract or block of work it sits alongside the Registered Manager's written confirmation that the work can be staffed safely, which the Governance and Quality Assurance Policy requires. Where the Data Protection Policy requires a data protection impact assessment, such as for a new IT system, a new supplier holding health data or new monitoring technology, it is completed as well and goes to the Directors with the change risk assessment."
+            }
+          ]
+        },
+        {
+          "heading": "Standing risks",
+          "blocks": [
+            {
+              "p": "The organisation risk register always holds these risks, each with its owner, and each is reviewed at least every 6 months even when its current score is Low:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Standing risk",
+                  "Usual owner"
+                ],
+                "rows": [
+                  [
+                    "Not enough suitable staff to deliver planned visits safely",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Missed or late visits causing harm, including to people with time-sensitive medicines and when care workers cannot get into the person's home",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Abuse or neglect not recognised, reported or acted on",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Serious injury, assault or ill health of staff working alone in people's homes, including from violence, moving and handling and travel",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Medicines errors causing harm",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Someone unsuitable working with people we support because of a recruitment or vetting failure",
+                    "HR Manager"
+                  ],
+                  [
+                    "Loss of CareFlow, phones or electronic call monitoring, including from a cyber attack",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "A personal data breach",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "Financial viability, including fee rates below cost increases and cash flow",
+                    "A Director"
+                  ],
+                  [
+                    "Loss of, or over-dependence on, a major contract or commissioner",
+                    "A Director"
+                  ],
+                  [
+                    "Loss of the Registered Manager or another key leader without effective cover",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "Failure to meet the regulations, leading to a rating below Good or enforcement",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "Severe weather, an infectious disease outbreak or another event disrupting the service",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Fraud, bribery or financial abuse by staff",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "Breach of sponsor duties, where we sponsor workers",
+                    "Nominated Individual, as Authorising Officer"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing and scoring risk",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Describing a risk",
+          "blocks": [
+            {
+              "p": "Each risk is written as a cause, an event and a consequence, so that controls can target both. For example: because rural runs depend on a few drivers (cause), visits may be missed in snow or ice (event), leaving people without essential care, food or medicines (consequence). A risk written only as a topic, such as staffing, is not accepted onto the register."
+            }
+          ]
+        },
+        {
+          "heading": "Likelihood",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Score",
+                  "Likelihood",
+                  "Meaning over the next 12 months"
+                ],
+                "rows": [
+                  [
+                    "1",
+                    "Rare",
+                    "Less than a 5% chance; could happen only in exceptional circumstances"
+                  ],
+                  [
+                    "2",
+                    "Unlikely",
+                    "A 5 to 25% chance; not expected, but it has happened elsewhere in the sector"
+                  ],
+                  [
+                    "3",
+                    "Possible",
+                    "A 26 to 50% chance; it could happen this year, or it has happened to us before"
+                  ],
+                  [
+                    "4",
+                    "Likely",
+                    "A 51 to 80% chance; expected this year, or it happened to us more than once in the last 12 months"
+                  ],
+                  [
+                    "5",
+                    "Almost certain",
+                    "More than 80% chance, or it is happening now"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Impact",
+          "blocks": [
+            {
+              "p": "The risk owner scores impact in every column that applies and uses the highest. The harm column uses the same severity scale as the Risk Assessment and Home Environment Risk Assessment Procedure, so that the register and people's risk assessments can be compared."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Score",
+                  "Harm to people we support or staff",
+                  "Service delivery",
+                  "Compliance and reputation",
+                  "Financial"
+                ],
+                "rows": [
+                  [
+                    "1 Minimal",
+                    "No injury",
+                    "No effect on visits",
+                    "No breach and no outside interest",
+                    "Loss or cost below 0.5% of annual turnover"
+                  ],
+                  [
+                    "2 Minor",
+                    "Minor injury treated with first aid, or short-lived distress",
+                    "A few visits late or rearranged, none missed",
+                    "A shortfall found by our own checks and put right quickly; a single complaint",
+                    "0.5% to 1% of annual turnover"
+                  ],
+                  [
+                    "3 Moderate",
+                    "Injury or harm needing medical treatment, or up to 7 days off work",
+                    "Missed visits for one or two people, or one branch disrupted for up to 24 hours",
+                    "A breach of a regulation or contract requirement; a commissioner's improvement requirement; local media interest or several complaints on one theme",
+                    "1% to 2.5% of annual turnover"
+                  ],
+                  [
+                    "4 Major",
+                    "Fracture, hospital admission or more than 7 days off work; abuse or neglect causing harm",
+                    "Visits for many people disrupted for more than 24 hours, or business continuity arrangements activated",
+                    "A CQC rating of Requires improvement, a warning notice or enforcement notice, a reportable personal data breach, or a commissioner suspending new work; regional media",
+                    "2.5% to 5% of annual turnover"
+                  ],
+                  [
+                    "5 Catastrophic",
+                    "Death or permanent disability",
+                    "Care in a branch cannot be delivered safely for more than 48 hours",
+                    "A CQC rating of Inadequate, conditions on or cancellation of our registration, prosecution or contract termination; national media",
+                    "More than 5% of annual turnover, or a threat to our ability to continue"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Score and bands",
+          "blocks": [
+            {
+              "p": "Score = likelihood x impact. The bands are the same as for individual risk assessments: Low 1 to 4, Medium 5 to 9, High 10 to 15, Very high 16 to 25. Every risk records three scores: the inherent score, the current score and the target score. The risk owner records the evidence for the current score, such as incident numbers, audit results or dashboard figures; a current score with no evidence is challenged at the monthly meeting. Where owners disagree about a score, the Nominated Individual decides."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Risk appetite",
+      "blocks": [
+        {
+          "p": "The Directors' risk appetite statement is: we accept very little risk to the safety of the people we support and our staff, or to our compliance with the law; we accept a cautious level of risk in running and growing the business; and we are open to well-managed risk when trying new ways of working that should improve people's care, provided safety and compliance stay within their own appetite. A person's own informed choice to take a risk in their life is not counted against our appetite; it is managed under the Positive Risk-Taking Policy."
+        },
+        {
+          "table": {
+            "columns": [
+              "Category",
+              "Appetite",
+              "Highest target score"
+            ],
+            "rows": [
+              [
+                "Safety and safeguarding of the people we support",
+                "Averse",
+                "6"
+              ],
+              [
+                "Health, safety and wellbeing of staff",
+                "Averse",
+                "6"
+              ],
+              [
+                "Legal and regulatory compliance, including CQC, health and safety, data protection, employment and immigration law",
+                "Averse",
+                "6"
+              ],
+              [
+                "Information and cyber security",
+                "Cautious",
+                "8"
+              ],
+              [
+                "Quality of care and people's experience",
+                "Cautious",
+                "8"
+              ],
+              [
+                "Workforce and capacity",
+                "Cautious",
+                "9"
+              ],
+              [
+                "Financial sustainability, contracts and reputation",
+                "Cautious",
+                "9"
+              ],
+              [
+                "Innovation, technology and growth",
+                "Open",
+                "12"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Each risk is placed in the category that best matches its consequence; where it fits more than one, the lowest appetite applies. A risk within appetite may be accepted by the role shown in the escalation table. A risk above appetite has actions to reach its target score. Where the actions cannot bring a risk within appetite, only the Directors may accept it, recording their reasons in their minutes and reviewing it at every Directors' governance meeting. A Very high risk to the safety of the people we support or our staff is never accepted: if actions have not brought it below 16 within 1 month, the Directors decide how the activity will change or stop."
+        }
+      ]
+    },
+    {
+      "heading": "Controlling risk",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Choosing a response",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Response",
+                  "When we use it"
+                ],
+                "rows": [
+                  [
+                    "Treat",
+                    "Add or strengthen controls to reduce likelihood or impact. Our usual response."
+                  ],
+                  [
+                    "Tolerate",
+                    "Accept the current score, within the authority limits in this policy, because it is within appetite or further control would cost more than the benefit."
+                  ],
+                  [
+                    "Transfer",
+                    "Share the financial impact through insurance or a contract term. This never transfers our legal responsibility for safe care, so the risk stays on the register."
+                  ],
+                  [
+                    "Terminate",
+                    "Stop or change the activity, such as declining a package, handing a package back under the Visit Cancellations and Refusals of Care Procedure, withdrawing from an area or handing back a contract with notice agreed with the commissioner for the safe transfer of people's care."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Controls and actions",
+          "blocks": [
+            {
+              "p": "For each control the register records what it is, who operates it, the source of assurance and whether it is effective, partly effective or not effective, judged from that assurance at each review. A control with no assurance is treated as partly effective at best."
+            },
+            {
+              "p": "Each further action has one owner, a deadline, a status and the evidence of completion. Deadlines follow the Governance and Quality Assurance Policy: no more than 1 month where the action addresses a risk to safety or a breach of the regulations, and no more than 3 months otherwise unless the Directors agree longer. The Registered Manager may extend a deadline once, by up to 1 month, recording why. An action already in the service improvement plan is linked to the risk by its reference, not copied. The Deputy Manager, or the Nominated Individual for the Deputy Manager's own actions, checks the evidence before an action is closed, and the risk owner then re-scores the risk."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The risk register",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Branch and organisation registers",
+          "blocks": [
+            {
+              "p": "Each branch risk register holds the risks to that branch's service. The organisation risk register holds the standing risks, risks that affect more than one branch or the whole organisation, and every branch risk escalated to it. Both are kept in the governance records. Risk references are RR, then the branch short code or ORG, then a number that is never reused. The register never names people we support or staff: it uses CareFlow reference numbers."
+            },
+            {
+              "p": "The Nominated Individual moves a branch risk onto the organisation risk register within 2 working days of learning that its current score is High or Very high, it affects more than one branch, or it needs a Directors' decision or resources beyond the Registered Manager's authority. The branch entry stays, linked to the organisation entry, and the risk keeps one owner."
+            }
+          ]
+        },
+        {
+          "heading": "What each entry records",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Field",
+                  "What is recorded"
+                ],
+                "rows": [
+                  [
+                    "Identity",
+                    "Reference, title, cause, event and consequence, category, branch or organisation level"
+                  ],
+                  [
+                    "Origin",
+                    "Date raised, who raised it, and the source, such as an incident, audit or horizon scan, with its CareFlow reference"
+                  ],
+                  [
+                    "Ownership",
+                    "Risk owner, and the owner of each control and action"
+                  ],
+                  [
+                    "Scores",
+                    "Inherent, current and target scores, each with likelihood and impact, the evidence for the current score and the date the target is expected to be reached"
+                  ],
+                  [
+                    "Controls",
+                    "Each control, its assurance and its effectiveness"
+                  ],
+                  [
+                    "Response and actions",
+                    "Treat, tolerate, transfer or terminate; each action with owner, deadline, status and evidence"
+                  ],
+                  [
+                    "Appetite",
+                    "Whether the current score is within appetite, and any Directors' decision to accept it, with the minute reference"
+                  ],
+                  [
+                    "Review",
+                    "Last and next review dates, and what changed at each review and why"
+                  ],
+                  [
+                    "Closure",
+                    "Date, reason and who approved it"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Changing and closing risks",
+          "blocks": [
+            {
+              "p": "Every change of score records the date, who made it, the new scores and the evidence, and the earlier entries are never overwritten. A risk is closed when its cause has gone, such as a contract that has ended, or when its current score has been at or below its target and within appetite at reviews spanning at least 3 months. Closure is never approved by the risk owner: the Registered Manager approves closure of a branch risk owned by someone else, the Nominated Individual of a branch risk the Registered Manager owns and of an organisation risk, and a Director of a risk the Nominated Individual owns; each closure is reported at the next monthly meeting, and the closure of any risk that was High or Very high is reported to the Directors. A closed risk stays visible with its full history and is reopened if it returns. Standing risks are never closed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Escalation and review",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Escalation by current score",
+          "blocks": [
+            {
+              "p": "The rules apply from the moment a risk is first scored in a band, or its score rises into it."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Current score",
+                  "Who is told, and when",
+                  "Action plan",
+                  "Reviewed by the owner",
+                  "Who may accept the risk"
+                ],
+                "rows": [
+                  [
+                    "Very high, 16 to 25",
+                    "The Registered Manager, or the owner of an organisation risk, tells the Nominated Individual the same day; the Nominated Individual tells the Directors within 1 working day, and the Directors agree the response within 5 working days, at a meeting or individually in writing",
+                    "Interim controls the same day; full plan within 2 working days",
+                    "Weekly, and at the weekly management meeting of each branch affected",
+                    "The Directors only, and never for safety of people or staff"
+                  ],
+                  [
+                    "High, 10 to 15",
+                    "The Registered Manager tells the Nominated Individual within 2 working days of the score, and the Nominated Individual moves the risk to the organisation risk register within 2 working days of being told",
+                    "Within 5 working days",
+                    "Monthly",
+                    "The Directors where above appetite; otherwise the Nominated Individual"
+                  ],
+                  [
+                    "Medium, 5 to 9",
+                    "Recorded on its register and shown in the monthly risk register report",
+                    "Within 10 working days where above appetite",
+                    "Every 3 months",
+                    "The Registered Manager where within appetite; otherwise the Directors"
+                  ],
+                  [
+                    "Low, 1 to 4",
+                    "Recorded on the branch risk register",
+                    "Not needed",
+                    "Every 6 months",
+                    "The risk owner"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "An event in the immediate escalation table of the Governance and Quality Assurance Policy is escalated within the time that policy sets, including out of hours, and the risk is then scored under this policy."
+            }
+          ]
+        },
+        {
+          "heading": "Reviews triggered by events",
+          "blocks": [
+            {
+              "p": "The risk owner reviews a risk within 5 working days, and the same working day where it may now be Very high, after a related incident, complaint, safeguarding concern, Red audit result, failed control, change in law or guidance, inspection finding, or the stand-down of business continuity arrangements. A review records whether the controls worked, the new scores and any new actions."
+            }
+          ]
+        },
+        {
+          "heading": "Reporting cycle",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "When",
+                  "What happens",
+                  "Who"
+                ],
+                "rows": [
+                  [
+                    "Weekly",
+                    "The weekly management meeting reviews new branch risks and every Very high risk",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Monthly",
+                    "The risk register report, produced with the quality dashboard by the 7th working day, shows new, changed and closed risks, every High and Very high risk with its actions, risks above appetite, and overdue reviews and actions; it is discussed at the Monthly Quality and Governance Meeting",
+                    "Deputy Manager; Nominated Individual chairs"
+                  ],
+                  [
+                    "Quarterly",
+                    "The Directors' governance meeting reviews the whole organisation risk register, the risk part of the quarterly governance report, the horizon scan, any risk proposed for acceptance above appetite, and at least one standing risk in depth, presented by its owner and chosen by score and by how long since it was last examined",
+                    "Nominated Individual; Directors"
+                  ],
+                  [
+                    "Annually",
+                    "At the meeting held by mid-May, the Directors approve the risk appetite statement and the standing risks, and receive the Nominated Individual's register tests from the annual governance review",
+                    "Directors; Nominated Individual"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The risk register is one of the sources the Registered Manager uses when drafting any report CQC requests under Regulation 17(3), as the Governance and Quality Assurance Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Risks to the continuation of the service",
+          "blocks": [
+            {
+              "p": "The law places a temporary duty on each local authority to meet the needs of the people a registered provider was supporting in its area if the provider becomes unable to carry on because of business failure (Care Act 2014, section 48), and requires us to give CQC written notice, as soon as it is reasonably practicable, when a receiver, manager, liquidator or provisional liquidator is appointed, or proposed to be appointed, for {{organisation}} (regulation 15(1)(f) of the Care Quality Commission (Registration) Regulations 2009). Our policy is that when the Directors judge there is a real possibility that we will be unable to continue a contract or the service, the Nominated Individual tells the commissioners concerned, and the adult social care department of each local authority where we provide care, in writing within 2 working days of that judgement, so that the care of everyone we support, including people who pay for their own care, can be protected. The Nominated Individual gives CQC notice as soon as the appointment of a receiver, manager, liquidator or provisional liquidator is proposed, and in any case within 1 working day of an appointment. The Registered Manager tells people we support, including those who pay for their own care or use direct payments, in writing in their accessible format, and staff in writing, at the time the Directors agree with the commissioners and always before any change to their care or work. Any change to our registration, such as closing a branch, follows the Statement of Purpose and Registration Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "The risk registers, every version of each entry, change risk assessments, horizon scans, risk register reports and the Directors' decisions on risk are kept in the governance records for the life of {{organisation}} plus 6 years. Access follows the Governance and Quality Assurance Policy: only the Directors, the Nominated Individual, the Registered Manager, the Deputy Manager and the HR Manager can open the governance records. A Care Coordinator or Field Care Supervisor who owns a control or action receives an extract of that risk from the Registered Manager."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "Each Director is briefed by the Nominated Individual on risk appetite, the register and their decisions on Very high risks within 1 month of appointment, as part of their governance briefing, and at the annual governance update.",
+            "Registered Managers, the Deputy Manager and the HR Manager are briefed by the Nominated Individual on this policy and the scoring method before they first score or own a risk, after each new major version of this policy, and at least every 3 years.",
+            "Care Coordinators, Field Care Supervisors and On-call Managers learn, when they start the role, how an organisational risk differs from a person's risk assessment and how to raise one; On-call Managers are also taken through the escalation table in this policy before their first on-call shift.",
+            "Each April, every risk owner scores the same three anonymised scenarios. Anyone whose score differs by more than one band from the score agreed by the Nominated Individual discusses it with the Nominated Individual and is re-briefed within 1 month.",
+            "Briefings and calibration results are recorded in the training and compliance records."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Risk reviews done by their due date, target 100%",
+                "Monthly",
+                "Deputy Manager, in the risk register report",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Every High and Very high risk escalated on time, with an action plan and owner, target 100%",
+                "Monthly",
+                "Nominated Individual",
+                "Directors quarterly"
+              ],
+              [
+                "Risk actions completed on time, target at least 90%",
+                "Monthly",
+                "Registered Manager",
+                "Monthly meeting; Directors quarterly"
+              ],
+              [
+                "Five organisation risks and five risks from each branch register tested: controls in place and working, scores supported by evidence; and whether any serious incident, complaint, inspection finding, financial loss or service failure in the year was missing from the register or scored too low",
+                "Every 12 months, in the annual governance review",
+                "Nominated Individual",
+                "Directors at the meeting held by mid-May"
+              ],
+              [
+                "Risk appetite statement, standing risks and scoring method",
+                "Every 12 months",
+                "Directors",
+                "Directors' minutes"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall produces an action with one owner and a deadline in the service improvement plan, checked at the next monthly meeting."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or guidance, a serious incident or failure that the register did not foresee, a CQC rating below Good or any enforcement action, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

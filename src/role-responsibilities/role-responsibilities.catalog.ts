@@ -309,6 +309,15 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
     act: ['surveys.responses.record'],
   },
   {
+    key: 'cqc_evidence',
+    label: 'CQC evidence',
+    description:
+      'Keep evidence for CQC by quality statement: add evidence and files, record "You said, we did", add survey results and export evidence packs for inspection.',
+    // Export stays with view so a CQC Inspector role keeps it when this job is given to others.
+    view: ['cqc_evidence.read', 'cqc_evidence.export'],
+    act: ['cqc_evidence.manage'],
+  },
+  {
     key: 'specialist_pathways',
     label: 'Specialist care pathways',
     description:
@@ -331,6 +340,14 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
       'Capture care enquiries, move them through the pipeline and convert them into service users.',
     view: ['crm.read'],
     act: ['crm.manage'],
+  },
+  {
+    key: 'supervision',
+    label: 'Supervision & appraisals',
+    description:
+      'Schedule and run carer supervisions, spot checks and appraisals, agree actions and sign records (CQC Reg 18).',
+    view: ['supervision.read'],
+    act: ['supervision.manage'],
   },
 ];
 

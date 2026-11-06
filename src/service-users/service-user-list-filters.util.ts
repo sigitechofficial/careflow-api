@@ -118,10 +118,12 @@ export function mergeDateOfBirthFilter(
 export function carePlanListStatusWhere(
   status: CarePlanListStatusFilter,
   today: Date = new Date(),
+  /** Settings → Reviews & reminders `carePlanListDueWithinDays`. */
+  withinDays: number = CARE_PLAN_LIST_DUE_WITHIN_DAYS,
 ): Prisma.ServiceUserWhereInput {
   const day = utcCalendarDay(today);
   const published = { status: ServiceUserCarePlanInstanceStatus.PUBLISHED };
-  const weekEnd = addUtcDays(day, CARE_PLAN_LIST_DUE_WITHIN_DAYS);
+  const weekEnd = addUtcDays(day, withinDays);
   weekEnd.setUTCHours(23, 59, 59, 999);
   const dayStart = new Date(day);
   dayStart.setUTCHours(0, 0, 0, 0);

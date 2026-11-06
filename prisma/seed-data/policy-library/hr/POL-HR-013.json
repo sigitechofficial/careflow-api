@@ -1,0 +1,827 @@
+{
+  "reference": "POL-HR-013",
+  "revision": 1,
+  "title": "Bullying, Harassment and Sexual Harassment Policy",
+  "documentType": "POLICY",
+  "summary": "How we prevent and deal with bullying, harassment and sexual harassment of anyone who works for us, and how we meet the legal duty to take all reasonable steps to prevent sexual harassment and harassment by third parties. It sets out the risk assessment and preventive steps, what to do at a visit, the reporting routes including anonymous reporting, informal resolution, formal complaints and investigation, protection and support, outcomes, appeals and protection from victimisation. For all employees and the managers who handle reports.",
+  "keyPoints": {
+    "intro": "You have the right to work without being bullied, harassed or sexually harassed by a colleague, a manager or anyone you meet through work. This is what you must do, and what we will do when something happens.",
+    "points": [
+      "Never bully, harass or sexually harass anyone, at a visit, in a car between visits, in the office, at training, at work social events or online. Sexual comments, jokes, messages, images or touching, and remarks about who someone is, are misconduct.",
+      "If a colleague harasses, threatens or touches you at a visit or in a car, call 999 if anyone is in danger, make the person safe, step away, and phone the office or On-call Manager before you continue or start your next visit.",
+      "Report bullying or harassment to your supervisor, a Care Coordinator, the HR Manager or any manager, or to the Nominated Individual without giving your name. If it happened at a visit or while travelling, also record it in the incident log before your shift ends.",
+      "Report it even if it happened to someone else, seemed minor, or you felt at risk and nothing happened. The Registered Manager decides what happens within 2 working days.",
+      "After you report sexual harassment, violence or threats by a colleague, you will not be paired, rostered for shadowing or asked to share a car with them from your next visit. You will not lose hours.",
+      "You can ask for a concern to be settled informally or make a formal complaint in writing to the HR Manager. You get an acknowledgement within 2 working days, updates at least every 10 working days, a written outcome and a right of appeal.",
+      "You may bring a colleague or trade union representative to every meeting. Meetings are private, in paid time and never held in a person's home.",
+      "Nobody will treat you worse for reporting, supporting a colleague or giving evidence, even if the complaint is not upheld. Treating someone worse for this, or knowingly making a false complaint, is a disciplinary matter.",
+      "If a complaint is made about you, you will be told what it is and give your account before anything is decided. Do not contact the person who complained about it or discuss it with witnesses.",
+      "If you are a manager and see or hear of bullying or harassment, act even if nobody has complained, and tell the Registered Manager the same working day.",
+      "If a person we support, their family or a visitor harasses you, leave if you feel unsafe, phone the office or On-call Manager before you leave the area, and follow the Violence and Aggression Towards Staff Policy.",
+      "Free, confidential counselling through our employee assistance programme is open to everyone involved."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "RISK_ASSESSMENT",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-SG-010",
+    "POL-HS-004",
+    "POL-HR-012",
+    "POL-HR-009",
+    "POL-HR-008",
+    "POL-HR-018",
+    "POL-HR-017",
+    "POL-HS-015"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Equality Act 2010, section 26 (harassment related to a relevant protected characteristic, sexual harassment, and less favourable treatment for rejecting or submitting to sexual conduct; effect judged under subsection (4))",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/26"
+    },
+    {
+      "source": "Equality Act 2010, section 27 (victimisation; a false allegation is not protected only where made in bad faith)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/27"
+    },
+    {
+      "source": "Equality Act 2010, section 40, subsections (1) and (1A) to (1C) (employer must not harass employees or permit a third party to harass them; inserted by the Employment Rights Act 2025, section 21, in force 30 October 2026 under S.I. 2026/1065)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40"
+    },
+    {
+      "source": "Equality Act 2010, section 40A (duty to take all reasonable steps to prevent sexual harassment of employees; in force 26 October 2024, 'all' inserted from 30 October 2026 by the Employment Rights Act 2025, section 20)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40A"
+    },
+    {
+      "source": "Equality Act 2010, section 40B (power to specify steps that are reasonable to prevent sexual harassment; inserted by the Employment Rights Act 2025, section 22, from 30 October 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40B"
+    },
+    {
+      "source": "Equality Act 2010, section 109 (employer liable for employees' acts in the course of employment; all reasonable steps defence, subsection (4))",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/109"
+    },
+    {
+      "source": "Equality Act 2010, section 124A (compensation uplift of up to 25% where the section 40A duty was breached)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/124A"
+    },
+    {
+      "source": "Protection from Harassment Act 1997, section 7 (harassment includes alarming or distressing a person; a course of conduct means conduct on at least two occasions; conduct includes speech)",
+      "url": "https://www.legislation.gov.uk/ukpga/1997/40/section/7"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 43B(1)(da) (disclosure that sexual harassment has occurred, is occurring or is likely to occur; in force 6 April 2026 under S.I. 2026/323)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/43B"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 202A (terms preventing workers alleging or disclosing harassment or discrimination void; inserted by the Employment Rights Act 2025, section 24, in force for specified purposes from 6 January 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/202A"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18(2)(a) (staff receive appropriate support)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Acas Code of Practice on disciplinary and grievance procedures, paragraphs 32 to 45 (grievances, the right to be accompanied and appeals)",
+      "url": "https://www.acas.org.uk/acas-code-of-practice-on-disciplinary-and-grievance-procedures/html"
+    },
+    {
+      "source": "Acas, Preventing sexual harassment: steps for employers (updated 30 October 2026: all reasonable steps, risk assessment, third parties, reporting routes, anonymous reporting, training, records)",
+      "url": "https://www.acas.org.uk/sexual-harassment/steps-for-employers-to-prevent-sexual-harassment"
+    },
+    {
+      "source": "Acas, Bullying at work (what bullying is, upward bullying, and the employer's duty of care)",
+      "url": "https://www.acas.org.uk/bullying-at-work"
+    },
+    {
+      "source": "Acas, Employment Rights Act 2025: changes and dates (third-party harassment and all reasonable steps from 30 October 2026; confidentiality clauses from September 2027)",
+      "url": "https://www.acas.org.uk/employment-rights-act-2025"
+    },
+    {
+      "source": "Health and Safety Executive, Management Standards: Relationships (policies to prevent and resolve unacceptable behaviour, including bullying)",
+      "url": "https://www.hse.gov.uk/stress/standards/relationships.htm"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} does not accept bullying, harassment or sexual harassment of anyone who works for us. Our care workers work alone in people's homes, depend on Care Coordinators for their hours and runs, and are shadowed and assessed by senior colleagues they rarely see in person, which makes poor behaviour easier to hide and harder to report. Safe, kind care depends on a team that treats each other with respect."
+        },
+        {
+          "p": "{{organisation}} will take all reasonable steps to prevent bullying, harassment and sexual harassment of our employees, by colleagues and by the people we support, their families and visitors. We assess the risks and act on them, give every worker several safe ways to report, deal with every report promptly and fairly, protect and support the person affected, and act against anyone who bullies or harasses. We never ignore, play down or cover up a report, and nobody is treated worse for making one."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets out how we prevent bullying and harassment and how reports are made and handled fairly, promptly and without victimisation. It is our complaint procedure for bullying, harassment and sexual harassment by colleagues, managers, agency workers and contractors."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, Office staff, care staff, bank staff and apprentices. Agency workers, students, volunteers and contractors are protected by it and must follow it while they work with us."
+        },
+        {
+          "p": "It covers conduct connected with work wherever and whenever it happens: in a person's home, including double-handed visits and shadow shifts; travelling between visits; at the branch office, training and supervision; on calls with the office and the On-call Manager; at work social events we organise or fund; and online or by phone or message where it involves colleagues, at any time of day."
+        },
+        {
+          "p": "A former employee's complaint about harassment during their employment is investigated under this policy whenever it is raised if the person complained about still works for us. Otherwise the Registered Manager reviews it within 5 working days and records what action is possible."
+        },
+        {
+          "table": {
+            "columns": [
+              "Related matter",
+              "Document"
+            ],
+            "rows": [
+              [
+                "Abuse, harassment and violence towards staff by people we support, families, visitors and the public",
+                "Violence and Aggression Towards Staff Policy"
+              ],
+              [
+                "Sexual behaviour towards staff in people's homes",
+                "Sexual Safety Policy"
+              ],
+              [
+                "Discrimination at work other than harassment",
+                "Equality, Diversity and Inclusion Policy"
+              ],
+              [
+                "Abuse or harassment of a person we support by a member of staff",
+                "Managing Allegations Against Staff Procedure"
+              ],
+              [
+                "Other complaints about treatment at work",
+                "Grievance Policy and Procedure"
+              ],
+              [
+                "Action against an employee found to have bullied or harassed",
+                "Disciplinary Policy and Procedure"
+              ],
+              [
+                "Wrongdoing, risks or cover-ups",
+                "Whistleblowing (Speaking Up) Policy"
+              ],
+              [
+                "Domestic abuse involving an employee, including between colleagues",
+                "Domestic Abuse Policy"
+              ],
+              [
+                "Phones, messaging groups and social media",
+                "Mobile Phones and Social Media Policy"
+              ],
+              [
+                "Stress risk assessment and wellbeing",
+                "Work-Related Stress and Staff Wellbeing Policy"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Bullying",
+                "Offensive, intimidating, malicious or insulting behaviour, or an abuse or misuse of power, that undermines, humiliates or harms the person on the receiving end. It may be a single serious incident or a pattern, in person or online, and by anyone, including towards a manager (our definition, following Acas guidance)."
+              ],
+              [
+                "Harassment",
+                "Unwanted conduct related to age, disability, gender reassignment, race, religion or belief, sex or sexual orientation that has the purpose or effect of violating a person's dignity or creating an intimidating, hostile, degrading, humiliating or offensive environment for them (Equality Act 2010, section 26(1)). Our policy also treats unwanted conduct related to marriage or civil partnership or to pregnancy or maternity as harassment."
+              ],
+              [
+                "Sexual harassment",
+                "Unwanted conduct of a sexual nature with that purpose or effect (section 26(2)), and treating someone less favourably because they rejected or submitted to sexual conduct or conduct related to sex or gender reassignment (section 26(3))."
+              ],
+              [
+                "Third-party harassment",
+                "Harassment of an employee in the course of their work by anyone other than {{organisation}} and our employees, such as a person we support, a relative, a visitor, another organisation's staff or a member of the public."
+              ],
+              [
+                "Victimisation",
+                "Treating someone badly because they complained, supported a complaint, gave evidence or brought a claim about harassment or discrimination (section 27)."
+              ],
+              [
+                "Near miss",
+                "A situation in which a worker felt at risk of harassment although nothing happened."
+              ],
+              [
+                "Person affected",
+                "The person who experienced the behaviour, whether or not they made the report."
+              ],
+              [
+                "Working day",
+                "Monday to Friday, excluding bank holidays in England."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve and fund this policy, including the employee assistance programme. The Nominated Individual leads on preventing harassment: they approve the risk assessment every 12 months, receive anonymous reports, are told within 2 working days of every formal complaint, are told of any physical or sexual assault on staff as the Violence and Aggression Towards Staff Policy sets out (the same day for a sexual assault, at once if it is graded Critical), and report trends to the Directors quarterly."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy, is told of every report and makes the decisions this policy gives them, including route, protection, external reports, appointments and outcomes. The Deputy Manager acts when the Registered Manager is absent; where the Registered Manager is involved or complained about, the Nominated Individual acts."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager gives confidential advice to anyone thinking about reporting, receives formal complaints, sends every letter, tracks every timescale, takes advice from our retained employment law adviser on every formal complaint and keeps the complaint file. Where a report concerns the HR Manager, the Registered Manager does these tasks."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Managers",
+          "blocks": [
+            {
+              "p": "They separate the two people in the rota as Protection and support requires, never reduce anyone's hours because of a report, change the run of the person affected or a witness only as Protection and support allows, and never tell other staff the reason for a rota change. Out of hours the On-call Manager makes the immediate safety decisions."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and supervising Senior Care Workers",
+          "blocks": [
+            {
+              "p": "At every supervision they ask about unreported harassment, including by colleagues, as the Supervision, Spot Checks and Appraisal Policy requires."
+            }
+          ]
+        },
+        {
+          "heading": "Every manager",
+          "blocks": [
+            {
+              "p": "Every manager, including Care Coordinators and Field Care Supervisors, acts on bullying or harassment they see or hear about, even when nobody has complained: they stop it if it is happening in front of them and tell the Registered Manager the same working day. Ignoring it is a disciplinary matter."
+            }
+          ]
+        },
+        {
+          "heading": "Every employee",
+          "blocks": [
+            {
+              "p": "Every employee treats colleagues with respect, reports bullying and harassment they experience or witness, takes part honestly in investigations and keeps cases confidential."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What bullying and harassment look like",
+      "blocks": [
+        {
+          "p": "Harassment is judged by its effect as well as its intent. What matters is how the conduct was experienced and whether it was reasonable for it to have that effect, not whether it was meant as a joke (Equality Act 2010, section 26(4)). One serious incident can be enough."
+        },
+        {
+          "table": {
+            "columns": [
+              "Type",
+              "Examples in our work"
+            ],
+            "rows": [
+              [
+                "Bullying",
+                "Shouting at or belittling a care worker on the office or on-call phone; criticising someone in front of colleagues or in a staff messaging group; giving a worker the hardest runs or fewer hours as punishment or favouritism; a shadow lead or double-handed colleague who mocks, ignores or refuses to help; spreading rumours; threatening someone's job, probation or visa; persistently undermining a Care Coordinator or supervisor."
+              ],
+              [
+                "Harassment related to a protected characteristic",
+                "Mocking an accent or someone's English; nicknames or jokes about race, religion, age, disability or sexuality; remarks about a headscarf, prayer gaps or fasting; deliberately using a trans colleague's former name; telling others about a colleague's sexual orientation, health or gender history; offensive memes or videos in a staff chat group."
+              ],
+              [
+                "Sexual harassment",
+                "Comments about a colleague's body, clothes or sex life; sexual jokes or innuendo; staring or leering; sending sexual messages, images or videos; unwanted touching, hugging or kissing, including in a car between visits; repeated requests for a date after a refusal; offering better runs, hours or a good spot check result for a date or sexual favour, or treating someone worse because they refused."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Fair, respectful management is not bullying even when unwelcome: spot checks, honest feedback in supervision, action under the Capability and Performance Procedure or the Disciplinary Policy and Procedure, or refusing leave when visits cannot be covered. How it is done can still be bullying, for example criticism in front of others or a rule applied to one worker only."
+        },
+        {
+          "p": "The law requires us not to harass our employees and makes us liable for harassment by employees in the course of their work unless we took all reasonable steps to prevent it (Equality Act 2010, sections 40 and 109). Since 26 October 2024 we have had to take reasonable steps to prevent sexual harassment of our employees (section 40A), and since 30 October 2026 all reasonable steps. Since the same date we must not permit a third party to harass an employee in the course of their work, and we are liable where we failed to take all reasonable steps to prevent it (section 40(1A) to (1C)); this covers harassment related to a protected characteristic as well as sexual harassment. The Equality and Human Rights Commission enforces the section 40A duty, and a tribunal can increase sexual harassment compensation by up to 25% for a breach of it (section 124A). Regulations may specify steps that are reasonable (section 40B)."
+        },
+        {
+          "p": "A course of conduct, on at least two occasions, that alarms or distresses someone can also be harassment under the Protection from Harassment Act 1997. There is no specific law against bullying that is unrelated to a protected characteristic, but it breaches our Staff Code of Conduct and our duty of care to staff. Using this policy never affects anyone's right to contact Acas or claim at an employment tribunal."
+        }
+      ]
+    },
+    {
+      "heading": "Preventing bullying and harassment",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Harassment risk assessment",
+          "blocks": [
+            {
+              "p": "We use one organisation-wide harassment risk assessment, the sexual harassment risk assessment kept under the Sexual Safety Policy. It already covers third parties and, under the Equality, Diversity and Inclusion Policy, harassment related to any protected characteristic; under this policy it also covers bullying and harassment between colleagues. For colleagues it assesses at least:"
+            },
+            {
+              "bullets": [
+                "power over hours and runs held by Care Coordinators and On-call Managers, and over sign-off, probation and spot check results held by Field Care Supervisors, shadow leads and assessors;",
+                "workers at greater risk: new, young, agency and bank workers, sponsored workers who may fear for their visa, and staff who may be targeted because of a protected characteristic;",
+                "double-handed visits, shadow shifts and car sharing, where two colleagues are alone together;",
+                "evening, night and on-call contact;",
+                "staff messaging groups and social media;",
+                "work social events and training away from the branch office, especially where alcohol is served."
+              ]
+            },
+            {
+              "p": "For each risk the assessment lists every step considered, whether it is in place and, where a step was judged not reasonable, why. As well as the reviews the Sexual Safety Policy and the Equality, Diversity and Inclusion Policy require, it is reviewed within 1 month after any upheld formal complaint of bullying or harassment between colleagues and after every pattern review under Monitoring and review."
+            }
+          ]
+        },
+        {
+          "heading": "The steps we take",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Step",
+                  "How we do it"
+                ],
+                "rows": [
+                  [
+                    "Clear expectations",
+                    "Every employee acknowledges this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version. Each branch office noticeboard shows the reporting routes and the employee assistance programme number."
+                  ],
+                  [
+                    "Fair use of power",
+                    "Visits are allocated by the criteria in the Equality, Diversity and Inclusion Policy, with a written explanation within 5 working days for any worker who asks. Managers are appraised on how they treat their teams."
+                  ],
+                  [
+                    "Shadowing and double-handed visits",
+                    "A new worker may ask the Field Care Supervisor for a different shadow lead without giving a reason, arranged from the next shadow shift. Nobody is required to share a private car with a colleague. A request not to be paired with a particular colleague is met within 2 working days without loss of hours, and the Care Coordinator tells the Registered Manager the same working day if harassment may lie behind it."
+                  ],
+                  [
+                    "Messaging and social media",
+                    "We never run the service through messaging-app groups. Groups staff set up among themselves must follow the Mobile Phones and Social Media Policy. A manager who sees offensive content in any group or online removes it where they can, or asks for its removal, and reports it the same working day."
+                  ],
+                  [
+                    "Work social events",
+                    "Any event we organise or fund has a named manager present throughout who does not drink alcohol and makes sure everyone has a safe way home. Non-alcoholic drinks are always available and nobody is pressed to drink."
+                  ],
+                  [
+                    "Workers with less power",
+                    "At induction and at their first supervision, new, agency and sponsored workers are told how to report and that reporting never affects their hours, probation, contract or sponsorship."
+                  ],
+                  [
+                    "Listening",
+                    "The supervision question on unreported harassment, questions in the anonymous September staff survey and an exit questionnaire for every leaver, always offered with an anonymous link."
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting a concern",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "If it happens during a visit or while travelling",
+          "blocks": [
+            {
+              "p": "If a colleague harasses, threatens or touches you on a double-handed visit, a shadow shift or while travelling:"
+            },
+            {
+              "steps": [
+                "If you or anyone else is in danger, call 999.",
+                "Make the person we support safe. Finish a moving and handling manoeuvre already under way only if stopping would put them at risk, then step away from your colleague. Do not argue in front of the person, and never do a two-person task alone while you wait.",
+                "Phone the office, or the On-call Manager out of hours, and speak to a person before you continue the visit or start your next one. If nobody answers within 15 minutes, or your concern is about the Care Coordinator or On-call Manager on duty, phone the Registered Manager or Deputy Manager directly. You will not be asked to carry on working with the colleague if you do not feel safe. If you are driving, stop somewhere safe and public before you phone; if you are their passenger, ask to be let out there. The office arranges onward travel at our cost.",
+                "The Care Coordinator or On-call Manager decides at once how the visit is completed, normally by asking your colleague to leave and sending another worker if the task needs two, and makes sure the two of you do not work or travel together for the rest of the shift. If you have to leave first, check out in CareFlow; whoever leaves last secures the home and key safe.",
+                "Record what happened in the incident log before the end of your shift, with the words used. In the daily visit notes record only the care given and not given."
+              ]
+            },
+            {
+              "p": "After a sexual assault you decide whether to tell the police, and the office tells you how to reach the police and the nearest sexual assault referral centre, as the Sexual Safety Policy sets out. If you decide not to and others may be at risk, the Registered Manager gives the police the information without naming you, as the Violence and Aggression Towards Staff Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Ways to report",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Who",
+                  "When to use this route"
+                ],
+                "rows": [
+                  [
+                    "The colleague directly",
+                    "Only if you feel able, to say the behaviour is unwelcome. You never have to do this first."
+                  ],
+                  [
+                    "Your supervisor, a Care Coordinator, the Registered Manager, the Deputy Manager or any manager",
+                    "Any concern."
+                  ],
+                  [
+                    "The HR Manager",
+                    "Any concern, a confidential conversation about your options before you decide, or a formal complaint."
+                  ],
+                  [
+                    "The On-call Manager",
+                    "Out of hours, when you need protection before your next shift."
+                  ],
+                  [
+                    "The Nominated Individual",
+                    "A concern about the Registered Manager, Deputy Manager or HR Manager, or a report without your name. Their details are on the Local Safeguarding Contacts sheet and the branch office noticeboard."
+                  ],
+                  [
+                    "The chair of the Directors",
+                    "A concern about the Nominated Individual or a Director."
+                  ],
+                  [
+                    "The Whistleblowing (Speaking Up) Policy",
+                    "Wrongdoing such as a cover-up. Since 6 April 2026 a disclosure about sexual harassment can be a protected disclosure (Employment Rights Act 1996, section 43B(1)(da))."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "You may report something that happened to someone else, or a near miss. We act on witnesses' reports even when the person affected has not complained."
+            }
+          ]
+        },
+        {
+          "heading": "What happens to every report",
+          "blocks": [
+            {
+              "steps": [
+                "Whoever receives the report tells the Registered Manager the same working day, and at once by phone where it involves sexual assault, violence, threats or a risk to anyone. Out of hours the On-call Manager takes it, decides the immediate protection and hands over by 10am the next working day.",
+                "The Registered Manager makes sure an incident log entry exists the same working day. Entries under this policy are set to Highly Confidential, which CareFlow opens only to roles with that permission (the Registered Manager, Deputy Manager and Nominated Individual); the investigation lead is given what the investigation needs.",
+                "Within 2 working days, or the same day where sexual assault, violence or threats are reported, the Registered Manager, or a manager of the sex the person affected prefers where one is available, speaks with the person affected privately: listens, explains the options and the limits of confidentiality, agrees protection and offers support.",
+                "Within 2 working days of the report the Registered Manager decides the route, informal resolution or formal investigation, and records the reasons in the incident log entry. They decide the same working day whether a police report or a CQC notification under the Statutory Notifications to CQC Procedure is needed."
+              ]
+            },
+            {
+              "p": "We take account of what the person affected wants, but the Registered Manager starts a formal investigation without a complaint where the report involves sexual harassment involving touching or by a manager, sexual assault, violence or threats, serious or repeated harassment related to a protected characteristic, a second report about the same person within 12 months, or a risk to anyone else. The person affected is told why before it starts."
+            },
+            {
+              "p": "The Nominated Individual records an anonymous report in the incident log without the reporter's name and passes it to the Registered Manager within 1 working day, unless it concerns the Registered Manager, in which case the Nominated Individual acts on it. Within 5 working days the Registered Manager decides and records what action is possible, such as an unannounced spot check, a team briefing, a risk assessment review or an investigation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Protection and support",
+      "blocks": [
+        {
+          "p": "Protection starts as soon as a concern is reported and lasts as long as the person affected needs it, whatever the route:"
+        },
+        {
+          "bullets": [
+            "The Care Coordinator makes sure the two people are not paired on double-handed visits, shadow shifts, training or car shares, and that the person complained about does not supervise, spot check, appraise, assess or allocate the work of the person affected. This applies from the next visit where sexual harassment, violence or threats are alleged or the person affected says they fear the colleague, and otherwise within 2 working days. Neither loses hours, and the change falls on the person complained about unless the person affected asks otherwise.",
+            "The person complained about is told in writing not to contact the person affected about the concern or discuss it with witnesses. Suspension is decided only under the Disciplinary Policy and Procedure, which allows the On-call Manager to stop a worker out of hours, or the Managing Allegations Against Staff Procedure.",
+            "While a concern is open, and for 3 months after the outcome, any change to the run or hours of the person affected or a witness that they did not ask for is agreed in advance by the Registered Manager with the reason recorded in the staff record.",
+            "The person affected has a named contact, normally the HR Manager, who contacts them at least every 10 working days, and is offered the employee assistance programme and an occupational health referral, made within 5 working days of consent. Where they show signs of stress, the HR Manager or Registered Manager completes an individual stress risk assessment within 5 working days.",
+            "After a physical or sexual assault, or sexual harassment at a visit, the worker may stop for the rest of that day, with that day's rostered hours paid and a taxi home at our cost if they should not drive; a manager phones them before their next shift, the Field Care Supervisor contacts them within 1 working day and a debrief with a manager of the sex they prefer, where possible, is offered within 3 working days. The Registered Manager or Deputy Manager reports a crime to the police for them the same day if they ask. Absence caused by an assault is recorded as a work-related injury under the Sickness Absence Policy.",
+            "The person complained about also has a named contact. Both people and every witness are offered the employee assistance programme."
+          ]
+        },
+        {
+          "p": "Where the conduct may show that the person complained about is unsuitable to work with adults at risk or children, for example a sexual assault, violence or threats, the Registered Manager, as safeguarding lead, also deals with it under the Managing Allegations Against Staff Procedure and its timescales. Where an agency worker, student or contractor is complained about, the Registered Manager decides the same working day whether they continue to work with us and tells their agency, college or employer in writing."
+        }
+      ]
+    },
+    {
+      "heading": "Resolving a concern informally",
+      "blocks": [
+        {
+          "p": "Informal resolution is chosen by the person affected, is never compulsory, and is never used where the Registered Manager must start a formal investigation. The options are:"
+        },
+        {
+          "bullets": [
+            "the person affected tells the colleague, in person or in writing, with help from their supervisor or the HR Manager if they wish;",
+            "the colleague's supervisor, or that supervisor's own supervisor where the supervisor is involved, takes informal action under the Disciplinary Policy and Procedure, explaining the concern and what must change;",
+            "mediation by an accredited external mediator at our cost, where both people agree, as the Grievance Policy and Procedure sets out; it is never used for sexual harassment, violence or discrimination, or where one person fears the other."
+          ]
+        },
+        {
+          "p": "The HR Manager confirms in writing to the person affected what was agreed within 5 working days, and asks them 4 weeks later whether the behaviour has stopped, recording the answer. If it has not stopped, or the person affected asks at any time, the formal process starts."
+        }
+      ]
+    },
+    {
+      "heading": "Formal complaints and investigation",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Making a formal complaint",
+          "blocks": [
+            {
+              "p": "A formal complaint is made in writing, by letter or email, to the HR Manager; about the HR Manager, to the Registered Manager; about the Registered Manager or Deputy Manager, to the Nominated Individual; about the Nominated Individual or a Director, to the chair of the Directors, who then takes the Nominated Individual's role under this policy. Anyone who finds writing difficult may have the complaint written down for them and confirm it. A complaint sent to the wrong person is passed on the same working day, and timescales start when the right person receives it."
+            },
+            {
+              "p": "The complaint is acknowledged in writing within 2 working days, naming the contact and setting out the next steps, the protection agreed and the support available. We follow the Acas Code of Practice on disciplinary and grievance procedures; the Grievance Policy and Procedure is not used for these complaints."
+            },
+            {
+              "p": "Every meeting under this policy is private, in paid time including travel, at the branch office or by video where the person agrees, and never in a person's home. Anyone attending a meeting, including the person complained about and witnesses, may bring a colleague or trade union representative. Professional interpreters are used where needed, at our cost."
+            }
+          ]
+        },
+        {
+          "heading": "Who acts",
+          "blocks": [
+            {
+              "p": "The Registered Manager appoints the investigating officer within 2 working days of the formal complaint, or of their own decision to investigate, from the people the Disciplinary Policy and Procedure lists for the role of the person complained about, so that one investigation serves both policies and nobody is interviewed twice. The investigating officer is never the supervisor of either person or anyone involved, and is of the sex the person affected prefers where one is available. The terms of reference cover each allegation and any possible misconduct. Where the Registered Manager is involved or complained about, the Nominated Individual makes these decisions; where nobody is independent, the Nominated Individual appoints an external investigator through the employment law adviser within 5 working days."
+            }
+          ]
+        },
+        {
+          "heading": "The investigation",
+          "blocks": [
+            {
+              "steps": [
+                "The person complained about is told in writing within 2 working days of the appointment what is alleged, unless the police or local authority ask us to wait.",
+                "The investigating officer meets the person affected within 5 working days of appointment. They may give their account in writing first and are asked only what is needed to establish the facts.",
+                "The person complained about is invited to an investigation meeting with at least 2 working days' notice. Witnesses give written accounts within 3 working days of being asked. Notes go to each person interviewed within 5 working days for comment within a further 5.",
+                "Evidence includes messages and screenshots, rotas, visit check-in and check-out records and the incident log. Sexual images are viewed by the investigating officer only, described in the report and never copied or forwarded; the person who received them is asked to keep them until the case and any appeal end. A possible image of a child is not viewed further and is reported to the police at once. People we support give accounts only with their agreement, as the Disciplinary Policy and Procedure sets out.",
+                "The investigating officer reports to the Registered Manager within 20 working days of appointment, with findings on each allegation on the balance of probabilities and any wider concern about culture or management. The report never recommends a sanction.",
+                "Both people receive a written update at least every 10 working days. An extension is agreed by the Registered Manager, or the Nominated Individual where the Registered Manager is involved, and both people are told in writing before the original date. Only the police or local authority can pause an investigation, and protection never pauses."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Outcome",
+          "blocks": [
+            {
+              "p": "Within 3 working days of the investigation report the Registered Manager (the Nominated Individual where the Registered Manager is involved) decides what happens next:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Decision",
+                  "What happens"
+                ],
+                "rows": [
+                  [
+                    "Not upheld",
+                    "Both people are told in writing with the reasons. This does not mean the complaint was false. Protection continues until the Registered Manager has reviewed it with the person affected."
+                  ],
+                  [
+                    "Upheld, no hearing needed",
+                    "Informal action, training, a change of supervisor or working arrangements, or mediation where allowed."
+                  ],
+                  [
+                    "Possible misconduct",
+                    "A disciplinary hearing under the Disciplinary Policy and Procedure within 10 working days, whose findings decide whether the allegations are upheld. Serious bullying, harassment or sexual harassment can be gross misconduct."
+                  ],
+                  [
+                    "Wider concerns",
+                    "Actions on culture, management practice or the rota go into the service improvement plan within 5 working days, and the risk assessment is reviewed."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The manager who decided meets the person affected within 3 working days of the decision, or of the disciplinary outcome letter where a hearing was held, and confirms the outcome in writing within 2 working days of the meeting. The person complained about receives the outcome in writing at the same time, or under the Disciplinary Policy and Procedure where a hearing was held. Without a hearing, the target is a written outcome within 30 working days of the formal complaint. The letter says whether each allegation was upheld and why, how they will be protected from now on, whether formal action has been taken against the colleague, and how to appeal, but never the detail of any sanction."
+            },
+            {
+              "p": "If the person complained about leaves, the investigation is still completed and its conclusion recorded. If the person affected leaves, it is completed where the person complained about still works for us."
+            }
+          ]
+        },
+        {
+          "heading": "Appeal",
+          "blocks": [
+            {
+              "p": "The person affected may appeal against the outcome of their complaint in writing to the HR Manager (the Registered Manager where the complaint concerns the HR Manager) within 5 working days of receiving it, giving the grounds. The appeal is acknowledged within 2 working days and heard within 10 working days, with at least 3 working days' notice, by the Nominated Individual where the Registered Manager decided, by a Director other than the Nominated Individual where the Nominated Individual decided, and by an external HR professional where nobody independent is available. The outcome is sent within 5 working days of the meeting and is final. The person complained about appeals any disciplinary outcome under the Disciplinary Policy and Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Harassment by people we support, families and visitors",
+      "blocks": [
+        {
+          "p": "Our response to third-party harassment is set out in the Violence and Aggression Towards Staff Policy, the Sexual Safety Policy and the Equality, Diversity and Inclusion Policy. Deliberate discriminatory abuse or sexual harassment by a person we support or their household starts at stage 2 of the staged response, which can lead to the service being changed, suspended or ended. In addition:"
+        },
+        {
+          "bullets": [
+            "nobody is told that harassment is part of the job, blamed for it, sent back to the home without their agreement, or given fewer hours because of it;",
+            "where another organisation's staff, such as a district nurse, therapist or another agency's care worker, harass one of our staff, the Registered Manager raises it in writing with their employer within 1 working day of the report, and the worker is not rostered to work alongside that person until the Registered Manager has agreed arrangements with the employer;",
+            "a worker who thinks our response to third-party harassment was not good enough may make a formal complaint under this policy."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Fairness, confidentiality and victimisation",
+      "blocks": [
+        {
+          "bullets": [
+            "Information is shared only with those who need it. The person complained about is told enough to respond, which usually means knowing who raised the concern. Gossip or social media comment about a case is a disciplinary matter.",
+            "Nobody is presumed guilty. The person complained about is heard, may be accompanied and sees the evidence relied on before any outcome.",
+            "Victimising anyone who reports, supports a complaint or gives evidence is unlawful (Equality Act 2010, section 27) and a disciplinary matter. The Registered Manager looks into any allegation of victimisation within 5 working days.",
+            "A complaint that is not upheld is never treated as false. Only a complaint the person knew was false, made in bad faith, goes to the Disciplinary Policy and Procedure.",
+            "A counter-complaint is investigated with the original complaint by the same investigating officer, unless the Registered Manager records why not, and never pauses protection.",
+            "A further complaint on a matter already decided on appeal is answered as closed within 5 working days unless it brings new information.",
+            "We never ask anyone to keep harassment quiet. No contract, settlement or other agreement we make stops anyone alleging or disclosing harassment or discrimination, or how we responded. Section 202A of the Employment Rights Act 1996 will make such terms void once fully in force, which Acas expects in September 2027; we apply the rule now."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Every report, near miss and anonymous report, with route and safety decisions",
+                "Incident log, restricted entry",
+                "As the Incident Reporting, Investigation and Learning Policy sets for incident log entries"
+              ],
+              [
+                "Formal complaint, protection agreed, investigation, notes, report, outcome and appeal",
+                "Complaint file in the restricted section of the staff record of the person affected (staff record documents, which CareFlow opens only to roles given the staff document permissions); appointed managers are given what they need by the HR Manager",
+                "Employment plus 6 years"
+              ],
+              [
+                "Informal notes and disciplinary outcomes for the person complained about",
+                "Their supervision or staff record, under the Disciplinary Policy and Procedure",
+                "As that policy sets"
+              ],
+              [
+                "The harassment risk assessment and its reviews",
+                "Risk assessment register",
+                "6 years from replacement"
+              ],
+              [
+                "Training in this policy",
+                "Training and compliance records",
+                "Employment plus 6 years"
+              ],
+              [
+                "Acknowledgements of this policy",
+                "CareFlow, with each policy version",
+                "Life of {{organisation}} plus 6 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Nothing is destroyed while a tribunal claim, police investigation or safeguarding enquiry is open or expected. Requests by anyone involved for their own personal data are handled under the Subject Access and Individual Rights Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Bullying, harassment and sexual harassment: what they look like in our work, speaking up as a bystander, how to report and protection from victimisation, delivered within the sexual harassment awareness training under the Sexual Safety Policy",
+                "All employees, including Office staff and Directors",
+                "Within the first week",
+                "Every 12 months, in the safeguarding refresher"
+              ],
+              [
+                "Handling reports: receiving and recording, immediate protection, when the formal route is required, informal resolution, fair use of power and preventing victimisation, delivered with the equality in employment management training under the Equality, Diversity and Inclusion Policy",
+                "Registered Manager, Deputy Manager, HR Manager, Field Care Supervisors, supervising Senior Care Workers, Care Coordinators and On-call Managers",
+                "Before their first supervision, rota or on-call duty",
+                "Every 3 years"
+              ],
+              [
+                "Investigating harassment: interviewing people who report sexual harassment, handling messages and images, and reaching findings, in addition to the disciplinary investigation training",
+                "Anyone appointed as investigating officer",
+                "Before their first investigation under this policy",
+                "Every 3 years"
+              ],
+              [
+                "The duty to take all reasonable steps and the harassment risk assessment",
+                "Directors and Nominated Individual",
+                "Within 3 months of appointment",
+                "Every 12 months, at the annual governance update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The HR Manager briefs each investigating officer and decision-maker at the start of a case, and all managers within 10 working days of any change in the law or guidance on harassment."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every open report and complaint against this policy's timescales: target 100% for route decisions, protection and acknowledgements; at least 90% of investigations within 20 working days or an agreed extension",
+                "Monthly",
+                "HR Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Themes: type, protected characteristic, relationship and roles of the people involved, branch, near misses, anonymous reports and outcomes",
+                "Quarterly",
+                "Registered Manager",
+                "Nominated Individual; Directors' quarterly governance report; Health and Safety Meeting"
+              ],
+              [
+                "Pattern review when there are 3 or more reports about one person within 12 months, or 3 or more on one theme or team in a branch in a quarter",
+                "As it arises, completed within 10 working days",
+                "Registered Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Staff survey: at least 90% know how to report; at least 80% are confident a report would be handled fairly; rates of experiencing, witnessing and reporting it",
+                "Each September",
+                "HR Manager",
+                "Directors"
+              ],
+              [
+                "Every formal complaint closed in the year, audited with the discrimination complaints the Equality, Diversity and Inclusion Policy covers",
+                "Each November",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Reports and outcomes by protected characteristic",
+                "Annually, in the workforce equality report",
+                "HR Manager",
+                "Directors' governance meeting held by mid-May"
+              ],
+              [
+                "Harassment risk assessment reviewed on time with agreed steps in place",
+                "Every 12 months and after each trigger",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Training compliance (100% induction, 95% refreshers in date) and policy acknowledgements",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is given an action, an owner and a deadline in the service improvement plan. This policy is reviewed every 12 months by the Registered Manager with the HR Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed within 1 month after regulations under section 40B of the Equality Act 2010, a new statutory code or guidance on harassment, or the full commencement of section 202A of the Employment Rights Act 1996, and sooner after a tribunal finding against us, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,522 @@
+{
+  "reference": "POL-IPC-005",
+  "revision": 1,
+  "title": "Waste Management in People's Homes Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How our staff handle and dispose of the waste our care produces in people's homes: used PPE, continence pads, wipes, catheter and stoma bags and body fluids. It covers the household route and the 7 kg guide, larger amounts and special collections, infectious waste and outbreaks, what never goes in a waste bag, problems at visits, and our office waste. For all staff, Care Coordinators and the IPC lead.",
+  "keyPoints": {
+    "intro": "Most visits produce some waste, such as used gloves, aprons, wipes and continence pads. This procedure tells you how to bag it, where it goes and what to do when the usual route will not work; \"the office\" means the branch office, or the On-call Manager out of hours.",
+    "points": [
+      "Put care waste straight into a waste bag in the room where you gave care. Fill it no more than two-thirds, tie it, and never press waste down with your hands or feet.",
+      "Double-bag care waste and put it in the bin the care plan names. If the care plan does not record the person's permission to use their bin, ask them, record their answer in the daily visit notes and phone the office before you leave.",
+      "Empty urine, faeces and vomit into the toilet, never a sink, and flush with the lid down where there is one. Never flush pads, wipes, gloves or aprons.",
+      "Never put a sharp, a used sharps container or any medicine in a waste bag. Follow the Sharps Safety and Needlestick Injury Procedure and the medicines instructions on the eMAR.",
+      "Never take waste, a used sharp or a used sharps container out of the home in your car, kit box or bag, or bring any of them to the office. Waste stays in the home until the household bin or a collection takes it.",
+      "If care waste will be more than one standard bin bag per bin collection, the bin is full or bags are being left outside, store bags away from people, pets and pests and phone the office before you leave.",
+      "Wear gloves and an apron whenever you handle waste. When infection precautions apply, tie the inner bag before you leave the room. Use orange infectious waste bags only when the care plan says so, and label each with the postcode and date.",
+      "If the care plan or the office tells you waste must stay out of the household bin because of infection, leave it tied and double-bagged exactly where they say. Never decide the waste route yourself.",
+      "Clean your hands after handling waste. If a bag leaks, follow the Laundry, Soiled Linen and Spillages Procedure. If a hidden sharp injures you, bleed it, wash it, cover it, phone the office and go to the emergency department.",
+      "Record anything unusual about waste in the daily visit notes. Record a split bag, a sharp found in waste, pests or a missed special collection in the incident log before the end of your shift."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "VISIT",
+    "CARE_PLAN",
+    "RISK_ASSESSMENT"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-002",
+    "POL-IPC-003",
+    "POL-IPC-004",
+    "POL-IPC-006",
+    "POL-MED-012",
+    "POL-HS-002",
+    "POL-SG-012"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Standard infection control precautions in adult social care (28 October 2026): waste management, waste in domiciliary settings and Table 3 types of waste",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/standard-infection-control-precautions-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Managing outbreaks in adult social care settings (28 October 2026): waste in domiciliary care",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/managing-outbreaks-in-adult-social-care-settings"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Managing suspected infectious diarrhoea and/or vomiting in adult social care (28 October 2026): waste and linen",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/managing-suspected-infectious-diarrhoea-andor-vomiting-in-adult-social-care"
+    },
+    {
+      "source": "NHS England, Health Technical Memorandum 07-01: Safe and sustainable management of healthcare waste (2022 edition), Table 9 colour coding, paragraphs 6.17 to 6.33 community healthcare (including 6.24 the 7 kg per collection period limit and 6.32 liquid waste to the foul sewer) and Table 21 likelihood of infection",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2021/05/B2159iii-health-technical-memorandum-07-01.pdf"
+    },
+    {
+      "source": "Environmental Protection Act 1990, section 34 (duty of care; subsections (2) and (2A) occupiers of domestic property)",
+      "url": "https://www.legislation.gov.uk/ukpga/1990/43/section/34"
+    },
+    {
+      "source": "Controlled Waste (England and Wales) Regulations 2012, Schedule 1, paragraph 3 (table entry 12: clinical and offensive waste produced at domestic property treated as household waste) and paragraph 4 (table entry 9: charge for collection but not disposal)",
+      "url": "https://www.legislation.gov.uk/uksi/2012/811/schedule/1"
+    },
+    {
+      "source": "Environmental Permitting (Waste Controlling or Transporting) and Relevant Functions of Primary Authorities (Amendment) (England) Regulations 2026 (SI 2026/873), regulation 1 commencement and regulations 28 to 30 transitional provision for registered carriers",
+      "url": "https://www.legislation.gov.uk/uksi/2026/873/made"
+    },
+    {
+      "source": "Department for Environment, Food and Rural Affairs, Waste duty of care: code of practice (updated 26 November 2018), sections 2.1, 3.4 to 3.6 and 5 (record retention; householders and tradespeople)",
+      "url": "https://www.gov.uk/government/publications/waste-duty-of-care-code-of-practice/waste-duty-of-care-code-of-practice"
+    },
+    {
+      "source": "Department of Health and Social Care, The Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance (updated 13 December 2022), criterion 9, item (p) safe handling and disposal of waste and item (m) high consequence infectious diseases",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(h) preventing, detecting and controlling the spread of infections",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Waste from personal care, such as used gloves and aprons, continence pads, wipes and catheter or stoma bags, can carry infection, smell, attract pests and cause injury when a sharp is hidden in it. Handled carelessly, it can spread infection within the household and undermine the person's dignity in their own home."
+        },
+        {
+          "p": "{{organisation}} will make sure that the waste our care produces is bagged at the point of care, goes by the right route, never leaves the home with our staff, and never becomes a burden or a risk the person did not agree to. We use the household's own waste route wherever national guidance allows, and arrange and pay for a special collection where it does not. This procedure applies the Infection Prevention and Control Policy and carries the same authority."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure makes sure that every person's waste arrangements are agreed and recorded before care starts; that staff bag, store and dispose of care waste safely and the same way in every home; that larger amounts and infectious waste are recognised and collected by an authorised collector; and that waste problems are reported, put right and learned from."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who works for us or on our behalf, including bank and agency workers and students, on every visit to a person's home, including extra care, sheltered and supported living schemes, and to our office. It covers care waste, body fluids, infectious waste, and the waste our office produces. Rubbish the household produces for itself remains the household's responsibility unless the care plan gives us a task, such as taking the kitchen bin out."
+        },
+        {
+          "p": "Owned elsewhere: sharps, sharps containers and found sharps (Sharps Safety and Needlestick Injury Procedure); medicines and medicine waste (Ordering, Collecting, Storing and Disposing of Medicines Procedure); spillages and soiled linen (Laundry, Soiled Linen and Spillages Procedure); PPE choice and removal (Standard Infection Control Precautions Procedure); cleaning products (Hazardous Substances (COSHH) Procedure); food waste and food safety (Food Hygiene Guideline); and homes where accumulated rubbish puts the person at risk (Self-Neglect and Hoarding Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Care waste",
+                "Waste produced by the care we give: used gloves, aprons and masks, continence pads, wipes, tissues, emptied catheter and stoma bags, single-use bowls and equipment, and dressings where we change them."
+              ],
+              [
+                "Offensive waste",
+                "Waste that is not infectious or hazardous but may contain body fluids or have an unpleasant smell or appearance, such as continence pads from a person with no known infection. Most care waste is offensive waste."
+              ],
+              [
+                "Infectious waste",
+                "Waste that may contain organisms that cause infection. In people's homes we use the infectious waste route only when the IPC lead decides it is clinically required, as set out in this procedure. It goes in orange bags."
+              ],
+              [
+                "Household route",
+                "Care waste double-bagged and placed in the household's general waste bin, with the person's permission, for the council's normal collection."
+              ],
+              [
+                "Collection period",
+                "The time between the household's general waste collections, usually one to three weeks."
+              ],
+              [
+                "7 kg guide",
+                "The national guidance limit for the household route: less than 7 kg of non-hazardous care waste. We apply it per collection period, and our working test, which is our policy and not national guidance, is that more than one standard bin bag of care waste per collection period is treated as more than 7 kg."
+              ],
+              [
+                "Special collection",
+                "A collection of offensive or infectious waste from the home by the council's clinical or hygiene waste service or a registered waste carrier, arranged under this procedure."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "Approve this procedure and fund what it needs: waste bags for every care worker, special collections we arrange, and the training in this procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (IPC lead)",
+          "blocks": [
+            {
+              "bullets": [
+                "Owns this procedure and is the only person who decides that a person's waste goes by the infectious waste route, or that it is kept out of the household bin because of infection. The Deputy Manager makes these decisions when the Registered Manager is absent, and the Nominated Individual when both are unavailable.",
+                "Keeps the council clinical and hygiene waste collection arrangements for each area on the Local IPC and Health Protection Contacts sheet, checked every 3 months with the rest of the sheet.",
+                "Resolves any case where waste cannot be stored safely in the home, and reviews waste incidents in the monthly infection surveillance review."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator",
+          "blocks": [
+            {
+              "p": "Records the waste arrangements in each care plan, arranges, records and chases special collections, checks a private waste carrier's authorisation before the first collection, and acts on every waste problem a care worker reports within the timescales in this procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Assess waste arrangements at the initial assessment and in the home environment risk assessment, observe waste handling at every spot check, and review the arrangements at every care plan review."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Handle and dispose of waste exactly as this procedure and the care plan say, phone the office before leaving about any waste problem, and record what they did."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            {
+              "p": "Office staff pass waste problems to the Care Coordinator at once and issue waste bags with the kit. Out of hours the On-call Manager gives the care worker instructions, decides any interim storage, and hands the matter to the Care Coordinator by 10am on the next working day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law and national guidance say",
+      "blocks": [
+        {
+          "bullets": [
+            "The law treats clinical and offensive waste produced at a person's home as household waste (Controlled Waste (England and Wales) Regulations 2012, Schedule 1). The council may charge for collecting it but not for disposing of it.",
+            "The occupier of a home has no general waste duty of care for household waste, but must take reasonable measures to pass it only to an authorised person, such as the council or a registered waste carrier (Environmental Protection Act 1990, section 34(2) and (2A)). Defra's duty of care code of practice treats a business working in someone's home as responsible for the waste it produces there.",
+            "Waste carriers in England are moving from registration to environmental permitting under regulations made on 22 July 2026 (SI 2026/873), with the main changes in force from July 2027. Existing carrier registrations continue for a transitional period set by regulations 28 to 30, so we check the Environment Agency public register for whichever authorisation the carrier holds.",
+            "Regulation 12(2)(h) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires us to control the spread of infection, and the Code of Practice on the prevention and control of infections expects the risks from waste to be assessed and the waste correctly segregated.",
+            "National guidance, not law, sets the household route. UKHSA's adult social care guidance says care waste of less than 7 kg produced at the time of the care activity can go in the person's general waste bin, double-bagged and with the householder's permission. HTM 07-01, written for NHS community staff, sets the limit at less than 7 kg per collection period for non-hazardous waste such as pads from a person without infection. Above the limit, or where waste is hazardous, it is stored safely in the home, the person is told of the risks, and collection is arranged with the council or an appropriate contractor. We apply the stricter per collection period limit.",
+            "UKHSA guidance says infectious waste streams should be used only when clinically required, and that in an outbreak home care staff should minimise waste handling and follow household routes unless infectious waste requirements apply."
+          ]
+        },
+        {
+          "p": "Our policy is to accept responsibility for the care waste our staff produce, to meet the guidance above in full, and never to transport waste ourselves: waste leaves a home only through the household bin or an authorised collector."
+        }
+      ]
+    },
+    {
+      "heading": "Agreeing each person's waste arrangements",
+      "blocks": [
+        {
+          "p": "At the initial assessment, and at every care plan review, the Field Care Supervisor or Care Coordinator agrees the waste arrangements with the person, and their family where appropriate, and records in the care plan:"
+        },
+        {
+          "bullets": [
+            "the person's permission for care waste to go in their household bin, or, where they cannot decide and no other householder can give permission, a best interests decision approved by the Registered Manager or Deputy Manager under the Mental Capacity Act and Best Interests Policy, and which bin: the outside bin or communal bin store wherever practical, otherwise a lidded indoor bin the household empties;",
+            "the bin collection day and frequency, and who puts the bin out;",
+            "the expected amount of care waste each collection period, using the number of continence pads and other items used each day, including any the family use when they give care between our visits, and whether it passes our 7 kg working test;",
+            "where bagged waste is kept if it cannot go in the bin straight away: a place away from food, heat sources and escape routes, out of reach of children, pets and pests;",
+            "any special collection: who collects, which bags, where they are stored and the collection day;",
+            "waste that is not ours: dressings and equipment left by community nurses, and sharps the person or family use themselves."
+          ]
+        },
+        {
+          "p": "For a short-notice start, the Field Care Supervisor, or out of hours the On-call Manager, who carries out the first visit records the bin and permission arrangements in the initial care plan before leaving, and the full arrangements are completed with the care plan within 7 days. In extra care, sheltered and supported living schemes, the care plan records the scheme's own bin store arrangements, agreed with the scheme manager."
+        },
+        {
+          "p": "Where the person or the commissioner's referral shows the person takes a cytotoxic medicine, such as oral chemotherapy, the Care Coordinator obtains written advice from the prescribing team or pharmacist on handling the person's body fluids and waste, and records it in the care plan and risk assessments before the first visit. Any purple-lidded containers or collections they require are supplied and arranged by that team; where they are not, the Care Coordinator arranges a special collection under this procedure before the first visit."
+        },
+        {
+          "p": "Waste produced by a visiting community nurse or other health professional is their organisation's responsibility. Our staff do not open it or dispose of it. If it is left where it could harm anyone, the care worker moves the closed bag or box out of reach, touches no loose sharp (Sharps Safety and Needlestick Injury Procedure), and phones the office; the Care Coordinator tells the professional's team the same working day."
+        }
+      ]
+    },
+    {
+      "heading": "Handling and disposing of care waste at a visit",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Supplies",
+          "blocks": [
+            {
+              "p": "{{organisation}} supplies every care worker with opaque, tie-handle waste bags as part of the kit in the Infection Prevention and Control Policy, enough to double-bag the waste from every visit. Staff never use the person's own bin liners or shopping bags for care waste. Orange and yellow-and-black striped bags are used only where a special collection supplies them."
+            }
+          ]
+        },
+        {
+          "heading": "Steps at every visit",
+          "blocks": [
+            {
+              "steps": [
+                "Check the care plan for the person's waste arrangements and any precautions.",
+                "Open a waste bag before you start and keep it beside you, on the floor or a covered surface, never on the bed or a food surface. Wear gloves and an apron while you handle waste, as the Standard Infection Control Precautions Procedure requires.",
+                "Put each item in the bag the moment you finish with it. Roll a used continence pad inwards before bagging it. Take your PPE off last, straight into the bag, in the order the Standard Infection Control Precautions Procedure sets.",
+                "Fill the bag no more than two-thirds. Never press waste down with your hands or feet, and never reach into a bag.",
+                "Tie the bag securely by twisting the neck, folding it over and knotting it, touching only the neck. Then clean your hands.",
+                "Place the tied bag inside a second bag and tie that too. Carry it by the neck, away from your body.",
+                "Put it in the bin the care plan names, with the lid closed. Never leave a bag beside a full bin, on the doorstep or in a shared hallway. If the bin is outside, take the bag out as you leave or keep the door key with you, never leave the door open or a key in the door, and leave the home secure under the Key Holding, Key Safes and Access to People's Homes Procedure. If the way to the bin is unsafe, for example unlit or icy, store the bag where the care plan names and phone the office.",
+                "Clean your hands again before leaving, and record anything unusual in the daily visit notes."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Body fluids and particular items",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Item",
+                  "What you do"
+                ],
+                "rows": [
+                  [
+                    "Urine, faeces and vomit, including commode pan and urinal contents",
+                    "Empty carefully into the toilet, never a sink, bath or outside drain, and flush with the lid down where there is one. Clean the container under the Standard Infection Control Precautions Procedure. Body fluids never go into a waste bag."
+                  ],
+                  [
+                    "Catheter drainage bags",
+                    "Empty into the toilet through the drainage tap under the Catheter Care and Continence Hygiene Protocol, then bag the empty bag as care waste."
+                  ],
+                  [
+                    "Stoma bags",
+                    "Empty a drainable bag into the toilet. Put a closed bag in the person's disposal bag, then bag it as care waste."
+                  ],
+                  [
+                    "Continence pads, wipes, gloves, aprons and tissues",
+                    "Care waste. Never flush any of them, even wipes labelled flushable."
+                  ],
+                  [
+                    "Dressings we change under a delegated task",
+                    "Care waste, unless the care plan or the IPC lead names the infectious route."
+                  ],
+                  [
+                    "Sharps, razors and sharps containers",
+                    "Never in a waste bag. A used sharp or used sharps container is never carried out of the home or between homes. A sharp from a cytotoxic medicine goes only in its purple-lidded container. Containers are locked at the fill line or 3 months after assembly, whichever is first, and left in the agreed place for collection under the Sharps Safety and Needlestick Injury Procedure."
+                  ],
+                  [
+                    "Medicines, refused doses and used medicated patches",
+                    "Never in a waste bag, bin, sink or toilet. A dose taken out of its packaging and refused is sealed, marked and kept with the person's medicines for pharmacy return under the Consent, Mental Capacity and Declined Medicines Policy. Fold a used patch sticky sides together and follow the eMAR instructions and the Ordering, Collecting, Storing and Disposing of Medicines Procedure."
+                  ],
+                  [
+                    "Clean packaging from pads and supplies",
+                    "Into the household's recycling where they agree, or with their general waste."
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Larger amounts and special collections",
+      "blocks": [
+        {
+          "p": "Where the expected care waste fails our 7 kg working test at assessment, or a care worker reports that it does, the household route is not used for the excess:"
+        },
+        {
+          "steps": [
+            "The care worker stores the bagged waste in the place the care plan names or, if none is named, in a place away from people, food, heat, escape routes, pets and pests, and phones the office before leaving.",
+            "The Care Coordinator explains the risks of stored waste to the person and, with their agreement, applies for the council's clinical or hygiene waste collection within 2 working days of the report, using the route on the Local IPC and Health Protection Contacts sheet.",
+            "Where the council offers no suitable collection, the Care Coordinator arranges an authorised waste carrier within the same 2 working days, after checking on the Environment Agency public register that it is authorised to carry the waste, and records the check in the branch health and safety file.",
+            "If there is nowhere in the home to store waste safely, the Care Coordinator tells the Registered Manager the same day, who agrees an interim arrangement with the person and family, such as an extra council collection, and records it in the care plan.",
+            "The Care Coordinator records the collection arrangements in the care plan and tells every care worker allocated to the person before their next visit."
+          ]
+        },
+        {
+          "p": "{{organisation}} pays any charge for a special collection we arrange; it is never passed to the person. A collection that does not happen is reported by the care worker to the office the same day, and the Care Coordinator chases the collector the same working day. Our staff never take waste away from a home themselves, whatever the amount. When care is suspended, for example by a hospital admission, or ends, the Care Coordinator tells any collector we arranged within 1 working day, so that waste already stored is collected and further collections stop until care restarts; a council collection in the person's name stays with them unless they ask us to cancel it."
+        }
+      ]
+    },
+    {
+      "heading": "Waste when a person has an infection",
+      "blocks": [
+        {
+          "p": "Infection alone does not change the route. While transmission-based precautions apply, care waste still goes by the household route, double-bagged, unless the IPC lead decides otherwise. What changes is how it is handled: the inner bag is tied in the room where care was given before the care worker leaves it, and for diarrhoea, vomiting or C. difficile all waste from the person's care, including used gloves and aprons, is handled as infectious, kept apart from clean items, and hands are washed with liquid soap and water, not hand rub."
+        },
+        {
+          "p": "When the IPC lead or Deputy Manager reviews an infection report, by the end of the next working day under the Transmission-Based Precautions and Outbreak Management Procedure, they confirm the waste route and record it in the infection report and the care plan. The household route continues unless the infectious route is required. They take community IPC team or health protection team advice on the route on the day of that review whenever a health professional suggests the waste is infectious, and always for:"
+        },
+        {
+          "bullets": [
+            "a confirmed gastrointestinal infection that HTM 07-01 lists as readily spread in the community, such as verocytotoxigenic E. coli (VTEC, including E. coli O157), salmonella or campylobacter;",
+            "chickenpox or shingles;",
+            "tuberculosis or a suspected rare or high-consequence infection."
+          ]
+        },
+        {
+          "p": "The infectious route is used only where that advice, or the GP or another health professional treating the person, requires it. Excess waste over the 7 kg working test goes by special collection on whichever route applies."
+        },
+        {
+          "p": "From the moment the office learns of a suspected rare or high-consequence infection, no care waste from that home goes in the household bin. The office or On-call Manager tells each care worker where to leave all waste, double-bagged and tied, and the IPC lead follows the health protection team's advice, given when the IPC lead reports the case under the Transmission-Based Precautions and Outbreak Management Procedure."
+        },
+        {
+          "p": "On the infectious route, the Care Coordinator arranges the collection under the steps above, with orange bags supplied by the collector, each labelled with the person's postcode and the date by the care worker who fills it, kept in a lidded container supplied by the collector, or by us where the collector does not, in a secure place in the home, and collected at least weekly. If the collector cannot collect weekly, the IPC lead agrees an interim arrangement with the community IPC team the same working day and records it. The route ends on the IPC lead's decision when the precautions end."
+        },
+        {
+          "p": "During an outbreak, staff keep waste handling to what each visit needs and the outbreak briefing reminds them of these rules. At the end of precautions, care workers take the care waste we produced to the household bin or the agreed collection store; no other clearance is our responsibility."
+        }
+      ]
+    },
+    {
+      "heading": "Problems at visits",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Problem",
+              "Care worker",
+              "Office"
+            ],
+            "rows": [
+              [
+                "No permission recorded, or the person refuses use of their bin",
+                "Ask the person and record their answer in the daily visit notes. If they agree, use the bin. If they refuse, store the bags as the care plan or office directs. Phone the office before leaving.",
+                "Care Coordinator updates the care plan before the next visit, or agrees another arrangement with the person within 2 working days, using a special collection if needed."
+              ],
+              [
+                "Bin full, collection missed or bags left outside",
+                "Store the bags safely indoors as above. Never stack them beside the bin. Phone the office before leaving.",
+                "Care Coordinator contacts the person or family and the council the same working day."
+              ],
+              [
+                "Pests or animals getting into waste",
+                "Keep bags out of reach, record it and phone the office before leaving.",
+                "Field Care Supervisor reviews the home environment risk assessment within 7 days, under the Animals and Pets in People's Homes Guideline where pets are involved."
+              ],
+              [
+                "Bag splits or leaks",
+                "Follow the Laundry, Soiled Linen and Spillages Procedure, then re-bag.",
+                "Care Coordinator reviews the incident log entry by the end of the next working day and changes the arrangements if needed."
+              ],
+              [
+                "A sharp is found in waste or a bin",
+                "Do not touch it unless the Sharps Safety and Needlestick Injury Procedure allows. Phone the office. After any injury: bleed it, wash it, cover it, report it, emergency department.",
+                "As the Sharps Safety and Needlestick Injury Procedure sets out."
+              ],
+              [
+                "Household rubbish building up and creating a risk",
+                "Record what you saw without judgement and phone the office before leaving.",
+                "Care Coordinator reviews with the Registered Manager within 7 days whether the Self-Neglect and Hoarding Procedure or the Safeguarding Adults Policy applies. Where the person is at risk of harm now, it is handled at once as a safeguarding concern."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A waste problem never delays the next visit: the care worker stores the bags safely, records what they did in the daily visit notes, phones the office and goes on to the next visit. If the office or On-call Manager does not answer or call back within 15 minutes, the care worker phones the Registered Manager or Deputy Manager directly. A split bag, a sharp found in waste, a waste injury, pests or a missed special collection is recorded in the incident log before the end of the shift."
+        }
+      ]
+    },
+    {
+      "heading": "Waste at our office",
+      "blocks": [
+        {
+          "p": "Our office produces only general, recycling and confidential waste, and the business duty of care applies to it. The Registered Manager keeps the office waste contract with an authorised waste carrier, checks its authorisation on the Environment Agency public register each year, and keeps waste transfer notes for at least 2 years. Confidential paper is destroyed under the Records Management and Retention Policy. The office never accepts care waste, used PPE, sharps or sharps containers from staff. PPE quarantined after a product fault is disposed of only when the IPC lead releases it, as the supplier directs."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Waste arrangements, permission, storage place, special collections and cytotoxic waste advice: the person's care plan and risk assessments.",
+            "Waste risks in the home, such as pests or unsafe storage: the home environment risk assessment.",
+            "Waste handled unusually, advice given and permission obtained at a visit: daily visit notes.",
+            "Waste route decisions during infection: the infection report in the incident log and the care plan.",
+            "Waste incidents and missed special collections: the incident log.",
+            "Waste carrier checks, the office waste contract, and waste transfer notes for office waste and for collections we arrange from a home with a private carrier: the branch health and safety file, kept for at least 2 years. Any hazardous waste consignment note given to us by a collector is kept there for at least 3 years.",
+            "Training: training and compliance records; spot check observations: supervision and appraisal records; acknowledgement of this procedure, by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version: policy acknowledgements."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "p": "Waste handling is part of IPC induction, completed before working without a shadowing colleague, and of the IPC refresher every 12 months under the Infection Prevention and Control Policy. It covers the waste categories, bagging and double-bagging, body fluids, what never goes in a bag, the 7 kg guide, infection and what to report."
+        },
+        {
+          "p": "Care Coordinators, Field Care Supervisors and On-call Managers are briefed by the IPC lead on agreeing waste arrangements, the 7 kg working test, arranging special collections and checking a waste carrier's authorisation, before they first assess a person, arrange a collection or take an on-call shift, and every 12 months. Agency workers are told the waste rules in the briefing they receive before their first visit."
+        },
+        {
+          "p": "Waste handling is one of the items observed at every spot check. A care worker who does not meet it is coached at the time and observed again within 4 weeks."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Waste handling at visits",
+                "Every spot check",
+                "Field Care Supervisors",
+                "Deputy Manager monthly"
+              ],
+              [
+                "Waste arrangements in care plans",
+                "Within the monthly audit of 5 care plans for infection risk",
+                "Deputy Manager",
+                "IPC lead"
+              ],
+              [
+                "Waste incidents, missed collections and infectious route decisions",
+                "Monthly infection surveillance review",
+                "IPC lead",
+                "Directors in the quarterly IPC report"
+              ],
+              [
+                "Special collections, waste carrier checks and office waste records",
+                "Every 12 months, in the March IPC audit",
+                "IPC lead with the Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall becomes an action with a named owner and deadline in the service improvement plan. This procedure is reviewed every 12 months by the Registered Manager as IPC lead and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in law or national guidance, a change to a council's collection arrangements that affects how we work, a serious waste incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

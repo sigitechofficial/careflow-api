@@ -1,0 +1,581 @@
+{
+  "reference": "POL-CD-013",
+  "revision": 1,
+  "title": "Missed, Late and Short Visits Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we prevent, detect and respond to missed, late, early and short visits: rota and cover checks, electronic call monitoring in CareFlow and fair use of its data, what care workers, the office and the On-call Manager do when a visit is at risk, and how every missed visit is made safe, reported and investigated. For care staff, Care Coordinators, staff who allocate visits and managers.",
+  "keyPoints": {
+    "intro": "Many of the people we support cannot safely wait for care. These are the rules for getting to every visit on time, staying for the whole visit and telling us straight away when something gets in the way.",
+    "points": [
+      "Check in on CareFlow inside the person's home before starting care, and check out when you leave, with your own log-in. If the app, phone or signal fails, phone the office, or the On-call Manager out of hours, at the time.",
+      "As soon as you know you will arrive more than 15 minutes after the planned start, or at all late for a time-critical visit, phone the office or the On-call Manager once parked with the engine off. Never speed or phone while driving.",
+      "Never phone or text the person or family from your own phone about a late visit, never swap or move a visit, and never start more than 30 minutes early unless the office agreed. The office contacts the person.",
+      "Never rush care or leave early to catch up: stay the planned time, essential tasks first. If a visit will run more than 15 minutes over, phone the office before the expected finish.",
+      "If you arrive late, check the daily visit notes and eMAR first. Phone the office before any dose if you checked in over 2 hours late, the gap since the last dose may be too short or a time-sensitive dose is outside its window.",
+      "If the person asks you to leave early, do the essential tasks they agree to first, record their request in the daily visit notes and phone the office before leaving if an essential task was not done.",
+      "If you find signs that an earlier visit did not happen or care was not given, phone the office before you leave and record what you found. Check every named pressure area for anyone at High skin risk.",
+      "Office and On-call Manager: act at once when a time-critical or High missed-visit risk visit has no check-in 15 minutes after the planned start. Otherwise phone the person before the care worker is 30 minutes late.",
+      "Only the Registered Manager, Deputy Manager or On-call Manager may agree that a visit will not go ahead. A visit for a person with a High missed-visit risk level is never left uncovered: a manager goes if nobody else can.",
+      "Every missed visit is entered in the incident log the same working day, or by the On-call Manager before the 10am handover, and reported to the Registered Manager the same day.",
+      "Never record a visit, task or time that did not happen. Falsifying check-in or check-out, or deliberately missing or cutting short a visit, is gross misconduct."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Staff Allocation",
+    "Senior Carer/Nurse",
+    "Carer/Domestic"
+  ],
+  "moduleLinks": [
+    "VISIT",
+    "INCIDENT",
+    "SAFEGUARDING",
+    "AUDIT",
+    "BUSINESS_CONTINUITY",
+    "CARE_PLAN"
+  ],
+  "relatedReferences": [
+    "POL-CD-002",
+    "POL-HS-003",
+    "POL-MED-008",
+    "POL-SG-013",
+    "POL-CD-014",
+    "POL-GOV-007",
+    "POL-GOV-020",
+    "POL-CD-001"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 (safe care and treatment), including 12(2)(a) and (b) assessing and doing all that is reasonably practicable to mitigate risks",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 (good governance), including 17(2)(a) and (b) monitoring quality and risk and 17(2)(c) accurate, complete and contemporaneous records",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18(1) (staffing: sufficient numbers of suitably qualified, competent, skilled and experienced persons deployed)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18(2)(g) (notification of any event which prevents, or threatens to prevent, the regulated activity being carried on safely, including insufficient staff)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 5(1)(a) to (c) (lawfulness, fairness and transparency; purpose limitation; data minimisation), as amended by the Data (Use and Access) Act 2025",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/5"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "For many people we support, a late or missed visit means being left in bed, wet, without food, drink or medicines, or on the floor with nobody coming. Our care workers work alone on short scheduled visits, so we must know as each visit falls due whether it has started, and act at once when it has not."
+        },
+        {
+          "p": "{{organisation}} will plan rotas that can be delivered, watch every visit through electronic call monitoring, tell people before a care worker is late, never knowingly leave a person at high risk without their care, and investigate and learn from every missed visit. Nobody is expected to rush, cut a visit short or drive unsafely to keep to time."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure sets how we prevent, detect, respond to and learn from missed, late, early and short visits, and how electronic call monitoring is used fairly."
+        },
+        {
+          "p": "The law requires safe care, enough competent staff, accurate records and telling CQC when staffing threatens safe care. It sets no tolerance for late or short visits: these times are our policy."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who plans, allocates, monitors or carries out visits, including bank and agency workers and managers who give care, and to every visit to every person we support, however their care is funded."
+        },
+        {
+          "p": "Owned elsewhere: worker safety when a check-in or check-out is overdue (Lone Working and Staff Personal Safety Policy); dose timing at time-critical visits, where stricter (Time-Sensitive Medicines Protocol); no reply, no access and a missing person (No Reply, No Access and Missing Person Procedure); cancellations by the person and declined care (Visit Cancellations and Refusals of Care Procedure); a delayed second worker (Moving and Handling of People Policy); severe weather (Severe Weather and Extreme Temperatures Procedure); and disruption affecting many visits (Business Continuity and Emergency Planning Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Planned start",
+                "The start time on the CareFlow rota, or a time changed in advance with the person's agreement."
+              ],
+              [
+                "Monitor",
+                "The member of Office staff named on the daily office rota to watch check-ins and check-outs while the branch office is open; when it is closed (out of hours), the On-call Manager."
+              ],
+              [
+                "Late visit",
+                "A visit checked in more than 30 minutes after the planned start."
+              ],
+              [
+                "Early visit",
+                "A visit checked in more than 30 minutes before the planned start without the person's agreement recorded beforehand, followed up like a late visit."
+              ],
+              [
+                "Short visit",
+                "A visit whose check-in to check-out time is 10 minutes or more shorter than planned, whatever the reason."
+              ],
+              [
+                "Missed visit",
+                "A planned visit that did not happen and was not cancelled by or with the agreement of the person. Where the care worker attended at the planned time but got no reply or could not get in, the visit is handled under the No Reply, No Access and Missing Person Procedure, not as a missed visit."
+              ],
+              [
+                "Missed-visit risk level",
+                "High where a late or missed visit could cause harm within hours, otherwise Standard, as set and reviewed under the Needs Assessment and Care Planning Policy."
+              ],
+              [
+                "Time-critical visit",
+                "A visit at which a time-sensitive dose, or a meal or task it depends on, is due, marked time-critical in CareFlow scheduling. Its planned start is 15 minutes before the dose time, or a narrower window's opening (Time-Sensitive Medicines Protocol)."
+              ],
+              [
+                "Essential tasks",
+                "The tasks the visit plan marks to be done first at every visit, such as medicines, food and drink, continence care and repositioning."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors fund the staff, travel time, monitoring and on-call cover every planned visit needs, and accept new work only when the Registered Manager confirms in writing it can be staffed safely. The Nominated Individual receives missed visit escalations and challenges the monthly figures."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on this procedure (the Deputy Manager covers), makes the decisions reserved to managers and decides reports to commissioners and CQC. The Deputy Manager runs the monthly figures and audit and investigates missed visits."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators build and publish rotas, run the daily cover check and exception review, reallocate visits, contact people and commissioners, and review visit lengths and care runs."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "The monitor watches check-ins, answers calls, contacts people and sends replacements. Out of hours the On-call Manager also makes the manager decisions."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors carry out the spot checks and supervision discussions this procedure sets, and make cover and welfare visits when sent."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Care workers follow the steps in this procedure. Senior Care Workers also cover visits when asked."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Preventing missed and late visits",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Each person's risk level and contingency",
+          "blocks": [
+            {
+              "p": "At assessment and every care plan review, the assessor records with the person, in the Risks part of the care plan, their missed-visit risk level and contingency: who to phone if a care worker will be late or cannot come, and how; who can safely help, and with what; and anything needed by a set time, such as food with insulin. A child under 18 is never part of the contingency, and a family member is never the second worker for moving and handling. When a family carer's availability changes, the Care Coordinator updates the contingency and reconsiders the level the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Planning rotas",
+          "blocks": [
+            {
+              "bullets": [
+                "Visits are planned within 30 minutes of the person's preferred time, at the lengths the Person-Centred Care, Dignity and Respect Policy sets, with travel time under the Driving at Work Policy (route planner time plus 5 minutes), never back to back and never taken from visit time.",
+                "Time-critical visits and visits to people with a High missed-visit risk level are allocated first, to core care team members, with the spare time the Time-Sensitive Medicines Protocol requires.",
+                "The Care Coordinator publishes the next week's rota to care workers by 12 noon each Thursday, so that people's weekly schedules go out by the end of Friday. Later changes are made on the CareFlow rota before the visit and the care worker is phoned.",
+                "Care workers make only the visits on their CareFlow rota, never swap, move or hand over a visit themselves, and never start a visit more than 30 minutes early unless the office has agreed it with the person."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Daily cover check",
+          "blocks": [
+            {
+              "p": "By 2pm each working day the Care Coordinator checks every visit to the end of the next working day (to the end of Monday on a Friday, and across bank holidays): the assessed number of workers, each trained for the tasks and the person, realistic travel time and nobody beyond working time limits. It includes the time-critical cover check (Time-Sensitive Medicines Protocol). Any visit still uncovered at 4pm goes to the Registered Manager or Deputy Manager, who arranges cover. No visit is handed to the On-call Manager uncovered without a manager-agreed plan, and the On-call Manager checks cover for the whole on-call period when it starts. Where the next 24 hours of visits cannot be staffed without missing a visit, cutting essential tasks or sending one worker to a two-worker visit, the Registered Manager notifies CQC the same working day under the Statutory Notifications to CQC Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Electronic call monitoring",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Checking in and out",
+          "blocks": [
+            {
+              "p": "Every worker, including each worker on a two-worker visit and managers who give care, checks in inside the person's home before starting care and checks out when leaving, under their own log-in, after completing the daily visit notes and eMAR. Nobody checks in or out for someone else, from outside the home or for a visit that did not happen."
+            },
+            {
+              "p": "If the app, device or signal fails, the care worker phones the office or On-call Manager on arrival and on leaving, and the monitor records manual times with the reason. Where a home has no mobile signal, the care plan sets the arrangement under the Lone Working and Staff Personal Safety Policy. If CareFlow itself is unavailable, every worker phones in this way, the monitor records the times in the downtime log, and within 24 hours of the system returning the Care Coordinator (the On-call Manager at weekends and bank holidays) enters them as manual times under the Daily Records and Visit Notes Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Watching visits as they happen",
+          "blocks": [
+            {
+              "p": "The monitor watches CareFlow's check-in alerts continuously while visits are scheduled and, when the branch office closes, hands over to the On-call Manager by phone, naming any visit at risk, overdue check-in or check-out and escalation in progress."
+            }
+          ]
+        },
+        {
+          "heading": "Daily exception review",
+          "blocks": [
+            {
+              "p": "By 10am each working day the Care Coordinator reviews the previous day's visits; the On-call Manager does this at weekends and on bank holidays. Every visit with a missing check-in or check-out, a manual time, or a late, early or short time has its reason recorded on the visit's check-in/check-out record by the end of that day. A visit that cannot be confirmed as having happened is treated as a possible missed visit: the office phones the person or their chosen contact the same day and, if it did not happen, follows the missed visit steps below."
+            }
+          ]
+        },
+        {
+          "heading": "How call monitoring data is used",
+          "blocks": [
+            {
+              "p": "Call monitoring data is personal data, which the law requires to be processed lawfully, fairly and transparently, for specified purposes and limited to what is necessary (UK GDPR Article 5). We use it only to keep people and staff safe, check care was delivered, plan rotas and travel time, pay staff, invoice, and investigate incidents, complaints and safeguarding concerns. Staff are told at induction what is recorded and why, can see their own visit records and can ask the Care Coordinator to correct a wrong time."
+            },
+            {
+              "p": "A late or missing check-in is first a question, not an accusation. We never fine staff or deduct pay over late, short or missed visits, and call monitoring data is never on its own the basis for disciplinary action. Falsifying a check-in or check-out, or deliberately missing or cutting short a visit, is gross misconduct under the Staff Code of Conduct."
+            },
+            {
+              "p": "Commissioners are invoiced from check-in and check-out times as their contract sets. A missed visit is never invoiced or charged, nor time we cut short charged to a self-funder; the Registered Manager approves refunds (Complaints Policy and Procedure)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When a visit may be late",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the care worker does",
+          "blocks": [
+            {
+              "steps": [
+                "As soon as you know you will arrive more than 15 minutes after the planned start, or at all late for a time-critical visit, or cannot make a visit, phone the office (the On-call Manager out of hours) once parked with the engine off and give your expected arrival time. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly.",
+                "Do not phone or text the person or their family from your own phone. The office contacts them.",
+                "Finish the visit you are at safely. Never rush it or leave early to make up time, and never speed.",
+                "Go to the visits in the order the office gives you."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "What the office or On-call Manager does",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "Action",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "Time-critical visit",
+                    "Follow the Time-Sensitive Medicines Protocol: send the nearest competent worker, phone the person or contact, and get advice before any dose outside its window.",
+                    "At once when told the worker may be late, or 15 minutes after the planned start with no check-in"
+                  ],
+                  [
+                    "High missed-visit risk level",
+                    "Phone the care worker; send another competent worker unless the first will arrive sooner; tell the person or contact who is coming and when.",
+                    "At once when told the worker may be late, or 15 minutes after the planned start with no check-in"
+                  ],
+                  [
+                    "Standard missed-visit risk level",
+                    "Phone the person or contact with a new arrival time and ask whether the delay is safe for them; send another worker where it is not, or where the worker cannot arrive within 60 minutes of the planned start.",
+                    "Before the care worker will be more than 30 minutes late"
+                  ],
+                  [
+                    "Second worker of a two-worker visit not arrived",
+                    "The worker present gives only the single-worker care the plan records. Contact the second worker; if they cannot arrive within 30 minutes of the planned start, send another trained worker, Field Care Supervisor or On-call Manager, or agree a safe time with the person. Care Coordinator reviews any visit one worker delivered by the end of the next working day.",
+                    "When the worker present phones, 10 minutes after the planned start"
+                  ],
+                  [
+                    "Any late worker",
+                    "Reallocate the worker's later visits that will now be late, protecting time-critical and High visits first, and tell each person before the visit when cover is from outside the core care team.",
+                    "At the same time"
+                  ],
+                  [
+                    "The person or family phone to say nobody has come",
+                    "Phone the care worker, then the caller with who is coming and when; send someone at once if the person is at risk.",
+                    "Call back within 15 minutes"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Calls use the contact method in the person's care plan, and every call and decision is recorded on the visit's check-in/check-out record. Anyone sent is first allocated the visit in CareFlow to see the access details; where CareFlow is down or an agency worker has no access, the office gives the key safe code by voice (Key Holding, Key Safes and Access to People's Homes Procedure)."
+            }
+          ]
+        },
+        {
+          "heading": "No check-in and no call",
+          "blocks": [
+            {
+              "p": "Fifteen minutes after the planned start with no check-in and no call also starts the worker-safety escalation in the Lone Working and Staff Personal Safety Policy. The monitor runs both at once, covering the person's visit without waiting for the worker to be found."
+            },
+            {
+              "p": "If no worker has checked in 30 minutes after the planned start for a person with a High missed-visit risk level, or 60 minutes after it for anyone else, the monitor tells the Registered Manager or Deputy Manager, who sends any competent member of staff, going themselves where nobody else can. Out of hours the On-call Manager does this and tells the escalation manager where they cannot find cover."
+            }
+          ]
+        },
+        {
+          "heading": "When a visit cannot go ahead as planned",
+          "blocks": [
+            {
+              "p": "Only the Registered Manager, Deputy Manager or, out of hours, the On-call Manager may agree that a visit will start more than 2 hours late, not happen or, in business continuity, be moved or shortened. A High missed-visit risk visit is never left undelivered; if no member of staff can reach the person, for example in severe weather, the manager asks the chosen contact to check on them, calls 999 where life may be at risk, and keeps trying to get a worker there. For a Standard visit the manager may agree with the person, or their chosen contact where the person cannot decide, a later time or that a family member gives named tasks, recording what was agreed and why on the visit record."
+            },
+            {
+              "p": "A visit we could not staff is never hidden as a cancellation: even with the person's agreement, it is entered in the incident log the same working day, reported alongside missed visits in the monthly figures and to the commissioner, and never charged."
+            }
+          ]
+        },
+        {
+          "heading": "Arriving late",
+          "blocks": [
+            {
+              "steps": [
+                "Apologise, check in and ask the person how they are.",
+                "Before giving care, read the daily visit notes and eMAR since the last visit and ask whether anyone else has helped. Check the time of the last dose of each medicine due, including that paracetamol doses are at least 4 hours apart.",
+                "Phone the office before giving any dose if you checked in more than 2 hours after the planned start, the minimum gap may not be met or a time-sensitive dose is outside its window. While awaiting advice, stay with the person doing other tasks, up to 30 minutes after the planned end; later advice means the office arranges an extra visit.",
+                "Do the essential tasks first and give the person the full planned time.",
+                "Look for harm from the delay, such as a fall, wet clothes, thirst, hunger, low blood sugar or distress, and check named pressure areas for anyone at High skin risk. Call 999 in an emergency; phone the office before leaving about anything you find.",
+                "Record in the daily visit notes what had happened before you arrived and any effect of the delay."
+              ]
+            },
+            {
+              "p": "When a visit starts more than 60 minutes late, the office checks the gap to the person's next visit and, with their agreement, moves it where main-meal visits would be less than 3 hours apart or a medicine's minimum interval would not be met. Where the person came to harm or went without essential care because of the delay, the care worker enters it in the incident log before the end of their shift; a time-sensitive dose given outside its window or missed is a medicines incident under the Time-Sensitive Medicines Protocol."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Short visits and overruns",
+      "blocks": [
+        {
+          "p": "Care workers stay for the planned visit length; time left after the tasks is spent as the person wishes and the care plan allows, never used to leave early."
+        },
+        {
+          "p": "If the person asks the care worker to leave early, the care worker does the essential tasks the person agrees to first, records the request in the daily visit notes and phones the office before leaving if an essential task was not done. If a visit will run more than 15 minutes past its planned length, the care worker phones the office before the expected finish and the office covers their next visit. Nobody leaves a person unsafe to keep to time; time spent staying in an emergency is paid. Extra time or visits needed for safety go ahead before funding is agreed; the Care Coordinator tells the commissioner or self-funder within 2 working days."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "Follow-up"
+            ],
+            "rows": [
+              [
+                "Short visit with no reason the person or office agreed",
+                "Care Coordinator asks the care worker within 2 working days; where an essential task may not have been done, the office phones the person the same day. One that caused harm or left essential care undone is entered in the incident log the same working day."
+              ],
+              [
+                "One person's visits 10 or more minutes shorter or longer than planned at 3 or more visits in 2 weeks",
+                "Visit length review under the Needs Assessment and Care Planning Policy."
+              ],
+              [
+                "A care worker left early because they felt unsafe, were refused by the person or were too distressed to continue",
+                "Not counted against the worker. The office or On-call Manager phones the person or chosen contact at once and arranges the essential care still due, with two workers or another safe arrangement."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "When a visit is missed",
+      "blocks": [
+        {
+          "p": "Whoever finds a missed visit, however it comes to light, tells the office (On-call Manager out of hours) at once."
+        },
+        {
+          "steps": [
+            "Make the person safe. The office phones the person or chosen contact at once and sends a competent worker to check on them and give the care still needed: within 1 hour of discovery for a High missed-visit risk level, otherwise within 2 hours unless the person, or their contact who is with them, confirms they are safe and do not want a visit. No answer means the No Reply, No Access and Missing Person Procedure. Call 999 in an emergency.",
+            "The worker who attends checks medicines, food and drink, continence, skin (every named pressure area for anyone at High skin risk), any sign of a fall and how the person feels, and records it in the daily visit notes. A missed dose is recorded as Not Given / Missed, and the office gets pharmacist, GP or NHS 111 advice straight away.",
+            "Office staff enter the missed visit in the incident log the same working day (the On-call Manager before the 10am handover), graded at least Medium under the Incident Reporting, Investigation and Learning Policy, and tell the Registered Manager the same day. The Registered Manager tells the Nominated Individual the same day (at once if Critical) where the person has a High missed-visit risk level, was harmed or missed a time-sensitive medicine.",
+            "The Registered Manager or Deputy Manager reviews the incident the same working day (by 12 noon the next working day if reported out of hours); the manager taking the first call decides any immediate safety action within 1 hour. The safeguarding lead decides within 1 hour whether it is a safeguarding concern where the person was harmed, fell, missed a time-sensitive medicine, has a High missed-visit risk level or had another missed visit in the previous 4 weeks.",
+            "The person, and their representative where appropriate, is told what happened, with an apology, within 1 working day of the initial review; at that review the Registered Manager decides whether the Duty of Candour Policy applies, treating the incident as notifiable where this is unclear.",
+            "The Care Coordinator tells the commissioner by the end of the next working day, or sooner where the contract requires (the same working day where a safeguarding concern is raised), and the GP practice by the end of the next working day where a medicine was missed or the person's health was affected. The Registered Manager decides on a CQC notification under the Statutory Notifications to CQC Procedure.",
+            "The Deputy Manager or Registered Manager investigates at least at Enhanced level within 10 working days, finding how the visit was missed and why monitoring did not catch it in time; a High or Critical incident, or one decided notifiable, is investigated at Comprehensive level.",
+            "Where the missed visit caused harm, or it is the person's second missed visit in 4 weeks or a calendar month, the Care Coordinator arranges a focused review of visit times, missed-visit risk level and staffing within 7 days under the Care Plan Review Procedure."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Patterns and wider disruption",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Pattern",
+              "Action"
+            ],
+            "rows": [
+              [
+                "One person has 3 or more late visits in 7 days",
+                "Care Coordinator reviews the person's visit times and care run within 2 working days and tells the person what will change."
+              ],
+              [
+                "A care run is late on 3 or more days in a week",
+                "Care Coordinator checks its travel time against check-in and check-out times and changes the run from the next rota."
+              ],
+              [
+                "One care worker has, in a calendar month, 3 or more late visits for reasons within their control, short visits without an agreed reason, or missed check-ins or check-outs",
+                "Field Care Supervisor discussion within 2 weeks, recorded in the supervision record. Any suggestion that visits were cut short deliberately goes to the Registered Manager the same day."
+              ],
+              [
+                "Fewer than 90% of a branch's visits in a month start within 30 minutes of the planned time, or the rota cannot safely cover existing care",
+                "Registered Manager pauses new packages and tells the Nominated Individual and the commissioners concerned the same day (Governance and Quality Assurance Policy), notifying CQC where existing care cannot be safely covered."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "When staff shortage, severe weather or any other event puts several visits at risk, the Registered Manager (the On-call Manager out of hours, through the escalation manager) activates the Business Continuity and Emergency Planning Policy and tells the Nominated Individual at once. Visits are protected in order: time-critical, then other High, then Standard. A visit moved or shortened is recorded with the reason and the person or chosen contact told before the planned time; a shortened visit still includes every essential task. Where any visit is missed, shortened or moved outside its window, or CareFlow, phones or call monitoring are down for more than 24 hours, or for any time if medicines cannot be given safely, the Registered Manager notifies CQC under the Statutory Notifications to CQC Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Actual and manual times, reasons, calls and decisions are kept on each visit's check-in/check-out record; the risk level and contingency in the care plan; missed visits in the incident log; and staff discussions in supervision and appraisal records. A recorded time is never deleted: corrections are added with the reason. Retention follows the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "This procedure: checking in and out, running late, staying the planned time and reporting missed care",
+                "Care staff",
+                "At induction, before working without a shadowing colleague; refreshed every 12 months within the person-centred care and dignity refresher"
+              ],
+              [
+                "Watching visits, response times, replacement and missed visit decisions, and recording",
+                "Office staff who act as monitor, Care Coordinators and On-call Managers",
+                "Within the monitoring and escalation training in the Lone Working and Staff Personal Safety Policy, before monitoring alone or the first on-call shift, then every 12 months"
+              ],
+              [
+                "Rota planning, the daily cover check and the daily exception review",
+                "Care Coordinators and anyone who allocates visits",
+                "Before first allocating visits, with the time-critical visit allocation and travel time training, then every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At every spot check the Field Care Supervisor checks the worker's arrival time, check-in and visit length, and asks what they would do if running late. Checking in inside the home and staying the planned time are critical items (Quality Audit and Monitoring Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Missed visits (target none), visits started within 30 minutes of the planned time (at least 95%), visits 10 or more minutes short (no more than 5%) and visits with electronic check-in and check-out (at least 95%)",
+                "Monthly quality dashboard by the 7th working day",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Visit monitoring audit: every missed visit, 10 late visits, 10 short visits, 10 visits without electronic check-in or check-out, every care worker below 90% check-in and check-out, every lone working escalation past the first step; reasons recorded, person told in time, harm assessed and patterns",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Daily exception review completed by 10am, and every High and time-critical visit without a check-in 15 minutes after the planned start acted on at once (target 100%)",
+                "Weekly",
+                "Registered Manager",
+                "Weekly management meeting"
+              ],
+              [
+                "Missed, late and short visits for each contract",
+                "As the contract requires, at least monthly",
+                "Deputy Manager",
+                "Commissioner contract monitoring meetings, attended by the Registered Manager"
+              ],
+              [
+                "Trends by branch, care run, cause and time of day, and actions taken",
+                "Quarterly",
+                "Registered Manager",
+                "Quarterly quality report to the Nominated Individual and Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls become actions with an owner and deadline in the service improvement plan. This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a change in a commissioner's contract requirements, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

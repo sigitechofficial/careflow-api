@@ -207,11 +207,16 @@ export class CreateLearningCourseDto {
   @IsBoolean()
   certificateEnabled?: boolean;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    nullable: true,
+    minimum: 1,
+    description: 'Days a certificate stays valid. Null = the Learning settings default (defaultCertificateValidityDays).',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  certificateValidityDays?: number;
+  @Min(1)
+  certificateValidityDays?: number | null;
 
   @ApiPropertyOptional()
   @IsOptional()

@@ -6,16 +6,18 @@ import type { Server } from 'http';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { join, posix } from 'path';
+import { posix } from 'path';
 import { AppModule } from './app.module';
 import { corsOrigin } from './config/cors-origins.util';
 import { applyTrustProxy } from './config/trust-proxy.util';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { runInRequestContext } from './common/request-context/super-admin-context';
+import { uploadBasePath } from './common/utils/upload-path.util';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  // rawBody: providers that post to CareFlow (text message replies) sign the exact bytes they send.
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, { rawBody: true });
   app.useWebSocketAdapter(new IoAdapter(app));
   // Containers get SIGTERM on restart / new revision: run Nest shutdown hooks (stop cron jobs,
   // finish in-flight requests, disconnect Prisma) instead of being killed mid-request.
@@ -28,7 +30,7 @@ async function bootstrap() {
   );
   // Each request carries whether its user is a Super Admin (see super-admin-context.ts).
   app.use(runInRequestContext);
-  const uploadPath = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads');
+  const uploadPath = uploadBasePath();
   // Allow logos/photos to render from a different SPA origin (admin host ≠ API host).
   // Also expose the same files under /files/uploads/* — some hosts intercept bare /uploads
   // before the Node app, which breaks <img> after deploy while local Vite /api proxy works.

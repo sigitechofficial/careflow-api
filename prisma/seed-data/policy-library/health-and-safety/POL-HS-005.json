@@ -1,0 +1,702 @@
+{
+  "reference": "POL-HS-005",
+  "revision": 1,
+  "title": "Moving and Handling of People Policy",
+  "documentType": "POLICY",
+  "summary": "How we avoid, assess and reduce the risk of injury when care staff help people to move and when staff handle loads such as shopping, laundry and equipment. It sets who assesses, what each moving and handling plan contains, how many workers each task needs, equipment checks, consent and dignity, staff health, training and monitoring. It applies to all staff.",
+  "keyPoints": {
+    "intro": "Most visits involve helping someone to move. These are the rules that keep the person and you safe from injury every time you do it.",
+    "points": [
+      "Read the person's moving and handling plan before your first visit and check it for changes at the start of every visit. Use only the method, equipment and number of workers it sets for each task.",
+      "Never lift all or most of a person's weight by hand, and never use a banned technique, such as lifting under the arms or pulling on arms, clothing or waistbands. If a person starts to fall, do not try to catch them.",
+      "Never do a two-worker task on your own or with a family member. If your colleague has not arrived 10 minutes after the planned start, phone the office and give only the care the plan says one worker may give.",
+      "Before every use, check the hoist, sling or other equipment as you were trained. When hoisting, pause once the sling is taut and check every attachment before lifting fully. Never leave anyone alone in a hoist.",
+      "Never use equipment that is damaged, past its examination date, not in the plan or that you are not trained to use. Make the person safe, tie on a DO NOT USE tag, phone the office and stay until it agrees what happens next.",
+      "Every time you help someone move, tell them what you are doing and ask for their agreement. Let them do as much as they can for themselves at their own pace. If they resist or refuse, stop and phone the office.",
+      "If the person cannot move as the plan says today, for example they cannot stand or are in pain, do not attempt the transfer. Keep them safe and comfortable where they are, phone the office and stay until the office agrees what happens next.",
+      "Do not carry any single load over 10 kg, or shopping bags over 5 kg each. Never move heavy furniture or adapt equipment.",
+      "Tell your Field Care Supervisor before your next shift about any back, neck, shoulder or other pain, an injury, pregnancy or a health change that could affect moving and handling. Stop any task that makes the pain worse.",
+      "Phone the office before you leave about every moving and handling incident, near miss, injury or equipment fault, and record it in the incident log before your shift ends.",
+      "Complete your practical moving and handling training before you move anyone without a shadowing colleague, and renew it every 12 months. Visits needing moving and handling are not allocated to you if it expires."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "RISK_ASSESSMENT",
+    "CARE_PLAN",
+    "EQUIPMENT",
+    "TRAINING",
+    "VISIT",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-HS-001",
+    "POL-HS-002",
+    "POL-HS-006",
+    "POL-HS-007",
+    "POL-HS-016",
+    "POL-CD-009",
+    "POL-CD-016",
+    "POL-SG-006"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Manual Handling Operations Regulations 1992, regulation 4 (duties of employers: avoid, assess and reduce; review; individual factors in paragraph (3))",
+      "url": "https://www.legislation.gov.uk/uksi/1992/2793/regulation/4"
+    },
+    {
+      "source": "Manual Handling Operations Regulations 1992, regulation 5 (duty of employees to use the system of work provided)",
+      "url": "https://www.legislation.gov.uk/uksi/1992/2793/regulation/5"
+    },
+    {
+      "source": "Manual Handling Operations Regulations 1992, Schedule 1 (factors to which the employer must have regard: tasks, loads, working environment, individual capability, other factors)",
+      "url": "https://www.legislation.gov.uk/uksi/1992/2793/schedule/1"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(a), (b), (c) and (e) (safe care and treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Lifting Operations and Lifting Equipment Regulations 1998, regulation 9(3) (thorough examination of equipment for lifting persons and accessories at least every 6 months)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/2307/regulation/9"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, Schedule 2, Part 1, paragraph 1 (collapse, overturning or failure of a load-bearing part of lifting equipment, other than an accessory for lifting)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/schedule/2"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1 (the principles)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Medicines and Healthcare products Regulatory Agency, National Patient Safety Alert NatPSA/2026/005/MHRA: Patient hoists and slings (all types): risk of death and serious harm from falls (issued 16 September 2026; actions due by 16 September 2027)",
+      "url": "https://www.gov.uk/drug-device-alerts/national-patient-safety-alert-patient-hoists-and-slings-all-types-risk-of-death-and-serious-harm-from-falls-natpsa-slash-2026-slash-005-slash-mhra"
+    },
+    {
+      "source": "Health and Safety Executive, Managing the risks of moving and handling in health and social care",
+      "url": "https://www.hse.gov.uk/healthservices/moving-handling/manage-the-risk.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Moving and handling equipment (health and social care)",
+      "url": "https://www.hse.gov.uk/healthservices/moving-handling/moving-handling-equipment.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Care provided in people's own homes (domiciliary care)",
+      "url": "https://www.hse.gov.uk/healthservices/domiciliary-care.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Getting to grips with hoisting people, Health Services Information Sheet No 3 (HSIS3)",
+      "url": "https://www.hse.gov.uk/pubns/hsis3.pdf"
+    },
+    {
+      "source": "Health and Safety Executive, Reporting injuries, diseases and dangerous occurrences in health and social care, Health Services Information Sheet No 1 (HSIS1, Rev4): failure of lifting accessories such as slings is not reportable",
+      "url": "https://www.hse.gov.uk/pubns/hsis1.pdf"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} helps many of the people we support to get out of bed, stand, wash, use the toilet, sit in a chair and change position. Moving and handling is one of the most common causes of injury to care workers. Done badly, it also causes falls, fractures and skin damage to the people we support and takes away their dignity, and falls from hoists and slings still cause deaths, including in people's own homes."
+        },
+        {
+          "p": "{{organisation}} will avoid hazardous manual handling wherever it reasonably can, assess what cannot be avoided, and reduce the remaining risk to the lowest level reasonably practicable, as the Manual Handling Operations Regulations 1992 require. We will provide care safely, through competent staff and equipment that is safe and used safely, as Regulation 12 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires."
+        },
+        {
+          "p": "Every person who needs help to move has a written, agreed safe method for each task that keeps the abilities they have and respects their choices, followed on every visit by trained workers in the numbers the assessment sets."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets who assesses moving and handling and what each plan contains, how many trained workers each task needs, how equipment is checked, how safety is balanced with dignity and consent, how workers are protected from musculoskeletal injury, and how we meet the Manual Handling Operations Regulations 1992 and National Patient Safety Alert NatPSA/2026/005/MHRA on hoists and slings."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to everyone who works for us, including bank and agency workers, students, and Field Care Supervisors, Care Coordinators and managers when they give care. It covers moving and handling people in their homes and in the community, such as getting in and out of a car on an escorted outing, and handling loads such as shopping, laundry, equipment and deliveries to our branch offices."
+        },
+        {
+          "p": "Related subjects belong to other documents: hoists, slings, stand aids and bed rails in detail (Hoists, Slings and Lifting Equipment Procedure); the risk rating method (Risk Assessment and Home Environment Risk Assessment Procedure); a person who has fallen or is on the floor (Falls Prevention and Response Procedure); reporting to HSE (RIDDOR Reporting Procedure); restrictive practice (Restraint and Restrictive Practice Policy); risks a person chooses to take (Positive Risk-Taking Policy); pregnant workers (New and Expectant Mothers at Work Procedure); repositioning to protect skin (Pressure Ulcer Prevention and Skin Integrity Procedure); and getting people out in a fire (Fire Safety in People's Homes Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Moving and handling",
+                "Transporting or supporting a person or a load by hand or bodily force, including lifting, lowering, pushing, pulling and carrying."
+              ],
+              [
+                "Moving and handling plan",
+                "The person's moving and handling risk assessment in CareFlow together with the method for each task written into the visit plans of their care plan."
+              ],
+              [
+                "Moving and handling assessor",
+                "A Field Care Supervisor or Care Coordinator authorised by the Registered Manager after the risk assessment training and the moving and handling assessor training."
+              ],
+              [
+                "Moving and Handling Lead",
+                "A Field Care Supervisor appointed by the Registered Manager who holds a recognised Level 3 qualification to train others in moving and handling people."
+              ],
+              [
+                "Two-worker task",
+                "A task the plan says must be done by two trained workers present together."
+              ],
+              [
+                "Bariatric",
+                "Our definition: a person who weighs more than 160 kg, has a body mass index of 40 or more, or whose weight or shape exceeds the safe working load or size of standard equipment."
+              ],
+              [
+                "Safe working load",
+                "The maximum weight the manufacturer says an item of equipment may carry, shown on its label."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and fund second workers wherever an assessment requires them, training, the Moving and Handling Leads' qualification and occupational health support. They decline or renegotiate any package, or any commissioner request to reduce workers, that cannot be delivered safely. The Nominated Individual reviews the moving and handling indicators monthly and reports them to the Directors quarterly."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as Health and Safety Lead, is accountable for this policy and is our senior accountable person for NatPSA/2026/005/MHRA. They authorise moving and handling assessors, appoint at least one Moving and Handling Lead in each branch, approve every bariatric plan and every move to single-handed care, make sure High residual risks are approved as the Risk Assessment and Home Environment Risk Assessment Procedure sets out, decide what happens when a task cannot be made safe, and make RIDDOR, CQC and MHRA reports. The Deputy Manager carries out these duties in the Registered Manager's absence."
+            }
+          ]
+        },
+        {
+          "heading": "Moving and Handling Lead",
+          "blocks": [
+            {
+              "p": "The Moving and Handling Lead delivers or quality-assures our practical training, advises assessors on complex cases, checks each new assessor's first three assessments, carries out the quarterly audit, and reviews with the Deputy Manager, within 5 working days, every moving and handling incident that caused harm and every equipment failure, so that learning reaches staff."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Manager",
+          "blocks": [
+            {
+              "p": "Care Coordinators request occupational therapy and equipment, allocate only workers trained for each task and never fewer than the plan requires, replace a second worker who cannot attend, brief every allocated worker on changes before their next visit, and report equipment faults to the owner the same working day. Out of hours the On-call Manager does the same, may approve an interim safe method, and hands over to the Registered Manager or Deputy Manager by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors who are assessors complete and review moving and handling plans with the person, and observe moving and handling at every spot check. Senior Care Workers show new workers each person's methods and equipment on shadowing shifts and report the same day to the Field Care Supervisor when a method is not followed or no longer works."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager books training, keeps training and competency records, warns workers and Care Coordinators 30 days before training expires, starts an individual risk assessment when a worker reports pain, injury, pregnancy or a health change affecting moving and handling, and makes occupational health referrals."
+            }
+          ]
+        },
+        {
+          "heading": "Care workers",
+          "blocks": [
+            {
+              "p": "The law requires every employee to make full and proper use of the system of work their employer provides to reduce the risk of manual handling injury. Our policy requires care workers to follow each person's moving and handling plan and the key points of this policy on every visit, and to report every problem as this policy sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Safer handling principles",
+      "blocks": [
+        {
+          "p": "For every task we first ask whether the person can do it themselves with time, prompting or a small aid such as a grab rail or raised toilet seat. Only then do we decide the equipment, the technique and the number of workers. These rules apply on every visit:"
+        },
+        {
+          "bullets": [
+            "Staff never lift all or most of a person's weight by hand. Where a person cannot take most of their own weight, equipment is used.",
+            "Staff never use these techniques: lifting under the person's arms (the drag lift); the cradle, through-arm, top-and-tail or shoulder lift; pulling on the person's arms, legs, clothing or waistband; lifting with a handling belt; or letting the person hold on round the worker's neck.",
+            "Staff never try to catch a person who starts to fall. They let the person go down, protecting the person's head only where they can do so without bending, twisting or taking the weight, and then follow the Falls Prevention and Response Procedure. Staff never lift a person from the floor by hand.",
+            "Staff work at the person's pace, explain each step, keep the person covered, and use the person's own movements and preferred way of doing things wherever the plan allows.",
+            "Staff never leave a person alone while they are in a hoist or sling, on a stand aid or in any position from which they could fall.",
+            "Staff follow the manufacturer's instructions for every item of equipment and never adapt, repair or improvise equipment."
+          ]
+        },
+        {
+          "p": "There are no exceptions for urgency, a request from the person or a relative, or a shortage of staff. In an emergency, staff call 999 and keep the person as safe and comfortable as they can where they are."
+        }
+      ]
+    },
+    {
+      "heading": "Assessing moving and handling",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "General risk assessments",
+          "blocks": [
+            {
+              "p": "The Registered Manager keeps general risk assessments for moving and handling people and for handling loads, written with the Moving and Handling Lead and the representatives of employee safety. They cover our tasks and how often they occur, equipment, staffing, conditions in people's homes, emergencies such as a person found on the floor, and tasks unsuitable for workers at particular risk, and are reviewed as the Health and Safety Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "When the individual assessment is done",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "What happens",
+                  "Who"
+                ],
+                "rows": [
+                  [
+                    "Planned package for a person who needs help or equipment to move",
+                    "Assessment in the home, with the equipment present, approved before the first visit. Equipment the plan needs is in place, or its delivery confirmed, before the first visit that needs it.",
+                    "Moving and handling assessor"
+                  ],
+                  [
+                    "Short-notice start, including every start on the day of hospital discharge, or a restart after hospital where moving and handling or equipment has changed",
+                    "A second worker attends the first visit where moving and handling needs are unknown or two workers are needed. The method for each task due is recorded in the initial care plan before the assessor leaves; the full assessment is completed within 7 days.",
+                    "Field Care Supervisor, or the On-call Manager out of hours"
+                  ],
+                  [
+                    "Scheduled review",
+                    "At every full care plan review: within 6 weeks of care starting, then at least every 6 months; at least every 3 months while the residual risk is High and for every bariatric plan.",
+                    "Moving and handling assessor"
+                  ],
+                  [
+                    "A fall or near miss during handling; new or changed equipment, including a hoist accessory such as weighing scales; a change in the person's weight, strength, balance, pain, cognition, skin or tolerance of handling; a worker reporting the method no longer works; new professional advice",
+                    "Focused review within 7 days, and before the next visit where the method is no longer safe. New equipment and professional advice are written into the plan, and workers trained, before the next visit at which they apply.",
+                    "Moving and handling assessor"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "What the plan records",
+          "blocks": [
+            {
+              "p": "The assessor assesses with the person, and their family or representative where the person wishes, records the person's views in their own words, and rates each risk using the Risk Assessment and Home Environment Risk Assessment Procedure. The plan records:"
+            },
+            {
+              "bullets": [
+                "what the person can do for themselves, day and night, and what changes it, such as pain, fatigue, medicines timing or a fluctuating condition;",
+                "their weight and height, with the date and source, and any falls history;",
+                "communication, understanding, and any distress or resistance during handling, with what helps;",
+                "for each task, such as moving in bed, sitting up, standing, transfers, toileting, bathing, dressing, walking and wheelchair or car use: the method in steps, the equipment, the number of workers and how the room is prepared, agreed with the person, such as moving a rug or shutting a pet in another room;",
+                "for each hoist and sling: make, model, type, size, loop or clip configuration and safe working load, and confirmation that the person's weight is within it and the hoist and sling are compatible;",
+                "for every two-worker visit, the care one worker may safely give alone if the second worker is delayed;",
+                "who prescribed or supplied each item and who to contact for advice."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Specialist advice",
+          "blocks": [
+            {
+              "p": "Our assessors do not prescribe equipment. The Care Coordinator asks the community occupational therapy service, or the person's physiotherapist, for an assessment the same working day the assessor identifies any of these: the person cannot reliably bear weight or their ability varies from visit to visit; equipment is needed but none is prescribed, or it does not suit the person, task or room; two or more moving and handling incidents or near misses for the person within 4 weeks; the person is bariatric, has severe pain, spasm or contractures on movement, or needs specialist positioning; or a single-handed care review is proposed."
+            },
+            {
+              "p": "Until the advice arrives, the assessor sets the safest interim method, such as two workers or care at bed level, approved as the risk rating requires. The Care Coordinator chases the request after 5 working days and, if no date is offered, asks the commissioner in writing to secure it. Interim extra workers are confirmed or ended with the commissioner by the Registered Manager within 5 working days, as the Care Plan Review Procedure sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Staffing and allocation",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Number of workers",
+          "blocks": [
+            {
+              "p": "The assessment sets the number of workers for each task; cost, staff shortages and commissioned hours never do. Many hoisting tasks need two workers even though one person can operate the hoist: one to operate it and one to steady and reassure the person. Care Coordinators allocate the assessed number to every visit, each trained for the task and equipment, with travel time that lets both workers arrive for the planned start and a visit length that allows every task at the person's pace. Where the assessment needs more workers or more time than are commissioned, the Care Coordinator writes to the commissioner within 2 working days and the Registered Manager decides whether care can continue safely meanwhile."
+            },
+            {
+              "p": "The second worker is one of our workers trained for the task, or a health professional present at the visit, such as a community nurse or therapist, who is trained in the method and agrees to take part. A family member, friend, privately employed carer or volunteer is never the second worker. We do not train family members to handle the person; the Care Coordinator refers them to the occupational therapy service or local carer support. Where family members, district nurses or another agency also move the person, the care plan records which tasks each of them does, and with the person's agreement the assessor shares our method and equipment details with them. Staff who see someone else handling the person unsafely phone the office before leaving, and the Care Coordinator tells the occupational therapy service the same working day, as the Hoists, Slings and Lifting Equipment Procedure sets out."
+            }
+          ]
+        },
+        {
+          "heading": "When the second worker is delayed",
+          "blocks": [
+            {
+              "steps": [
+                "If the second worker has not arrived 10 minutes after the planned start, the worker present phones the office, or the On-call Manager out of hours.",
+                "The worker present gives only the care the plan says one worker may give alone, and keeps the person safe and comfortable where they are.",
+                "The office contacts the second worker. If they cannot arrive within 30 minutes of the planned start, the office sends another trained worker, a Field Care Supervisor or the On-call Manager, or agrees with the person a time for the two-worker care that keeps them safe.",
+                "The worker present records what was and was not done in the daily visit notes, and records the event in the incident log before the end of the shift.",
+                "The Care Coordinator reviews every two-worker visit delivered by one worker by the end of the next working day, under the Missed, Late and Short Visits Procedure."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Single-handed care reviews",
+          "blocks": [
+            {
+              "p": "We support reviews that can give people more privacy and fewer people in their home, but we reduce from two workers to one only when all of these are in place:"
+            },
+            {
+              "bullets": [
+                "an occupational therapist or physiotherapist has assessed the person at home and recommended single-handed care in writing;",
+                "our assessor has assessed the method in the home with the recommended equipment, which has been delivered and checked;",
+                "every core care team member has been trained in the method and observed using it on a joint visit with the therapist, the assessor or the Moving and Handling Lead;",
+                "the person agrees, or an approved best interests decision is recorded;",
+                "the Registered Manager has approved the updated care plan in CareFlow."
+              ]
+            },
+            {
+              "p": "The assessor reviews the change with the person and the core care team 2 weeks after the first single-handed visit and again at 6 weeks. If any worker reports that the method is not safe, two workers return from the next visit, arranged by the Care Coordinator or On-call Manager, and the assessor reviews it within 7 days. Where we disagree with a commissioner's proposal to reduce workers, the Registered Manager writes to the commissioner within 2 working days with the reasons, and two workers continue until it is resolved."
+            }
+          ]
+        },
+        {
+          "heading": "Bariatric handling",
+          "blocks": [
+            {
+              "p": "Before the first visit to a bariatric person, the occupational therapy service has assessed them, all equipment has a safe working load at or above their weight and fits the rooms and doorways, every core care team member has completed bariatric handling training, and the Registered Manager has approved the plan. The plan is reviewed at least every 3 months and whenever the person's weight changes noticeably."
+            }
+          ]
+        },
+        {
+          "heading": "Agency and new workers",
+          "blocks": [
+            {
+              "p": "Before an agency worker's first shift, the agency confirms in writing that they hold current practical moving and handling training, including hoisting. The Care Coordinator or Field Care Supervisor shows them the person's plan and equipment before their first visit, and they never work single-handed with equipment or lead a hoisting task until a Field Care Supervisor has observed them. A shadowing worker is never counted as one of two workers."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Equipment",
+      "blocks": [
+        {
+          "p": "Hoists, slings, stand aids, slide sheets, transfer boards and profiling beds are prescribed by a health professional and supplied by a community equipment service or the NHS, or bought by the person; we do not supply them. HSE treats equipment a person owns as not supplied for use at work, but our duty to keep our staff safe remains, so, whoever owns it, staff use a hoist or sling only when there is a record of a thorough examination within the last 6 months. Each person has their own sling, never used for anyone else."
+        },
+        {
+          "p": "Staff check every item before each use as trained and as the manufacturer's instructions say. For hoisting this includes the pause-and-check step that National Patient Safety Alert NatPSA/2026/005/MHRA requires: once the sling is taut and the person's weight is partly taken, the workers stop and check that every sling attachment point is secure before lifting fully."
+        },
+        {
+          "p": "Staff never use an item that is damaged, past its examination or service date, rated for less than the person's weight, not named in the plan, not confirmed as compatible in the hoist and sling register described below, or that they have not been trained to use. They take such an item out of use as the faulty equipment row in Reporting and acting on problems sets out. If a hoist fails with the person raised, staff use the emergency lowering control as trained, and call 999 if they cannot lower the person safely."
+        },
+        {
+          "p": "The alert applies to care services supporting people in their own homes. To meet it, the Registered Manager keeps a hoist and sling register in the branch health and safety file of every hoist and sling our staff use, identifying the person by CareFlow reference number only and recording each item's identity, owner, examination, service and end-of-service-life dates, and how each hoist and sling combination was confirmed as compatible from the manufacturers' instructions. A combination they do not confirm is not used until the prescriber or equipment service provides a written risk assessment with technical evidence from a qualified person. The Registered Manager has all the alert's actions in place by 31 March 2027 (our deadline; the alert's is 16 September 2027) and reports progress monthly to the Nominated Individual until complete. The Hoists, Slings and Lifting Equipment Procedure sets out how these details are obtained from owners and recorded, and the checks, examination tracking and fault handling in detail."
+        }
+      ]
+    },
+    {
+      "heading": "Consent, capacity and choice",
+      "blocks": [
+        {
+          "p": "Moving and handling arrangements must not place unreasonable restrictions on a person's autonomy, privacy or dignity, and equipment is used only where the assessment shows it is needed. Staff explain each move and ask for the person's agreement every time; recording the visit as completed as planned confirms routine agreement."
+        },
+        {
+          "p": "A person with capacity may decline a method, such as the hoist, or ask to be moved in a way the plan does not allow. Staff respect the refusal but never use an unsafe method instead: they give the care that remains safe, keep the person comfortable, record it in the daily visit notes and phone the office before leaving. Where significant risk remains, the declined control measure steps in the Health and Safety Policy apply; risks the person chooses to take to themselves, such as walking unaided between visits, follow the Positive Risk-Taking Policy."
+        },
+        {
+          "p": "Where a person may lack capacity to agree to a method, staff report it the same day and the Consent to Care Policy and the Mental Capacity Act and Best Interests Policy apply; a best interests decision about moving and handling is approved by the Registered Manager or Deputy Manager before use. Staff never hold, restrain or force a person to move. The only exception is an emergency intervention under the Restraint and Restrictive Practice Policy: the least force for the shortest time to stop immediate serious harm, such as guiding a person back from the kerb as traffic approaches, always reported. If the person resists or becomes distressed, the task stops, staff try the other approaches the plan gives, such as returning later in the visit, keep the person safe and phone the office before leaving. Equipment that restricts movement, such as a lap belt, is used only where the care plan records it as approved under the Restraint and Restrictive Practice Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Staff health and individual factors",
+      "blocks": [
+        {
+          "p": "The law requires us to consider each worker's physical suitability, clothing and footwear, knowledge and training, health surveillance results and whether they belong to a group especially at risk. Staff wear the uniform and the flat, closed, wipeable shoes with non-slip soles that the Uniform, ID Badges and Dress Code Policy sets out."
+        },
+        {
+          "table": {
+            "columns": [
+              "Circumstance",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "A worker reports back, neck, shoulder or other pain they link to work, or a health change affecting moving and handling",
+                "The worker stops any task that makes it worse and tells their Field Care Supervisor before their next shift. The Field Care Supervisor records it in the staff record and tells the HR Manager and Care Coordinator the same day. The HR Manager and Registered Manager complete an individual risk assessment within 5 working days, and the Care Coordinator allocates only the tasks it allows."
+              ],
+              [
+                "Symptoms last more than 7 days, affect the worker's duties, or follow an incident at work",
+                "The HR Manager refers the worker to our occupational health provider within 5 working days. An injury at work is recorded in the incident log; absence of more than 7 days follows the Health and Safety Policy."
+              ],
+              [
+                "Pregnancy, or a birth in the last 6 months",
+                "Heavy moving and handling stops from the day the worker tells us: the Care Coordinator (On-call Manager out of hours) removes it from their rota before their next visit, and the individual risk assessment follows within 5 working days under the New and Expectant Mothers at Work Procedure. Our general risk assessment defines heavy moving and handling as bariatric handling, repositioning a person who cannot help, and handling a person whose movement is unpredictable, whether alone or as one of two workers on a double-handed visit. It never resumes during pregnancy; after the birth it resumes only when the individual risk assessment allows, with occupational health advice where the birth was by caesarean section or had complications."
+              ],
+              [
+                "Worker under 18",
+                "Employed only in office roles, so never moves people."
+              ],
+              [
+                "Return from an absence of 3 months or more, or after an injury",
+                "Observed by a Field Care Supervisor, with refresher training where needed, before moving and handling without a colleague present. Former staff who rejoin follow the Induction and Care Certificate Procedure."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Handling loads",
+      "blocks": [
+        {
+          "p": "Our general risk assessment for handling loads sets these limits for all staff, deliberately below HSE's guideline figures so that they suit everyone:"
+        },
+        {
+          "bullets": [
+            "no single load heavier than 10 kg is lifted or carried by one worker, and loads are held close to the body without twisting;",
+            "shopping is carried in bags of no more than 5 kg each, balanced between both hands, and heavier shopping is delivered or carried in more than one trip;",
+            "laundry baskets, commode pans and bowls of water are carried only part-filled;",
+            "staff never move heavy furniture; the household or equipment service rearranges rooms for equipment, and staff only slide light furniture that moves freely;",
+            "a wheelchair is lifted into or out of a car only where the care plan records it and no part weighs more than 10 kg;",
+            "at branch offices, deliveries are split into loads of no more than 10 kg and moved with the trolley provided."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting and acting on problems",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What happens",
+              "What staff do",
+              "What happens next"
+            ],
+            "rows": [
+              [
+                "The person cannot move as the plan says today, for example cannot stand or is in pain",
+                "Do not attempt the transfer. Keep the person safe and comfortable where they are, phone the office and stay with them, beyond the planned visit time if needed, until the office agrees what happens next. Record what you did in the daily visit notes.",
+                "The Care Coordinator, or On-call Manager out of hours, tells the person at the worker's next visit of any delay, agrees the method for the next visit, sends a second worker or an extra visit where the person cannot safely stay where they are until then, contacts the GP the same day where the change is sudden (NHS 111 out of hours), and arranges a review before the next visit."
+              ],
+              [
+                "An incident or near miss during handling, or an injury to the person or a worker",
+                "Make the person safe, give first aid within your training, call 999 if needed, phone the office before leaving, and record it in the incident log before the end of the shift.",
+                "The Registered Manager or Deputy Manager reviews it within the initial review timescale the Incident Reporting, Investigation and Learning Policy sets for its severity."
+              ],
+              [
+                "Equipment is faulty or fails",
+                "Make the person safe, take it out of use and tie on a DO NOT USE tag from your kit box. Phone the office and stay with the person until the office agrees what happens next. Record it in the incident log.",
+                "The Care Coordinator reports it to the owner the same working day and arranges a safe alternative before the next visit. The Registered Manager reports every hoist, sling or other medical device incident or near miss to the MHRA Yellow Card scheme within 2 working days and updates the hoist and sling register."
+              ],
+              [
+                "The method is hard to follow or no longer works",
+                "Do not improvise. Phone the office.",
+                "The assessor reviews the plan before the next visit where it is unsafe, otherwise within 7 days."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager decides whether an event is reportable to HSE under the RIDDOR Reporting Procedure and to CQC under the Statutory Notifications to CQC Procedure, and records the decision and reasons in the incident log. Under paragraph 1 of Schedule 2 to RIDDOR, the collapse, overturning or failure of a load-bearing part of a hoist is a dangerous occurrence; failure of a sling alone is not, because slings are accessories for lifting, although an injury it causes may be reportable."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Moving and handling risk assessment, equipment details and review dates",
+                "The person's risk assessments in CareFlow"
+              ],
+              [
+                "Method for each task, number of workers and single-worker care",
+                "The visit plans in the care plan; High and Very high risks also in My care at a glance"
+              ],
+              [
+                "Agreement and best interests decisions; refusals and changes at a visit",
+                "The Consent and decisions part of the care plan; the daily visit notes"
+              ],
+              [
+                "Incidents, near misses, equipment faults and staff injuries",
+                "The incident log"
+              ],
+              [
+                "Attendance at two-worker visits",
+                "Visit check-in and check-out, each worker under their own log-in"
+              ],
+              [
+                "Training, competency sign-off, equipment familiarisation and spot checks",
+                "Training and compliance records; supervision and appraisal records"
+              ],
+              [
+                "Staff individual risk assessments and occupational health advice",
+                "The staff record"
+              ],
+              [
+                "Hoist and sling register and general risk assessments",
+                "The branch health and safety file"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are kept as the Records Management and Retention Policy sets out, and none is destroyed while an investigation, claim or inquest is open or expected."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Moving and handling of people, face to face for at least 6 hours with practical assessment: law, back care, safer handling principles, banned techniques, slide sheets, standing and transfers, each hoist and sling type, correct sling fitting and compatibility, stand aids, wheelchairs, pre-use checks with pause-and-check, recognising unsafe equipment and how to stop and report, falls during handling, dignity, consent and reporting",
+                "Care staff, and Field Care Supervisors, Care Coordinators and On-call Managers who give care",
+                "At induction, before any moving and handling without a shadowing colleague",
+                "Practical refresher of at least 3 hours every 12 months, and when new equipment or a new technique is introduced"
+              ],
+              [
+                "Specific equipment not covered by the worker's training, such as a ceiling track hoist",
+                "Workers allocated to that person",
+                "Before first using it",
+                "With the annual refresher"
+              ],
+              [
+                "Bariatric handling",
+                "Core care team of a bariatric person",
+                "Before the first visit to that person",
+                "Every 12 months"
+              ],
+              [
+                "Moving and handling assessor training, at least one day, by a Moving and Handling Lead or an external trainer with the same qualification",
+                "Moving and handling assessors, and On-call Managers before joining the on-call rota",
+                "Before the first assessment; the first three are checked by the Moving and Handling Lead",
+                "Every 3 years"
+              ],
+              [
+                "Level 3 qualification to train others in moving and handling people",
+                "Moving and Handling Leads",
+                "Before appointment",
+                "Update every 3 years"
+              ],
+              [
+                "Allocation rules in this policy, including two-worker visits and delayed second workers",
+                "Care Coordinators and On-call Managers",
+                "Before first allocating visits or the first on-call shift",
+                "Every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "E-learning never replaces practical training. Before lone working sign-off the worker is observed moving and handling with the equipment they will use, and hoisting is signed off as a separate task, under the Induction and Care Certificate Procedure. A worker uses a particular hoist or other item only after a colleague already signed off on it, or the assessor, has shown it to them in that home, recorded in the training and compliance records before they are allocated."
+        },
+        {
+          "p": "Moving and handling is a critical item at every spot check where it takes place, under the Quality Audit and Monitoring Procedure. A worker whose moving and handling falls short at a spot check, or whose practice caused an incident, is retrained before they next do that task and observed again within 4 weeks; where their practice put a person at risk, the Registered Manager or Deputy Manager decides the same day whether they may handle people without a colleague until then. A worker whose training has expired is not allocated visits involving moving and handling until it is renewed."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Moving and handling assessments due or overdue for review",
+                "Weekly",
+                "Care Coordinator",
+                "Registered Manager by exception"
+              ],
+              [
+                "Every two-worker visit where only one worker checked in; target none without an agreed safe arrangement",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly health and safety indicators"
+              ],
+              [
+                "Incidents and near misses during handling, staff musculoskeletal injuries and absence, equipment faults, and any hoist or sling used without a current examination record (target none)",
+                "Monthly; trends by person, task, equipment, worker and time quarterly",
+                "Registered Manager",
+                "Nominated Individual monthly; Health and Safety Meeting and Directors quarterly"
+              ],
+              [
+                "Training and observed competency in date; targets 100% at induction and 95% for refreshers",
+                "Monthly",
+                "HR Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "5 moving and handling plans (all if fewer), including every bariatric plan and single-handed care change in the quarter, never the auditor's own",
+                "Quarterly",
+                "Moving and Handling Lead",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Progress on the NatPSA/2026/005/MHRA actions",
+                "Monthly until complete",
+                "Registered Manager",
+                "Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Moving and handling is also tested in the independent health and safety audit every 12 months. Every shortfall gets an action, owner and deadline in the service improvement plan, tracked at the Health and Safety Meeting until complete."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, a new safety alert, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

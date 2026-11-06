@@ -1,0 +1,658 @@
+{
+  "reference": "POL-SG-015",
+  "revision": 1,
+  "title": "Modern Slavery and Human Trafficking Policy",
+  "documentType": "POLICY",
+  "summary": "How we recognise and report slavery, servitude, forced labour, human trafficking, domestic servitude and criminal exploitation affecting the people we support, their households and our own workers, and how we prevent exploitation in our recruitment, pay, agencies and supply chain. For all staff, with specific duties for managers, the HR Manager and the Directors, including our annual modern slavery statement.",
+  "keyPoints": {
+    "intro": "Modern slavery is abuse and a serious crime, and home care workers are often the only outsiders who see it. This is what you must look for, what you must do, and how we protect you from being exploited.",
+    "points": [
+      "If anyone is in immediate danger, call 999. Otherwise phone the office, or the On-call Manager out of hours, before you leave the visit, from outside the home if the person who may be controlling someone is there or you feel unsafe.",
+      "Watch for anyone who never speaks for themselves, has no documents, money or phone, works all hours, sleeps somewhere unsuitable, seems afraid, owes a debt they cannot repay, or a home taken over by other people.",
+      "Never confront anyone you suspect, never move or rescue anyone yourself, never take anyone in your car, never give a household member or visitor a key safe code or key, and never photograph people, documents or the home as evidence.",
+      "If anyone stops you getting in or seeing the person alone, leave calmly and phone the office at once; a relative's or visitor's word that the person is fine is never enough.",
+      "If someone tells you they are being forced or held, listen, ask only whether they are safe now, never promise secrecy or an immigration outcome, and tell them your manager will get specialist help.",
+      "Never use a relative, a friend or the person who may be controlling someone to interpret; the safeguarding lead books a professional interpreter.",
+      "Report what you saw and heard in the CareFlow app as a Safeguarding Concern incident before the end of your shift; in the daily visit notes write only that a concern was reported.",
+      "Phone the Registered Manager or HR Manager the same day if a colleague seems controlled: someone else holds their passport, bank card or wages, always brings them and speaks for them, or they owe money for their job, visa or room.",
+      "We never charge you for a job, checks, training or uniform, never keep your passport, and pay only into a bank account in your own name; tell the HR Manager if anyone asks you to pay or hand over documents.",
+      "Never ask for or accept money, gifts or favours from a candidate or colleague for help getting a job, visits, sponsorship or a reference; it is gross misconduct.",
+      "If you are being exploited, tell any manager or the HR Manager. Being exploited is never a reason for disciplinary action or for ending your employment, and we will help you reach specialist support.",
+      "Answer the private welfare questions honestly at your week 4 probation review and each appraisal, and complete modern slavery awareness at induction and in every annual safeguarding refresher."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "SAFEGUARDING",
+    "RECRUITMENT",
+    "HR",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-SG-011",
+    "POL-HR-001",
+    "POL-HR-003",
+    "POL-HR-014",
+    "POL-HR-018"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Modern Slavery Act 2015, section 1 (slavery, servitude and forced or compulsory labour)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/30/section/1"
+    },
+    {
+      "source": "Modern Slavery Act 2015, section 2 (human trafficking)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/30/section/2"
+    },
+    {
+      "source": "Modern Slavery Act 2015, section 3 (meaning of exploitation)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/30/section/3"
+    },
+    {
+      "source": "Modern Slavery Act 2015, section 54 (transparency in supply chains)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/30/section/54"
+    },
+    {
+      "source": "Modern Slavery Act 2015 (Transparency in Supply Chains) Regulations 2015, regulations 2 and 3 (turnover threshold of £36 million, including subsidiaries)",
+      "url": "https://www.legislation.gov.uk/uksi/2015/1833/regulation/2/made"
+    },
+    {
+      "source": "Home Office, Modern Slavery: statutory guidance for England and Wales (under s49 of the Modern Slavery Act 2015), version 4.9, updated 3 November 2026",
+      "url": "https://www.gov.uk/government/publications/modern-slavery-how-to-identify-and-support-victims"
+    },
+    {
+      "source": "Home Office, Transparency in supply chains: a practical guide (statutory guidance, updated 1 December 2025)",
+      "url": "https://www.gov.uk/government/publications/transparency-in-supply-chains-a-practical-guide/transparency-in-supply-chains-a-practical-guide-accessible"
+    },
+    {
+      "source": "Fair Work Agency, How to report serious abuse or exploitation at work (updated 3 August 2026)",
+      "url": "https://www.gov.uk/guidance/how-to-report-serious-abuse-or-exploitation-at-work"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 6(1)(ea) and Annex 1, paragraphs 5 to 8 (recognised legitimate interests: crime and safeguarding vulnerable individuals, in force 5 February 2026)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/annex/1"
+    },
+    {
+      "source": "Department of Health and Social Care, Care and support statutory guidance, chapter 14, paragraph 14.17 (types of abuse, including modern slavery; updated 30 October 2026)",
+      "url": "https://www.gov.uk/government/publications/care-act-2014-supporting-implementation/care-and-support-statutory-guidance"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 (safeguarding service users from abuse and improper treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18(1) and (2)(e) and (f) (notification of abuse, allegations of abuse and police incidents)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Employment Agencies Act 1973, section 6 (restriction on charging fees to work-seekers)",
+      "url": "https://www.legislation.gov.uk/ukpga/1973/35/section/6"
+    },
+    {
+      "source": "Procurement Act 2023, Schedule 6, paragraph 23 and Schedule 7, paragraphs 1 to 3 (exclusion grounds: slavery and human trafficking offences, labour market misconduct)",
+      "url": "https://www.legislation.gov.uk/ukpga/2023/54/schedule/6"
+    },
+    {
+      "source": "Crime and Policing Act 2026, section 65 (controlling another's home for criminal purposes; not yet in force on 5 November 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2026/20/section/65"
+    },
+    {
+      "source": "Department of Health and Social Care, Code of practice for the international recruitment of health and social care personnel in England (updated 27 March 2025)",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} does not tolerate modern slavery in any form: slavery, servitude, forced or compulsory labour and human trafficking, including domestic servitude, debt bondage and criminal exploitation. It can affect the people we support, others living or working in their homes, our own workers, and the workers of our agencies and suppliers. Our care workers are often the only outsiders who regularly enter a person's home, and care workers who came to the UK on sponsored visas have been targeted by exploitative recruiters, agents and employers."
+        },
+        {
+          "p": "{{organisation}} will recognise the signs, report every concern the same day, and support anyone who may be a victim without judging or penalising them. We recruit fairly, never charge workers for a job, never hold their documents, pay every worker directly, and require the same of our agencies and suppliers. The Directors are accountable for this policy; the Nominated Individual leads it at board level and the Registered Manager, as safeguarding lead, runs it day to day."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "To make sure everyone who works for us recognises modern slavery and reports it under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, so that potential victims reach the police, the local authority and, through a First Responder, the National Referral Mechanism.",
+            "To prevent the exploitation of our own workforce through fair recruitment, pay, working time and employment controls.",
+            "To hold our agencies and suppliers to the same standard, and to publish each year a statement of the steps we have taken."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, office and care staff, bank and agency workers, students, volunteers and contractors. It covers the people we support and anyone we meet in their homes; our employees, workers and job applicants; and the employment agencies, recruitment partners, suppliers and subcontractors we use."
+        },
+        {
+          "p": "The general steps for reporting, referring and escalating a concern are in the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. A child at risk is referred under the Safeguarding Children and Young People Policy; forced marriage is covered by the Domestic Abuse Policy; right to work checks and sponsorship by the Right to Work and Sponsored Workers Policy; an allegation that a member of staff is exploiting someone by the Managing Allegations Against Staff Procedure; and bribery by the Anti-Bribery and Fraud Prevention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Human trafficking",
+                "Arranging or facilitating a person's travel, including recruiting, transporting, harbouring or receiving them, with a view to their exploitation. Travel within the UK counts."
+              ],
+              [
+                "Domestic servitude",
+                "A person made to work in a household, often for long hours, for little or no pay, unable to leave, and sometimes presented as a relative or helper."
+              ],
+              [
+                "Debt bondage",
+                "Work demanded to repay a debt that the worker cannot control or clear, often for recruitment fees, travel, a visa or accommodation."
+              ],
+              [
+                "Criminal exploitation and cuckooing",
+                "Forcing, threatening or deceiving a person into crime, such as carrying or storing drugs or money. Cuckooing is taking over a person's home for crime, often targeting people who are disabled, isolated or dependent on drugs or alcohol."
+              ],
+              [
+                "National Referral Mechanism (NRM)",
+                "The Home Office framework for identifying and supporting potential victims. Only First Responder Organisations can refer into it."
+              ],
+              [
+                "First Responder Organisation",
+                "In England and Wales: the police, the National Crime Agency, the Fair Work Agency, local authorities, Border Force and Home Office immigration teams, and named charities such as The Salvation Army, Migrant Help and Unseen UK. We are not a First Responder."
+              ],
+              [
+                "Fair Work Agency",
+                "The government agency that enforces workers' rights, regulates employment agencies and businesses, and takes reports of serious abuse and exploitation at work. It has replaced the Gangmasters and Labour Abuse Authority and is a First Responder."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and each annual modern slavery statement, and decide whether to suspend or end an agency or supplier arrangement where modern slavery is suspected. The Nominated Individual is the board lead for modern slavery: they keep the supplier modern slavery register, draft the annual statement, receive the reports in Monitoring and review, and answer commissioners' questions about our compliance."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is the modern slavery lead within the safeguarding lead role, with the Deputy Manager as deputy and the Nominated Individual acting if both are unavailable; \"the lead\" means whichever is acting. The lead assesses every concern, makes the reports and notifications in this policy, and oversees support for any worker who may be a victim. At each three-monthly check of the Local Safeguarding Contacts sheet, the Registered Manager confirms that the Fair Work Agency reporting route on it is current."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager runs the controls in Fair recruitment and employment, carries out agency due diligence and the annual agency audit, and agrees and keeps the support plan for any worker who may be a victim."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors and On-call Managers",
+          "blocks": [
+            {
+              "p": "Care Coordinators and On-call Managers pass every concern to the lead at once and tell the HR Manager the same day when a third party phones in for a worker, tries to take over their visits or asks about their pay. Whoever holds a worker's week 4 probation review or appraisal (the Field Care Supervisor for care staff, the line manager for other staff) asks the private welfare questions, and Field Care Supervisors hold the private conversations with agency workers in the annual agency audit."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers, Senior Care Workers and Office staff",
+          "blocks": [
+            {
+              "p": "Everyone must know the signs in this policy, report every concern as Responding to a concern sets out, and never act alone to confront or move anyone. Office staff record any concern phoned in, in the caller's words, in the safeguarding record (for a concern about a colleague, they pass it straight to the Registered Manager or HR Manager without recording it in anyone's care records) and pass it to the lead immediately."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The law and how it applies to us",
+      "blocks": [
+        {
+          "bullets": [
+            "The Modern Slavery Act 2015 makes slavery, servitude, forced or compulsory labour and human trafficking criminal offences. The person's consent does not prevent an offence, and a court may take account of their age, family relationships and any illness. Exploitation includes using a person to provide services or benefits, having chosen them because they are a child, ill or disabled, or related to someone, where a person without that vulnerability would be likely to refuse (section 3(6)), which can describe what happens to a person we support.",
+            "Modern slavery is a type of abuse under the Care and support statutory guidance, and Regulation 13 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires us to protect people from abuse and to have effective systems to prevent it.",
+            "Only First Responder Organisations can refer to the NRM. An adult must give informed consent; where they do not, a public authority First Responder still notifies the Home Office under the duty to notify in section 52, without identifying them unless they agree. The duty to notify does not apply to us. A child needs no consent. Our role is to report to a First Responder, normally the police or the local authority, and to support the person.",
+            "Section 54 requires a commercial organisation with total turnover, including subsidiaries, of £36 million or more to publish a statement for each financial year, approved by the board, signed by a Director and linked prominently from its website homepage. Our policy is to publish one every year whatever our turnover.",
+            "Under the Procurement Act 2023, a modern slavery conviction is a mandatory, and a slavery and trafficking prevention or risk order a discretionary, ground for excluding a supplier from public contracts. An employment agency or employment business that charges a work-seeker a fee for finding work commits an offence (Employment Agencies Act 1973, section 6).",
+            "The Crime and Policing Act 2026, section 65, creates an offence of controlling another person's home for criminal purposes (cuckooing). It was not yet in force in November 2026; we report cuckooing now as criminal exploitation and abuse, and the police decide which offence applies."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Recognising modern slavery",
+      "blocks": [
+        {
+          "p": "No single sign proves exploitation, and victims rarely see themselves as victims: many are frightened, believe they owe a debt or depend on the exploiter for a home or a visa. A sign is always a reason to report, never a reason to investigate."
+        },
+        {
+          "table": {
+            "columns": [
+              "Where",
+              "Signs to look for"
+            ],
+            "rows": [
+              [
+                "The person we support",
+                "Made to work, beg, carry or store drugs or money, or hand over their benefits; new \"friends\" or \"relatives\" who control their money, phone, post or medicines; moved between addresses; frightened of someone; answers that sound rehearsed."
+              ],
+              [
+                "Someone else in the household, such as a live-in helper, a relative from abroad or a privately employed personal assistant",
+                "Does all the housework or care for very long hours with no days off; never goes out alone; sleeps in a kitchen, hallway or shared room with no space of their own; is not allowed to speak to us or is always answered for; has no access to their passport, phone or money; appears underfed, injured or afraid; does not know the address; mentions a debt."
+              ],
+              [
+                "The home taken over (cuckooing)",
+                "Visitors at all hours; people staying who were not there before; drug equipment, weapons or large amounts of cash; rooms locked against the person; their food, money or medicines missing; someone asks the care worker for the key safe code or a key; the person seems frightened or asks us not to come."
+              ],
+              [
+                "Colleagues and agency workers",
+                "Someone else holds their passport, eVisa log-in, bank card or wages; the same person drops them off, collects them and speaks for them; many unrelated workers share one address; they owe money to an agent, recruiter, landlord or colleague for their job, visa, travel or room; they take every extra visit and rarely take leave; they fear being reported to the Home Office; someone else phones in for them, tries to pick up their visits or uses their CareFlow log-in or work phone."
+              ],
+              [
+                "Recruitment",
+                "A candidate accompanied by someone who answers for them or holds their documents; several applications sharing a phone number, email, address or bank details; a third party asking to be paid for supplying candidates; a candidate who says they paid someone for a job or a certificate of sponsorship."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Responding to a concern",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What every member of staff must do",
+          "blocks": [
+            {
+              "steps": [
+                "If anyone is in immediate danger, call 999, keep yourself at a safe distance and stay nearby until the police arrive or the office tells you to leave. If you feel threatened, leave and phone from somewhere safe.",
+                "Do not confront or question the person you suspect, do not let them see that you are concerned, and do not try to move, hide or rescue anyone; where it is safe, finish the planned care calmly. Never take a potential victim in your car or to your home, never give a household member or visitor a key safe code or key, and never photograph or film people, documents or the home as evidence; describe what you saw, record any injury on a CareFlow body map, and leave evidence gathering to the police and local authority.",
+                "If a potential victim speaks to you alone, listen, ask only whether they are safe now and whether they can talk freely, and do not ask for details. Never promise secrecy, money, accommodation or any immigration outcome; tell them that your manager can get them specialist help. Never use a relative, friend or the person who may be controlling them to interpret.",
+                "Phone the office, or the On-call Manager out of hours, before you leave the visit, and speak to a person. Phone from outside the home if the person who may be controlling someone is present or you feel unsafe; with no signal, go only as far as the nearest place with one and phone before travelling to your next visit. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly; if you still cannot reach a manager and anyone is at risk, contact the police or local authority using the Local Safeguarding Contacts sheet. The office tells you whether to wait or go on, moves or covers your next visits while you wait for the police, and tells the next person if you will be late; waiting time is paid.",
+                "Report the facts and any words used in the CareFlow app as a Safeguarding Concern incident before the end of your shift; daily visit notes say only that a concern was reported. A concern about a colleague is phoned to the Registered Manager or HR Manager the same day (the On-call Manager out of hours if they may be in danger) and is never recorded in a person's care records; if that colleague is with you on a double-up visit, phone as soon as you are apart and before your next visit."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "What the lead does",
+          "blocks": [
+            {
+              "p": "The lead follows the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, with these additions. Because exploiters rarely hold only one person, the lead treats other people as at risk unless there is clear evidence otherwise, so the police are told even where a capable adult would prefer they were not; the person is told this unless telling them would increase the risk."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Action",
+                  "Who",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "Risk assessment, including who else may be at risk (other workers, children, other people we support) and the safety of our staff",
+                    "Lead or On-call Manager",
+                    "Within 1 hour of the report"
+                  ],
+                  [
+                    "Police: 999 where anyone is in immediate danger; otherwise the police non-emergency route on the Local Safeguarding Contacts sheet",
+                    "Lead or On-call Manager",
+                    "Immediately in an emergency; otherwise the same day"
+                  ],
+                  [
+                    "Local authority adult safeguarding team, for a person we support or any other adult potential victim, following the local Safeguarding Adults Board procedures",
+                    "Lead",
+                    "The same working day; out of hours, the out-of-hours service if the person cannot safely wait, otherwise by 12 noon the next working day"
+                  ],
+                  [
+                    "Children's social care, where a child may be a victim or at risk",
+                    "Lead",
+                    "As the Safeguarding Children and Young People Policy sets out"
+                  ],
+                  [
+                    "Fair Work Agency, through its report of serious abuse or exploitation at work, for labour exploitation of any worker, including a household's domestic worker or an agency worker",
+                    "Lead",
+                    "The same working day, unless the police ask us to wait"
+                  ],
+                  [
+                    "Ask the police or local authority whether they will refer the person to the NRM, and record their answer",
+                    "Lead",
+                    "When reporting, with the answer recorded in the safeguarding record or staff record"
+                  ],
+                  [
+                    "Nominated Individual, for every modern slavery concern",
+                    "Lead",
+                    "Within 24 hours"
+                  ],
+                  [
+                    "CQC, where Notifications and information sharing below requires it",
+                    "Registered Manager (Deputy Manager, then Nominated Individual, in their absence)",
+                    "As the Statutory Notifications to CQC Procedure sets out; a police incident within 24 hours of our becoming aware"
+                  ],
+                  [
+                    "Risk assessments and team briefing on staff safety; details of the concern are never written in the care plan or in anything kept in the home",
+                    "Care Coordinator or Field Care Supervisor",
+                    "Before the next visit"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The lead never contacts the suspected exploiter or an embassy unless the police advise it, and books a professional interpreter for any potential victim who needs one."
+            }
+          ]
+        },
+        {
+          "heading": "The National Referral Mechanism",
+          "blocks": [
+            {
+              "p": "Where it is safe, the lead or a First Responder explains to the potential victim what the NRM is, that it is their choice, and the support it can bring, such as safe accommodation. The lead never promises an outcome and never gives immigration advice; anyone who needs it is directed to a solicitor or an adviser regulated by the Immigration Advice Authority. If the person declines, the lead records it, keeps passing new information to the police and local authority, and the person's care continues."
+            }
+          ]
+        },
+        {
+          "heading": "Keeping the person we support safe",
+          "blocks": [
+            {
+              "p": "We never reduce, suspend or end a package because of a modern slavery concern; staff are kept safe through the risk assessments, two-worker visits where needed, the Lone Working and Staff Personal Safety Policy and the Violence and Aggression Towards Staff Policy. While a concern is open, a request from anyone other than the person to cancel, shorten or change visits goes to the Care Coordinator (On-call Manager out of hours), who confirms it privately with the person, or, where the person lacks capacity, with the commissioner (the lead where there is none), before anything changes. If anyone stops a care worker seeing the person alone or gaining entry, the care worker leaves calmly, phones the office at once from where they cannot be overheard, and the No Reply, No Access and Missing Person Procedure applies; a relative's or visitor's word that the person is well is never enough. A key safe code or key is never given to a visitor or household member, and a request for one is reported to the lead as part of the concern. Where a home has been taken over, the lead asks the police and local authority for a joint safety plan, and the key safe code is changed the same day with the person's agreement under the Key Holding, Key Safes and Access to People's Homes Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Notifications and information sharing",
+          "blocks": [
+            {
+              "p": "Where a person we support is a potential victim or the alleged exploiter, CQC and the commissioner are told under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. The law requires CQC to be told of any incident reported to or investigated by the police that occurs while we provide care or as a consequence of it (regulation 18(2)(f)). Our policy goes further: where the potential victim is someone else, such as a household member or a worker, CQC is notified as a police incident under the Statutory Notifications to CQC Procedure whenever the police are involved and the matter was identified during our visits or arose from our service, for example exploitation of a worker by an agency that supplies us; otherwise the Registered Manager records in the safeguarding record why no notification is required. The Nominated Individual tells the Directors within 5 working days whenever an agency or supplier is implicated."
+            },
+            {
+              "p": "We share only what is necessary, securely, under the Confidentiality and Information Sharing Policy, and record what was shared, with whom and why. Our lawful basis is the recognised legitimate interests of preventing and detecting crime and safeguarding vulnerable individuals (UK GDPR, Article 6(1)(ea) with Annex 1, paragraphs 5 to 8). Health and other special category information about a person we support is shared with their consent under the health or social care purposes condition (Article 9(2)(h) with Schedule 1, paragraph 2 of the Data Protection Act 2018); special category or criminal offence information shared without consent, or about anyone else, is shared under the Data Protection Act 2018, Schedule 1, paragraph 18 or paragraph 10 (preventing or detecting unlawful acts), with the appropriate policy document kept under the Data Protection Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Supporting a worker who may be a victim",
+      "blocks": [
+        {
+          "p": "A worker who is being exploited, whether by a previous employer or sponsor, an agent, a landlord, a family member or anyone else, is supported, not blamed. Being a potential victim is never in itself a reason for disciplinary action, dismissal or a change to the worker's contract."
+        },
+        {
+          "steps": [
+            "The HR Manager, or a manager the worker chooses, meets the worker privately within 1 working day of the concern, the same day if they may be in danger, with a professional interpreter where needed and never with another worker the worker did not choose.",
+            "They agree a written support plan: safety at work (a rota pattern the exploiter cannot predict, and no information given to callers), pay into a new account in the worker's own name from the next payroll run, and the safe leave and salary advance in the Domestic Abuse Policy, which apply equally to potential victims of modern slavery.",
+            "With the worker's consent, the lead asks the police or a charity First Responder such as The Salvation Army to consider an NRM referral; the worker is also offered the employee assistance programme and occupational health support.",
+            "The plan is kept in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions) and reviewed at least every 4 weeks. Care Coordinators are told only that the worker is unavailable or their rota has changed.",
+            "Absence, lateness or performance problems caused by the exploitation are handled through the plan, not the Disciplinary Policy and Procedure or the Capability and Performance Procedure, unless the people we support were put at risk."
+          ]
+        },
+        {
+          "p": "We never threaten, mention or use a sponsored worker's sponsorship to influence them. The HR Manager directs them within 1 working day to a solicitor or an adviser regulated by the Immigration Advice Authority, because version 4.9 of the Home Office statutory guidance added guidance on the Immigration Rules for Skilled Worker visa holders who are victims of modern slavery. Sponsor reports to the Home Office are made only where the Right to Work and Sponsored Workers Policy requires them, never as a response to a disclosure of exploitation. Where the alleged exploiter is one of our staff, the Managing Allegations Against Staff Procedure also applies."
+        }
+      ]
+    },
+    {
+      "heading": "Fair recruitment and employment",
+      "blocks": [
+        {
+          "p": "These controls apply to every worker, whatever their nationality, so that no one is singled out. They add to the Safer Recruitment Policy, the Right to Work and Sponsored Workers Policy and the Working Time, Rest Breaks and Travel Time Policy."
+        },
+        {
+          "table": {
+            "columns": [
+              "Control",
+              "Our arrangement"
+            ],
+            "rows": [
+              [
+                "No fees",
+                "We never charge a candidate or worker for recruitment, checks, training, uniform, equipment or sponsorship, and never recover recruitment, relocation or visa costs from them. Referral payments are made only by us, through payroll. Asking for or accepting money, gifts or favours from a candidate or colleague for help with a job, visits, a certificate of sponsorship or a reference is gross misconduct under the Disciplinary Policy and Procedure."
+              ],
+              [
+                "Meeting the candidate alone",
+                "Interviews and identity appointments are held with the candidate alone; a companion waits outside unless they are a professional interpreter we booked or a supporter agreed as a reasonable adjustment. Documents are checked in person with the holder, never brought by a third party, and we never keep anyone's passport or identity documents."
+              ],
+              [
+                "Pay",
+                "Pay goes only into a bank account in the worker's own name, held alone or jointly with someone they choose, never in cash or to a third party. A change of bank details is accepted only in writing from the worker's email address in the staff record or in person at the branch office with photo ID, and the HR Manager confirms it by phoning the worker on the number in their staff record before the next payroll."
+              ],
+              [
+                "Payroll checks",
+                "Before each monthly payroll, alongside the minimum wage check, the HR Manager flags: one bank account used by two or more workers other than a joint account both have declared; an account name that does not match the worker; any change of bank details; four or more workers at one address who have not declared themselves family; the same phone number or emergency contact for unrelated workers; and rostered plus declared hours over 60 in a week. A flag is a prompt for a private conversation, not an accusation."
+              ],
+              [
+                "Accommodation and transport",
+                "We provide no tied accommodation and never arrange accommodation or transport that a worker pays a third party for. No manager, Care Coordinator, Field Care Supervisor or Senior Care Worker lets accommodation to, or charges for transport to, a worker they recruit, supervise or allocate. Any other employee who lets accommodation to, or charges a colleague for transport, declares it to the HR Manager within 5 working days under the Staff Code of Conduct."
+              ],
+              [
+                "Private welfare questions",
+                "At the week 4 probation review and at each appraisal, the supervisor asks every worker privately whether: they paid anyone to get this job or to travel here for work; anyone else holds their passport, documents, bank card or wages; they owe money to anyone connected with their job, travel or accommodation; they can leave their job and their accommodation freely; and anyone is pressuring them about their work. The supervision and appraisal record notes only that the questions were asked; any answer suggesting exploitation is phoned to the Registered Manager the same day and recorded in the restricted section of the staff record. Each sponsored worker also completes a confidential welfare questionnaire on the same themes, sent by the HR Manager about 4 weeks after sponsorship starts and then every 6 months. Only the Registered Manager reads the answers: they act on any answer suggesting exploitation the same working day under this policy and pass questions about pay to the HR Manager."
+              ],
+              [
+                "Information and speaking up",
+                "Induction covers pay, working time, how to raise a grievance or speak up under the Whistleblowing (Speaking Up) Policy, and how to report exploitation to the Fair Work Agency, which does not share a reporter's details with anyone named in the report."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The HR Manager reviews every payroll flag within 2 working days of the payroll check; where it is not explained by the records, the HR Manager speaks privately with the worker within 5 working days. A recruitment sign from Recognising modern slavery is passed to the Registered Manager the same day, and the candidate is seen alone before any decision is made. We never withdraw an offer or end employment because a person may be a victim."
+        }
+      ]
+    },
+    {
+      "heading": "Agencies and suppliers",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Assessing risk",
+          "blocks": [
+            {
+              "p": "Before a contract starts, the Nominated Individual records each supplier in the supplier modern slavery register with a risk rating."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Risk",
+                  "Suppliers",
+                  "Checks before contracting and each year"
+                ],
+                "rows": [
+                  [
+                    "High",
+                    "Employment agencies supplying care workers; recruitment agencies and partners",
+                    "Written questionnaire covering worker fees, document retention, pay into workers' own accounts, accommodation and transport, subcontracting and their own modern slavery statement or policy; our contract clauses in place before any worker starts; included in the annual agency audit."
+                  ],
+                  [
+                    "Medium",
+                    "Disposable gloves and other personal protective equipment, uniforms, and any labour-based contractor such as office cleaning",
+                    "Written assurance of where the goods are made and the supplier's modern slavery due diligence, with their published statement where they have one, reviewed each year."
+                  ],
+                  [
+                    "Low",
+                    "Professional services, software, utilities and office supplies",
+                    "Our standard modern slavery clause in the contract or terms of business."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Contract terms",
+          "blocks": [
+            {
+              "p": "Every high and medium risk supplier contract requires the supplier to: comply with the Modern Slavery Act 2015; charge workers no fees for finding or keeping work; never hold workers' identity documents; pay workers directly into their own accounts; subcontract only with our written consent and on the same terms; allow us to audit their compliance; tell us within 2 working days of any allegation of modern slavery in their business or supply chain; and accept suspension or termination for a breach. New contracts include these terms from the date this policy is adopted; existing contracts are amended at renewal or by 31 March 2027, whichever is sooner, in line with the agency terms in the Right to Work and Sponsored Workers Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Agency workers",
+          "blocks": [
+            {
+              "p": "The annual agency audit in November under the Safer Recruitment Policy also checks the agency's compliance with these terms. As part of it, a Field Care Supervisor speaks privately with at least two of each agency's workers who visit for us (all of them if fewer), away from agency staff, and asks them the private welfare questions. Anyone other than the booked agency worker who arrives at a person's home does not start the visit, under the no-substitution rule in the Right to Work and Sponsored Workers Policy; the office (On-call Manager out of hours) covers the visit, tells the agency and reports it to the lead as a possible modern slavery concern, all the same day. An agency worker who may be a victim is supported under this policy; before ending an agency arrangement, the Registered Manager asks the police whether doing so would alert an exploiter or put the worker at risk."
+            }
+          ]
+        },
+        {
+          "heading": "When a supplier is implicated",
+          "blocks": [
+            {
+              "p": "When credible information links an agency, a supplier or a manufacturer it uses to modern slavery, such as a worker's account, an audit finding or enforcement action, the Nominated Individual records it in the register within 1 working day and the Registered Manager passes any information about potential victims to the police and the Fair Work Agency. Unless the police ask us not to alert the supplier, the Nominated Individual asks it in writing for an explanation and remediation plan within 10 working days. The Directors then decide whether to continue with monitored remediation, suspend or end the arrangement, protecting continuity of care and of personal protective equipment under the Business Continuity and Emergency Planning Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Annual modern slavery statement",
+      "blocks": [
+        {
+          "p": "Each year, within 6 months of the end of our financial year, the Nominated Individual drafts a modern slavery statement with the Registered Manager and the HR Manager. It covers our structure, business and supply chains; this policy; our risk assessment and due diligence; training; and the results of the monitoring in this policy. The Directors approve it, a Director signs it and dates the approval, and it is published on our website with a link in a prominent place on the homepage and uploaded to the government modern slavery statement registry. Previous statements stay on our website for at least 6 years."
+        },
+        {
+          "p": "At each financial year end the Directors confirm our total turnover, including any subsidiaries. Where it is below £36 million the statement is published voluntarily and says so; where it reaches £36 million it is a legal requirement under section 54. When a commissioner asks, the Nominated Individual provides the latest statement and confirms whether any modern slavery exclusion ground under the Procurement Act 2023 applies to us."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Concerns about a person we support or anyone in their household are kept in the person's safeguarding record in CareFlow. Concerns about a worker, their support plan, welfare answers suggesting exploitation, and payroll flags with their review are kept in the restricted section of the staff record. The Nominated Individual keeps the supplier register, questionnaires, assurances and contract terms with the Directors' governance records for the life of the contract plus 6 years. Everything else follows the Records Management and Retention Policy, and safeguarding records are never destroyed while an enquiry, police investigation or legal claim is open or expected."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Modern slavery awareness: the signs at visits and among colleagues, what never to do, and how to report",
+                "All employees, including Directors",
+                "At induction, within safeguarding training",
+                "In every annual safeguarding refresher, including a home care scenario"
+              ],
+              [
+                "Workforce exploitation for supervisors: the private welfare questions, handling a disclosure from a colleague, agency worker identity and substitution",
+                "Senior Care Workers, Field Care Supervisors, Care Coordinators and On-call Managers",
+                "Before supervisory or on-call duties, within supervisor-level safeguarding training",
+                "Every 2 years"
+              ],
+              [
+                "Modern slavery lead training: the NRM and First Responders, the Fair Work Agency, payroll and recruitment controls, supplier due diligence and the annual statement",
+                "Registered Manager, Deputy Manager, HR Manager and Nominated Individual",
+                "Within 3 months of appointment; until then, the Nominated Individual (for a new Nominated Individual, the Registered Manager) checks every modern slavery decision they make the same working day",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Training is recorded in the training and compliance records. Staff acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every modern slavery concern against the timescales in this policy, target 100%",
+                "Monthly, within the safeguarding record audit",
+                "Deputy Manager",
+                "Registered Manager; monthly safeguarding report to the Nominated Individual"
+              ],
+              [
+                "Payroll flags raised, each reviewed within 2 working days, target 100%",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Welfare questions asked at week 4 probation reviews and appraisals, target 100%",
+                "Quarterly, within the staff file audit under the Safer Recruitment Policy",
+                "Deputy Manager",
+                "Registered Manager; quarterly governance report"
+              ],
+              [
+                "Sponsored worker welfare questionnaires, about 4 weeks after sponsorship starts and then every 6 months, with every concern followed up",
+                "Every 6 months",
+                "Registered Manager",
+                "Annual safeguarding report; the modern slavery statement"
+              ],
+              [
+                "Agency compliance with our terms, and the private conversations with agency workers",
+                "Annually, in November",
+                "HR Manager and Field Care Supervisors",
+                "Registered Manager and Nominated Individual"
+              ],
+              [
+                "Supplier modern slavery register, contract terms and assurances",
+                "Annually, when the statement is drafted",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Modern slavery training, 100% at induction and 95% in date",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The annual safeguarding report to the Directors includes the number of modern slavery concerns, reports to the police, local authority and Fair Work Agency, NRM referrals made by First Responders, worker support cases and supplier cases, with the learning from each. Every shortfall is recorded with an action, an owner and a deadline."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law, statutory guidance or Immigration Rules, the commencement of the cuckooing offence, a modern slavery concern involving our staff or suppliers, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

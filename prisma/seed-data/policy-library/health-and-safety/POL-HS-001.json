@@ -1,0 +1,924 @@
+{
+  "reference": "POL-HS-001",
+  "revision": 1,
+  "title": "Health and Safety Policy",
+  "documentType": "POLICY",
+  "summary": "Our general statement of health and safety policy, with the organisation and arrangements for putting it into practice in people's homes, in the community, on the road and in our branch offices. It names who is responsible for what and sets out how we assess and control risk, respond to danger, report and learn from incidents, consult and train staff, and check that the arrangements work. It is the parent document for every health and safety policy and procedure, and applies to everyone who works for us.",
+  "keyPoints": {
+    "intro": "Health and safety is part of every visit and every shift. These are the rules that keep you, the people we support and others safe; the rest of this policy explains how we organise it.",
+    "points": [
+      "Before your first visit to anyone, read their home environment risk assessment and care plan, and follow the safe way of working they set out. If something has changed or looks unsafe, phone the office before you carry on.",
+      "In serious and imminent danger, such as fire, gas or violence, get to safety, call 999 if needed and phone the office or On-call Manager. Do not go back in until the Registered Manager, Deputy Manager or On-call Manager says it is safe.",
+      "Never do a task you are not trained and signed off for, never use equipment that is damaged or past its examination date, and never do a two-person task alone. Make the person as safe as you can and phone the office.",
+      "Phone the office or On-call Manager before you leave the home about every accident, injury, including your own, and near miss, and about any hazard that puts the next visit at risk. Record each one in the incident log before your shift ends.",
+      "Use the protective equipment, first aid kit, personal alarm and other equipment we give you as you were trained, keep it in good order and ask the office for replacements. We never charge you for it.",
+      "Use only the cleaning and care products named in the person's care plan or supplied by us, never mix products, and tell your supervisor about any skin soreness, breathing problem or reaction you notice.",
+      "Tell your manager about anything that affects your ability to work safely, such as an injury, a health condition, medicine that makes you drowsy, or pregnancy, so that we can assess the risk and adjust your work.",
+      "Complete your health and safety, fire, moving and handling, emergency first aid and lone working training before you work alone, and renew it on time. Expired training stops your visits, or for moving and handling the visits needing it, until renewed.",
+      "Raise any health and safety concern with the office, your supervisor or a staff health and safety representative. We acknowledge it within 1 working day and reply within 5 working days, and you will never be treated unfairly for raising it.",
+      "Never change the safe way of working in the care plan on your own judgement or because the person or a relative asks. If a safety measure is refused or no longer works, do not do the unsafe part; phone the office."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "RISK_ASSESSMENT",
+    "INCIDENT",
+    "TRAINING",
+    "AUDIT",
+    "BRANCH",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-HS-002",
+    "POL-HS-003",
+    "POL-HS-005",
+    "POL-HS-007",
+    "POL-HS-009",
+    "POL-HS-010",
+    "POL-GOV-007",
+    "POL-GOV-004"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 2 (general duties of employers to their employees, including the written policy statement in section 2(3))",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/2"
+    },
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 3 (general duties of employers to persons other than their employees)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/3"
+    },
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 7 (general duties of employees at work)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/7"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 3 (risk assessment)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 7 (health and safety assistance)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/7"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 8 (procedures for serious and imminent danger)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/8"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 14 (employees' duties)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/14"
+    },
+    {
+      "source": "Health and Safety (Consultation with Employees) Regulations 1996, regulation 3 (duty of employer to consult)",
+      "url": "https://www.legislation.gov.uk/uksi/1996/1513/regulation/3"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulations 4 (non-fatal injuries to workers), 5 (non-fatal injuries to non-workers) and 12 (record keeping), and Schedule 1 (reporting procedure)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/4"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 (safe care and treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 15 (premises and equipment), including the exclusion in paragraph (3) for equipment in a person's own accommodation",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/15"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 (good governance)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 18 (notification of other incidents)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 44 (health and safety cases: protection from detriment)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/44"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 100 (health and safety cases: unfair dismissal)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/100"
+    },
+    {
+      "source": "Control of Substances Hazardous to Health Regulations 2002, regulation 11 (health surveillance; health records kept for at least 40 years)",
+      "url": "https://www.legislation.gov.uk/uksi/2002/2677/regulation/11"
+    },
+    {
+      "source": "Lifting Operations and Lifting Equipment Regulations 1998, regulation 9 (thorough examination: at least every 6 months for equipment for lifting persons)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/2307/regulation/9"
+    },
+    {
+      "source": "Workplace (Health, Safety and Welfare) Regulations 1992, regulation 2 (a workplace does not include domestic premises)",
+      "url": "https://www.legislation.gov.uk/uksi/1992/3004/regulation/2"
+    },
+    {
+      "source": "Regulatory Reform (Fire Safety) Order 2005, article 6 (the Order does not apply to domestic premises)",
+      "url": "https://www.legislation.gov.uk/uksi/2005/1541/article/6"
+    },
+    {
+      "source": "Health and Safety (Display Screen Equipment) Regulations 1992, regulation 5 (eyes and eyesight)",
+      "url": "https://www.legislation.gov.uk/uksi/1992/2792/regulation/5"
+    },
+    {
+      "source": "Social Security (Claims and Payments) Regulations 1979, regulation 25 (accident book, which may be electronic: entries kept for at least 3 years)",
+      "url": "https://www.legislation.gov.uk/uksi/1979/628/regulation/25"
+    },
+    {
+      "source": "GOV.UK, Employers' liability insurance (minimum cover of 5 million pounds from an authorised insurer; certificate displayed, including electronically)",
+      "url": "https://www.gov.uk/employers-liability-insurance"
+    },
+    {
+      "source": "Health and Safety Executive, Health and safety policy",
+      "url": "https://www.hse.gov.uk/simple-health-safety/policy/index.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Personal Protective Equipment at Work (Amendment) Regulations 2022: duties extended to limb (b) workers from 6 April 2022",
+      "url": "https://www.hse.gov.uk/ppe/ppe-regulations-2022.htm"
+    },
+    {
+      "source": "Memorandum of Understanding between the Care Quality Commission and the Health and Safety Executive (March 2024), paragraphs 5 to 7 and Annex A",
+      "url": "https://www.hse.gov.uk/agency-agreements-memoranda-of-understanding-concordats/assets/docs/mou-cqc-hse-la.pdf"
+    },
+    {
+      "source": "Skills for Care, Statutory and mandatory training guide for adult social care employers (December 2025)",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Developing-your-workforce/Guide-to-developing-your-staff/Statutory-and-mandatory-training-guide-December-2025.pdf"
+    },
+    {
+      "source": "Skills for Care, The Care Certificate standards (updated March 2025), Standard 13 Health and safety",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Developing-your-workforce/Care-Certificate/Care-Certificate-Standards/Care-Certificate-standards-March-2025.pdf"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} provides personal care and support to people in their own homes. Our care staff work alone, in homes we neither own nor control, travel between visits and work at any hour; our office staff work in our branch offices and at times from home. {{organisation}} accepts its legal duty to ensure, so far as is reasonably practicable, the health, safety and welfare at work of everyone it employs, and to protect everyone else affected by our work: the people we support, their families and visitors, contractors and the public."
+        },
+        {
+          "p": "We will assess and control the risks of our work; provide safe systems of work, safe equipment, information, training and supervision; check competence before staff work alone; consult staff; and learn from every incident and near miss. We respect people's right to live as they choose in their own homes, and look for a safe way to provide care before ever deciding a risk cannot be managed."
+        },
+        {
+          "p": "The Directors of {{organisation}} have overall responsibility for health and safety. A Director signs and dates this statement on their behalf each time this policy is approved, and the signed statement is displayed in every branch office with the date of its next review. Everyone who works for us must work safely, look out for others and follow this policy and the procedures beneath it."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy is our written statement of general health and safety policy, with the organisation and arrangements for carrying it out, as section 2(3) of the Health and Safety at Work etc. Act 1974 requires. It sets who is responsible for what and how we control risk, handle emergencies, report incidents to the Health and Safety Executive (HSE) or the Care Quality Commission (CQC) where the law requires, and check that the arrangements work."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, office staff, care staff, bank and agency workers, students and volunteers, and to contractors as far as our work affects them or theirs affects us. It applies wherever our work takes place: in people's homes, in the community, on the road, in our branch offices, at home for office staff and on call."
+        },
+        {
+          "p": "A person's home is our staff's place of work while they are there, but it remains the person's private home. The Workplace (Health, Safety and Welfare) Regulations 1992 and the Regulatory Reform (Fire Safety) Order 2005 do not apply to domestic premises, though both apply to our branch offices. Our duties to staff and to the person still apply in full, so in homes we control risk through assessment, agreement with the person and the way we organise the work."
+        },
+        {
+          "p": "This is the parent policy for health and safety. The specific arrangements below form part of it and are read with it:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Topic",
+              "Document"
+            ],
+            "rows": [
+              [
+                "Assessing risk, including the home environment risk assessment",
+                "Risk Assessment and Home Environment Risk Assessment Procedure"
+              ],
+              [
+                "Lone working and staff personal safety",
+                "Lone Working and Staff Personal Safety Policy"
+              ],
+              [
+                "Abuse, threats and violence towards staff",
+                "Violence and Aggression Towards Staff Policy"
+              ],
+              [
+                "Moving and handling; hoists, slings and lifting equipment",
+                "Moving and Handling of People Policy; Hoists, Slings and Lifting Equipment Procedure"
+              ],
+              [
+                "Reporting to HSE",
+                "RIDDOR Reporting Procedure"
+              ],
+              [
+                "First aid and medical emergencies",
+                "First Aid Procedure"
+              ],
+              [
+                "Hazardous substances",
+                "Hazardous Substances (COSHH) Procedure"
+              ],
+              [
+                "Fire in people's homes",
+                "Fire Safety in People's Homes Policy"
+              ],
+              [
+                "Driving for work",
+                "Driving at Work Policy"
+              ],
+              [
+                "Animals in people's homes",
+                "Animals and Pets in People's Homes Guideline"
+              ],
+              [
+                "Keys and access to homes",
+                "Key Holding, Key Safes and Access to People's Homes Procedure"
+              ],
+              [
+                "Severe weather",
+                "Severe Weather and Extreme Temperatures Procedure"
+              ],
+              [
+                "Stress and wellbeing",
+                "Work-Related Stress and Staff Wellbeing Policy"
+              ],
+              [
+                "Pregnant workers and new mothers",
+                "New and Expectant Mothers at Work Procedure"
+              ],
+              [
+                "Workers under 18",
+                "Young Workers Procedure"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "These subjects belong to other policies: infection prevention and control, including protective equipment for infection control, sharps and waste (Infection Prevention and Control Policy); how every incident is recorded, investigated and learned from (Incident Reporting, Investigation and Learning Policy); falls by the people we support (Falls Prevention and Response Procedure); the organisational risk register (Risk Management Policy); no reply or no access at a visit (No Reply, No Access and Missing Person Procedure); emergencies that disrupt the whole service (Business Continuity and Emergency Planning Policy); and abuse or neglect (Safeguarding Adults Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Reasonably practicable",
+                "The legal standard for most health and safety duties: we must take a precaution unless its time, trouble and cost are grossly disproportionate to the risk it controls."
+              ],
+              [
+                "Serious and imminent danger",
+                "A danger that could cause death or serious injury at any moment, such as fire, a gas leak, an electrical fault, structural collapse, violence or an attacking animal."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for health and safety across {{organisation}}; the Nominated Individual leads on it on their behalf. They:"
+            },
+            {
+              "bullets": [
+                "provide the resources it needs, including realistic rota and travel time, equipment, training, competent advice and insurance, and decline or renegotiate any package that cannot be delivered safely as commissioned;",
+                "challenge the health and safety reports they receive (see Monitoring and review) and minute their decisions;",
+                "are told by the Registered Manager within 24 hours of any work-related death, RIDDOR-reportable event, enforcement notice or injury claim, and the same day of any inspector's contact about a safety matter;",
+                "commission the annual independent health and safety audit and approve its action plan."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (Health and Safety Lead)",
+          "blocks": [
+            {
+              "p": "The Registered Manager runs this policy day to day and is our in-house competent person under regulation 7 of the Management of Health and Safety at Work Regulations 1999. Where we have more than one branch, each branch's Registered Manager carries these duties for that branch. The Registered Manager:"
+            },
+            {
+              "bullets": [
+                "keeps the general risk assessments and the risk assessment register up to date;",
+                "makes sure every person we support has a current home environment risk assessment, with its controls written into the care plan;",
+                "decides how work continues when a hazard in a home cannot be fully controlled, and when staff may return after serious and imminent danger;",
+                "decides whether RIDDOR applies and makes RIDDOR reports and CQC notifications;",
+                "chairs the quarterly Health and Safety Meeting and arranges elections of representatives of employee safety;",
+                "manages the branch office fire risk assessment and safety checks and keeps the statutory notices on display."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out all of the Registered Manager's health and safety duties in their absence, checks for new safety alerts every week and carries out the inspections and audits given to them under Monitoring and review."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators build rotas with realistic travel time and the rest breaks in the Working Time, Rest Breaks and Travel Time Policy. They allocate only workers trained for the tasks on each visit and suited to its known risks (for example, no worker with a dog allergy to a home with dogs), never allocate one worker to a two-worker visit, pass hazards to the Field Care Supervisor the same working day, and tell every allocated worker about a change in risk the same day and before their next visit."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors carry out home environment and individual risk assessments and reviews, agree control measures with the person, and check moving and handling, equipment checks, protective equipment and hazard reporting at every spot check. Senior Care Workers show new staff the hazards in each home on shadowing shifts, check their practice and report unsafe practice to the Field Care Supervisor."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Outside office hours the On-call Manager receives reports of emergencies, injuries, near misses and hazards, decides the action needed, arranges safe care when a visit cannot go ahead as planned, makes sure the event is in the incident log, and hands over to the Registered Manager or Deputy Manager by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager and Office staff",
+          "blocks": [
+            {
+              "p": "The HR Manager keeps training records current, tells each worker and the Care Coordinator 30 days before health and safety training expires, arranges occupational health referrals, starts an individual risk assessment when a worker tells us they are pregnant, under 18 or have a health condition affecting their work, and tracks driving document checks in the training and compliance records. Office staff pass every phoned report at once to the Registered Manager or Deputy Manager and check by the next working day that the incident log entry has been made. The Registered Manager appoints trained office staff as fire marshals and first aiders for each office."
+            }
+          ]
+        },
+        {
+          "heading": "Every employee and worker",
+          "blocks": [
+            {
+              "p": "The law requires every employee to take reasonable care of themselves and others affected by their work, co-operate with us, use equipment as trained, report serious dangers and shortcomings in our arrangements, and never misuse anything provided for safety. Our policy also requires everyone to follow care plans, risk assessments and safe systems of work, report incidents and hazards, tell their manager about anything affecting their fitness to work safely, keep their training in date and challenge unsafe practice."
+            }
+          ]
+        },
+        {
+          "heading": "Representatives of employee safety and external adviser",
+          "blocks": [
+            {
+              "p": "Each branch has two representatives of employee safety, elected by staff for 3 years. They raise colleagues' concerns, attend the Health and Safety Meeting and take part in consultation, with paid time off for their duties and training. Where we recognise a trade union, its safety representatives take part in the same way. We also retain an external health and safety adviser who is a Chartered Member of the Institution of Occupational Safety and Health, to advise beyond our in-house competence, support serious incident investigations and HSE contact, and carry out an independent audit every 12 months."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The law and who enforces it",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Law",
+              "What it requires of us"
+            ],
+            "rows": [
+              [
+                "Management of Health and Safety at Work Regulations 1999",
+                "Assess risks and record significant findings; plan, monitor and review controls; appoint competent help; set procedures for serious and imminent danger; inform and train staff; assess risks to new and expectant mothers and young workers."
+              ],
+              [
+                "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulations 12, 15 and 17",
+                "Assess and reduce risks to the people we support; keep equipment we use safe, clean and properly used; monitor and improve safety."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Under the March 2024 Memorandum of Understanding between CQC and HSE, CQC leads on the safety of people receiving care from a registered provider, including a person hurt in their own home while we give care. HSE, or the local authority, leads on the health and safety of our workers, visitors and contractors. Either can take enforcement action against us, and we co-operate fully with both."
+        },
+        {
+          "p": "Topic regulations, such as those on manual handling, lifting equipment and hazardous substances, are met through the documents listed in the Scope. Where this policy sets a timescale, frequency or method that the law does not fix, it is our policy, and staff must follow it."
+        }
+      ]
+    },
+    {
+      "heading": "Risk assessment and safe systems of work",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "How we control risk",
+          "blocks": [
+            {
+              "p": "We assess every significant risk before the work starts and record the significant findings. We choose controls in this order, moving down only when the step before cannot reasonably remove the risk: avoid the risk; reduce the hazard at source (a dog kept in another room during visits); substitute something less hazardous; use equipment that protects everyone (a hoist instead of lifting); adapt the work (two workers or a different time); give instruction, training and supervision; and, last, provide personal protective equipment."
+            },
+            {
+              "p": "Where a person chooses to do something that carries a risk to themselves, we follow the Positive Risk-Taking Policy and, where their capacity to decide is in doubt, the Mental Capacity Act and Best Interests Policy. A person's choice never requires our staff to work at serious risk."
+            }
+          ]
+        },
+        {
+          "heading": "Types of risk assessment and timescales",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Assessment",
+                  "Completed by",
+                  "When",
+                  "Reviewed"
+                ],
+                "rows": [
+                  [
+                    "General risk assessments: lone working, travelling and driving, handling loads, cleaning products, violence and aggression, severe weather, office, display screen and home working",
+                    "Registered Manager, with the external adviser where needed",
+                    "Before the activity starts",
+                    "Every 12 months, and within 7 days after a significant incident or change"
+                  ],
+                  [
+                    "Home environment risk assessment: access and key safes, floors and stairs, fire risks such as smoking and home oxygen, gas, electrical and hot water hazards, animals, space for tasks, equipment and the neighbourhood",
+                    "An authorised assessor: Care Coordinator, Field Care Supervisor, Deputy Manager or Registered Manager. For a short-notice start, the Field Care Supervisor, or out of hours the On-call Manager, who carries out the first visit",
+                    "Before the first visit. Short-notice start (within 48 hours of accepting the referral): at the first visit, before any other care worker visits; completed in full within 7 days",
+                    "At every care plan review (within 6 weeks of care starting, then at least every 6 months); within 7 days after an incident or a change in the person's needs or home; before the next visit where the change creates an immediate risk"
+                  ],
+                  [
+                    "Individual risk assessments for the person, such as moving and handling, fire, hazardous substances and equipment",
+                    "An authorised assessor trained for that assessment",
+                    "Before the task first takes place",
+                    "As for the home environment risk assessment"
+                  ],
+                  [
+                    "Individual risk assessments for a member of staff: pregnancy and new motherhood, workers under 18, a health condition, return after work-related injury or illness, home working",
+                    "Registered Manager or HR Manager, with the worker",
+                    "Pregnancy, a birth in the last 6 months or breastfeeding: within 5 working days of being told, with the restrictions in the New and Expectant Mothers at Work Procedure, such as heavy moving and handling, applied from the day we are told. Under 18: before they start. After injury or illness: before they return",
+                    "When the worker's circumstances or work change"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The method and content are in the Risk Assessment and Home Environment Risk Assessment Procedure. Hazards and controls for each person are recorded in their risk assessments in CareFlow, linked to the care plan. Every worker reads them before their first visit to the person and phones the office if anything has changed or looks unsafe."
+            }
+          ]
+        },
+        {
+          "heading": "When a person declines a control measure",
+          "blocks": [
+            {
+              "p": "A person may refuse a change we ask for, such as moving furniture for a hoist or shutting a dog away. It is their home, but we must not expose staff to serious risk. When a significant risk remains:"
+            },
+            {
+              "steps": [
+                "The Field Care Supervisor records the hazard and the person's views in the risk assessment and tells the Registered Manager the same working day.",
+                "Before the next visit, the Care Coordinator changes how visits are delivered, for example two workers, a different time or leaving out the unsafe part of a task, and tells the person what has changed and why.",
+                "Within 2 working days, the Registered Manager discusses the risk with the person, and their representative if they wish, explores alternatives, and considers the person's capacity to decide and whether self-neglect or another safeguarding concern exists.",
+                "If no safe arrangement is agreed, the Registered Manager writes to the person and the commissioner within 5 working days setting out the risk, the options and any change to the service. Any reduction or ending of the service follows the contract notice period and is agreed with the commissioner so the person is never left without care."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Safe systems of work",
+          "blocks": [
+            {
+              "p": "The safe system for each task is written in the person's care plan and risk assessments. Staff follow it on every visit and do not change it on their own judgement or at the request of the person or a relative; if it no longer works, they phone the office and the Field Care Supervisor reviews it. A task the care plan says needs two workers is never done by one. A family member, friend or private carer is never counted as the second worker. If the second worker has not arrived 10 minutes after the planned start, the worker present phones the office, gives only the care the plan says one worker may give and keeps the person comfortable; the office sends a second worker or agrees another safe arrangement under the Missed, Late and Short Visits Procedure."
+            },
+            {
+              "p": "Agency and bank workers and students receive the same risk information as employees. Before contractors work in our offices, the Registered Manager checks their competence and insurance and briefs them on our hazards and emergency arrangements."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Emergencies and serious danger",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Serious and imminent danger",
+          "blocks": [
+            {
+              "p": "The law requires procedures that let staff stop work and go at once to a place of safety, and that stop them returning while the danger remains. Our procedure is:"
+            },
+            {
+              "steps": [
+                "Stop work and get to a place of safety straight away, helping the person and others to leave if you can do so without serious risk to yourself.",
+                "Call 999 for the fire service, police or ambulance as needed. For a smell of gas, call the National Gas Emergency Service once you are outside.",
+                "Phone the office, or the On-call Manager out of hours, and speak to a person.",
+                "The office or On-call Manager confirms you are safe, arranges help for the person, covers your later visits and records the event in the incident log.",
+                "Nobody goes back into the home until the Registered Manager, Deputy Manager or On-call Manager has confirmed the danger has passed and recorded how they know. There are no exceptions to this rule.",
+                "The Registered Manager or Deputy Manager offers you a debrief within 3 working days and reviews the home environment risk assessment before the next visit."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Refusing unsafe work",
+          "blocks": [
+            {
+              "p": "Any member of staff may refuse to start or continue a task they reasonably believe would put them or someone else in serious danger, such as using a hoist with a damaged sling. They make the person as safe as they can and phone the office straight away. The Employment Rights Act 1996 protects workers who take such steps, and nobody is disciplined, criticised or given fewer hours for raising a concern or refusing unsafe work in good faith."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting accidents, incidents and hazards",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What staff report and when",
+          "blocks": [
+            {
+              "p": "The Incident Reporting, Investigation and Learning Policy covers how every incident is recorded, investigated and learned from. For health and safety:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "What has happened",
+                  "What you do",
+                  "By when"
+                ],
+                "rows": [
+                  [
+                    "Someone is injured or suddenly ill",
+                    "Give first aid within your training, call 999 if needed, phone the office or On-call Manager",
+                    "At once"
+                  ],
+                  [
+                    "You or a colleague is hurt at work, including a needlestick injury, assault, bite, back injury or road collision while working",
+                    "Phone the office or On-call Manager; record it in the incident log. After a needlestick, a human bite or scratch that breaks the skin, or a body fluid splash, also go straight to the emergency department under the Sharps Safety and Needlestick Injury Procedure; animal bites follow the First Aid Procedure",
+                    "Phone before leaving the home or scene; record before the end of your shift"
+                  ],
+                  [
+                    "A near miss or dangerous event, such as a sling tearing, a hoist failing or a burning smell from a socket",
+                    "Make it safe, take the equipment out of use and label it, phone the office, record it in the incident log",
+                    "Phone before leaving the home; record before the end of your shift"
+                  ],
+                  [
+                    "A hazard that has not yet caused harm, such as a broken stair rail, a faulty smoke alarm or a new loose dog",
+                    "Phone the office if it puts the next visit at risk; record it in the incident log as a hazard",
+                    "Before the end of your shift"
+                  ],
+                  [
+                    "A concern about our health and safety arrangements",
+                    "Tell the office, your supervisor or a representative of employee safety",
+                    "Any time; acknowledged within 1 working day and answered within 5 working days"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "If the answer does not resolve a concern, staff may take it to the Registered Manager, then the Nominated Individual, or raise it under the Whistleblowing (Speaking Up) Policy."
+            }
+          ]
+        },
+        {
+          "heading": "What managers do",
+          "blocks": [
+            {
+              "p": "The Registered Manager or Deputy Manager reviews every staff injury, near miss and hazard report within the initial review timescale in the Incident Reporting, Investigation and Learning Policy (Critical at once; Medium and High the same working day, or by 12 noon on the next working day if reported out of hours; Low by the end of the next working day), and makes sure affected risk assessments are updated before the next visit where the risk has changed. Faulty equipment owned by another organisation is reported to the owner by the Care Coordinator the same working day, with a safe alternative arranged."
+            },
+            {
+              "p": "The Registered Manager, or the Deputy Manager in their absence, decides whether an event is reportable under RIDDOR and reports it as the RIDDOR Reporting Procedure sets out: without delay for a work-related death, a specified injury to a worker, a dangerous occurrence, a doctor's diagnosis of a reportable disease, or an accident taking anyone not at work, including a person we support, straight from the scene to hospital for treatment; within 15 days for an injury keeping a worker off normal work for more than 7 consecutive days. RIDDOR is separate from CQC notification: a death or serious injury to a person we support under regulation 16 or 18 of the Care Quality Commission (Registration) Regulations 2009 is also notified to CQC without delay under the Statutory Notifications to CQC Procedure."
+            },
+            {
+              "p": "When a work-related injury or illness keeps a worker off for more than 7 days, or their fitness for their duties is in doubt, the HR Manager refers them to our occupational health provider. Before they return, the Registered Manager or HR Manager completes an individual risk assessment with them and records agreed adjustments in the staff record."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Consultation, information and communication",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Consulting staff",
+          "blocks": [
+            {
+              "p": "As the law requires, we consult all staff directly and through the representatives of employee safety, in good time, on changes that may substantially affect their safety, the appointment of competent persons, health and safety information and the planning of training."
+            },
+            {
+              "p": "The Health and Safety Meeting is held every quarter, chaired by the Registered Manager, with the Deputy Manager, a Care Coordinator, a Field Care Supervisor, the HR Manager and the representatives. It reviews indicators, incidents, audit findings, training compliance, staff concerns and actions. Minutes with actions, owners and deadlines are shared with all staff within 10 working days. Health and safety is a standing item at every team meeting and supervision for staff who rarely visit the office."
+            }
+          ]
+        },
+        {
+          "heading": "Keeping staff informed",
+          "blocks": [
+            {
+              "bullets": [
+                "New staff are taken through this policy, the procedures for their role and the emergency arrangements at induction, and acknowledge this policy in CareFlow: care staff before their first unsupervised shift, other staff by the end of their fourth week. Everyone acknowledges each new major version within 14 days; a minor version does not need acknowledging again.",
+                "Urgent safety information, such as an equipment alert or a new danger in a home, reaches every affected worker by phone or message the same day and is confirmed at their next supervision.",
+                "The health and safety law poster, naming the Health and Safety Lead and the representatives, is displayed in every branch office, and every worker receives the equivalent leaflet at induction.",
+                "The Registered Manager acts within 2 working days on any safety alert from the Medicines and Healthcare products Regulatory Agency, HSE or a manufacturer that affects equipment, products or practices we use, and records the action."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Insurance",
+          "blocks": [
+            {
+              "p": "The law requires employers' liability insurance from an authorised insurer for at least 5 million pounds; we hold at least 10 million pounds. The current certificate is displayed in every branch office and sent to all staff electronically each year, and expired certificates are kept permanently. We also hold public liability and professional indemnity insurance. Staff who drive for work must have motor insurance covering business use, as the Driving at Work Policy sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Equipment and substances",
+      "blocks": [
+        {
+          "p": "Most care equipment in people's homes, such as hoists and profiling beds, belongs to a community equipment service, the NHS or the person, who maintains it. Regulations 12 and 15 still require equipment our staff use to give care to be safe, clean and properly used, whoever supplied it. The Lifting Operations and Lifting Equipment Regulations 1998 require lifting equipment for lifting people at work to be thoroughly examined at least every 6 months; our policy is that staff use lifting equipment, such as a hoist, sling, bath lift or stairlift, only when there is a record of such an examination within the last 6 months, even where the person owns it. Each item, its owner and its examination dates are recorded in the hoist and sling register in the branch health and safety file. Staff check equipment before every use, including the pause-and-check step National Patient Safety Alert NatPSA/2026/005/MHRA requires, never use an item that is damaged, overdue for examination or unfamiliar to them, and never repair or adjust people's equipment or appliances, as the Hoists, Slings and Lifting Equipment Procedure sets out."
+        },
+        {
+          "p": "We give every care worker the personal protective equipment their work requires, a personal first aid kit, a personal alarm, DO NOT USE tags for faulty equipment and an identity badge, free of charge, and replace them before the worker's next shift when asked. Since 6 April 2022 the Personal Protective Equipment at Work Regulations have covered workers as well as employees; protective equipment against infection and hazardous substances is provided under COSHH instead (Infection Prevention and Control Policy). Bank and casual workers receive exactly the same equipment."
+        },
+        {
+          "p": "Staff use only the cleaning and care products named in the person's care plan or supplied by us, as the Hazardous Substances (COSHH) Procedure sets out, and never mix or decant them. Frequent hand washing and glove use put care staff at risk of contact dermatitis, so everyone who gives care, including Senior Care Workers and Field Care Supervisors, is under skin health surveillance: a baseline skin check within 6 weeks of starting, an annual skin questionnaire, and visual skin checks at the frequency our occupational health provider advises, carried out by Field Care Supervisors trained by that provider as responsible persons. Staff tell their Field Care Supervisor about any skin soreness, breathing problem or other reaction to a product, and anyone with signs of dermatitis is referred to occupational health within 5 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Staff health, fitness and welfare",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Matter",
+              "Our arrangement"
+            ],
+            "rows": [
+              [
+                "Fitness for work and occupational health",
+                "New staff complete a health questionnaire after an offer of work and before they start, and tell their manager about any later change in health, injury or medicine that may affect their safety at work. Our external occupational health provider gives fitness assessments, advice on adjustments and health surveillance; adjustments are recorded in the staff record."
+              ],
+              [
+                "Young workers, stress and vaccination",
+                "We employ people under 18 only in office roles, never working alone, under the Young Workers Procedure. We assess work-related stress against the HSE Management Standards. Vaccinations follow the Staff Vaccination and Immunisation Policy."
+              ],
+              [
+                "Welfare away from the office",
+                "Staff use a person's toilet only with their permission. Rotas include rest breaks, and the Care Coordinator builds in access to a toilet, drinking water and somewhere to eat for any worker without them for long periods."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Branch offices and office work at home",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Arrangement",
+              "Our standard"
+            ],
+            "rows": [
+              [
+                "Welfare",
+                "Clean toilets and washing facilities, drinking water, a place to rest and eat, and a working temperature of at least 16 degrees Celsius."
+              ],
+              [
+                "Fire",
+                "Written fire risk assessment by a competent person, reviewed every 12 months and after any change to the building or its use; alarm tested weekly; emergency lighting tested monthly where fitted; fire drill and extinguisher service every 12 months; a trained fire marshal on site whenever the office is open."
+              ],
+              [
+                "First aid",
+                "At least two First Aid at Work first aiders, rostered so one is on site whenever the office is open, with an appointed person covering only an unforeseen absence; a first aid box checked monthly and a defibrillator, under the First Aid Procedure."
+              ],
+              [
+                "Electrical, gas and water",
+                "Users check portable equipment before use; it has a formal visual inspection every 12 months and a combined inspection and test every 24 months; fixed wiring is inspected every 5 years; gas appliances are checked every 12 months by a Gas Safe registered engineer; the office water system has a legionella risk assessment (the landlord's, where the landlord controls the system), reviewed at least every 24 months."
+              ],
+              [
+                "Visitors and working alone",
+                "Visitors sign in and are told the emergency arrangements. Staff working alone in the office after 6pm or at weekends tell the On-call Manager when they arrive and leave."
+              ],
+              [
+                "Display screens",
+                "Every display screen equipment user has a workstation assessment within 2 weeks of starting, on any change and at least every 2 years; problems are put right within 10 working days. Users break or change activity at least hourly. We pay for eye tests on request and at the intervals the optician recommends, and for basic spectacles needed specifically for screen work."
+              ],
+              [
+                "Office work at home",
+                "Staff complete a home working and workstation assessment before they start and when their set-up changes, report hazards and injuries as other staff do, stay contactable by phone throughout their working hours and tell their manager when they start and finish. Equipment we supply is inspected and tested on the office schedule."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Home environment and individual risk assessments for the people we support",
+                "The person's risk assessments in CareFlow, linked to the care plan",
+                "As the Records Management and Retention Policy sets"
+              ],
+              [
+                "General risk assessments and register, office fire, electrical, gas, water and inspection records, Health and Safety Meeting minutes, insurance certificates",
+                "The branch health and safety file, kept electronically by the Registered Manager",
+                "As the Records Management and Retention Policy sets; insurance certificates permanently"
+              ],
+              [
+                "Accidents, injuries, near misses, hazards and RIDDOR reports",
+                "The incident log in CareFlow, which is our accident book",
+                "At least 3 years from the date of entry, as RIDDOR and the Social Security (Claims and Payments) Regulations 1979 require; our policy is 10 years from closure, 20 years for serious incidents and incidents involving a person who lacked capacity for the matter (Records Management and Retention Policy)"
+              ],
+              [
+                "Staff individual risk assessments, occupational health advice and health surveillance",
+                "The staff record",
+                "Health surveillance records at least 40 years from the last entry, the period regulation 11 of the Control of Substances Hazardous to Health Regulations 2002 sets for health records; others as the Staff Personal Data and HR Records Policy sets"
+              ],
+              [
+                "Training, competency checks, driving document checks and policy acknowledgements",
+                "Training and compliance records; supervision and appraisal records; policy acknowledgements",
+                "As the Records Management and Retention Policy sets"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "No record about an incident is destroyed while an investigation, inquest, enforcement action or claim is open or expected."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Health and safety awareness, covering Care Certificate Standard 13 and this policy",
+                "All care staff",
+                "At induction, before the first unsupervised visit",
+                "Every 3 years, and when a new risk or activity is introduced"
+              ],
+              [
+                "Health and safety awareness, including display screen equipment and office emergencies",
+                "Office staff, Care Coordinators and managers",
+                "Within the first 4 weeks",
+                "Every 3 years"
+              ],
+              [
+                "Fire safety in people's homes and at the office",
+                "All staff",
+                "Care staff before working alone; others in their first week",
+                "Every 12 months"
+              ],
+              [
+                "Moving and handling of people, theory and practical, with the equipment they will use",
+                "Care staff, and Field Care Supervisors, Care Coordinators and On-call Managers who give care",
+                "At induction, before any moving and handling without a shadowing colleague",
+                "Practical refresher of at least 3 hours face to face every 12 months, and when new equipment or a new technique is introduced"
+              ],
+              [
+                "Emergency first aid, including basic life support, at least 6 hours face to face",
+                "Care staff, Field Care Supervisors and On-call Managers",
+                "Before working alone or the first on-call shift",
+                "Full course every 3 years; basic life support practical every 12 months"
+              ],
+              [
+                "Lone working and personal safety, including calming aggression",
+                "Care staff, Field Care Supervisors, Care Coordinators who make visits, and On-call Managers",
+                "At induction, before the first lone visit",
+                "Every 3 years, and after any violent incident involving the worker"
+              ],
+              [
+                "Risk assessment",
+                "Care Coordinators, Field Care Supervisors, On-call Managers, Deputy Manager and Registered Manager",
+                "Before their first assessment and before joining the on-call rota; their first 3 assessments are checked by the Registered Manager or Deputy Manager",
+                "Every 3 years"
+              ],
+              [
+                "IOSH Managing Safely or equivalent",
+                "Registered Manager and Deputy Manager",
+                "Within 6 months of appointment",
+                "Every 3 years"
+              ],
+              [
+                "Representative training",
+                "Elected representatives of employee safety",
+                "Within 3 months of election",
+                "Every 3 years"
+              ],
+              [
+                "Fire marshal",
+                "Appointed office staff",
+                "Before appointment",
+                "Every 3 years"
+              ],
+              [
+                "First Aid at Work (3 days)",
+                "Office first aiders",
+                "Before appointment",
+                "Requalification every 3 years; half-day refresher every 12 months"
+              ],
+              [
+                "Emergency first aid",
+                "Appointed persons",
+                "Before appointment",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Competence is checked, not assumed. New care staff shadow experienced colleagues and are observed and signed off in moving and handling and the other practical tasks of their role before they work alone, under the Induction and Care Certificate Procedure. Field Care Supervisors check health and safety practice at spot checks under the Supervision, Spot Checks and Appraisal Policy, and anyone who falls short is given feedback the same day, retrained and observed again within 4 weeks. A care worker whose health and safety awareness, fire safety, emergency first aid, basic life support or lone working training has expired is given no visits until it is renewed; expired task training stops visits involving that task (Training and Development Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Indicators: staff injuries, RIDDOR reports, near misses, hazards, violence towards staff, equipment faults, work-related sickness, overdue risk assessments and training compliance",
+                "Monthly, from CareFlow records",
+                "Registered Manager",
+                "Nominated Individual monthly; Directors quarterly"
+              ],
+              [
+                "Risk assessments due or overdue",
+                "Weekly",
+                "Care Coordinator",
+                "Registered Manager by exception"
+              ],
+              [
+                "Quality of home environment risk assessments",
+                "5 a month (all if fewer), including every short-notice start",
+                "Deputy Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Branch office safety",
+                "Quarterly inspection; weekly alarm test; monthly emergency lighting test; annual drill",
+                "Deputy Manager and fire marshals",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Training compliance, targets 100% for induction training and 95% for refreshers in date",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager and Health and Safety Meeting"
+              ],
+              [
+                "Timeliness of RIDDOR reports and CQC notifications",
+                "Every reportable event; quarterly summary",
+                "Deputy Manager",
+                "Nominated Individual"
+              ],
+              [
+                "Compliance with this policy and the law",
+                "Independent audit every 12 months",
+                "External health and safety adviser",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager presents an annual health and safety report to the Directors covering trends, audit results, training, progress on the previous year's plan and objectives for the coming year. Every shortfall gets an action, owner and deadline in the single service improvement plan under the Governance and Quality Assurance Policy, tracked at the Health and Safety Meeting until complete."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, a serious incident, enforcement action, an inspection finding, a significant change to our services or premises, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

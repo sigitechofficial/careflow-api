@@ -36,7 +36,12 @@ export class SurveysEmployeeAppController {
   }
 
   @Post(':token/responses')
-  @ApiOperation({ summary: 'Submit answers for one of my surveys (409 when already answered)' })
+  @ApiOperation({
+    summary: 'Submit answers for one of my surveys',
+    description:
+      '409 with code SURVEY_ALREADY_COMPLETED when already answered (drop the queued answer); 409 with code ' +
+      'SURVEY_ANSWER_IN_PROGRESS while another submit for this survey is being kept (keep the answer and retry later).',
+  })
   submit(
     @CurrentUser() user: RequestUser,
     @Param('token') token: string,

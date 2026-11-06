@@ -1,0 +1,797 @@
+{
+  "reference": "POL-HR-014",
+  "revision": 1,
+  "title": "Working Time, Rest Breaks and Travel Time Policy",
+  "documentType": "POLICY",
+  "summary": "How we plan and limit working hours, protect rest breaks, daily and weekly rest and night work, and pay everyone at least the minimum wage for all working time, including travel and waiting between visits. It also covers mileage and expenses, on-call and sleep-in pay, annual leave and holiday pay, and the records and checks behind them. For all employees and the managers who plan rotas and run payroll.",
+  "keyPoints": {
+    "intro": "How your hours, rest and pay for visits, travel, waiting and holidays work. Check your rota and payslip and tell us if anything is wrong.",
+    "points": [
+      "If you are too tired to work or drive safely, make the person safe or stop somewhere safe, and phone the office or the On-call Manager. We cover your visits and pay a taxi home; that day's remaining hours are paid, not counted as sickness.",
+      "You must have at least 11 hours' rest between one working day and the next, plus your travel home and back, and at least one full day off every rota week. Tell the Care Coordinator if your rota does not allow this.",
+      "Every working day of more than 6 hours includes a planned break of at least 30 minutes with no visit or travel. On visiting runs never take it in a person's home. If you miss it, tell the office that day.",
+      "Check in when you arrive and check out when you leave every visit. These times are used to pay you. If check-in fails, phone the office at the time so your hours are recorded correctly.",
+      "Travel between visits is paid at your normal hourly rate. If a journey takes over 10 minutes longer than planned, tell the office the same day, or by 10am the next working day if it has closed, so the extra time is paid.",
+      "You are paid the planned visit and travel time when you are turned away or get no reply, and when a visit is cancelled less than 24 hours ahead unless you are given other paid work instead.",
+      "Mileage is paid for every work journey, including home to your first visit and your last visit home, at the HMRC approved rates. Claim extra miles from a diversion within 3 working days of the end of the month.",
+      "You never have to work more than an average of 48 hours a week. Signing an opt-out is your free choice, never a condition of work, and you can cancel it with 7 days' written notice.",
+      "Tell the HR Manager in writing about any other job and its hours before you start it, so we can keep your total hours safe and within the law.",
+      "Ask for annual leave in writing (care staff to the Care Coordinator, others to their line manager) 4 weeks ahead for 5 or more days and 2 weeks ahead for shorter leave. You get a written answer within 5 working days.",
+      "If your pay looks wrong, tell the HR Manager. Any underpayment of £50 or more, or one taking your pay below the minimum wage, is paid within 2 working days."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-HS-011",
+    "POL-HR-011",
+    "POL-HR-007",
+    "POL-HR-006",
+    "POL-CD-013",
+    "POL-HR-003",
+    "POL-HR-015",
+    "POL-HR-019"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Working Time Regulations 1998, regulation 2 (working time, night time, night worker and young worker)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/2"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 4 (maximum weekly working time, 17-week reference period and record of workers who have opted out)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/4"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 5 (ending an opt-out agreement on 7 days' notice, or up to 3 months if agreed)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/5"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 5A (maximum working time for young workers)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/5A"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 6 (length of night work)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/6"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 7 (health assessment for night workers)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/7"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 9 (records kept for 2 years)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/9"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 10 (daily rest)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/10"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 11 (weekly rest)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/11"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 12 (rest breaks)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/12"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 13 (annual leave, carrying leave forward after sickness, statutory leave or the employer's failure to give an opportunity to take it)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/13"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 15B (irregular hours and part-year workers: leave accrued at 12.07% of hours worked)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/15B"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 21 (special cases, including unusual and unforeseeable circumstances and accidents)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/21"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 22 (shift workers and work split up over the day)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/22"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 24 (compensatory rest)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/24"
+    },
+    {
+      "source": "National Minimum Wage Regulations 2015, regulation 32 (time when available for work, home and sleep exclusions)",
+      "url": "https://www.legislation.gov.uk/uksi/2015/621/regulation/32"
+    },
+    {
+      "source": "National Minimum Wage Regulations 2015, regulation 34 (travelling treated as hours of time work)",
+      "url": "https://www.legislation.gov.uk/uksi/2015/621/regulation/34"
+    },
+    {
+      "source": "GOV.UK, Calculating the minimum wage: working hours for which the minimum wage must be paid (travel between assignments, waiting, on-call, sleep-in shifts)",
+      "url": "https://www.gov.uk/guidance/calculating-the-minimum-wage/working-hours-for-which-the-minimum-wage-must-be-paid"
+    },
+    {
+      "source": "GOV.UK, Calculating the minimum wage: calculating the minimum wage (pay reference periods, what counts as pay, deductions)",
+      "url": "https://www.gov.uk/guidance/calculating-the-minimum-wage/calculating-the-minimum-wage"
+    },
+    {
+      "source": "GOV.UK, National Minimum Wage and National Living Wage rates (from 1 April 2026 and 1 April 2027)",
+      "url": "https://www.gov.uk/national-minimum-wage-rates"
+    },
+    {
+      "source": "GOV.UK, Holiday entitlement: holiday pay (including keeping holiday records for 6 years from 6 April 2026)",
+      "url": "https://www.gov.uk/holiday-entitlement-rights/holiday-pay"
+    },
+    {
+      "source": "HMRC, Travel: mileage and fuel rates and allowances (approved mileage allowance payments, 2026 to 2027)",
+      "url": "https://www.gov.uk/government/publications/rates-and-allowances-travel-mileage-and-fuel-allowances/travel-mileage-and-fuel-rates-and-allowances"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 8 (itemised pay statement showing hours where pay varies with time worked)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/8"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 45A (protection from detriment in working time cases)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/45A"
+    },
+    {
+      "source": "Acas, Employment Rights Act 2025: changes and dates (holiday records from 6 April 2026, Fair Work Agency from 7 April 2026, zero hours reforms without a commencement date)",
+      "url": "https://www.acas.org.uk/employment-rights-act-2025"
+    },
+    {
+      "source": "Department for Business and Trade, Plan to Make Work Pay and Employment Rights Act: timeline update (updated 22 October 2026; zero and low hours rights timed after consultation)",
+      "url": "https://www.gov.uk/government/publications/implementing-the-plan-to-make-work-pay-and-employment-rights-act/plan-to-make-work-pay-and-employment-rights-act-timeline-update"
+    },
+    {
+      "source": "Department for Business and Trade, Fair pay agreement process in adult social care: government response (16 July 2026)",
+      "url": "https://www.gov.uk/government/consultations/fair-pay-agreement-process-in-adult-social-care/outcome/fair-pay-agreement-process-in-adult-social-care-government-response"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} is committed to planning work so that everyone who works for us has enough rest to work safely, and to paying everyone at least the National Minimum Wage for every hour of working time, including the time care workers spend travelling and waiting between visits. Tired care workers make mistakes, drive less safely and leave the work, and the people we support depend on them arriving rested and on time."
+        },
+        {
+          "p": "Care workers have no fixed workplace: their day is a run of short visits in different homes, often split between morning and evening, with travel in between. This policy sets out how those days are built and paid, and how we check every month that the law and our stricter rules are met."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Keep every worker within the legal limits on working time and night work, with planned breaks, daily rest and days off.",
+            "Record and pay travel and waiting between visits, so that nobody's pay falls below the minimum wage once all working hours are counted.",
+            "Repay mileage and work expenses promptly at fair rates, and pay on-call and sleep-in work fairly.",
+            "Make sure everyone takes their paid annual leave, is paid correctly for it and has accurate records of it."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee of {{organisation}}, including care staff on contracted, variable, bank and zero hours contracts, On-call Managers, Office staff and managers. Agency workers are paid by their agency: we give them the same breaks and rest in our rotas, never roster them beyond the hours their agency tells us they may work, and send the agency their check-in and check-out times weekly. We provide visiting care, night visits, waking nights and sleep-ins, but not live-in care. Unless this policy says otherwise, where a worker phones the office, outside office hours they phone the On-call Manager."
+        },
+        {
+          "p": "Other documents cover: safe driving, insurance and the travel time formula (Driving at Work Policy); late, missed and short visits (Missed, Late and Short Visits Procedure); declaring other work (Staff Code of Conduct); sick pay (Sickness Absence Policy); training pay (Training and Development Policy); hour limits for students and sponsored workers (Right to Work and Sponsored Workers Policy); family leave (Flexible Working and Family Leave Policy); workers under 18 (Young Workers Procedure); and fatigue and stress risk assessments (Work-Related Stress and Staff Wellbeing Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Working time",
+                "Time when a worker is working, at our disposal and carrying out their duties, including relevant training (Working Time Regulations 1998). It is used for the limits on hours, rest and night work, and is wider than the hours that count for the minimum wage."
+              ],
+              [
+                "Home travel",
+                "The journey from home to the first place of work of the day and from the last place of work back home."
+              ],
+              [
+                "Gap",
+                "Time in the rota between the end of planned travel and the start of the next visit, when the worker has no duties."
+              ],
+              [
+                "Irregular hours worker",
+                "A worker whose paid hours are wholly or mostly variable from month to month, such as a care worker on a zero or variable hours contract."
+              ],
+              [
+                "Office hours and out of hours",
+                "Office hours are the times the branch office is open, set by the Registered Manager and published in the service user guide and on the daily office rota. Every other time, including weekends and bank holidays, is out of hours, when the On-call Manager covers."
+              ],
+              [
+                "Night time and night worker",
+                "Night time is 11pm to 6am. A night worker normally works at least 3 hours of their working day in night time, such as waking night and sleep-in staff. The 10pm to 7am night in the Lone Working and Staff Personal Safety Policy applies only to lone working rules."
+              ],
+              [
+                "Sleep-in",
+                "A commissioned overnight service where the worker sleeps at the person's home in suitable sleeping facilities and is woken only if the person needs help."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and the published pay structure each year by 1 April, including hourly rates, the on-call allowance and the sleep-in payment. They decline or renegotiate any contract whose visit times or rates do not allow paid travel time, breaks and minimum wage pay. The Nominated Individual audits pay and working time each November and reports to the Directors."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is accountable for working time and pay in the branch: they sign off the monthly minimum wage exception report before pay is released, act on the monthly working time report, and decide exceptions and carry-over under this policy. The Deputy Manager does this in their absence and carries out the quarterly pay audit."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager runs payroll, checks minimum wage pay for every worker every month, keeps opt-out agreements and the list of workers who have opted out, calculates holiday accrual and holiday pay, processes mileage and expense claims, produces the monthly working time report, and updates rates each April."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Managers",
+          "blocks": [
+            {
+              "p": "Care Coordinators build rotas within this policy's limits, plan realistic travel time, breaks, rest and days off, count declared hours elsewhere, approve extra travel time and mileage, and decide leave requests. They never ask a worker to skip a break, shorten their rest or sign an opt-out. On-call Managers keep to the same limits when reallocating visits out of hours and record their own on-call work."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and all employees",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors ask at every supervision whether the worker gets their breaks, rest and enough travel time, and tell the Care Coordinator about any problem the same working day. Every employee checks in and out at each visit, takes their breaks and rest, declares other work, reports extra travel and missed breaks as this policy sets out, and checks their payslip."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Working time limits",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What counts as working time",
+          "blocks": [
+            {
+              "p": "Our policy is that, for the limits and rest rules, we count visit time, travel between visits, waiting we require, training, reading and acknowledging documents in CareFlow, supervision, meetings, on-call work actually done, and the whole of any sleep-in or waking night. For care staff we also count home travel: they have no fixed workplace, and the Court of Justice of the European Union has held that journeys between home and the first and last customer of the day are working time for such workers, as the GOV.UK minimum wage guidance notes, although this travel does not count for the minimum wage. Care Coordinators estimate it from the worker's home postcode in the staff record. Office staff's travel to their usual office is not working time, and time on call at home counts only for the calls, visits and travel actually done."
+            }
+          ]
+        },
+        {
+          "heading": "The 48-hour limit and opting out",
+          "blocks": [
+            {
+              "p": "The law limits working time to an average of 48 hours a week over 17 weeks unless the worker agrees in writing to opt out (Working Time Regulations 1998, regulation 4). We average over any rolling 17 weeks, or since the start date for newer workers, adding hours declared for other employers under the Staff Code of Conduct. Days of annual leave, sickness and family leave in the 17 weeks are replaced by the same number of working days that follow, as the law requires."
+            },
+            {
+              "bullets": [
+                "An opt-out is offered only after the worker has started, on our written form, and is never part of a job offer, contract or condition of extra hours. Nobody is treated less favourably for refusing or cancelling one (Employment Rights Act 1996, section 45A).",
+                "A worker may cancel an opt-out by giving the HR Manager 7 days' written notice. The HR Manager keeps an up-to-date list of workers who have opted out, as the law requires, and the worker's appraiser reconfirms each opt-out at the annual appraisal.",
+                "Whether or not they have opted out, nobody is rostered for more than 60 hours of working time in a rota week (Monday to Sunday), except with the Registered Manager's written agreement when business continuity arrangements are in use.",
+                "When a worker without an opt-out averages more than 44 hours over the rolling 17 weeks, the Care Coordinator reduces their hours from the next rota."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Night work",
+          "blocks": [
+            {
+              "p": "The law limits a night worker's normal hours to an average of 8 in each 24 over 17 weeks and requires a free health assessment before night work and at regular intervals (regulations 6 and 7). Before anyone first works waking nights or sleep-ins, the HR Manager gives them a confidential health questionnaire, referred to occupational health where an answer raises a concern, and repeats it every 12 months. Only fitness for night work is shared with the Care Coordinator. Where a doctor links a health problem to night work, we move the worker to suitable day work."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Breaks, daily rest and days off",
+      "blocks": [
+        {
+          "p": "Our rules are stricter than the law and are built into every rota. We do not rely on the exceptions the law allows for split shifts and special cases (regulations 21 and 22) when planning rotas."
+        },
+        {
+          "table": {
+            "columns": [
+              "Rest",
+              "What the law requires",
+              "Our rule"
+            ],
+            "rows": [
+              [
+                "Rest break",
+                "An uninterrupted break of at least 20 minutes when working time is more than 6 hours (regulation 12)",
+                "A working day of more than 6 hours includes a planned break of at least 30 minutes with no visit or travel, and a day of more than 10 hours a second break of at least 20 minutes. The 15-minute driving break in the Driving at Work Policy may form part of the 30 minutes"
+              ],
+              [
+                "Daily rest",
+                "11 consecutive hours in each 24 hours (regulation 10)",
+                "At least 11 consecutive hours between the end of one working day and the start of the next. For care staff, the rota leaves at least 11 hours plus the planned home travel between the last check-out and the next first check-in"
+              ],
+              [
+                "Weekly rest",
+                "24 hours in each 7 days, or 48 hours in each 14 days (regulation 11)",
+                "At least one full calendar day off in every rota week, two consecutive days off in every 14 days, and never more than 6 working days in a row. A day that includes an on-call period is not a day off"
+              ],
+              [
+                "Workers under 18",
+                "No more than 8 hours a day or 40 hours a week (regulation 5A); 12 hours' daily rest, 48 hours' weekly rest and a 30-minute break when working more than 4 and a half hours (regulations 10 to 12)",
+                "Employed only in office roles, with hours and breaks set under the Young Workers Procedure"
+              ]
+            ]
+          }
+        },
+        {
+          "bullets": [
+            "On visiting runs, care workers never take a break in a person's home or during a visit. They take it parked safely, at a café or at the branch office, with access to a toilet, drinking water and somewhere to eat as the Health and Safety Policy requires. The office phones a worker on a break only if a person is at risk.",
+            "A worker who misses or cuts short a break phones the office that day. The Care Coordinator gives a replacement break later that day or, if that is impossible, an equivalent rest period within 7 days, and records it on the check-in/check-out record. Two missed breaks for one worker in a calendar month mean the run is changed from the next rota.",
+            "Office staff working more than 6 hours take an unpaid 30-minute lunch break away from their desk."
+          ]
+        },
+        {
+          "p": "Emergencies: a worker who stays with a person in an emergency, such as until an ambulance arrives under the First Aid Procedure, or who waits at a no reply until the office releases them under the No Reply, No Access and Missing Person Procedure, is paid for all the time, and the office, or the On-call Manager out of hours, reallocates their later visits at once. If this cuts their daily rest, their next start is moved back to give 11 hours' rest and any rostered hours lost are paid. The law allows rest to be cut by unusual and unforeseeable circumstances or an accident only if equivalent compensatory rest is given wherever possible (regulations 21 and 24)."
+        },
+        {
+          "p": "Fatigue: a worker too tired to work or drive safely stops, first making the person safe if they are on a visit, and phones the office before leaving the home or driving on, as the Driving at Work Policy sets out. The office covers their remaining visits under the Missed, Late and Short Visits Procedure and books a taxi home at our cost. The rest of that day's rostered hours are paid in full and are not sickness absence, and the Field Care Supervisor reviews their hours and rest with them within 5 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Planning rotas",
+      "blocks": [
+        {
+          "p": "The next week's rota is published in CareFlow by 12 noon each Thursday, as the Missed, Late and Short Visits Procedure sets out. The Care Coordinator:"
+        },
+        {
+          "steps": [
+            "Allocates visits in the priority order in the Equality, Diversity and Inclusion Policy, filling contracted hours first, sharing extra hours fairly and rotating weekend, evening and bank holiday work, with agreed adjustments and religious observance built in.",
+            "Plans travel between visits with the Driving at Work Policy formula: route planner time for the journey at that time of day plus 5 minutes to park and reach the door, more in rural areas, at busy times and in severe weather. Visit time is never cut to make up for travel.",
+            "Adds home travel, declared other work and on-call work, and checks breaks, daily rest, days off, weekly hours and the 17-week average before publishing.",
+            "Keeps students' term-time hours, including travel, within their visa limit and sponsored workers' guaranteed hours as the Right to Work and Sponsored Workers Policy requires."
+          ]
+        },
+        {
+          "p": "Later changes are made on the CareFlow rota before the visit and the worker is phoned. A worker may refuse extra visits outside their contracted hours, and refusing never affects the hours offered to them later."
+        },
+        {
+          "p": "A care worker's availability is the working pattern recorded in CareFlow: the days and times they can work, the areas they cover and the hours they want. The Care Coordinator updates it whenever the worker tells them of a change, and confirms the change to the worker before the next Thursday rota is published. Each August care staff confirm their pattern in the working hours and availability survey. Visits are allocated within the recorded availability."
+        },
+        {
+          "p": "Cancellation pay (our policy): when a person cancels a visit, is admitted to hospital or has their package suspended less than 24 hours before the visit, the worker is paid the planned visit and travel time unless the Care Coordinator gives them other paid work in that time, as the Visit Cancellations and Refusals of Care Procedure also sets out. Visits a worker is told not to travel to, or reports in good faith they cannot reach safely, in severe weather are paid in the same way, and time stranded is paid, under the Severe Weather and Extreme Temperatures Procedure, which also adds cool breaks during heat alerts. Contracted hours are always paid in full."
+        }
+      ]
+    },
+    {
+      "heading": "Travel, waiting and visit time",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Time",
+              "Minimum wage (the law)",
+              "Our pay",
+              "Working time limits"
+            ],
+            "rows": [
+              [
+                "Visit time",
+                "Counts",
+                "Planned length, or check-in to check-out if longer for a reason recorded on the visit record; never reduced because the person ended the visit early, declined care at the door or could not be seen at a no-reply or no-access visit",
+                "Counts"
+              ],
+              [
+                "Travel between visits, and between a visit and the office, a pharmacy, training or supervision",
+                "Counts (National Minimum Wage Regulations 2015, regulation 34)",
+                "Normal hourly rate for the planned travel time, or the actual time if longer and reported",
+                "Counts"
+              ],
+              [
+                "Home travel",
+                "Does not count",
+                "Unpaid, except travel to and from training, supervision, appraisal, formal HR meetings and appointments we arrange, such as occupational health, which is paid, and planned home travel over 30 minutes to a first or last visit, where the time over 30 minutes is paid",
+                "Counts"
+              ],
+              [
+                "Waiting we require, for example at a no-reply visit, for an ambulance, a double-up colleague, a health professional or a pharmacy",
+                "Counts",
+                "Normal hourly rate",
+                "Counts"
+              ],
+              [
+                "Gap under 60 minutes",
+                "Does not count while the worker is free",
+                "Gap pay at the normal hourly rate (our policy); a gap of 30 minutes or more can be the worker's break",
+                "Does not count"
+              ],
+              [
+                "Gap of 60 minutes or more",
+                "Does not count",
+                "Unpaid free time between parts of a split shift, unless we ask the worker to work or be available",
+                "Does not count"
+              ]
+            ]
+          }
+        },
+        {
+          "bullets": [
+            "Pay for care staff is calculated from the CareFlow rota and the check-in/check-out record. A worker whose check-in fails phones the office at the time so the actual times are recorded.",
+            "A worker whose journey takes more than 10 minutes longer than planned, because of traffic, a diversion or weather, tells the office the same day, or by 10am the next working day if it happens after the office has closed. The Care Coordinator records the reason on the check-in/check-out record at the daily exception review and the extra time is paid.",
+            "A visit that overruns because the person needed more help or there was an emergency is paid to the check-out time. The worker phones the office before the expected finish when a visit will run more than 15 minutes over.",
+            "Walking, cycling and public transport journeys are planned and paid like driving, and both workers on a double-handed visit are paid their travel.",
+            "Check-in/check-out data is never used to fine workers or deduct pay for late, short or missed visits. Falsified times are dealt with under the Staff Code of Conduct."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pay and the National Minimum Wage",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Pay arrangements",
+          "blocks": [
+            {
+              "p": "Everyone is paid monthly by bank transfer. The pay reference period is the calendar month, and pay for it, including mileage and expenses approved by the 3rd working day of the next month, is paid on the 10th of the next month, or the working day before when the 10th is not a working day."
+            },
+            {
+              "p": "From 1 April 2026 the National Living Wage for workers aged 21 and over is £12.71 an hour, and the National Minimum Wage is £10.85 for ages 18 to 20 and £8.00 for under-18s and apprentices. From 1 April 2027 these rise to £13.21, £11.27 and £8.31. Our policy is that every care role's basic hourly rate is above the National Living Wage, whatever the worker's age. A new legal rate applies from the first pay reference period starting on or after the date it takes effect, and the Directors raise our rates before then."
+            },
+            {
+              "p": "Payslips show separately visit, travel, waiting, training and other paid hours, gap pay, on-call and sleep-in payments, holiday pay, mileage and expenses, and leave accrued and remaining. The law requires payslips to show hours worked where pay varies with time (Employment Rights Act 1996, section 8)."
+            }
+          ]
+        },
+        {
+          "heading": "Monthly minimum wage check",
+          "blocks": [
+            {
+              "p": "Paying travel and waiting at the normal hourly rate means every counted hour should already be paid above the minimum. Before each payroll the HR Manager still checks every worker, and at the same time runs the payroll flags in the Modern Slavery and Human Trafficking Policy:"
+            },
+            {
+              "steps": [
+                "Total the hours that count for the month (visits, waking nights, time awake to work on sleep-ins, travel between visits, waiting, training, reading and acknowledging documents in CareFlow, supervision, meetings and on-call work) from the check-in/check-out record, daily visit notes and timesheets.",
+                "Total the pay that counts: gross pay less mileage, expenses, the on-call allowance and the premium part of bank holiday and overtime rates, which the law excludes, and less gap pay and the sleep-in payment, which we also leave out (our choice) because they pay for time that is not counted.",
+                "Divide pay by hours and compare the result with the rate for the worker's age at the start of the pay reference period.",
+                "Pay any shortfall in the same payroll and, where the cause could affect others, such as missing travel time, check and correct every affected worker.",
+                "Send the exception report, listing every worker checked and every correction, to the Registered Manager, who signs it off before pay is released."
+              ]
+            },
+            {
+              "p": "Salaried staff who work beyond their contracted hours are included in the check. Extra hours covering visits are paid at the higher of their own hourly equivalent and the Care Worker basic rate, with travel time and mileage; other extra hours are taken as time off in lieu within 4 weeks or paid in the next payroll."
+            },
+            {
+              "p": "An underpayment found after pay day is corrected as the Grievance Policy and Procedure sets out: £50 or more, or any amount that took pay below the minimum wage, by bank transfer within 2 working days; smaller amounts in the next payroll."
+            }
+          ]
+        },
+        {
+          "heading": "Deductions",
+          "blocks": [
+            {
+              "p": "We never charge or deduct for uniform, protective equipment, DBS checks, training, a work phone or any equipment needed for the job. The only deductions are tax, National Insurance, pension contributions, student loans, deductions the employee asks for in writing, and repayment of a salary advance or overpayment under a written plan agreed with the employee."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Mileage and expenses",
+      "blocks": [
+        {
+          "p": "We pay mileage for every work journey in a worker's own vehicle, including home travel, at the HMRC approved mileage allowance rates, which are tax free. For the 2026 to 2027 tax year:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Vehicle",
+              "Rate"
+            ],
+            "rows": [
+              [
+                "Car or van",
+                "55p a mile for the first 10,000 business miles in the tax year, then 25p"
+              ],
+              [
+                "Motorcycle",
+                "24p a mile"
+              ],
+              [
+                "Bicycle",
+                "20p a mile"
+              ],
+              [
+                "Each colleague carried to a double-handed visit",
+                "5p a mile"
+              ]
+            ]
+          }
+        },
+        {
+          "bullets": [
+            "Miles are the route planner distance between the addresses on the worker's CareFlow rota, starting and ending at home. Extra miles from a diversion are claimed on the expenses claim form with the reason within 3 working days of the end of the month, and checked by the Care Coordinator against the check-in/check-out record.",
+            "The HR Manager changes the rates from the start of any tax year in which HMRC changes them. Mileage and expenses are never counted as pay for the minimum wage.",
+            "Drivers hold business use insurance and pass the checks in the Driving at Work Policy before driving for work. Mileage contributes to running costs; we do not pay for insurance, servicing or fines, except a parking charge incurred while staying with a person in an emergency recorded in the incident log.",
+            "We repay, with receipts, parking charges at visits, bus and train fares between visits, and tolls or congestion charges on rostered routes; taxis the office books are paid directly. Claims more than 3 months old are paid only with the Registered Manager's agreement."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "On-call, sleep-ins and waking nights",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "On-call Managers",
+          "blocks": [
+            {
+              "bullets": [
+                "On-call Managers receive the on-call allowance in the published pay structure for each on-call period. Time at home waiting for calls does not count for the minimum wage (National Minimum Wage Regulations 2015, regulation 32) and is not counted as working time under this policy.",
+                "Every call, visit and journey on call is working time. The On-call Manager records each on the on-call timesheet sent to the HR Manager by 10am the next working day. Calls are paid at the normal hourly rate, at least 15 minutes for each call or block of calls; visits and travel are paid as for care staff, with mileage.",
+                "On-call Managers answer calls at once or return a missed call within 15 minutes, and divert the phone to the escalation manager before driving.",
+                "No on-call period is longer than 16 hours, nobody covers two periods back to back, and nobody covers more than 4 periods in any 7 days.",
+                "On-call Managers are not rostered for other work before 10am after a weeknight on-call period. If on-call work after 11pm means they will not have had 11 hours' rest by their next start, they tell the Care Coordinator when the office opens; the start is moved back and any rostered hours lost are paid."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Sleep-ins and waking nights",
+          "blocks": [
+            {
+              "p": "For the minimum wage, a sleep-in worker is working only when awake for the purpose of working, provided suitable sleeping facilities are given (National Minimum Wage Regulations 2015, regulation 32). For working time limits and rest, our policy counts the whole night. Our rules are:"
+            },
+            {
+              "bullets": [
+                "A sleep-in is arranged only where the home environment risk assessment confirms a private room with a bed that the person or family has agreed to provide; otherwise the night is a waking night. The care plan records the room and the agreed sleeping period of at least 6 hours, and time on duty before and after it is paid at the normal hourly rate.",
+                "The worker receives the sleep-in payment in the published pay structure plus the normal hourly rate for all time awake to help the person, at least 30 minutes for each waking, recorded with times and reasons in the daily visit notes.",
+                "If the worker is woken to help on 3 or more nights in any 7, or for more than 1 hour on any night, the Care Coordinator asks the commissioner, or for a self-funder the person or their representative, within 2 working days to review whether a waking night is needed. A night on which the worker is awake to help for more than 3 hours in total is paid in full at the normal hourly rate.",
+                "Every hour of a waking night is paid at the normal hourly rate, with the breaks set out above taken in the person's home at times the care plan allows. A break lost to the person's needs is recorded in the daily visit notes and compensatory rest given before the next shift.",
+                "Nobody does more than 4 sleep-ins or waking nights in any 7 days, and 11 hours' rest follows each one before further work."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Annual leave and holiday pay",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Entitlement and holiday pay",
+          "blocks": [
+            {
+              "p": "The leave year runs from 1 April to 31 March. Every employee is entitled to 5.6 weeks' paid leave a year, 28 days for someone working 5 days a week, including bank holidays. Because people need care every day, bank holidays are not automatic days off; work on a bank holiday in England is paid at one and a half times the basic rate and shared by rotation. Part-time employees with regular hours receive 5.6 of their usual working weeks, and employees who start or leave during the leave year receive a pro rata share."
+            },
+            {
+              "p": "Irregular hours workers accrue leave at 12.07% of the hours they work in each pay reference period (Working Time Regulations 1998, regulation 15B). We count all paid working hours, including travel, waiting, training and whole sleep-ins, and payslips show leave in hours. We do not use rolled-up holiday pay: everyone takes leave as paid time off."
+            },
+            {
+              "p": "All 5.6 weeks are paid at normal pay (our policy; the law requires this for all leave of irregular hours workers but only for 4 weeks of regular hours workers' leave). For variable pay, a week's holiday pay is the average weekly pay over the last 52 weeks in which the employee was paid, going back up to 104 weeks, including visit, travel, waiting and gap pay, regular overtime, bank holiday premiums, on-call allowances and sleep-in payments, but not mileage or expenses. A day of leave for an irregular hours worker is their average daily paid hours over the same period."
+            }
+          ]
+        },
+        {
+          "heading": "Booking leave",
+          "blocks": [
+            {
+              "steps": [
+                "Care staff ask the Care Coordinator in writing, and other staff their line manager, at least 4 weeks ahead for 5 or more days and at least 2 weeks ahead for shorter leave. Requests for 20 December to 2 January are made by 30 September and decided by 15 October.",
+                "The answer is given in writing within 5 working days. Leave is refused only where visits could not otherwise be covered safely, with the reason and alternative dates.",
+                "No more than 15% of a branch's care staff are on planned leave on any day, or 10% from 20 December to 2 January, when competing requests are decided by rotation from year to year.",
+                "Agreed leave is cancelled by us only when the Business Continuity and Emergency Planning Policy is activated and the Registered Manager agrees; we then repay any costs the employee cannot recover."
+              ]
+            },
+            {
+              "p": "By 1 October and 1 January the HR Manager sends everyone their remaining balance and reminds them that leave not taken by 31 March is lost unless it can be carried forward. The Care Coordinator offers dates to anyone with more than half their entitlement left on 1 October."
+            }
+          ]
+        },
+        {
+          "heading": "Carrying leave forward and leaving",
+          "blocks": [
+            {
+              "bullets": [
+                "Booked leave on which an employee falls ill, reported as the Sickness Absence Policy requires, is given back. Leave that sickness prevented is carried forward in full (all 5.6 weeks, our policy) and taken within 18 months of the end of the leave year, as the Sickness Absence Policy sets out.",
+                "Leave that maternity, adoption, paternity, shared parental, parental bereavement or neonatal care leave prevented is carried forward in full (all 5.6 weeks, our policy) to the next leave year.",
+                "Leave we did not give a reasonable opportunity to take is carried forward, as the law requires. Up to one week more may be carried forward with the Registered Manager's agreement where rota needs prevented it, to be taken by 30 June.",
+                "Leave is never paid instead of being taken except on leaving, when accrued untaken leave is paid in the final pay. We never deduct pay for leave taken beyond the pro rata entitlement."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Changes in the law",
+      "blocks": [
+        {
+          "bullets": [
+            "Since 6 April 2026 the law has required records of annual leave and holiday pay to be kept for at least 6 years, and since 7 April 2026 the Fair Work Agency has enforced minimum wage and holiday pay rights.",
+            "The Employment Rights Act 2025 will give zero and low hours workers rights to guaranteed hours, reasonable notice of shifts and pay for shifts cancelled, cut short or moved. The government's implementation roadmap expected them in 2027, but no commencement date has been set: its October 2026 timeline update says the timing will follow consultation. Until they take effect, our cancellation pay rule and Thursday rota publication apply.",
+            "The government expects the first Fair Pay Agreement for adult social care in England to take effect in April 2028, after negotiations starting around April 2027, with its terms enforceable through workers' contracts and its pay terms enforced by the Fair Work Agency."
+          ]
+        },
+        {
+          "p": "The HR Manager assesses each new regulation, rate or agreement within 5 working days of publication and reports to the Registered Manager; changes needed before the next review are made as urgent changes under the Policy Management and Document Control Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Retention"
+            ],
+            "rows": [
+              [
+                "Rotas and check-in/check-out times, with reasons for extra travel, overruns and missed breaks",
+                "CareFlow visit records",
+                "6 years from the end of the tax year"
+              ],
+              [
+                "Opt-out agreements and cancellations, declared other work",
+                "Staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Night work health questionnaires and occupational health advice",
+                "Restricted section of the staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Payslips, minimum wage checks and exception reports, timesheets, mileage and expense claims",
+                "Payroll records",
+                "6 years from the end of the tax year"
+              ],
+              [
+                "Leave requests and decisions, leave accrued, taken and carried forward, holiday pay",
+                "Staff record and payroll records",
+                "6 years from the end of the leave year"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The law requires working time records to be kept for 2 years (regulation 9); we keep them longer so that pay and holiday pay can be checked. Records are handled under the Staff Personal Data and HR Records Policy, and employees receive their own hours, pay and leave records within 10 working days of asking the HR Manager."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "This policy, acknowledged in CareFlow",
+                "Organisational induction",
+                "Within 14 days of each new major version; a minor version does not need acknowledging again"
+              ],
+              [
+                "Care Coordinators and staff allocation roles",
+                "Working time and rest rules in rota planning, with the rota and travel time training in the Missed, Late and Short Visits Procedure and the Driving at Work Policy",
+                "Before first allocating visits",
+                "Every 12 months"
+              ],
+              [
+                "On-call Managers",
+                "On-call pay and timesheets, working time limits when reallocating visits, their own rest",
+                "Before the first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "HR Manager",
+                "Minimum wage calculation, holiday accrual and pay, working time records",
+                "Within 1 month of appointment",
+                "Every 12 months within the employment law update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager checks the first two rotas published by each new Care Coordinator against the hours and rest rules, and the Deputy Manager checks the first exception report prepared by a new HR Manager before sign-off."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Minimum wage pay for every worker, target 100% before pay is released",
+                "Exception report every pay reference period",
+                "HR Manager",
+                "Registered Manager, who signs it off; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "17-week averages, night workers' average daily hours, weeks over 60 hours, daily rest, days off, missed breaks, on-call and sleep-in limits, target 100% within our rules",
+                "Monthly report from rotas and check-in/check-out",
+                "HR Manager",
+                "Registered Manager; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Pay of 10 care workers against check-in/check-out: visit, travel, waiting and gap time, mileage and leave accrual, target 100% accurate",
+                "Quarterly audit",
+                "Deputy Manager",
+                "Registered Manager; quarterly governance report to the Directors"
+              ],
+              [
+                "Leave balances, refused and cancelled leave, carry-forward",
+                "Quarterly",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Full-year pay, working time and leave of 5 workers, including an On-call Manager and a sleep-in worker",
+                "Annual audit each November",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Staff survey: at least 80% say they get their breaks, and at least 80% that they get enough rest between working days",
+                "Every September",
+                "Registered Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is recorded with an action, an owner and a deadline, checked at the next audit. An underpayment affecting more than one worker is reported to the Nominated Individual within 2 working days of being found."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy. Rates are updated each April, and the policy is reviewed sooner after a change in law or guidance, including the zero hours reforms or a Fair Pay Agreement, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

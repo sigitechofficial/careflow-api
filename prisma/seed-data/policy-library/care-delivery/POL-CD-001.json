@@ -1,0 +1,777 @@
+{
+  "reference": "POL-CD-001",
+  "revision": 1,
+  "title": "Person-Centred Care, Dignity and Respect Policy",
+  "documentType": "POLICY",
+  "summary": "Our parent policy for care delivery. It sets out how we plan and give care around each person's own life, goals and preferences, how staff protect dignity and privacy in people's homes, how people keep choice and control, how we keep a consistent team of care workers around each person, how families and advocates are involved, and how we seek and act on feedback. It applies to everyone who works for us.",
+  "keyPoints": {
+    "intro": "This policy sets the standard for how you treat every person on every visit: as the owner of their home and the person in charge of their own life and care.",
+    "points": [
+      "Before your first visit to anyone, read their care plan in CareFlow, including the section on what matters to them, and check it for changes at the start of every visit.",
+      "Use the name the person wants to be called, talk with them rather than over them, and never speak to a colleague in a language the person does not understand while you are with them.",
+      "Remember you are a guest: knock or ring and call out even when you use a key safe, wear your ID badge, and ask before you go into a room, a cupboard or a drawer.",
+      "Give personal care in private: close doors and curtains, keep the person covered as much as possible and ask before each task. Never give intimate care against a recorded preference about the sex of the care worker unless the person agrees on that occasion.",
+      "Offer real choices at every visit, about clothes, food, drink and how and when things are done, and support the person to do everything they can for themselves rather than doing it for them.",
+      "If the person can do more or less for themselves than the care plan says, record it in the daily visit notes and phone the office before you leave so the care plan can be reviewed.",
+      "Respect a person's choices even when you would choose differently. Never force, trick or pressure anyone; if a choice puts them at risk, phone the office before you leave.",
+      "Never rush anyone or cut a visit short. Phone the office or On-call Manager once you know you will be over 15 minutes late, or at all late for a time-critical visit, and before the finish if care will overrun by over 15 minutes.",
+      "Do not agree changes to visit times, tasks or care workers yourself. Pass every request to the office the same day so the Care Coordinator can arrange it properly.",
+      "Share information about a person only with our staff who need it for their care and the people their care plan says they agree to, and never discuss one person we support with another.",
+      "Write daily visit notes in plain, respectful language: describe what happened and what the person said, and never use labels such as difficult, wandering, feeding or nappies.",
+      "If you see care by anyone, including a colleague, that is undignified or ignores the person's wishes, phone the office or the On-call Manager before you leave the person's home. You will be supported for speaking up."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "INITIAL_ASSESSMENT",
+    "VISIT",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-CD-002",
+    "POL-CD-003",
+    "POL-CD-004",
+    "POL-CD-005",
+    "POL-CD-006",
+    "POL-CD-016",
+    "POL-GOV-006",
+    "POL-GOV-005"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9 (person-centred care)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 10 (dignity and respect)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/10"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 (need for consent)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e) (seeking and acting on feedback)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Care Act 2014, section 1 (promoting individual well-being)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/1"
+    },
+    {
+      "source": "Care Act 2014, section 67 (independent advocacy support)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/67"
+    },
+    {
+      "source": "Care Act 2014, section 73 (Human Rights Act 1998: provision of regulated care or support publicly arranged)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/73"
+    },
+    {
+      "source": "Human Rights Act 1998, Schedule 1 (Articles 3, 8, 9 and 14)",
+      "url": "https://www.legislation.gov.uk/ukpga/1998/42/schedule/1"
+    },
+    {
+      "source": "Health and Care Act 2022, section 181 (training on learning disability and autism), in force 1 July 2022",
+      "url": "https://www.legislation.gov.uk/ukpga/2022/31/section/181"
+    },
+    {
+      "source": "Department of Health and Social Care, The Oliver McGowan Code of Practice on statutory learning disability and autism training (published 19 June 2025, final from 6 September 2025)",
+      "url": "https://www.gov.uk/government/publications/oliver-mcgowan-code-of-practice"
+    },
+    {
+      "source": "Social Care Institute for Excellence, Dignity in care: involvement and inclusion",
+      "url": "https://www.scie.org.uk/providing-care/dignity-in-care/involvement/"
+    },
+    {
+      "source": "Skills for Care, The Care Certificate (standards revised March 2025)",
+      "url": "https://www.skillsforcare.org.uk/Developing-your-workforce/Care-Certificate/Care-Certificate.aspx"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} provides care in people's own homes. The home, the life and the choices belong to the person, and our care is there to help them live the way they want. Every person we support has the right to care that meets their needs, reflects their preferences and goals, and is given with dignity, privacy and respect, whoever funds it and whatever their age, health, disability, background or beliefs."
+        },
+        {
+          "p": "{{organisation}} will plan each person's care with them, support them to do as much as they can for themselves, give them choice and control over how, when and by whom their care is given, keep a consistent team of care workers around them, involve the people who matter to them in the way they want, and act on what they tell us. We do not accept rushed, task-led or impersonal care, and we treat any failure of dignity as a failure of care."
+        },
+        {
+          "p": "This is the parent policy for our care delivery policies and procedures."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets out how we meet Regulations 9 and 10 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 and the related duties on consent and feedback. It sets the service-wide standards, timescales and responsibilities that our other care delivery documents apply, and how we check they are met."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to all Directors, the Nominated Individual, managers, office staff, care staff, bank and agency workers, students and volunteers working for us. It covers every visit, task and contact with the people we support, their families and their records, wherever and however it happens. It applies to every adult we support, whoever arranges or pays for their care."
+        },
+        {
+          "p": "The detail sits in the care delivery documents named in the sections below. Complaints are handled under the Complaints Policy and Procedure, and abuse, neglect and degrading treatment always under the Safeguarding Adults Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Person-centred care",
+                "Care designed with the person around their own needs, preferences, goals and circumstances, which they can direct and change, rather than a standard service they must fit into."
+              ],
+              [
+                "Representative",
+                "Anyone the person chooses to involve in their care, such as a relative, friend or advocate. A representative makes decisions for the person only where the law gives them authority to do so."
+              ],
+              [
+                "Core care team",
+                "The named care workers allocated to provide most of a person's visits, recorded in the person's care plan."
+              ],
+              [
+                "Continuity rate",
+                "The percentage of a person's visits in a calendar month delivered by their core care team, measured from visit check-in and check-out records."
+              ],
+              [
+                "What matters to me",
+                "The section of the person's care plan that records their life history, important people, routines, interests, goals, beliefs and preferences in their own words."
+              ],
+              [
+                "Independent advocate",
+                "An advocate independent of us and of the local authority who helps a person take part in decisions about their care. Our staff can never act as a person's independent advocate."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for the quality of care at {{organisation}}. They make sure the service has the staff, rota capacity and travel time this policy needs and never accept contract terms, such as visit lengths or times, that would stop us meeting it. The Nominated Individual checks the quarterly governance report before the Directors challenge it at their governance meeting."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on person-centred care, dignity and respect, and:"
+            },
+            {
+              "bullets": [
+                "accepts a new package only when we can meet the person's needs at times that suit them, with a core care team and visit lengths in line with this policy;",
+                "makes sure every care plan is written with the person and records what matters to them;",
+                "appoints at least one Dignity Champion from the Senior Care Workers or Field Care Supervisors, and meets the Dignity Champions every 3 months to review practice and feedback;",
+                "reviews continuity, feedback, complaints and audit results every month and acts on them."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out the Registered Manager's duties in their absence, completes the monthly care plan quality audit and continuity report, runs the annual satisfaction survey, and makes sure actions from feedback are completed."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators plan the rota around people's preferred times and core care teams, match care workers to people, introduce new care workers, tell people about changes in advance, handle requests to change visit times, tasks or care workers within the timescales in this policy, and make the first-week check call to every new person."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors carry out spot checks, quality visits and care plan reviews as this policy sets out, and pass anything that needs action to the Care Coordinator or Registered Manager the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Senior Care Workers and Care Workers follow the care plan and this policy at every visit, read the care plan before visiting a person for the first time and check it for changes at the start of each visit, pass requests and feedback to the office the same day, and report care that falls short of this policy. They phone the office, or the On-call Manager out of hours, as soon as they know they will arrive more than 15 minutes after the planned start, or at all late for a time-critical visit, and before the expected finish if a visit will run more than 15 minutes over, under the Missed, Late and Short Visits Procedure. A care worker unsure during a visit how to respect a person's dignity or wishes phones a Senior Care Worker or the Care Coordinator, or the On-call Manager out of hours, before acting. Senior Care Workers model good practice on shadowing shifts, and Dignity Champions share good practice in team meetings."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager, Office staff and HR Manager",
+          "blocks": [
+            {
+              "p": "The On-call Manager applies this policy out of hours, including telling people about late or replacement care workers. Office staff record requests and feedback from people we support in CareFlow the same working day and pass them to the Care Coordinator. The HR Manager recruits for values as well as skills under the Safer Recruitment Policy and keeps training and compliance records up to date."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law requires",
+      "blocks": [
+        {
+          "bullets": [
+            "Regulation 9 requires that each person's care is appropriate, meets their needs and reflects their preferences, including assessing needs and preferences with the person, enabling them to take part in decisions, giving them the information they need, and making reasonable adjustments.",
+            "Regulation 10 requires that people are treated with dignity and respect, including ensuring their privacy, supporting their autonomy, independence and involvement in the community, and having due regard to their protected characteristics under the Equality Act 2010.",
+            "Regulation 11 requires that care is given only with the person's consent and that, where a person aged 16 or over lacks capacity to consent, we act in line with the Mental Capacity Act 2005, as the Consent to Care Policy sets out.",
+            "Regulation 17(2)(e) requires us to seek and act on feedback from the people we support and others, to evaluate and improve the service.",
+            "Where a local authority arranges or pays for a person's care, section 73 of the Care Act 2014 means we are carrying out a public function under the Human Rights Act 1998 when we provide it, and must act compatibly with the person's rights, including Article 3 (no inhuman or degrading treatment), Article 8 (respect for private and family life and home), Article 9 (freedom of thought, conscience and religion) and Article 14 (no discrimination in those rights)."
+          ]
+        },
+        {
+          "p": "We apply the same standards to people who pay for their own care, and support local authorities' duty under section 1 of the Care Act 2014 to promote each person's well-being, including personal dignity and control over day-to-day life. Until CQC confirms that its new adult social care assessment framework applies, we work to the current framework."
+        }
+      ]
+    },
+    {
+      "heading": "What person-centred care means in our service",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Principle",
+              "What it looks like in practice"
+            ],
+            "rows": [
+              [
+                "The person is the expert on their own life",
+                "We start from what the person tells us, treat them as best placed to judge their own well-being, and record their words."
+              ],
+              [
+                "Strengths first",
+                "We record what the person can do and wants to keep doing, not only what they need help with, and plan care that builds on it."
+              ],
+              [
+                "Goals, not just tasks",
+                "Each care plan records at least one outcome the person wants, in their own words, such as staying at home, getting to church on Sunday or making their own breakfast again, and how our care contributes to it."
+              ],
+              [
+                "Choice and control",
+                "The person directs how their care is given and can change it. Family members cannot override the choices of a person who has capacity to make them."
+              ],
+              [
+                "Relationships and identity",
+                "We record the people, pets, places, activities, culture and beliefs that matter to the person, support their contact with them as the care plan sets out, and make reasonable adjustments under the Equality, Diversity and Human Rights in Care Policy."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Some people are at higher risk that their needs go unnoticed or unmet: people who live alone, people with dementia or other cognitive impairment, people with communication difficulties, and people with no family or representative involved. The assessor records this in the person's care plan. For these people, quality checks are private, face-to-face visits by a Field Care Supervisor, the care plan tells care workers which changes to watch for, and the reviewer considers at every review whether an independent advocate is needed."
+        }
+      ]
+    },
+    {
+      "heading": "Planning care around the person",
+      "blocks": [
+        {
+          "p": "The Needs Assessment and Care Planning Policy and the Care Plan Review Procedure set out how assessment, planning and review are carried out. The standards for every person are:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Standard",
+              "Our arrangement"
+            ],
+            "rows": [
+              [
+                "Assessment before care starts",
+                "A face-to-face assessment with the person in their home, and with anyone they want involved, before a planned package starts. For a short-notice start (within 48 hours of accepting the referral, including a same-day hospital discharge) a Field Care Supervisor or, out of hours, the On-call Manager carries out the first visit and completes the assessment with the person there."
+              ],
+              [
+                "Care plan in place",
+                "The care plan, including what matters to me, is in CareFlow before the first visit of a planned package. For a short-notice start, the assessor records an initial care plan covering essential care before leaving the first visit, and the full care plan is completed with the person within 7 days."
+              ],
+              [
+                "Content",
+                "Every care plan records: the name the person wants to be called; what matters to me; their goals; what they do for themselves and how each task is to be done; their routines and preferred visit times; communication and information needs; cultural, religious and dietary needs; any preference about the sex of care workers for personal care; who they want involved and what may be shared with whom; and who, if anyone, holds legal authority to make decisions for them."
+              ],
+              [
+                "Agreement",
+                "The care plan is read through with the person, or with their representative where they lack capacity for the decision, and their agreement, or the reason it could not be given, is recorded in the care plan."
+              ],
+              [
+                "Visit length",
+                "No personal care is planned in a visit of less than 30 minutes. A visit of less than 30 minutes is planned only for a specific short task, such as a medicines prompt or a welfare check, for a person who also receives longer visits from us. No visit is planned for less than 15 minutes."
+              ],
+              [
+                "Review",
+                "The care plan is reviewed with the person within 6 weeks of care starting, then at least every 6 months, and whenever their needs, wishes or circumstances change, under the Care Plan Review Procedure."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Dignity, privacy and respect in the person's home",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Being a guest in the person's home",
+          "blocks": [
+            {
+              "p": "Every member of staff visiting a person's home must:"
+            },
+            {
+              "bullets": [
+                "knock or ring and call out on arrival, even when using a key safe, and wear their ID badge where it can be seen;",
+                "ask before entering a room, opening a cupboard, drawer or fridge, or moving belongings, and put things back where the person keeps them;",
+                "follow the person's household routines and wishes, such as removing shoes, unless doing so would put the person or the care worker at risk;",
+                "never smoke or vape during a visit, and not eat, drink or use the person's toilet or phone without their permission;",
+                "not make or take personal calls or messages during a visit, except in an emergency;",
+                "leave the person's home secure and as they like it, with anything they need within reach, and never write down or share a key safe code, as the Key Holding, Key Safes and Access to People's Homes Procedure sets out."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Personal and intimate care",
+          "blocks": [
+            {
+              "p": "Personal and intimate care is given in private and at the person's pace, with consent sought before each task, under the Personal Care, Continence and Oral Care Procedure. Care workers close doors, curtains and blinds, ask whether the person wants anyone else present to leave, keep the person covered except for the part of the body being washed or dressed, and explain what they are doing as they go."
+            },
+            {
+              "p": "Where the care plan records a preference about the sex of the care worker who gives personal care, the Care Coordinator meets it on every visit. If sudden absence means it cannot be met, the office phones the person before the visit to agree what they would like: a different time, a care worker of the preferred sex later that day, or the available care worker giving only the care the person agrees to. Intimate care is never given against a recorded preference without the person's agreement on that occasion."
+            }
+          ]
+        },
+        {
+          "heading": "Communication and respect",
+          "blocks": [
+            {
+              "p": "Staff speak to the person as an adult, use the name recorded in the care plan, and talk with them rather than about them or over them, including when a relative or colleague is present. Staff never speak to each other in a language the person does not understand while with them. Staff allow time for the person to answer and use the communication aids and methods in the care plan, under the Communication and Accessible Information Policy."
+            },
+            {
+              "p": "Language in conversation and in records must be respectful. Staff describe what happened and what the person said rather than using labels such as feeding, toileting, wandering, nappies, difficult, aggressive or attention-seeking; they write, for example, supported to eat, walked around the house looking for her husband, or continence pads. The Daily Records and Visit Notes Procedure sets out how notes are written."
+            }
+          ]
+        },
+        {
+          "heading": "Confidentiality and privacy of information",
+          "blocks": [
+            {
+              "p": "Staff share information about a person only with colleagues who need it to provide or manage their care, with people the care plan records the person has agreed to, or where the Confidentiality and Information Sharing Policy allows sharing without consent. Staff never discuss a person with another person we support, a neighbour or anyone outside their care, never post about people we support on social media, and make calls to the office about a person out of the hearing of others."
+            }
+          ]
+        },
+        {
+          "heading": "Practice we never accept",
+          "blocks": [
+            {
+              "p": "These are failures of dignity and respect, reported and dealt with under this policy and, where they may be abuse or neglect, the Safeguarding Adults Policy:"
+            },
+            {
+              "bullets": [
+                "leaving a person undressed, exposed, wet or soiled, or in a position they did not choose;",
+                "rushing a person, cutting a visit short or leaving tasks undone to make up time;",
+                "giving care without asking, or continuing after the person has said no;",
+                "telling a person off, speaking to them as if they were a child, mocking them, or ignoring them while talking to someone else;",
+                "telling a person to use a pad when they can use the toilet with support;",
+                "deciding for a person what they will wear, eat or do when they are able to choose;",
+                "discussing a person's private details where others can hear;",
+                "restricting a person's movement or freedom other than as the Restraint and Restrictive Practice Policy allows."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Choice, control and independence",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Everyday choices",
+          "blocks": [
+            {
+              "p": "At every visit care workers offer the person real choices, in a way they can understand: what to wear, what to eat and drink, whether to wash or shower, the order in which things are done, and how they want to spend the rest of the visit. For a person who finds open questions hard, care workers offer two or three options, show objects or pictures, and watch for the person's reactions, as the care plan describes. A choice that differs from the care plan is recorded in the daily visit notes."
+            }
+          ]
+        },
+        {
+          "heading": "Supporting independence",
+          "blocks": [
+            {
+              "p": "Care workers do things with the person rather than for them wherever the person is able and willing. The care plan records which parts of each task the person does themselves, such as washing their face or buttering their toast, and care workers allow the extra time this takes. A change in the person's abilities is recorded in the daily visit notes and phoned to the office, or the On-call Manager out of hours, before the care worker leaves, and the Care Coordinator arranges a care plan review. Where the care plan includes support to go out, care workers help the person keep links with family, friends, faith groups and the community; the assessor tells the person about local groups that can reduce loneliness."
+            }
+          ]
+        },
+        {
+          "heading": "Choices that involve risk",
+          "blocks": [
+            {
+              "p": "A person with capacity has the right to make choices that others think unwise. Staff respect those choices, explain any risk honestly, record the choice and advice given in the daily visit notes, and phone the office, or the On-call Manager out of hours, before leaving where the choice puts the person at risk of harm, calling 999 in an emergency; the Care Coordinator then agrees a risk plan with the person under the Positive Risk-Taking Policy. Where there is reason to doubt the person's capacity for the decision, the Mental Capacity Act and Best Interests Policy applies. Staff never force, threaten, trick or pressure a person into accepting care; refusals are handled under the Visit Cancellations and Refusals of Care Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Changing visit times, tasks or care workers",
+          "blocks": [
+            {
+              "p": "People can ask to change any part of their care at any time, by phone, in writing, through a representative or by telling their care worker. Care workers do not agree changes themselves; they pass the request to the office the same day. Office staff record every request in CareFlow and pass it to the Care Coordinator, who responds as follows:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Request",
+                  "Our response"
+                ],
+                "rows": [
+                  [
+                    "Any request",
+                    "Acknowledged to the person by the end of the next working day, with the name of the Care Coordinator dealing with it."
+                  ],
+                  [
+                    "One-off change, for example for an appointment or a family event",
+                    "Met wherever possible when we are given at least 48 hours' notice; with less notice we do our best and tell the person the same day whether we can."
+                  ],
+                  [
+                    "Permanent change to visit times or tasks",
+                    "Decided and confirmed to the person within 5 working days. Where the local authority or NHS commissioner must agree, the Care Coordinator asks them within 2 working days and updates the person each week until it is decided. The care plan is updated before the change starts."
+                  ],
+                  [
+                    "Not to be visited by a particular care worker",
+                    "Actioned from the next rota and in every case within 7 days, without the person having to give a reason, and at once if the person is distressed or has raised a concern about that care worker."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Where we cannot meet a request, the Care Coordinator explains why, offers the nearest alternative and tells the person how to complain if they are not satisfied. A care worker who is no longer to visit a person is told only that the rota has changed, except after a refusal because of their race, religion or another protected characteristic, which is handled under the Equality, Diversity and Human Rights in Care Policy: if they did not hear it, the Registered Manager or their Field Care Supervisor tells them privately before their next shift and offers support. Where the request suggests a concern about their conduct, the Care Coordinator tells the Registered Manager the same day, who follows it up, under the Safeguarding Adults Policy if it may be abuse or neglect."
+            }
+          ]
+        },
+        {
+          "heading": "Flexible use of visit time",
+          "blocks": [
+            {
+              "p": "Where the care plan allows it, the person may use part of their visit time differently on the day, for example a walk to the shops instead of household tasks. The care plan lists the essential tasks always completed first, such as medicines support, meals and drinks, and safety checks. The care worker records how the time was used in the daily visit notes. If a person does this at three or more visits in a month, the Care Coordinator reviews the care plan with them."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Continuity of care and matching care workers",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "A consistent team",
+          "blocks": [
+            {
+              "p": "Each person has a core care team named in their care plan: no more than 4 care workers for a person with up to two visits a day, and no more than 6 for a person with more visits or double-handed care. Our target is that at least 80% of each person's visits in a calendar month are delivered by their core care team. The Care Coordinator protects core teams when building rotas and covers absences from within the team first."
+            }
+          ]
+        },
+        {
+          "heading": "Matching care workers to people",
+          "blocks": [
+            {
+              "p": "The Care Coordinator chooses each person's core care team openly and records the reasons in the care plan. Matching takes account of:"
+            },
+            {
+              "bullets": [
+                "the person's needs and the competencies the care workers must have;",
+                "the person's preferences, including the sex of care workers for personal care, language, and any care worker they have asked for or not to have;",
+                "shared interests or culture where the person values this, and the care worker's own preferences where they can be met;",
+                "pets, smoking in the person's home, the care worker's allergies, driving and travel time."
+              ]
+            },
+            {
+              "p": "The first-week check call and the 6-week review confirm whether the match is working; the Care Coordinator changes the team where the person wishes."
+            }
+          ]
+        },
+        {
+          "heading": "Introductions and telling people about changes",
+          "blocks": [
+            {
+              "bullets": [
+                "A care worker joining a person's core care team is introduced before they visit alone, either at a joint visit with a core team member or, where that is not possible, by a phone call from the office to the person naming the care worker. For a person with dementia, anxiety or communication needs whose care plan requires it, a joint visit is always arranged.",
+                "When a care worker from outside the core team covers a visit, the office tells the person who is coming before the visit: by the day before for planned cover such as annual leave, and before the visit time for same-day changes.",
+                "When a member of the core care team leaves or moves to other work, the Care Coordinator tells the person at least 7 days beforehand wherever possible, explains why, and introduces the replacement.",
+                "If a care worker will arrive more than 30 minutes after the planned time, the office, or the On-call Manager out of hours, phones the person or their chosen contact before that time to tell them and give a new arrival time, as set out in the Missed, Late and Short Visits Procedure.",
+                "Every person is offered a weekly schedule showing their planned visit times and care workers' names for the following week. Those who want one receive it, in the format recorded in their care plan, by the end of the preceding Friday."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Measuring continuity",
+          "blocks": [
+            {
+              "p": "The Deputy Manager's monthly continuity report shows each person's number of different care workers and continuity rate. For any person whose continuity rate fell below 70%, or who was visited by more than 8 different care workers in the month, the Care Coordinator records the reason and an action to restore their core care team within the following month."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Involving families, carers and advocates",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The person decides who is involved",
+          "blocks": [
+            {
+              "p": "At assessment and every review the assessor asks the person who they want involved in their care, in what way, and what information may be shared with each of them, and records the answers in the care plan. We respect those wishes. A relative or friend has no right to information or to make decisions just because they are family. Where a person lacks capacity to decide who is involved, we involve their attorney or deputy for decisions within their authority, checked under the Consent to Care Policy, and consult others interested in their welfare under the Mental Capacity Act and Best Interests Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Working with family carers",
+          "blocks": [
+            {
+              "p": "Family carers often know the person best. With the person's agreement, the assessor asks them about the person's history and routines, records their insight in what matters to me, and records in the care plan who does what, for example where family give medicines or prepare meals, and what any other agency visiting the person provides, so expectations are clear on both sides. If a family carer can no longer do their part, care workers tell the office the same day and the Care Coordinator reviews the care plan. Where a family carer appears to be under strain, the Care Coordinator tells them about their right to a carer's assessment from the local authority."
+            }
+          ]
+        },
+        {
+          "heading": "Independent advocacy",
+          "blocks": [
+            {
+              "p": "Under section 67 of the Care Act 2014, the local authority must arrange an independent advocate for its needs assessment and care and support planning where the person would have substantial difficulty being involved and has no appropriate person, not paid or professionally involved in their care, to support them. When we believe a person may meet these conditions and has no advocate, the Care Coordinator asks the local authority in writing within 2 working days and records the request in the care plan. People who arrange their own care are given details of local advocacy services. Independent mental capacity advocates are requested under the Mental Capacity Act and Best Interests Policy. We share relevant information with advocates and invite them to reviews."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Information for the people we support",
+      "blocks": [
+        {
+          "p": "Before or at the first visit, the assessor gives every person a welcome pack and goes through it with them and anyone they want present. The welcome pack covers:"
+        },
+        {
+          "bullets": [
+            "what to expect from us: the services we provide, the standards in this policy, and what our care workers can and cannot do;",
+            "the person's rights, including to make their own choices, to refuse care, to see their records, to have their information kept confidential and to be treated with dignity and without discrimination;",
+            "how to contact the office and the On-call Manager at any time, and what to do if a care worker has not arrived 30 minutes after the planned time and nobody has phoned;",
+            "how to ask for a change to visit times, tasks or care workers, and the timescales in this policy;",
+            "how to raise a concern or make a complaint, including escalation to the Local Government and Social Care Ombudsman, or the Parliamentary and Health Service Ombudsman for NHS-funded care, as the Complaints Policy and Procedure sets out, how to contact CQC, and how to report abuse to the local authority;",
+            "how we use and protect personal information;",
+            "for people who pay for their own care, our charges and terms."
+          ]
+        },
+        {
+          "p": "The welcome pack and care plan are offered in the format the person needs, such as large print, easy read, another language or read aloud, under the Communication and Accessible Information Policy. A copy of the care plan is kept in the person's home unless the person chooses otherwise. At the first-week check call the Care Coordinator checks that the person has understood the information and knows how to contact us."
+        }
+      ]
+    },
+    {
+      "heading": "Seeking and acting on feedback",
+      "blocks": [
+        {
+          "p": "We ask for feedback, positive and negative, at set points and make it easy to give at any time. Feedback is recorded and handled under the Compliments, Feedback and Involvement Procedure."
+        },
+        {
+          "table": {
+            "columns": [
+              "When",
+              "How",
+              "Who"
+            ],
+            "rows": [
+              [
+                "Within 7 days of the first visit",
+                "First-week check call, or a visit, asking how care is going, whether the care workers suit the person and whether anything should change",
+                "Care Coordinator"
+              ],
+              [
+                "At every spot check",
+                "Private conversation with the person about how they are treated, whether their choices are respected and whether they feel safe",
+                "Field Care Supervisor"
+              ],
+              [
+                "At least every 3 months",
+                "Quality call, or a face-to-face quality visit for people at higher risk of unmet needs",
+                "Care Coordinator for calls; Field Care Supervisor for visits"
+              ],
+              [
+                "At every care plan review",
+                "Questions on whether the person's goals are being met and whether care is given the way they want",
+                "The reviewer"
+              ],
+              [
+                "Every 12 months",
+                "Satisfaction survey to every person in accessible formats, with the option to answer without their name; the family and representative survey to family carers and representatives",
+                "Deputy Manager"
+              ],
+              [
+                "At any time",
+                "By phone, in writing, by email, through a care worker or through a representative",
+                "Office staff record it the same working day"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Anything that needs action is passed to the Care Coordinator the same working day, and the person is told within 5 working days what we will do. A complaint, however expressed, follows the Complaints Policy and Procedure; possible abuse or neglect follows the Safeguarding Adults Policy."
+        },
+        {
+          "p": "The Registered Manager reviews all feedback each month for themes. Survey results and our actions are reported to the Directors and sent to every person we support, in an accessible summary, within 3 months of the survey closing."
+        }
+      ]
+    },
+    {
+      "heading": "Raising concerns about care that falls short",
+      "blocks": [
+        {
+          "p": "Every member of staff must challenge and report care that is not person-centred, dignified or respectful, whoever gives it: where safe, by speaking to the colleague at the time, and in every case by phoning the office, or the On-call Manager out of hours, before leaving the person's home, or the same day where the concern arises elsewhere. Anything that may be abuse or neglect, including degrading treatment or a pattern of rushed or neglectful care, is reported at once under the Safeguarding Adults Policy. Staff can also raise concerns outside the management chain under the Whistleblowing (Speaking Up) Policy and will not suffer for doing so."
+        },
+        {
+          "p": "The office passes every report straight to the Registered Manager, or the Deputy Manager or On-call Manager in their absence, who decides within 1 hour of the report whether it is a safeguarding concern; if it is, the Safeguarding Adults Policy timescales apply. Other shortfalls are recorded in the incident log where they affected a person, discussed with the care worker in supervision within 7 days, and followed by an unannounced spot check within 4 weeks. Shortfalls that continue despite retraining and support are managed under the Capability and Performance Procedure; deliberate ill-treatment, humiliation or wilful disregard of a person's wishes under the Disciplinary Policy and Procedure. Where our care has fallen short, we tell the person, apologise and put it right, following the Duty of Candour Policy where it applies."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "The care plan holds what matters to me, goals, preferences, involvement and sharing wishes, the core care team and reasons for matching, the person's agreement and advocacy requests. Spot check observations go in supervision and appraisal records, training in training and compliance records, and staff confirmation of this policy in policy acknowledgements, by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version. Records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "This policy and the Care Certificate standards on person-centred working, privacy and dignity, equality and communication",
+                "All care staff",
+                "During induction, before working without a shadowing colleague, under the Induction and Care Certificate Procedure"
+              ],
+              [
+                "Person-centred care, dignity and respect awareness",
+                "Office staff, HR and staff allocation roles",
+                "Within the first week of employment"
+              ],
+              [
+                "Dementia training (Dementia Training Standards Framework)",
+                "Tier 1: all employees; Tier 2: care staff and On-call Managers; Tier 3: Registered Manager and Deputy Manager",
+                "Tier 1 during induction; Tier 2 within 6 months of starting; Tier 3 within 12 months of appointment; each every 3 years"
+              ],
+              [
+                "Oliver McGowan Mandatory Training on Learning Disability and Autism",
+                "Tier 2 for everyone with contact with people we support or their families, in person or by phone, or who makes decisions about their care, including Office staff, staff allocation roles and Directors; Tier 1 only for staff with no such contact",
+                "E-learning during induction; Tier 1 or Tier 2 within 6 months of starting; then at least every 3 years, and sooner on moving to a role that needs Tier 2"
+              ],
+              [
+                "Person-centred care and dignity refresher, including equality and human rights, the Missed, Late and Short Visits Procedure for care staff, and learning from our own feedback and complaints",
+                "All employees",
+                "Every 12 months"
+              ],
+              [
+                "Matching, continuity and handling requests for change",
+                "Care Coordinators and On-call Managers",
+                "Before planning rotas or joining the on-call rota"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Since 1 July 2022 the law has required registered providers to make sure staff receive learning disability and autism training appropriate to their role (Health and Care Act 2022, section 181). We use the Oliver McGowan Mandatory Training, refreshed at least every 3 years as the Code of Practice expects, under the Training and Development Policy; the tiers follow the Code's domiciliary care example, and the 6-month deadline is our policy."
+        },
+        {
+          "p": "New care workers are observed giving personal care with dignity and privacy before sign-off. At every spot check the Field Care Supervisor observes how the care worker enters the person's home, communicates, offers choice, protects privacy and supports independence, and records the result. A care worker whose practice falls short is given feedback the same day, retrained, and observed again within 4 weeks."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Care plan quality: what matters to me, goals, choices, involvement preferences, agreement and the language used",
+                "Audit of 10 care plans each month (all if fewer), including every package started that month up to that number",
+                "Deputy Manager",
+                "Registered Manager"
+              ],
+              [
+                "Continuity: number of different care workers and continuity rate per person",
+                "Continuity rate worked out from the visits and care workers in CareFlow's scheduling reports, monthly",
+                "Deputy Manager",
+                "Registered Manager monthly; Nominated Individual if the branch average is below 80% for 2 consecutive months"
+              ],
+              [
+                "First-week check calls, quality checks, care plan reviews and responses to requests for change, against their timescales",
+                "Check of due and overdue items, weekly",
+                "Care Coordinator",
+                "Registered Manager by exception"
+              ],
+              [
+                "Dignity and person-centred practice observed in people's homes",
+                "Spot check results reviewed monthly, and with the Dignity Champions every 3 months",
+                "Registered Manager",
+                "Nominated Individual quarterly"
+              ],
+              [
+                "Feedback, compliments and complaints themes",
+                "Monthly review; annual satisfaction survey",
+                "Registered Manager",
+                "Directors quarterly and annually"
+              ],
+              [
+                "Training compliance (target 100% for induction training, 95% in date for refreshers) and policy acknowledgements",
+                "Training and compliance records, monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager includes these results in the quarterly governance report. Every shortfall goes into the service improvement plan with an action, an owner and a deadline, and is tracked to completion."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, CQC's confirmation of its new assessment framework, a serious incident, an inspection finding, or when monitoring or feedback shows that our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

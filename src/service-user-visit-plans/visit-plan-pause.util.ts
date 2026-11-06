@@ -1,8 +1,12 @@
-const DEFAULT_SUSPENSION_REVIEW_DAYS = 7;
+import { DEFAULT_REVIEW_SETTINGS } from '../organisation-general-settings/review-settings.util';
 
-export function defaultSuspensionReviewDueAt(from = new Date()): Date {
+/** Default "review suspension by" date: `days` ahead (Settings → Reviews & reminders). */
+export function defaultSuspensionReviewDueAt(
+  from = new Date(),
+  days: number = DEFAULT_REVIEW_SETTINGS.visitPlanSuspensionReviewDays,
+): Date {
   const d = new Date(from);
-  d.setUTCDate(d.getUTCDate() + DEFAULT_SUSPENSION_REVIEW_DAYS);
+  d.setUTCDate(d.getUTCDate() + days);
   d.setUTCHours(0, 0, 0, 0);
   return d;
 }

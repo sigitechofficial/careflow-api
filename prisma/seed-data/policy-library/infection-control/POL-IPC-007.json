@@ -1,0 +1,537 @@
+{
+  "reference": "POL-IPC-007",
+  "revision": 1,
+  "title": "Food Hygiene Guideline",
+  "documentType": "GUIDELINE",
+  "summary": "How our care staff make drinks and prepare, store, cook, reheat and serve food safely in the homes of the people we support. It covers fitness to handle food, kitchen hygiene, chilling, cooking and avoiding cross-contamination, allergies, the person's choices, and what we do when food in the home is unsafe.",
+  "keyPoints": {
+    "intro": "This guideline applies every time you make a drink, prepare, heat or serve food, put shopping away or help someone eat. The food and kitchen belong to the person: respect their choices and keep them safe.",
+    "points": [
+      "Never handle food while you have diarrhoea or vomiting. Phone the office and speak to someone as soon as you know, at least 2 hours before your first visit if it started earlier, and stay off until well and 48 hours after your last episode.",
+      "Phone in the same way if you have stomach pain, nausea, a high temperature, yellowing skin or eyes, an infected cut, boil or weeping skin, or an infected nose or throat, or if someone you live with has diarrhoea or vomiting.",
+      "Before preparing food, take off any gloves and apron used for personal care, wash your hands with liquid soap and water, dry them on paper towels and put on a new apron. Hand rub alone is not enough, even when you are short of time.",
+      "Read the allergies in My care at a glance before every food task and check the label of every product, every time. Treat 'may contain' as containing the allergen. If you cannot be sure a food is safe for the person, do not serve it.",
+      "For a severe allergic reaction, call 999, give the person's own adrenaline auto-injector as the First Aid Procedure sets out and stay until the ambulance crew takes over. If they eat a recorded allergen, even without a reaction, phone the office at once.",
+      "Never cook or serve food past its use-by date, or food that is mouldy, smells wrong or comes from a damaged or swollen pack. Tell the person why, offer something else and record it.",
+      "Keep raw meat, poultry and fish covered at the bottom of the fridge. Use a separate board, or wash it in hot soapy water, between raw and ready-to-eat food. Never wash raw meat or poultry.",
+      "Cook or reheat food until it is steaming hot all the way through, reheat it only once, and let it cool enough to eat safely before serving.",
+      "Cover, date and refrigerate leftovers within 2 hours of cooking and use them within 2 days. Food left out for later is never out for more than 4 hours, or 2 on a very hot day.",
+      "Clean surfaces, boards and utensils before and after use, and use the food-safe sanitiser after raw meat, poultry, fish or eggs. Keep kitchen cloths for the kitchen only.",
+      "Phone the office before you leave if the fridge is above 8°C or not working, food in the home looks unsafe, there is little or no food, or the person seems unwell after eating."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Carer/Domestic",
+    "Senior Carer/Nurse",
+    "Care Coordinator",
+    "Manager"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "CARE_PLAN",
+    "VISIT",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-002",
+    "POL-IPC-003",
+    "POL-IPC-008",
+    "POL-CD-007",
+    "POL-CD-017",
+    "POL-SG-004",
+    "POL-HS-008"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(a), (b), (c) and (h)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 14 Meeting nutritional and hydration needs",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/14"
+    },
+    {
+      "source": "GOV.UK, Food business registration (register with the local authority at least 28 days before trading; ask the local authority if unsure whether registration applies) (updated 25 June 2026)",
+      "url": "https://www.gov.uk/food-business-registration"
+    },
+    {
+      "source": "Food Standards Agency, Food Law Practice Guidance (England) (issued October 2025), A2.6.2 Domiciliary care/assisted living care: registration applies where the care service falls within the legal definition of a food business",
+      "url": "https://www.gov.uk/government/publications/food-and-feed-codes-of-practice"
+    },
+    {
+      "source": "Food Standards Agency, Fitness to work: guidance for food business operators and staff (29 April 2025)",
+      "url": "https://www.gov.uk/government/publications/fitness-to-work/fitness-to-work"
+    },
+    {
+      "source": "Food Standards Agency, How to chill, freeze and defrost food safely (fridge 0 to 5°C; leftovers refrigerated within 2 hours and eaten within 2 days; defrosted food used within 24 hours)",
+      "url": "https://www.gov.uk/government/publications/how-to-chill-freeze-and-defrost-food-safely/how-to-chill-freeze-and-defrost-food-safely"
+    },
+    {
+      "source": "GOV.UK, Food hygiene for businesses: chilling and freezing (chilled food kept at 8°C or below; fridge set at 5°C or below; chilled food out of the fridge for up to 4 hours)",
+      "url": "https://www.gov.uk/food-hygiene-businesses/chilling-and-freezing"
+    },
+    {
+      "source": "GOV.UK, Food hygiene for businesses: cooking food safely (steaming hot all the way through; reheat only once; hot food below 63°C for up to 2 hours)",
+      "url": "https://www.gov.uk/food-hygiene-businesses/cooking"
+    },
+    {
+      "source": "GOV.UK, Food hygiene for businesses: avoiding cross-contamination (separate equipment; hand washing with soap and warm water between tasks)",
+      "url": "https://www.gov.uk/food-hygiene-businesses/cross-contamination"
+    },
+    {
+      "source": "GOV.UK, Food hygiene for businesses: cleaning (disinfectants meeting BS EN 1276 or BS EN 13697)",
+      "url": "https://www.gov.uk/food-hygiene-businesses/cleaning"
+    },
+    {
+      "source": "Food Standards Agency, Listeria: people at higher risk, listeria-risky foods and storage advice",
+      "url": "https://www.gov.uk/government/publications/listeria/listeria"
+    },
+    {
+      "source": "Food Standards Agency, Revision of guidance for reducing the risk of vulnerable groups contracting listeriosis (consultation published 23 September 2026, closing 16 December 2026)",
+      "url": "https://www.gov.uk/government/consultations/revision-of-guidance-for-reducing-the-risk-of-vulnerable-groups-contracting-listeriosis"
+    },
+    {
+      "source": "Food Standards Agency, Food allergy and intolerance advice for consumers: the 14 allergens and 'may contain' labelling (updated 7 August 2026)",
+      "url": "https://www.gov.uk/government/publications/food-allergy-and-intolerance-advice-for-consumers/food-allergy-and-intolerance-advice-for-consumers"
+    },
+    {
+      "source": "UKHSA and DHSC, Standard infection control precautions in adult social care (28 October 2026): hand hygiene before handling food",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/standard-infection-control-precautions-in-adult-social-care"
+    },
+    {
+      "source": "UKHSA and DHSC, Staff health and managing sickness related to infection in adult social care (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/staff-health-and-managing-sickness-related-to-infection-in-adult-social-care"
+    },
+    {
+      "source": "Skills for Care, Care Certificate standards (updated 2025), Standard 8 Fluids and nutrition",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Developing-your-workforce/Care-Certificate/Care-Certificate-Standards/Care-Certificate-standards-March-2025.pdf"
+    },
+    {
+      "source": "NHS, Anaphylaxis: symptoms and what to do",
+      "url": "https://www.nhs.uk/conditions/anaphylaxis/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Many of the people we support are older or have weakened immunity, so food poisoning, listeriosis or an allergic reaction can make them seriously ill. {{organisation}} makes sure every drink and meal our staff prepare is safe, suits the person's allergies, diet and swallowing needs, and is what they want."
+        },
+        {
+          "p": "The law requires us to provide care safely and control infection (Regulation 12) and, where food and drink are part of the agreed care, to meet the person's nutritional and hydration needs and preferences, including religious and cultural needs (Regulation 14). We prepare food only in the person's own kitchen, with their food, as part of their care, and never supply or sell it. Food Standards Agency guidance says a care service must register as a food business only where it meets the legal definition, which the local authority judges; registration is due at least 28 days before trading. So, at least 28 days before our first visit in a new area (within 1 month of adopting this guideline for current areas), the Registered Manager asks that local authority's environmental health service whether we must register, registers at once if told to, and keeps the answer in the branch health and safety file. Either way, every food task meets the Food Standards Agency's standards for food businesses."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This guideline makes sure food tasks are agreed, the same hygiene rules apply in every kitchen, nobody handles food when unfit, allergies and choices are respected, and unsafe food is acted on."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This guideline applies to all our staff, including bank and agency workers and students, whenever they handle food or drink or help a person eat."
+        },
+        {
+          "p": "Owned elsewhere: nutrition, hydration, texture-modified food, thickened drinks, swallowing difficulty and choking (Nutrition and Hydration Policy); tube feeding (Delegated Healthcare Activities and Specialised Medicines Tasks Policy); hand hygiene and PPE technique (Standard Infection Control Precautions Procedure); exclusion periods (Staff Infection-Related Illness and Exclusion Policy); shopping and money (Handling Money, Property and Shopping Procedure); and first aid (First Aid Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Use-by date",
+                "The safety date: food is not safe to eat after it, even if it looks and smells fine. A best before date relates only to quality."
+              ],
+              [
+                "Listeria-risky foods",
+                "Foods the Food Standards Agency names as higher risk for older people and people with weakened immunity: cold cooked and deli meats, pâté, smoked and cured fish, cooked shellfish, soft mould-ripened cheeses, unpasteurised milk products, pre-prepared sandwiches and salads, and pre-cut fruit."
+              ],
+              [
+                "Food-safe sanitiser",
+                "Our surface spray, meeting BS EN 1276 or BS EN 13697, or a household product to the same standard named in the care plan."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Registered Manager (IPC lead)",
+          "blocks": [
+            {
+              "p": "Owns this guideline, confirms the registration position in each area, approves the sanitiser (with its COSHH assessment) and thermometers we supply, reviews every allergic reaction within the initial review timescale in the Incident Reporting, Investigation and Learning Policy, and reviews food incidents monthly. The Deputy Manager deputises."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Record each person's food tasks and needs, allow enough visit time, brief care workers on allergies and diets before their next visit, give food tasks only to trained workers fit to handle food, act on reports within this guideline's timescales and observe food hygiene at spot checks."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Follow this guideline and the care plan, report symptoms before their shift and report unsafe food or reactions before leaving the home."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff, On-call Manager and HR Manager",
+          "blocks": [
+            {
+              "p": "Office staff deliver thermometers and sanitiser before the first visit that needs them. The On-call Manager handles symptom calls and food concerns out of hours. The HR Manager keeps food hygiene training records."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Planning food tasks",
+      "blocks": [
+        {
+          "p": "At the initial assessment and every care plan review, the assessor agrees with the person which food tasks we do and how they want to take part. The care plan records:"
+        },
+        {
+          "bullets": [
+            "each food task in the visit plan, and who buys, prepares and stores the food, including what family or a meal service provide;",
+            "allergies and intolerances, confirmed with the person and against the GP record or another authoritative source, shown in My care at a glance, or 'No known allergies' with the date confirmed;",
+            "any texture-modified diet or thickened drinks, as the Nutrition and Hydration Policy sets out;",
+            "cultural, religious and personal food rules, such as halal, kosher, vegetarian, fasting or separate utensils;",
+            "the washing-up liquid and kitchen cleaner we may use, and where the sanitiser is kept;",
+            "the visit for the weekly fridge check where the person agrees to one, whether food may be left out for later, and any listeria risk explained."
+          ]
+        },
+        {
+          "p": "Meals are prepared only at visits planned for 30 minutes or more; a shorter visit allows only a drink or heating a ready meal for someone who eats unaided. Before the first food visit we offer the person a free fridge thermometer and, where we will handle raw meat, poultry, fish or eggs and the household has no food-safe sanitiser, supply ours free. Hygiene steps are never cut to save time: if a meal will run the visit more than 15 minutes over, the care worker stays and phones the office before the planned finish."
+        }
+      ]
+    },
+    {
+      "heading": "Fitness to handle food",
+      "blocks": [
+        {
+          "p": "Staff phone the office, or the On-call Manager out of hours, and speak to a person as soon as they know, and at least 2 hours before their first visit if it started earlier, in any of these situations. Nobody is penalised for reporting symptoms or for staying away."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "Care worker",
+              "Care Coordinator (On-call Manager out of hours)"
+            ],
+            "rows": [
+              [
+                "Diarrhoea or vomiting",
+                "No work until well and 48 hours after the last episode, without anti-diarrhoeal medicines.",
+                "Reallocates every visit until the end of the exclusion is recorded."
+              ],
+              [
+                "High temperature, or yellowing of the skin or eyes",
+                "High temperature: no work until it has gone without medicines that lower it and the worker is well. Yellowing: no work until a GP or occupational health confirms fitness.",
+                "Reallocates every visit until then."
+              ],
+              [
+                "Stomach pain or nausea",
+                "No food handling until 48 hours after it stops, unless a GP or occupational health confirms a cause that is not infectious, such as pregnancy.",
+                "Removes food tasks until then."
+              ],
+              [
+                "Infected cut, boil or weeping skin, or an infected nose or throat",
+                "No food handling; broken skin on the hands that cannot be covered also means no personal care.",
+                "Removes food tasks until healed or a GP or occupational health confirms fitness."
+              ],
+              [
+                "Someone the worker lives with has diarrhoea or vomiting",
+                "May work while well, using soap and water, never hand rub alone, until 48 hours after that person's last episode.",
+                "Records the restriction and its end date in the infection-related absence entry and checks with the worker before each shift until then; household details go to the HR Manager for the restricted section."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Reallocated visits and food tasks go to another trained care worker before they are due, so nobody goes without a meal or drink."
+        }
+      ]
+    },
+    {
+      "heading": "Personal hygiene in the kitchen",
+      "blocks": [
+        {
+          "steps": [
+            "Finish personal care first where the visit plan allows, then take off the gloves and apron you wore for it.",
+            "Wash your hands with liquid soap and water and dry them on paper towels. Hand rub alone is not used before preparing food. With no running water, use a detergent hand wipe then hand rub, prepare only food that needs no handling, such as heating a ready meal, and phone the office before leaving.",
+            "Put on a new disposable apron to prepare or cook food. You do not need one to make a drink, serve food or help someone eat.",
+            "Stay bare below the elbows with long hair tied back. Cover a cut on your hand with a waterproof dressing and a nitrile glove; otherwise gloves are not worn to prepare food.",
+            "Wash your hands again after raw meat, poultry, fish, eggs or unwashed vegetables, the bin, a pet, your phone or your nose.",
+            "Help the person clean their hands before they eat or help to prepare food.",
+            "Never eat, smoke or vape while preparing food, or taste food with a spoon that goes back into the pan."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Cleaning and avoiding cross-contamination",
+      "blocks": [
+        {
+          "bullets": [
+            "Clean surfaces, chopping boards and utensils with hot water and washing-up liquid before and after use.",
+            "After raw meat, poultry, fish or eggs, clean the surface, then spray it with the sanitiser, leave it for the contact time on the label and wipe it with a paper towel.",
+            "Prepare ready-to-eat food before raw food. Use a separate board and knife for raw meat, poultry and fish, or wash and dry them before using them again.",
+            "Never wash raw meat or poultry, because splashing spreads bacteria. Wash fruit, vegetables and salad under cold running water.",
+            "Use paper towels or a clean kitchen-only dishcloth, telling the person if their cloth is dirty or smells. Never dry your hands on a tea towel.",
+            "Never prepare food where personal care, medicines or continence equipment are handled, and never put care waste, your kit box or a commode pan on a food surface.",
+            "Put food waste in the household's kitchen bin or food caddy, never in a care waste bag."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Storing, chilling and defrosting",
+      "blocks": [
+        {
+          "bullets": [
+            "Put chilled and frozen food away as soon as you arrive. Chilled food you buy for the person is bought last and refrigerated within 2 hours.",
+            "Store raw meat, poultry and fish covered on the bottom shelf, below ready-to-eat food.",
+            "Food left for later is covered, dated and put in the fridge. Where the person cannot use the fridge and the care plan allows it, food is left out for no more than 4 hours (2 on a very hot day); older food is thrown away at the next visit with the person's agreement.",
+            "Food left by family or a meal service is served only if stored as above and within its date; cooked food nobody can date is not served.",
+            "Refrigerate cooked food within 2 hours of cooking and use it within 2 days or freeze it.",
+            "Write the opening date on opened chilled ready-to-eat packs and use them within the time on the label, or 2 days if none.",
+            "Defrost food in the fridge, or in the microwave just before cooking, and use it within 24 hours of fully defrosting."
+          ]
+        },
+        {
+          "p": "Where the person has agreed to a fridge thermometer, the care worker checks it weekly at the visit the care plan names and records the reading in the daily visit notes."
+        },
+        {
+          "table": {
+            "columns": [
+              "Fridge reading",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "0°C to 5°C",
+                "No action."
+              ],
+              [
+                "Above 5°C, up to 8°C",
+                "Tell the person and, with their permission, turn the dial colder. Check again at the next visit; if it is still above 5°C, phone the office before leaving and the Care Coordinator contacts the person or family the same working day to arrange a repair or replacement."
+              ],
+              [
+                "Above 8°C, or not working",
+                "Do not serve chilled ready-to-eat food from it and, with the person's agreement, throw it away; phone the office before leaving. The Care Coordinator arranges a repair or replacement as above; meanwhile chilled food is bought in small amounts and used the same day."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Cooking, reheating and serving",
+      "blocks": [
+        {
+          "bullets": [
+            "Follow the packaging instructions, including stirring and standing times.",
+            "Cook or reheat food until it is steaming hot all the way through, with no pink left in poultry, pork, sausages or mince. Reheat food only once.",
+            "Serve straight away, letting food and drinks cool to a safe eating temperature, especially for people with dementia or reduced feeling in the mouth.",
+            "With the person's agreement, throw away hot food not eaten within 2 hours of serving.",
+            "Prepare food only for the person, unless the care plan says otherwise."
+          ]
+        },
+        {
+          "p": "Listeria-risky foods are the person's choice once the assessor has explained the risk: we keep them chilled and well within their use-by date."
+        }
+      ]
+    },
+    {
+      "heading": "Allergies and choice",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Allergies",
+          "blocks": [
+            {
+              "p": "Pre-packed food must emphasise the 14 regulated allergens in its ingredients list; 'may contain' warnings are voluntary. Our policy is that 'may contain' counts as containing the allergen unless the person, once told, chooses otherwise. Staff check every label every time. Unlabelled food is never served to a person with a food allergy."
+            },
+            {
+              "p": "For a severe allergic reaction (anaphylaxis), the care worker calls 999, gives first aid, including the person's own adrenaline auto-injector, as the First Aid Procedure sets out, stays with the person until the ambulance crew takes over, and phones the office, which covers their next visits. If a recorded allergen is given, even without a reaction, the care worker phones the office at once and the Care Coordinator gets GP or NHS 111 advice the same day. A suspected new allergy is phoned in before leaving; the Care Coordinator updates My care at a glance before the next visit and tells the GP the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Choice and capacity",
+          "blocks": [
+            {
+              "p": "People decide what, when and where they eat, and take part in preparing it as far as they wish. A person with capacity may keep and eat food we would not serve, such as food past its use-by date: we explain the risk, do not prepare or serve it ourselves, offer something else and record it. Where staff doubt the person understands the risk, the Care Coordinator arranges a capacity assessment under the Mental Capacity Act and Best Interests Policy; food is removed without agreement only under a best interests decision approved by the Registered Manager or Deputy Manager."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When food in the home is unsafe",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "Care worker",
+              "Office and timescale"
+            ],
+            "rows": [
+              [
+                "Food past its use-by date, mouldy, smelling wrong or from a damaged or swollen pack",
+                "Does not use it, asks to throw it away, offers an alternative and records it. Phones the office the same day if unsafe food was also found at a visit in the last 7 days.",
+                "Care Coordinator reviews the care plan with the person within 7 days."
+              ],
+              [
+                "Little or no food in the home",
+                "Prepares the best meal possible from what is there; phones the office before leaving.",
+                "Care Coordinator (On-call Manager out of hours) acts the same working day under the Nutrition and Hydration Policy."
+              ],
+              [
+                "Person unwell after eating, or has diarrhoea or vomiting",
+                "Follows the Infection Prevention and Control Policy; with permission, wraps any suspected food, labels it 'do not eat' and keeps it in the fridge; phones the office before leaving.",
+                "Care Coordinator (On-call Manager through NHS 111 out of hours) contacts the GP the same day and records an infection report in the incident log. Where the GP or IPC lead suspects food as the source, the IPC lead phones the health protection team and environmental health the same day (Transmission-Based Precautions and Outbreak Management Procedure)."
+              ],
+              [
+                "Unsafe storage or hygiene continuing despite advice",
+                "Phones the office before leaving.",
+                "Care Coordinator and Registered Manager decide within 7 days, at once if the person is at risk of harm now, whether the Self-Neglect and Hoarding Procedure or Safeguarding Adults Policy applies."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Food tasks, allergies, products, fridge arrangements and risks explained: the care plan.",
+            "Food prepared, fridge readings, food thrown away and choices made: daily visit notes.",
+            "Allergen errors, allergic reactions and suspected food poisoning: the incident log, before the end of the shift.",
+            "Food-handling restrictions: the infection-related absence entry in the staff record (household and health details only in its restricted section: staff record documents, which CareFlow opens only to roles given the staff document permissions); training: training and compliance records; spot checks: supervision and appraisal records."
+          ]
+        },
+        {
+          "p": "Records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Fluids, nutrition and food hygiene (Care Certificate Standard 8): accredited Level 2 food safety and hygiene course plus our session on this guideline, with a knowledge assessment",
+                "Care staff",
+                "Before preparing food or drinks without a shadowing colleague",
+                "Every 3 years"
+              ],
+              [
+                "Safe food handling, observed on shadowing shifts and included in the lone working sign-off",
+                "New care staff",
+                "Before working alone",
+                "Observed at spot checks"
+              ],
+              [
+                "Assessing food tasks under this guideline",
+                "Care Coordinators and Field Care Supervisors",
+                "Before their first assessment",
+                "Every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Agency workers do food tasks only after the agency confirms their food hygiene training in writing. Nobody whose food hygiene training has expired is allocated food tasks. Staff acknowledge this guideline in CareFlow by the deadline in the Induction and Care Certificate Procedure, within 14 days of starting a new role and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Food hygiene practice; hand washing before food and the allergen check are critical items under the Quality Audit and Monitoring Procedure",
+                "Every spot check that includes a food task",
+                "Field Care Supervisors",
+                "Deputy Manager monthly, then the IPC lead"
+              ],
+              [
+                "Food arrangements in care plans: allergies, fridge checks, products",
+                "Monthly 5-care-plan infection audit, including a person with a food allergy where we support one",
+                "Deputy Manager",
+                "IPC lead"
+              ],
+              [
+                "Food incidents, staff food-handling restrictions and unsafe fridges",
+                "Monthly infection surveillance review",
+                "IPC lead",
+                "Directors, quarterly IPC report"
+              ],
+              [
+                "Food hygiene training in date (target 95%)",
+                "Monthly",
+                "HR Manager",
+                "IPC lead"
+              ],
+              [
+                "Compliance with this guideline, including registration answers",
+                "Annual IPC audit in March",
+                "IPC lead and Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "This guideline is reviewed every 24 months by the Registered Manager as IPC lead and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in law or guidance, including the Food Standards Agency's final listeriosis guidance, a food-related outbreak or serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

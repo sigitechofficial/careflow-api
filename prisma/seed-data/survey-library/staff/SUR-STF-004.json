@@ -1,0 +1,334 @@
+{
+  "reference": "SUR-STF-004",
+  "revision": 1,
+  "title": "End of probation",
+  "audience": "EMPLOYEE",
+  "audienceGroup": "NEW_STARTERS",
+  "respondents": "Staff in any role whose 6-month probation has just been confirmed or extended; never someone whose employment is ending",
+  "summary": "A confidential check after probation is confirmed or extended: settling in, supervision, training, hours against what was expected, travel time, safety, support and whether the worker plans to stay. It cannot affect the decision, which is already made. About 8 minutes.",
+  "purpose": "The new worker's own view of their first six months: settling in, support, hours and travel against what they expected, safety, and whether they plan to stay. It is the earliest reliable retention signal and is compared with the first weeks survey (SUR-STF-003) and with leavers within 6 months, as the Induction and Care Certificate Procedure reports quarterly. To avoid any power imbalance it is sent only after the probation outcome is confirmed or extended, never to someone leaving, and answers are never seen by the managers who led the reviews. Shared items use the September survey's wording so results compare.",
+  "timing": {
+    "when": "Within 5 working days after the probation outcome is confirmed or extended in writing; open 14 days",
+    "recurrence": null,
+    "trigger": "A probation outcome of confirmed or extended recorded"
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 8,
+  "cqc": {
+    "keyQuestions": ["SAFE", "WELL_LED"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Learning culture",
+      "Workforce equality, diversity and inclusion",
+      "Capable, compassionate and inclusive leaders"
+    ]
+  },
+  "introduction": "Your probation with {{organisation}} has been decided. We would like to know how your first six months have been, so we can support you and improve things for the next new starters. It takes about 8 minutes, in paid time. Your answers cannot affect your probation, which has already been decided.\n\nYour answers are linked to your name so the HR Manager can help if you ask. They are never seen by the managers who led your probation reviews.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve how we welcome and support new staff. Our legal reason is our legitimate interest in being a good employer.\n\nYour answers are linked to your name. They are seen by the HR Manager and the Registered Manager, never by the managers who led your probation reviews, and they are never used in any decision about you. Reports show combined results for 5 or more people only. If you tell us someone may be at risk of harm, we must act on it.\n\nWe keep your answers for 1 year after the survey closes, under our Records Management and Retention Policy. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-six-months",
+          "text": "Overall, how would you rate your first six months working with us?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          },
+          "evidence": "Safe: Learning culture"
+        }
+      ]
+    },
+    {
+      "title": "Settling in",
+      "questions": [
+        {
+          "id": "q-team",
+          "text": "I feel part of a team at work.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "stf-supervision",
+          "text": "Supervision helps me in my work.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Your probation reviews count as supervisions. Choose \"Does not apply to me\" if you have not had a supervision with us yet.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would make supervision more useful?",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "stf-training",
+          "text": "My training gives me what I need to do my job well.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "comment": {
+            "prompt": "What training would help you?",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-valued",
+          "text": "I feel valued for the work I do.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "stf-fair",
+          "text": "I am treated fairly at work, whoever I am.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, whatever your age, race, religion, sex, sexuality, disability or background.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        }
+      ]
+    },
+    {
+      "title": "Your hours, rota and travel",
+      "questions": [
+        {
+          "id": "q-hours-expected",
+          "text": "Are the hours you are offered what you expected when you joined?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "About what I expected",
+            "Fewer hours than I expected",
+            "More hours than I expected",
+            "My hours change too much to say"
+          ],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Fewer hours than I expected", "More hours than I expected", "My hours change too much to say"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-travel-time",
+          "text": "Is there enough time to travel between your visits?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not travel between visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Safety and support",
+      "questions": [
+        {
+          "id": "q-safe-alone",
+          "text": "Do you feel safe when you work alone?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not work alone.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would help you feel safer?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-support-manager",
+          "text": "When you need help from the office or your manager, do you get it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes the On-call Manager out of hours. Choose \"Does not apply to me\" if you have not needed help in this time.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Looking ahead",
+      "questions": [
+        {
+          "id": "stf-intention",
+          "text": "Where do you see yourself in 12 months' time?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Still working here",
+            "Working in another home care service",
+            "Working in a care home or other social care service",
+            "Working in the NHS or other health care",
+            "Working outside health and care",
+            "Studying or training",
+            "Retired",
+            "Taking a break from work",
+            "Don't know"
+          ],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What would make you more likely to stay?",
+            "showWhen": [
+              "Working in another home care service",
+              "Working in a care home or other social care service",
+              "Working in the NHS or other health care",
+              "Working outside health and care",
+              "Studying or training",
+              "Retired",
+              "Taking a break from work"
+            ]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-recommend",
+          "text": "I would recommend working here to a friend.",
+          "type": "LIKERT",
+          "required": false,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Shared direction and culture"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything that would make it easier for you to stay and do well here?",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "text": "What advice would you give us for welcoming the next new starter?",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, the HR Manager will contact you within 5 working days. This will not affect your probation, which has already been decided. You can also ask your Care Coordinator for a written explanation of how visits are allocated; you will get it within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it under the Compliments, Feedback and Involvement Procedure and the Induction and Care Certificate Procedure. CareFlow cannot start a survey from an HR event, so keep a running copy of this template and, within 5 working days of a probation outcome of confirmed or extended, use Send or schedule with that employee chosen; it reaches them in the CareFlow app and by email. Never send it before the outcome is confirmed, or to someone whose employment is ending (they get the leaving survey, SUR-STF-015). After an extension, send it again at the end of the extension only if the first was not answered.",
+      "Set one reminder after 7 days (5 working days) in Reminders and follow-up; it goes only if the worker has not answered. Close after 14 days. It is done in paid time; paper on request, entered by the HR Manager with Record response. If the outcome falls in the first 2 weeks of a pulse or the September survey, send this survey after that window closes, still within 4 weeks of the outcome. This survey's timing is set by policy, so if CareFlow holds the worker back because they had another survey in the last 4 weeks, send it to them now anyway (in the check before sending, or in the Held back list in Who gets it) with a reason such as \"end of probation survey, due within 4 weeks of the outcome\".",
+      "Who may open individual answers: the HR Manager, and the Registered Manager where an alert needs it; never the Field Care Supervisor or line manager who led the probation reviews. This is set in Who can see the answers: individual responses are limited to the HR Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. By default only managers can send a survey (\"Surveys\", act) and only managers and admins can record answers (\"Record survey responses\"): give both to the HR Manager."
+    ],
+    "actingOnResults": [
+      "The HR Manager reads each response the working day it arrives and acts under the alerts below. Answers are never used in any decision about the worker.",
+      "How to count: positive means Very good or Good, Strongly agree or Agree, or Always or Usually, leaving out Does not apply to me and Don't know. Report quarterly, combined with the first weeks survey and leavers within 6 months, to the governance report; never for fewer than 5 responses, flagged under 10, never by Field Care Supervisor or probation reviewer. Shared items are compared with the September staff survey.",
+      "Intentions to leave are reported in combined form quarterly; an individual conversation only if the worker asked to be contacted. Keep individual answers for 1 year after the survey closes under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe when you work alone?\" answered Rarely or Never, or a comment describing a safety incident.",
+        "action": "The HR Manager tells the Registered Manager the same working day; the Field Care Supervisor contacts the worker within 2 working days (library timescale). An incident not yet reported is recorded in the incident log and handled under the Lone Working and Staff Personal Safety Policy and the Violence and Aggression Towards Staff Policy (Field Care Supervisor call within 1 working day and debrief within 3 working days of an incident).",
+        "rule": {
+          "task": "Worker does not feel safe alone: follow up",
+          "if": [
+            {
+              "question": "q-safe-alone",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "\"Are the hours you are offered what you expected?\" answered Fewer hours than I expected.",
+        "action": "The HR Manager checks hours offered against the availability the worker gave within 10 working days (library timescale), under the allocation criteria in the Equality, Diversity and Inclusion Policy; the worker is told the outcome only if they asked to be contacted. A worker who asks how visits are allocated gets a written explanation within 5 working days, under the Bullying, Harassment and Sexual Harassment Policy.",
+        "rule": {
+          "task": "Fewer hours than expected: check availability",
+          "if": [
+            {
+              "question": "q-hours-expected",
+              "answers": ["Fewer hours than I expected"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 10
+        }
+      },
+      {
+        "when": "A comment describing abuse or neglect of a person we support.",
+        "action": "Tell the safeguarding lead the same working day under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+      },
+      {
+        "when": "A comment describing bullying or harassment.",
+        "action": "Tell the Registered Manager the same working day, as a report under the Bullying, Harassment and Sexual Harassment Policy."
+      },
+      {
+        "when": "A comment describing wrongdoing.",
+        "action": "Handle it as a speaking-up concern under the Whistleblowing (Speaking Up) Policy; the Nominated Individual is case owner where it concerns the Registered Manager, Deputy Manager or HR Manager."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The HR Manager contacts the worker within 5 working days.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "alertsNeverTo": ["FIELD_CARE_SUPERVISOR"],
+  "access": {
+    "responses": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-HR-004",
+    "POL-HR-005",
+    "POL-HR-012",
+    "POL-GOV-006",
+    "POL-HS-003",
+    "POL-HS-004",
+    "POL-SG-002",
+    "POL-HR-013",
+    "POL-HR-018",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "DHSC, Work-related quality of life of the adult social care workforce in England in 2025: stress and burnout (60%), low income (54%) and not feeling valued or supported (43%) are the main reasons for intending to leave",
+      "url": "https://www.gov.uk/government/publications/work-related-quality-of-life-of-the-adult-social-care-workforce-in-england-in-2025"
+    },
+    {
+      "source": "Skills for Care, Effective supervision guide (2025): supervision can make staff feel valued, which can improve retention",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Support-for-leaders-and-managers/Managing-people/Supervision/Effective-supervision-guide.pdf"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18(2)(a): staff receive appropriate support, supervision and appraisal",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    }
+  ]
+}

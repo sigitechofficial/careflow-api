@@ -16,6 +16,7 @@ import {
   maxRolePrivilege,
   resolveScopeType,
 } from '../common/org-scope/org-scope.types';
+import { INDEPENDENT_REVIEWER_ROLE, SURVEY_REVIEW_PERMISSION, isReviewerOnly } from '../common/auth/independent-reviewer';
 
 @Injectable()
 export class UsersService {
@@ -42,6 +43,32 @@ export class UsersService {
     });
   }
 
+  /**
+   * Office user for an HTTP response (GET /users/:id): profile, roles and branch assignments only.
+   * Never returns credential columns.
+   */
+  findPublicById(id: string) {
+    return this.prisma.user.findFirst({
+      where: { id, deletedAt: null },
+      select: {
+        id: true,
+        email: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        userRoles: { select: { role: { select: { id: true, name: true, description: true } } } },
+        userLocations: { select: { locationId: true, location: { select: { id: true, name: true } } } },
+      },
+    });
+  }
+
+  /**
+   * INTERNAL: the full row, including `passwordHash` and `refreshTokenHash`, for the auth flows
+   * (refresh, change password, logout). Never return it from a controller. Use {@link findPublicById}.
+   */
   findById(id: string) {
     return this.prisma.user.findFirst({
       where: { id, deletedAt: null },
@@ -214,6 +241,15 @@ export class UsersService {
         ),
       ),
     );
+    // An independent survey reviewer (only role "Independent reviewer", no branch) may record answers
+    // on the surveys granted, and only while a grant is live. A staff account never gets it.
+    if (isReviewerOnly(roles) && !user.userLocations.length) {
+      const now = new Date();
+      const reviewing = await this.prisma.surveyReviewerGrant.count({
+        where: { userId: user.id, revokedAt: null, validFrom: { lte: now }, validTo: { gte: now }, survey: { deletedAt: null } },
+      });
+      if (reviewing && !permissions.includes(SURVEY_REVIEW_PERMISSION)) permissions.push(SURVEY_REVIEW_PERMISSION);
+    }
 
     const explicitLocationIds = user.userLocations.map((ul) => ul.locationId);
     const assignedLocationIds = await this.resolveAssignedLocationIds({
@@ -441,6 +477,20 @@ export class UsersService {
     }
 
     const oldRoles = target.userRoles.map((ur) => ur.role.name);
+    // Independent survey reviewer accounts stay separate from staff accounts both ways: the role is
+    // never combined with another, a staff account never becomes one, and one never gets staff roles
+    // (an account made by "Add a reviewer" must not become a way round who may create staff users).
+    const wasReviewer = isReviewerOnly(oldRoles);
+    const toReviewer = uniqueNames.includes(INDEPENDENT_REVIEWER_ROLE);
+    if (toReviewer && uniqueNames.length > 1) {
+      throw new BadRequestException(`The ${INDEPENDENT_REVIEWER_ROLE} role is never combined with another role.`);
+    }
+    if (toReviewer && !wasReviewer) {
+      throw new BadRequestException('A staff account cannot be made an independent reviewer. Use "Add a reviewer" on the survey instead.');
+    }
+    if (wasReviewer && uniqueNames.length && !toReviewer) {
+      throw new BadRequestException('An independent reviewer account cannot be given staff roles. Make a separate staff account.');
+    }
 
     await this.prisma.$transaction(async (tx) => {
       await tx.userRole.deleteMany({ where: { userId } });

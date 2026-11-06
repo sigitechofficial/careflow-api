@@ -2,6 +2,7 @@ import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
+  Logger,
   NotFoundException,
 } from '@nestjs/common';
 import {
@@ -20,6 +21,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { PrismaService } from '../prisma/prisma.service';
 import { PoliciesService } from './policies.service';
+import type { PolicyAcknowledgementNotificationsService } from './policy-acknowledgement-notifications.service';
 import { resolveSafePolicyPath } from './policy-upload.util';
 
 type Json = Record<string, unknown>;
@@ -447,12 +449,12 @@ const branchUser: RequestUser = {
   assignedLocationIds: ['loc-london'],
 };
 
-function createService(store?: Store) {
+function createService(store?: Store, acknowledgementNotifications?: PolicyAcknowledgementNotificationsService) {
   const data: Store = store ?? emptyStore();
   const audit = { logAudit: jest.fn().mockResolvedValue(undefined) } as unknown as AuditLogsService;
   const prisma = createPrismaMock(data);
   return {
-    service: new PoliciesService(prisma, audit),
+    service: new PoliciesService(prisma, audit, acknowledgementNotifications),
     prisma,
     audit,
     store: data,
@@ -545,6 +547,23 @@ describe('PoliciesService', () => {
       expect(audit.logAudit).toHaveBeenCalledWith(
         expect.objectContaining({ action: 'policy_draft_updated' }),
       );
+    });
+
+    it('sanitises policy HTML when a draft is created or updated', async () => {
+      const { service, store } = createService();
+      const created = await createDraft(service, {
+        ...createDto,
+        contentHtml: '<h2>Purpose</h2><img src=x onerror="alert(1)"><p onclick="steal()">Body</p>',
+      });
+      expect(created.currentVersion?.contentHtml).toBe('<h2>Purpose</h2><p>Body</p>');
+
+      const updated = await service.update(admin, created.id, {
+        contentHtml:
+          '<p>See <a href="javascript:alert(1)">this</a> and <a href="https://www.cqc.org.uk" target="_blank">CQC</a></p><script>x()</script>',
+      });
+      const saved = '<p>See <a>this</a> and <a href="https://www.cqc.org.uk" target="_blank" rel="noopener noreferrer">CQC</a></p>';
+      expect(updated.currentVersion?.contentHtml).toBe(saved);
+      expect(store.versions[0]?.contentHtml).toBe(saved);
     });
 
     it('archives without deleting the document or versions', async () => {
@@ -715,6 +734,45 @@ describe('PoliciesService', () => {
   });
 
   describe('versioning', () => {
+    it('persists acknowledgementRequired on the working version and copies it to a new version', async () => {
+      const { service } = createService();
+      const withAcknowledgement = { ...createDto, acknowledgementRequired: true };
+      const created = await createDraft(service, withAcknowledgement);
+      expect(created.currentVersion?.acknowledgementRequired).toBe(true);
+
+      const cleared = await service.update(admin, created.id, { acknowledgementRequired: false });
+      expect(cleared.currentVersion?.acknowledgementRequired).toBe(false);
+      const unchanged = await service.update(admin, created.id, { title: 'Renamed policy' });
+      expect(unchanged.currentVersion?.acknowledgementRequired).toBe(false);
+      await service.update(admin, created.id, { acknowledgementRequired: true });
+
+      await publishFirstVersion(service, created.id);
+      const v11 = await service.createVersion(admin, created.id, { bump: 'minor' });
+      expect(v11.acknowledgementRequired).toBe(true);
+
+      const plain = await createDraft(service, { ...createDto, reference: 'POL-SAF-002' });
+      expect(plain.currentVersion?.acknowledgementRequired).toBe(false);
+    });
+
+    it('tells staff to acknowledge after publishing a version that requires it, and a failure does not block publishing', async () => {
+      const onVersionPublished = jest.fn().mockRejectedValue(new Error('FCM down'));
+      const notifier = { onVersionPublished } as unknown as PolicyAcknowledgementNotificationsService;
+      const { service } = createService(undefined, notifier);
+      const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+
+      const required = await createDraft(service, { ...createDto, reference: 'POL-ACK-001', acknowledgementRequired: true } as typeof createDto);
+      const published = await publishFirstVersion(service, required.id);
+      expect(published.status).toBe(PolicyStatus.PUBLISHED);
+      expect(onVersionPublished).toHaveBeenCalledWith(required.id, published.currentVersionId);
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('staff acknowledgement notifications failed'));
+
+      onVersionPublished.mockClear();
+      const plain = await createDraft(service, { ...createDto, reference: 'POL-ACK-002' });
+      await publishFirstVersion(service, plain.id);
+      expect(onVersionPublished).not.toHaveBeenCalled();
+      warn.mockRestore();
+    });
+
     it('creates a minor version 1.1 as DRAFT without moving currentVersionId', async () => {
       const { service, audit } = createService();
       const created = await createDraft(service);

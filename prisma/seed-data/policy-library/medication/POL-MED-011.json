@@ -1,0 +1,447 @@
+{
+  "reference": "POL-MED-011",
+  "revision": 1,
+  "title": "Over-the-Counter Medicines and Homely Remedies Guideline",
+  "documentType": "GUIDELINE",
+  "summary": "How we respond when a person we support wants to use a medicine, herbal product or supplement bought without a prescription: our no-homely-remedies position, the pharmacist or GP check before we support any bought product, buying medicines for a person, products the person or family manage, when to get advice instead, and expiry and review. For care workers, Senior Care Workers and Care Coordinators.",
+  "keyPoints": {
+    "intro": "People we support may buy and use their own medicines, herbal products and supplements, but you only help with one after a pharmacist or GP has checked it and it is on the eMAR. These are the rules you follow at every visit. 'The office' means the branch office, or the On-call Manager out of hours.",
+    "points": [
+      "We keep no homely remedies. Never give a person your own medicine, one from the office or another person's, and never recommend or choose a product for them.",
+      "Only support a bought medicine, herbal product, supplement or cream that is on the eMAR. Otherwise do not give, prompt or apply it, even if the person or a relative asks. If you give one by mistake, phone the office at once from the home.",
+      "If the person asks for something for a symptom, or for help with a product they have bought, phone the office before you leave. The office gets advice from a pharmacist, the GP or NHS 111.",
+      "Call 999 if the person has chest pain, difficulty breathing, swelling of the face, lips or throat, collapses, is very hard to wake or may have taken too much of any medicine. Never treat these yourself with a bought medicine.",
+      "Before any dose containing paracetamol, ask whether the person has taken any paracetamol, including cold and flu remedies, and count it. Always leave at least 4 hours between paracetamol doses.",
+      "Buy a medicine only when the care plan says so: the exact product, strength and pack size, from the pharmacy named, with the person's cash and a receipt. If it is not available, buy nothing else and phone the office.",
+      "Take medicines you buy straight to the person's home and never leave them unattended in your car. Before the first dose from a new pack, check it matches the eMAR and is in date.",
+      "Never give a bought medicine from a loose strip, a decanted or unlabelled container, a pack with no directions or one that is out of date; phone the office.",
+      "Phone the office before you leave if you see new bought, herbal or someone else's medicines, or signs of overuse such as packs running out fast or many packs of painkillers, laxatives or sleeping tablets.",
+      "If you think someone is giving the person products to make them drowsy or easier to manage, phone the office before you leave.",
+      "Record every dose of a bought medicine on the eMAR like any other medicine. Phone the office before you leave if a symptom carries on past the review date, keeps coming back or gets worse."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Carer/Domestic",
+    "Senior Carer/Nurse",
+    "Care Coordinator"
+  ],
+  "moduleLinks": [
+    "MEDICATION",
+    "CARE_PLAN"
+  ],
+  "relatedReferences": [
+    "POL-MED-001",
+    "POL-MED-003",
+    "POL-MED-004",
+    "POL-MED-005",
+    "POL-MED-006",
+    "POL-MED-007",
+    "POL-MED-012",
+    "POL-CD-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(a), (b) and (g) the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "The Human Medicines Regulations 2012, regulation 5 Classification of medicinal products (prescription only, pharmacy and general sale medicines)",
+      "url": "https://www.legislation.gov.uk/uksi/2012/1916/regulation/5"
+    },
+    {
+      "source": "The Human Medicines Regulations 2012, regulation 220 Sale or supply of medicinal products not subject to general sale (only at or from a registered pharmacy)",
+      "url": "https://www.legislation.gov.uk/uksi/2012/1916/regulation/220"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), section Self care and over the counter (OTC) products, summarising NICE guideline NG67 Managing medicines for adults receiving social care in the community",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    },
+    {
+      "source": "NHS, Herbal medicines and complementary therapies (interactions with prescribed medicines, the traditional herbal registration (THR) mark, checking with a pharmacist first)",
+      "url": "https://www.nhs.uk/conditions/herbal-medicines/"
+    },
+    {
+      "source": "NHS, Paracetamol for adults (at least 4 hours between doses, maximum in 24 hours, other medicines containing paracetamol)",
+      "url": "https://www.nhs.uk/medicines/paracetamol-for-adults/"
+    },
+    {
+      "source": "MHRA Drug Safety Update, Emollients: new information about risk of severe and fatal burns with paraffin-containing and paraffin-free emollients (December 2018)",
+      "url": "https://www.gov.uk/drug-safety-update/emollients-new-information-about-risk-of-severe-and-fatal-burns-with-paraffin-containing-and-paraffin-free-emollients"
+    },
+    {
+      "source": "MHRA, Register a homeopathic medicine or remedy (Simplified Registration and UK Homeopathic National Rules schemes)",
+      "url": "https://www.gov.uk/guidance/register-a-homeopathic-medicine-or-remedy"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "The people we support have the same right as anyone to buy and use over-the-counter medicines, herbal products and supplements. These products can interact with prescribed medicines, repeat an ingredient such as paracetamol, hide a symptom that needs a doctor, or be misused. {{organisation}} keeps no stock of homely remedies, and staff support a bought product only after a pharmacist or the GP has checked that it is safe for the person and it is in their care plan and on the eMAR."
+        },
+        {
+          "p": "The law requires the proper and safe management of medicines (Regulation 12(2)(g) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). National guidance based on NICE guideline NG67 expects home care providers to seek a pharmacist's or other health professional's advice on non-prescribed medicines a person asks for, and to make sure the person understands and accepts any risk. This guideline carries the same authority as the Medicines Management Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "People use the products they choose safely, with professional advice.",
+            "No bought product is supported without a recorded check and a second-checked eMAR entry.",
+            "Staff know what they must never do and when a symptom needs advice instead."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This guideline applies to every employee, including bank and agency workers, who supports, buys, records or audits medicines, and to every bought medicine in the home of a person we support, whoever bought it and whatever our level of support."
+        },
+        {
+          "p": "Owned elsewhere: prescribed medicines (Administering and Supporting People with Medicines Procedure); doses, limits and recording of bought medicines taken when required, to which the When Required (PRN) Medicines Protocol applies in full; toiletries (Personal Care, Continence and Oral Care Procedure); money and receipts (Handling Money, Property and Shopping Procedure); aspirin handed over on a 999 call handler's advice (First Aid Procedure); and staff's own medicines (Staff Code of Conduct)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Over-the-counter (OTC) medicine",
+                "A licensed medicine sold without a prescription: a general sale list (GSL) medicine, which shops may sell, or a pharmacy (P) medicine, which may be sold only from a registered pharmacy (Human Medicines Regulations 2012, regulations 5 and 220). Its pack shows a UK licence number beginning PL."
+              ],
+              [
+                "Herbal medicine",
+                "A plant-based medicine. A registered traditional herbal medicine shows a THR number and mark."
+              ],
+              [
+                "Supplement",
+                "A vitamin, mineral, fish oil, cannabidiol (CBD) or other food supplement. It has no licence number but can still interact with medicines."
+              ],
+              [
+                "Bought medicine",
+                "Any OTC medicine, herbal or complementary product, supplement, or cream, emollient or barrier product used for health without a prescription."
+              ],
+              [
+                "Homely remedy",
+                "A stock of OTC medicines a provider keeps to give to anyone without a prescription. We keep none."
+              ],
+              [
+                "Bought medicine check",
+                "A pharmacist's or the GP's advice, recorded in the care plan, that a named bought medicine is safe for the person, with its dose, limits and how long it may be used."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "Accountable for this guideline as medicines lead. At the start of each commissioner contract, and when its terms change, checks whether the contract or the commissioner's medicines guidance restricts support with non-prescribed medicines and records any restriction in the care plan of each person it funds. The stricter rule applies."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator and Field Care Supervisor",
+          "blocks": [
+            {
+              "p": "The Care Coordinator carries out the bought medicine check, arranges the eMAR entry and reviews each bought medicine. Authorised Field Care Supervisors record pack details in the home and carry out in-home medicines checks."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Support only bought medicines on the eMAR, buy only as the care plan says, and phone the office before leaving about any request, unrecorded product or concern."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Take care workers' calls, obtain same-day advice from a pharmacist, the GP or NHS 111 where the person has a symptom, record calls and advice in the daily visit notes, and pass requests to the Care Coordinator."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Our position",
+      "blocks": [
+        {
+          "bullets": [
+            "We keep no homely remedies at the branch office, in vehicles or in first aid kits. Staff never give a person a medicine from their own supply, another person's or the office's, and never recommend or choose a product.",
+            "Once on the care plan and eMAR, a bought medicine follows every rule for prescribed medicines.",
+            "We never support a product sold as a medicine with no UK licence or registration number on the pack (PL, THR or homeopathic registration), such as one bought abroad or from an unregulated website, or any product out of its original pack or without its printed directions.",
+            "We do not ask the GP to prescribe a product only so that we can support it; the Care Coordinator asks for a prescription only where a commissioner's rules require one or a pharmacist or the GP advises ongoing treatment.",
+            "Giving, prompting, applying or buying a product the care plan and eMAR do not include is a medicines incident: the care worker phones the office at once from the home if it reached the person, otherwise before leaving, and logs it in the incident log before the end of their shift."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When a person wants to use a bought medicine",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "At the visit",
+          "blocks": [
+            {
+              "steps": [
+                "Do not give, prompt, apply or suggest anything that is not on the eMAR.",
+                "If the person is seriously unwell, call 999 (see When to get advice instead of self-treatment).",
+                "Otherwise phone the office (the On-call Manager out of hours) before you leave: what the person wants and why, the product's name and strength, and anything else they have taken for the symptom.",
+                "Follow any advice the office gives while you are there, and record the request and advice in the daily visit notes. You do not wait for the bought medicine check: finish your planned tasks, and call 999 if the person becomes seriously unwell."
+              ]
+            },
+            {
+              "p": "A person with capacity may take a product without our help. The care worker records what they took and when in the daily visit notes. Before any paracetamol-containing dose we support, the care worker asks whether the person has taken any paracetamol, including in a cold and flu remedy, and counts it: paracetamol doses are always at least 4 hours apart."
+            }
+          ]
+        },
+        {
+          "heading": "The bought medicine check",
+          "blocks": [
+            {
+              "p": "The Care Coordinator starts the check on the working day the request reaches the office. The check, pack record and second-checked eMAR entry are completed within 2 working days, or the same working day where the person needs the product that day; where no visit is planned before the first dose is needed, the Care Coordinator arranges an extra visit. Support with a bought medicine is never started out of hours: the On-call Manager obtains NHS 111 advice where the person needs treatment before the next working day and passes the request to the Care Coordinator by 10am. Where the person needs a medicine they cannot take without our support, the On-call Manager asks NHS 111 for a prescriber, and any medicine prescribed is set up under the When Required (PRN) Medicines Protocol."
+            },
+            {
+              "steps": [
+                "With the person's consent, contact their usual community pharmacist, or the GP. Give the product's name, strength, form and pack directions, what it is for, how long the person wants to use it and, where the pharmacy does not hold them, their current medicines and allergies.",
+                "Ask whether it is safe with their medicines, conditions and allergies; the exact dose, minimum gap and most in 24 hours; how long it may be used before the GP must be told; warning signs to watch for; and whether it repeats an ingredient they already take.",
+                "Record the advice in the medicines section of the care plan with the adviser's name, role, organisation, date and time. Read back phone advice and ask for it by secure email. The entry may be set up on read-back advice; if the email has not arrived by the end of the next working day, chase it and record the chase.",
+                "Explain the advice to the person, and to their named contact where the person agrees, and record in the person's words that they understand and accept any risk and consent to the support."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Adding it to the care plan and eMAR",
+          "blocks": [
+            {
+              "steps": [
+                "An authorised medicines assessor (Care Coordinator or Field Care Supervisor) sees the product in the home and records from the pack its name, strength, form, licence or registration number, pack size, expiry date and directions. Where anyone else in the household uses the same product, they write the person's name and the date on the outer pack without covering printed text, and agree where it is kept apart. Where the product is needed the same day and no assessor can visit, the care worker reads every pack detail to the assessor by phone, the assessor reads it back, and an assessor sees the pack within 7 days.",
+                "An authorised eMAR user sets up the entry under the Medicines Administration Records (MAR and eMAR) Procedure, using the pack record in place of a dispensing label and the recorded advice as the authoritative source, with 'Bought medicine' in the special instructions and a stop or review date.",
+                "For a product taken when required, the assessor writes PRN guidance; a variable dose on the pack, such as 'one or two tablets', is decided only as the When Required (PRN) Medicines Protocol allows.",
+                "A second authorised eMAR user checks every detail against the pack record and the advice before the first dose; the care plan is approved and care workers are briefed before their next visit.",
+                "The Care Coordinator tells the GP practice and pharmacy within 2 working days, as for any change in medicines support."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "When the advice is against it or the person cannot decide",
+          "blocks": [
+            {
+              "p": "If the pharmacist or GP advises against the product, or says the symptom needs a doctor, we do not support it. The Care Coordinator tells the person the same working day and, with consent, arranges a GP appointment. A person with capacity who still chooses to use it may do so themselves: the Care Coordinator explains the risk, records the decision under the Positive Risk-Taking Policy, lists the product as Level 0 and, with consent, tells the GP."
+            },
+            {
+              "p": "Starting a medicine is a treatment decision. For a person who lacks capacity to decide whether to take a bought product, we support it only on the prescriber's written best interests decision under the Consent, Mental Capacity and Declined Medicines Policy; pharmacist advice alone is not enough."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Buying medicines for a person",
+      "blocks": [
+        {
+          "p": "Care workers allowed to handle money under the Handling Money, Property and Shopping Procedure buy a medicine only where the care plan includes shopping and names the product, strength, form and pack size after a bought medicine check."
+        },
+        {
+          "bullets": [
+            "Buy it from the person's usual community pharmacy, or another registered pharmacy the care plan names, never a shop, market or website. If the pharmacist declines to sell it or raises a concern, phone the office.",
+            "Buy the exact product, one pack at a time unless the care plan sets more. If it is not available, buy nothing else and phone the office; any alternative needs the pharmacist's agreement, a new pack record and an eMAR change before use.",
+            "Pay with the person's cash and record the purchase and receipt under that procedure. The trip starts and ends at the person's home in one visit or rota item; never leave the product unattended in a vehicle.",
+            "Before the first dose from any new pack, check the name, strength and form match the eMAR and it is in date. If anything differs, do not give it; phone the office."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Bought medicines the person or family manage",
+      "blocks": [
+        {
+          "p": "Care workers do not count, tidy or remove products the person manages. When they see a new bought, herbal or someone else's medicine, they phone the office before leaving, under the Self-Administration of Medicines Procedure. The same working day the Care Coordinator:"
+        },
+        {
+          "steps": [
+            "adds the product to the care plan medicines list as Level 0 or family-managed;",
+            "asks the pharmacist whether it affects any medicine we support, for example a cold and flu remedy containing paracetamol, or St John's wort with an antidepressant or warfarin, and records the answer;",
+            "where it shares an ingredient with a medicine we support, records how the person's or family's doses are counted, using the between-visits record in the When Required (PRN) Medicines Protocol; and",
+            "includes it in the next notification to the GP practice, with the person's consent."
+          ]
+        },
+        {
+          "p": "An authorised medicines assessor adds the product to the person's self-administration risk assessment at a home visit within 7 days."
+        }
+      ]
+    },
+    {
+      "heading": "When to get advice instead of self-treatment",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What you notice",
+              "What you do",
+              "What the office does"
+            ],
+            "rows": [
+              [
+                "Chest pain, difficulty breathing, swelling of the face, lips or throat, collapse, being very hard to wake, or signs of a stroke",
+                "Call 999, stay with the person, then phone the office.",
+                "Reallocates later visits."
+              ],
+              [
+                "The person may have taken more of any medicine than the pack or eMAR allows",
+                "Call 999 for a possible overdose (First Aid Procedure), whoever gave it; give no more, keep the packs, stay with the person, then phone the office.",
+                "Incident log; Registered Manager considers safeguarding where someone else gave it."
+              ],
+              [
+                "The person wants something for a symptom, such as pain, a cough, constipation, indigestion or poor sleep",
+                "Phone the office before you leave.",
+                "Pharmacist or GP advice the same day (NHS 111 out of hours); starts the check where advised."
+              ],
+              [
+                "A symptom continues past the review date, keeps returning or worsens, or a new symptom appears",
+                "Phone the office before you leave.",
+                "Care Coordinator contacts the GP the same working day."
+              ],
+              [
+                "Drowsiness, unsteadiness, a fall, confusion, a rash or another possible side effect",
+                "Phone the office before you leave.",
+                "As for side effects in the Administering and Supporting People with Medicines Procedure."
+              ],
+              [
+                "Packs running out fast, many packs of painkillers, laxatives or sleeping tablets, codeine painkillers used beyond the pack's limit, or products hidden",
+                "Phone the office before you leave.",
+                "Care Coordinator contacts the GP the same working day; a codeine product we support may be counted under the Controlled Drugs in the Community Procedure; possible self-neglect follows the Self-Neglect and Hoarding Procedure."
+              ],
+              [
+                "Someone seems to give the person products to make them drowsy or easier to manage, or controls their medicines",
+                "Phone the office before you leave.",
+                "Safeguarding lead assesses risk within 1 hour (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure)."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Storage, expiry and review",
+      "blocks": [
+        {
+          "bullets": [
+            "Bought medicines stay in their original pack with the leaflet or printed directions, where the care plan says. Opening dates and use-within periods apply as for prescribed medicines.",
+            "Care workers check the expiry date before every dose. An out-of-date product is not given, the office is phoned, and it is returned to a pharmacy with the person's agreement under the Ordering, Collecting, Storing and Disposing of Medicines Procedure.",
+            "Fabric with dried emollient on it, paraffin-free included, ignites rapidly and burns fiercely (MHRA): bought emollients follow the Fire Safety in People's Homes Policy."
+          ]
+        },
+        {
+          "p": "Each bought medicine's review date is the shorter of the limit on the pack and the limit the pharmacist or GP set, or 7 days for a short-term symptom where neither sets one. Before that date the Care Coordinator asks the person whether the symptom has gone; if so the entry is ended, and if not they contact the GP the same working day and support continues only on written advice with a new review date. Long-term products, such as vitamin D, are reviewed at every medicines review."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Care plan medicines section: each bought medicine with its level, check and written confirmation, consent or best interests decision, pack record and any commissioner restriction or purchase arrangement.",
+            "eMAR: the entry marked 'Bought medicine' with its review date, and every dose with its CareFlow outcome.",
+            "Daily visit notes: requests, calls, advice, products the person took themselves and purchases, which also go on the money and shopping record. Records are kept under the Records Management and Retention Policy."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "This guideline: our position, requests, buying, new packs, counting paracetamol and escalation",
+                "Everyone who gives medicines support",
+                "Within full medicines training (pass mark 80%), then every 12 months"
+              ],
+              [
+                "Bought medicine check, pack record and eMAR set-up",
+                "Medicines assessors and authorised eMAR users",
+                "Within assessor and eMAR set-up training, then every 12 months"
+              ],
+              [
+                "Calls about bought medicines, including the out-of-hours rule",
+                "Office staff and On-call Managers",
+                "Within eMAR monitoring training, then every 12 months"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every bought medicine in the full eMAR audit: check and written confirmation, agreement, pack record, second check before the first dose, review date",
+                "Monthly",
+                "Care Coordinator or Field Care Supervisor, outside their own caseload",
+                "Deputy Manager"
+              ],
+              [
+                "In-home medicines check: bought products against the care plan, expiry and opening dates, original packs",
+                "At least every 3 months",
+                "Field Care Supervisor or authorised Senior Care Worker",
+                "Deputy Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of bought medicines supported only after a recorded check and a second-checked eMAR entry, 100% with a current review date, and no homely remedy stock anywhere."
+        },
+        {
+          "p": "This guideline is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law, national guidance or a commissioner's medicines rules, a serious incident, an inspection finding, or when monitoring shows it is not working."
+        }
+      ]
+    }
+  ]
+}

@@ -17,7 +17,7 @@ import {
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -29,9 +29,10 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ServiceUserDomCareService } from './service-user-dom-care.service';
 import { PatchServiceUserDomCareDto } from './dto/patch-service-user-dom-care.dto';
 import { DomCareEmployeeSearchQueryDto } from './dto/dom-care-employee-search-query.dto';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 function domContractUploadRoot() {
-  return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'service-users', 'dom-care', 'contracts');
+  return uploadPath('service-users', 'dom-care', 'contracts');
 }
 
 function domMaxBytes() {

@@ -1,0 +1,645 @@
+{
+  "reference": "POL-GOV-019",
+  "revision": 1,
+  "title": "Acceptable Use of IT and Devices Policy",
+  "documentType": "POLICY",
+  "summary": "The everyday rules for using CareFlow, work phones, laptops, office computers, work email, the internet and artificial intelligence tools: what work devices are for, why personal devices are never used for work, what CareFlow records about staff at check-in and check-out, what we monitor and why, and how mistakes and misuse are handled. For all employees, the Directors and the managers who apply it.",
+  "keyPoints": {
+    "intro": "CareFlow and your work devices hold the care plans, addresses and key safe codes of people who often live alone. These are the rules for using them every day, on visits, in the branch office, on call and at home.",
+    "points": [
+      "Use CareFlow, work email and our files only on the work phone, laptop or office computer we issue. Never put them on your own phone, tablet or computer, and never let anyone else use a work device.",
+      "Open only the records you need for the work you are doing now. Looking at, copying, printing or keeping a record without a work reason can be gross misconduct and a criminal offence.",
+      "Check in when you are inside the person's home and check out only when you are about to leave. Never check in for anyone else or use anything that changes your phone's location.",
+      "CareFlow records your phone's location only when you check in or out, if you leave the home while still checked in, or if you raise an emergency alert in the app; never between visits. We never monitor your own phone or accounts.",
+      "Before your shift ends, open CareFlow where there is signal, check that every note has sent, then sign out. If CareFlow or your phone fails, phone the office, or the On-call Manager out of hours, on arrival and before leaving each visit.",
+      "Work devices are for work only: no personal browsing, email, shopping, streaming or social media, and nothing illegal, sexual, extremist or gambling-related. If you reach such a site by mistake, close it and tell the office or your manager the same day.",
+      "Never put information about a person we support or a colleague into an AI tool, chatbot or transcription service not approved for that use, or names or personal details into the translation app. Never switch on an AI note-taker in our meetings.",
+      "If you have work email: save emails that belong in a record into CareFlow within 1 working day, never forward work email to a personal account, and use blind copy when emailing several families or professionals.",
+      "Laptop users: never leave a laptop in a vehicle, in a person's home or unattended in public, and work only where nobody can see your screen or overhear your calls, including smart speakers.",
+      "If a device is lost or stolen, you clicked a suspicious link or you sent something to the wrong person, phone the office or On-call Manager at once. Reporting your own mistake promptly is never in itself a reason for disciplinary action.",
+      "When you leave, return every device on or before your last working day and keep no copies of anything. Your access ends that day."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "VISIT",
+    "EMPLOYEE",
+    "EQUIPMENT"
+  ],
+  "relatedReferences": [
+    "POL-GOV-018",
+    "POL-HR-017",
+    "POL-GOV-013",
+    "POL-GOV-015",
+    "POL-GOV-016",
+    "POL-GOV-017",
+    "POL-CD-013",
+    "POL-HR-008"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "UK General Data Protection Regulation, Article 32 (security of processing), including paragraph 4: anyone acting under the controller's authority processes personal data only on its instructions",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/32"
+    },
+    {
+      "source": "Data Protection Act 2018, section 170 (unlawful obtaining, disclosing or retaining of personal data), as amended by the Data (Use and Access) Act 2025 from 5 February 2026",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/170"
+    },
+    {
+      "source": "Computer Misuse Act 1990, section 1 (unauthorised access to computer material)",
+      "url": "https://www.legislation.gov.uk/ukpga/1990/18/section/1"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(1) and (2)(c) and (d) (good governance: records maintained securely)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Investigatory Powers (Interception by Businesses etc. for Monitoring and Record-keeping Purposes) Regulations 2018, regulation 3 (lawful business monitoring purposes)",
+      "url": "https://www.legislation.gov.uk/uksi/2018/356/regulation/3"
+    },
+    {
+      "source": "Investigatory Powers (Interception by Businesses etc. for Monitoring and Record-keeping Purposes) Regulations 2018, regulation 4 (conditions, including all reasonable efforts to tell users that communications may be intercepted)",
+      "url": "https://www.legislation.gov.uk/uksi/2018/356/regulation/4"
+    },
+    {
+      "source": "GOV.UK, Data protection and your business: monitoring staff at work",
+      "url": "https://www.gov.uk/data-protection-your-business/monitoring-staff-at-work"
+    },
+    {
+      "source": "National Cyber Security Centre, Device security guidance: Bring your own device (BYOD)",
+      "url": "https://www.ncsc.gov.uk/collection/device-security-guidance/bring-your-own-device"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} runs its care on CareFlow. On a work phone in a person's home, a care worker can see that person's care plan, medicines, key safe code and visit times; in the branch office and on call, managers can see everyone's. Misused, the same tools could tell a stranger who lives alone and how to get in, or let a colleague read about a neighbour or relative without any reason to."
+        },
+        {
+          "p": "{{organisation}} therefore gives everyone who needs one a managed work device, never asks anyone to use their own, and expects CareFlow, email, the internet and other tools to be used only for work, in the ways this policy allows. We are open with staff about what CareFlow records about them, including location at check-in and check-out, and we monitor IT use only as set out here. This supports our duties to keep records secure (Regulation 17(2)(c) and (d) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014) and to make sure everyone acting for us processes personal data only on our instructions (UK GDPR Article 32(4))."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets which devices and systems staff may use for work and for what, keeps information about the people we support and colleagues inside CareFlow and our managed systems, sets the rules for using CareFlow honestly, tells staff plainly what location and usage information we collect about them and why, and sets the everyday rules for email, the internet, artificial intelligence tools and working away from the branch office, and how misuse is handled."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee of {{organisation}}, including bank staff, apprentices and staff on probation, to the Directors, and through their agreements to agency workers and students. It covers CareFlow, every work device, work email and file storage, the internet, video calls, printing and artificial intelligence tools, wherever they are used."
+        },
+        {
+          "p": "Owned elsewhere: passwords, multi-factor authentication, setting up and ending accounts, device security settings, scams and cyber incidents (Information and Cyber Security Policy); work phone issue, phones during visits, photographs, recordings, messaging and social media (Mobile Phones and Social Media Policy); sharing information and secure external email (Confidentiality and Information Sharing Policy); lawful bases and impact assessments (Data Protection Policy); breaches (Personal Data Breach Procedure); retention (Records Management and Retention Policy); staff records and the employee privacy notice (Staff Personal Data and HR Records Policy); recording visits when CareFlow fails (Daily Records and Visit Notes Procedure); and technology in a person's home (Technology-Enabled Care and Telecare Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Work device",
+                "A phone, laptop or computer {{organisation}} issues and enrols in device management, including the on-call phone and laptop, spare phones and laptops, the branch business continuity laptop and branch office computers."
+              ],
+              [
+                "Personal device",
+                "Any phone, smartwatch, tablet, computer or storage we have not issued, including a family member's."
+              ],
+              [
+                "Audit trail",
+                "CareFlow's audit log: sign-ins, changes to records, the opening of staff records, assessments and staff documents, and report exports, each with who and when. It does not record every care record viewed or anything printed."
+              ],
+              [
+                "Approved software list",
+                "The software, apps and online services, including any artificial intelligence tool, approved by the Nominated Individual under the Information and Cyber Security Policy."
+              ],
+              [
+                "Work reason",
+                "A need to see or use information to do a task you have been given now, such as an allocated visit, a review, a rota change or an investigation you are leading."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and fund enough work devices for everyone who needs one. The Nominated Individual, as Senior Information Risk Owner and data security and protection lead, approves the approved software list, including each artificial intelligence tool before use, approves opening the mailbox or work device of the Registered Manager, Deputy Manager or a Director, approves any covert monitoring as the Mobile Phones and Social Media Policy sets out, checks the Registered Manager's own access entries in each monthly CareFlow access review, and reviews monitoring and misuse quarterly."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy and makes sure every employee acknowledges it. They approve opening another employee's mailbox or examining a work device's contents, decide the same working day how each suspected misuse is handled, keep the list of records included in every monthly access review, review the Deputy Manager's own access entries each month, and keep CareFlow set to ask for a reason, rather than block, when a check-in is made outside the set distance of the person's home, checking the setting before this policy takes effect and at every review because CareFlow is supplied set to block. The Deputy Manager acts when the Registered Manager is absent, and the Nominated Individual where the Registered Manager is involved."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out the monthly CareFlow access review and approves any printing or export of lists of the people we support that this policy does not already allow."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager issues and recovers laptops as well as work phones, keeps them on the device register in the staff record, arranges assistive software as a reasonable adjustment and runs the acknowledgement report."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors, Office staff and On-call Managers",
+          "blocks": [
+            {
+              "p": "Care Coordinators check check-in exceptions at the daily exception review, and Field Care Supervisors check CareFlow use at every spot check, as Monitoring and review sets out. Office staff and On-call Managers take reports of lost devices, suspicious messages and misdirected information and act on them at once. The monitor under the Lone Working and Staff Personal Safety Policy deals with every left-the-home alert as it appears: they phone the care worker, record the reason and allow them to continue only once they know the worker and the person are safe."
+            }
+          ]
+        },
+        {
+          "heading": "Everyone",
+          "blocks": [
+            {
+              "p": "Everyone uses only their own accounts and our devices and reports losses, mistakes and suspected misuse at once. When unsure whether something is allowed, care staff phone a Senior Care Worker or the Care Coordinator in office hours, or the On-call Manager out of hours, and office staff and managers ask their line manager. Where this policy says to tell your manager, care staff use that same route."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Work devices and personal devices",
+      "blocks": [
+        {
+          "p": "The National Cyber Security Centre explains that work data on a personal device is only as safe as the owner allows the device to be managed, which must be balanced against the owner's privacy. We avoid that conflict: every device used for our information is one we issue, manage and pay for, and we never charge for its repair or loss."
+        },
+        {
+          "table": {
+            "columns": [
+              "Device",
+              "Who has it",
+              "Used for"
+            ],
+            "rows": [
+              [
+                "Work phone",
+                "Every Care Worker, Senior Care Worker, Field Care Supervisor, Care Coordinator and On-call Manager before their first shadow shift; agency workers a spare phone",
+                "As the Mobile Phones and Social Media Policy sets out: CareFlow, including its body map photographs and voice notes; work calls; the approved translation app; any lone worker app; and navigation"
+              ],
+              [
+                "Branch office computer",
+                "Office staff, Care Coordinators and Field Care Supervisors, each with their own log-in",
+                "CareFlow, work email, file storage, approved software and e-learning; it never leaves the branch office"
+              ],
+              [
+                "Laptop",
+                "Registered Manager, Deputy Manager, HR Manager, Nominated Individual, Directors and any office-based employee approved to work from home; the on-call laptop goes with the on-call phone",
+                "The same as a branch office computer, in the branch office, on call and when working from home"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Work devices are for work only: never personal email, browsing, shopping, banking, streaming, games or social media, and never used by anyone else, including a family member, a person we support or a colleague. The only personal use is a brief urgent call on the work phone when your own phone is unavailable, as the Mobile Phones and Social Media Policy allows. Only software on the approved software list is used, installed through device management. Lock any work device whenever you put it down or step away from it, including a branch office computer."
+        },
+        {
+          "p": "Personal devices never open CareFlow, work email, our files or any other work account, and never hold information about the people we support or colleagues. The only exceptions are phoning the office from your own phone when the work phone fails, taking a call from the office about cover when you are not working, and connecting a personal device to the branch office guest Wi-Fi, never to the staff network or a work device."
+        },
+        {
+          "p": "E-learning is paid working time under the Training and Development Policy and may be done at the branch office or at home, but only on a branch office computer, a laptop we issue, or the work phone where the e-learning app has been installed through device management. Staff who need assistive software, such as a screen reader or speech-to-text, ask the HR Manager, who agrees it as a reasonable adjustment and has our IT support provider install an approved product within 10 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Using CareFlow",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Your log-in and what you look at",
+          "blocks": [
+            {
+              "p": "Your CareFlow log-in is yours alone and everything done under it is treated as done by you. Care Workers and Senior Care Workers use CareFlow only through the app on their work phone, which shows them only the people on their round: those they visit regularly or are rostered to visit in the next 14 days. Office staff and managers see more because their role needs it, so the work reason test matters most for them."
+            },
+            {
+              "bullets": [
+                "Open a record only when you have a work reason now. Never look up a relative, friend, neighbour, colleague, public figure or someone you used to visit.",
+                "Never record, check in or sign anything under another person's log-in, and never let anyone use CareFlow signed in as you.",
+                "Print care records only where another library document requires it, such as the home copy of the care plan, and collect printing at once. Only the Registered Manager, Deputy Manager, HR Manager or Nominated Individual print or export a list of the people we support, their addresses or visit times, or someone else with the Deputy Manager's written approval; the business continuity records exports set out in the Business Continuity and Emergency Planning Policy are the exception, and are never printed.",
+                "Never copy CareFlow information into email, documents, spreadsheets or file storage unless the task requires it, and never write down or copy a key safe code: read it in CareFlow, as the Key Holding, Key Safes and Access to People's Homes Procedure sets out."
+              ]
+            },
+            {
+              "p": "Knowingly or recklessly obtaining, disclosing or keeping personal data without our consent is a criminal offence (Data Protection Act 2018, section 170), and so is gaining access to computer material you know you are not authorised to reach (Computer Misuse Act 1990, section 1)."
+            }
+          ]
+        },
+        {
+          "heading": "On every shift",
+          "blocks": [
+            {
+              "steps": [
+                "Before your first visit, sign in to the CareFlow app and check your rota and any changes.",
+                "Check in once you are inside the person's home, never from the car, the doorstep or before you arrive. Where the care plan records that the home has no signal, follow the arrangement it sets. If you cannot get in, do not check in: phone the office, which records your arrival under the No Reply, No Access and Missing Person Procedure.",
+                "Use CareFlow during the visit for the care plan, eMAR and daily visit notes, never while giving personal care, and tell the person what you are doing. You may dictate your own notes as CareFlow voice notes, never capturing anyone else speaking, but type anything CareFlow requires as text, such as medicines records.",
+                "Check out only when your notes are complete and you are about to leave.",
+                "Before your shift ends, open CareFlow where there is signal, check that every note and check-out has sent, phone the office if anything has not, then sign out."
+              ]
+            },
+            {
+              "p": "If CareFlow or your phone fails, carry on with the care and phone the office, or the On-call Manager out of hours, on arrival and before leaving each visit, as the Daily Records and Visit Notes Procedure sets out. Never record care in phone notes, on another worker's phone or on paper, except on the paper forms the Records Management and Retention Policy allows, such as a back-up MAR sheet when the office tells you to use one or the money and shopping record kept in the home."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Check-in, check-out and location information",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Question",
+              "Our arrangement"
+            ],
+            "rows": [
+              [
+                "What is recorded",
+                "When you check in or out: the time, your phone's location and its accuracy, whether you were within the set distance of the person's home, any reason you give, and whether the phone reported a location from an app or setting that changes it. Your phone's location is also recorded at the moment it leaves the area of the person's home while you are still checked in, and when you raise an emergency alert in the CareFlow app. Nothing is recorded between visits, on breaks, while travelling or when you are not working."
+              ],
+              [
+                "Outside the set distance",
+                "CareFlow asks for a reason rather than stopping you checking in, so care is never held up at the door. Give the true reason, such as a poor signal. If the phone cannot find its location, the time is still recorded."
+              ],
+              [
+                "Leaving the home while checked in",
+                "If your phone leaves the area of the person's home before you check out, CareFlow pauses care recording until the office allows you to continue. Before going out with the person, for example to an appointment, phone the office, which records the reason."
+              ],
+              [
+                "Why we use it",
+                "To confirm visits happened and how long they lasted; to keep lone workers safe under the Lone Working and Staff Personal Safety Policy; for rota and travel planning, pay, working time checks and invoicing; for the monthly boundary exceptions report under the Professional Boundaries Policy; and to investigate a specific visit, complaint, incident or allegation."
+              ],
+              [
+                "What we never do",
+                "Use CareFlow to track you between visits, use check-in data as the only basis for disciplinary action, or fine you or deduct pay because of a late, short or missed visit (Missed, Late and Short Visits Procedure). A manager always reviews the facts before any decision about you."
+              ],
+              [
+                "Who sees it",
+                "Care Coordinators, Office staff acting as the monitor, On-call Managers, your Field Care Supervisor, the Registered Manager, the Deputy Manager and the HR Manager for pay. Commissioners receive times and whether each visit was verified, as their contract requires, and location details only for a specific visit they are investigating. Nobody outside our staff, except the police and emergency services, is told where you are."
+              ],
+              [
+                "How long it is kept",
+                "Times and location stay with the visit in the person's care record for the care record period in the Records Management and Retention Policy, because they are the evidence that care was given at the home; pay records hold the times only, for 6 years from the end of the tax year. We keep location to a minimum by recording it only at the moments above and limiting who sees it, not by deleting it early; the electronic call monitoring data protection impact assessment records why."
+              ],
+              [
+                "Your rights",
+                "You can see your own visit records in CareFlow and ask the Care Coordinator to correct a wrong time; times are never deleted and a correction is added with its reason. The employee privacy notice explains our lawful basis and your rights; a request or objection goes to the HR Manager under the Subject Access and Individual Rights Procedure."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Checking in for another worker, letting someone check in for you, or changing your phone's reported location is falsifying a record."
+        }
+      ]
+    },
+    {
+      "heading": "Email, messaging and video calls",
+      "blocks": [
+        {
+          "p": "Work email is held by managers, Care Coordinators, Field Care Supervisors, Office staff, the HR Manager and the Directors; care workers do not have work email. People can read what is written about them through a subject access request, so write every email as if they will see it."
+        },
+        {
+          "bullets": [
+            "Use work email for work only and never use personal email for work. Never set up automatic forwarding outside {{organisation}} or save work attachments to a personal device or personal cloud storage.",
+            "Send care information outside {{organisation}} only to a secure NHS or government address or encrypted with the password sent separately, confirm a new address by phone first and never put a name or health details in a subject line, as the Confidentiality and Information Sharing Policy sets out.",
+            "When emailing several families, staff or professionals who do not already share their addresses, put every address in blind copy.",
+            "Save any email that forms part of a person's care, an employee's employment or a decision about the service into the right CareFlow record within 1 working day; mailbox items are deleted automatically 2 years after they were sent or received, except in a mailbox under a retention hold, as the Records Management and Retention Policy sets out.",
+            "The Office staff member named on the daily office rota checks the branch shared mailbox at least every hour in office hours. Outside office hours its automatic reply says it is not monitored and asks senders to phone the office for anything urgent, which reaches the On-call Manager.",
+            "When away for a working day or more, set an automatic reply giving the branch shared mailbox, never the reason for your absence."
+          ]
+        },
+        {
+          "p": "Nobody sends information about a person we support, or about a colleague's health or conduct, by text or any messaging app; it goes into CareFlow, by phone or by work email, as the Mobile Phones and Social Media Policy sets out."
+        },
+        {
+          "p": "Video calls, including multidisciplinary and safeguarding meetings set up by the NHS or the local authority, are joined only on a work device, from a private room where nobody else can see or hear. We record a meeting only as the Mobile Phones and Social Media Policy allows, and never switch on an artificial intelligence note-taker or transcription in a meeting we host. Where another organisation's meeting is being recorded or transcribed, the manager attending asks the chair how the recording will be held before information about the person is discussed."
+        }
+      ]
+    },
+    {
+      "heading": "Internet, software and artificial intelligence tools",
+      "blocks": [
+        {
+          "p": "The internet on work devices is used for work only. Our IT support provider filters web access on work devices and blocks illegal, sexually explicit, extremist, gambling and known malicious sites."
+        },
+        {
+          "bullets": [
+            "Never try to reach, download, store or share illegal, sexually explicit, extremist, discriminatory or gambling content on a work device or network, or to get round the web filter. Material that may draw someone into terrorism is also reported under the Prevent and Radicalisation Guideline.",
+            "If you reach an unsuitable site by mistake, close it at once and tell your manager the same day.",
+            "Never install software, apps or browser extensions, or upload our documents to an online converter, file-sharing, survey or form service, unless it is on the approved software list; ask your manager, who can ask the Nominated Individual to consider it."
+          ]
+        },
+        {
+          "p": "Artificial intelligence tools, including chatbots, writing assistants, transcription and summarising tools and those built into other software, are used for work only when they are on the approved software list."
+        },
+        {
+          "bullets": [
+            "Information about a person we support, a family member or a colleague goes only into a tool approved for that use after its data protection impact assessment, as the Data Protection Policy requires. The one translation app approved under the Communication and Accessible Information Policy is used only as that policy allows, for simple everyday questions and never with names or personal details.",
+            "No artificial intelligence tool writes, summarises or changes daily visit notes, the eMAR, care plans, assessments, incident or safeguarding records or any record about an employee. The one exception is an initial assessment conversation recorded in CareFlow as the Needs Assessment and Care Planning Policy allows: CareFlow transcribes it and can suggest answers from the transcript, and the assessor accepts only answers they have checked against what was said, remaining responsible for the assessment.",
+            "An approved tool may help draft general text with no personal data in it, such as a general letter or training material; the person using it checks every fact against the source and remains responsible for what is sent."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Working away from the branch office",
+      "blocks": [
+        {
+          "p": "Managers, On-call Managers and office-based staff work from home only after the HR Manager's home working risk assessment, as the Flexible Working and Family Leave Policy sets out, and under the network rules in the Information and Cyber Security Policy. Wherever you work:"
+        },
+        {
+          "bullets": [
+            "Work where nobody can see your screen or hear your calls, including family members and smart speakers or voice assistants, which you switch off or move out of the room.",
+            "Shut the laptop down at the end of the day and keep it out of sight at home when not in use.",
+            "Never leave a laptop in a vehicle, even in the boot, in a person's home or unattended in a public place; carry it in a plain bag.",
+            "Never print anywhere except on the branch office printers.",
+            "Never work on care records in a public place such as a café, train or waiting room; for an urgent call there, move away from other people and say no more than is needed.",
+            "On-call Managers collect the on-call laptop and phone at the start of their on-call period and check that both are charged and that the previous user has signed out."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What we monitor",
+      "blocks": [
+        {
+          "p": "Government guidance says employers must be able to justify monitoring and tell staff they are monitored and why, and may monitor without telling them only where they suspect someone is breaking the law and telling them would make it hard to detect, as part of a specific investigation that stops when it ends. The law allows a business to intercept communications on a system it provides for its work only for listed purposes, such as establishing facts, checking standards, preventing or detecting crime, detecting unauthorised use and keeping the system working, and only after making all reasonable efforts to tell everyone who uses the system (Investigatory Powers (Interception by Businesses etc. for Monitoring and Record-keeping Purposes) Regulations 2018, regulations 3 and 4). This policy, the Mobile Phones and Social Media Policy and the employee privacy notice tell staff what we do; any new monitoring needs a data protection impact assessment first and is announced at least 2 weeks before it starts. We use no screen or keystroke monitoring (Staff Personal Data and HR Records Policy)."
+        },
+        {
+          "table": {
+            "columns": [
+              "What",
+              "What we do",
+              "What we never do"
+            ],
+            "rows": [
+              [
+                "CareFlow audit trail",
+                "The Deputy Manager reviews the CareFlow audit log every month for logged record openings without an apparent work reason, exports, and sign-ins outside the user's working pattern, always including the records on the Registered Manager's list, such as those of people who are also employees or their relatives.",
+                "Judge anyone on the audit trail without first asking them to explain."
+              ],
+              [
+                "Work email",
+                "Automatic scanning for spam, malware and phishing; sign-in logs kept by the IT support provider.",
+                "Read email routinely."
+              ],
+              [
+                "Internet on work devices",
+                "The web filter logs blocked attempts; the logs are looked at only when the IT support provider's monthly report shows repeated attempts, or for an investigation.",
+                "Review browsing history routinely."
+              ],
+              [
+                "Work phones",
+                "The HR Manager reviews the network provider's monthly report of call and data totals and numbers called; device management locates a phone only when it is lost or stolen, as the Mobile Phones and Social Media Policy sets out.",
+                "Intercept or record calls or messages."
+              ],
+              [
+                "Personal devices and accounts",
+                "Nothing.",
+                "Monitor, search or ask for access to them."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Another employee's mailbox or file storage is opened only with the written approval of the Registered Manager (the Nominated Individual for the Registered Manager's, Deputy Manager's or a Director's, and another Director for the Nominated Individual's), either to deal with work that cannot wait while the employee is away, limited to the messages needed, or for a specific investigation under the rules for examining a work phone in the Mobile Phones and Social Media Policy. The employee is told in writing within 1 working day, or on their first day back from leave, unless covert monitoring has been approved."
+        },
+        {
+          "p": "Unexplained access found at the monthly review is raised with the user by their manager within 5 working days. Possible misuse goes to the Registered Manager the same day and is recorded in the incident log that day; suspected deliberate misuse of records is an urgent breach under the Personal Data Breach Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Mistakes, misuse and leaving",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Reporting",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "What has happened",
+                  "What you do"
+                ],
+                "rows": [
+                  [
+                    "A work device is lost or stolen, you clicked a suspicious link, someone may know your password, or you sent information to the wrong person",
+                    "Phone the office, or the On-call Manager out of hours, at once, whatever the time, under the Information and Cyber Security Policy and the Personal Data Breach Procedure. If your work phone is lost on a visit, use your own phone or, with the person's agreement, their landline, and report a theft to the police the same day."
+                  ],
+                  [
+                    "You opened the wrong record and closed it without using or sharing anything",
+                    "Tell your manager the same day, so the audit trail is explained."
+                  ],
+                  [
+                    "Information about a person or colleague is on a personal device or account, yours or anyone else's",
+                    "Phone the office, or the On-call Manager out of hours, the same day and delete nothing until the office tells you how."
+                  ],
+                  [
+                    "You think a colleague is misusing CareFlow, email or a device",
+                    "Tell your manager the same day, or use the Whistleblowing (Speaking Up) Policy."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Reporting your own mistake promptly is never in itself a reason for disciplinary action; hiding one is."
+            }
+          ]
+        },
+        {
+          "heading": "Breaches of this policy",
+          "blocks": [
+            {
+              "p": "A first minor lapse with no effect on anyone, such as leaving a branch office computer unlocked, is handled as a minor lapse under the Staff Code of Conduct. Other breaches are investigated under the Disciplinary Policy and Procedure. Examples of possible gross misconduct are:"
+            },
+            {
+              "bullets": [
+                "using another person's log-in, or letting anyone use yours;",
+                "looking at, copying, printing, exporting or sending records without a work reason, or keeping any after leaving;",
+                "falsifying a check-in or check-out, including checking in for another worker or changing the phone's reported location;",
+                "putting information about a person we support or a colleague on a personal device or account, or into an unapproved artificial intelligence tool;",
+                "deliberately getting round device management, the web filter or another security control;",
+                "reaching or sharing illegal, sexually explicit or extremist material on a work device."
+              ]
+            },
+            {
+              "p": "Where a crime may have been committed or a person put at risk, the Registered Manager tells the police and acts under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. Breaches by agency workers or students are reported to their agency or college as the Staff Code of Conduct sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Changing role or leaving",
+          "blocks": [
+            {
+              "bullets": [
+                "Your access changes the day your role changes and ends on your last working day, as the Information and Cyber Security Policy sets out.",
+                "Before you leave, hand open work to your manager and save into CareFlow any email that forms part of a record.",
+                "Return every work device to the HR Manager on or before your last working day. A device not returned that day is locked remotely, and one not back within 2 working days is handled as a lost device under the Personal Data Breach Procedure.",
+                "Keep no copies of records, contact details, rotas, photographs or documents on any device or account; keeping personal data without our consent after leaving can be an offence under section 170 of the Data Protection Act 2018.",
+                "The HR Manager sets an automatic reply on a leaver's mailbox giving the branch shared mailbox; the mailbox is deleted 3 months after the last working day, once the line manager has saved anything that forms part of a record, unless it is under a retention hold."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Issue, return and wipe of every work phone and laptop",
+                "Device register in the staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Monthly CareFlow access reviews and their follow-up",
+                "Governance records",
+                "6 years"
+              ],
+              [
+                "Approvals to open a mailbox, file storage or a work device's contents, and the employee's notification",
+                "Restricted section of the staff record; disciplinary case file where relevant",
+                "Employment plus 6 years"
+              ],
+              [
+                "Check-in and check-out records, including location",
+                "The person's care record; the times also in payroll records",
+                "Care record period; payroll times 6 years from the end of the tax year"
+              ],
+              [
+                "Lost devices, misdirected information and suspected misuse",
+                "Incident log with the breach record",
+                "As the Records Management and Retention Policy sets out"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Review and breach records identify people we support by their CareFlow reference only."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "New starters cover this policy in information governance training in their first week, before any access to care records. Care staff acknowledge it in CareFlow before lone working sign-off and office staff by the end of their fourth week; everyone acknowledges each new major version within 14 days; a minor version does not need acknowledging again.",
+            "When issuing a work phone or laptop, the HR Manager takes the employee through signing in and out, the work reason test, what check-in and check-out record about them and reporting a loss; the shadow lead shows a new care worker checking in inside the home.",
+            "Acceptable use is covered again in the 12-monthly information governance refresher under the Training and Development Policy.",
+            "The Nominated Individual trains the Deputy Manager on the CareFlow access review before their first review. Any manager who examines another employee's mailbox, file storage or work device for an investigation has completed disciplinary investigation training.",
+            "A worker who falls short at a spot check is told privately the same day, taken through the rule at once and rechecked at the next spot check, or within 4 weeks where it is a recorded shortfall under the Quality Audit and Monitoring Procedure."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Acknowledgement of each new major version: target 95% within 14 days, 100% within 28 days",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Check-ins and check-outs outside the set distance or flagged as a possible false location, each with its reason recorded by the end of the day. A worker with 3 or more without an accepted reason in a calendar month has a Field Care Supervisor discussion within 2 weeks; any possible false location goes to the Registered Manager the same working day",
+                "Daily exception review",
+                "Care Coordinator (On-call Manager at weekends and bank holidays)",
+                "Field Care Supervisor; Registered Manager"
+              ],
+              [
+                "CareFlow access and exports in the audit log: target 100% of unexplained access raised with the user within 5 working days",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Check-in inside the home, own log-in in use, no care information outside CareFlow",
+                "Every spot check",
+                "Field Care Supervisors",
+                "Supervision records; shortfalls in the quarterly spot check audit"
+              ],
+              [
+                "Laptops on the device register against device management and the staff list: target 100%",
+                "Monthly, with the account reconciliation in the Information and Cyber Security Policy",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Mailbox and device access approvals, misuse cases, web filter reports and breaches of this policy, by type and branch",
+                "Quarterly",
+                "Nominated Individual",
+                "Data protection section of the quarterly governance report"
+              ],
+              [
+                "At least 90% of staff say they know what CareFlow records about them at check-in and check-out, and why",
+                "Annual staff survey in September",
+                "HR Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall goes into the service improvement plan with an owner and a deadline. The Registered Manager reviews this policy every 12 months for approval by the Directors under the Policy Management and Document Control Policy, or sooner after a change in law or national guidance, a new CareFlow feature that collects information about staff, a serious incident or personal data breach involving IT misuse, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

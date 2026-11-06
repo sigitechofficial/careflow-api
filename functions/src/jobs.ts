@@ -1,5 +1,5 @@
 /**
- * The 7 Careflow jobs that are triggered from Azure Functions (trigger = `function` in the
+ * The 11 Careflow jobs that are triggered from Azure Functions (trigger = `function` in the
  * scheduled-jobs contract). The function name IS the job name: it is the canonical ID used by
  * the API (`POST /internal/jobs/:name`), the JobRun table, the admin "System jobs" screen and the
  * per-function kill switch app setting `AzureWebJobs.<name>.Disabled`.
@@ -18,6 +18,10 @@ export const FUNCTION_JOBS = [
   { name: 'ecm-missing-checkout', schedule: '0 */15 * * * *', description: 'every 15 minutes' },
   { name: 'platform-costs-sync', schedule: '0 5 * * * *', description: 'hourly at :05' },
   { name: 'employee-payout-auto', schedule: '0 0 * * * *', description: 'hourly at :00' },
+  { name: 'supervision-reminders', schedule: '0 10 * * * *', description: 'hourly at :10' },
+  { name: 'compliance-expiry-reminders', schedule: '0 20 * * * *', description: 'hourly at :20' },
+  { name: 'assessment-review-reminders', schedule: '0 25 * * * *', description: 'hourly at :25' },
+  { name: 'policy-acknowledgement-reminders', schedule: '0 35 * * * *', description: 'hourly at :35' },
 ] as const;
 
 export type FunctionJobName = (typeof FUNCTION_JOBS)[number]['name'];

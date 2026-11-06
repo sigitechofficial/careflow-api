@@ -113,6 +113,8 @@ export class TemporaryInspectorsService {
     if (!isWithinValidity(row.validFrom, row.validTo, now)) return null;
 
     const email = `ti+${row.username}@inspector.care.local`;
+    // Independent survey reviewers are never Temporary Inspector logins (these can open care
+    // records): they have their own user accounts (src/common/auth/independent-reviewer.ts).
     return {
       id: row.id,
       email,

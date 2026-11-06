@@ -1,0 +1,681 @@
+{
+  "reference": "POL-IPC-003",
+  "revision": 1,
+  "title": "Transmission-Based Precautions and Outbreak Management Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "What staff and managers do when a person we support, someone in their household or a member of staff has, or may have, an infection that can spread, including diarrhoea and vomiting, COVID-19, flu and other respiratory infections. It covers choosing, recording and ending extra precautions, planning visits, spotting linked cases across households, and reporting, managing and closing an outbreak with the UKHSA health protection team.",
+  "keyPoints": {
+    "intro": "This procedure tells you what to do when someone you visit may have an infection that can spread, and what changes during an outbreak. It adds to the standard precautions you use on every visit.",
+    "points": [
+      "If a person has a high temperature, new cough, diarrhoea, vomiting or an unexplained rash, phone the office or On-call Manager before you leave. Call 999 first if they are newly confused or seem seriously unwell.",
+      "Start extra precautions straight away, before anyone confirms the infection: gloves and an apron for all personal care, plus anything else the precautions table lists for those symptoms. For diarrhoea or vomiting, wash your hands with soap and water only.",
+      "For a new cough, sore throat or breathlessness, or a positive COVID-19, flu or RSV test, wear a Type IIR mask for the whole visit, add eye protection when the person is coughing heavily, and open a window where they agree.",
+      "Check the care plan at the start of every visit and follow the precautions it lists exactly. Never stop them yourself: only the GP, another health professional or the IPC lead ends precautions.",
+      "Never cancel, shorten or rush a visit because the person is infectious. If you run short of masks, aprons, gloves or the chlorine cleaning product, phone the office before your next visit.",
+      "While precautions apply, clean the toilet or commode after the person uses it during your visit, wipe the surfaces you touched during care, and treat all their linen as infectious, and their waste too if they have diarrhoea or vomiting.",
+      "Phone the office at once if two or more people you visit, or colleagues, have similar symptoms. Spotting linked cases early is how we stop an outbreak spreading between homes.",
+      "Do not work with diarrhoea or vomiting until 48 hours after your last episode, or with a high temperature. If you become unwell during a shift, stop and phone the office before going to your next visit.",
+      "If you are pregnant, have a weakened immune system or do not know whether you are immune to chickenpox and measles, tell the HR Manager. You will not be sent to anyone with a known infection until your risk assessment is complete.",
+      "Wear an FFP3 respirator only if you have passed a fit test for that model and the care plan says airborne precautions apply. Check the seal every time you put it on.",
+      "During an outbreak, follow the briefing you are given, visit only the people allocated to you, report your own symptoms before your shift, and never tell anyone outside the care team who is affected."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "INCIDENT",
+    "VISIT",
+    "CARE_PLAN",
+    "BUSINESS_CONTINUITY",
+    "RISK_ASSESSMENT"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-002",
+    "POL-IPC-005",
+    "POL-IPC-006",
+    "POL-IPC-008",
+    "POL-IPC-011",
+    "POL-GOV-020",
+    "POL-GOV-009"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(1) and 12(2)(h) assessing the risk of, and preventing, detecting and controlling the spread of, infections",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18 Notification of other incidents, including 18(2)(g) events that threaten the safe carrying on of the regulated activity",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Transmission based precautions in adult social care (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/transmission-based-precautions-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Managing outbreaks in adult social care settings (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/managing-outbreaks-in-adult-social-care-settings"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Managing suspected infectious diarrhoea and/or vomiting in adult social care (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/managing-suspected-infectious-diarrhoea-andor-vomiting-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Infections of concern in adult social care settings: A to Z (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/infections-of-concern-in-adult-social-care-settings-a-z"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Tuberculosis (TB) guidance for adult social care settings (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/tuberculosis-tb-guidance-for-adult-social-care-settings"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Staff health and managing sickness related to infection in adult social care (28 October 2026), Table 1 exclusion periods",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/staff-health-and-managing-sickness-related-to-infection-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency, Report an outbreak of acute respiratory infection in an adult social care setting (updated 11 September 2026)",
+      "url": "https://www.gov.uk/guidance/report-an-outbreak-of-acute-respiratory-infection-in-an-adult-social-care-setting"
+    },
+    {
+      "source": "UK Health Security Agency, Notifiable diseases and how to report them (updated 19 May 2026)",
+      "url": "https://www.gov.uk/guidance/notifiable-diseases-and-causative-organisms-how-to-report"
+    },
+    {
+      "source": "UK Health Security Agency, People with symptoms of a respiratory infection including COVID-19 (updated 10 June 2022)",
+      "url": "https://www.gov.uk/guidance/people-with-symptoms-of-a-respiratory-infection-including-covid-19"
+    },
+    {
+      "source": "NHS England, National infection prevention and control manual for England, Chapter 2 Transmission based precautions",
+      "url": "https://www.england.nhs.uk/national-infection-prevention-and-control-manual-nipcm-for-england/"
+    },
+    {
+      "source": "Department of Health and Social Care, The Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance (updated 13 December 2022), criterion 7 and the guidance on criterion 9(c), notifying outbreaks to the health protection team",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "source": "NHS, Treatments for COVID-19",
+      "url": "https://www.nhs.uk/conditions/covid-19/treatments-for-covid-19/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Many of the people we support are older or frail, and an infection that would be mild for others can make them seriously ill. Our care workers visit several homes a day, so one unrecognised infection can spread along a care run to people who never meet."
+        },
+        {
+          "p": "{{organisation}} will start extra, transmission-based precautions as soon as an infection is suspected, not only once it is confirmed; keep essential care going; look every working day for linked cases across households; report suspected outbreaks to the UK Health Security Agency (UKHSA) health protection team immediately; and learn from every outbreak. This procedure applies the Infection Prevention and Control Policy and carries the same authority."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure sets out how extra precautions are chosen, recorded and ended, how essential visits continue while spread is limited, and how outbreaks are spotted, reported, managed and closed as UKHSA guidance requires."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who works for us or on our behalf, including agency workers and students, whenever a person we support, a member of their household or a member of staff has a suspected or confirmed infection that can spread, and whenever an outbreak is suspected."
+        },
+        {
+          "p": "Related subjects are owned elsewhere: standard precautions and PPE technique (Standard Infection Control Precautions Procedure); organism detail for diarrhoea and vomiting, C. difficile and MRSA (Infections of Concern Guideline); staff staying off work (Staff Infection-Related Illness and Exclusion Policy); waste (Waste Management in People's Homes Procedure); laundry (Laundry, Soiled Linen and Spillages Procedure); disruption to the whole service, including a pandemic (Business Continuity and Emergency Planning Policy); and CQC notifications (Statutory Notifications to CQC Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Transmission-based precautions",
+                "Extra measures used on top of standard precautions when a person has, or may have, an infection that can spread, chosen by how it spreads, how serious it is and the care task."
+              ],
+              [
+                "Contact precautions",
+                "For infections spread by touch or from surfaces and equipment: gloves and an apron for all hands-on care, and more frequent cleaning of frequently touched surfaces."
+              ],
+              [
+                "Respiratory precautions",
+                "Our term for contact precautions plus a Type IIR mask, eye protection where splashes are possible, ventilation and respiratory hygiene, for infections spread by breathing, coughing and sneezing."
+              ],
+              [
+                "Airborne precautions",
+                "Respiratory precautions with a fit-tested FFP3 respirator instead of a Type IIR mask, used only as set out under FFP3 respirators and supplies."
+              ],
+              [
+                "Acute respiratory infection",
+                "A sudden onset of respiratory symptoms, such as a new cough, sore throat or breathlessness, including COVID-19, flu and respiratory syncytial virus (RSV)."
+              ],
+              [
+                "Exposure list",
+                "The staff who visited a person in the 7 days before their symptoms started, taken from visit check-in and check-out records."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Registered Manager (IPC lead) and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as IPC lead, makes the decisions this procedure reserves to the IPC lead and reports and leads every outbreak and its review. The Deputy Manager shares the review of infection reports and acts as IPC lead in the Registered Manager's absence, then the Nominated Individual."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator",
+          "blocks": [
+            {
+              "p": "Carries out the duties this procedure gives the Care Coordinator: GP contact, care plan updates and briefings, visit planning, exposure lists and the daily linked-case check."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors deliver supplies when needed and observe practice at visits to people under precautions. Senior Care Workers show the extra PPE on shadowing shifts."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers",
+          "blocks": [
+            {
+              "p": "Recognise and report signs of infection, start and follow precautions, and never end them on their own judgement. Care workers stay off work with diarrhoea or vomiting until 48 hours after the last episode, or with a high temperature until it has gone and they feel well, and a care worker who becomes unwell during a shift phones the office before going to the next visit (Staff Infection-Related Illness and Exclusion Policy). Care workers tell the HR Manager if they are pregnant, have a weakened immune system or do not know whether they are immune to chickenpox and measles."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            {
+              "p": "Office staff pass every infection report to the Care Coordinator at once and issue supplies. Out of hours the On-call Manager carries out the Care Coordinator's duties under this procedure and hands every infection matter to the IPC lead by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "Treats workers in the groups named under Care Workers as at higher risk from infection; tells the Care Coordinator the same day, without giving the reason, that the worker must not be allocated to people with a known infection until the risk assessment is complete; keeps FFP3 fit tests in date; and reports infection-related staff absence to the daily outbreak review."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When infection is suspected",
+      "blocks": [
+        {
+          "p": "Older people often have no high temperature. Care workers look for: a high temperature (above 37.8°C) or shivering; a new or worse cough, sore throat or breathlessness; diarrhoea (three or more loose stools in 24 hours) or vomiting; an unexplained rash; a red, hot, swollen or weeping wound or device site; pain passing urine; drowsiness or an unexpected fall; and going off food or drink."
+        },
+        {
+          "steps": [
+            "If the person seems seriously unwell or may have sepsis, for example newly confused, breathing very fast, with blue, pale or blotchy skin or a rash that does not fade when pressed, call 999, tell the crew about any known infection, then phone the office.",
+            "Before leaving, phone the office, or the On-call Manager out of hours; if nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. From then on, until told otherwise, wear gloves and an apron for all personal care of the person and add whatever the table under Choosing precautions gives for those symptoms.",
+            "Record the signs, the person's own words and what you did in the daily visit notes before leaving.",
+            "The Care Coordinator, or the On-call Manager out of hours, contacts the GP the same day (NHS 111 out of hours) and records an infection report in the incident log.",
+            "Before the next visit, the Care Coordinator updates the infection section of the care plan, has it approved under the Needs Assessment and Care Planning Policy, and phones every allocated care worker, including agency workers, recording who was briefed in the infection report.",
+            "Where the infection can spread, the Care Coordinator builds the exposure list the same working day and checks it for linked cases.",
+            "By the end of the next working day, the IPC lead or Deputy Manager records in the infection report the confirmed precautions and their usual end point."
+          ]
+        },
+        {
+          "p": "The same steps apply when someone in the person's household has an infection that can spread; the Care Coordinator, with the IPC lead where needed, decides which precautions apply at visits."
+        }
+      ]
+    },
+    {
+      "heading": "Choosing precautions",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Precautions by situation",
+          "blocks": [
+            {
+              "p": "Advice from the GP, another health professional, the health protection team or the community IPC team takes priority and is recorded in the care plan. Precautions continue unchanged if the person dies, until their body is handed over."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "Precautions",
+                  "Also"
+                ],
+                "rows": [
+                  [
+                    "Diarrhoea and/or vomiting, including suspected norovirus or C. difficile",
+                    "Contact precautions, including for handling the toilet, commode, linen and waste. Type IIR mask and eye protection while the person is vomiting. Hand hygiene with liquid soap and water only.",
+                    "Toilet or commode cleaned after each use during the visit with the chlorine product; linen and waste treated as infectious; the person advised not to prepare food for others until 48 hours after the last episode."
+                  ],
+                  [
+                    "Acute respiratory infection, or a positive COVID-19, flu or RSV test",
+                    "Respiratory precautions: Type IIR mask for the whole visit, put on inside the front door before approaching the person; eye protection while the person is coughing heavily or splashes are possible.",
+                    "Window opened during and after care where the person agrees; the person offered a mask during close care if they can tolerate it."
+                  ],
+                  [
+                    "Unexplained rash, or suspected chickenpox, shingles or measles",
+                    "Contact precautions plus a Type IIR mask for the whole visit until a doctor has assessed the rash. Covered shingles needs contact precautions only.",
+                    "Care workers in the higher-risk groups named under Care Workers are not allocated while these precautions apply."
+                  ],
+                  [
+                    "Scabies",
+                    "Contact precautions, with a long-sleeved disposable gown for skin-to-skin care.",
+                    "Household contacts treated at the same time on the GP's advice. Crusted scabies reported to the IPC lead, who takes health protection team advice, the same day."
+                  ],
+                  [
+                    "Infected or discharging wound, including suspected Group A streptococcus",
+                    "Contact precautions; wounds kept covered.",
+                    "Type IIR mask for wound care where the health protection team advises."
+                  ],
+                  [
+                    "Known resistant organism, such as MRSA, without signs of infection",
+                    "As the care plan and the Infections of Concern Guideline set out.",
+                    "Status recorded only in the care plan's infection section."
+                  ],
+                  [
+                    "Suspected or confirmed infectious tuberculosis of the lungs or throat",
+                    "Airborne precautions from the time a health professional suspects it, as UKHSA's TB guidance sets out.",
+                    "The IPC lead contacts the local TB specialist service the same day and follows its advice; the person is asked to wear a Type IIR mask during care."
+                  ],
+                  [
+                    "Suspected rare or high-consequence infection",
+                    "The care worker makes the person safe, keeps close contact to what is essential and phones the office at once.",
+                    "The IPC lead phones the health protection team immediately and follows its instructions on how care continues."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "FFP3 respirators and supplies",
+          "blocks": [
+            {
+              "p": "FFP3 respirators are worn only for infectious tuberculosis or on the advice of the health protection team or community IPC team, only by care workers fit tested for that model, and are fit checked every time they are put on (Standard Infection Control Precautions Procedure). The IPC lead names at least four care workers in each branch, spread across care runs, as FFP3 users, and the HR Manager keeps their fit tests in date. When airborne precautions apply, only those workers visit; if none is available, the IPC lead agrees interim arrangements with the advising team the same day and records them, and essential care continues."
+            },
+            {
+              "p": "The office issues the extra PPE and chlorine product before the care worker's next visit to a person under precautions, delivered by the Field Care Supervisor if needed; a care worker running short phones the office before that visit. At those visits care workers leave the kit box on a clean surface near the entrance or in the car and take in only what the visit needs."
+            }
+          ]
+        },
+        {
+          "heading": "The person's choices and rights",
+          "blocks": [
+            {
+              "p": "Care workers explain each precaution and why. UKHSA advises that a person with a respiratory infection who is unwell or has a high temperature stays away from others; we support this, but the person may decline and we never confine anyone. A person with capacity may decline measures that affect only themselves; gloves, aprons and hand hygiene are never given up."
+            },
+            {
+              "p": "If the person is distressed by masks or relies on lip-reading, the IPC lead or Deputy Manager agrees an alternative the same day, such as a transparent mask, recorded in the care plan. Any restriction on a person who may lack capacity is a least restrictive, best interests decision under the Mental Capacity Act and Best Interests Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Respiratory infections including COVID-19 and flu",
+      "blocks": [
+        {
+          "p": "Some people we support are eligible for NHS COVID-19 treatment or flu antiviral medicines, which work only if started soon after symptoms begin. The Care Coordinator records eligibility in the care plan when the person, their GP or a specialist tells us. When an eligible person develops respiratory symptoms, the care worker helps them, with consent, to use a COVID-19 rapid test from their own supply, records the result and phones the office before leaving; the Care Coordinator, or the On-call Manager out of hours, contacts the GP or NHS 111 the same day."
+        }
+      ]
+    },
+    {
+      "heading": "Planning visits while precautions apply",
+      "blocks": [
+        {
+          "bullets": [
+            "Visits are never cancelled, shortened or rushed because a person is infectious; the rota allows the extra time PPE and cleaning take. Extra time or visits needed for safety go ahead before funding is agreed, and the Care Coordinator tells the commissioner, or a self-funding person or their representative, within 2 working days. Non-essential tasks are postponed only with the person's agreement, recorded in the daily visit notes.",
+            "Care is given by the smallest possible group from the person's core care team, aiming for no more than two different care workers a day (four where two workers are needed at each visit), kept the same throughout the infectious period.",
+            "Where the person's routine allows, the visit is placed last on the care worker's run or before a break; a time-sensitive dose is never moved outside its window to achieve this.",
+            "The Care Coordinator never allocates a person under precautions to a worker whose IPC training or competency has expired, who is awaiting a higher-risk assessment, or whom this procedure excludes.",
+            "The Care Coordinator tells hospitals, ambulance crews, community nurses and other providers about the infection before their next contact with the person, as the Confidentiality and Information Sharing Policy allows.",
+            "A person discharged from hospital with an infection is not refused care; the precautions in the discharge information go into the care plan before the first visit."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Cleaning, laundry and waste",
+      "blocks": [
+        {
+          "p": "While precautions apply, care workers always clean, from clean to dirty, the toilet or commode after the person uses it during the visit and the frequently touched surfaces they used for care, such as the toilet seat and flush, taps, bed rails and door handles. Other household cleaning stays the household's responsibility unless the care plan gives a task to us."
+        },
+        {
+          "p": "For diarrhoea, vomiting or C. difficile, or where the IPC lead directs, surfaces are cleaned with detergent and then disinfected with a chlorine-releasing product giving 1,000 parts per million available chlorine, as UKHSA recommends. The office supplies a ready-to-use product, assessed under the Hazardous Substances (COSHH) Procedure; staff never mix it with other products or use it on fabric. Household bleach is used only where the care plan names it."
+        },
+        {
+          "p": "Care workers give the household, including family carers who share the care, our infection advice sheet, approved by the IPC lead, on cleaning, towels, cloths and laundry, and record that they gave it in the daily visit notes. Body fluid spills and linen follow the Laundry, Soiled Linen and Spillages Procedure, with detergent first and then the chlorine product on hard surfaces; while any precautions apply, all linen the person uses is infectious linen. Care waste follows the Waste Management in People's Homes Procedure and still goes by the household route unless the IPC lead decides otherwise. UKHSA guidance says a terminal clean is not usually the responsibility of home care providers; when precautions end we remove the care waste we are responsible for and repeat the cleaning advice."
+        }
+      ]
+    },
+    {
+      "heading": "Ending precautions",
+      "blocks": [
+        {
+          "p": "Precautions end only on the advice of the GP, another health professional or the IPC lead. Unless a health professional or the health protection team advises otherwise, the IPC lead applies these usual end points; those for respiratory infections are our policy, the others follow UKHSA guidance."
+        },
+        {
+          "table": {
+            "columns": [
+              "Infection",
+              "Usual end point"
+            ],
+            "rows": [
+              [
+                "Diarrhoea and/or vomiting",
+                "48 hours after the last episode; C. difficile as the Infections of Concern Guideline sets out."
+              ],
+              [
+                "Acute respiratory infection with no positive COVID-19 test",
+                "No high temperature, symptoms clearly improving, and at least 5 days after symptoms started."
+              ],
+              [
+                "Positive COVID-19 test",
+                "No high temperature, feeling better, and at least 5 days after the day of the test."
+              ],
+              [
+                "Group A streptococcus",
+                "24 hours after starting antibiotics."
+              ],
+              [
+                "Scabies",
+                "24 hours after the first treatment, with household contacts treated at the same time."
+              ],
+              [
+                "Chickenpox or shingles",
+                "All blisters dry and crusted, with no new ones forming."
+              ],
+              [
+                "Measles, tuberculosis or a rare or high-consequence infection",
+                "When the health protection team or TB specialist team confirms the person is no longer infectious."
+              ],
+              [
+                "Unexplained rash",
+                "When a doctor has assessed it and advised."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The IPC lead or Deputy Manager records the end date and the advice relied on in the infection report. The Care Coordinator updates the care plan before the next visit and tells the person and the core care team."
+        }
+      ]
+    },
+    {
+      "heading": "Recognising an outbreak",
+      "blocks": [
+        {
+          "p": "UKHSA's definition of an outbreak is in the Infection Prevention and Control Policy. Because people in home care live in separate households, our trigger for linked cases is lower: two or more people we support or staff with similar symptoms starting within 7 days of each other and sharing a care worker, care run, household or other exposure."
+        },
+        {
+          "steps": [
+            "Any member of staff who notices that two or more people they visit, or colleagues, have similar symptoms phones the office at once.",
+            "Each working day the Care Coordinator checks new infection reports, infection-related staff sickness, concerns phoned in by care workers and exposure lists for linked cases, and phones the IPC lead at once if any are found.",
+            "Out of hours, the On-call Manager checks each new infection report against the infection reports and infection-related staff sickness of the previous 7 days and acts on any linked cases as the reporting table sets out.",
+            "The IPC lead decides the same day whether linked cases are a suspected outbreak; if in doubt, they are treated as one."
+          ]
+        },
+        {
+          "p": "When the health protection team contacts us about a case, the IPC lead gives it the information it asks for, including exposure lists, by the time it sets."
+        }
+      ]
+    },
+    {
+      "heading": "Reporting an outbreak",
+      "blocks": [
+        {
+          "p": "The legal duty to notify notifiable diseases rests with registered medical practitioners, not care providers. The Code of Practice expects providers to report outbreaks to the UKHSA health protection team as soon as possible, and UKHSA guidance says immediately. We phone as soon as an outbreak is suspected, without waiting for test results."
+        },
+        {
+          "table": {
+            "columns": [
+              "Event",
+              "Who acts",
+              "Tells",
+              "When"
+            ],
+            "rows": [
+              [
+                "Suspected or confirmed outbreak",
+                "IPC lead",
+                "Health protection team by phone, using the Local IPC and Health Protection Contacts sheet, and the online acute respiratory infection reporting service where the team asks",
+                "Immediately"
+              ],
+              [
+                "Suspected outbreak out of hours",
+                "On-call Manager",
+                "Health protection team out-of-hours service, for a rare or high-consequence infection, where advice is needed before morning or where the local reporting route on the Local IPC and Health Protection Contacts sheet asks for out-of-hours reports",
+                "Immediately; otherwise the IPC lead reports by 10am on the next working day"
+              ],
+              [
+                "Suspected or confirmed outbreak",
+                "Care Coordinator",
+                "GP of each person affected",
+                "Same day"
+              ],
+              [
+                "Suspected or confirmed outbreak",
+                "IPC lead",
+                "Local authority public health team or adult social care link, community IPC team, commissioners",
+                "Same working day, then as agreed"
+              ],
+              [
+                "Suspected or confirmed outbreak",
+                "IPC lead",
+                "Directors",
+                "Within 24 hours"
+              ],
+              [
+                "Outbreak or staff illness threatening safe staffing",
+                "Registered Manager",
+                "CQC under regulation 18(2)(g) (Statutory Notifications to CQC Procedure) and commissioners",
+                "CQC without delay: the same working day if identified in office hours, otherwise within 24 hours; commissioners the same working day"
+              ],
+              [
+                "Suspected Group A streptococcus outbreak",
+                "Registered Manager",
+                "CQC as well as the health protection team, as UKHSA guidance asks",
+                "Same working day"
+              ],
+              [
+                "Food or water suspected as the source",
+                "IPC lead",
+                "Health protection team and local authority environmental health team",
+                "Same day, by phone"
+              ],
+              [
+                "Medicine or medical device suspected as the source",
+                "Registered Manager",
+                "CQC (UKHSA guidance for a medicine; our policy for a medical device), the MHRA Yellow Card scheme, the dispensing pharmacy and commissioners; the item is kept aside, unused, until a pharmacist or the GP advises",
+                "Same working day"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The IPC lead has ready: our CQC location ID and office postcode; how many people we support and staff have symptoms, out of how many; shared care runs and staff; symptoms and onset dates; tests, hospital admissions and deaths; known COVID-19, flu and RSV vaccination status; and actions taken. Advice is recorded in the outbreak record with the adviser's name, role and the time."
+        }
+      ]
+    },
+    {
+      "heading": "Managing an outbreak",
+      "blocks": [
+        {
+          "steps": [
+            "The IPC lead opens an outbreak record in the incident log the same day, holding the details reported to the health protection team, treatment given and the exposure lists, and keeps it updated at least daily.",
+            "The same day, the IPC lead holds an outbreak meeting, in person or by phone, with the Deputy Manager, Care Coordinators, HR Manager and that night's On-call Manager to agree control measures in line with health protection team advice, and records the decisions.",
+            "All staff, including agency workers and students, are briefed the same day by phone or message on symptoms, affected care runs, control measures and reporting their own symptoms. People's names are given only to the care workers who visit them.",
+            "The Care Coordinator groups affected people onto dedicated care runs staffed by dedicated care workers where possible; those workers do not also visit unaffected people at higher risk where another suitable worker is available. Office staff check PPE and chlorine product stocks daily.",
+            "The IPC lead or Deputy Manager holds a daily outbreak review until the outbreak is over, by phone with the On-call Manager at weekends, covering new cases, staff absence, visits at risk, supplies and advice, and updates the outbreak record.",
+            "If visits are at risk, the Registered Manager uses the Business Continuity and Emergency Planning Policy, protecting visits in that policy's priority order, time-critical visits first; while it is active, its incident team also serves as the outbreak meeting. A visit is missed, moved or shortened only by decision of the Registered Manager, Deputy Manager or, out of hours, the On-call Manager (Missed, Late and Short Visits Procedure), recorded with the reason; a shortened visit keeps every essential task, and the person or their representative is told before the planned time.",
+            "Testing and preventive treatment follow health protection team or GP advice. A trained care worker collects a sample only when the GP asks, as the Infections of Concern Guideline sets out, and never carries it on a care run.",
+            "Staff with symptoms stay off work under the Staff Infection-Related Illness and Exclusion Policy and speak to the Care Coordinator before returning; stricter return advice from the health protection team is followed.",
+            "New packages and hospital discharges continue; the IPC lead decides whether each new person's visits are kept off affected care runs."
+          ]
+        },
+        {
+          "table": {
+            "columns": [
+              "Who we keep informed",
+              "Told by",
+              "When",
+              "What"
+            ],
+            "rows": [
+              [
+                "People affected and their families or representatives",
+                "Care Coordinator",
+                "Same day",
+                "Precautions, symptoms needing medical help and how to get it"
+              ],
+              [
+                "Other people on affected care runs, or their representatives",
+                "Care Coordinator",
+                "By the end of the next working day",
+                "That there is infection on their care run, without naming anyone, and the symptoms to report"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Ending an outbreak and learning from it",
+      "blocks": [
+        {
+          "p": "The health protection team, with the local authority and partners, decides when an outbreak is over. Where it has said it will not lead, the IPC lead declares the outbreak over only on the community IPC team's advice, recorded in the outbreak record."
+        },
+        {
+          "steps": [
+            "The IPC lead records the date the outbreak was declared over and tells the Directors.",
+            "By the end of the next working day, the Care Coordinator tells staff, the people affected and the partners told during the outbreak that normal arrangements are resuming, and restores normal visit allocation.",
+            "Within 28 days of the outbreak being declared over, the IPC lead leads a post-outbreak review following the principles of the Patient Safety Incident Response Framework, with the staff involved and, where they wish, people affected or their families.",
+            "Learning is shared with all staff at team meetings and in supervision within 1 month of the review, this procedure is updated where needed, and the review is summarised in the next quarterly IPC report."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Precautions, treatment eligibility, agreed alternatives to masks and the end date: the infection section of the care plan and risk assessments, never written where visitors can see it.",
+            "Signs seen, tests, health professionals' advice and advice given to the household: daily visit notes.",
+            "Infection reports, confirmed precautions and end points, exposure lists and outbreak records: the incident log.",
+            "Antibiotics and antivirals we support: the eMAR. Exclusions and individual risk assessments: the staff record. Fit tests and training: training and compliance records.",
+            "All records are kept for the periods in the Records Management and Retention Policy."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "This procedure within IPC induction, including putting on and taking off a Type IIR mask, eye protection and gown",
+                "Care staff, Field Care Supervisors and anyone else who gives care",
+                "Before working without a shadowing colleague",
+                "Every 12 months, with the observed hand hygiene and PPE check"
+              ],
+              [
+                "Infection reports, exposure lists, linked-case checks, visit planning under precautions and outbreak reporting",
+                "Care Coordinators, Deputy Manager and staff allocation roles",
+                "Before first allocating visits, given by the IPC lead",
+                "Every 12 months"
+              ],
+              [
+                "Outbreak and out-of-hours reporting briefing",
+                "On-call Managers",
+                "Before the first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "Outbreak exercise from first report to review",
+                "IPC lead, Deputy Manager, Care Coordinators, HR Manager, On-call Managers",
+                "By 31 October each year, reported to the Directors in the next quarterly IPC report",
+                "Every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At a spot check of a visit to a person under precautions, agreed that day with the IPC lead or Deputy Manager, the Field Care Supervisor observes how the extra PPE is chosen, put on and taken off; shortfalls are managed under the Infection Prevention and Control Policy. Agency workers are briefed on this procedure before their first visit to a person under precautions."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Infection reports: GP contacted the same day, care plan updated and workers briefed before the next visit, review by the next working day, end point recorded",
+                "Every infection report opened in the month",
+                "Deputy Manager",
+                "IPC lead, in the monthly infection surveillance review"
+              ],
+              [
+                "Recognition and reporting against this procedure",
+                "Post-outbreak review of every outbreak",
+                "IPC lead",
+                "Directors, in the quarterly IPC report"
+              ],
+              [
+                "Extra PPE used correctly",
+                "Every spot check at a visit under precautions",
+                "Field Care Supervisors",
+                "Deputy Manager monthly"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "This procedure is included in the annual IPC audit in March. Every shortfall produces an action with a named owner and deadline, checked at the next audit or review. The audit tools are set out in the Infection Control Audit and Annual Statement Procedure."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager as IPC lead, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or UKHSA guidance, an outbreak or serious infection-related incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

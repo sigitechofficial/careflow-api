@@ -10,6 +10,7 @@ import { Reflector } from '@nestjs/core';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { ServiceUserCarePlansController } from './service-user-care-plans.controller';
 import { EmployeeAppClientDetailService } from '../employee-app/employee-app-client-detail.service';
+import { DEFAULT_REVIEW_SETTINGS } from '../organisation-general-settings/review-settings.util';
 import {
   AUTHOR,
   FORM,
@@ -394,6 +395,9 @@ describe('Phase 3B — publication, version control & lifecycle', () => {
         prisma,
         clientsService: {
           assertClientOnRound: jest.fn(() => Promise.resolve()),
+        },
+        orgSettings: {
+          getReviewSettings: jest.fn(() => Promise.resolve(DEFAULT_REVIEW_SETTINGS)),
         },
       },
     ) as {

@@ -1,0 +1,287 @@
+{
+  "reference": "POL-MED-002",
+  "revision": 1,
+  "title": "Assessing Medicines Support Needs Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we assess, agree, start and review each person's medicines support: who assesses and when, confirming the medicines list, setting the level of support for each medicine, agreeing it with the commissioner, recording it in CareFlow and reviewing it. For managers, Care Coordinators, Field Care Supervisors and senior staff.",
+  "keyPoints": {
+    "intro": "How you assess, agree, start and review the medicines support each person receives. Follow it at every new package, short-notice start and medicines review.",
+    "points": [
+      "Assess every new package face to face in the person's home with all their medicines present, even when the referral says no medicines support is needed. Never assess from the referral paperwork alone.",
+      "Put a medicine on the eMAR only when it is confirmed against at least one authoritative source as well as its label. Phone the GP practice or pharmacist the same day about any difference, and do not give that medicine until it is resolved.",
+      "Set the level for each medicine separately, at the lowest level that is safe. Never use Level 1 where the person cannot reliably say whether they have taken the medicine.",
+      "Covert administration and Level 3 tasks start only once the Registered Manager (or authorised acting manager) approves, never out of hours. Schedule 2 or 3 controlled drugs and best interests decisions need approval from the Registered Manager, or the Deputy Manager in their absence.",
+      "For a planned package, complete the medicines section of the care plan on the assessment day. Nothing starts until consent or a best interests decision is recorded and a second authorised person has checked every eMAR entry.",
+      "At a short-notice start, assess at the first visit before any dose, use the higher level where the person's ability is uncertain, and make sure a full home review follows within 7 days.",
+      "Never agree medicines support at a visit planned for less than 15 minutes. Plan times so time-sensitive doses stay in their window and paracetamol-containing doses are at least 4 hours apart.",
+      "Within 2 working days of medicines support starting, changing or ending, the Care Coordinator tells the GP practice and pharmacy by secure email or letter and records it in the care plan.",
+      "Review support 6 weeks after it starts, at every care plan review, and within 7 days of a medicines change, hospital discharge, medicines incident, capacity concern, pattern of declined doses or significant life event.",
+      "If a care worker reports that the person needs more help than the care plan allows, review it the same day; the Registered Manager emails the commissioner the same day.",
+      "If a person with capacity declines support you recommend, record the risks you explained and tell the Registered Manager, who decides within 1 working day whether the rest can be given safely."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["Manager", "Care Coordinator", "Senior Carer/Nurse"],
+  "moduleLinks": ["MEDICATION", "INITIAL_ASSESSMENT", "CARE_PLAN", "RISK_ASSESSMENT"],
+  "relatedReferences": ["POL-MED-001", "POL-MED-003", "POL-MED-004", "POL-MED-005", "POL-MED-008", "POL-MED-013", "POL-CD-002", "POL-CD-003"],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9 Person-centred care, including 9(3)(a) and (b) assessing needs and preferences collaboratively and designing care to meet them",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 Need for consent",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(a), (b), (c), (g) and (i)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 Good governance, including 17(2)(c) records",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 3 Inability to make decisions",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/3"
+    },
+    {
+      "source": "NICE and SCIE quick guide, Discussing and planning medicines support: a quick guide for home care managers providing medicines support (2018, based on NICE guideline NG67)",
+      "url": "https://bswtogether.org.uk/medicines/wp-content/uploads/sites/3/2018/01/Discussingandplanningmedicinessupportquickguide-1.pdf"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), summarising NICE guideline NG67 recommendations on assessing and reviewing medicines support needs and notifying the GP practice and pharmacy",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "{{organisation}} takes on any part of a person's medicines only after an authorised assessor has worked out with the person what help they need with each medicine and what risks must be managed. The level set for each medicine is what care workers give: no more and no less." },
+        { "p": "The Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 require us to assess needs and preferences collaboratively with the person (Regulation 9), assess and reduce risks and manage medicines safely (Regulation 12) and keep an accurate record for each person (Regulation 17). Following NICE guideline NG67, this procedure sets out how we assess, agree and review medicines support under the Medicines Management Policy." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "bullets": [
+          "Every person receiving medicines support has a recorded assessment, made with them from a confirmed medicines list, before support starts.",
+          "Every assessor sets levels by the same criteria, favouring independence where safe.",
+          "Support is agreed, recorded, notified to the GP practice and pharmacy, and reviewed on time."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This procedure applies to everyone who receives, or is referred to us for, personal care, however funded, and to the managers, Care Coordinators, Field Care Supervisors and On-call Managers who assess, approve or review medicines support. Senior Care Workers and Care Workers follow it when reporting changed needs." },
+        { "p": "It adds the assessment steps to the Medicines Management Policy, which sets the firm rules, the levels of support and the conditions before the first dose. Capacity, self-administration, eMAR entries and the discharge medicines check are covered by the Consent, Mental Capacity and Declined Medicines Policy, the Self-Administration of Medicines Procedure, the Medicines Administration Records (MAR and eMAR) Procedure and the Medicines Changes, Transfers of Care and Hospital Discharge Procedure. The overall assessment and care plan follow the Needs Assessment and Care Planning Policy." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Medicines list check", "Our check that the medicines we support match the authoritative sources and the medicines in the home. Deciding which medicines the person should take is for the GP, pharmacist or hospital."],
+          ["Commissioner", "The local authority or integrated care board funding the care, or the self-funding person or representative who signed the service agreement."],
+          ["Short-notice start", "Care starting within 48 hours of accepting the referral, including every start on the day of hospital discharge."]
+        ] } },
+        { "p": "Authoritative source, named contact, pharmacy and the levels of support have the meanings in the Medicines Management Policy." }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Directors and Nominated Individual", "blocks": [
+          { "bullets": ["Give assessors the time and training to assess in the home before support starts, and challenge assessment shortfalls reported to them."] }
+        ] },
+        { "heading": "Registered Manager", "blocks": [
+          { "bullets": [
+            "Authorises medicines assessors, agrees medicines support with the commissioner where needed, and declines in writing, with the reason, any support we cannot provide safely.",
+            "Approves before support starts every care plan that includes covert administration or a Level 3 task; only the Registered Manager gives these approvals, or during an absence an acting manager whose appointment letter gives that authority under the Registered Manager Role and Absence Cover Policy. Approves before support starts every assessment that includes a Schedule 2 or 3 controlled drug or a best interests decision about medicines, which the Deputy Manager may approve in the Registered Manager's absence.",
+            "Decides where the person and the assessor disagree about the level, or a person with capacity declines recommended support."
+          ] }
+        ] },
+        { "heading": "Deputy Manager", "blocks": [
+          { "bullets": ["Audits medicines assessments and reviews monthly, supervises new assessors, and gives the controlled drug and best interests approvals when the Registered Manager is absent."] }
+        ] },
+        { "heading": "Care Coordinator and Field Care Supervisor", "blocks": [
+          { "bullets": [
+            "The Care Coordinator carries out or allocates assessments and reviews on time, arranges second-checked eMAR entries, tells the GP practice and pharmacy, and schedules visits that keep agreed times with competent care workers.",
+            "The Field Care Supervisor carries out allocated assessments and reviews, including short-notice first visits."
+          ] }
+        ] },
+        { "heading": "On-call Manager", "blocks": [
+          { "bullets": ["Out of hours, carries out short-notice first-visit assessments where authorised as an assessor or arranges a Field Care Supervisor, obtains by phone the controlled drug and best interests approvals from the Registered Manager or Deputy Manager on the management escalation rota, may authorise an interim increase in support, and obtains clinical advice when a condition before the first dose cannot be met in time."] }
+        ] },
+        { "heading": "Senior Care Workers and Care Workers", "blocks": [
+          { "bullets": ["Give only the level recorded for each medicine and phone the office before leaving about any sign that needs have changed. Senior Care Workers authorised by the Registered Manager second-check eMAR entries."] }
+        ] }
+      ]
+    },
+    {
+      "heading": "When a medicines assessment is carried out",
+      "blocks": [
+        { "p": "Every new package includes a medicines assessment by an authorised assessor, even when the referral says no support is needed. It is made face to face in the person's home with the medicines present, recorded in the initial assessment in CareFlow, and never made from referral paperwork alone." },
+        { "table": { "columns": ["Situation", "Who assesses", "When"], "rows": [
+          ["Planned package", "Care Coordinator or Field Care Supervisor (or the Registered Manager or Deputy Manager)", "At the home assessment visit, no more than 14 days before the first care visit. The medicines section of the care plan is completed that day and always before the first medicines visit."],
+          ["Short-notice start", "Field Care Supervisor, or an authorised On-call Manager out of hours", "At the first visit, before any medicines support; full home review within 7 days."],
+          ["Person we already support comes home from hospital", "As for a short-notice start where needs, medicines or capacity have changed; otherwise the Care Coordinator or Field Care Supervisor", "Where needs, medicines or capacity have changed, care restarts as a short-notice start. Otherwise no dose is given until the discharge medicines check is done, and the medicines support is reviewed at home within 7 days of discharge."]
+        ] } },
+        { "p": "If a planned start slips beyond 14 days after the assessment, or the person goes into hospital first, the assessor phones to check whether the medicines have changed and revisits before the first medicines visit if they have." }
+      ]
+    },
+    {
+      "heading": "Preparing for the assessment",
+      "blocks": [
+        { "steps": [
+          "The Care Coordinator notes the medicines support the commissioner or self-funder asks for, and asks the person's consent to obtain their medicines information; if the person cannot be asked beforehand, the assessor asks at the visit.",
+          "With consent, the Care Coordinator asks the GP practice by secure email for the current medication list, allergies and recent changes, and the pharmacy about delivery and packaging. For a person in hospital, the ward is asked for the discharge letter and the medicines supplied.",
+          "The person or family are asked to have every medicine and recent hospital letters ready, and the visit is booked when the relative who helps with medicines can attend, if the person agrees."
+        ] },
+        { "p": "If the GP practice has not replied by the visit, the assessor works from the labels, pharmacy record and hospital letters while the Care Coordinator chases the practice by phone." }
+      ]
+    },
+    {
+      "heading": "Carrying out the assessment",
+      "blocks": [
+        { "p": "The assessment is a conversation in plain language, using the person's communication aids and focused on how they can manage their own medicines. Family members take part only if the person agrees; if the person lacks capacity to decide, those close to them are consulted under the Mental Capacity Act 2005." }
+      ],
+      "subsections": [
+        { "heading": "Confirming the medicines list", "blocks": [
+          { "steps": [
+            "Gather every medicine with the person, including creams, patches, inhalers, drops, supplements, oxygen, and bought and herbal products, and record from each label the name, strength, dose, directions, dispensing date and pharmacy.",
+            "Compare each item with the GP list, discharge letter and pharmacy record, noting anything missing, extra, at a different dose or with unclear directions such as 'as directed'. Ask the person what each medicine is for and how they take it, and record allergies with their source.",
+            "Phone the GP practice or pharmacist the same day about every difference, recording who advised what and asking for written confirmation. If a dose is due first, the Care Coordinator or On-call Manager obtains advice from the prescriber, pharmacist or NHS 111 and records it.",
+            "Agree with the prescriber or pharmacist which medicines are time-sensitive, with their window, and which when required medicines need written guidance."
+          ] },
+          { "p": "A medicine goes on the eMAR, and is given by us, only when confirmed against at least one authoritative source as well as its dispensing label, with any difference resolved. A previous provider's record, a relative's list or a pill organiser filled by anyone other than the pharmacy (including a dispensing GP practice) is never an authoritative source." }
+        ] },
+        { "heading": "Abilities, preferences and others involved", "blocks": [
+          { "p": "For each medicine the assessor asks the person to show, where safe, whether they can read the label, open the pack, measure the dose, take or apply it correctly, remember each dose and afterwards whether they took it, and reorder and store it. Where easy-open tops, large-print labels or an easier inhaler could remove a difficulty, the Care Coordinator asks the pharmacist first, because supplying pharmacies and dispensing GP practices, as service providers, must make reasonable adjustments for disabled people under sections 20 and 29 of the Equality Act 2010, which can include packaging and labels. A monitored dosage system is requested only where the pharmacist assesses that the person needs one." },
+          { "p": "The assessor records the person's goals and preferences, including times that suit them, cultural, religious or dietary needs such as gelatine-free products, nutrition needs, who may be told about their medicines, and any advance care plan, ReSPECT form or lasting power of attorney. Where a relative or another provider, such as a community nurse, helps with any medicine, the assessor records exactly what they do and how the doses they give are recorded." }
+        ] },
+        { "heading": "Risks", "blocks": [
+          { "p": "Every risk is recorded with its controls in the person's risk assessments, rated by the method in the Risk Assessment and Home Environment Risk Assessment Procedure; a High or Very high residual risk is approved or escalated as that procedure requires before the medicines task goes ahead. The Care Coordinator, or the On-call Manager out of hours, makes the contacts below and records the advice in the care plan." },
+          { "table": { "columns": ["Risk", "How we respond"], "rows": [
+            ["Swallowing difficulty, or tablets held in the mouth or found dropped", "The Care Coordinator asks the GP or pharmacist the same day about another formulation."],
+            ["The person cannot reliably remember doses or say whether they took them", "Level 1 is never used for that medicine. New confusion is reported to the GP and capacity considered."],
+            ["Low mood, self-harm or overdose risk", "A current risk goes to the GP the same day, or 999 or NHS 111 if immediate; lockable storage is agreed and the GP asked about smaller supplies."],
+            ["Alcohol or drug use", "On the pharmacist's or GP's advice, the care plan names medicines not given without phoning the office if the person appears intoxicated."],
+            ["Stockpiling, or medicines missing or hidden by the person", "The GP is told the same day; self-neglect is managed under the Self-Neglect and Hoarding Procedure."],
+            ["Signs that someone else withholds, takes or misuses the person's medicines", "The assessor phones the Registered Manager as safeguarding lead (out of hours the On-call Manager) before leaving the home, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."],
+            ["A time-sensitive dose is due at a visit", "The missed-visit risk level is set High and the visit marked time-critical in CareFlow scheduling under the Time-Sensitive Medicines Protocol; the assessor agrees the no-reply plan, including how care workers get in, under the No Reply, No Access and Missing Person Procedure."],
+            ["Falls or side effects after a medicines change", "The GP is asked for a medication review and the falls risk assessment updated."],
+            ["Emollients or oxygen used by a person who smokes or uses an open heat source", "Managed under the Fire Safety in People's Homes Policy."]
+          ] } }
+        ] },
+        { "heading": "Consent and capacity", "blocks": [
+          { "p": "The assessor asks the person to agree to the support for each medicine and, separately, to sharing information with the GP practice and pharmacy, and records both answers (Regulation 11). Where the assessor has reason to doubt that the person can understand, retain, use or weigh the information or communicate a decision (Mental Capacity Act 2005, section 3), they record why, and a capacity assessment and any best interests decision are completed under the Consent, Mental Capacity and Declined Medicines Policy before support starts." },
+          { "p": "Where a person with capacity declines recommended support or information sharing, the assessor records the risks explained, and the Registered Manager decides within 1 working day whether the remaining support can be given safely and tells the commissioner in writing." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Deciding the level of support",
+      "blocks": [
+        { "p": "The assessor sets a level for each medicine separately, the lowest at which the person can take it safely. A level is never set lower than is safe because the person or family prefer it unless the risk is explained and recorded under the Positive Risk-Taking Policy." },
+        { "table": { "columns": ["Level", "Set it when", "Do not set it when"], "rows": [
+          ["0: Self-administration", "The self-administration risk assessment confirms the person, or family by agreement, manages it safely, if needed with aids, lockable storage to which the person keeps the key or code, or a self-administration check, under the Self-Administration of Medicines Procedure.", "The person cannot manage it safely even with those controls, or the residual risk stays Very high. A medicine the person cannot reach without us is Level 1 or above."],
+          ["1: Prompting and assisting", "The person stays in control and needs only a reminder or help they direct, such as opening a pack.", "The person cannot reliably say whether they took it, or the care worker would select, measure or apply the dose."],
+          ["2: Administration", "The care worker selects, removes from the packaging, measures, gives or applies the dose.", "A specialised route or clinical judgement is needed."],
+          ["3: Specialised or delegated", "A registered health professional delegates it under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy.", "No professional will delegate, train and keep oversight; the Registered Manager declines it in writing."]
+        ] } },
+        { "p": "Creams, drops, inhalers and patches each have their own level and instructions, including the site or which eye. Covert administration is never decided at an assessment visit; it follows the Covert Administration of Medicines Policy." },
+        { "p": "The assessor records the GP's or pharmacist's advice before finalising a level where there is a swallowing difficulty, a time-sensitive medicine, a controlled drug, unclear directions, dose times the visits cannot meet, or any sign that a psychotropic medicine is used to manage behaviour (STOMP). Where the person takes 10 or more regular medicines, the Care Coordinator asks the GP practice to consider a medication review." },
+        { "p": "Visit times are planned so time-sensitive doses fall within their window under the Time-Sensitive Medicines Protocol and paracetamol-containing doses are at least 4 hours apart. We do not provide medicines support at a visit planned for less than 15 minutes." }
+      ]
+    },
+    {
+      "heading": "Agreeing and recording the support",
+      "blocks": [
+        { "p": "Where the commissioner's request matches the assessment, the Care Coordinator records that it is confirmed. Otherwise the Registered Manager agrees the medicines support with the commissioner by email before it starts, covering the level for each medicine, who orders and returns medicines, the visit time needed, and any support we will not give. The agreement is saved in the care plan or, for a self-funder, the service agreement." },
+        { "p": "The assessor records the assessment under their own log-in and writes the medicines section of the care plan the same day: for each medicine its purpose, level, exactly what the care worker does and does not do, times, special instructions, where it is kept in the home and who holds any lockable storage key or code (the code itself is recorded only in the person's home access details in CareFlow, as for key safes); who orders, collects or receives, stores and disposes of it; allergies; how consent is sought at each visit; the named contact, GP practice and pharmacy; what family and other providers do; approvals with their dates; and the 6-week review date." },
+        { "p": "Out of hours, the On-call Manager obtains a controlled drug or best interests approval by phone from the Registered Manager or Deputy Manager on the management escalation rota and records who approved it and when. Covert administration and Level 3 tasks never start out of hours, and never before the Registered Manager, or an acting manager whose appointment letter gives that authority, has approved them. The care plan, including its medicines section, is approved under the Needs Assessment and Care Planning Policy before the first medicines visit, by an approver who did not write it." }
+      ]
+    },
+    {
+      "heading": "Starting medicines support",
+      "blocks": [
+        { "p": "The Care Coordinator, or a Field Care Supervisor authorised for eMAR entries, sets up the eMAR from the labels or another written source from the prescriber or pharmacy, and a second authorised person checks every entry before the first dose. The Care Coordinator then confirms in the care plan that the conditions before the first dose in the Medicines Management Policy are met. If any is not, support does not start: the Care Coordinator agrees with the person and named contact how the next doses will be taken and, where a dose would be missed, obtains and records the prescriber's or pharmacist's advice." },
+        { "p": "Within 2 working days of support starting, changing or ending, the Care Coordinator tells the GP practice and pharmacy by secure email or letter, giving the person's NHS number, the level for each medicine, visit times and the named contact, and asking that medicines changes reach us in writing. This is recorded in the care plan." }
+      ]
+    },
+    {
+      "heading": "Short-notice starts and hospital discharge",
+      "blocks": [
+        { "steps": [
+          "Before the visit, the Care Coordinator or On-call Manager obtains the discharge letter or referral medicines list and the ward's or referrer's phone number; at the visit the assessor compares them with the medicines in the home.",
+          "The assessor completes the assessment, using the higher level where the person's ability is uncertain on the day and recording why, and records the medicines support in the initial care plan before leaving.",
+          "The eMAR is set up and a second authorised person checks every entry, in person or by telephone with the labels read back, before the first dose.",
+          "Differences are resolved with the ward, GP or pharmacist before that medicine is given; if this or the second check cannot be done before a dose is due, the Care Coordinator (On-call Manager out of hours) obtains advice from the prescriber, discharging ward or NHS 111 and records it. The assessor stays with the person while advice is awaited; if none comes within 30 minutes after the planned end of the visit, the Care Coordinator (On-call Manager out of hours) arranges an extra visit to act on it, and any worsening means 999.",
+          "Where the referral is silent on medicines or differs from the assessment, the Registered Manager, or the On-call Manager out of hours, emails the commissioner or its discharge team before support starts; if no reply arrives before a dose is due, the interim arrangement below applies."
+        ] },
+        { "p": "The Registered Manager or Deputy Manager checks the initial care plan by the end of the next working day, and the full home review follows within 7 days." }
+      ]
+    },
+    {
+      "heading": "Reviewing and reassessing medicines support",
+      "blocks": [
+        { "table": { "columns": ["Trigger", "Review completed"], "rows": [
+          ["Medicines support started", "6 weeks after the start, at home, with the 6-week care plan review"],
+          ["Care plan review (at least every 6 months under the Care Plan Review Procedure)", "At the same home visit"],
+          ["Change to the person's medicines", "Within 7 days, at home unless the reviewer records why a phone review with the person and named contact is enough"],
+          ["Return home from hospital, medicines incident, capacity concern, or significant life event such as a bereavement or a family carer stopping", "Within 7 days, at home"],
+          ["Pattern of declined doses: any medicine declined at two consecutive visits or three times in seven days", "Within 7 days, at home"],
+          ["Care worker reports the person needs more help than the care plan allows", "The same day by phone, then at home within 7 days"]
+        ] } },
+        { "p": "Care workers phone the office (the On-call Manager out of hours) before leaving when they see doses dropped or hidden, the person unsure whether they took a medicine, new confusion or falls, medicines running out or building up, or the person needing more help than the care plan allows. Until a decision is made they give only the level recorded; where a dose is due, the Care Coordinator or On-call Manager tells them what to do before they leave. The office records the call in the daily visit notes and tells the Care Coordinator the same day." },
+        { "p": "At each review the Care Coordinator or Field Care Supervisor:" },
+        { "steps": [
+          "Reads the records since the last review, including eMAR exceptions, incidents and declines, checks the medicines in the home against the eMAR, and asks the person whether they could now do more for themselves.",
+          "Repeats the abilities, risks and consent checks where something has changed, or reassesses in full within 7 days where the assessment no longer describes the person.",
+          "Sets the level for each medicine, agreeing any change in scope with the commissioner before it takes effect, and has any eMAR change second-checked before the next dose affected.",
+          "Tells the GP practice and pharmacy within 2 working days of a change in level, briefs the care workers before their next visit, records the next review date, and submits the revised care plan for approval under the Care Plan Review Procedure."
+        ] },
+        { "p": "When a person needs more help than the care plan allows, the Registered Manager emails the commissioner the same day. If no reply comes before the next dose and the person would be at risk of harm without the extra support, the Registered Manager, or the On-call Manager out of hours, may authorise the higher level as an interim arrangement, provided consent or a best interests decision is recorded, the eMAR entry has been set up and second-checked, and the reason is recorded. It is confirmed or ended with the commissioner within 5 working days." }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "p": "To meet Regulation 17(2)(c), the assessment and medicines list check, with the sources used and how each difference was resolved, are kept in the initial assessment and care plan; agreements, approvals, notifications and health professionals' advice in the care plan; risks in the risk assessments; and assessor authorisation in the training and compliance records, all kept as the Records Management and Retention Policy sets out." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "p": "Assessors must be competent (Regulation 12(2)(c)). Our arrangements are:" },
+        { "table": { "columns": ["Requirement", "Who", "When"], "rows": [
+          ["Read and acknowledge this procedure in CareFlow", "Managers, Care Coordinators, Field Care Supervisors, On-call Managers and Senior Care Workers", "At induction and within 14 days of each new major version"],
+          ["Full medicines training (pass mark 80%) and observed medicines competency", "Every medicines assessor", "Before assessor training"],
+          ["Medicines assessment training by the Registered Manager or an approved trainer", "Care Coordinators, Field Care Supervisors and On-call Managers", "Before any assessment, and before joining the on-call rota"],
+          ["First three assessments joint with, or checked before support starts by, the Registered Manager or Deputy Manager", "Each new assessor", "Before assessing alone"],
+          ["eMAR set-up and change competency", "Assessors who make eMAR entries", "Before any entry, then every 12 months"],
+          ["Assessor update", "Every authorised assessor", "Every 12 months, with the annual medicines refresher"],
+          ["Observed assessment, including the medicines assessment, by the Registered Manager or Deputy Manager", "Every authorised assessor", "Every 12 months, recorded in the supervision and appraisal records"]
+        ] } },
+        { "p": "An assessor whose assessment is found by audit to contain a significant error, such as a missed medicine, a level set too low or support started before the conditions were met, is given feedback within 5 working days and completes two further supervised assessments before assessing alone again." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["Check", "How often", "By whom", "Reported to"], "rows": [
+          ["Audit of medicines assessments and reviews against this procedure", "Monthly: 5 completed that month, or all if fewer, including every short-notice start", "Deputy Manager", "Registered Manager and the Monthly Quality and Governance Meeting"],
+          ["Medicines reviews due or overdue", "Weekly", "Care Coordinator", "Deputy Manager"],
+          ["Incidents where the assessment, level or review contributed", "Quarterly, in the medicines trend review", "Registered Manager", "Directors and Nominated Individual"],
+          ["Whole process against this procedure and NICE NG67", "Every September, in the annual medicines audit", "Registered Manager", "Directors and Nominated Individual"]
+        ] } },
+        { "p": "Nobody audits an assessment or review they carried out or approved; the Registered Manager audits those of the Deputy Manager. Every shortfall produces an action with a named owner and deadline, recorded with the audit. The Registered Manager reviews this procedure every 12 months; the Nominated Individual checks it and the Directors approve it under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or guidance, a serious medicines incident, an inspection finding, or when monitoring shows the arrangements are not working." }
+      ]
+    }
+  ]
+}

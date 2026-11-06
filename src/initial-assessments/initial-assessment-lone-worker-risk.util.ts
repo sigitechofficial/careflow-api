@@ -183,6 +183,7 @@ export function buildLoneWorkerRiskDraft(params: {
   answers: AnswerRow[];
   metadata: Prisma.JsonValue;
   now?: Date;
+  riskReviewDays?: Parameters<typeof reviewDaysFor>[1];
 }): RiskRecordDraft | null {
   const now = params.now ?? new Date();
   const answerMap = new Map(params.answers.map((a) => [a.questionId, a]));
@@ -253,7 +254,7 @@ export function buildLoneWorkerRiskDraft(params: {
     sourceSectionNumber: undefined,
     sourceQuestionId: undefined,
     sourceQuestionText: undefined,
-    reviewDate: addDays(now, reviewDaysFor(level)),
+    reviewDate: addDays(now, reviewDaysFor(level, params.riskReviewDays)),
   };
 }
 

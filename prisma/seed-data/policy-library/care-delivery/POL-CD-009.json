@@ -1,0 +1,618 @@
+{
+  "reference": "POL-CD-009",
+  "revision": 1,
+  "title": "Falls Prevention and Response Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we identify people at risk of falling, plan with them and health professionals to reduce that risk, leave each person safe at every visit, respond when a person falls or is found on the floor, and record, report, review and learn from every fall. It sets the 999 triggers, the rules on helping a person up, the watch after a fall and the referral timescales. For all staff.",
+  "keyPoints": {
+    "intro": "Many of the people we support are at risk of falling, and you may be the first person to find someone on the floor. This is what you do on every visit to prevent falls and when a fall happens.",
+    "points": [
+      "Never lift a person from the floor by hand and never try to catch someone who is falling. Let them go down, protecting their head only if you can without bending, twisting or taking their weight.",
+      "If you find someone on the floor, check they are responsive and breathing, ask what happened, look for injuries and check My care at a glance before anyone tries to help them up.",
+      "Call 999 if the person cannot get up alone, may have broken a bone, fell down stairs, hit their head and is drowsy, confused or vomiting, takes blood-thinning medicine and may have knocked their head, has been down an hour or more, or seems unwell.",
+      "Only talk a person through getting up if no 999 sign applies and they feel well and want to. Use lifting equipment only if their floor recovery plan names it, you are trained on it, it passes its check and the call handler agrees.",
+      "While you wait, stay with the person, checked in on CareFlow, keep them warm and comfortable and never leave them alone on the floor. The office covers your next visits and your waiting time is paid.",
+      "Phone the office, or the On-call Manager out of hours, about every fall before you leave, even if the person is not hurt. Record it in the incident log before the end of your shift, with a body map for any injury.",
+      "After a fall, check the person at every visit for 72 hours, and for 14 days after a possible head injury, for new pain, difficulty walking, confusion, drowsiness, headache or vomiting. Record what you find.",
+      "Before you leave every visit, make sure the walking aid, pendant alarm, phone and a drink are within reach, walkways are clear and lit as the person wants, and nothing has been left on the floor.",
+      "Tell the office the same day if a person becomes unsteady or dizzy, is afraid of falling, stops using their walking aid, or tells you about a fall or near fall.",
+      "Never take away or move out of reach a walking aid, phone or alarm, and never use bed rails, furniture or a belt to stop a person getting up. Use bed rails or a movement sensor only as the care plan records them approved."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "RISK_ASSESSMENT",
+    "CARE_PLAN",
+    "INCIDENT",
+    "VISIT",
+    "EQUIPMENT",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-HS-005",
+    "POL-HS-008",
+    "POL-HS-007",
+    "POL-GOV-009",
+    "POL-CD-003",
+    "POL-CD-016",
+    "POL-CD-019",
+    "POL-GOV-007"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 (safe care and treatment), paragraphs (1) and (2)(a), (b), (c) and (e)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 16 (notification of death of service user), paragraph (1)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/16"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18 (notification of other incidents), paragraphs (1) and (2)(a) and (b)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "NHS England, Going further for winter: Community-based falls response (PR2063, 18 October 2022): clinical assessment for everyone who falls and cannot get up, remote clinical assessment before lifting, long lies",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2022/10/BW2063-falls-response-service-principles-19-october-22.pdf"
+    },
+    {
+      "source": "Office for Health Improvement and Disparities, Falls: applying All Our Health (updated 25 February 2022)",
+      "url": "https://www.gov.uk/government/publications/falls-applying-all-our-health/falls-applying-all-our-health"
+    },
+    {
+      "source": "NHS website: Falls (when to call 999, getting up after a fall, keeping warm and changing position while waiting, preventing falls)",
+      "url": "https://www.nhs.uk/conditions/falls/"
+    },
+    {
+      "source": "NHS website: Head injury and concussion (when to call 999 or NHS 111; symptoms for up to 2 weeks)",
+      "url": "https://www.nhs.uk/conditions/head-injury-and-concussion/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} works to reduce the risk of falls for the people we support while respecting their right to move freely and live as they choose in their own home."
+        },
+        {
+          "p": "We ask every person about falls, plan with them and health professionals to reduce their risk, leave them safe at every visit, never lift a person from the floor by hand, and learn from every fall. {{organisation}} records every fall as an incident and asks whether our care could have prevented it."
+        },
+        {
+          "p": "This procedure sits under the Person-Centred Care, Dignity and Respect Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "Regulation 12 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires us to assess the risks to people's health and safety of receiving care and do all that is reasonably practicable to reduce them; this procedure does so for falls. Its thresholds and timescales are our policy unless stated as law."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to all staff, including bank and agency workers and students. It covers falls by the people we support during and between our visits, including a person found on the floor and a fall during moving and handling."
+        },
+        {
+          "p": "Owned elsewhere: handling methods and two-worker visits (Moving and Handling of People Policy); hoists, lifting cushions and bed rails (Hoists, Slings and Lifting Equipment Procedure); first aid, resuscitation and ambulance waits (First Aid Procedure); HSE reporting (RIDDOR Reporting Procedure); no answer at the door (No Reply, No Access and Missing Person Procedure); pendant alarms and sensors (Technology-Enabled Care and Telecare Policy); and risky choices (Positive Risk-Taking Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Fall",
+                "An unexpected event in which the person comes to rest on the floor, ground or another lower level, hurt or not, including a person lowered to the floor by a care worker, found on the floor, or whose fall we are told about."
+              ],
+              [
+                "Unwitnessed fall",
+                "A fall none of our staff saw, including a person found on the floor. Where the person cannot reliably say they did not hit their head, it is treated as a possible head injury."
+              ],
+              [
+                "Long lie",
+                "Being on the floor for 1 hour or more, or for an unknown time (our definition)."
+              ],
+              [
+                "Blood-thinning medicine",
+                "Any anticoagulant, such as warfarin, apixaban, rivaroxaban, edoxaban or dabigatran, or antiplatelet, such as clopidogrel, ticagrelor or aspirin, including medicines the person manages themselves. The assessor records it in My care at a glance from the medicines assessment."
+              ],
+              [
+                "Floor recovery plan",
+                "The part of the moving and handling plan stating whether a person who has fallen may be helped up with equipment, and if so which item, how many workers and who is trained."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors fund the training and paid waiting time this procedure requires; the Nominated Individual challenges the falls figures in the quarterly quality report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on falls prevention and response, makes the safeguarding, CQC, RIDDOR and duty of candour decisions in this procedure, approves floor recovery plans and reviews falls trends monthly. The Deputy Manager covers in their absence, may also approve floor recovery plans and carries out the monthly falls check."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, assessors and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Care Coordinators make the referrals and contacts in this procedure, set the post-fall watch and brief rostered care workers. Authorised assessors complete falls risk assessments, moving and handling assessors write floor recovery plans, and Field Care Supervisors review the home environment after a fall and check falls practice at spot checks."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Senior Care Workers and Care Workers follow the falls controls in the visit plans, respond to and report falls, and keep the post-fall watch."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Office staff take calls about falls, make the decisions this procedure gives them during the call, reallocate visits and log falls reported by families or others the same working day. Out of hours the On-call Manager does this and the Care Coordinator's urgent actions and hands over by 10am the next working day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Identifying risk and planning care",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Asking about falls",
+          "blocks": [
+            {
+              "p": "At every assessment and care plan review the assessor asks the person, and with their agreement their family, about falls and near falls in the last 12 months (how many, where, doing what, any injury and time on the floor), fear of falling, dizziness and blackouts. We do not use falls risk scoring tools."
+            },
+            {
+              "p": "Care workers phone the office the same day when a person becomes unsteady, walks or transfers differently, is newly dizzy or confused, is afraid of falling, stops using their walking aid, or mentions a fall or near fall. The Care Coordinator decides on a review under the Care Plan Review Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "The falls risk assessment",
+          "blocks": [
+            {
+              "p": "Under the Needs Assessment and Care Planning Policy, anyone who has fallen in the last 12 months, is afraid of falling or has walking or balance problems has a falls risk assessment before the care plan is approved (at the first visit of a short-notice start, completed in full within 7 days). It is an individual risk assessment rated by the Risk Assessment and Home Environment Risk Assessment Procedure method, and records:"
+            },
+            {
+              "bullets": [
+                "falls history and whether the person can get up from the floor alone;",
+                "walking, balance and transfers as observed, and the walking aids and equipment used;",
+                "sedating, blood pressure, diuretic and blood-thinning medicines and the number of regular medicines;",
+                "dizziness on standing, blackouts, eyesight, hearing, night-time toilet use, memory, footwear, alcohol, eating and drinking, and any osteoporosis or previous fracture;",
+                "hazards from the home environment risk assessment, such as rugs, trailing leads, stairs, lighting and wet floors;",
+                "how the person can summon help and the longest time they are alone."
+              ]
+            },
+            {
+              "p": "The controls are written into the visit plans. My care at a glance shows the falls risk and main controls, any blood-thinning medicine, whether there is a floor recovery plan, and any pendant alarm or falls detector. A person at risk of falling who lives alone and cannot summon help has a High missed-visit risk level under the Needs Assessment and Care Planning Policy. With the person's agreement, the assessor explains to them and their family how to reduce falls, how to get up safely, and that anyone who cannot get up needs a 999 call, never lifting by family. The assessment is reviewed at every care plan review and after every fall."
+            }
+          ]
+        },
+        {
+          "heading": "Referrals",
+          "blocks": [
+            {
+              "p": "Referrals are made with the person's agreement, or as a best interests decision where they lack capacity for it. The Care Coordinator records each request and its outcome in the care plan and chases any request not acknowledged within 10 working days. Self-funders are also given details of local falls and strength and balance services."
+            },
+            {
+              "table": {
+                "columns": [
+                  "When",
+                  "Referral",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "Two or more falls in 12 months; a fall causing injury; could not get up alone or a long lie; a possible blackout; worsening walking or balance; fear of falling that limits the person",
+                    "GP, or a local falls service that accepts direct referrals, asked for a falls assessment, and a medication review where the person takes sedating, blood pressure or diuretic medicines, is dizzy on standing or takes 10 or more regular medicines",
+                    "Care Coordinator, within 2 working days"
+                  ],
+                  [
+                    "Hazards the person wants help with; difficulty with stairs, bathing, toilet or bed transfers",
+                    "Community occupational therapy asked for a home hazard assessment and equipment",
+                    "Within 2 working days, or the same working day where the Moving and Handling of People Policy requires it"
+                  ],
+                  [
+                    "Alone for long periods or unable to summon help",
+                    "Telecare offered under the Technology-Enabled Care and Telecare Policy",
+                    "Within 5 working days of the assessment or fall"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A strength and balance programme recommended by a therapist is written into the visit plans from their written instructions before the next visit at which it applies."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reducing the risk of falls at every visit",
+      "blocks": [
+        {
+          "p": "The home and its contents are the person's: care workers agree changes with them, never move heavy furniture and report hazards the person wants help with. At every visit, as the care plan sets out:"
+        },
+        {
+          "bullets": [
+            "Encourage use of the walking aid and report damage the same day.",
+            "Encourage well-fitting, non-slip footwear that holds the heel, and glasses and hearing aids as the person wishes; report swollen or painful feet the same day.",
+            "Wipe up spills, pick up items from the floor, keep walkways clear and leave lights or night lights on as the person wants, including the route to the toilet.",
+            "Encourage the person to sit for a moment before standing, and report dizziness on standing the same day.",
+            "Offer the toilet before leaving, position the commode, urinal and bed as the care plan says, and leave a drink within reach.",
+            "Support strength and balance exercises exactly as the therapist wrote them; never add your own.",
+            "Before leaving, check the pendant alarm is worn or within reach, the phone and walking aid are within reach, and bed brakes and height are as the care plan sets."
+          ]
+        },
+        {
+          "p": "A person with capacity may choose to take risks, such as keeping a favourite rug. Care workers explain the risk, record the choice in the daily visit notes and phone the office; the Care Coordinator agrees a plan under the Positive Risk-Taking Policy. Staff never take away or move out of reach a walking aid, phone or alarm, or use bed rails, furniture, bedding or a lap belt to stop a person getting up. Bed rails, lap belts and sensors that alert others to the person's movements are used only as approved in the care plan under the Restraint and Restrictive Practice Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Responding to a fall",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "If the person starts to fall",
+          "blocks": [
+            {
+              "p": "Staff never try to catch a falling person. They let the person go down, protecting the head only where they can without bending, twisting or taking the weight, under the Moving and Handling of People Policy. Any hoist, sling or other item involved is taken out of use under the Hoists, Slings and Lifting Equipment Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "First checks",
+          "blocks": [
+            {
+              "p": "Make these checks before anyone tries to help the person up. If nobody answers the door, follow the No Reply, No Access and Missing Person Procedure."
+            },
+            {
+              "steps": [
+                "Make it safe: switch off a cooker or heater near the person and shut pets away.",
+                "Check whether the person responds and is breathing normally. If not, call 999 and follow the First Aid Procedure, including the DNACPR and ReSPECT check in My care at a glance.",
+                "Reassure the person and ask what happened, whether they hit their head, where it hurts and how long they have been on the floor (if they cannot say, it is a long lie).",
+                "Without moving them, look for bleeding, swelling or a misshapen limb, and ask about pain in the hip, groin, back or neck. Watch for confusion, drowsiness, chest pain, breathlessness, face drooping, arm weakness, slurred speech or shivering.",
+                "Check My care at a glance for blood-thinning medicine and a floor recovery plan.",
+                "Act on the table below, and phone the office, or the On-call Manager out of hours, as soon as you can without leaving the person in danger. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Deciding what to do",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "What you find",
+                  "What you do"
+                ],
+                "rows": [
+                  [
+                    "The person does not respond or is not breathing normally",
+                    "Call 999 and follow the First Aid Procedure."
+                  ],
+                  [
+                    "After a knock to the head: knocked out, drowsy, confused, vomiting, a fit, problems with sight, hearing, speech, understanding, walking or balance, new numbness or weakness, fluid or blood from the ears or nose, bruising behind the ears, a black eye without a blow to the eye, a dent in the skull or something in a head wound, or changed behaviour; any knock to the head or possible head injury in a person taking blood-thinning medicine; a fall down stairs or from a height; a possible broken bone, such as a misshapen limb or a leg that looks shorter or turned out; new pain in the hip, back or neck; bleeding that will not stop; or the person seems unwell, is suddenly confused, is very cold or has signs of stroke, heart attack or sepsis",
+                    "Call 999. Do not move the person unless they are in danger."
+                  ],
+                  [
+                    "A long lie, or the person cannot get up on their own",
+                    "Call 999. The call handler decides the response, which may be a community falls response or urgent community response team."
+                  ],
+                  [
+                    "An unwitnessed fall where the person cannot reliably say they did not hit their head, with none of the signs above",
+                    "Do not help them up. Phone the office, which gets NHS 111 advice straight away and phones you back with it. If you have no advice within 30 minutes of your call, call 999."
+                  ],
+                  [
+                    "A knock to the head they remember, other pain or a minor injury, with none of the signs above, and the person feels well and wants to get up",
+                    "Talk them through getting up as set out below and phone the office before you leave. The office gets NHS 111 advice straight away for a knock to the head; the Care Coordinator (On-call Manager out of hours) contacts the GP the same day about other pain or injury (NHS 111 when the practice is closed)."
+                  ],
+                  [
+                    "No pain or injury, and the person feels well and wants to get up, or is already up",
+                    "Talk them through getting up as set out below if needed, and phone the office before you leave."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "These 999 rules are stricter than the NHS website, which advises NHS 111 for vomiting after a head injury and for people taking blood-thinning medicine."
+            },
+            {
+              "p": "A person who refuses an ambulance or help is handled as the First Aid Procedure sets out for declined help. If they cannot get up, you stay and the office or On-call Manager gets NHS 111 advice and agrees the next step with the Registered Manager or Deputy Manager, recording it in the incident log."
+            }
+          ]
+        },
+        {
+          "heading": "Helping a person up",
+          "blocks": [
+            {
+              "p": "Staff never lift a person from the floor by hand or take their weight, whatever anyone asks."
+            },
+            {
+              "steps": [
+                "Only where no 999 trigger applies, any NHS 111 advice the table requires allows it, and the person feels well and wants to, place a sturdy chair close by and talk them through it: roll onto their side, get onto hands and knees, crawl to the chair, kneel, bring one foot forward and push up to turn and sit. Stop and call 999 if they feel pain or dizziness or cannot manage.",
+                "Use equipment, such as an emergency lifting cushion or the person's hoist, only where the floor recovery plan names it, you are trained on that item in that home, it passes its pre-use check, and the 999 call handler or another clinician has advised that the person can be helped up. Use the number of workers the plan sets.",
+                "Once the person is sitting, check again for pain, dizziness or confusion and watch them walk. Stay at least 15 minutes after they are up."
+              ]
+            },
+            {
+              "p": "A floor recovery plan is written only where an occupational therapist or physiotherapist has recommended floor recovery equipment in writing after seeing the person at home. The moving and handling assessor writes it into the moving and handling plan and the Registered Manager or Deputy Manager approves it before first use. Without one, My care at a glance states that equipment is not used and 999 is called if the person cannot get up."
+            }
+          ]
+        },
+        {
+          "heading": "While you wait for help",
+          "blocks": [
+            {
+              "bullets": [
+                "Stay with the person, checked in on CareFlow. Our staff never leave a person alone on the floor; the First Aid Procedure conditions for leaving a person awaiting an ambulance apply only where a family member or other responsible adult who agrees stays with them.",
+                "Keep the person warm with a duvet, blanket or the foil blanket from your kit, with a pillow under their head unless a neck or back injury is possible. If they are uninjured, encourage them to move their limbs and change position about every 30 minutes, as far as they can without pain.",
+                "Give nothing to eat or drink if a broken bone or head injury is possible or the call handler says not to; otherwise offer sips of water. Manage continence with pads or towels, without lifting them.",
+                "Call 999 again at once if the person gets worse. Prepare for the crew: lights on and access arranged under the Key Holding, Key Safes and Access to People's Homes Procedure. Kneel on a cushion rather than bending. The office covers your later visits and checks you are fit to go on to your next one; your waiting time is paid."
+              ]
+            },
+            {
+              "p": "If the wait passes 1 hour, the office or On-call Manager phones the ambulance service with an update and sends another member of staff to take over where your next visits cannot otherwise be covered safely. Handover to the crew and securing the home follow the First Aid Procedure, and any admission follows the Hospital Admission and Discharge Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Watching after a fall",
+          "blocks": [
+            {
+              "p": "The Care Coordinator, or On-call Manager, records a post-fall watch in the care plan the same working day and rostered care workers are told before their next visit. At every visit for 72 hours after any fall, and for 14 days after a possible head injury, care workers ask and look for new or worse pain, bruising or swelling, difficulty standing, walking or bearing weight, headache, dizziness, vomiting, confusion, drowsiness or changed behaviour, record what they find in the daily visit notes and act on any new sign using the table above."
+            },
+            {
+              "p": "Where a person who lives alone had a possible head injury, was not taken to hospital and the next visit is more than 4 hours away, the office or On-call Manager phones them within 4 hours of the visit ending, with their agreement, and follows the No Reply, No Access and Missing Person Procedure if there is no answer. With the person's agreement, family are told which signs to watch for."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "After a fall",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Reporting and recording",
+          "blocks": [
+            {
+              "p": "Every fall is phoned to the office before the care worker leaves, including a fall without injury and one the person tells us about. The care worker records it in the incident log before the end of their shift: when it happened or the person was found, time on the floor, what they said, the checks and injuries, who was called and their advice with times, how the person got up, footwear, aids, lighting, hazards and the care due and given. Injuries go on the CareFlow body map. A body map photograph is taken only to monitor skin damage or a wound with the district nurse, GP or tissue viability nurse, in the CareFlow app on the work phone, with consent or a best interests decision recorded in CareFlow, under the Consent to Care Policy; never of the face or intimate areas unless the care plan records this as clinically necessary and agreed, and never to gather evidence of suspected abuse. A near fall, where the person does not reach the floor, is recorded as a near miss."
+            }
+          ]
+        },
+        {
+          "heading": "Telling others",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Who",
+                  "When",
+                  "By whom"
+                ],
+                "rows": [
+                  [
+                    "Named contact or family, with the person's agreement where they can give it",
+                    "The same day after a 999 call; otherwise the same working day",
+                    "Office staff or Care Coordinator (On-call Manager out of hours)"
+                  ],
+                  [
+                    "GP practice",
+                    "The same day for any injury, knock to the head or new illness (NHS 111 when closed); within 2 working days for any other fall",
+                    "Care Coordinator (On-call Manager out of hours)"
+                  ],
+                  [
+                    "Owner of any equipment involved, telecare provider and other services visiting the person",
+                    "The same working day",
+                    "Care Coordinator"
+                  ],
+                  [
+                    "Commissioner",
+                    "By the end of the next working day for a fall graded High or Critical or reportable under RIDDOR; within 2 working days where more or different support is needed",
+                    "Registered Manager for High, Critical or RIDDOR-reportable falls; otherwise Care Coordinator"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Review and follow-up",
+          "blocks": [
+            {
+              "p": "Every fall leads to a focused review of the care plan and falls risk assessment within 7 days under the Care Plan Review Procedure, before the next visit where the way care is given is no longer safe; a fall during handling also leads to a moving and handling review. The Field Care Supervisor reviews the home environment risk assessment within 7 days, in the home unless they record why a visit is not needed. The reviews look at why the fall happened, including visit times, medicines, illness and toilet needs, and agree the changes needed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Incidents, safeguarding and notifications",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Incident review and patterns",
+          "blocks": [
+            {
+              "p": "Falls are graded, reviewed and investigated under the Incident Reporting, Investigation and Learning Policy. Our policy is that any fall during our visit, or after a missed, late or shortened visit or care not given as planned, is investigated at least at Enhanced level, comparing what happened with the care plan, check-in and check-out times and daily visit notes. In addition to that policy's pattern triggers:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Pattern",
+                  "Action",
+                  "Who"
+                ],
+                "rows": [
+                  [
+                    "Three falls for one person within 90 days",
+                    "Whole care package reviewed with the person within 10 working days, inviting the GP, community therapist and family with agreement; where more or different support is needed, the commissioner is asked in writing within 2 working days of the review",
+                    "Registered Manager or Deputy Manager"
+                  ],
+                  [
+                    "Three or more falls in a branch in a calendar month at the same time of day, during the same task or on the same care run",
+                    "Themed review with actions in the service improvement plan, reported to the next Monthly Quality and Governance Meeting",
+                    "Registered Manager"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Safeguarding",
+          "blocks": [
+            {
+              "p": "A fall is not in itself a sign of neglect. The safeguarding lead decides within 1 hour of the report whether there is a safeguarding concern where a fall followed a missed, late or shortened visit or care not given as planned; injuries do not match the explanation or the person seems afraid; repeated falls suggest agreed care by others is not being given or the person is neglecting themselves; or a restriction was involved. Concerns go through the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "CQC, RIDDOR and duty of candour",
+          "blocks": [
+            {
+              "p": "CQC must by law be notified without delay of a death during or possibly resulting from our care (regulation 16), and of an injury a health care professional reasonably judges has caused, or needs treatment to prevent, serious harm such as a change to the structure of the body or prolonged pain (regulation 18). For any fall injury needing more than first aid, the Care Coordinator asks the treating professional on the day of the initial review for the opinion this test and the Duty of Candour Policy need. The Registered Manager decides and notifies under the Statutory Notifications to CQC Procedure: a diagnosed fracture meets the test, and a High or Critical injury with no clear opinion by the end of the next working day is notified on what we know."
+            },
+            {
+              "p": "The office escalates at once any fall during or connected with our visit after which the person is taken to hospital, as it may be reportable to HSE, and the Registered Manager decides under the RIDDOR Reporting Procedure. At the initial review the Registered Manager decides whether the fall is a notifiable safety incident under the Duty of Candour Policy. While an opinion is awaited or the decision is unclear, the candour steps begin as for a notifiable incident but the investigation stays at its graded level; it moves to Comprehensive on the day the Registered Manager records the fall as notifiable, on what we know if no opinion has arrived when the report is due."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Falls risk assessments and floor recovery plans are kept in the person's risk assessments; controls, the post-fall watch and referrals in the care plan; observations in the daily visit notes; falls, investigations and notification decisions in the incident log, with injuries on body maps; and training in the training and compliance records. Retention follows the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Falls prevention and response, within recognising and reporting changes training",
+                "Care staff",
+                "At induction, before working without a shadowing colleague; every 2 years and on appointment as a Senior Care Worker"
+              ],
+              [
+                "Letting a falling person go down safely",
+                "Care staff",
+                "Within moving and handling practical training, every 12 months"
+              ],
+              [
+                "Each item of floor recovery equipment in a person's plan, practical and observed",
+                "Each worker allocated to that person",
+                "Before first use; every 12 months with the moving and handling refresher"
+              ],
+              [
+                "Falls risk assessment, referrals and floor recovery plans",
+                "Assessors, including On-call Managers who assess, and moving and handling assessors",
+                "Before the first assessment; within the annual assessor update"
+              ],
+              [
+                "Falls calls, 999 decisions, waits, welfare calls and referrals",
+                "Office staff, Care Coordinators and On-call Managers",
+                "Before taking calls alone, first allocating visits or the first on-call shift; every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Leaving the person safe, with walking aid, pendant alarm and phone within reach as the care plan sets, is a critical item at every spot check of a visit to a person with a falls risk assessment, and the Field Care Supervisor asks what the worker would do if they found that person on the floor. Shortfalls follow the Quality Audit and Monitoring Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every fall: incident log entry on time, first checks and 999 decisions recorded, office phoned, family and GP told, post-fall watch, review within 7 days, referrals within 2 working days (target 100%)",
+                "Monthly check of every fall",
+                "Deputy Manager",
+                "Registered Manager and Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Falls risk assessments, My care at a glance and floor recovery plans",
+                "Within the monthly audit of 10 care plans",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Falls trends: falls per 1,000 visits, injuries, falls during and between visits, time and place, long lies, 999 waits, admissions, fractures and pattern triggers",
+                "Monthly",
+                "Registered Manager",
+                "Quarterly quality report to the Nominated Individual and Directors; Health and Safety Meeting"
+              ],
+              [
+                "Falls training in date (100% induction, 95% refreshers)",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is recorded with an action, owner and deadline in the service improvement plan. This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious incident or an inspection finding."
+        }
+      ]
+    }
+  ]
+}

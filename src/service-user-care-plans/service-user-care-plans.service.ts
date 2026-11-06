@@ -14,6 +14,7 @@ import {
   NotificationSeverity,
   NotificationType,
   Prisma,
+  ReviewReminderSubject,
   ServiceUserCarePlanDraftApprovalStatus as ApprovalStatus,
   ServiceUserCarePlanInstanceStatus,
   ServiceUserCarePlanLifecycleStatus as LifecycleStatus,
@@ -62,7 +63,19 @@ import {
   splitLatestAndPreviousAssessments,
 } from './compose/compose-ia-eligibility.util';
 import { NotificationsService } from '../notifications/notifications.service';
-import { resolveManagerUserIds } from '../notifications/resolve-manager-recipients';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  DEFAULT_REVIEW_SETTINGS,
+  type ReviewSettings,
+} from '../organisation-general-settings/review-settings.util';
+import {
+  claimReviewReminder,
+  completeReviewReminder,
+  releaseReviewReminder,
+  resolveCareTeamUserIds,
+  reviewReminderAlreadySent,
+  reviewReminderKind,
+} from '../review-reminders/review-reminders';
 
 const instanceInclude = {
   draft: true,
@@ -87,6 +100,7 @@ export class ServiceUserCarePlansService {
     private readonly carePlanRules: InitialAssessmentCarePlanRulesService,
     @Optional() private readonly notifications?: NotificationsService,
     @Optional() private readonly carerNotifications?: CarePlanCarerNotificationService,
+    @Optional() private readonly orgSettings?: OrganisationGeneralSettingsService,
   ) {}
 
   private async ensureServiceUser(serviceUserId: string) {
@@ -108,7 +122,8 @@ export class ServiceUserCarePlansService {
 
   private mapInstance(
     row: InstanceRow,
-    form?: { name?: string | null; reviewFrequencyMonths?: number | null } | null,
+    form: { name?: string | null; reviewFrequencyMonths?: number | null } | null | undefined,
+    dueSoonDays: number,
   ) {
     const latest = row.publishedVersions[0] ?? null;
     const displayStatus = carePlanInstanceDisplayStatus({
@@ -122,6 +137,7 @@ export class ServiceUserCarePlansService {
       lastReviewedAt: row.lastReviewedAt,
       intervalMonths,
       guidanceSummary: reviewGuidanceSummary(intervalMonths),
+      dueSoonDays,
     });
     const defaultDue = defaultNextReviewDate(new Date(), intervalMonths);
 
@@ -233,8 +249,9 @@ export class ServiceUserCarePlansService {
           })
         : [];
     const formById = new Map(forms.map((f) => [f.id, f]));
+    const { carePlanDueSoonDays } = await this.reviewSettings();
     const data = rows.map((row) => ({
-      ...this.mapInstance(row, formById.get(row.carePathwayFormId) ?? null),
+      ...this.mapInstance(row, formById.get(row.carePathwayFormId) ?? null, carePlanDueSoonDays),
       formName: formById.get(row.carePathwayFormId)?.name ?? null,
       pictureUrl: formById.get(row.carePathwayFormId)?.pictureUrl ?? null,
     }));
@@ -274,7 +291,7 @@ export class ServiceUserCarePlansService {
 
     return {
       data: {
-        ...this.mapInstance(row, form),
+        ...this.mapInstance(row, form, (await this.reviewSettings()).carePlanDueSoonDays),
         formName: form?.name ?? null,
         pictureUrl: form?.pictureUrl ?? null,
         carePlanApprovalRequired: await this.isCarePlanApprovalRequired(),
@@ -1201,11 +1218,16 @@ export class ServiceUserCarePlansService {
     };
   }
 
-  async reviewQueue(params?: {
-    status?: CarePlanReviewQueueStatusFilter;
-    serviceUserId?: string;
-    locationId?: string;
-  }) {
+  async reviewQueue(
+    params?: {
+      status?: CarePlanReviewQueueStatusFilter;
+      serviceUserId?: string;
+      locationId?: string;
+    },
+    settings?: ReviewSettings,
+    now: Date = new Date(),
+  ) {
+    const { carePlanDueSoonDays } = settings ?? (await this.reviewSettings());
     const rows = await this.prisma.serviceUserCarePlanInstance.findMany({
       where: {
         status: ServiceUserCarePlanInstanceStatus.PUBLISHED,
@@ -1238,6 +1260,8 @@ export class ServiceUserCarePlansService {
         lastReviewedAt: row.lastReviewedAt,
         intervalMonths,
         guidanceSummary: reviewGuidanceSummary(intervalMonths),
+        dueSoonDays: carePlanDueSoonDays,
+        now,
       });
       const preferred = row.serviceUser.preferredName?.trim();
       const serviceUserName =
@@ -1276,38 +1300,46 @@ export class ServiceUserCarePlansService {
     };
   }
 
-  async sendReviewReminders(params?: { triggeredByUserId?: string; dryRun?: boolean }) {
-    const queue = await this.reviewQueue({ status: 'all' });
+  async sendReviewReminders(params?: { triggeredByUserId?: string; dryRun?: boolean; now?: Date }) {
+    const now = params?.now ?? new Date();
+    const settings = await this.reviewSettings();
+    const queue = await this.reviewQueue({ status: 'all' }, settings, now);
     const due = queue.data.filter(
       (item) => item.review.status === 'overdue' || item.review.status === 'due_soon',
     );
     let sent = 0;
     let skipped = 0;
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
     for (const item of due) {
-      const already = await this.prisma.notification.findFirst({
-        where: {
-          type: NotificationType.CARE_PLAN_REVIEW_DUE,
-          recordId: item.instanceId,
-          createdAt: { gte: since },
-        },
-        select: { id: true },
-      });
-      if (already) {
+      const dueDate = item.nextReviewDueAt ? new Date(item.nextReviewDueAt) : null;
+      const kind = reviewReminderKind(item.review.status, dueDate, now, settings.reminderRepeatDays);
+      if (!kind || !dueDate) {
         skipped += 1;
         continue;
       }
-      const recipientUserIds = await this.resolveCareTeamUserIds(item.serviceUserId);
+      const claim = {
+        subjectType: ReviewReminderSubject.CARE_PLAN,
+        subjectId: item.instanceId,
+        serviceUserId: item.serviceUserId,
+        dueDate,
+        kind,
+      };
+      if (params?.dryRun) {
+        if (await reviewReminderAlreadySent(this.prisma, claim)) skipped += 1;
+        else sent += 1;
+        continue;
+      }
+      if (!this.notifications) {
+        skipped += 1;
+        continue;
+      }
+      const recipientUserIds = await resolveCareTeamUserIds(this.prisma, item.serviceUserId);
       if (!recipientUserIds.length) {
         skipped += 1;
         continue;
       }
-      if (params?.dryRun) {
-        sent += 1;
-        continue;
-      }
-      if (!this.notifications) {
+      const logId = await claimReviewReminder(this.prisma, claim);
+      if (!logId) {
         skipped += 1;
         continue;
       }
@@ -1330,11 +1362,14 @@ export class ServiceUserCarePlansService {
             carePathwayFormId: item.carePathwayFormId,
             reviewStatus: item.review.status,
             nextReviewDueAt: item.nextReviewDueAt,
+            reminderKind: kind,
           },
           createdById: params?.triggeredByUserId,
         });
+        await completeReviewReminder(this.prisma, logId, recipientUserIds);
         sent += 1;
       } catch (err) {
+        await releaseReviewReminder(this.prisma, logId);
         this.logger.warn(`Care plan review reminder failed: ${(err as Error).message}`);
         skipped += 1;
       }
@@ -1343,38 +1378,8 @@ export class ServiceUserCarePlansService {
     return { data: { sent, skipped, due: due.length } };
   }
 
-  private async userIdForEmployee(employeeId: string): Promise<string | null> {
-    const emp = await this.prisma.employee.findFirst({
-      where: { id: employeeId, deletedAt: null },
-      select: { personalDetail: { select: { email: true } } },
-    });
-    const email = emp?.personalDetail?.email?.trim();
-    if (!email) return null;
-    const user = await this.prisma.user.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' }, deletedAt: null, isActive: true },
-      select: { id: true },
-    });
-    return user?.id ?? null;
-  }
-
-  private async resolveCareTeamUserIds(serviceUserId: string): Promise<string[]> {
-    const su = await this.prisma.serviceUser.findFirst({
-      where: { id: serviceUserId, deletedAt: null },
-      select: { keyWorkerId: true, namedNurseId: true, locationId: true },
-    });
-    if (!su) return [];
-    const ids = new Set<string>();
-    if (su.keyWorkerId) {
-      const uid = await this.userIdForEmployee(su.keyWorkerId);
-      if (uid) ids.add(uid);
-    }
-    if (su.namedNurseId) {
-      const uid = await this.userIdForEmployee(su.namedNurseId);
-      if (uid) ids.add(uid);
-    }
-    for (const uid of await resolveManagerUserIds(this.prisma, { locationId: su.locationId })) {
-      ids.add(uid);
-    }
-    return [...ids];
+  /** Settings → Reviews & reminders (defaults when the settings service is not wired, e.g. in tests). */
+  private async reviewSettings(): Promise<ReviewSettings> {
+    return this.orgSettings ? this.orgSettings.getReviewSettings() : DEFAULT_REVIEW_SETTINGS;
   }
 }

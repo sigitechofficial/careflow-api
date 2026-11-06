@@ -1,0 +1,756 @@
+{
+  "reference": "POL-GOV-021",
+  "revision": 1,
+  "title": "Anti-Bribery and Fraud Prevention Policy",
+  "documentType": "POLICY",
+  "summary": "Our zero tolerance of bribery and fraud by anyone who works for us or acts on our behalf. It sets out the law, our rules on bribes, referral fees and business gifts and hospitality, the fraud risks in home care and the controls on visit records, invoicing, payroll, expenses, payments, suppliers and recruitment, and how suspected bribery or fraud is reported, investigated and put right. For all employees and the managers and Directors who operate the controls.",
+  "keyPoints": {
+    "intro": "Honesty in every record, claim and business relationship protects the people we support, public money and you. This is what the policy means for you at work.",
+    "points": [
+      "Record only what really happened: check in and out inside the person's home, never for anyone else, and never record a visit, time, task or medicine that did not happen. Falsifying any record is gross misconduct and can be a crime.",
+      "If the app or signal fails, phone the office or On-call Manager when you arrive and leave so your times are recorded with the reason. Never change a time afterwards to match the rota.",
+      "Never offer, ask for or accept money, gifts, favours or extra hours for booking shifts, allocating visits, giving someone extra time, getting a job or sponsorship, signing off training or keeping quiet about something.",
+      "If anyone offers you a bribe or asks you to do something dishonest, refuse and tell the Registered Manager or Nominated Individual the same day. If it happens during a visit, phone the office or On-call Manager before you leave.",
+      "If a family member asks you to record a longer visit, sign for care that was not given or change what we invoice, refuse politely and tell the office the same day.",
+      "Never accept commission, payment or a gift from any business, such as a funeral director, solicitor, equipment seller or care agency, for recommending it. Pass every request for a recommendation to the office.",
+      "Claim only the mileage, travel time, on-call time and expenses you actually worked or spent, with receipts where needed. Nobody approves their own claim.",
+      "From businesses and other organisations you may accept promotional items worth £25 or less and refreshments at meetings. Declare every offer except meeting refreshments to the HR Manager within 2 working days; any other hospitality needs the Nominated Individual's approval first.",
+      "Gifts from the people we support and their families follow the Gifts, Hospitality, Wills and Legacies Policy, and their money follows the Handling Money, Property and Shopping Procedure.",
+      "If you suspect fraud, do not investigate, confront anyone, take photographs as evidence or copy records out of CareFlow. Write down the facts and report them the same day, using any route in the Whistleblowing (Speaking Up) Policy, anonymously if you wish.",
+      "You are protected when you report honestly, and an honest mistake you report promptly is not fraud. Hiding a mistake or covering up someone else's dishonesty is a disciplinary matter.",
+      "Managers: pass every concern to the Nominated Individual the same working day, confirm every new payee's bank details and every bank detail change by phone before payment, and never release a payment you set up."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "SAFEGUARDING",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-SG-008",
+    "POL-CD-017",
+    "POL-HR-018",
+    "POL-GOV-022",
+    "POL-GOV-004",
+    "POL-HR-008",
+    "POL-SG-015",
+    "POL-GOV-018"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Bribery Act 2010, section 1 (offences of bribing another person)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/23/section/1"
+    },
+    {
+      "source": "Bribery Act 2010, section 2 (offences relating to being bribed)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/23/section/2"
+    },
+    {
+      "source": "Bribery Act 2010, section 7 (failure of commercial organisations to prevent bribery; adequate procedures defence)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/23/section/7"
+    },
+    {
+      "source": "Bribery Act 2010, section 11 (penalties: up to 10 years' imprisonment for individuals; unlimited fine for organisations)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/23/section/11"
+    },
+    {
+      "source": "Ministry of Justice, Bribery Act 2010 guidance (six principles for adequate procedures; page updated 22 January 2025)",
+      "url": "https://www.gov.uk/government/publications/bribery-act-2010-guidance"
+    },
+    {
+      "source": "Fraud Act 2006, section 1 (fraud by false representation, failing to disclose information or abuse of position; up to 10 years' imprisonment)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/35/section/1"
+    },
+    {
+      "source": "Theft Act 1968, section 17 (false accounting)",
+      "url": "https://www.legislation.gov.uk/ukpga/1968/60/section/17"
+    },
+    {
+      "source": "Economic Crime and Corporate Transparency Act 2023, section 199 (failure to prevent fraud; in force 1 September 2025)",
+      "url": "https://www.legislation.gov.uk/ukpga/2023/56/section/199"
+    },
+    {
+      "source": "Economic Crime and Corporate Transparency Act 2023, section 201 (meaning of large organisation)",
+      "url": "https://www.legislation.gov.uk/ukpga/2023/56/section/201"
+    },
+    {
+      "source": "Economic Crime and Corporate Transparency Act 2023, section 202 (large organisations: parent undertakings and group figures)",
+      "url": "https://www.legislation.gov.uk/ukpga/2023/56/section/202"
+    },
+    {
+      "source": "Economic Crime and Corporate Transparency Act 2023, Schedule 13 (fraud offences for the failure to prevent fraud offence)",
+      "url": "https://www.legislation.gov.uk/ukpga/2023/56/schedule/13"
+    },
+    {
+      "source": "Home Office, Economic Crime and Corporate Transparency Act 2023: guidance to organisations on the offence of failure to prevent fraud (updated 10 October 2025)",
+      "url": "https://www.gov.uk/government/publications/offence-of-failure-to-prevent-fraud-introduced-by-eccta/economic-crime-and-corporate-transparency-act-2023-guidance-to-organisations-on-the-offence-of-failure-to-prevent-fraud-accessible-version"
+    },
+    {
+      "source": "Crime and Policing Act 2026, section 250 (criminal liability of bodies corporate where a senior manager commits an offence; in force 29 June 2026, replacing sections 196 to 198 of the Economic Crime and Corporate Transparency Act 2023)",
+      "url": "https://www.legislation.gov.uk/ukpga/2026/20/section/250"
+    },
+    {
+      "source": "Criminal Finances Act 2017, section 45 (failure to prevent facilitation of UK tax evasion offences)",
+      "url": "https://www.legislation.gov.uk/ukpga/2017/22/section/45"
+    },
+    {
+      "source": "Procurement Act 2023, Schedule 6 (mandatory exclusion grounds, including convictions of a supplier or connected person for offences under the Bribery Act 2010, sections 1, 2 and 6, and the Fraud Act 2006)",
+      "url": "https://www.legislation.gov.uk/ukpga/2023/54/schedule/6"
+    },
+    {
+      "source": "Procurement Act 2023, section 57 (excluded suppliers: mandatory ground applies and the circumstances are continuing or likely to occur again)",
+      "url": "https://www.legislation.gov.uk/ukpga/2023/54/section/57"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 17 (good governance: assess, monitor and mitigate risks; accurate records)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 18(2)(f) (notification of any incident reported to, or investigated by, the police)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "NHS Counter Fraud Authority, Report NHS fraud (where the NHS in England and Wales is the victim)",
+      "url": "https://cfa.nhs.uk/reportfraud"
+    },
+    {
+      "source": "National Cyber Security Centre, Reporting a scam email (fraud and cyber crime reported to Report Fraud in England, Wales and Northern Ireland)",
+      "url": "https://www.ncsc.gov.uk/collection/phishing-scams/report-scam-email"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} does not tolerate bribery or fraud in any form, by anyone who works for us or acts on our behalf. Much of our income is public money paid by local authorities and the NHS for care delivered in people's own homes, and the rest comes from people and families who trust us with their homes, their time and often their money. Every visit we record, every invoice we send, every timesheet, mileage claim and payment we make, and every contract we win must be honest."
+        },
+        {
+          "p": "The Directors lead this commitment. They have made the Nominated Individual our anti-bribery and fraud lead. We never offer, pay, request or accept a bribe, and we walk away from any work we could only win by improper means. We look into every suspicion, report crime to the police, repay anyone we have overcharged and protect everyone who speaks up."
+        },
+        {
+          "p": "These arrangements are {{organisation}}'s adequate procedures to prevent bribery under the Bribery Act 2010 and its reasonable procedures to prevent fraud under the Economic Crime and Corporate Transparency Act 2023. They also protect the people we support: a false visit record can hide missed care, and dishonesty with a person's money is financial abuse."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure everyone who works or acts for us recognises bribery and fraud in home care; that business gifts, hospitality and donations never influence a decision; that risks are assessed yearly and controlled through visit records, invoicing, pay, buying and recruitment; and that suspicions are reported safely, investigated independently and put right."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, Office staff, care staff, bank staff and students on placement, and to agency workers while they work with us. Its rules bind the employment agencies, recruitment partners, contractors, consultants and brokers who act for us through the terms of their contracts."
+        },
+        {
+          "p": "It covers bribery in any form; fraud against us, by us or intended to benefit us; business gifts and hospitality given to or received from suppliers, agencies, commissioners, NHS and local authority staff, regulators and other organisations; and our charitable donations and sponsorship."
+        },
+        {
+          "p": "It does not repeat these documents: gifts, hospitality, wills and legacies from the people we support and their families (Gifts, Hospitality, Wills and Legacies Policy); a person's money, shopping and property (Handling Money, Property and Shopping Procedure); financial abuse (Safeguarding Adults Policy); declaring interests (Conflicts of Interest Policy); raising concerns and protection for people who speak up (Whistleblowing (Speaking Up) Policy); and scam emails and account security (Information and Cyber Security Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Bribe",
+                "A financial or other advantage, such as money, a gift, hospitality, a favour, a job, a discount, extra hours or a better rota, offered, promised, given, requested or accepted, directly or through someone else, to make someone do their work improperly or as a reward for having done so."
+              ],
+              [
+                "Referral fee",
+                "Any payment, commission, discount or gift given or received for introducing a person who needs care, a worker or a customer."
+              ],
+              [
+                "Fraud",
+                "Dishonestly making a false representation, failing to disclose information there is a legal duty to disclose, or abusing a position of trust, to make a gain or cause a loss. In this policy it also includes false accounting, theft and other dishonesty involving money, records or property."
+              ],
+              [
+                "Associated person",
+                "Anyone who performs services for us or on our behalf: employees, agency workers, agencies, recruitment partners, contractors, consultants and brokers."
+              ],
+              [
+                "Public official",
+                "Anyone working for a public body, including local authority commissioners and social workers, NHS staff such as hospital discharge teams and GP practice staff, integrated care board staff, CQC inspectors and Home Office officers."
+              ],
+              [
+                "Business gift or hospitality",
+                "A gift, or food, drink, entertainment, travel, accommodation or an event, offered or given in connection with our business, by or to anyone other than the people we support and their families."
+              ],
+              [
+                "Procurement period",
+                "The time from when we decide to bid for, or start negotiating, a contract with an organisation, or start choosing a supplier, until 3 months after the contract is awarded or the decision is made."
+              ],
+              [
+                "Fraud and bribery log",
+                "The restricted record in the governance records of every suspected bribery or fraud matter, its assessment, actions and outcome."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for preventing bribery and fraud. They approve this policy and the annual risk assessment, decide each year whether we are a large organisation for the failure to prevent fraud offence, approve spending and contracts above the Nominated Individual's authority, receive the Nominated Individual's quarterly fraud and bribery report, and name one of their number to carry out the annual controls audit. The chair of the Directors acts as anti-bribery and fraud lead for any matter concerning the Nominated Individual or a Director, and the deputy chair where it concerns the chair."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual is our anti-bribery and fraud lead and owns the standing risk on the organisation risk register for fraud, bribery or financial abuse by staff. They prepare the risk assessment, complete supplier due diligence, give the approvals and release the payments this policy assigns to them, and receive and respond to every suspected bribery or fraud matter. When the Nominated Individual is absent or cannot be reached within 1 hour, the Director named to act for them under the Governance and Quality Assurance Policy carries out these duties."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager makes sure branch staff know and follow this policy, approves invoice runs and branch spending, decides the safeguarding and CQC notification aspects of any suspected fraud, and passes every concern to the Nominated Individual. The Deputy Manager covers in their absence and carries out the monthly visit record checks and quarterly invoice trace."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager prepares payroll, adds starters only once cleared to work, removes leavers on their leaving date, applies the bank detail change checks, approves care staff expense claims other than mileage, keeps the gifts and hospitality register and training records, and makes sure every agency, contractor and recruitment partner agreement contains the clauses in this policy."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Office staff and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Care Coordinators review check-in and check-out exceptions daily and check and approve claims for extra miles. Office staff prepare invoices, set up payments for a second person to release and reconcile payment card statements. None of them ever alters a care or visit record to match an invoice or claim. At every spot check Field Care Supervisors confirm that the worker is the person in their staff record photograph and that visit records match what they see, and ask the person whether visits happen as recorded."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Care Workers and Senior Care Workers keep honest records, claim only what they worked or spent, refuse any bribe or dishonest request, and report concerns the same day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The law and our position",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Law",
+              "What it means for us"
+            ],
+            "rows": [
+              [
+                "Bribery Act 2010, sections 1, 2 and 11",
+                "Offering, promising or giving a bribe, and requesting, agreeing to receive or accepting one, directly or through someone else, are offences carrying up to 10 years' imprisonment and an unlimited fine."
+              ],
+              [
+                "Bribery Act 2010, section 7",
+                "{{organisation}}, whatever its size, commits an offence if anyone associated with us bribes another person to obtain or keep business or an advantage for us. The only defence is adequate procedures to prevent it: this policy, and the evidence that it works."
+              ],
+              [
+                "Fraud Act 2006, section 1; Theft Act 1968, section 17",
+                "Fraud by false representation, failing to disclose information or abuse of position carries up to 10 years' imprisonment. Falsifying a record used for pay or invoicing, such as a check-out time, can also be false accounting, with up to 7 years."
+              ],
+              [
+                "Economic Crime and Corporate Transparency Act 2023, sections 199 to 202",
+                "Since 1 September 2025, a large organisation commits an offence if an associated person commits a listed fraud offence intending to benefit it, or anyone they provide services to on its behalf, unless it had reasonable prevention procedures. It does not apply where the organisation is the victim. Large means two or more of these in the financial year before the fraud: more than 250 employees (monthly average), turnover over £36 million, balance sheet total over £18 million, using group figures for a parent company. Overbilling a commissioner to benefit us would be such a fraud."
+              ],
+              [
+                "Crime and Policing Act 2026, section 250",
+                "Since 29 June 2026, a company also commits any offence that a senior manager commits while acting within their actual or apparent authority, replacing the narrower rule for economic crimes in the 2023 Act. We treat at least our Directors, the Nominated Individual and each Registered Manager as senior managers."
+              ],
+              [
+                "Criminal Finances Act 2017, section 45",
+                "We commit an offence if an associated person helps anyone evade UK tax, unless we had reasonable prevention procedures. We pay every worker through payroll, never cash in hand, and never help anyone evade tax or national insurance."
+              ],
+              [
+                "Procurement Act 2023, Schedule 6",
+                "A conviction of {{organisation}} or a connected person, such as a Director, for bribery (Bribery Act 2010, sections 1, 2 or 6) or fraud under the Fraud Act 2006 is a mandatory exclusion ground, so a contracting authority such as a local authority must exclude us from its contracts while the circumstances continue or are likely to recur."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Each year, when the accounts are finalised, the Directors decide whether {{organisation}} met the large organisation test in the financial year just ended, using the HR Manager's monthly average employee count and the accounts, and adding the figures of any subsidiary companies. The decision and the figures are recorded in the Directors' minutes. Whatever the result, we operate every procedure in this policy as if the failure to prevent fraud offence applies to us, following the six principles in the government guidance on both offences: proportionate procedures, top-level commitment, risk assessment, due diligence, communication and training, and monitoring and review."
+        }
+      ]
+    },
+    {
+      "heading": "Our rules on bribery",
+      "blocks": [
+        {
+          "p": "Nobody who works for us or acts for us may:"
+        },
+        {
+          "bullets": [
+            "offer, promise or give anything to obtain or keep a referral, care package, contract, funding decision, inspection outcome, check or approval;",
+            "pay or accept a referral fee: we never pay hospital, local authority, GP practice or other staff, or anyone else, for introducing people who need care, and we take referrals only through commissioners, professionals, the person or their family;",
+            "ask for or accept anything from an agency, supplier, candidate, colleague, family member or anyone else for booking agency shifts, allocating visits or hours, giving a person extra time, recruiting or sponsoring someone, writing a reference, signing off training or competency, or keeping quiet about something;",
+            "accept commission, payment or a gift from any business, such as a funeral director, solicitor, will writer, equipment or mobility seller, estate agent or private cleaning or care business, for recommending it to a person we support; when a person asks for a recommendation, the Care Coordinator gives information on how to find a service and never names a single business;",
+            "make a facilitation payment (a small unofficial payment to speed up a routine action), whatever the amount;",
+            "give a public official anything beyond what Business gifts and hospitality allows;",
+            "make a political donation on behalf of {{organisation}}."
+          ]
+        },
+        {
+          "p": "If you are offered or asked for a bribe, refuse clearly, accept nothing even for a moment, and tell the Registered Manager or the Nominated Individual the same day. If the offer is made during a visit, for example a relative offering money for more time or to keep quiet about something, phone the office, or the On-call Manager out of hours, before you leave, because it may also be a safeguarding concern."
+        },
+        {
+          "p": "The Directors approve every charitable donation and every sponsorship by {{organisation}} in advance. Donations go only to registered charities, never to a charity or event connected with someone who refers people to us or makes decisions about our contracts, and never during a procurement period with that organisation. Each one is recorded in the gifts and hospitality register."
+        }
+      ]
+    },
+    {
+      "heading": "Business gifts and hospitality",
+      "blocks": [
+        {
+          "p": "Nothing may be given or accepted that could influence, or appear to influence, a decision. These rules apply to everyone, including Directors. Where the table requires the Nominated Individual's approval, the chair of the Directors approves for the Nominated Individual or a Director, and the deputy chair for the chair."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "Rule",
+              "Approval and declaration"
+            ],
+            "rows": [
+              [
+                "Promotional items worth £25 or less, such as pens, calendars, diaries or mugs, offered by a business or organisation",
+                "May be accepted",
+                "Declared"
+              ],
+              [
+                "Any gift worth more than £25; cash, vouchers, gift cards or loans in any amount; discounts or free services for personal use",
+                "Declined. If it arrives anyway, it is handed to the Nominated Individual, who returns it within 10 working days or, where return is not practical, gives it to charity and writes to the giver",
+                "Declared"
+              ],
+              [
+                "Light refreshments or a working lunch at a meeting, training session or conference",
+                "May be accepted",
+                "Not declared"
+              ],
+              [
+                "Any other hospitality: meals, tickets to events, conference places, travel or accommodation paid for by another organisation",
+                "Only with a clear business purpose, with the host present, worth no more than £75 a head, no more than twice in 12 months from the same organisation, and never during a procurement period with that organisation",
+                "Prior written approval from the Nominated Individual; declared"
+              ],
+              [
+                "Giving refreshments at meetings, training and events we host; branded promotional items worth £5 or less at public events and recruitment fairs; a card",
+                "Allowed",
+                "Not declared"
+              ],
+              [
+                "Giving any other gift or hospitality",
+                "Worth no more than £25 a head, never to a public official or anyone who refers people to us, never during a procurement period with that organisation",
+                "Prior written approval from the Nominated Individual; declared"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every gift or hospitality that must be declared, whether accepted or declined, is emailed to the HR Manager within 2 working days of the offer. The HR Manager enters it in the gifts and hospitality register by the end of the next working day, and it is reviewed as the Gifts, Hospitality, Wills and Legacies Policy sets out. The Nominated Individual also reviews every business entry each month and looks for patterns by organisation and by member of staff."
+        },
+        {
+          "p": "Anyone who chooses or manages a supplier, agency or contract declares any interest under the Conflicts of Interest Policy before taking part, and takes no part where the interest has not been cleared."
+        }
+      ]
+    },
+    {
+      "heading": "Fraud and bribery risks and risk assessment",
+      "blocks": [
+        {
+          "p": "These are the main risks in our service. The controls for each are set out in Prevention controls or in the documents named there; for people's money, property and keys, in the Handling Money, Property and Shopping Procedure and the Key Holding, Key Safes and Access to People's Homes Procedure."
+        },
+        {
+          "table": {
+            "columns": [
+              "Risk",
+              "How it could happen in home care"
+            ],
+            "rows": [
+              [
+                "False visit records",
+                "Checking in or out away from the home or for a colleague; a short visit recorded as full; tasks or medicines recorded but not done; someone else working under a worker's identity or log-in"
+              ],
+              [
+                "Invoicing for care not delivered",
+                "Invoicing missed, shortened or single-staffed double-handed visits, care during a hospital admission or more time than delivered, sometimes at a payer's request"
+              ],
+              [
+                "Payroll, timesheets and expenses",
+                "False on-call timesheets, travel time or mileage; pay for someone who has left; pay redirected by a false bank detail change; sick pay claimed while working elsewhere"
+              ],
+              [
+                "People's money and property",
+                "Theft or misuse of shopping money; pressure to give, lend or leave money; use of cards or PINs; using a key safe code or key outside a rostered visit"
+              ],
+              [
+                "Recruitment and identity",
+                "False identity, right to work, DBS, reference or qualification documents; selling jobs or certificates of sponsorship; falsified training records"
+              ],
+              [
+                "Payments and suppliers",
+                "Fake or inflated invoices; invoice redirection; emails impersonating a Director; kickbacks from agencies or suppliers"
+              ],
+              [
+                "Funding, tenders and returns",
+                "False statements in a tender, contract monitoring return or training funding claim; misuse of a direct payment or personal health budget"
+              ],
+              [
+                "Bribery of decision-makers",
+                "Inducements to referrers, commissioners or inspectors; staff taking commission for recommending businesses"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Nominated Individual completes a documented bribery and fraud risk assessment by 31 March each year with the Registered Manager, the Deputy Manager and the HR Manager. Each risk is scored using the method in the Risk Management Policy and recorded against the standing risk for fraud, bribery or financial abuse by staff on the organisation risk register; any risk whose current score is High or Very high is escalated as that policy requires. The Directors approve the assessment at their governance meeting held by mid-May. It is reassessed within 1 month of a confirmed bribery or fraud, a new type of contract, funding or payment system, a new branch or area, a change in law or guidance, or a change in our large organisation status."
+        }
+      ]
+    },
+    {
+      "heading": "Prevention controls",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Visit records and invoicing",
+          "blocks": [
+            {
+              "p": "Care workers check in and out inside the person's home, never for anyone else, and never share their CareFlow log-in, as the Staff Code of Conduct requires. If the app or signal fails, the care worker phones the office or On-call Manager on arrival and on leaving so that manual times are entered with the reason. A recorded time is never changed to match the rota, a claim or an invoice; corrections are added with their reason. Care Coordinators (the On-call Manager at weekends and bank holidays) review missing, manual, late, early and short times every day under the Missed, Late and Short Visits Procedure, and a possible false location goes to the Registered Manager the same working day under the Acceptable Use of IT and Devices Policy."
+            },
+            {
+              "p": "By the 5th working day of each month the Deputy Manager checks the previous month's check-in and check-out records in each branch for these fraud indicators:"
+            },
+            {
+              "bullets": [
+                "the same worker recorded at two visits at overlapping times, or with less than half the travel time allowed on the rota between them;",
+                "3 or more manual check-in or check-out times entered for the same worker in the month;",
+                "a visit recorded for a person who was in hospital or whose package was suspended or had ended;",
+                "a visit recorded by a worker who was on leave, off sick or recorded elsewhere at the time."
+              ]
+            },
+            {
+              "p": "The Deputy Manager looks for an explanation in the rota, agreed changes and recorded reasons, without contacting the worker. Any indicator not explained within 5 working days is passed to the Nominated Individual as a suspected fraud."
+            },
+            {
+              "p": "Office staff prepare invoices from check-in and check-out records and the rules in each contract or service agreement. Missed visits are never invoiced; commissioned care is invoiced during a hospital admission only where the contract pays for it; and self-funders are never charged for a missed visit, time we cut short or while they are in hospital. A visit we could not staff is never recorded as a cancellation; cancelled and no-access visits are charged or invoiced only as the Visit Cancellations and Refusals of Care Procedure, the No Reply, No Access and Missing Person Procedure and the contract allow. Every manual change to an invoiced time or visit has its reason recorded and is approved by the Registered Manager, who checks every invoice run against the daily exception reviews and approves it before it is sent. Nobody approves an invoice they prepared. Each quarter the Deputy Manager traces 10 invoiced visits per branch back to the check-in and check-out record and the daily visit notes; any mismatch is corrected, its cause found and, where dishonesty may be involved, passed to the Nominated Individual."
+            },
+            {
+              "p": "Figures sent to commissioners, the NHS or CQC come from CareFlow reports and are checked against the source records by someone other than the preparer before they are sent, as the Governance and Quality Assurance Policy sets out for reports to CQC. The Nominated Individual approves every tender before it is submitted."
+            }
+          ]
+        },
+        {
+          "heading": "Direct payments, personal health budgets and requests to misdescribe care",
+          "blocks": [
+            {
+              "p": "A request from a person, family member or representative to invoice for care not delivered, to record a longer visit or to describe a service differently is refused and passed to the Registered Manager the same day. The Registered Manager first decides whether the person is at risk of financial abuse under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure and, where public money may be misused, tells the local authority direct payments team, or the integrated care board for a personal health budget, within 2 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Payroll, timesheets and expenses",
+          "blocks": [
+            {
+              "p": "The HR Manager prepares payroll from check-in and check-out records and approved timesheets, and the Registered Manager signs off the minimum wage exception report, as the Working Time, Rest Breaks and Travel Time Policy sets out. The Nominated Individual, or a Director when the Nominated Individual is unavailable, releases payroll only after checking the list of starters and leavers and confirming that any change of more than 10% in the total since the previous month is explained. The HR Manager never releases payroll. A worker's bank details are changed only as the Staff Personal Data and HR Records Policy sets out, after the HR Manager phones the worker on their recorded number before the next payroll."
+            },
+            {
+              "p": "Mileage is paid on route planner distances between rota addresses, as the Working Time, Rest Breaks and Travel Time Policy sets out. The Care Coordinator approves a care worker's claim for extra miles only after checking it against the rota and the check-in and check-out records. The HR Manager approves care staff's other expense claims; the Nominated Individual approves managers' claims; another Director approves claims by the Nominated Individual or a Director. Nobody approves their own claim; where the usual approver is connected to the claimant, the Conflicts of Interest Policy names who approves instead. Expenses other than mileage are paid only against a receipt."
+            }
+          ]
+        },
+        {
+          "heading": "Payments and purchasing",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Spending or commitment",
+                  "Approved by"
+                ],
+                "rows": [
+                  [
+                    "Branch purchases up to £1,000 within the approved budget",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Purchases over £1,000 up to £10,000, and any purchase up to £10,000 outside the approved budget",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "Purchases over £10,000; any contract lasting more than 12 months; any contract for agency staff, recruitment services or subcontracted care; any contract with a connected supplier, whatever its value, as the Conflicts of Interest Policy sets out",
+                    "Directors"
+                  ]
+                ]
+              }
+            },
+            {
+              "bullets": [
+                "Every bank payment is set up by one person and released by another, who is the Nominated Individual or a Director. Nobody releases a payment they set up, a payment to themselves, or a payment to a supplier in which they have declared an interest.",
+                "A new payee is set up by one person and approved by the Nominated Individual or a Director after its bank details are confirmed by phone to a number found independently, never one taken from the invoice or email. A supplier's bank detail change is confirmed by phone to the number we already hold and approved by the Nominated Individual before the next payment.",
+                "A request to make an urgent payment or change payment details, including one that appears to come from a Director, is confirmed by phone to a number we already hold before anything is paid, as the Information and Cyber Security Policy sets out.",
+                "Branch offices keep no petty cash. Payment cards are held only by the Nominated Individual, the Registered Manager and Directors; receipts are added within 5 working days; Office staff reconcile each monthly statement and the Nominated Individual checks it (a Director checks the Nominated Individual's)."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Supplier and partner due diligence",
+          "blocks": [
+            {
+              "p": "Before we contract with any employment agency, recruitment partner, consultant, broker or other organisation that acts on our behalf, or any supplier with expected spending over £5,000 a year, the Nominated Individual checks its Companies House record, the UK sanctions list, a public news search, references or past performance, and its bank details, and checks staff and Directors' declarations for any connection with it. The result is recorded in the supplier due diligence record kept with the supplier modern slavery register in the governance records, and reviewed at each renewal and at least every 3 years; employment agencies are also checked in the annual agency audit each November."
+            },
+            {
+              "p": "Contracts with these organisations require them to comply with the Bribery Act 2010 and to prevent fraud, give and accept no gifts or hospitality to or from our staff outside this policy, pay no referral fees, report any suspected bribery or fraud connected with our work to the Nominated Individual within 2 working days, allow us to audit their compliance, and accept suspension or termination for breach. New contracts include these terms from the date this policy is adopted; existing contracts include them at renewal or by 31 March 2027, whichever is sooner."
+            }
+          ]
+        },
+        {
+          "heading": "Recruitment and identity",
+          "blocks": [
+            {
+              "p": "Identity, right to work, DBS, reference and qualification checks follow the Safer Recruitment Policy and the Pre-Employment Checks and DBS Procedure, and a suspected forged document is also entered in the fraud and bribery log. Training records are completed only by the person who did the training, and the HR Manager checks e-learning completion times against the module time set for it. Where a Field Care Supervisor finds that the worker at a spot check is not the person in the staff record photograph, or a person we support says that someone they do not recognise is visiting, it is phoned to the Registered Manager at once and treated as a suspected fraud and a safeguarding concern."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting a concern",
+      "blocks": [
+        {
+          "steps": [
+            "If a person we support is at risk, has lost money or may have missed care, follow the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure: phone the office, or the On-call Manager out of hours, before you leave the visit.",
+            "In every other case, tell the Registered Manager or the Nominated Individual the same day. You may instead use any route in the Whistleblowing (Speaking Up) Policy, including contacting the Nominated Individual anonymously. A concern about the Nominated Individual or a Director goes to the chair of the Directors, and one about the chair to the deputy chair.",
+            "Write down the facts: what you saw or were asked, when, who was involved and which records are affected. Do not investigate, confront anyone, tell the person you suspect, take photographs as evidence, or copy records or photographs out of CareFlow.",
+            "Any manager, Care Coordinator or On-call Manager who receives a concern passes it to the Nominated Individual the same working day, or by 10am the next working day if it is received out of hours, without investigating it."
+          ]
+        },
+        {
+          "p": "Everyone who reports honestly is protected under the Whistleblowing (Speaking Up) Policy, even if the concern turns out to be unfounded. An honest mistake in a record, invoice or claim that you report promptly is not fraud and is handled under the Incident Reporting, Investigation and Learning Policy. Failing to report fraud or bribery you know about, hiding a mistake, or helping to cover up someone else's dishonesty is a disciplinary matter."
+        }
+      ]
+    },
+    {
+      "heading": "Responding to suspected bribery or fraud",
+      "blocks": [
+        {
+          "steps": [
+            "Log: the Nominated Individual opens a fraud and bribery log entry the same working day. Where the concern came through the Whistleblowing (Speaking Up) Policy, the entry cites only the speaking-up log reference, and the case owner named in that policy keeps in touch with the person who spoke up.",
+            "Initial assessment, within 1 working day: the Nominated Individual records whether there are reasonable grounds to suspect dishonesty, who and what may be affected, and the immediate actions: protecting anyone at risk through the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure; a retention hold on the evidence under the Records Management and Retention Policy; holding any payment in question; and interim measures for a worker, decided by the Registered Manager (the Nominated Individual where the Registered Manager is involved) under the Disciplinary Policy and Procedure, including any key safe code changes it requires.",
+            "Directors: told by the Nominated Individual within 24 hours of an initial assessment that finds reasonable grounds for suspicion.",
+            "Investigation: within 2 working days of the initial assessment, an investigator with no connection to the matter is appointed with written terms of reference. Where an employee may be responsible, the route and investigator are decided under the Disciplinary Policy and Procedure, with the Managing Allegations Against Staff Procedure applying first where a person we support may have been harmed or lost money, and the Nominated Individual agrees the terms of reference; those documents' timescales apply. Where a Director or the Nominated Individual may be responsible, the chair also follows the Fit and Proper Persons (Directors) Policy. Otherwise the Nominated Individual appoints the investigator and the report is due within 20 working days.",
+            "Police: where there are reasonable grounds to suspect a crime, the Nominated Individual reports it within 2 working days of the initial assessment through Report Fraud, the national fraud and cyber crime reporting service, or to the local police where a person we support is the victim. A crime in progress or a person in danger means 999. Our investigation pauses only at the police's request; protective actions never pause.",
+            "Put right: money we were overpaid is repaid by bank transfer, approved by the Nominated Individual, within 10 working days of the amount being established, with a written explanation to the commissioner, person or representative. Losses are recovered through insurance where our cover allows and, where needed, civil action on legal advice, never by deduction from pay unless the worker has agreed a written repayment plan.",
+            "Close and learn: the Nominated Individual records the outcome and closes the entry (a Director closes entries the Nominated Individual investigated). Control failures go into the service improvement plan, and the related risk is reviewed under the Risk Management Policy, within 5 working days; anonymised learning is shared with staff."
+          ]
+        },
+        {
+          "table": {
+            "columns": [
+              "Who else is told",
+              "When",
+              "By whom"
+            ],
+            "rows": [
+              [
+                "Commissioner, where the matter affects money they pay or people they fund",
+                "Within 2 working days of the initial assessment, or sooner if the contract requires",
+                "Nominated Individual"
+              ],
+              [
+                "NHS Counter Fraud Authority, where NHS funding such as NHS Continuing Healthcare may be the victim",
+                "Within 2 working days of the initial assessment",
+                "Nominated Individual"
+              ],
+              [
+                "Local authority direct payments team or integrated care board, where a direct payment or personal health budget may be misused",
+                "Within 2 working days",
+                "Registered Manager"
+              ],
+              [
+                "CQC, where the matter is reported to or investigated by the police and is notifiable",
+                "As the Statutory Notifications to CQC Procedure sets out, within 24 hours of our becoming aware of police involvement",
+                "Registered Manager"
+              ],
+              [
+                "Insurers",
+                "Within the policy's notice period and in any case within 5 working days",
+                "Nominated Individual"
+              ],
+              [
+                "Home Office, where a sponsored worker or our sponsor duties are involved",
+                "As the Right to Work and Sponsored Workers Policy sets out",
+                "HR Manager"
+              ],
+              [
+                "Disclosure and Barring Service",
+                "Referral decision as the Staff Fitness Concerns and DBS Referrals Procedure sets out",
+                "Registered Manager"
+              ],
+              [
+                "A supplying agency, where an agency worker is involved",
+                "The same working day",
+                "HR Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Bribery, fraud and falsifying any record or claim are gross misconduct under the Staff Code of Conduct and the Disciplinary Policy and Procedure. An agency worker involved is not used again until the matter is resolved. A supplier, agency or partner involved may have its contract suspended or ended by the Directors, who first make sure the care of the people we support continues safely. Only the Nominated Individual or a Director speaks to the media about any case."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where in CareFlow",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "Fraud and bribery log entries and investigation files",
+                "Governance records, seen only by the Nominated Individual, the Directors (never the Director concerned) and the investigator",
+                "10 years from closure"
+              ],
+              [
+                "Business gifts, hospitality, donations and sponsorship",
+                "Gifts and hospitality register in the governance records",
+                "6 years from the end of the financial year of the entry, or 6 years after the employment of the member of staff named ends if later"
+              ],
+              [
+                "Risk assessments and the Directors' large organisation decisions",
+                "Governance records and Directors' minutes",
+                "Life of the organisation plus 6 years"
+              ],
+              [
+                "Supplier due diligence and contract clauses",
+                "Supplier due diligence record in the governance records",
+                "Life of the contract plus 6 years"
+              ],
+              [
+                "Invoice, payroll, payment, expense and card approvals",
+                "Financial records",
+                "6 years from the end of the financial year"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Nothing is destroyed while an investigation, police enquiry, claim or recovery action is open or expected."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "All employees complete anti-bribery and fraud awareness at induction, before working without a shadowing colleague, covering honest records, our rules on bribery, business gifts and how to report. A knowledge check with the 80% pass mark follows, and a failed check is handled as the Training and Development Policy sets out. It is refreshed every 2 years.",
+            "The Directors, the Registered Manager, the Deputy Manager, the HR Manager, Care Coordinators, Office staff who prepare invoices, payroll or payments, and anyone who chooses suppliers or agencies are briefed by the Nominated Individual on the controls they operate within 1 month of starting the role and every 12 months.",
+            "The Nominated Individual completes external training on bribery and fraud prevention within 3 months of appointment, refreshed every 3 years.",
+            "Agency workers are taken through the key points at local induction, and agencies and contractors receive this policy with their contract."
+          ]
+        },
+        {
+          "p": "All employees acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Visit record fraud indicators",
+                "Monthly, by the 5th working day",
+                "Deputy Manager",
+                "Nominated Individual"
+              ],
+              [
+                "Invoice trace of 10 invoiced visits per branch; target 100% matching",
+                "Quarterly",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Open fraud and bribery log entries and their timescales, every business gifts and hospitality entry, and completion of payment card reconciliations",
+                "Monthly",
+                "Nominated Individual",
+                "Directors, in the quarterly report"
+              ],
+              [
+                "Controls audit in the annual audit programme: 5 new payees, 5 bank detail changes, 5 payment runs, 5 payroll releases, 10 expense claims, 5 payroll starters and 5 leavers, due diligence for every new supplier, and every business hospitality approval in the year",
+                "Every October",
+                "A Director named by the chair of the Directors, sampling only items they did not set up, approve or release",
+                "Next Directors' governance meeting"
+              ],
+              [
+                "Bribery and fraud risk assessment and large organisation decision",
+                "Every 12 months",
+                "Nominated Individual; Directors",
+                "Directors' governance meeting held by mid-May; Directors' minutes"
+              ],
+              [
+                "Training and acknowledgement compliance",
+                "Monthly",
+                "HR Manager",
+                "Monthly Quality and Governance Meeting"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Targets: 100% of concerns passed on the same working day and assessed within 1 working day; 100% of new payees and bank detail changes verified before payment; 100% of due diligence completed before contracting; at least 95% of required training in date, with any figure below 90% escalated under the Governance and Quality Assurance Policy. The Nominated Individual's quarterly report to the Directors' governance meeting covers concerns, outcomes, losses and recoveries, business gifts and hospitality, control failures and these results. Every shortfall becomes an action in the service improvement plan."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or guidance, a confirmed bribery or fraud, an inspection or commissioner finding, a change in our large organisation status, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

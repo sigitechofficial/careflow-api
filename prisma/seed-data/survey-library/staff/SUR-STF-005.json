@@ -1,0 +1,401 @@
+{
+  "reference": "SUR-STF-005",
+  "revision": 1,
+  "title": "Training feedback",
+  "audience": "EMPLOYEE",
+  "respondents": "Anyone who has completed a course: induction sessions, refreshers, medicines, moving and handling, specialist and person-specific training",
+  "summary": "Two short parts: straight after a course, a score out of 5 and whether it was relevant, clear and gave enough practice; a few weeks later, whether the learning is being used and what gets in the way. About 5 minutes.",
+  "purpose": "Tells the HR Manager whether each course and trainer is good enough, whether staff can use what they learned, and what gets in the way. It carries the Training and Development Policy's rule that every learner scores each course out of 5 at the end, with any provider or trainer averaging below 4 in a quarter reviewed by the Registered Manager within 1 month. Low confidence after a medicines or moving and handling course is a safety signal passed to the Field Care Supervisor, with support, never blame. Part A is answered straight after the course; Part B a few weeks later for practical and specialist courses.",
+  "timing": {
+    "when": "Part A at the end of each course; Part B about 6 weeks later (4 to 8) for medicines, moving and handling, first aid and specialist courses",
+    "recurrence": null,
+    "trigger": "Course attendance recorded"
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 5,
+  "cqc": {
+    "keyQuestions": ["SAFE", "WELL_LED"],
+    "qualityStatements": ["Safe and effective staffing", "Learning culture", "Learning, improvement and innovation"]
+  },
+  "introduction": "{{organisation}} would like your view of a course you have done, so we can keep our training good. It takes about 5 minutes, in paid time. If you do not feel confident after a course, please say so: you will be supported, never blamed.\n\nYour answers are linked to your name so we can arrange support or pay if you need it. Trainers see only combined results, never your name.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve our training and to support you. Our legal reason is our legitimate interest in being a good employer and keeping people safe.\n\nYour answers are linked to your name. They are seen by the HR Manager and the Registered Manager, and passed on only to arrange support or pay. Trainers and providers see only combined results for 5 or more people, never your name. If you tell us someone may be at risk of harm, we must act on it.\n\nWe keep your answers for 1 year after the survey closes, and course evaluation summaries for 6 years, under our Records Management and Retention Policy. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "About your course",
+      "questions": [
+        {
+          "id": "q-course",
+          "text": "Which course are you giving feedback on?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Safeguarding",
+            "Medicines",
+            "Moving and handling",
+            "Emergency first aid",
+            "Infection prevention and control",
+            "Health and safety",
+            "Fire safety",
+            "Lone working and personal safety",
+            "Learning disability and autism (Oliver McGowan training)",
+            "Dementia",
+            "End of life care",
+            "Personal care",
+            "Food hygiene",
+            "Information governance",
+            "A health task, such as catheter or stoma care",
+            "Training about one person we support"
+          ],
+          "otherOption": {
+            "label": "Another course (please tell us which)",
+            "textPrompt": "Please tell us which course",
+            "textRequired": true
+          }
+        },
+        {
+          "id": "q-mode",
+          "text": "How was the course given?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Face to face in a group", "Face to face, one to one", "Online with a live trainer", "E-learning on my own"],
+          "otherOption": {
+            "label": "Another way (please tell us)",
+            "textPrompt": "Please tell us how",
+            "textRequired": true
+          }
+        },
+        {
+          "id": "q-part",
+          "text": "When are you answering?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Straight after the course", "A few weeks after the course"]
+        }
+      ]
+    },
+    {
+      "title": "Straight after the course",
+      "questions": [
+        {
+          "id": "q-score",
+          "text": "Overall, how would you score this course out of 5?",
+          "type": "RATING",
+          "required": true,
+          "helpText": "1 is very poor and 5 is excellent.",
+          "config": {
+            "min": 1,
+            "max": 5
+          },
+          "showIf": {
+            "question": "q-part",
+            "answers": ["Straight after the course"]
+          },
+          "comment": {
+            "prompt": "Please tell us why you gave this score."
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-relevant",
+          "text": "The course was relevant to the work I do.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "showIf": {
+            "question": "q-part",
+            "answers": ["Straight after the course"]
+          },
+          "comment": {
+            "prompt": "What would have made it more relevant?",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-easy-follow",
+          "text": "The course was easy to follow.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about the language, the pace and, for e-learning, the device you used.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "showIf": {
+            "question": "q-part",
+            "answers": ["Straight after the course"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-practise",
+          "text": "I had enough chance to practise.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" for e-learning with no practical part.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "showIf": {
+            "question": "q-part",
+            "answers": ["Straight after the course"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-confident",
+          "text": "I feel confident to use what I learned in my work.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "showIf": {
+            "question": "q-part",
+            "answers": ["Straight after the course"]
+          },
+          "comment": {
+            "prompt": "What do you still feel unsure about?",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-plan-use",
+          "text": "I plan to use what I learned in the next few weeks.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if the course is for something you do not do yet.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "showIf": {
+            "question": "q-part",
+            "answers": ["Straight after the course"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-paid",
+          "text": "Is all the time you spent on this course paid?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "All training we ask you to do is paid, including e-learning at home and travel to sessions. If e-learning took you longer than the set time, tell the HR Manager so the actual time is paid.",
+          "options": ["Yes", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-part",
+            "answers": ["Straight after the course"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "text": "What should we add to or remove from this course?",
+          "type": "TEXTAREA",
+          "required": false,
+          "showIf": {
+            "question": "q-part",
+            "answers": ["Straight after the course"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "A few weeks after the course",
+      "introduction": "These questions are about how you have used what you learned since the course.",
+      "questions": [
+        {
+          "id": "q-used",
+          "text": "Since the course, have you used what you learned at your visits?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, often", "Yes, a few times", "Not yet", "No, it does not apply to the visits I do"],
+          "notCountedOptions": ["No, it does not apply to the visits I do"],
+          "showIf": {
+            "question": "q-part",
+            "answers": ["A few weeks after the course"]
+          },
+          "comment": {
+            "prompt": "Please give an example. Do not include anyone's name.",
+            "showWhen": ["Yes, often", "Yes, a few times"]
+          },
+          "evidence": "Well-led: Learning, improvement and innovation"
+        },
+        {
+          "id": "q-barriers",
+          "text": "What has made it hard to use what you learned? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "I have not had a visit where I needed it",
+            "I do not have the equipment I need",
+            "There is not enough time at visits",
+            "The care plan says something different",
+            "I do not feel confident enough yet",
+            "Colleagues do things differently",
+            "Nothing has made it hard"
+          ],
+          "exclusiveOptions": ["Nothing has made it hard"],
+          "otherOption": {
+            "label": "Something else (please tell us)",
+            "textPrompt": "Please tell us what",
+            "textRequired": true
+          },
+          "showIf": {
+            "question": "q-part",
+            "answers": ["A few weeks after the course"]
+          },
+          "evidence": "Well-led: Learning, improvement and innovation"
+        },
+        {
+          "id": "q-supervisor-talked",
+          "text": "Has your supervisor talked with you about how you are using what you learned?",
+          "type": "YES_NO",
+          "required": true,
+          "helpText": "This could be at a supervision, a spot check or a quick chat.",
+          "showIf": {
+            "question": "q-part",
+            "answers": ["A few weeks after the course"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-better-care",
+          "text": "Looking back, the course has helped me give better care.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not give care.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "showIf": {
+            "question": "q-part",
+            "answers": ["A few weeks after the course"]
+          },
+          "evidence": "Well-led: Learning, improvement and innovation"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, the HR Manager, not the trainer, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "CareFlow accepts only one answer from each person per survey, so start a copy of this template for each course session, named with the course, date and trainer or provider (for example \"Moving and handling, 12 March, A. Trainer\") so results can be reported by trainer and provider, and send it with Send or schedule to the employees who attended, at the end of the session (the attendees recorded for the session in Learning, Training events, are the people to choose); in the classroom they answer on their phones before leaving, or on paper entered by the HR Manager with Record response. For a week of induction sessions, send each session's copy together at the end of the week. CareFlow cannot fill the course from the training record, so the course and how it was given are asked. Part A is part of the course, so it is exempt from the 4-week rule and is not a survey contact (library decision S4); Part B is not exempt. CareFlow applies one setting to each copy, so in each Part A copy, before sending, open Who gets it, turn off both 4-week rule boxes and give the reason \"Part A is part of the course (library decision S4)\". If you forget, Send now shows a check listing anyone held back: choose Send to them now anyway with the same reason. A scheduled send has no check: held people appear in the Held back list in Who gets it, where you can send them now anyway with the same reason.",
+      "Part B: for medicines, moving and handling, first aid and specialist courses, about 6 weeks later start a separate follow-up copy for that session (for example \"Moving and handling, 12 March, follow-up\") and send it to the same workers; they choose \"A few weeks after the course\". Not for short e-learning knowledge modules. Never more than two follow-ups to one worker in a month. Keep the 4-week rule on for every follow-up copy. Part B is the lowest priority, so it skips, not delays, anyone held back: in each follow-up copy, open Who gets it, choose \"Don't send it to them this time\" and give the reason \"Part B is the lowest staff priority: skipped, not delayed (library decision S4)\". If a copy was sent without it, use Don't send in the Held back list with the same reason. Never send Part B anyway.",
+      "All training time is paid, including the survey. Who may open individual answers: the HR Manager, and the Registered Manager where an alert needs it; never the trainer or provider. This is set in Who can see the answers: individual responses are limited to the HR Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. By default only managers can send a survey (\"Surveys\", act) and only managers and admins can record answers (\"Record survey responses\"): give both to the HR Manager."
+    ],
+    "actingOnResults": [
+      "The HR Manager reads each response the working day it arrives and acts under the alerts below. Low confidence is a support need, never a disciplinary matter.",
+      "How to count: the course score is the average out of 5, reported by course, provider and trainer each quarter for the Training and Development Policy (target average at least 4); other items as the share answering Strongly agree or Agree, leaving out Does not apply to me. Combine the session copies for the quarter (CareFlow cannot yet pool surveys, so export or total them). Show results only for 5 or more responses, flagged under 10; with fewer, combine quarters. Trainers never see individual answers or names.",
+      "Results feed the annual training plan drafted by 28 February and the quarterly medicines governance report. Keep individual answers for 1 year after each copy closes and quarterly evaluation summaries for 6 years, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"I feel confident to use what I learned in my work\" answered Disagree or Strongly disagree after a medicines course.",
+        "action": "The HR Manager tells the Field Care Supervisor the same working day; they talk with the worker before their next medicines visit and arrange support or a further observation. A worker not yet signed off already gives no medicines support alone under the Medicines Training and Competency Assessment Procedure; pausing a signed-off worker's medicines visits until the Field Care Supervisor has spoken to them is a library decision. Supported, never blamed.",
+        "rule": {
+          "task": "Low confidence after a medicines course: support today",
+          "if": [
+            {
+              "all": [
+                {
+                  "question": "q-course",
+                  "answers": ["Medicines"]
+                },
+                {
+                  "question": "q-confident",
+                  "answers": ["Disagree", "Strongly disagree"]
+                }
+              ]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "\"I feel confident to use what I learned in my work\" answered Disagree or Strongly disagree after moving and handling, first aid or another practical course.",
+        "action": "The Field Care Supervisor contacts the worker within 5 working days (library timescale) to arrange practice or a repeat observation."
+      },
+      {
+        "when": "\"Is all the time you spent on this course paid?\" answered No.",
+        "action": "The HR Manager checks the e-learning log or attendance; unpaid time is paid in the next payroll under the Training and Development Policy, and an underpayment of £50 or more, or one taking pay below the minimum wage, is paid by bank transfer within 2 working days under the Working Time, Rest Breaks and Travel Time Policy.",
+        "rule": {
+          "task": "Training time unpaid: check and correct pay",
+          "if": [
+            {
+              "question": "q-paid",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "\"What has made it hard to use what you learned?\" includes I do not have the equipment I need.",
+        "action": "The HR Manager asks the Care Coordinator to check equipment for that worker's visits within 5 working days (library timescale), passing on only that need, never the survey answers.",
+        "rule": {
+          "task": "Equipment missing for visits: check",
+          "if": [
+            {
+              "question": "q-barriers",
+              "answers": ["I do not have the equipment I need"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment reporting inaccurate content, or a course, provider or trainer averaging below 4 in a quarter.",
+        "action": "The Registered Manager reviews the course or provider within 1 month and replaces or improves it, under the Training and Development Policy. If unsafe practice was taught, act at once and re-brief the staff who attended (library decision)."
+      },
+      {
+        "when": "A comment describing abuse or neglect of a person we support.",
+        "action": "Tell the safeguarding lead the same working day under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+      },
+      {
+        "when": "A comment describing harassment or wrongdoing.",
+        "action": "Tell the Registered Manager the same working day, as a report under the Bullying, Harassment and Sexual Harassment Policy or as a speaking-up concern under the Whistleblowing (Speaking Up) Policy."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The HR Manager, not the trainer, contacts the worker within 5 working days.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "alertsNeverTo": ["TRAINING_LEAD"],
+  "access": {
+    "responses": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": ["POL-HR-006", "POL-MED-016", "POL-HR-014", "POL-HR-005", "POL-SG-002", "POL-HR-013", "POL-HR-018", "POL-GOV-017"],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18(2)(a): staff receive appropriate training to carry out their duties",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Skills for Care, Care Certificate standards (updated March 2025)",
+      "url": "https://www.skillsforcare.org.uk/Developing-your-workforce/Care-Certificate/Care-Certificate-standards.aspx"
+    }
+  ]
+}

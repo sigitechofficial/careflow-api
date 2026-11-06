@@ -1,0 +1,756 @@
+{
+  "reference": "POL-HR-018",
+  "revision": 1,
+  "title": "Whistleblowing (Speaking Up) Policy",
+  "documentType": "POLICY",
+  "summary": "How anyone who works for us can raise a concern about wrongdoing, poor or unsafe care, abuse, cover-ups or other risks, inside or outside the management chain and directly with CQC or another external body. It sets out the internal and external routes, confidentiality and anonymity, how each concern is assessed, investigated and fed back on, and how people who speak up are protected from detriment. For all staff and the managers and Directors who handle concerns.",
+  "keyPoints": {
+    "intro": "Speaking up protects the people we support and your colleagues. This is how to raise a concern, what we will do with it, and how you are protected.",
+    "points": [
+      "If you see or suspect something wrong at work, such as unsafe care, abuse, falsified records, visits cut short, fraud, danger to health or safety, sexual harassment or a cover-up, speak up. You do not need proof.",
+      "If anyone is in danger during a visit, call 999. Phone the office or On-call Manager before you leave the visit, from outside the home if the person responsible is present or you feel unsafe.",
+      "Speak up to your supervisor, a Care Coordinator, the Registered Manager, the Deputy Manager or the Nominated Individual, our Speaking Up Lead. Concerns about the Nominated Individual or a Director go to the chair of the Directors; about all our Directors, to the HR Manager.",
+      "You can speak up in person, by phone, email or letter. You can ask us to keep your name confidential, or write or phone the Nominated Individual without giving your name. The Nominated Individual's details are on the Local Safeguarding Contacts sheet.",
+      "You may go straight to CQC, the local authority safeguarding team, the police, HSE or another body named in this policy. You do not have to tell us first.",
+      "You will get a written acknowledgement within 2 working days, a decision on what happens next within 5 working days, updates at least every 10 working days and written feedback on the outcome.",
+      "Nobody may treat you worse for speaking up, for example by cutting your hours, changing your runs, threatening your visa or writing a poor reference. Tell the Nominated Individual at once if this happens. Victimisation is gross misconduct.",
+      "Never try to find out who raised a concern, and never discourage, pressure or punish anyone for speaking up. Both are disciplinary matters.",
+      "Do not investigate yourself or confront anyone. Never photograph, film or record anything to gather evidence, or copy records to your phone. Write down what you saw, when and where, and tell us.",
+      "A problem with your own pay, hours or treatment that affects only you goes under the Grievance Policy and Procedure. Bullying or harassment goes under the Bullying, Harassment and Sexual Harassment Policy, which also protects you from being treated worse.",
+      "No contract or agreement can stop you making a protected disclosure. Free, confidential advice is available from Protect, Acas, Citizens Advice or your trade union."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "SAFEGUARDING"
+  ],
+  "relatedReferences": [
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-HR-008",
+    "POL-HR-009",
+    "POL-HR-013",
+    "POL-GOV-005",
+    "POL-GOV-007",
+    "POL-GOV-016"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Employment Rights Act 1996, section 43B (disclosures qualifying for protection, including sexual harassment from 6 April 2026 under S.I. 2026/323; reasonable belief that the disclosure is in the public interest)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/43B"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 43F (disclosure to a prescribed person)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/43F"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 43G (disclosure in other cases: conditions for wider disclosures)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/43G"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 43J (terms preventing a protected disclosure are void)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/43J"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 43K (extended meaning of worker, including agency workers and trainees)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/43K"
+    },
+    {
+      "source": "Public Interest Disclosure (Prescribed Persons) Order 2014 (S.I. 2014/2418), Schedule (prescribed persons and their matters, including the Care Quality Commission, the Health and Safety Executive, the Information Commission and members of the House of Commons)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2418/schedule"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 47B (right not to suffer detriment, including detriment by co-workers, and the employer's all reasonable steps defence)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/47B"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 48 (complaints to an employment tribunal about detriment; time limit of six months from 1 October 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/48"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 103A (dismissal for making a protected disclosure is automatically unfair)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/103A"
+    },
+    {
+      "source": "Employment Rights Act 2025, section 24 (new section 202A of the 1996 Act on terms preventing disclosures of harassment or discrimination; in force only for specified purposes)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/36/section/24"
+    },
+    {
+      "source": "Victims and Prisoners Act 2024, section 17 (agreements cannot stop a victim of crime disclosing to the police, lawyers, regulated professionals and victim support services; in force so far as not already in force from 1 October 2025)",
+      "url": "https://www.legislation.gov.uk/ukpga/2024/21/section/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 17 (good governance: assess, monitor and mitigate risks; seek and act on feedback)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 19(5) (inform a professional regulator where a registered professional no longer meets the fitness requirements)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/19"
+    },
+    {
+      "source": "Safeguarding Vulnerable Groups Act 2006, section 35 (regulated activity provider's duty to provide information to the DBS)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/35"
+    },
+    {
+      "source": "Department for Business and Trade, Whistleblowing guidance for employers (6 April 2026)",
+      "url": "https://www.gov.uk/government/publications/whistleblowing-guidance-and-code-of-practice-for-employers"
+    },
+    {
+      "source": "GOV.UK, Whistleblowing: list of prescribed people and bodies (updated 15 September 2026; CQC for adult social care services in England)",
+      "url": "https://www.gov.uk/government/publications/blowing-the-whistle-list-of-prescribed-people-and-bodies--2/whistleblowing-list-of-prescribed-people-and-bodies"
+    },
+    {
+      "source": "GOV.UK, Fair Work Agency (pay and work rights complaints and reports of serious abuse or exploitation at work)",
+      "url": "https://www.gov.uk/government/organisations/fair-work-agency"
+    },
+    {
+      "source": "GOV.UK, Whistleblowing for employees",
+      "url": "https://www.gov.uk/whistleblowing"
+    },
+    {
+      "source": "GOV.UK, Whistleblowing: if you're treated unfairly after whistleblowing (tribunal time limits from 1 October 2026)",
+      "url": "https://www.gov.uk/whistleblowing/treated-unfairly-after-whistleblowing"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} wants everyone who works for us to speak up about anything that could harm the people we support, our staff or the public, and to feel safe doing so. Our care workers are often the only people who see what happens in a person's home. Poor care, abuse, falsified records and unsafe rotas can stay hidden for a long time in home care unless the people who notice them speak up, and closed cultures grow where they do not."
+        },
+        {
+          "p": "{{organisation}} will listen to every concern, deal with it promptly, fairly and in confidence, tell the person who raised it what happened as far as we lawfully can, and act on what we learn. We never punish, disadvantage or try to identify anyone who speaks up, and we treat victimisation of a person who speaks up as gross misconduct. No agreement we make with anyone will stop them making a protected disclosure."
+        },
+        {
+          "p": "The Directors are accountable for this policy, the Nominated Individual is our Speaking Up Lead, and the Registered Manager handles most concerns day to day."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that everyone knows what to speak up about and who to tell; that every concern is recorded, checked for risk the same day and investigated independently; that people who speak up get feedback and are protected; and that the Directors act on the themes, as regulation 17 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 (the 2014 Regulations) requires."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, Office staff, care staff, bank staff and apprentices, and to agency workers, students on placement, volunteers and contractors while they work with us. Former employees may raise a concern about something they saw while working for us, and it is handled in the same way."
+        },
+        {
+          "p": "It covers concerns about wrongdoing or risk anywhere in our work: in people's homes, during travel between visits, at the branch office, on call and in our dealings with commissioners, the NHS and regulators. It is our only whistleblowing policy. Other matters have their own procedures, and using the wrong route never removes anyone's protection:"
+        },
+        {
+          "table": {
+            "columns": [
+              "If the concern is about",
+              "It is handled under"
+            ],
+            "rows": [
+              [
+                "A person we support being abused or neglected, by anyone",
+                "Safeguarding Concerns: Reporting, Referral and Enquiry Procedure first, with the protection in this policy for the person who reported it"
+              ],
+              [
+                "A member of staff who may have harmed a person we support or a child",
+                "Managing Allegations Against Staff Procedure"
+              ],
+              [
+                "Your own pay, hours, rota or treatment at work, affecting only you",
+                "Grievance Policy and Procedure"
+              ],
+              [
+                "Bullying, harassment or sexual harassment of you or a colleague",
+                "Bullying, Harassment and Sexual Harassment Policy, which has its own protection from victimisation"
+              ],
+              [
+                "A complaint by a person we support, a relative or a professional",
+                "Complaints Policy and Procedure"
+              ],
+              [
+                "An accident, error or near miss you were involved in",
+                "Incident Reporting, Investigation and Learning Policy"
+              ],
+              [
+                "Wrongdoing, risk or a cover-up that affects others, including any of the above when it is not being dealt with",
+                "This policy"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A concern can fit more than one row: unpaid travel time on your own payslip is a grievance, but travel time going unpaid for everyone is also speaking up. The manager who receives it uses the route that protects people first, and the person who raised it keeps this policy's protection."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Speaking up",
+                "Raising a concern about wrongdoing or risk under this policy, by any route. We use it to include whistleblowing."
+              ],
+              [
+                "Protected disclosure",
+                "A disclosure of information that a worker reasonably believes is in the public interest and tends to show a criminal offence, a failure to comply with a legal obligation, a miscarriage of justice, danger to anyone's health or safety, sexual harassment, damage to the environment, or the deliberate concealment of any of these (Employment Rights Act 1996, section 43B), made to a person or body the law allows."
+              ],
+              [
+                "Prescribed person",
+                "A body listed in law to receive protected disclosures about the matters it regulates, such as CQC for adult social care in England."
+              ],
+              [
+                "Case owner",
+                "The manager responsible for handling a concern, as the table in Who to tell sets out."
+              ],
+              [
+                "Detriment",
+                "Any disadvantage, act or deliberate failure to act because someone spoke up, such as fewer hours, worse runs, refused leave, unnecessary spot checks, exclusion, hostile messages, threats to a visa or a poor reference."
+              ],
+              [
+                "Speaking-up log",
+                "The restricted record of every concern, kept as encrypted files outside CareFlow, because CareFlow cannot limit a record to the named people this policy allows."
+              ],
+              [
+                "Working day",
+                "Monday to Friday, excluding bank holidays in England."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and the chair of the Directors",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy, make sure the routes and the employee assistance programme are funded and publicised, receive the quarterly speaking-up report, and never ask who raised a concern. The chair of the Directors receives concerns about the Nominated Individual or a Director, acts as case owner for them and appoints an external investigator; where a concern is about the chair, the deputy chair does this."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual (Speaking Up Lead)",
+          "blocks": [
+            {
+              "p": "The Nominated Individual receives concerns directly, including anonymous ones, and is case owner for any concern about the Registered Manager, Deputy Manager or HR Manager, about how a concern was handled, raised anonymously, or where the person speaking up asks for a route outside the branch. They review every new log entry within 1 working day (except concerns about themselves or a Director, which the chair of the Directors oversees, or the independent reviewer where the concern is about every Director), check open cases every month, carry out the detriment checks, make the formal action checks in Protecting people who speak up, decide reviews and write the quarterly report. While the Nominated Individual is absent or cannot be reached within 1 hour, the Director named under the Governance and Quality Assurance Policy to act for them carries out these duties."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is case owner for all other concerns, and as safeguarding lead makes sure safeguarding matters are handled under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure at once. They decide the route, appoint investigators, give feedback, make any CQC notification, and make sure any harm to a person we support that a concern reveals is tested under the Duty of Candour Policy. The Deputy Manager acts when the Registered Manager is absent, except for a concern about the Registered Manager."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager gives confidential advice on the routes, makes sure every agreement contains the wording in Protecting people who speak up, asks for the formal action check before each step listed there, passes concerns raised at exit conversations to the Registered Manager the same working day, and keeps training records for this policy. The HR Manager passes a concern about every Director, or our only Director, the same working day through the employment law adviser to the independent reviewer named in the Fit and Proper Persons (Directors) Policy, who acts as case owner."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors, Senior Care Workers and On-call Managers",
+          "blocks": [
+            {
+              "p": "They receive concerns respectfully, act on any immediate risk, and pass every concern to the case owner the same working day without investigating it themselves. Field Care Supervisors remind staff of the routes at supervision and spot checks. Care Coordinators never change a worker's hours or runs because they spoke up."
+            }
+          ]
+        },
+        {
+          "heading": "Everyone who works with us",
+          "blocks": [
+            {
+              "p": "Everyone speaks up about wrongdoing or risk they see or suspect, cooperates honestly with investigations, keeps cases confidential, and never discourages, pressures or victimises anyone who speaks up."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What you can speak up about",
+      "blocks": [
+        {
+          "p": "You can speak up about anything that worries you about how we work. You do not need proof, only an honest and reasonable belief; it is our job to find out what happened. Examples from our work:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Area",
+              "Examples"
+            ],
+            "rows": [
+              [
+                "Care and safety",
+                "Visits cut short, missed or cramped into a rota with no travel time; double-handed visits done by one worker; medicines signed for but not given; moving and handling without the equipment in the care plan; care workers sent out before they are cleared to work or trained"
+              ],
+              [
+                "Abuse and neglect",
+                "Rough handling, shouting or humiliating people; theft or misuse of a person's money; misuse of key safe codes or keys; any of these not being reported or acted on"
+              ],
+              [
+                "Records and honesty",
+                "Check-in or check-out done for someone else or from outside the home; eMAR, daily visit notes, training records or timesheets altered or invented; incidents, complaints or CQC notifications hidden"
+              ],
+              [
+                "Staff and law",
+                "Pay below the minimum wage, including unpaid travel time; working time limits ignored; sponsored workers threatened about their visa or charged fees; sexual harassment; discrimination; driving for work without business insurance"
+              ],
+              [
+                "Other services and commissioners",
+                "Poor practice by another agency's care workers, a district nurse or another professional visiting the same person; pressure from a commissioner or manager to cut visits below what the care plan needs"
+              ],
+              [
+                "Leadership and culture",
+                "Staff told not to report, or punished for reporting; managers or Directors breaking the law or misleading CQC, commissioners or families; fraud, bribery or misuse of public money"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A concern that affects only your own contract is usually not a protected disclosure, because the law requires a reasonable belief that the disclosure is in the public interest, which is why it goes under the Grievance Policy and Procedure. Our policy protects everyone who speaks up honestly, whether or not the law would class the concern as a protected disclosure."
+        }
+      ]
+    },
+    {
+      "heading": "How to raise a concern",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "If someone is at risk now",
+          "blocks": [
+            {
+              "p": "A concern about a person's immediate safety always comes first and follows the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure:"
+            },
+            {
+              "steps": [
+                "If anyone is in danger, call 999. Never leave a person at risk to make a report.",
+                "Phone the office, or the On-call Manager out of hours, and speak to a person before you leave the visit. Phone from outside the home if the person who may be responsible is present or you feel unsafe.",
+                "If nobody answers within 15 minutes, or your concern is about the Care Coordinator or On-call Manager on duty, phone the Registered Manager or Deputy Manager directly. If the concern is about them, phone the Nominated Individual.",
+                "If you still cannot reach a manager and the person remains at risk, contact the local authority or the police using your Local Safeguarding Contacts sheet.",
+                "Before the end of your shift, record the facts in the CareFlow app as an incident in the Safeguarding Concern category; the office opens the safeguarding record. Your daily visit notes say only that a concern was reported."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Who to tell",
+          "blocks": [
+            {
+              "p": "You can raise a concern with any of the people below, in person, by phone, by email or by letter. If you speak up verbally, the manager writes down what you said and agrees the record with you within 2 working days. The Nominated Individual's and the chair of the Directors' direct phone numbers and email addresses, and the contact routes for CQC, HSE, the Fair Work Agency, Protect and Acas, are on the Local Safeguarding Contacts sheet and the branch office noticeboard."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Who you can tell",
+                  "When to use this route",
+                  "Case owner"
+                ],
+                "rows": [
+                  [
+                    "Your supervisor, a Care Coordinator, a Field Care Supervisor, the HR Manager or the Deputy Manager",
+                    "Any concern, if you feel comfortable",
+                    "Registered Manager"
+                  ],
+                  [
+                    "The Registered Manager",
+                    "Any concern",
+                    "Registered Manager"
+                  ],
+                  [
+                    "The Nominated Individual (Speaking Up Lead)",
+                    "Any concern; a concern about the Registered Manager, Deputy Manager or HR Manager; a concern that was not acted on; or if you prefer to go outside the branch or not give your name",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "The chair of the Directors, or the deputy chair if the concern is about the chair",
+                    "A concern about the Nominated Individual or a Director",
+                    "Chair of the Directors, or deputy chair"
+                  ],
+                  [
+                    "The HR Manager",
+                    "A concern about every Director, or about our only Director where {{organisation}} has one",
+                    "Independent reviewer appointed through the employment law adviser the same working day"
+                  ],
+                  [
+                    "CQC or another body in Raising a concern outside {{organisation}}",
+                    "Any concern, at any time, including one about every Director or our only Director",
+                    "The external body decides what to do"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Whoever you tell, the case owner follows who the concern is about: a concern about the Registered Manager, Deputy Manager or HR Manager always goes to the Nominated Individual, one about the Nominated Individual or a Director to the chair, and one about every Director or our only Director to the independent reviewer, even if you first told your supervisor. Out of hours, the On-call Manager deals with any immediate risk and passes every other concern to the case owner by 10am the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Confidentiality and anonymity",
+          "blocks": [
+            {
+              "p": "If you ask us to keep your identity confidential, we will. Only the case owner, the Nominated Individual (unless the concern is about them or a Director) and, where needed, the investigator or reviewer will know it. We will not share it without your agreement unless the law requires it, for example a court order, a police investigation or a safeguarding enquiry that cannot proceed without it, and then we will tell you before we do. Others may still guess who spoke up from what is investigated; the case owner talks this through with you before the investigation starts."
+            },
+            {
+              "p": "You can also raise a concern without giving your name, by phoning or writing to the Nominated Individual. We act on anonymous concerns as far as we can, but they are harder to investigate, we cannot give you feedback or check that you are protected, and it may be harder for you to show later that unfair treatment was because you spoke up. Nobody may try to find out who raised an anonymous concern."
+            }
+          ]
+        },
+        {
+          "heading": "Raising a concern outside {{organisation}}",
+          "blocks": [
+            {
+              "p": "We would like the chance to put things right, but you never have to raise a concern with us first. The law protects a disclosure to a prescribed person where you reasonably believe the matter is one it covers and that the information is substantially true (Employment Rights Act 1996, section 43F). The bodies most relevant to our work are:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Body",
+                  "For concerns about"
+                ],
+                "rows": [
+                  [
+                    "Care Quality Commission (CQC), a prescribed person",
+                    "The quality and safety of our care, how we are run and whether we meet the regulations"
+                  ],
+                  [
+                    "Health and Safety Executive, a prescribed person",
+                    "Health and safety of staff, the people we support or the public arising from our work"
+                  ],
+                  [
+                    "Information Commission (formerly the ICO), a prescribed person",
+                    "Misuse, loss or unlawful sharing of personal data"
+                  ],
+                  [
+                    "Equality and Human Rights Commission, a prescribed person",
+                    "Breaches of equality law, including failure to prevent sexual harassment"
+                  ],
+                  [
+                    "Your Member of Parliament, a prescribed person",
+                    "Any of the matters above"
+                  ],
+                  [
+                    "Local authority adult safeguarding team",
+                    "Abuse or neglect of an adult, using the Local Safeguarding Contacts sheet"
+                  ],
+                  [
+                    "Police",
+                    "A crime, on 999 in an emergency or the non-emergency route on the Local Safeguarding Contacts sheet"
+                  ],
+                  [
+                    "Fair Work Agency",
+                    "Pay and work rights, employment agency conduct, and serious abuse or labour exploitation at work, including of sponsored or agency workers"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The list of prescribed persons is set by law and published on GOV.UK; the HR Manager checks it every 12 months and when it changes. Prescribed persons decide what to do with the information; they do not act for you in any dispute with us. We never treat anyone worse for contacting the local authority safeguarding team or the police about abuse or a crime, whether or not the law classes it as a protected disclosure."
+            },
+            {
+              "p": "Disclosures to anyone else, such as the media or on social media, are protected by law only in limited circumstances: you must reasonably believe the information is substantially true, not make the disclosure for personal gain, and have already raised it with us or a prescribed person or reasonably believe you would suffer detriment if you did (or, where no prescribed person covers it, that evidence would be hidden), and it must be reasonable in all the circumstances (section 43G). Before going public, take advice from Protect, Acas, Citizens Advice or your trade union, and never name or identify a person we support. The Mobile Phones and Social Media Policy applies to posts online."
+            }
+          ]
+        },
+        {
+          "heading": "Evidence and records",
+          "blocks": [
+            {
+              "p": "Write down what you saw or heard, when, where and who was there, with CareFlow visit or record references if you have them. Do not investigate, question people or confront anyone. Never photograph or film people, injuries or records, or record conversations, calls, meetings or visits, to gather evidence; record an injury on the CareFlow body map and in your Safeguarding Concern incident instead. A body map photograph taken in the CareFlow app only to monitor skin or a wound is not evidence gathering. Do not copy care records to a personal device or open records in CareFlow you do not need for your work; tell us or the external body where the evidence is and we will secure it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "How we handle a concern",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "First steps",
+          "blocks": [
+            {
+              "steps": [
+                "Whoever receives the concern thanks the person, deals with any immediate risk and passes it to the case owner by phone or by email marked confidential the same working day (by 10am the next working day if received out of hours), without investigating it or telling anyone else. A concern raised during a visit or a spot check in a person's home is talked through after leaving the home, never in front of the person or their family. A concern raised at supervision, a spot check or a team meeting is never written in the supervision record, daily visit notes, rota notes or minutes; the supervision record says only that the speaking-up routes were discussed.",
+                "The case owner decides at once whether anyone is at risk. A safeguarding concern goes to the safeguarding lead immediately, who assesses risk within 1 hour as the Safeguarding Adults Policy requires.",
+                "The case owner records the concern in the speaking-up log the same working day, and the Nominated Individual reviews the entry within 1 working day, unless the concern is about the Nominated Individual or a Director.",
+                "The case owner acknowledges the concern in writing within 2 working days of receiving it, naming themselves as the contact, and offers a private meeting within 5 working days. The meeting is in paid time, at the branch office, by phone or by video, never in a person's home, and the worker may bring a colleague or trade union representative. Where it falls in rostered time, the case owner asks the Care Coordinator to free the visits without giving the reason. Letters and emails go to the address the worker chooses, never to a shared work phone or through a colleague.",
+                "Within 5 working days of receipt the case owner decides the route, records the reasons in the log and tells the person who spoke up."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Routes",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "What the concern shows",
+                  "Route"
+                ],
+                "rows": [
+                  [
+                    "Abuse or neglect of a person we support",
+                    "Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and the Managing Allegations Against Staff Procedure where a worker is involved"
+                  ],
+                  [
+                    "Possible misconduct by a named worker",
+                    "Disciplinary Policy and Procedure investigation, with terms of reference that cover the concern"
+                  ],
+                  [
+                    "An incident, error or unsafe system",
+                    "Incident Reporting, Investigation and Learning Policy"
+                  ],
+                  [
+                    "A data breach",
+                    "Personal Data Breach Procedure"
+                  ],
+                  [
+                    "Fraud or bribery",
+                    "Anti-Bribery and Fraud Prevention Policy"
+                  ],
+                  [
+                    "Poor practice by another provider or a community professional, such as a district nurse, visiting the same person",
+                    "The Registered Manager raises it in writing with that organisation within 5 working days, without naming the person who spoke up, and with the commissioner or its regulator if it is not put right"
+                  ],
+                  [
+                    "Any other wrongdoing or risk",
+                    "A speaking-up investigation under this policy"
+                  ],
+                  [
+                    "Already dealt with, or no wrongdoing or risk found on the information given",
+                    "No further investigation; the case owner explains why in writing, and the person may ask for a review"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Whatever the route, the concern stays open in the speaking-up log, the person who spoke up keeps a named contact and the protection in this policy, and the case owner gives feedback. Where the concern shows an event CQC must be told about, the Registered Manager notifies under the Statutory Notifications to CQC Procedure (the Nominated Individual where the Registered Manager is involved). Where it affects people funded by a commissioner whose contract requires notice, the Registered Manager tells the commissioner without naming the person who spoke up."
+            }
+          ]
+        },
+        {
+          "heading": "Investigation",
+          "blocks": [
+            {
+              "p": "The case owner appoints an investigator with written terms of reference within 2 working days of the route decision. The investigator is never anyone the concern is about, anyone who reports to them, the person's own supervisor where that could affect the person's work, or anyone close to the people involved. For a concern about the Registered Manager, the Nominated Individual appoints an external investigator through our retained employment law adviser within 5 working days; for a concern about the Nominated Individual or a Director, the chair of the Directors does so, and for a concern about every Director or our only Director, the independent reviewer does."
+            },
+            {
+              "p": "The investigator meets the person who spoke up first, unless they are anonymous, gathers evidence from CareFlow records, check-in and check-out data and witnesses, and reports to the case owner within 20 working days of appointment. Investigators do not open the speaking-up log; the case owner gives them the terms of reference and the information they need and adds their report to the log entry. The Nominated Individual may agree one extension, which the case owner tells the person about before the original date. The case owner decides the outcome and actions within 5 working days of the report. Actions go into the service improvement plan within 5 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Updates and feedback",
+          "blocks": [
+            {
+              "p": "The case owner updates the person who spoke up at least every 10 working days while the concern is open, including where a safeguarding enquiry or police investigation sets the pace, agreeing with the local authority or police what can be said. Within 5 working days of the outcome decision they give written feedback and offer a meeting. Feedback says what was looked at, whether the concern was upheld and what we have changed or will change. It never includes confidential information about other people, such as a colleague's disciplinary sanction or a person's care details."
+            }
+          ]
+        },
+        {
+          "heading": "Review and escalation",
+          "blocks": [
+            {
+              "p": "If you are unhappy with how your concern was handled or with the outcome, ask the Nominated Individual in writing for a review within 10 working days of the feedback (the HR Manager where the concern was about the Nominated Individual or a Director). The Nominated Individual reviews, except that the chair of the Directors reviews where the Nominated Individual was case owner or took decisions in the case, and the deputy chair where the chair was case owner; where nobody senior is uninvolved, or the independent reviewer was case owner, the HR Manager appoints an external HR professional through the employment law adviser within 5 working days. The reviewer was not involved in the case, looks at the process and the evidence, and decides within 10 working days whether to uphold the outcome, reinvestigate or take further action. The review is the final internal stage, and you can still go to CQC or another external body at any time."
+            }
+          ]
+        },
+        {
+          "heading": "When CQC or another body passes us a concern",
+          "blocks": [
+            {
+              "p": "Whoever receives a request from CQC, a commissioner or another body to look into a concern raised with them tells the Registered Manager and Nominated Individual the same day. The concern is logged and handled under this policy, the Nominated Individual approves our response, and it is sent by the deadline the body sets. We never ask staff whether they contacted the body or try to find out who did."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Protecting people who speak up",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the law says",
+          "blocks": [
+            {
+              "p": "The law gives workers, including agency workers and trainees, the right not to suffer detriment for making a protected disclosure, including detriment by a colleague; the colleague can be personally liable, and we are liable unless we took all reasonable steps to prevent it (Employment Rights Act 1996, sections 43K and 47B). Dismissing an employee mainly because they made a protected disclosure is automatically unfair, with no qualifying period of employment (section 103A). Volunteers, job applicants and self-employed contractors may not be protected by this law; our policy gives them the same protection."
+            },
+            {
+              "p": "Any term in a contract or agreement that tries to stop a worker making a protected disclosure is void (section 43J). Since 1 October 2025 an agreement also cannot stop a victim of crime telling the police, a lawyer, a regulated professional or a support service about it (Victims and Prisoners Act 2024, section 17). A further restriction on terms preventing disclosures of harassment or discrimination (Employment Rights Act 2025, section 24) is in force only for limited purposes; we already apply it."
+            },
+            {
+              "p": "A worker who believes they have been treated unfairly can get advice from Acas, which must be notified before an employment tribunal claim. Since 1 October 2026 a tribunal claim about detriment must usually be made within 6 months of the act complained of (section 48), and an unfair dismissal claim within 6 months of employment ending where it ends on or after that date."
+            }
+          ]
+        },
+        {
+          "heading": "Our protection arrangements",
+          "blocks": [
+            {
+              "bullets": [
+                "Rota and hours: with the agreement of the person who spoke up, while the concern is open and for 6 months after feedback, any change to their usual runs or hours that they did not ask for, other than same-day sickness or emergency cover, needs the Registered Manager's prior agreement (the Nominated Individual's where the concern involves the Registered Manager), with the reason recorded in the speaking-up log.",
+                "Separation: on request, the Care Coordinator stops pairing the person with anyone their concern is about, and that colleague does not supervise, spot check or allocate their work, within 2 working days and without loss of hours for either.",
+                "Formal action check: before any formal disciplinary, capability or sickness absence meeting, probation extension or failure, dismissal, redundancy selection, change to sponsorship, or decision on a DBS or professional regulator referral, the HR Manager asks the Nominated Individual to check the speaking-up log. Where the employee has spoken up, the Nominated Individual records in the case file that the case is unconnected with the concern before it goes ahead; if they cannot, the case pauses and the employment law adviser advises. Where the employee's concern was about the Nominated Individual or a Director, or the Nominated Individual is involved in the formal case, the chair of the Directors makes this check (the independent reviewer where the concern was about every Director or our only Director).",
+                "Referrals the law requires: a possible connection with a protected disclosure never pauses a referral to the DBS (Safeguarding Vulnerable Groups Act 2006, section 35) or to a professional regulator (regulation 19(5) of the 2014 Regulations). Instead the employment law adviser reviews the evidence before it is submitted, within the timescales of the Staff Fitness Concerns and DBS Referrals Procedure.",
+                "Detriment checks: 3 and 6 months after feedback, the Nominated Individual compares the person's rostered hours, runs, spot checks and any formal action with the 12 weeks before the concern, asks them whether they have been treated worse, and records the result in the log.",
+                "References: a reference never mentions that anyone spoke up.",
+                "Support: the person who spoke up, and any colleague the concern is about, is offered the employee assistance programme and a named contact. Where they show signs of stress, the HR Manager or Registered Manager completes an individual stress risk assessment within 5 working days."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Victimisation and breaches of confidentiality",
+          "blocks": [
+            {
+              "p": "Anyone who believes they are being treated worse for speaking up tells the Nominated Individual, or the chair of the Directors where the Nominated Individual is involved, who looks into it within 5 working days and stops any victimisation found. Victimising or pressuring anyone for speaking up is gross misconduct under the Disciplinary Policy and Procedure. Revealing the identity of a person who spoke up without need or consent, or trying to identify an anonymous person, is a disciplinary matter. Victimisation found is recorded in the speaking-up log and reported in the next quarterly report."
+            }
+          ]
+        },
+        {
+          "heading": "Agreements and contracts",
+          "blocks": [
+            {
+              "p": "Every employment contract, agency, contractor and student agreement, and every settlement agreement, states that nothing in it prevents a protected disclosure, a report to the police, CQC or another regulator, or cooperation with a safeguarding enquiry. The HR Manager checks the wording before each is issued, and the employment law adviser approves every settlement agreement."
+            }
+          ]
+        },
+        {
+          "heading": "Concerns that turn out to be wrong",
+          "blocks": [
+            {
+              "p": "Nobody is criticised or disadvantaged because a concern they honestly raised turns out to be mistaken. Knowingly raising false information to harm someone is a disciplinary matter, but only after an investigation and with the Nominated Individual's agreement that the concern was not raised honestly. Speaking up does not protect anyone from action for their own separate misconduct, which is handled fairly under the usual procedures."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Every concern has an entry in the speaking-up log, an encrypted file held in the Nominated Individual's work account. Concerns about the Nominated Individual or a Director are logged in a separate encrypted file that only the chair or deputy chair of the Directors can open (the independent reviewer where the concern is about every Director or our only Director). Any other case owner or reviewer is given only their own case entry, and nobody else can open the log. The entry holds the date received, the route used, the name of the person who spoke up or that it was anonymous, the concern, the risk and route decisions, the investigation file, every acknowledgement, update and feedback, any review, the protection agreed, the detriment checks and the learning."
+        },
+        {
+          "p": "Where a concern also goes into the safeguarding record, an incident log entry or a disciplinary case file, those records give only the log entry's reference number, never the name of the person who spoke up, and nothing about it goes in that person's staff record except a formal action check note in a case file. Log entries are kept for 10 years after the case closes, or longer under a retention hold under the Records Management and Retention Policy. A person named in a concern who asks for their records is never given the identity of the person who spoke up without that person's consent; the request is handled under the Subject Access and Individual Rights Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "Everyone",
+                "This policy, the routes inside and outside {{organisation}}, confidentiality and protection",
+                "At induction, with the policy acknowledged in CareFlow by the deadline in the Induction and Care Certificate Procedure (care staff before working alone, other staff by the end of week 4), and again within 14 days of each new major version; a speaking-up scenario in every annual safeguarding refresher"
+              ],
+              [
+                "Agency workers and students",
+                "The routes and the Local Safeguarding Contacts sheet",
+                "At their local induction, before their first visit"
+              ],
+              [
+                "Field Care Supervisors, Senior Care Workers who supervise, Care Coordinators and On-call Managers",
+                "Receiving a concern, immediate risk, passing it on, confidentiality and protecting the person",
+                "Before their first supervision, rota or on-call duty, then every 3 years"
+              ],
+              [
+                "Registered Manager, Deputy Manager, HR Manager and Nominated Individual",
+                "Handling concerns as case owner, the law on protected disclosures, routing, feedback and detriment checks",
+                "Within 3 months of appointment and before handling a first concern alone, then every 3 years"
+              ],
+              [
+                "Directors",
+                "Their role, the chair's route and the speaking-up culture",
+                "Within 3 months of appointment, then at the annual governance update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Investigators also hold the disciplinary investigation training the Disciplinary Policy and Procedure requires. The Field Care Supervisor discusses concerns about colleagues or practice and the speaking-up routes at every supervision under the Supervision, Spot Checks and Appraisal Policy. A worker who cannot name at least one route outside their line manager at a spot check or supervision is taken through this policy again within 5 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What",
+              "Who and how often",
+              "Reported to",
+              "Target"
+            ],
+            "rows": [
+              [
+                "Open cases, timescales, protection and detriment checks",
+                "Nominated Individual, monthly",
+                "Speaking-up log; any missed target in the quarterly report",
+                "100% acknowledged within 2 working days and routed within 5; at least 90% of investigations within 20 working days or agreed extension; 100% of detriment and formal action checks done"
+              ],
+              [
+                "Numbers, themes, routes, outcomes and learning, anonymised",
+                "Nominated Individual, quarterly",
+                "Directors' governance meeting; numbers and themes only to the Monthly Quality and Governance Meeting",
+                "At least 90% of resulting improvement actions completed on time"
+              ],
+              [
+                "Speaking-up culture",
+                "HR Manager, in the September staff survey and the March speaking up survey (the independent quality review staff questionnaire in a year it runs in March)",
+                "Directors",
+                "At least 80% confident a concern would be acted on and that they would not suffer; at least 90% know a route outside their line manager"
+              ],
+              [
+                "Up to 5 closed cases (all if fewer), with names removed",
+                "Independent quality reviewer, every 12 months",
+                "Directors with the annual governance review",
+                "Process followed and feedback given in every case"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "To protect identities, branch figures under 3 are reported only at organisation level. Three or more concerns on one theme or about one manager or team in a quarter, any upheld victimisation, or a branch with no concerns raised in 12 months and a staff survey result below target, lead to a Nominated Individual review within 10 working days, reported to the Directors with any signs of a closed culture."
+        },
+        {
+          "p": "The Registered Manager reviews this policy every 12 months, and sooner after a change in whistleblowing law or the prescribed persons list, a serious incident, an inspection finding or monitoring that shows the arrangements are not working. The Directors approve it under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

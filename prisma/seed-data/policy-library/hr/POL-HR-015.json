@@ -1,0 +1,799 @@
+{
+  "reference": "POL-HR-015",
+  "revision": 1,
+  "title": "Flexible Working and Family Leave Policy",
+  "documentType": "POLICY",
+  "summary": "How employees ask for flexible working and how we decide, and the leave and pay available around pregnancy, birth, adoption, caring for children and dependants, neonatal care and bereavement, including the company pay we add to statutory pay. It also covers keeping in touch during leave, returning safely to visits, protection from detriment and the changes in law expected in 2027. For all employees and the managers who decide requests and plan rotas.",
+  "keyPoints": {
+    "intro": "Most of us have families or care for someone. This is how to ask for a working pattern that fits your life, and the time off and pay you can have when your family needs you.",
+    "points": [
+      "Tell the HR Manager or your Care Coordinator early that you are pregnant. Heavy moving and handling and other restricted tasks come off your rota before your next visit, your risk assessment is done within 5 working days, and only those you agree are told.",
+      "From your first day you can ask in writing to the HR Manager for flexible working, such as school-hours runs. You will have a meeting within 10 working days and a final answer, after any appeal, within 2 months unless you agree longer.",
+      "Antenatal appointments are paid time off, including travel. Tell the Care Coordinator as soon as an appointment is booked so your visits can be moved. Partners have paid time off for 2 appointments.",
+      "Maternity, adoption, paternity, neonatal care and unpaid parental leave are yours from your first day. Tell the HR Manager by the end of the 15th week before the week the baby is due, or within 7 days of an adoption match.",
+      "In an emergency involving someone who depends on you, phone the office (On-call Manager out of hours) and speak to a person, before your first visit if you can, or before you leave a visit. Never just text, and never arrange your own cover.",
+      "You can take up to one week's carer's leave in any 12 months to care for someone with a long-term need. Give at least 3 days' notice for a day or half day, or twice the length of longer leave.",
+      "Up to 2 rostered days of emergency or carer's leave in any 12 months are paid. If someone close to you dies you have up to 5 rostered days' paid compassionate leave, and parents who lose a child have 2 weeks at full pay.",
+      "If you are experiencing domestic abuse you can have up to 10 rostered days' paid safe leave in any 12 months and ask for a salary advance. Phone the HR Manager; no evidence is needed.",
+      "Return any keys you hold for people we support to the office before your leave starts. Keeping in touch days are optional and every hour is paid. Training that expires while you are away is renewed before your first visit back.",
+      "You will never lose hours, runs or training because you asked for flexible working, are pregnant or took family leave. Tell the HR Manager if you think this has happened."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-HS-016",
+    "POL-HR-014",
+    "POL-HR-011",
+    "POL-HR-012",
+    "POL-HR-009",
+    "POL-HR-003",
+    "POL-SG-011",
+    "POL-HR-005"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Employment Rights Act 1996, section 80F (statutory application for flexible working: hours, times and place of work; two applications in 12 months, one at a time)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/80F"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 80G (consultation before refusal, the business grounds for refusal, the two-month decision period and treating an application as withdrawn)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/80G"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 80EF (neonatal care starting within 28 days of birth and lasting at least 7 days)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/80EF"
+    },
+    {
+      "source": "Maternity and Parental Leave etc. Regulations 1999, regulation 10 (redundancy protection during pregnancy, maternity leave and the additional protected period)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3312/regulation/10"
+    },
+    {
+      "source": "Acas Code of Practice on requests for flexible working",
+      "url": "https://www.acas.org.uk/acas-code-of-practice-on-flexible-working-requests/html"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 57A (time off for dependants)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/57A"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 57ZE (time off to accompany a pregnant woman to antenatal appointments)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/57ZE"
+    },
+    {
+      "source": "Parental Bereavement Leave Regulations 2020, regulations 5 and 6 (one or two weeks within 56 weeks of the death; notice)",
+      "url": "https://www.legislation.gov.uk/uksi/2020/249/regulation/5"
+    },
+    {
+      "source": "Neonatal Care Leave and Miscellaneous Amendments Regulations 2025, regulations 4, 5, 7, 10 and 14 (neonatal care, a week of leave for each week of care up to 12 weeks within 68 weeks of birth, tier 1 and tier 2 notice, redundancy protection)",
+      "url": "https://www.legislation.gov.uk/uksi/2025/375/made"
+    },
+    {
+      "source": "Bereaved Partner's Paternity Leave Regulations 2026, regulations 4 to 6, 11 and 14 (up to 52 weeks in the child's first year, notice, keeping in touch days, redundancy protection)",
+      "url": "https://www.legislation.gov.uk/uksi/2026/237/made"
+    },
+    {
+      "source": "GOV.UK, Maternity pay and leave: how to claim (notice, employer confirmation within 28 days, MATB1, form SMP1)",
+      "url": "https://www.gov.uk/maternity-pay-leave/how-to-claim"
+    },
+    {
+      "source": "GOV.UK, Paternity pay and leave: leave and eligibility (day-one leave; pay after 26 weeks and average earnings of at least £129 a week)",
+      "url": "https://www.gov.uk/paternity-pay-leave/eligibility"
+    },
+    {
+      "source": "GOV.UK, Adoption pay and leave: pay and eligibility (£194.32 a week from week 7)",
+      "url": "https://www.gov.uk/adoption-pay-leave/eligibility"
+    },
+    {
+      "source": "GOV.UK, Shared Parental Leave and Pay: eligibility for birth parents",
+      "url": "https://www.gov.uk/shared-parental-leave-and-pay/eligibility-for-birth-parents"
+    },
+    {
+      "source": "GOV.UK, Unpaid Parental Leave: entitlement",
+      "url": "https://www.gov.uk/parental-leave/entitlement"
+    },
+    {
+      "source": "GOV.UK, Unpaid Parental Leave: delaying leave",
+      "url": "https://www.gov.uk/parental-leave/delaying-leave"
+    },
+    {
+      "source": "GOV.UK, Carer's leave",
+      "url": "https://www.gov.uk/carers-leave"
+    },
+    {
+      "source": "GOV.UK, Employee rights when on leave (keeping in touch days, right to return, redundancy protection for 18 months)",
+      "url": "https://www.gov.uk/employee-rights-when-on-leave"
+    },
+    {
+      "source": "Acas, Employment Rights Act 2025: changes and dates",
+      "url": "https://www.acas.org.uk/employment-rights-act-2025"
+    },
+    {
+      "source": "Department for Business and Trade, Plan to Make Work Pay and Employment Rights Act: timeline update (22 October 2026)",
+      "url": "https://www.gov.uk/government/publications/implementing-the-plan-to-make-work-pay-and-employment-rights-act/plan-to-make-work-pay-and-employment-rights-act-timeline-update"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} wants people to build long careers in care with us, whatever is happening in their family life. A rota that fits around family life is often what keeps a good care worker with us. We agree flexible working whenever the visits the people we support depend on can still be delivered safely and reliably."
+        },
+        {
+          "p": "We give every employee the family leave and pay the law provides, and more where this policy says so. Nobody is treated less favourably, loses hours or misses opportunities because they are pregnant, have taken family leave, care for someone or have asked to work differently."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Set out how employees ask for flexible working and how we decide within the legal time limit.",
+            "Set out the leave and pay for pregnancy, birth, adoption, caring for children and dependants, neonatal care and bereavement, and the notice each needs.",
+            "Keep people on leave in touch on their terms and return them safely to lone visits with their training in date.",
+            "Protect everyone who uses these rights from detriment and prepare for the changes in law due in 2027."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee of {{organisation}}, including care staff on contracted, variable and zero hours contracts, bank employees, On-call Managers, Office staff and managers. Statutory leave rights and the right to request flexible working belong to employees. A bank worker on a worker's contract receives the statutory pay they qualify for and may take the leave in this policy on the same notice, but company family pay and the paid days in this policy apply only to employees. Agency workers' leave is arranged by their agency. Every right and arrangement in this policy for pregnancy, birth, breastfeeding and parenthood applies whatever the employee's gender identity, including to trans men, non-binary and intersex employees."
+        },
+        {
+          "p": "Other documents cover: the pregnancy and breastfeeding risk assessment, the tasks that stop, the branch office rest room and expressing gaps (New and Expectant Mothers at Work Procedure); pregnancy-related sickness and maternity leave starting through absence (Sickness Absence Policy); annual leave and holiday carried forward after family leave (Working Time, Rest Breaks and Travel Time Policy); reasonable adjustments (Equality, Diversity and Inclusion Policy); safe leave for employees experiencing domestic abuse (Domestic Abuse Policy); unpaid leave and hours rules for sponsored workers (Right to Work and Sponsored Workers Policy); and cover for an absent Registered Manager (Registered Manager Role and Absence Cover Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Expected week of childbirth",
+                "The week, starting on a Sunday, in which the baby is due. Notice dates and pay eligibility are counted back from it; the qualifying week is the 15th week before it."
+              ],
+              [
+                "Statutory family pay",
+                "Statutory Maternity, Paternity, Adoption, Shared Parental, Parental Bereavement and Neonatal Care Pay. From 6 April 2026 the weekly rate is £194.32, or 90% of average weekly earnings if lower. Each needs average earnings of at least £129 a week and 26 weeks' continuous employment by the week the law sets for that pay."
+              ],
+              [
+                "Company family pay",
+                "Pay we add under this policy. It includes the statutory pay due for the same period: the employee receives normal pay, or the statutory pay if that is higher."
+              ],
+              [
+                "Normal pay",
+                "Contractual weekly pay or, for variable-hours staff, average weekly paid hours including travel time over the 12 complete weeks before the leave, as in the Sickness Absence Policy. A paid day is paid at the hours rostered, including travel, or at one-seventh of weekly normal pay where no rota is published."
+              ],
+              [
+                "Keeping in touch day",
+                "A day of work during maternity, adoption or bereaved partner's paternity leave (up to 10) or shared parental leave (up to 20) that does not end the leave. Both sides must agree to it."
+              ],
+              [
+                "Dependant",
+                "A spouse, civil partner, partner, child or parent, someone living in the household other than as a tenant, lodger or employee, and anyone who reasonably relies on the employee for help or care."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and its company family pay each year with the published pay structure. The Nominated Individual decides and hears the requests and appeals this policy gives them and audits flexible working and family leave each November."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager decides flexible working requests from care, coordination and office roles. The Registered Manager decides requests from the HR Manager and Deputy Manager, hears appeals against the Deputy Manager's decisions, and is the only person who may postpone carer's leave or unpaid parental leave or refuse a split block of shared parental leave."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager receives requests and notices, checks every draft flexible working refusal before it is sent, confirms leave and pay in writing, calculates statutory and company family pay and reclaims statutory pay through payroll, keeps in touch with employees on leave, plans returns, keeps the records and reports monthly."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and supervisors",
+          "blocks": [
+            {
+              "p": "Care Coordinators assess the rota effect of requests, build agreed patterns, appointments, keeping in touch days and returns into the rota, and cover visits when someone takes emergency leave, recording only that the employee is unavailable. Field Care Supervisors and other named supervisors ask at supervision whether caring responsibilities are affecting work, pass requests to the HR Manager within 1 working day and hold the supervision in the first week back."
+            }
+          ]
+        },
+        {
+          "heading": "Employees",
+          "blocks": [
+            {
+              "p": "Employees give the notice this policy sets out, phone in emergencies rather than texting, tell the HR Manager about changes to leave dates, and renew any expired training before visiting people again."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Flexible working",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What you can ask for",
+          "blocks": [
+            {
+              "p": "Every employee may make a statutory request to change their hours, the times or days they work, or where they work, from their first day of employment (Employment Rights Act 1996, section 80F). The law allows two statutory requests in any 12 months and only one at a time, including any appeal. Requests we commonly agree include fewer contracted hours, set days, school-hours runs, no evening or weekend visits, a run in one area, term-time working, compressed hours or partial home working for office roles, job sharing and coming off the on-call rota."
+            },
+            {
+              "p": "For a short-term need, such as a gap in childcare, an employee may ask the Care Coordinator for a temporary change of up to 4 weeks without a statutory request. The Care Coordinator answers within 5 working days and agrees it wherever visits can be covered; it does not count towards the two statutory requests. A change needed because of a disability may instead be handled as a reasonable adjustment under the Equality, Diversity and Inclusion Policy, at the employee's choice."
+            }
+          ]
+        },
+        {
+          "heading": "Making a request",
+          "blocks": [
+            {
+              "p": "The request is made by letter or email to the HR Manager. It says it is a flexible working request, the change wanted, the date it should start and the date of any earlier request. No reason has to be given, although it helps. A supervisor or the HR Manager writes the request down for anyone who finds writing difficult, and the employee confirms it."
+            }
+          ]
+        },
+        {
+          "heading": "How we decide",
+          "blocks": [
+            {
+              "steps": [
+                "The HR Manager acknowledges the request in writing within 2 working days and names the deciding manager.",
+                "Within 5 working days of receipt the Care Coordinator (for office roles, the line manager) assesses the effect: the visits in the times requested, continuity for the people the employee supports, who else could cover, and fair sharing of weekend, evening and bank holiday work. The assessment proposes workable alternatives, not only reasons to refuse.",
+                "The deciding manager meets the employee within 10 working days of receipt, in paid time, at the branch office, by video or by phone. The employee may bring a colleague or trade union representative. A request is treated as withdrawn only if the employee misses two meetings in a row without good reason after being told in writing that this will happen.",
+                "The deciding manager writes within 5 working days of the meeting, agreeing the request as asked, with a change the employee accepts, or as a trial with its length and review date.",
+                "A request is refused only where one of the business grounds the law allows applies and the manager can explain why refusing is reasonable (our policy now, ahead of the October 2027 change in the law). The HR Manager checks every draft refusal, and the first two decisions of each new deciding manager, against the assessment and this policy before they are sent, and returns any letter that does not show why refusing is reasonable; the employment law adviser does this check for a decision on the HR Manager's own request. The HR Manager advises but never decides. The letter gives the ground, the reasons, the alternatives considered and how to appeal."
+              ]
+            },
+            {
+              "p": "The grounds the law allows are additional costs, a detrimental effect on our ability to meet demand, including the needs of the people we support, inability to reorganise work among existing staff, inability to recruit additional staff, a detrimental effect on quality or on performance, insufficient work in the periods proposed, and planned structural changes. A refusal never rests on the employee's reason for asking, a guess that others will ask too, or the inconvenience of rewriting a run."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Employee's role",
+                  "Decides",
+                  "Hears an appeal"
+                ],
+                "rows": [
+                  [
+                    "Care Worker, Senior Care Worker, Field Care Supervisor, Care Coordinator, Office staff, staff allocation roles",
+                    "Deputy Manager",
+                    "Registered Manager"
+                  ],
+                  [
+                    "HR Manager, Deputy Manager",
+                    "Registered Manager",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "Registered Manager",
+                    "Nominated Individual",
+                    "A Director other than the Nominated Individual"
+                  ],
+                  [
+                    "Nominated Individual or a Director",
+                    "A Director chosen by the other Directors",
+                    "Another uninvolved Director or an external HR professional"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A manager who is related or close to the employee, gave an earlier answer on the same matter, or is absent long enough to miss a timescale steps aside, and the manager in the next row decides instead."
+            }
+          ]
+        },
+        {
+          "heading": "Trials, appeals and time limits",
+          "blocks": [
+            {
+              "bullets": [
+                "A trial lasts up to 12 weeks. Because it can run past the 2-month limit, the decision letter asks the employee to agree in writing to extend the decision period to 5 working days after the trial ends; without that agreement the change is confirmed or refused within the 2 months. The deciding manager reviews the trial with the employee in its final 2 weeks and confirms the outcome in writing within 5 working days. A trial is ended only on one of the business grounds, explained in writing.",
+                "An appeal is made in writing to the HR Manager within 5 working days of receiving the decision, acknowledged within 2 working days, heard within 10 working days with at least 3 working days' notice by a manager not involved before, and decided in writing within 5 working days of the hearing. The appeal decision is final; the Grievance Policy and Procedure is not used for flexible working decisions.",
+                "The decision, including any appeal, is made within 2 months of the HR Manager receiving the request, as the law requires, unless the employee agrees a longer period. The HR Manager confirms any extension in writing before the 2 months end."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Putting an agreed change in place",
+          "blocks": [
+            {
+              "p": "The HR Manager confirms the contract change in writing within 5 working days of agreement, explaining any effect of fewer hours on pay, holiday and pension. A change is permanent unless both agreed it is temporary with an end date. The Care Coordinator records the agreed pattern in CareFlow and applies it from the first rota published after the start date."
+            },
+            {
+              "p": "For a sponsored worker, the HR Manager checks the sponsor guidance before agreeing any change that reduces hours or pay below what the certificate of sponsorship requires, or any unpaid leave under this policy, and tells the worker in writing of any effect first, as the Right to Work and Sponsored Workers Policy requires. We never give immigration advice."
+            },
+            {
+              "p": "Home working for an office role starts only after the HR Manager completes a home working risk assessment with the employee, and uses only devices we provide, under the Acceptable Use of IT and Devices Policy and the Information and Cyber Security Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pregnancy and antenatal care",
+      "blocks": [
+        {
+          "p": "An employee who is pregnant tells the HR Manager, their Care Coordinator or Field Care Supervisor, or the On-call Manager out of hours, as early as they feel able, because some risks are greatest in early pregnancy; whoever is told passes it to the HR Manager the same working day. Before the employee's next visit the Care Coordinator (On-call Manager out of hours) removes from their rota heavy moving and handling and the other visits and tasks the New and Expectant Mothers at Work Procedure restricts, and their individual risk assessment is completed within 5 working days. If a restricted task comes up during a visit, the employee does not do it, gives the rest of the care and phones the office (On-call Manager out of hours) before leaving so that another worker is sent. The Care Coordinator offers equivalent visits in the same rota week so hours are kept; where no suitable work exists the employee is suspended on full normal pay under that procedure. The employee may rest in the private room at the branch office and ask for rest gaps in their run. Until the employee agrees colleagues may know, the HR Manager tells the Care Coordinator and supervisor only the adjustments needed, never the reason."
+        },
+        {
+          "table": {
+            "columns": [
+              "Appointment",
+              "What the law gives",
+              "Our policy"
+            ],
+            "rows": [
+              [
+                "Antenatal care advised by a doctor, midwife or nurse, including recommended antenatal or parenting classes",
+                "Reasonable paid time off at the normal rate",
+                "Paid at normal pay, including travel from and back to the run. For appointments after the first we may ask to see the appointment card or letter, but never copy it"
+              ],
+              [
+                "Partner, father or intended parent accompanying the pregnant person",
+                "Unpaid time off for 2 appointments, up to 6.5 hours each (section 57ZE)",
+                "Both appointments paid at normal pay"
+              ],
+              [
+                "Adoption appointments after matching",
+                "Main adopter: paid time off for up to 5 appointments. Second adopter: unpaid time off for up to 2",
+                "All of them paid at normal pay"
+              ],
+              [
+                "Fertility treatment",
+                "No specific right",
+                "Unpaid time off or annual leave, agreed at short notice wherever visits can be covered"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The employee tells the Care Coordinator as soon as an appointment is booked. Appointments are never refused because the rota is difficult; the Care Coordinator reallocates the visits. If an appointment runs over and a later visit will start more than 15 minutes late, the employee phones the office (On-call Manager out of hours) so that it can be covered."
+        }
+      ]
+    },
+    {
+      "heading": "Maternity and adoption leave",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Leave and notice",
+          "blocks": [
+            {
+              "p": "Every employee is entitled to 52 weeks' maternity or adoption leave from their first day: 26 weeks' ordinary and 26 weeks' additional leave. The 2 weeks after the birth are compulsory maternity leave, when the employee who gave birth must not work. An employee whose baby is stillborn after 24 weeks of pregnancy, or dies after birth, keeps their full maternity leave and pay."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Arrangement",
+                  "Maternity",
+                  "Adoption"
+                ],
+                "rows": [
+                  [
+                    "Notice to the HR Manager",
+                    "By the end of the 15th week before the expected week of childbirth: the pregnancy, the expected week and the start date wanted",
+                    "Within 7 days of matching: the expected placement date and the start date. The HR Manager explains the GOV.UK rules for overseas adoption and surrogacy"
+                  ],
+                  [
+                    "Earliest start",
+                    "The 11th week before the expected week of childbirth. Leave starts the day after an earlier birth, or after any pregnancy-related absence from the 4th week before the expected week",
+                    "Up to 14 days before placement"
+                  ],
+                  [
+                    "Evidence for pay",
+                    "MATB1 or a doctor's or midwife's letter, within 21 days of the pay start date",
+                    "The adoption agency's matching certificate"
+                  ],
+                  [
+                    "Our confirmation",
+                    "Leave end date and pay confirmed in writing within 10 working days of notice (the law allows 28 days)",
+                    "Same"
+                  ],
+                  [
+                    "Changing dates",
+                    "28 days' notice to change the start; at least 8 weeks' notice to change the return date",
+                    "Same"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Pay",
+          "blocks": [
+            {
+              "p": "Statutory Maternity Pay and Statutory Adoption Pay are paid for 39 weeks: 90% of average weekly earnings for 6 weeks, then £194.32 or 90% of average weekly earnings if lower for 33 weeks. They need 26 weeks' continuous employment into the qualifying week (maternity) or by the matching week (adoption) and average earnings of at least £129 a week. An employee who does not qualify receives form SMP1 or SAP1 with reasons within 7 days of our decision, so they can claim Maternity Allowance or other support."
+            },
+            {
+              "p": "Company family pay (our policy): an employee who has completed probation by the day leave starts receives full normal pay for the first 6 weeks of maternity or adoption leave, then statutory pay. It is never repayable, whether or not they return. Pay rises during leave apply from their effective date, and the HR Manager recalculates statutory pay where the law requires."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Paternity and shared parental leave",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Arrangement",
+              "Paternity leave",
+              "Shared parental leave"
+            ],
+            "rows": [
+              [
+                "Who",
+                "The father, the partner of the birth parent or adopter, or an intended parent, caring for the child or supporting the birth parent or adopter",
+                "Parents who share up to 50 weeks' leave and 37 weeks' pay by ending maternity or adoption leave early"
+              ],
+              [
+                "Service for leave",
+                "None: a day-one right since 6 April 2026",
+                "26 weeks' continuous employment by the 15th week before the expected week (or the matching week), and the other parent meets the GOV.UK work and earnings test"
+              ],
+              [
+                "How much and when",
+                "1 or 2 weeks, together or separately, ending within 52 weeks of the birth or placement, before or after shared parental leave",
+                "Up to 3 booked blocks of at least a week within 52 weeks of the birth or placement; up to 20 keeping in touch days"
+              ],
+              [
+                "Notice",
+                "Entitlement by the end of the 15th week before the expected week (within 7 days of matching) or, where that is not reasonably practicable, as soon as it is; at least 28 days' notice of the dates of each week",
+                "At least 8 weeks' written notice of each block. We may ask for further information within 14 days"
+              ],
+              [
+                "Pay",
+                "Statutory Paternity Pay. Company family pay (our policy): full normal pay for both weeks for an employee who has completed probation",
+                "Statutory Shared Parental Pay only"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A continuous block of shared parental leave is always agreed. A block split into separate periods is agreed whenever visits can be covered; the Registered Manager decides within 14 days of the notice, and if it is refused the employee may take the leave as one block or withdraw the notice."
+        },
+        {
+          "p": "Bereaved partner's paternity leave: since 6 April 2026, a father or partner whose child's birth parent or main adopter dies in the child's first year may take one period of up to 52 weeks' leave within that year, from their first day of employment, with up to 10 keeping in touch days. Leave starting within 8 weeks of the death may be asked for by phone to the office (On-call Manager out of hours) before it starts, with written notice of its length no later than 8 weeks after the death; later leave needs at least a week's written notice. The HR Manager phones the employee within 1 working day of hearing of the death and pays full normal pay for the first 2 weeks (our policy), then any statutory pay due."
+        }
+      ]
+    },
+    {
+      "heading": "Neonatal care and parental bereavement",
+      "blocks": [
+        {
+          "p": "Neonatal care leave: a parent or partner of a baby born on or after 6 April 2025 who receives neonatal care (in hospital, under a consultant at home after discharge, or palliative care) that starts within 28 days of the birth and lasts at least 7 days without a break is entitled from their first day to one week of leave for each full week of uninterrupted care, up to 12 weeks, taken within 68 weeks of the birth. It is added to maternity, paternity or adoption leave, never taken from it. During the care and the 7 days after it, notice is given to the office (On-call Manager out of hours) before the start of work on the first day of each week of leave, by phone if needed; later leave needs written notice 15 days ahead for one week or 28 days ahead for two or more. Statutory Neonatal Care Pay is paid to those who qualify."
+        },
+        {
+          "p": "Parental bereavement leave: a parent whose child dies under 18, or whose baby is stillborn after 24 weeks of pregnancy, may take one or two weeks, together or separately, within 56 weeks of the death, from their first day. In the first 56 days notice is given by phone to the office (On-call Manager out of hours) before work that day; after that, a week's notice. Our policy is that every employee receives full normal pay for both weeks, whatever their service."
+        },
+        {
+          "p": "Pregnancy loss before 24 weeks: the employee who was pregnant and their partner may each take up to 5 rostered days' paid compassionate leave (our policy). Any later sickness is recorded as pregnancy-related under the Sickness Absence Policy."
+        },
+        {
+          "p": "After any bereavement the HR Manager or Registered Manager phones the employee within 1 working day of hearing, nobody is asked for evidence, and the employee assistance programme is offered. Visits to people at the end of their life are allocated to the employee on return only with their agreement."
+        }
+      ]
+    },
+    {
+      "heading": "Caring for children and dependants",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Time off for dependants",
+          "blocks": [
+            {
+              "p": "Every employee may take reasonable time off for an emergency involving a dependant: illness, injury, assault or giving birth; arranging care; a death; care arrangements breaking down unexpectedly; or an unexpected incident at a child's school (Employment Rights Act 1996, section 57A). It covers the emergency and arranging other care, not planned care."
+            },
+            {
+              "p": "The employee phones the office, or the On-call Manager out of hours, and speaks to a person as soon as possible, before their first visit wherever they can, saying how long they expect to be away; if nobody answers within 15 minutes they follow the call route in the Sickness Absence Policy. A text, voicemail or message through a colleague is never enough, and staff never arrange their own cover. A care worker called away mid-run finishes the current visit safely and phones before leaving. If they must leave before the visit is finished, they phone first, give only the care that cannot wait, never leave a person who cannot safely be left until a replacement arrives or the office agrees, secure the home and key safe and check out in CareFlow; on a double-handed visit the colleague does no two-worker task alone. The office reallocates the rest of the run and the Care Coordinator collects any key the employee holds before the next visit that needs it. The Care Coordinator records the employee as unavailable and tells the HR Manager the next working day (the same day for a sponsored worker), who records the leave type in the staff record."
+            }
+          ]
+        },
+        {
+          "heading": "Carer's leave",
+          "blocks": [
+            {
+              "p": "Every employee may take up to one week's leave in any rolling 12 months, from their first day, to give or arrange care for a dependant with a long-term illness or injury, a disability or care needs linked to old age. A week is the hours they usually work in 7 days or, for variable hours, their hours over the last 12 months divided by 52 (by the weeks worked, for anyone employed under a year). It may be taken in half days, days or a week. Notice to the Care Coordinator (Office staff: their line manager) is at least 3 days for a day or half day, or twice the length of longer leave, and need not be in writing. We never ask for evidence."
+            },
+            {
+              "p": "We agree shorter notice whenever visits can be covered. Only the Registered Manager may postpone carer's leave, only where visits could not otherwise be covered safely, in writing within 7 days of the request and before the leave was due, with a new date within 1 month."
+            }
+          ]
+        },
+        {
+          "heading": "Unpaid parental leave",
+          "blocks": [
+            {
+              "p": "Every employee with parental responsibility may take up to 18 weeks' unpaid leave for each child before the child's 18th birthday, from their first day since 6 April 2026, with no more than 4 weeks for each child in any year. The law requires whole weeks unless the child is disabled; our policy is to agree single days whenever visits can be covered. Notice to the HR Manager is at least 21 days, with start and end dates. Only the Registered Manager may postpone it, only where visits could not otherwise be covered safely, in writing within 7 days of the notice and to dates within 6 months. Leave a father or partner takes straight after a birth or adoption, or leave that postponement would push past the child's 18th birthday, is never postponed."
+            }
+          ]
+        },
+        {
+          "heading": "Paid emergency and carer's days",
+          "blocks": [
+            {
+              "p": "Time off for dependants and carer's leave are unpaid in law. Our policy is that each employee receives normal pay for up to 2 rostered days in any rolling 12 months, used for either as they choose. Further time is unpaid, or annual leave at short notice if preferred. Frequent emergency leave is never handled through sickness or disciplinary procedures; the supervisor offers a flexible working conversation instead. Separately, an employee experiencing domestic abuse may take up to 10 rostered days' paid safe leave in any rolling 12 months, asked for by phone to the HR Manager with no evidence needed, and ask for a salary advance of up to one week's normal pay, under the Domestic Abuse Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Compassionate leave",
+      "blocks": [
+        {
+          "p": "There is not yet a general legal right to bereavement leave. Our policy is that when a partner, adult child, parent, sibling, grandparent, grandchild, or someone the employee lived with or was the main carer for dies, the employee may take up to 5 rostered days' compassionate leave at normal pay, and 1 rostered day at normal pay for the funeral of another relative or close friend. It is asked for by phone to the Care Coordinator or line manager (the On-call Manager out of hours), needs no evidence, and further unpaid or annual leave is agreed where needed, such as to travel abroad for a funeral."
+        }
+      ]
+    },
+    {
+      "heading": "During leave and returning to work",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Rights during leave",
+          "blocks": [
+            {
+              "bullets": [
+                "All terms except pay continue. Annual leave keeps building up, and leave that family leave prevented is carried forward in full under the Working Time, Rest Breaks and Travel Time Policy.",
+                "During paid family leave we continue employer pension contributions as if the employee were working normally; the employee's contributions are based on the pay they receive.",
+                "Before any leave starts the employee returns keys held for people we support to the office, under the Key Holding, Key Safes and Access to People's Homes Procedure. Before leave of 4 weeks or more the HR Manager also suspends their access to care records in CareFlow, restoring it before a keeping in touch day or return. The Care Coordinator tells the people the employee regularly visits, or their chosen contact, who will visit while they are away, never the reason.",
+                "An employee whose job is at risk of redundancy must be offered any suitable alternative vacancy before others: during pregnancy from the day the employee tells us (ending 2 weeks after a pregnancy that ends without maternity leave), during maternity, adoption, shared parental, neonatal care or bereaved partner's paternity leave, and after return until 18 months after the birth or placement. The protection after return applies to shared parental, neonatal care or bereaved partner's paternity leave only where at least 6 weeks of that leave were taken in a row. The HR Manager takes the employment law adviser's advice before any redundancy or dismissal of an employee in these periods."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Keeping in touch",
+          "blocks": [
+            {
+              "p": "Before leave starts, the HR Manager and the employee agree how and how often we keep in touch, recorded in the staff record. Unless the employee asks for less, the HR Manager contacts them monthly and sends every internal vacancy, training opportunity, pay review, major policy change and team meeting notes. Contact never pressures anyone to return early."
+            },
+            {
+              "p": "Keeping in touch days are voluntary and never offered during compulsory maternity leave. They are used for training renewals, supervision, team meetings and shadow shifts, and for lone visits only when all mandatory training is in date. Within 6 months of the birth or while breastfeeding, no keeping in touch day includes a visit, even a shadow shift, until the new assessment under the New and Expectant Mothers at Work Procedure is complete. Every hour, including travel, is paid at the normal hourly rate with mileage, on top of statutory and company family pay (our policy)."
+            }
+          ]
+        },
+        {
+          "heading": "Returning",
+          "blocks": [
+            {
+              "p": "After 26 weeks' leave or less (or up to 4 weeks' unpaid parental leave) the employee returns to the same job; after longer leave, to the same job or, only where that is not reasonably practicable, a similar job on terms no less favourable. Their previous runs are offered back wherever the rota allows."
+            },
+            {
+              "steps": [
+                "Six weeks before return the HR Manager checks the training and compliance records, books every renewal due by the first week back, in paid time and before the first visit, and, for an employee returning within 6 months of the birth or while breastfeeding, arranges the new assessment under the New and Expectant Mothers at Work Procedure to be completed before the first visit.",
+                "Four weeks before return the Care Coordinator phones the employee to agree the rota, including breastfeeding gaps or other changes. Wherever possible the first visits back are to people the employee already knows. A flexible working request made during leave is decided before the return date wherever possible.",
+                "In the first week back the named supervisor holds a supervision on wellbeing, changes to the people supported and any support needed. After 3 months or more away, the reassessments and unannounced spot check in the Supervision, Spot Checks and Appraisal Policy follow.",
+                "After maternity, adoption, shared parental, neonatal care or bereaved partner's paternity leave of 4 weeks or more, the HR Manager sends the confidential coming back to work survey about 4 weeks after the return, as the 4-week check on the return; only the HR Manager reads the answers.",
+                "An employee who is breastfeeding tells the HR Manager before return so that the new assessment covers it. They may use the private room at the branch office (never a toilet) to rest or express milk, and the Care Coordinator builds expressing gaps of at least 30 minutes into their run at the times they ask. Expressing never takes place in a person's home."
+              ]
+            },
+            {
+              "p": "An employee who decides not to return gives contractual notice, which may run during the leave. Company family pay is never recovered."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Protection from detriment",
+      "blocks": [
+        {
+          "p": "The law protects employees from detriment and dismissal for asking for flexible working or taking any leave in this policy. Our policy is that asking for flexible working, pregnancy, family leave or caring responsibilities is never a reason for fewer or worse hours, runs or visits, for missing training or promotion, or for any comment in a reference. An employee who thinks this has happened tells the HR Manager, who tells the Registered Manager the same working day; it is handled under the Grievance Policy and Procedure, or the Bullying, Harassment and Sexual Harassment Policy where harassment is involved."
+        }
+      ]
+    },
+    {
+      "heading": "Changes in the law",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Change under the Employment Rights Act 2025",
+              "Expected",
+              "How we act now"
+            ],
+            "rows": [
+              [
+                "A new right to statutory bereavement leave, including pregnancy loss",
+                "April 2027",
+                "Our paid compassionate and pregnancy loss leave continue; this policy is updated once the regulations set who qualifies and how much leave applies"
+              ],
+              [
+                "A flexible working refusal must be reasonable, with the reasons explained (already written into section 80G but not yet in force for requests); a revised Acas Code is in draft, with consultation closing 17 December 2026",
+                "October 2027",
+                "We already explain in writing why each refusal is reasonable"
+              ],
+              [
+                "Stronger protection from dismissal for pregnant employees and those returning from maternity leave",
+                "October 2027",
+                "Employment law adviser's advice before any such dismissal"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The HR Manager updates statutory pay rates each April, assesses each change above within 5 working days of its rules being published and reports to the Registered Manager. Changes needed before the next review are made as urgent changes under the Policy Management and Document Control Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Retention"
+            ],
+            "rows": [
+              [
+                "Flexible working requests, assessments, meeting notes, decisions, trials and appeals",
+                "Staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Family leave notices, confirmations, keeping in touch plans and days, return plans",
+                "Staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Pregnancy notification, MATB1 or matching certificate, bereavement and dependant circumstances",
+                "Restricted section of the staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Statutory and company family pay calculations, SMP1 and similar forms, payments and reclaims",
+                "Payroll records",
+                "6 years from the end of the tax year"
+              ],
+              [
+                "Agreed working patterns and unavailability",
+                "CareFlow rota, shown only as available or unavailable",
+                "6 years from the end of the tax year"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are handled under the Staff Personal Data and HR Records Policy. Colleagues and the people we support are never told why an employee is away."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "This policy, acknowledged in CareFlow",
+                "Organisational induction",
+                "Within 14 days of each new major version, or of return for anyone on leave; a minor version needs no new acknowledgement"
+              ],
+              [
+                "Managers who decide or hear flexible working requests",
+                "Business grounds, explaining reasonableness, equality and trials, delivered by the HR Manager",
+                "Before the first decision or appeal",
+                "Every 3 years, and within 10 working days of a change in the law"
+              ],
+              [
+                "Care Coordinators and staff allocation roles",
+                "Rota assessments, agreed patterns, emergency calls, carer's and parental leave notice",
+                "Before first allocating visits",
+                "Every 12 months, with the rota working time training"
+              ],
+              [
+                "Field Care Supervisors and supervising Senior Care Workers",
+                "Discussing caring responsibilities in supervision and passing on requests",
+                "Before the first supervision",
+                "Every 3 years, with the equality in employment management training"
+              ],
+              [
+                "HR Manager",
+                "Family leave rights, statutory and company family pay, reclaims",
+                "Within 1 month of appointment",
+                "Every 12 months within the employment law update"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Flexible working decisions, including appeals, within 2 months, target 100%; meetings within 10 working days, target at least 90%",
+                "Monthly report",
+                "HR Manager",
+                "Registered Manager; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Leave confirmed within 10 working days, statutory and company family pay correct, keeping in touch plans, training renewed before return, target 100%",
+                "Quarterly audit of 5 family leave files, all if fewer",
+                "Deputy Manager",
+                "Registered Manager; quarterly governance report to the Directors"
+              ],
+              [
+                "Requests agreed, changed and refused by role, sex, age band, ethnicity and disability; return and 12-month retention after maternity and adoption leave",
+                "Annually, in the workforce equality report",
+                "HR Manager",
+                "Directors"
+              ],
+              [
+                "Every refused flexible working request and 3 family leave cases closed in the year",
+                "Annual audit each November",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Staff survey: at least 80% say we support their family and caring responsibilities",
+                "Every September",
+                "Registered Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is recorded with an action, an owner and a deadline and checked at the next audit. This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or guidance, including the changes due in April and October 2027, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

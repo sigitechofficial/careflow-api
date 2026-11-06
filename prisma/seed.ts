@@ -3,7 +3,11 @@ import * as bcrypt from 'bcrypt';
 import { EXPLICIT_GRANT_PERMISSIONS } from './seed-lib/explicit-grant-permissions';
 import { PAYROLL_APPROVER_PERMISSIONS, PAYROLL_APPROVER_ROLE } from './seed-lib/payroll-approver-role';
 import { defaultJobTitles } from './seed-data/default-job-titles';
-import { WORKFORCE_CERTIFICATION_NAMES, WORKFORCE_SKILL_NAMES } from './seed-data/workforce-catalog';
+import {
+  RETIRED_COMPLIANCE_CODES,
+  WORKFORCE_CERTIFICATION_NAMES,
+  WORKFORCE_SKILL_NAMES,
+} from './seed-data/workforce-catalog';
 import { DEFAULT_INCIDENT_CATEGORIES } from './seed-data/incident-categories';
 import { CARE_COMPLIANCE_CATALOG } from './seed-data/care-compliance-catalog';
 import { seedInitialAssessmentChecklist } from './seeds/initial-assessment-checklist.seed';
@@ -18,7 +22,11 @@ import {
 import { seedServiceUserAreas } from './seeds/service-user-areas.seed';
 import { seedServiceUserObservations } from './seeds/service-user-observations.seed';
 import { seedCompanyProfile } from './seeds/company-profile.seed';
-import { seedWorkforceLookupIntervals } from './seeds/workforce-catalog.seed';
+import { seedWorkforceLookupIntervals, softRetireComplianceByCode } from './seeds/workforce-catalog.seed';
+import { seedSupervisionForms } from './seeds/supervision-forms.seed';
+import { seedPolicyLibrary } from './seeds/policy-library.seed';
+import { seedSurveyLibrary } from './seeds/survey-library.seed';
+import { seedCqcFramework } from './seeds/cqc-framework.seed';
 import {
   seedAllforCareOrganisation,
   summariseAllforCareChanges,
@@ -633,6 +641,10 @@ async function main() {
     'surveys.manage',
     'surveys.respond',
     'surveys.responses.record',
+    // CQC evidence (Quality & compliance → CQC evidence)
+    'cqc_evidence.read',
+    'cqc_evidence.manage',
+    'cqc_evidence.export',
     // Carer notifications (Settings › Carer notifications)
     'carer_notifications.send',
     // On-call rota and out-of-hours calls (Operations › On-call)
@@ -666,6 +678,11 @@ async function main() {
     // CRM / Enquiries
     'crm.read',
     'crm.manage',
+    // Supervision & appraisals (CQC Reg 18)
+    'supervision.read',
+    'supervision.manage',
+    'supervision.read_confidential',
+    'supervision.settings',
   ];
 
   for (const key of permissionKeys) {
@@ -758,6 +775,13 @@ async function main() {
   // Record responses by telephone / paper / in person
   await assignPermKeys('Admin', ['surveys.responses.record']);
 
+  // CQC evidence — admins and managers keep and export it, coordinators read, inspectors read and export
+  const cqcEvidenceKeys = ['cqc_evidence.read', 'cqc_evidence.manage', 'cqc_evidence.export'];
+  await assignPermKeys('Admin', cqcEvidenceKeys);
+  await assignPermKeys('Manager', cqcEvidenceKeys);
+  await assignPermKeys('Care Coordinator', ['cqc_evidence.read']);
+  await assignPermKeys('CQC Inspector', ['cqc_evidence.read', 'cqc_evidence.export']);
+
   // Specialist care pathways — coordinators read, managers build/approve plans
   await assignPermKeys('Care Coordinator', ['specialist_pathways.read']);
   await assignPermKeys('Manager', [
@@ -780,6 +804,19 @@ async function main() {
   await assignPermKeys('Care Coordinator', ['crm.read']);
   await assignPermKeys('Manager', ['crm.read', 'crm.manage']);
   await assignPermKeys('Admin', ['crm.read', 'crm.manage']);
+
+  // Supervision: senior carers and coordinators run sessions; managers also see confidential notes;
+  // admins configure agendas and settings; HR can read the records.
+  await assignPermKeys('Senior Carer/Nurse', ['supervision.read', 'supervision.manage']);
+  await assignPermKeys('Care Coordinator', ['supervision.read', 'supervision.manage']);
+  await assignPermKeys('Manager', ['supervision.read', 'supervision.manage', 'supervision.read_confidential']);
+  await assignPermKeys('HR', ['supervision.read']);
+  await assignPermKeys('Admin', [
+    'supervision.read',
+    'supervision.manage',
+    'supervision.read_confidential',
+    'supervision.settings',
+  ]);
 
   // Hours approvals — managers approve/reject over-contracted-hours requests
   await assignPermKeys('Care Coordinator', ['hours_approvals.read']);
@@ -1271,6 +1308,21 @@ async function main() {
     }
   }
 
+  // Independent survey reviewers (SUR-CQC-001/002): an account with only this role records answers
+  // on the surveys a manager grants, for a set time, and nothing else. It is given NO permissions
+  // here and is kept out of `roles` so no loop below adds any (the API adds surveys.review.record
+  // only while a grant is live). Same name as src/common/auth/independent-reviewer.ts.
+  await prisma.role.upsert({
+    where: { name: 'Independent reviewer' },
+    update: { isActive: true, deletedAt: null },
+    create: {
+      name: 'Independent reviewer',
+      description:
+        'Records survey answers only on the surveys a manager grants, for a set time (SUR-CQC-001/002). No other access, no branch. Never give it to staff.',
+      isActive: true,
+    },
+  });
+
   const privacyOfficerRole = await prisma.role.upsert({
     where: { name: 'Privacy Officer' },
     update: { isActive: true, deletedAt: null },
@@ -1493,8 +1545,10 @@ async function main() {
   await assignPermKeys('Admin', ['users.read', 'users.create', 'roles.manage']);
 
   // --- Compliance types & requirements (legacy Care checklist + driving pack) ---
+  // Retired types (numbered supervision documents; supervision / appraisal / probation now tracked
+  // by the review schedule) are never re-created or re-activated here.
   const complianceTypeDefs = [
-    ...CARE_COMPLIANCE_CATALOG,
+    ...CARE_COMPLIANCE_CATALOG.filter((t) => !RETIRED_COMPLIANCE_CODES.includes(t.code)),
     { name: 'Right to Work', code: 'RIGHT_TO_WORK', category: ComplianceCategory.RIGHT_TO_WORK, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
     { name: 'Care Certificate', code: 'CARE_CERTIFICATE', category: ComplianceCategory.TRAINING, hasExpiry: false, defaultValidityMonths: null, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
     { name: 'Manual Handling', code: 'MANUAL_HANDLING', category: ComplianceCategory.HEALTH_AND_SAFETY, hasExpiry: true, defaultValidityMonths: 12, requiresDocument: true, requiresVerification: true, isMandatoryByDefault: true },
@@ -1601,6 +1655,7 @@ async function main() {
 
   if (careArea) {
     for (const t of CARE_COMPLIANCE_CATALOG) {
+      if (RETIRED_COMPLIANCE_CODES.includes(t.code)) continue;
       await ensureRequirement(t.code, {
         workAreaId: careArea.id,
         isMandatory: t.isMandatoryByDefault,
@@ -1621,8 +1676,13 @@ async function main() {
     }
   }
 
+  let complianceRetired = 0;
+  for (const code of RETIRED_COMPLIANCE_CODES) {
+    if (await softRetireComplianceByCode(prisma, code)) complianceRetired += 1;
+  }
+
   // eslint-disable-next-line no-console
-  console.log('[seed] Compliance types & requirements upserted.');
+  console.log(`[seed] Compliance types & requirements upserted (${complianceRetired} retired type(s) switched off).`);
   // Super admin is create-only: an existing account (and its password) is never touched,
   // so a deploy can't reset the live admin password. Production has no default password.
   // Matched by email OR the fixed `superadmin` username, so an admin who later changes
@@ -1983,6 +2043,12 @@ async function main() {
   console.log(
     `[seed] Workforce review types: ${workforceIntervals.reviewTypesCreated} created, ` +
       `${workforceIntervals.intervalsFilled} interval(s) filled.`,
+  );
+  // Supervision / spot check / appraisal forms (Care Pathway staff forms), created once.
+  const supervisionForms = await seedSupervisionForms(prisma);
+  console.log(
+    `[seed] Supervision forms: ${supervisionForms.formsCreated} created, ` +
+      `${supervisionForms.reviewTypesLinked} review type(s) linked.`,
   );
 
   const skillTypes = await prisma.skillType.findMany({
@@ -2893,6 +2959,25 @@ async function main() {
       });
     }
   }
+  // Policy library: complete policies adopted from Policies → Ready-made policies.
+  const library = await seedPolicyLibrary(prisma);
+  console.log(
+    `[seed] Policy library: ${library.created} created, ${library.updated} refreshed, ${library.retired} retired, ` +
+      `${library.categoriesCreated} categor${library.categoriesCreated === 1 ? 'y' : 'ies'} added.`,
+  );
+  // Survey library: ready-made surveys adopted as templates from Surveys → Ready-made surveys.
+  const surveyLibrary = await seedSurveyLibrary(prisma);
+  console.log(
+    `[seed] Survey library: ${surveyLibrary.created} created, ${surveyLibrary.updated} refreshed, ` +
+      `${surveyLibrary.unchanged} unchanged, ${surveyLibrary.retired} retired.`,
+  );
+  // CQC framework (key questions, quality statements, evidence categories) for Quality → CQC evidence.
+  const cqcFramework = await seedCqcFramework(prisma);
+  console.log(
+    `[seed] CQC framework: active v${cqcFramework.activeVersion}, ${cqcFramework.versionsCreated} created, ` +
+      `${cqcFramework.versionsUpdated} updated, ${cqcFramework.versionsUnchanged} unchanged, ` +
+      `${cqcFramework.linksRemapped} evidence links re-mapped.`,
+  );
 }
 
 main()

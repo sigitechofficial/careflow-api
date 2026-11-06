@@ -1,0 +1,526 @@
+{
+  "reference": "SUR-STF-013",
+  "revision": 1,
+  "title": "Sponsored worker welfare check",
+  "audience": "EMPLOYEE",
+  "respondents": "Staff we sponsor on Skilled Worker (Health and Care) visas, about 4 weeks after sponsorship starts and then every 6 months",
+  "summary": "A private, confidential self-check for sponsored workers: paid what was promised, no fees or debts for the job, keeping their own documents and wages, safe housing, settling in, fair treatment and feeling safe to raise problems. About 8 minutes.",
+  "purpose": "A private self-check for staff we sponsor, under the Right to Work and Sponsored Workers Policy and the Modern Slavery and Human Trafficking Policy. It asks whether they are paid what we promised, are not charged or indebted for their job, keep control of their own documents and wages, live somewhere safe and suitable, are settling in, are treated the same as other staff, and feel able to raise problems without fear for their visa. It gives early warning of exploitation by anyone (us, a previous sponsor, an agent, a landlord or family) and complements the private welfare questions asked at the week 4 probation review and each appraisal, for workers who would not say it face to face. Combined counts feed the modern slavery statement and the annual safeguarding report.",
+  "timing": {
+    "when": "About 4 weeks after the sponsorship start date, then every 6 months while sponsored, and within 4 weeks of a change of sponsored role, hours or location; never in the same week as a probation review or appraisal",
+    "recurrence": null,
+    "trigger": "Sponsorship start recorded, then every 6 months",
+    "contactRule": {"holdBack": false, "countsAsContact": true, "reason": "Sponsored worker welfare check (safety and welfare, priority 1): goes on time."},
+    "sentWith": ["SUR-STF-003"]
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "PAPER", "TELEPHONE"],
+  "estimatedMinutes": 8,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING", "WELL_LED"],
+    "qualityStatements": [
+      "Safeguarding",
+      "Workforce wellbeing and enablement",
+      "Workforce equality, diversity and inclusion",
+      "Governance, management and sustainability"
+    ]
+  },
+  "introduction": "{{organisation}} wants to check that you are treated fairly and safely while we sponsor your visa. It takes about 8 minutes, in paid time. Free help outside our company: the Modern Slavery and Exploitation Helpline 08000 121 700, Acas, Citizens Advice and the Fair Work Agency.\n\nTaking part, and telling us about a problem with how you are treated, will never be held against you. The privacy notice explains the few things a sponsor must tell the Home Office.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "Your answers are linked to your name so we can help you. Only our Registered Manager reads them, not your supervisor or rota planners; if you have a pay problem, only that answer is passed to our HR Manager to put it right, and if someone who works for us asked you for money, our Nominated Individual is told. As your sponsor, we must tell the Home Office some things, such as if you stop working for us, are away from work without permission for more than 10 working days, are paid less than your certificate of sponsorship says, or may not be keeping to your visa conditions. If you mention one, we may have to report it. If you tell us you or someone else is being harmed or exploited, we will talk to you first, but we may need to tell the police or the council to keep people safe.\n\nOur legal reason is our legitimate interest in keeping our staff safe. We keep your answers for 1 year after the survey closes. To see or correct your information, contact the Registered Manager or our Data Protection Officer; you can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-going",
+          "text": "Overall, how are things going for you in your job with us?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "Please tell us why.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Your pay and hours",
+      "questions": [
+        {
+          "id": "q-pay",
+          "text": "Are you paid at least what your contract says, even in weeks with fewer visits?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, always", "Not always", "I am not sure"],
+          "comment": {
+            "prompt": "Please tell us what is different. We will check your payslips with you.",
+            "showWhen": ["Not always", "I am not sure"]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-payslip",
+          "text": "Do you understand your payslip, including any money taken off?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Partly", "No"],
+          "comment": {
+            "prompt": "Which part would you like us to explain?",
+            "showWhen": ["Partly", "No"]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-hours-more",
+          "text": "Are you asked to work more hours than you want to?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, often", "Yes, sometimes", "No"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Money and your documents",
+      "introduction": "Some workers in the UK are asked for money or have their papers taken, which is against the law and against our rules. Your answers help us protect you.",
+      "questions": [
+        {
+          "id": "q-fees",
+          "text": "Has anyone asked you to pay for this job, your visa or your training?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["No", "Yes, someone who works for us", "Yes, an agent, a previous employer or someone else", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-debt",
+          "text": "Do you owe money to anyone because of your job, your visa or your housing?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["No", "Yes", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "comment": {
+            "prompt": "If you want to, tell us who, and whether anyone is pressing you to pay. You do not have to.",
+            "showWhen": ["Yes"]
+          },
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-hold",
+          "text": "Does anyone else keep any of these for you? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "helpText": "Your eVisa is online. This question is about your passport, papers, bank card and money.",
+          "options": [
+            "My passport",
+            "Other identity papers",
+            "My bank card",
+            "My wages",
+            "No, I keep all of these myself",
+            "Prefer not to say"
+          ],
+          "exclusiveOptions": ["No, I keep all of these myself", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-pressure",
+          "text": "Is anyone putting pressure on you, or threatening you, about your work, money or visa?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["No", "Yes", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "comment": {
+            "prompt": "If you can, tell us what is happening. We will talk to you privately.",
+            "showWhen": ["Yes"]
+          },
+          "evidence": "Safe: Safeguarding"
+        }
+      ]
+    },
+    {
+      "title": "Your life here",
+      "questions": [
+        {
+          "id": "q-home",
+          "text": "Are you happy with where you live?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Mostly", "No"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-home-problem",
+          "text": "What is the problem? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "It costs too much",
+            "Too many people live there",
+            "I do not feel safe there",
+            "It is in poor condition",
+            "The landlord is linked to my job",
+            "I cannot leave when I want to"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          },
+          "showIf": {
+            "question": "q-home",
+            "answers": ["Mostly", "No"]
+          },
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-gp",
+          "text": "Are you registered with a GP (a local family doctor)?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-lonely",
+          "text": "Do you feel lonely or cut off from other people?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, often", "Yes, sometimes", "No"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-settle",
+          "text": "How well did we help you settle in, such as with a bank, a GP and getting around?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose \"Does not apply to me\" if you did not need help settling in.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Being treated fairly",
+      "questions": [
+        {
+          "id": "q-same",
+          "text": "Are you treated the same as other staff?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us what happens.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-safe-tell",
+          "text": "If something was wrong at work, would you feel safe to tell us without worrying about your visa?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, and I know how", "Yes, but I am not sure how", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-advice",
+          "text": "Do you know where to get free advice about your rights at work, outside our company?",
+          "type": "YES_NO",
+          "required": true,
+          "evidence": "Safe: Safeguarding"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything we could do to help you at work or in your life here?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "You can write in your own language; we will have it translated by a professional service, never a colleague."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, the Registered Manager will contact you privately within 5 working days, or sooner if you are at risk. It will not be your supervisor. You can ask for an interpreter. Free advice: the Modern Slavery and Exploitation Helpline 08000 121 700, Acas, Citizens Advice, the Fair Work Agency, or a regulated immigration adviser."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "NEEDS LEGAL REVIEW: the confidentiality wording in the introduction and privacy notice must be checked by the agency's immigration or employment adviser before this survey is used. Do not change its meaning without that advice. Under the 4-week rule CareFlow never holds this welfare check back, because welfare comes first; it counts as a contact. For a new sponsored worker, send the first weeks survey (SUR-STF-003) with this one as one contact (library decision S5): the two are linked in the library, so sent within 7 days of each other, neither holds the other back.",
+      "The HR Manager sends it to sponsored workers only, identified from HR records. CareFlow accepts only one answer from each person per survey and cannot start a survey from a staff record date, so keep one copy of this template for each half-year (for example \"Sponsored worker check, January to June 2027\") and add each worker with Send or schedule, chosen employee: about 4 weeks after their sponsorship start date, then every 6 months, and within 4 weeks of a change of sponsored role, hours or location. Never in the same week as the week 4 probation review or an appraisal. For a new sponsored worker whose first weeks survey (SUR-STF-003) falls within 4 weeks, send both as one contact.",
+      "Delivery goes to the worker's own app account and personal email, never a shared work phone. Paper in a sealed envelope addressed to the Registered Manager; by telephone only with the Registered Manager and a professional interpreter, never a colleague from the same community. Offer translated versions in the agency's main staff languages, keeping English as the master. Check the Modern Slavery and Exploitation Helpline's opening hours before publishing. It is done in paid time.",
+      "Who may open individual answers: the Registered Manager only, who passes only pay or payslip answers to the HR Manager; never supervisors, Care Coordinators or Field Care Supervisors. This is set in Who can see the answers: individual responses are limited to the Registered Manager, and results to the Registered Manager and the Nominated Individual, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "The Registered Manager reads every response within 1 working day of submission, not only when the survey closes, and acts under the alerts below. Answers in another language are translated by a professional service, never a colleague. Records of action go in the restricted section of the staff record.",
+      "Sponsor reports to the Home Office are made only where the Right to Work and Sponsored Workers Policy requires them, never as a response to a disclosure of exploitation; we never threaten, mention or use a worker's sponsorship to influence them, and suggesting a visa depends on not complaining is a disciplinary matter.",
+      "No group report below 5 respondents; with 5 to 9, show results only with a \"fewer than 10\" warning. Combined counts of concerns and actions, never answers, feed the modern slavery statement and the annual safeguarding report. Keep individual answers for 1 year after the survey closes under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "A fee asked for, a debt owed, documents, bank card or wages kept by someone else, pressure or threats, a landlord linked to the job or not being able to leave, or any comment describing control, debt or threats.",
+        "action": "The same working day, the Registered Manager acts as modern slavery lead under the Modern Slavery and Human Trafficking Policy: risk assessment, including who else may be at risk, within 1 hour of the report; police immediately in an emergency, otherwise the same day; the local authority adult safeguarding team the same working day; the Fair Work Agency the same working day for labour exploitation unless the police ask us to wait; ask the police or local authority whether they will refer to the National Referral Mechanism (we are not a First Responder). The HR Manager, or a manager the worker chooses, meets the worker privately within 1 working day (the same day if they may be in danger), with a professional interpreter where needed, agrees a written support plan, and directs the worker to a solicitor or regulated immigration adviser within 1 working day. No sponsor report because of the disclosure; never contact the suspected exploiter.",
+        "rule": {
+          "task": "Possible exploitation of a sponsored worker",
+          "if": [
+            {
+              "question": "q-fees",
+              "answers": ["Yes, someone who works for us", "Yes, an agent, a previous employer or someone else"]
+            },
+            {
+              "question": "q-debt",
+              "answers": ["Yes"]
+            },
+            {
+              "question": "q-hold",
+              "answers": ["My passport", "Other identity papers", "My bank card", "My wages"]
+            },
+            {
+              "question": "q-pressure",
+              "answers": ["Yes"]
+            },
+            {
+              "question": "q-home-problem",
+              "answers": ["The landlord is linked to my job", "I cannot leave when I want to"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"Does anyone else keep any of these for you?\" answered Prefer not to say.",
+        "action": "The Registered Manager speaks with the worker privately the same working day, with a professional interpreter where needed, to check they are safe and know they can keep their own passport, papers, bank card and wages; if any sign of control emerges, the first alert applies. Nothing is reported outside the company because of this answer alone.",
+        "rule": {
+          "task": "Sponsored worker preferred not to say who keeps their papers: talk privately",
+          "if": [
+            {
+              "question": "q-hold",
+              "answers": ["Prefer not to say"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "\"Has anyone asked you to pay for this job?\" answered Yes, someone who works for us.",
+        "action": "As above, and the Managing Allegations Against Staff Procedure and the Disciplinary Policy apply (gross misconduct). Tell the Nominated Individual the same day.",
+        "rule": {
+          "task": "Staff member asked a sponsored worker for money",
+          "if": [
+            {
+              "question": "q-fees",
+              "answers": ["Yes, someone who works for us"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 0,
+          "urgent": true
+        }
+      },
+      {
+        "when": "\"Are you paid at least what your contract says?\" answered Not always or I am not sure.",
+        "action": "The Registered Manager passes only this answer to the HR Manager the same working day. The HR Manager compares payslips with the certificate of sponsorship salary within 5 working days (library timescale). An underpayment of £50 or more, or one taking pay below the minimum wage, is paid by bank transfer within 2 working days, smaller amounts in the next payroll. The HR Manager checks whether a Home Office report is needed, tells the Authorising Officer, and tells the worker the outcome in writing.",
+        "rule": {
+          "task": "Sponsored worker unsure of pay: check payslips",
+          "if": [
+            {
+              "question": "q-pay",
+              "answers": ["Not always", "I am not sure"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do you understand your payslip?\" answered Partly or No.",
+        "action": "The Registered Manager passes only this answer to the HR Manager the same working day. The HR Manager explains the payslip in person or by video within 10 working days (library timescale), with a professional interpreter if needed.",
+        "rule": {
+          "task": "Explain the payslip to a sponsored worker",
+          "if": [
+            {
+              "question": "q-payslip",
+              "answers": ["Partly", "No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 10
+        }
+      },
+      {
+        "when": "\"Are you asked to work more hours than you want to?\" answered Yes, often.",
+        "action": "The Registered Manager checks the worker's hours against the Working Time, Rest Breaks and Travel Time Policy limits within 5 working days (library timescale); the Care Coordinator is told only the rota change needed, never the answer. If the worker feels unable to refuse, treat it as pressure (the first alert).",
+        "rule": {
+          "task": "Sponsored worker asked to work too many hours",
+          "if": [
+            {
+              "question": "q-hours-more",
+              "answers": ["Yes, often"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"What is the problem?\" with housing includes I do not feel safe there.",
+        "action": "The Registered Manager talks with the worker the same working day and signposts the council housing team and Shelter.",
+        "rule": {
+          "task": "Sponsored worker does not feel safe at home",
+          "if": [
+            {
+              "question": "q-home-problem",
+              "answers": ["I do not feel safe there"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0,
+          "urgent": true
+        }
+      },
+      {
+        "when": "\"Are you happy with where you live?\" answered No.",
+        "action": "The Registered Manager talks with the worker within 5 working days (library timescale) and signposts the council housing team and Shelter.",
+        "rule": {
+          "task": "Sponsored worker unhappy with housing",
+          "if": [
+            {
+              "question": "q-home",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Are you registered with a GP?\" answered No or Not sure.",
+        "action": "The Registered Manager helps the worker register within 10 working days (library timescale).",
+        "rule": {
+          "task": "Help a sponsored worker register with a GP",
+          "if": [
+            {
+              "question": "q-gp",
+              "answers": ["No", "Not sure"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 10
+        }
+      },
+      {
+        "when": "\"Do you feel lonely or cut off?\" answered Yes, often, or the overall question Poor or Very poor.",
+        "action": "The Registered Manager contacts the worker within 5 working days (library timescale), or the Field Care Supervisor only if the worker agrees, and offers the employee assistance programme and the mental health first aider under the Work-Related Stress and Staff Wellbeing Policy.",
+        "rule": {
+          "task": "Sponsored worker lonely or unhappy: offer support",
+          "if": [
+            {
+              "question": "q-lonely",
+              "answers": ["Yes, often"]
+            },
+            {
+              "question": "q-going",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Are you treated the same as other staff?\" answered Rarely or Never.",
+        "action": "The Registered Manager follows up within 5 working days (library timescale) as possible discrimination under the Equality, Diversity and Inclusion Policy.",
+        "rule": {
+          "task": "Sponsored worker not treated equally",
+          "if": [
+            {
+              "question": "q-same",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you feel safe to tell us without worrying about your visa?\" answered Yes, but I am not sure how, No or Don't know; or \"Do you know where to get free advice?\" answered No.",
+        "action": "Within 5 working days, send the speaking-up routes and the outside advice list (Acas, Citizens Advice, the Modern Slavery and Exploitation Helpline 08000 121 700, the Fair Work Agency, and how to find a regulated immigration adviser) in the worker's language, under the Whistleblowing (Speaking Up) Policy; for No to feeling safe, the Registered Manager offers a private conversation.",
+        "rule": {
+          "task": "Send speaking-up routes and free advice list",
+          "if": [
+            {
+              "question": "q-safe-tell",
+              "answers": ["Yes, but I am not sure how", "No", "Don't know"]
+            },
+            {
+              "question": "q-advice",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Registered Manager contacts the worker privately within 5 working days, or the same day if any exploitation sign above is present.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["REGISTERED_MANAGER"],
+    "results": ["REGISTERED_MANAGER", "NOMINATED_INDIVIDUAL"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": ["POL-HR-003", "POL-SG-015", "POL-HR-018", "POL-HR-014", "POL-HS-015", "POL-HR-012", "POL-SG-007", "POL-GOV-017"],
+  "regulatoryBasis": [
+    {
+      "source": "Home Office, Modern slavery: statutory guidance for England and Wales (section 49, Modern Slavery Act 2015): signs of modern slavery and labour exploitation, including fees and debt, withheld documents or wages, threats and control of housing",
+      "url": "https://www.gov.uk/government/publications/modern-slavery-how-to-identify-and-support-victims"
+    },
+    {
+      "source": "Home Office, Sponsor a Skilled Worker (v04/26), SK4.31: from 22 July 2025 care workers and senior care workers must already be in the UK to be sponsored",
+      "url": "https://www.gov.uk/government/publications/sponsor-a-skilled-worker"
+    },
+    {
+      "source": "Home Office, Workers and Temporary Workers: guidance for sponsors, Part 3 (version 08/26), C1.14 and C1.15: report a known or suspected breach of conditions as soon as reasonably practicable, and within 10 working days an absence without permission of more than 10 working days, pay reduced below the certificate of sponsorship, a change of role or work location, and the end of sponsorship",
+      "url": "https://www.gov.uk/government/publications/workers-and-temporary-workers-guidance-for-sponsors-part-3-sponsor-duties-and-compliance"
+    },
+    {
+      "source": "DHSC, Code of practice for the international recruitment of health and social care personnel in England: no fees to candidates; pastoral support; seek feedback from internationally recruited staff",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "source": "Fair Work Agency: enforces workers' rights and acts against serious labour exploitation",
+      "url": "https://www.gov.uk/government/organisations/fair-work-agency/about"
+    }
+  ]
+}

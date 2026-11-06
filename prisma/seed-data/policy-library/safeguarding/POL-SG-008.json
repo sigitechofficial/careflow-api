@@ -1,0 +1,635 @@
+{
+  "reference": "POL-SG-008",
+  "revision": 1,
+  "title": "Gifts, Hospitality, Wills and Legacies Policy",
+  "documentType": "POLICY",
+  "summary": "Our rules on gifts, money, hospitality, favours, wills and legacies offered to staff by the people we support, their families and representatives. It sets the token gift limit, what must always be declined, how every offer is declared and reviewed, how gifts are returned, what staff must never do with wills and legal documents, what happens if a worker is left a legacy, and how breaches are handled. For all employees.",
+  "keyPoints": {
+    "intro": "People often want to thank you. These rules protect them from losing out and protect you from misunderstanding or an allegation of financial abuse.",
+    "points": [
+      "You may accept only a token gift worth £10 or less, such as chocolates, biscuits, flowers or a card, and no more than three from the same household in any 12 months.",
+      "Always decline cash of any amount, including tips and petrol money, and gift cards, vouchers, cheques, lottery tickets, loans, alcohol, tobacco, and anything belonging to the household, such as jewellery, ornaments, furniture or clothes.",
+      "Decline even a token gift if the person may not understand what they are giving, cannot afford it, asks you to keep it secret, or has an open safeguarding concern about their money.",
+      "Tell the office about every offer of a gift, money or hospitality, accepted or declined, by phone the same day (by email to the branch office if it is closed), and note it factually in the daily visit notes.",
+      "Phone the office or On-call Manager before leaving if offered a loan, property, or cash or a gift over £50, someone mentions staff in their will or wants help with legal papers, you are asked to lend, borrow, buy or sell, or anyone is pressured.",
+      "Never help with, witness, keep or discuss the contents of a will, never act as executor, attorney, deputy or appointee, and never sign any legal or financial document for a person.",
+      "If you learn you have been left anything in a will, accept nothing and tell the Registered Manager in writing within 1 working day; you must refuse the gift in writing, and we will help you.",
+      "You may accept a drink and a biscuit during a visit, but never eat the person's meals or accept invitations to meals out, parties or family events; attend a funeral only with the Registered Manager's agreement.",
+      "Never ask or hint for gifts, sell anything, seek sponsorship or raffle sales, do favours or errands outside the care plan, or ask for or arrange private work; pass any such request to the office the same day.",
+      "If a gift is pressed on you or left in your bag or car, tell the office the same day and bring it to the branch office by the end of your next working day.",
+      "Asking for gifts, accepting cash or a legacy, or hiding a gift is treated as possible financial abuse and can lead to dismissal and a police report; keeping any other gift you should have declined is a disciplinary matter."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "EMPLOYEE",
+    "HR",
+    "SAFEGUARDING"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-SG-009",
+    "POL-CD-017",
+    "POL-HR-007",
+    "POL-HR-008",
+    "POL-GOV-021"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 (safeguarding service users from abuse and improper treatment), including paragraph (6)(c): theft, misuse or misappropriation of money or property",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Department of Health and Social Care, Care and support statutory guidance (updated 30 October 2026), chapter 14, paragraph 14.17 (financial or material abuse, including coercion in connection with wills, property and inheritance) and paragraph 14.25 (indicators of financial abuse)",
+      "url": "https://www.gov.uk/government/publications/care-act-2014-supporting-implementation/care-and-support-statutory-guidance"
+    },
+    {
+      "source": "Office of the Public Guardian, Giving gifts (guidance for attorneys and deputies, updated 25 February 2026)",
+      "url": "https://www.gov.uk/government/publications/giving-gifts/giving-gifts-web-version"
+    },
+    {
+      "source": "Wills Act 1837, section 15 (gifts to an attesting witness, or the witness's spouse, to be void)",
+      "url": "https://www.legislation.gov.uk/ukpga/Will4and1Vict/7/26/section/15"
+    },
+    {
+      "source": "Fraud Act 2006, section 4 (fraud by abuse of position)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/35/section/4"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 12 (scope of a lasting power of attorney: gifts by the attorney)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/12"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 13 (right not to suffer unauthorised deductions from wages)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/13"
+    },
+    {
+      "source": "Skills for Care and Skills for Health, Code of Conduct for Healthcare Support Workers and Adult Social Care Workers in England (2013), Standard 1, guidance statement 7 (never accept offers of loans, gifts, benefits or hospitality that may be seen to compromise your position)",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Support-for-leaders-and-managers/Managing-people/Code-of-conduct/Code-of-Conduct.pdf"
+    },
+    {
+      "source": "HM Revenue and Customs, Inheritance Tax Manual, IHTM35161 Disclaimers: introduction",
+      "url": "https://www.gov.uk/hmrc-internal-manuals/inheritance-tax-manual/ihtm35161"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} provides personal care to adults in their own homes, where our staff are often alone with people who are grateful, lonely or unwell and who may want to thank them with money, presents, hospitality or a mention in their will. Accepting them can leave a person poorer, create obligation or favouritism, and expose a worker to an allegation of financial abuse. The regulations that govern CQC-registered providers define abuse to include theft, misuse or misappropriation of a person's money or property, and the Care and support statutory guidance recognises coercion over wills, property and inheritance as financial abuse."
+        },
+        {
+          "p": "Our rules are firm and simple. Staff may accept only small token gifts within the limits in this policy, and declare every offer. They never accept cash, never become involved in a person's will or legal documents, and never keep a legacy. {{organisation}} itself accepts no legacies, donations or sponsorship from the people we support or their families. People who want to say thank you are welcome to send a compliment, which we pass on to the staff concerned."
+        },
+        {
+          "p": "Breaking these rules is a disciplinary matter and, where a person may have lost out, a safeguarding concern."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that:"
+        },
+        {
+          "bullets": [
+            "everyone who works for us knows what they may accept, what they must decline and how to decline kindly;",
+            "every offer is declared and reviewed, so that loneliness, lost capacity, pressure or exploitation are spotted early;",
+            "nobody who works for us takes part in, or benefits from, a person's will or legal and financial documents;",
+            "gifts taken in breach are returned and breaches are handled fairly."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, office and care staff, bank staff, agency workers, students, volunteers and contractors. It covers gifts, money, hospitality, favours and benefits offered by a person we support, their family, friends, neighbours, attorney, deputy or appointee, or anyone else in their household, whether offered at a visit, at the branch office, by post, online or outside work, during the service, after it ends or after the person has died. A gift to a worker's partner, child or other relative counts as a gift to the worker."
+        },
+        {
+          "p": "The rules on legacies continue to apply to gifts from people a worker supported through us after the worker has left our employment, as set out in Wills, legacies and legal documents. This policy does not restrict ordinary family gifts or inheritance between a worker and a relative whom the Registered Manager has agreed they may support; the relationship is declared under the Staff Code of Conduct."
+        },
+        {
+          "p": "Business gifts and hospitality from suppliers, commissioners and other organisations are covered by the Anti-Bribery and Fraud Prevention Policy. Handling a person's money and shopping is covered by the Handling Money, Property and Shopping Procedure; contact outside visits, social media and personal relationships by the Professional Boundaries Policy; private work and other employment by the Staff Code of Conduct; declared interests by the Conflicts of Interest Policy; and the steps for raising and referring a concern by the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Gift",
+                "Anything of value given or offered without payment: money, goods, vouchers, a loan, a discount, the use of property or a vehicle, or a service."
+              ],
+              [
+                "Token gift",
+                "A small item worth £10 or less, such as chocolates, biscuits, flowers, a plant, a card or a small home-made item, given on a customary occasion such as Christmas, Eid, Diwali or a birthday, or as a one-off thank you."
+              ],
+              [
+                "Hospitality",
+                "Food, drink, entertainment, outings or invitations to social or family events."
+              ],
+              [
+                "Legacy",
+                "A gift of money, property or possessions left in a will."
+              ],
+              [
+                "Executor or administrator",
+                "The person who deals with a deceased person's estate: the executor is named in the will; an administrator is appointed where there is no will or no executor acts."
+              ],
+              [
+                "Disclaimer",
+                "A beneficiary's written refusal of a gift under a will. It must be made before the beneficiary has accepted any benefit from the gift; the gift then falls back into the estate."
+              ],
+              [
+                "Attorney, deputy or appointee",
+                "A person with legal authority over another's affairs: an attorney under a lasting or enduring power of attorney, a deputy appointed by the Court of Protection, or a benefits appointee appointed by the Department for Work and Pensions."
+              ],
+              [
+                "Gifts and hospitality register",
+                "The record of every gift, offer of money, hospitality, favour or legacy declared under this policy, kept in the governance records."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and make sure {{organisation}} accepts no legacy, donation or sponsorship from the people we support or their families. The Nominated Individual disclaims any legacy left to {{organisation}} and is told of any concern or allegation involving our staff within the timescales in the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure and the Managing Allegations Against Staff Procedure. The Nominated Individual reviews register entries about the Registered Manager, and another Director reviews entries about a Director or the Nominated Individual."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy and, as safeguarding lead, decides on every safeguarding concern raised under it, reviews every register entry, acts on patterns, agrees any celebration or funeral attendance, deals with wills that mention staff and decides how each breach is handled, as set out below. The Deputy Manager carries out these duties when the Registered Manager is absent or connected to the matter."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager keeps the gifts and hospitality register, records each declaration in it and in the worker's staff record, checks each against the limits, keeps disclaimer letters and written undertakings in the staff record, and reminds every leaver in writing of the rules on legacies. The Deputy Manager keeps the register when the HR Manager is absent."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Office staff and On-call Managers",
+          "blocks": [
+            {
+              "p": "Office staff take declarations by phone or email, pass each declaration to the HR Manager the same working day, and pass any offer that is a safeguarding concern to the Registered Manager or Deputy Manager at once. Care Coordinators act on pattern triggers, arrange the return of gifts, and add requests for help outside the care plan to the care plan where the person needs them. Out of hours, the On-call Manager takes calls about offers that are safeguarding concerns and acts under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors return gifts to people's homes, ask the person at every spot check and care plan review whether any member of staff has asked for, or been given, money, gifts or favours, and discuss declarations with workers at supervision."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Care Workers and Senior Care Workers follow this policy at every visit, decline kindly, declare every offer and report any concern. Senior Care Workers help newer colleagues to decline and declare."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Gifts and money",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What you may accept",
+          "blocks": [
+            {
+              "p": "You may accept a token gift: worth £10 or less, offered freely by the person, or by their family from the family's own money, on a customary occasion or as a one-off thank you. You may accept no more than three token gifts from the same person or household in any 12 months. A card or letter of thanks is always welcome and is recorded as a compliment under the Compliments, Feedback and Involvement Procedure. If you are unsure whether you may accept something, decline it, and ask the Care Coordinator, or the On-call Manager out of hours, once you have left the home."
+            }
+          ]
+        },
+        {
+          "heading": "What you must always decline",
+          "blocks": [
+            {
+              "bullets": [
+                "Cash in any amount, including tips, Christmas money, petrol money, money for your children and coins or notes left out for you.",
+                "Gift cards, vouchers, cheques, bank transfers, lottery tickets, scratchcards and premium bonds.",
+                "Loans, discounts, free use of a car, holiday home or other property, and services such as free repairs.",
+                "Anything belonging to the household: jewellery, ornaments, furniture, electrical goods, clothes, or a late partner's possessions, including items the person wants to get rid of. If the person wants items taken away, tell the office; the Care Coordinator agrees with them or their family how to arrange a charity collection or disposal.",
+                "Alcohol, tobacco, vapes and medicines.",
+                "Anything worth more than £10, and a fourth token gift from the same household within 12 months.",
+                "Any gift offered in secret or with a request not to tell the office or the family."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "When even a token gift must be declined",
+          "blocks": [
+            {
+              "p": "You must decline every gift, however small, when:"
+            },
+            {
+              "bullets": [
+                "the care plan records that the person lacks capacity to manage their money or property, or you doubt that they understand what they are giving and to whom;",
+                "the person appears unable to afford it, for example where they are short of food or heating;",
+                "an attorney, deputy or appointee offers it from the person's money (section 12 of the Mental Capacity Act 2005 lets an attorney under a lasting power of attorney give gifts only on customary occasions, to people related to or connected with the person or to charity, and of reasonable value, and a deputy may give only what their Court of Protection order allows, as the Office of the Public Guardian's Giving gifts guidance explains; our rule is stricter: staff accept nothing from the person's funds through a representative);",
+                "the person or their household is the subject of an open safeguarding concern, complaint or allegation involving money;",
+                "accepting would make the person expect, or others believe, that you will give them more time or favour."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "How to decline",
+          "blocks": [
+            {
+              "p": "Decline warmly and briefly, so the person does not feel rejected. For example: 'That is really kind, but I am not allowed to accept it. Hearing that you are happy with your care is thanks enough.' Explain that the rule applies to every care worker and protects everyone. Suggest a card or a compliment to the office instead, and, if they want to give something, a donation to a charity of their own choice; never suggest a particular charity. If the person becomes upset or keeps insisting, do not argue: leave the gift where it is, tell the office the same day, and a Field Care Supervisor or Care Coordinator will explain our rules to the person or their family."
+            }
+          ]
+        },
+        {
+          "heading": "Gifts pressed on you or left behind",
+          "blocks": [
+            {
+              "p": "If money or a gift is pushed into your bag, pocket or car, posted to you, or found after a visit, you must not keep or spend it."
+            },
+            {
+              "steps": [
+                "Tell the office the same day, as for any offer. Until you hand it in, keep any money sealed in an envelope marked with the date and the person's CareFlow reference number, apart from your own money, and never leave it in your car overnight.",
+                "Bring the gift to the branch office by the end of your next working day; if you cannot get there, the Care Coordinator arranges for a Field Care Supervisor to collect it from you within the same time. Office staff count any money with you, email the amount or item to the HR Manager for the register, and keep it in the branch office's locked cabinet.",
+                "A Field Care Supervisor or Care Coordinator returns it at a visit within 5 working days, explains our rules kindly and asks the person or their representative to sign a receipt, which is scanned into the register entry.",
+                "Where the person cannot manage their money, it is returned to their attorney, deputy or appointee or, if there is none, to the person in the presence of two members of staff, who both sign the receipt and record the return in the daily visit notes; if that person has held cash under the Handling Money, Property and Shopping Procedure, the two staff put the money in the cash box and both sign the money and shopping record. Where the person has died, it stays in the locked cabinet until the Care Coordinator has found out from the next of kin recorded in the care plan who the executor or administrator is, and is returned to that person.",
+                "A perishable item that cannot be returned is shared at the branch office or given to a food bank, and the register says so."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Declaring and reviewing offers",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Declaring an offer",
+          "blocks": [
+            {
+              "p": "You must declare every offer of a gift, money, hospitality, a favour or a legacy, whether you accepted or declined it. On a double-up visit both workers declare."
+            },
+            {
+              "steps": [
+                "Before checking out, write a short factual note in the daily visit notes: what was offered, by whom, and whether you accepted or declined it and told the office. Where the offer is a safeguarding concern, write only that a concern has been reported.",
+                "Phone the office the same day, between visits and never while driving. If the office is closed, email the branch office the same day, unless the offer is a safeguarding concern (below), which is always phoned.",
+                "Office staff email the declaration to the HR Manager the same working day (the next working day for an out-of-hours email).",
+                "The HR Manager enters it in the gifts and hospitality register and the worker's staff record by the end of the next working day, checks for earlier gifts from the same household, and tells you through the office if a token gift takes you over the limit, so that it is returned."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Offers that are safeguarding concerns",
+          "blocks": [
+            {
+              "p": "Phone the office, or the On-call Manager out of hours, before you leave the visit, as a safeguarding concern under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, when:"
+            },
+            {
+              "bullets": [
+                "you are offered a loan, property, or cash or any other gift worth more than £50;",
+                "the person mentions you, a colleague or {{organisation}} in their will, or asks for help with a will, power of attorney or any legal or financial document;",
+                "anyone asks you to borrow from, lend to, buy from or sell to the person, or to use their bank card, PIN or online banking;",
+                "a person who lacks, or may lack, capacity for the decision offers anything more than a token gift;",
+                "anyone pressures the person to give, or pressures you to accept, or a relative or visitor seems to be taking money or possessions;",
+                "you learn that a colleague, or a worker from another agency visiting the person, has asked for, accepted or hidden a gift or money, or is involved in the person's will or finances."
+              ]
+            },
+            {
+              "p": "Phone from outside the home if the person who may be responsible is present or you feel unsafe. If nobody answers within 15 minutes, follow that procedure's escalation to the Registered Manager or Deputy Manager. The safeguarding lead, or the On-call Manager out of hours, assesses the risk within 1 hour of the report and decides on referral, as the Safeguarding Adults Policy requires. Where an attorney or deputy may be involved, the safeguarding lead informs the Office of the Public Guardian, and where a benefits appointee may be involved the Department for Work and Pensions, within 2 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Manager review and patterns",
+          "blocks": [
+            {
+              "p": "The Registered Manager reviews every register entry within 2 working days of it being made and records a decision: no further action, gift returned, worker spoken to, care plan review, capacity assessment or safeguarding concern. New entries and patterns are reviewed at the weekly management meeting. The following patterns always lead to action."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Pattern",
+                  "Action",
+                  "Who",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "A person offers gifts or money at 3 or more visits in 4 weeks, or to 3 or more different staff in 3 months",
+                    "Focused care plan review covering loneliness, capacity to manage money and gifts, and possible pressure from others; safeguarding lead decides on referral",
+                    "Care Coordinator; Registered Manager",
+                    "Review within 7 days; decision recorded at the review"
+                  ],
+                  [
+                    "A worker declares 3 or more offers from people they support in 3 months",
+                    "Discussion at supervision of how they decline and keep boundaries; Registered Manager checks the worker's register entries and visit pattern",
+                    "Field Care Supervisor; Registered Manager",
+                    "Supervision within 2 weeks"
+                  ],
+                  [
+                    "A gift or offer is found that was not declared, including through a person's answer at a spot check or review",
+                    "Reported to the safeguarding lead by phone before the Field Care Supervisor or Care Coordinator leaves the home, and categorised under the Managing Allegations Against Staff Procedure; other people the worker has visited in the previous 3 months are asked whether they have given the worker anything; unannounced spot check of the worker",
+                    "Registered Manager; Field Care Supervisor",
+                    "Categorised within 1 hour of the report; checks within 5 working days; spot check within 4 weeks"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Hospitality, favours and invitations",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "During visits",
+          "blocks": [
+            {
+              "p": "You may accept a hot or cold drink, and a biscuit or similar small item offered with it, during a visit, provided it does not take time from the person's care or keep you beyond the planned visit time; never stay on to socialise. Never take food or drink without being offered it, and never eat the person's meals. Where the care plan records that eating together helps the person to eat, you bring your own food."
+            }
+          ]
+        },
+        {
+          "heading": "Invitations and events",
+          "blocks": [
+            {
+              "p": "Decline invitations from the person or their family to meals out, parties, weddings, celebrations, outings, holidays or stays, and never invite them to your own events. Where the person wants staff to mark a special occasion, such as a 100th birthday, the Registered Manager may agree in advance that the care team joins a celebration during a rostered visit; the agreement is recorded in the register."
+            },
+            {
+              "p": "After a person dies, staff who supported them may attend the funeral if the family is content and the Registered Manager has agreed beforehand; ask through the office. Attendance is in your own time unless the Registered Manager asks you to represent us, when it is paid; the agreement is recorded in the register. Light refreshments at the funeral are acceptable. A keepsake offered afterwards belongs to the estate: you may accept only one worth £10 or less, given by or with the agreement of the executor or administrator, and only with the Registered Manager's agreement; declare it as usual."
+            }
+          ]
+        },
+        {
+          "heading": "Favours, private work and selling",
+          "blocks": [
+            {
+              "bullets": [
+                "Do not do favours, errands or jobs outside the care plan or outside your rostered visit, such as lifts, shopping, collecting pensions or parcels, pet care, gardening or odd jobs, unless it is private work you have declared as set out in the next point. Pass every such request to the office the same day; the Care Coordinator decides with the person whether the need belongs in the care plan or with another service.",
+                "Never ask for, encourage or arrange private work, paid or unpaid, with the person, anyone you supported through us in the last 12 months, or their household. If asked, tell them to contact the office and tell the office yourself the same day. If you decide to accept private work, the Staff Code of Conduct applies: you tell the HR Manager in writing before you start, you are not allocated to that person from the next rota, and the Registered Manager decides the same working day whether it raises a safeguarding concern.",
+                "Never ask or hint for a gift, or talk about your birthday, money worries or personal needs to encourage one.",
+                "Never buy from, sell to, borrow from or lend to the person or their family, or ask them to sponsor you, buy raffle tickets, contribute to a collection or donate to a cause. The financial rules in the Safeguarding Adults Policy, including never knowing or using a PIN, bank card or online banking, never withdrawing cash for a person, and handling cash only where the care plan says so with receipts recorded under the Handling Money, Property and Shopping Procedure, apply at all times.",
+                "Never give the person or their family gifts or money of your own; you may give a card."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Wills, legacies and legal documents",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What staff must never do",
+          "blocks": [
+            {
+              "bullets": [
+                "Help make, write, change, keep or witness a will or codicil, suggest what it should say, or read it.",
+                "Recommend a particular solicitor or will writer. If the person asks, tell the office; the Care Coordinator gives them or their family information on finding a regulated solicitor and on independent advice services.",
+                "Stay in the room while the person discusses or signs a will or legal document with a solicitor or anyone else, unless the person needs care during that time, in which case give the care and leave.",
+                "Act as executor, trustee, attorney, deputy, appointee or certificate provider for a lasting power of attorney, or witness or sign any legal or financial document for the person.",
+                "Accept any legacy from a person you supported through us."
+              ]
+            },
+            {
+              "p": "The law adds its own protection: a gift in a will to a person who witnesses it, or to their spouse or civil partner, is void (Wills Act 1837, section 15). A worker who dishonestly abuses a position of trust over a person's finances for gain may commit fraud by abuse of position (Fraud Act 2006, section 4)."
+            }
+          ]
+        },
+        {
+          "heading": "If a person mentions their will",
+          "blocks": [
+            {
+              "p": "If the person says they have left, or want to leave, something to you, a colleague or {{organisation}}, tell them kindly that staff cannot accept anything left in a will, do not discuss it further, and phone the office before you leave as a safeguarding concern. The Registered Manager decides the same day, with reasons recorded, whether the worker continues to visit the person. Within 5 working days the Registered Manager or Deputy Manager speaks with the person privately, explains our rule, offers a letter confirming it, and suggests they speak to their solicitor; with the person's agreement, the Registered Manager writes to the solicitor. Where the person may lack capacity or may be under someone's influence, the safeguarding lead decides on referral to the local authority and informs the Office of the Public Guardian or the Department for Work and Pensions within 2 working days where an attorney, deputy or appointee may be involved."
+            },
+            {
+              "p": "A worker named in a living person's will gives the Registered Manager a signed written undertaking within 5 working days that they will refuse the gift; the HR Manager keeps it in the staff record."
+            }
+          ]
+        },
+        {
+          "heading": "If you are told you are a beneficiary",
+          "blocks": [
+            {
+              "steps": [
+                "Accept nothing: no money on account, no possessions and no keepsake.",
+                "Tell the Registered Manager in writing within 1 working day of learning of the gift.",
+                "While the person is alive, give the written undertaking described above. Once the person has died, write to the executor or administrator within 10 working days of learning of the gift or of the death, whichever is later, refusing the whole gift. A refusal is only valid if you have not accepted any benefit from it. The Registered Manager or HR Manager will help you word the letter.",
+                "Give a copy of your letter to the HR Manager the same day for your staff record."
+              ]
+            },
+            {
+              "p": "The safeguarding lead considers in every case whether the gift came about through pressure or abuse, and refers to the local authority while the person is alive, or to the police, as the facts require. A worker who refuses to disclaim a legacy is dealt with under the Disciplinary Policy and Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Former staff",
+          "blocks": [
+            {
+              "p": "When anyone leaves, the HR Manager's leaving letter reminds them that they must not accept a gift or legacy from anyone they supported through us. We cannot take disciplinary action against a former worker, but if we learn that one has accepted a legacy or large gift from a person they supported through us, the safeguarding lead treats it as a possible safeguarding concern, reports it to the police where theft or fraud may have occurred, and considers a referral under the Staff Fitness Concerns and DBS Referrals Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Thanks to the team and the organisation",
+      "blocks": [
+        {
+          "p": "A person or family may give the branch team a shared gift of perishable items, such as chocolates, biscuits or flowers, worth up to £30 in total. The member of staff who receives it declares it in the usual way and it is shared at the branch office. Money for a team meal or party, and any other team gift, is declined."
+        },
+        {
+          "p": "{{organisation}} does not accept donations, sponsorship or legacies from the people we support, their families or representatives. An extra amount added to an invoice payment as a gift for staff is refunded to the payer by Office staff within 10 working days and recorded in the register. When we learn that a legacy has been left to us, the Nominated Individual writes to the executor or administrator within 10 working days disclaiming it, and records this in the register. Families who want to give thanks are encouraged to send a compliment or donate to a charity of their choice."
+        }
+      ]
+    },
+    {
+      "heading": "Breaches, recovery and safeguarding",
+      "blocks": [
+        {
+          "p": "Every breach is assessed on its facts, and the Registered Manager records the route chosen. The usual responses are:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Breach",
+              "Response",
+              "Who",
+              "Timescale"
+            ],
+            "rows": [
+              [
+                "A token gift within the limits that was declared late or not noted, with no sign of pressure or loss",
+                "Handled as a minor lapse under the Staff Code of Conduct: discussed and recorded in the supervision record; a repeat within 6 months goes to the Registered Manager",
+                "Field Care Supervisor",
+                "At the next supervision"
+              ],
+              [
+                "A gift kept that exceeds the limits or should have been declined, or a favour or invitation accepted without agreement",
+                "Gift returned as set out in Gifts pressed on you or left behind; the safeguarding lead decides whether it is also a safeguarding concern (always where the person lacks or may lack capacity, or the gift is worth more than £50); route decided under the Disciplinary Policy and Procedure",
+                "Registered Manager",
+                "Safeguarding decision the same day; return within 5 working days; route decision within 2 working days"
+              ],
+              [
+                "Asking or hinting for gifts, accepting or keeping cash, hiding a gift, accepting a legacy, witnessing a will or acting in any role over a person's affairs",
+                "Safeguarding concern and allegation against staff under the Managing Allegations Against Staff Procedure, including interim measures and, where the worker is removed from a person's visits because theft or financial abuse is alleged, the offer of a key safe code change and recovery of any key the worker holds for that home the same working day; police where theft or fraud may have occurred; possible gross misconduct under the Disciplinary Policy and Procedure",
+                "Registered Manager as safeguarding lead",
+                "Risk assessment within 1 hour; referral and interim measures the same working day"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Recovery: the worker is asked to return any gift or money they should not have accepted. We never deduct it from wages: the law allows deductions only where a statute or the contract authorises them or the worker has agreed in writing beforehand (Employment Rights Act 1996, section 13), and our Disciplinary Policy and Procedure never uses pay deductions. For an agency worker, student, volunteer or contractor, the supplying organisation is told the same day. A worker who will not return it is dealt with as in the last row of the table, and the safeguarding lead reports it to the police. The person, their representative and the commissioner are kept informed as the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure sets out, and CQC is notified under the Statutory Notifications to CQC Procedure where there is an allegation of abuse."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where in CareFlow",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "Each declaration: date, worker, the person's CareFlow reference number, who offered what, estimated value, accepted, declined or returned, the Registered Manager's decision, and links to any safeguarding record or incident log entry",
+                "Gifts and hospitality register in the governance records, seen only by the Directors, Nominated Individual, Registered Manager, Deputy Manager and HR Manager",
+                "6 years after the worker's employment ends"
+              ],
+              [
+                "The worker's own declarations, undertakings and disclaimer letters",
+                "Staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "A short factual note of each offer",
+                "Daily visit notes",
+                "As the person's care records"
+              ],
+              [
+                "Returned gifts and signed receipts",
+                "Register entry, with the receipt scanned in",
+                "As the register entry"
+              ],
+              [
+                "Safeguarding concerns, allegations and decisions",
+                "Safeguarding records and the incident log, as the Safeguarding Adults Policy sets out",
+                "As the Records Management and Retention Policy sets out"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Nothing is destroyed while a safeguarding enquiry, police investigation, disciplinary case or claim about it is open or expected."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "Care Workers and Senior Care Workers learn this policy in safeguarding training at induction, with scenarios such as being offered £20 at Christmas or being told they are in a will, before working without a shadowing colleague. It is covered again in the annual safeguarding refresher.",
+            "Office staff and On-call Managers are taken through declarations and the offers that are safeguarding concerns before taking calls alone or their first on-call shift, then in the annual safeguarding refresher.",
+            "The HR Manager and the Deputy Manager are briefed by the Registered Manager on keeping the register before first doing so.",
+            "At least once every 12 months, the safeguarding scenario at a worker's supervision is about gifts, money or wills, as the Supervision, Spot Checks and Appraisal Policy sets out; spot checks carry the general safeguarding question. A worker who cannot say what to do is taken through this policy at once and rechecked at the next spot check.",
+            "In the first week of December each year the Registered Manager sends every member of staff a reminder of the gift rules."
+          ]
+        },
+        {
+          "p": "All employees acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Each new register entry, and patterns by person and by worker",
+                "Review within 2 working days; weekly management meeting",
+                "Registered Manager",
+                "Nominated Individual by exception"
+              ],
+              [
+                "Every register entry in the quarter: declared the same day, entered by the end of the next working day, decision within 2 working days, returns within 5 working days, pattern actions taken; target 100%",
+                "Quarterly audit",
+                "Deputy Manager (Registered Manager for entries the Deputy Manager decided)",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Whether people have been asked for, or given, money, gifts or favours",
+                "Question at every spot check and care plan review",
+                "Field Care Supervisors and Care Coordinators",
+                "Registered Manager"
+              ],
+              [
+                "Numbers of offers, gifts accepted, declined and returned, patterns, breaches and legacies",
+                "Quarterly summary within the anonymised conduct summary",
+                "Registered Manager",
+                "Nominated Individual; Directors in the quarterly governance report"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The annual safeguarding report to the Directors includes a summary of the register and any breaches. This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or guidance, a serious incident or safeguarding concern involving gifts or a will, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

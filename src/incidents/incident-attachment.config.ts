@@ -1,14 +1,12 @@
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { existsSync, mkdirSync, promises as fsp } from 'fs';
 import { diskStorage } from 'multer';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 /** Attachments live outside any web-served static root — access is only via the
  *  authenticated, permission-checked download endpoint. */
 export function incidentAttachmentRoot() {
-  return join(
-    process.cwd(),
-    process.env.UPLOAD_BASE_PATH ?? 'uploads',
-    'incidents',
+  return uploadPath('incidents',
     'attachments',
   );
 }

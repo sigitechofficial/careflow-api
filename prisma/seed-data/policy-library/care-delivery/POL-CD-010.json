@@ -1,0 +1,220 @@
+{
+  "reference": "POL-CD-010",
+  "revision": 1,
+  "title": "Personal Care, Continence and Oral Care Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How our staff give washing, bathing, dressing, shaving, hair, nail, continence and daily mouth care in people's own homes: with consent, privacy and dignity, doing only what the care plan says, keeping people as independent as they want to be, and reporting changes in bladder, bowel, skin, mouth and teeth to the office and health professionals on time. For all staff.",
+  "keyPoints": {
+    "intro": "This is what you must do whenever you wash, dress or toilet a person or help with mouth care.",
+    "points": [
+      "Do only the personal care tasks in the care plan, the way it describes. Never cut toenails or hair or put anything into ears. Never insert, remove or flush a catheter, and do catheter, stoma or bowel tasks only if signed off for them.",
+      "Ask before every task and keep checking. Close doors and curtains, keep the person covered except for the part you are washing, and stop at once if they say no or show distress. Never hold or force anyone.",
+      "Let the person do everything they can for themselves, in their own order and way, and record any change in what they can do.",
+      "Check bath or shower water before the person gets in: never above 44 degrees Celsius, using the bath thermometer where the care plan says. Never leave a person alone in the bath or shower unless the care plan allows it.",
+      "Offer the toilet or commode at every visit where you give continence care. Never tell a person to use a pad when they can use the toilet with your help, and never leave anyone wet or soiled.",
+      "Use one continence pad at a time, of the type the continence service supplied. Clean front to back with unperfumed products, pat dry and apply creams only as the eMAR shows.",
+      "Brush natural teeth with fluoride toothpaste at the visits the care plan names; encourage spitting out, not rinsing. Clean dentures with soap or washing-up liquid, never toothpaste or hot water, and leave them out overnight in a labelled pot unless the dentist advises otherwise.",
+      "Call 999 if the person is newly confused, very drowsy or seems seriously unwell, or has swelling of the face or neck that affects breathing or swallowing.",
+      "Phone the office before leaving about pain passing urine, blood in urine or stools, being unable to pass urine, new incontinence or a skin tear. Phone at once if a catheter stops draining; follow the Catheter Care and Continence Hygiene Protocol for catheters and stomas.",
+      "Tell the office the same day about constipation, mouth pain, bleeding gums, a mouth ulcer, loose or broken teeth, dentures that do not fit, or continence products that leak or are running low.",
+      "Wear gloves and an apron for continence, intimate, mouth and denture care, and bag used pads and wipes as care waste. Never flush pads or wipes and never take waste or soiled laundry out of the person's home.",
+      "Before you check out, record in the daily visit notes what you did, what the person did themselves, anything declined and anything you noticed."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["ALL_EMPLOYEES"],
+  "moduleLinks": ["CARE_PLAN", "VISIT", "INFECTION_CONTROL", "EQUIPMENT", "TRAINING"],
+  "relatedReferences": ["POL-CD-001", "POL-CD-004", "POL-CD-008", "POL-CD-018", "POL-IPC-010", "POL-IPC-002", "POL-HS-005", "POL-MED-015"],
+  "regulatoryBasis": [
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 10 (dignity and respect), paragraphs (1) and (2)(a) and (b)", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/10" },
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 (need for consent), paragraphs (1) and (3)", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11" },
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 (safe care and treatment), paragraphs (2)(a), (b), (c), (e) and (h)", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12" },
+    { "source": "Office for Health Improvement and Disparities and partners, Delivering better oral health: an evidence-based toolkit for prevention, chapter 2 summary guidance tables (toolkit updated 10 September 2025)", "url": "https://www.gov.uk/government/publications/delivering-better-oral-health-an-evidence-based-toolkit-for-prevention/chapter-2-summary-guidance-tables-for-dental-teams" },
+    { "source": "Office for Health Improvement and Disparities and partners, Delivering better oral health: an evidence-based toolkit for prevention, chapter 8 oral hygiene", "url": "https://www.gov.uk/government/publications/delivering-better-oral-health-an-evidence-based-toolkit-for-prevention/chapter-8-oral-hygiene" },
+    { "source": "NHS website: Dentures (false teeth), caring for dentures (page reviewed 19 March 2025)", "url": "https://www.nhs.uk/tests-and-treatments/dentures/" },
+    { "source": "NHS website: Urinary tract infections (UTIs), symptoms in older people and people with a catheter and when to get help (page reviewed 11 July 2025)", "url": "https://www.nhs.uk/conditions/urinary-tract-infections-utis/" },
+    { "source": "UKHSA, Diagnosis of urinary tract infections: quick reference tools for primary care (updated 7 July 2025): no urine dipsticks for people over 65 or with a urinary catheter", "url": "https://www.gov.uk/government/publications/urinary-tract-infection-diagnosis/diagnosis-of-urinary-tract-infections-quick-reference-tools-for-primary-care" },
+    { "source": "NHS website: Benign prostate enlargement, urgent GP or NHS 111 advice when a person cannot pee at all (page reviewed 8 April 2025)", "url": "https://www.nhs.uk/conditions/prostate-enlargement/" },
+    { "source": "NHS website: Constipation (page reviewed 26 October 2023)", "url": "https://www.nhs.uk/conditions/constipation/" },
+    { "source": "NHS website: Diarrhoea and vomiting, call NHS 111 now for bloody diarrhoea or bleeding from the bottom (page reviewed 21 December 2023)", "url": "https://www.nhs.uk/conditions/diarrhoea-and-vomiting/" },
+    { "source": "NHS website: Mouth ulcers, when to see a GP or dentist (page reviewed 11 March 2024)", "url": "https://www.nhs.uk/conditions/mouth-ulcers/" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "Help with washing, dressing, using the toilet and cleaning teeth is the most personal care we give, and it happens in the person's own bathroom and bedroom. {{organisation}} will give it only with the person's agreement, in private, in the way and at the pace the person chooses, supporting them to do as much as they can for themselves." },
+        { "p": "Our care workers are often the first to notice an infection, constipation, sore skin or a painful mouth. {{organisation}} will make sure every change they see reaches the right health professional on time, and that continence products never replace the help a person needs to use the toilet." },
+        { "p": "This procedure sits under the Person-Centred Care, Dignity and Respect Policy." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "p": "This procedure sets out how we meet Regulations 10, 11 and 12 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 in washing, dressing, intimate, continence and mouth care, including which tasks staff do and do not do and how changes are reported. Its timescales and task limits are our policy, not legal requirements." }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This procedure applies to all managers, office staff, care staff, bank and agency workers and students working for us, and to every person whose care plan includes washing, bathing, dressing, grooming, continence or mouth care." },
+        { "p": "Owned elsewhere: skin checks, pressure areas and moisture damage (Pressure Ulcer Prevention and Skin Integrity Procedure); moving, transfers and bath equipment (Moving and Handling of People Policy and Hoists, Slings and Lifting Equipment Procedure); catheter, sheath catheter and stoma care, the hygiene steps of continence care and their warning signs (Catheter Care and Continence Hygiene Protocol); creams, medicated shampoos and other medicines (Administering and Supporting People with Medicines Procedure); rectal medicines, bowel care and other delegated tasks (Delegated Healthcare Activities and Specialised Medicines Tasks Policy); and care in the last days of life (End of Life Care Policy)." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Intimate care", "Personal care that involves touching or exposing the genital, perianal or breast areas, including washing, toileting, continence and menstrual care."],
+          ["Continence products", "Pads, pull-up pants, bed pads, urinals and similar products that contain urine or faeces, mostly supplied by the NHS continence service after an assessment. A sheath catheter is a device, not a continence product."],
+          ["Continence service", "The NHS bladder and bowel or continence advisory service for the person's area, reached through the GP or community nursing team, which assesses continence and supplies products."],
+          ["Bowel record", "A note in the daily visit notes at each visit with continence care of whether the person's bowels opened and the stool type on the Bristol Stool Form Scale (type 1 hard lumps to type 7 watery)."],
+          ["Toiletries", "Non-medicinal products the person chooses, such as soap, shower gel, shampoo, deodorant, standard fluoride toothpaste and denture cleaner. Any cream, emollient, barrier product, medicated shampoo, prescribed toothpaste or medicated mouthwash is a medicine and goes on the eMAR."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Directors and Nominated Individual", "blocks": [ { "p": "The Nominated Individual reviews this procedure's findings in the quarterly quality report and challenges any shortfall." } ] },
+        { "heading": "Registered Manager and Deputy Manager", "blocks": [ { "p": "The Registered Manager leads on personal care, continence and oral care, and approves (as may the Deputy Manager) personal care given under a best interests decision. The Deputy Manager covers in their absence and carries out the quarterly continence and oral care check." } ] },
+        { "heading": "Care Coordinators", "blocks": [ { "p": "Care Coordinators make the requests in this procedure on time, record health professionals' advice in the care plan, arrange supplies and equipment, allocate only care workers trained for each person's tasks, and tell every rostered care worker about a change before their next visit." } ] },
+        { "heading": "Assessors and Field Care Supervisors", "blocks": [ { "p": "Authorised assessors (Field Care Supervisors or Care Coordinators) record personal care, continence and mouth care needs in the care plan at assessment and every review. Field Care Supervisors observe personal care at spot checks and, where trained, show care workers how to apply compression stockings." } ] },
+        { "heading": "Senior Care Workers and Care Workers", "blocks": [ { "p": "Senior Care Workers and Care Workers give personal care as the care plan sets out, and record and report as this procedure requires." } ] },
+        { "heading": "On-call Manager and Office staff", "blocks": [ { "p": "Office staff record phoned reports in the daily visit notes the same working day and pass them to the Care Coordinator at once. Out of hours the On-call Manager takes the Care Coordinator's urgent actions, using NHS 111 when the GP practice is closed, and hands over by 10am the next working day." } ] }
+      ]
+    },
+    {
+      "heading": "Planning personal care",
+      "blocks": [
+        { "p": "At assessment and every care plan review, the assessor records in My needs and support and the visit plans, for each personal care task: what the person does themselves; the help they want and how; routines, times and order; toiletries and clothes; any preference about the sex of the care worker; cultural, religious and modesty needs, such as washing in running water; the equipment and number of care workers from the moving and handling plan; and what family members or other agencies do, so each task has one named person responsible." },
+        { "p": "The continence part records the person's usual bladder and bowel pattern, the toilet, commode or urinal they use, any products and who supplies them, any catheter or stoma, whether a bowel record is needed, and anything the person finds embarrassing or distressing. A bowel record is set by the assessor for anyone with a history of constipation, prescribed laxatives or opioid painkillers, or who cannot tell us about their bowels." },
+        { "p": "The mouth care part records natural teeth, full or partial dentures or both, the dentist and date of the last check, what the person does themselves, the toothpaste and equipment, at which visits mouth care is given, where dentures are kept overnight, and any advice from a dentist or speech and language therapist." },
+        { "p": "Where a person needs help to use the toilet more often than our visits allow and nobody else can help between visits, the Care Coordinator writes to the commissioner within 2 working days asking for the visit pattern to be reviewed, and to the continence service for advice. Personal care is planned only into visits of at least 30 minutes. If a care worker cannot complete personal care in the planned time, they finish the essential tasks, never rush the person, and phone the office before leaving." }
+      ]
+    },
+    {
+      "heading": "Dignity, privacy and consent in intimate care",
+      "blocks": [
+        { "p": "Care workers follow these steps for every intimate care task at every visit:" },
+        { "steps": [
+          "Check the care plan for the person's preferences. Never give intimate care against a recorded preference about the sex of the care worker unless the person agrees on that occasion.",
+          "Ask whether the person wants anyone present to leave. Close doors, curtains and blinds, make sure the room is warm and get everything ready before the person undresses.",
+          "Explain what you would like to do and ask if that is all right, using the words and aids in the care plan. Watch for agreement or refusal shown without words.",
+          "Keep the person covered with a towel or their clothes except for the part being washed or dried, and help them do as much as they can themselves, such as washing their own face or genital area.",
+          "Talk with the person, not over them, and never comment on their body. Stop at once if they say no or show distress; offer another way or a later time in the visit.",
+          "Help the person dress in clothes they have chosen, and leave them comfortable, warm and in the position they want, with their call alarm, phone and drink within reach."
+        ] },
+        { "p": "A shadowing care worker, student or observer is present during intimate care only if the person agrees on that occasion. Where a person lacks capacity to agree to a task, it is given only under a best interests decision approved by the Registered Manager or Deputy Manager and written into the visit plan, under the Consent to Care Policy; if the person resists, the care worker stops and never holds or forces them (Restraint and Restrictive Practice Policy)." },
+        { "p": "If the person declines, the care worker offers once more later in the visit, records it in the daily visit notes and phones the office before leaving if an essential task, such as changing a soiled pad, was not done. Repeated declines follow the Visit Cancellations and Refusals of Care Procedure, and signs a person is not managing their own hygiene the Self-Neglect and Hoarding Procedure." },
+        { "p": "If a person behaves sexually towards a care worker during care, the care worker calmly stops the task, says it is not acceptable, leaves the room if needed and phones the office, under the Sexual Safety Policy. Injuries, bleeding or soreness in the genital or anal area, or distress about intimate care that suggests abuse, are phoned before leaving under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure; where a recent sexual assault is possible, the care worker does not wash the person or change clothes or bedding unless their health or dignity requires it, and follows the police advice the office obtains (Sexual Safety Policy)." }
+      ]
+    },
+    {
+      "heading": "Washing, bathing, dressing and grooming",
+      "blocks": [
+        { "p": "Care workers use the person's own toiletries and towels, with separate flannels or disposable wipes for the face, the body and the genital and perianal area, washing from cleanest to least clean. The washing bowl is used only for washing, then cleaned, dried and stored upside down. Razors, toothbrushes and towels are never shared within a household." },
+        { "p": "Bath and shower water is never above 44 degrees Celsius. Where the care plan says the person cannot reliably sense or react to heat or get out unaided, the care worker checks the water with the bath thermometer the Care Coordinator provides before the person gets in; for everyone else they check it with the person, under the Risk Assessment and Home Environment Risk Assessment Procedure. Bath boards, shower chairs, bath lifts and hoists are used only as the moving and handling plan sets out, and a bath lift or bath hoist only with an in-date examination under the Hoists, Slings and Lifting Equipment Procedure." },
+        { "p": "A person is never left alone in a bath or shower unless the care plan records that they have chosen privacy and the risk assessment shows they can get out or call for help; the care worker then stays within calling distance. If a person cannot get out of the bath, the care worker lets the water out, keeps them warm and covered, never lifts them, and talks them through getting out only as the moving and handling plan allows; if they still cannot get out, the care worker calls 999 and phones the office, as the Falls Prevention and Response Procedure sets out for a person who cannot get up on their own. Plug-in hairdryers and heaters are never used in a bathroom. A scald is cooled under cool running water for 20 minutes and handled under the First Aid Procedure, with an incident log entry." },
+        { "p": "During washing and dressing the care worker looks at the skin as the Pressure Ulcer Prevention and Skin Integrity Procedure sets out. Prescribed compression stockings are applied or removed only where the care plan holds the nurse's written instructions and the care worker has been shown by the nurse or a trained Field Care Supervisor; care workers never apply compression bandages." },
+        { "table": { "columns": ["Task", "Care workers may", "Care workers never"], "rows": [
+          ["Hair", "Wash, dry, brush and style hair as the person likes; medicated shampoo only as the eMAR shows.", "Cut, colour, perm or chemically treat hair."],
+          ["Shaving", "Use the person's own electric razor, or their own wet razor where the care plan records it. For a person taking a blood-thinning medicine or with fragile skin, an electric razor unless they choose otherwise after the risk is explained and recorded.", "Share razors, put a used blade or disposable razor loose in a waste bag (Sharps Safety and Needlestick Injury Procedure), or use wax or hair removal cream."],
+          ["Fingernails", "Clean and file nails, and cut them with the person's own clippers where the care plan records it.", "Cut the nails of a person with diabetes, poor circulation, numb hands, a blood-thinning medicine or thick, ingrown or infected nails; podiatry is arranged as for toenails."],
+          ["Feet and toenails", "Wash and dry feet, including between the toes, and look for changes.", "Cut or file toenails, or cut corns or hard skin. The Care Coordinator gives the person or family the podiatry route within 5 working days of the need being recorded."],
+          ["Eyes and ears", "Wipe around closed eyes with clean damp gauze, a fresh piece for each eye; clean glasses and hearing aids.", "Put anything into an ear or nose; eye and ear drops are medicines on the eMAR."],
+          ["Skin products", "Apply toiletries and make-up as the person likes, and creams only as the eMAR and body map show.", "Use a cream or emollient not on the eMAR, or talcum powder on skin folds or pressure areas."]
+        ] } },
+        { "p": "Menstrual care is given privately with the person's own products, which are bagged as care waste. A skin tear or other injury during care is covered with a clean dressing from the care worker's first aid kit, recorded on a body map and in the incident log before the end of the shift, and phoned to the office before leaving; the Care Coordinator asks the community nursing team for advice the same day." }
+      ]
+    },
+    {
+      "heading": "Continence support",
+      "blocks": [
+        { "p": "At each visit with continence care the care worker offers the toilet or commode, helps the person there as the moving and handling plan sets out, gives them privacy and time, and leaves a commode or urinal within reach at the last visit of the day where the care plan says so. A person who can use the toilet with help is never told to use a pad instead, and staff never suggest drinking less to avoid accidents; a person who limits their own drinks for this reason is reported to the office the same day, and the Care Coordinator raises it with the person and, with agreement, the continence service or GP within 2 working days." },
+        { "bullets": [
+          "Use only the products the continence service supplied, one pad at a time, in the size and way shown. Check and change wet or soiled pads, clothing and bedding at every visit with continence care, at once when soiled with faeces, and never leave a person wet or soiled.",
+          "Clean the skin front to back with unperfumed products, pat it dry and apply barrier products only as the eMAR shows (Catheter Care and Continence Hygiene Protocol).",
+          "Empty urinals, commodes and bedpans into the toilet, flush with the lid down, and clean and disinfect them after every use.",
+          "Tell the office the same day when a product leaks, causes soreness or no longer fits, or when about 2 weeks' supply is left (catheter and stoma supplies follow the protocol's own thresholds). The Care Coordinator contacts the person or family, or the continence service, within 2 working days. Staff never buy products with their own money; if products run out, the office arranges a supply that day with the person or family."
+        ] },
+        { "p": "Continence assessment belongs to the NHS. With the person's agreement, the Care Coordinator asks the GP or continence service for an assessment within 2 working days of new or worsening incontinence, products that no longer meet the person's needs, or a person using pads that were never assessed. Product suitability, and whether the person could manage with less help, are checked at every care plan review." },
+        { "p": "Care of an established urinary catheter, catheter valve, sheath catheter or stoma is a device task: it is given only where the care plan holds the health professional's written instructions, by care workers signed off for that device type, as the Catheter Care and Continence Hygiene Protocol sets out. Staff never insert, remove, change or flush a catheter, take a urine sample from one or irrigate a stoma; these belong to the community nursing team. Suppositories, enemas, digital rectal stimulation and manual evacuation are given only as Level 3 tasks approved by the Registered Manager for a named person and named, signed-off care workers under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy." }
+      ]
+    },
+    {
+      "heading": "Daily mouth care",
+      "blocks": [
+        { "p": "Mouth care is given at the visits the care plan names, with the person sitting upright and good light. Care workers ask before looking in the mouth." },
+        { "bullets": [
+          "Natural teeth: brush twice a day, last thing at night and at one other time, with a soft toothbrush and toothpaste containing 1,350 to 1,500 ppm fluoride, or the higher-strength toothpaste the dentist prescribed, which goes on the eMAR. Encourage the person to spit out and not rinse. Where our visits cover only one of the two times, the care plan records who helps with the other.",
+          "Dentures: take them out with the person's agreement, brush them over a bowl of water or a folded towel with a soft brush and soap or washing-up liquid, never toothpaste, hot or boiling water or bleach, rinse them after meals, and brush the gums, tongue and any remaining teeth. At the last visit of the day leave them out in the person's labelled lidded pot of cold water or cleaning solution within their reach, unless the dentist has advised otherwise.",
+          "Lips and dry mouth: apply lip balm or mouth moisturiser as the care plan names. Never put an oil-based product such as petroleum jelly on the face of a person using home oxygen; the Care Coordinator asks the prescriber or pharmacist for a water-based alternative within 2 working days, under the Fire Safety in People's Homes Policy.",
+          "A person who cannot swallow safely or does not eat by mouth: mouth care only as the speech and language therapist's or nurse's written plan sets out. Staff never use foam-headed mouth swabs to clean teeth, because the head can come off and be inhaled or swallowed.",
+          "Toothbrushes are replaced every 3 months or sooner when worn; the care worker tells the office or family when a new one is needed."
+        ] },
+        { "p": "Dental care: where the last dental check recorded in the care plan was more than 12 months ago or the person has no dentist, the Care Coordinator offers, with consent, to help them find an NHS dentist or, for a person who cannot leave home, to ask the GP or dentist for a referral to the community dental service, within 20 working days. We escort a person to the dentist only where the care plan or commissioner provides for it. With the person's agreement the Care Coordinator asks the dentist to mark any new dentures with the person's name. Lost or broken dentures are reported to the office the same day and recorded in the incident log where it happened during our care; the Care Coordinator contacts the dentist within 5 working days." }
+      ]
+    },
+    {
+      "heading": "Infection prevention and equipment",
+      "blocks": [
+        { "p": "Care workers follow the PPE table in the Standard Infection Control Precautions Procedure, wearing gloves and an apron for intimate, continence, catheter, stoma, mouth and denture care and changing them between tasks. Used pads, wipes, emptied bags and PPE are care waste under the Waste Management in People's Homes Procedure and are never flushed; soiled linen follows the Laundry, Soiled Linen and Spillages Procedure." },
+        { "p": "Commodes, raised toilet seats, bath boards, shower chairs and similar equipment usually belong to the community equipment service or the person. The care worker checks each item is complete, stable and clean before use and never uses an item that is damaged or does not fit. A faulty item is phoned to the office before leaving and recorded in the incident log before the end of the shift; the Care Coordinator reports it to its owner the same working day and arranges a safe alternative, under the Health and Safety Policy." }
+      ]
+    },
+    {
+      "heading": "Recognising and reporting changes",
+      "blocks": [
+        { "p": "Care workers use this table to decide how quickly to act; for a person with a catheter or stoma, the escalation table in the Catheter Care and Continence Hygiene Protocol applies as well, and a catheter that stops draining is phoned to the office at once. The office or On-call Manager makes the contacts (using NHS 111 when the GP practice is closed) and records each call and the action taken in the daily visit notes. While the office gets advice, the care worker stays with the person up to 30 minutes after the planned end of the visit; after that the office arranges an extra visit. For a person who lives alone or has a High missed-visit risk level, the Care Coordinator decides whether a welfare call or extra visit is needed before the next planned visit. Staff never test urine with a dipstick; the GP decides on any test." },
+        { "table": { "columns": ["What the care worker sees", "Care worker", "Office"], "rows": [
+          ["Newly confused, agitated or very drowsy, difficulty speaking, or signs of sepsis; swelling of the face or neck affecting breathing or swallowing; heavy bleeding from the bowel, a stoma or the mouth", "Call 999, stay with the person, then phone the office", "Tells the named contact the same day; covers the care worker's next visits"],
+          ["Pain or burning passing urine, new urgency or needing to pass urine much more often, new or worse incontinence, blood in the urine, or a high temperature or shivering", "Offer drinks as the drinks plan sets out; phone the office before leaving", "Care Coordinator contacts the GP the same day; infection report in the incident log"],
+          ["Cloudy or smelly urine with no other sign", "Offer drinks, record it and tell the office the same day", "Care Coordinator checks the drinks record; GP contacted if another sign appears"],
+          ["Not able to pass urine for 8 hours or more, or a swollen, painful lower tummy", "Phone the office before leaving", "Urgent GP or NHS 111 advice at once"],
+          ["Blood in stools or black stools", "Phone the office before leaving", "Urgent GP or NHS 111 at once with diarrhoea, pain, vomiting or feeling unwell; otherwise GP the same day"],
+          ["Bowels not opened for longer than the usual pattern in the care plan (3 days where none is recorded), hard stools (type 1 or 2), straining or pain", "Tell the office the same day", "Care Coordinator asks the GP or pharmacist for advice the same working day"],
+          ["Diarrhoea", "Use the precautions in the Transmission-Based Precautions and Outbreak Management Procedure and phone the office before leaving", "Pharmacist or GP advice before any further laxative dose; GP the same day"],
+          ["Mouth pain, bleeding or swollen gums, an ulcer, white or red patches, loose or broken teeth, dentures that do not fit or cause sores, bad breath, or difficulty chewing", "Tell the office the same day", "Care Coordinator contacts the person's dentist within 2 working days; the same day through NHS 111 for severe pain or swelling; GP or dentist for any ulcer lasting more than 3 weeks"],
+          ["Soreness or redness from moisture; new or worse pressure damage or broken skin", "Body map. Moisture soreness: tell the office the same day. Pressure damage or broken skin: phone before leaving and incident log before the end of the shift", "As the Pressure Ulcer Prevention and Skin Integrity Procedure sets out"],
+          ["A cut, blister, colour change, swelling or new pain in the foot of a person with diabetes", "Phone the office before leaving; body map", "GP or podiatry the same day"]
+        ] } },
+        { "p": "Where the person does not want the GP or another professional contacted, the care worker records what they said and phones the office; the Care Coordinator speaks with them the same working day and follows the Consent to Care Policy where capacity is in doubt." }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "p": "Before checking out, the care worker records in the daily visit notes the care given, what the person did themselves, anything declined or done differently, the bowel record where required, and any change noticed and who was told, under the Daily Records and Visit Notes Procedure. The Care Coordinator records health professionals' advice in the care plan before the next visit at which it applies. Records are kept for the periods in the Records Management and Retention Policy." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "table": { "columns": ["Training", "Who", "When"], "rows": [
+          ["Personal care, privacy and dignity in intimate care, continence care and mouth and denture care, with practical sessions and observed practice", "Care staff", "At induction, signed off before working without a shadowing colleague; refreshed every 2 years within the recognising and reporting changes refresher"],
+          ["Catheter and stoma device tasks: course and observed sign-off for each device type, under the Catheter Care and Continence Hygiene Protocol", "Care workers allocated to device tasks", "Before the first unshadowed device task, then every 12 months"],
+          ["Level 3 bowel care tasks for a named person", "Named care workers", "Before the task, then as the health professional specifies and at least every 12 months"],
+          ["Compression stockings for a named person", "Care workers allocated to that person", "Before first doing the task, by the nurse or a trained Field Care Supervisor"],
+          ["Continence and oral care planning, referral routes and the reporting table", "Assessors, Care Coordinators and On-call Managers", "Before the first assessment, allocation or on-call shift; within the annual assessor update"]
+        ] } },
+        { "p": "At every spot check that includes personal care the Field Care Supervisor observes consent, privacy, independence, water temperature checks, PPE and recording. Seeking consent and protecting privacy during intimate care, and checking bath or shower water before use, are critical items. Shortfalls are handled under the Quality Audit and Monitoring Procedure." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["What is checked", "How and how often", "By whom", "Reported to"], "rows": [
+          ["Personal care, continence and mouth care parts of the care plan against this procedure", "Within the monthly audit of 10 care plans", "Deputy Manager", "Monthly Quality and Governance Meeting"],
+          ["10 people receiving continence support (all if fewer): continence assessment requested where needed, product problems acted on, bowel records and the reporting table acted on in time, mouth care recorded and dental check offered (target 100%)", "Quarterly", "Deputy Manager", "Registered Manager; quarterly quality report"],
+          ["Personal care practice in homes", "Every spot check that includes personal care", "Field Care Supervisor", "Registered Manager monthly"],
+          ["Incidents during personal care (scalds, skin tears, falls in bathrooms, lost dentures, equipment faults) and related complaints", "Each reviewed; trends quarterly", "Registered Manager", "Quarterly quality report to the Nominated Individual and Directors"],
+          ["Training compliance (100% induction, 95% refreshers in date)", "Monthly", "HR Manager", "Registered Manager"]
+        ] } },
+        { "p": "Every shortfall is recorded with an action, owner and deadline in the service improvement plan. This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious incident, an inspection finding, or when monitoring shows that our arrangements are not working." }
+      ]
+    }
+  ]
+}

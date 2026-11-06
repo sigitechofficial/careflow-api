@@ -1,0 +1,762 @@
+{
+  "reference": "POL-MED-001",
+  "revision": 1,
+  "title": "Medicines Management Policy",
+  "documentType": "POLICY",
+  "summary": "The parent medicines policy for all employees: the principles we follow, who is responsible for what, the levels of medicines support and how they are agreed, the firm rules every employee must follow, and how we check that medicines support is safe. Every other medicines procedure, protocol and guideline sits under it.",
+  "keyPoints": {
+    "intro": "The medicines rules you must follow on every visit. 'The office' means the branch office, or the On-call Manager out of hours.",
+    "points": [
+      "Each medicine has its own level of support: 0 the person manages it, 1 you prompt or assist, 2 you administer, 3 a delegated task. Give only the level recorded; if more help is needed, phone the office.",
+      "Selecting a medicine, taking a dose out of its packaging, measuring it or applying it is administration (Level 2), never prompting.",
+      "Before every dose, check the six rights against the label and the eMAR: right person, medicine, route, dose and time, and the right to decline. If any check fails, do not give the dose; phone the office.",
+      "If an error happens, make the person safe, call 999 if they are seriously unwell, and do not give or withhold doses to put it right without advice. Phone the office at once from the home if it reached the person, otherwise before you leave.",
+      "Record every prompt, dose, declined dose and dose not given on the eMAR at the time, under your own log-in, with the stock balance where a count is set. Never record a dose in advance, or as Given unless you saw it taken.",
+      "If the person declines, respect it and never force, threaten or trick them. You may offer once more while the dose is still within its time window. Record Refused (or Partially given) on the eMAR with a note and phone the office before you leave.",
+      "If you arrive late, check when the last dose was given. If the minimum interval has not passed (always at least 4 hours between paracetamol-containing doses), phone the office first.",
+      "Never give from a container filled by anyone but the pharmacy, or with a missing, altered or unreadable label. Never crush, split, open or hide a medicine in food or drink, or leave doses out, unless the care plan records an approved arrangement.",
+      "Never change, stop or restart a medicine on your own judgement or a relative's say-so, and never give a missed or double dose without the office's advice.",
+      "Phone before you leave about any other medicines problem (missing medicines, side effects, misuse, stockpiling) and log any incident before your shift ends.",
+      "Never give an injection or do a specialised task you are not signed off for. The one exception: in a severe allergic reaction, call 999 and give the person's own adrenaline auto-injector, as your first aid training shows.",
+      "Pass medicines training (80%) and an observed competency assessment before giving medicines unsupervised, and renew both every 12 months. You are reassessed after an error reaching the person, two recording errors in 3 months, or 3 months' absence."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "MEDICATION",
+    "CARE_PLAN",
+    "AUDIT",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-MED-002",
+    "POL-MED-003",
+    "POL-MED-005",
+    "POL-MED-006",
+    "POL-MED-014",
+    "POL-MED-015",
+    "POL-MED-016",
+    "POL-SG-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(g) the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 Good governance",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 Need for consent",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 Safeguarding service users from abuse and improper treatment",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), summarising NICE guideline NG67 Managing medicines for adults receiving social care in the community (March 2017) and quality standard QS171 (July 2018)",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1 The principles",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "The Misuse of Drugs Regulations 2001, regulation 7 Administration of drugs in Schedules 2, 3, 4 and 5",
+      "url": "https://www.legislation.gov.uk/uksi/2001/3998/regulation/7"
+    },
+    {
+      "source": "The Misuse of Drugs (Safe Custody) Regulations 1973, regulation 3 (premises to which the safe custody requirements apply)",
+      "url": "https://www.legislation.gov.uk/uksi/1973/798/regulation/3"
+    },
+    {
+      "source": "The Human Medicines Regulations 2012, regulation 238 Administration of certain medicines in an emergency, and Schedule 19 Medicinal products for parenteral administration in an emergency",
+      "url": "https://www.legislation.gov.uk/uksi/2012/1916/regulation/238"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 16 Notification of death of a service user",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/16"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18 Notification of other incidents",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "MHRA Drug Safety Update, Emollients: new information about risk of severe and fatal burns with paraffin-containing and paraffin-free emollients (December 2018)",
+      "url": "https://www.gov.uk/drug-safety-update/emollients-new-information-about-risk-of-severe-and-fatal-burns-with-paraffin-containing-and-paraffin-free-emollients"
+    },
+    {
+      "source": "Skills for Care, Delegated healthcare activities: the guiding principles (updated November 2024)",
+      "url": "https://www.skillsforcare.org.uk/Support-for-leaders-and-managers/Managing-a-service/Delegated-healthcare-activities/The-guiding-principles.aspx"
+    },
+    {
+      "source": "Skills for Care, Medicines management resources (medicines competency assessment guide and contributory factors framework for medicines errors)",
+      "url": "https://www.skillsforcare.org.uk/Support-for-leaders-and-managers/Managing-a-service/Prevention-in-social-care/Medicines-management-resources.aspx"
+    },
+    {
+      "source": "GOV.UK, Report a problem with a medicine or medical device (MHRA Yellow Card scheme)",
+      "url": "https://www.gov.uk/report-problem-medicine-medical-device"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} supports many people to take their medicines in their own homes. This is one of the highest-risk things we do: a missed, late, wrong or double dose can cause serious harm, and poor medicines practice can hide neglect or abuse. {{organisation}} is committed to managing medicines safely, lawfully and in a person-centred way on every visit."
+        },
+        {
+          "p": "The law requires the proper and safe management of medicines (Regulation 12(2)(g) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). We base our arrangements on NICE guideline NG67, Managing medicines for adults receiving social care in the community, and its quality standard, QS171."
+        },
+        {
+          "p": "This policy sets the framework, the roles and the firm rules. Each section names the procedure, protocol or guideline that gives the detailed steps; those documents carry the same authority as this policy."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that:"
+        },
+        {
+          "bullets": [
+            "everyone knows who is accountable for medicines support and what each role does;",
+            "medicines support is given only after it has been assessed, agreed and set up on the eMAR, at a defined level for each medicine;",
+            "people's consent, choices and capacity are respected, and only competent staff give medicines support;",
+            "concerns, errors and near misses are reported openly and learned from; and",
+            "the Directors can show, through audit, that medicines are managed safely."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to all employees, including bank and agency workers placed with us, and to every person who receives medicines support from us in their own home, including in extra care housing, supported living and sheltered housing where we provide personal care."
+        },
+        {
+          "p": "A medicine is any prescribed or over-the-counter product used for health, including creams, emollients, patches, inhalers, drops, medicated dressings, prescribed supplements and thickeners, oxygen, herbal products and vitamins."
+        },
+        {
+          "p": "This policy does not cover medicines that people manage entirely by themselves or with their family where we have no medicines role, beyond our duty to notice and report concerns, or clinical tasks that only a registered health professional may carry out. Staff who take their own medicines at work follow the Staff Code of Conduct."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "eMAR",
+                "The electronic medicines administration record in CareFlow: our only medicines administration record, except during a system outage."
+              ],
+              [
+                "Authoritative source",
+                "A prescriber's or pharmacy's written record of the person's current medicines, such as the GP practice medication list or a hospital discharge letter. A previous provider's record, a relative's list or a family-filled pill organiser never is."
+              ],
+              [
+                "Time-sensitive medicine",
+                "A medicine that must be given at a specific time because a delay or missed dose may cause serious harm, for example insulin or medicines for Parkinson's disease."
+              ],
+              [
+                "When required (PRN) medicine",
+                "A medicine prescribed to be taken only when needed, for example for pain, rather than at fixed times."
+              ],
+              [
+                "Controlled drug",
+                "A medicine in a Schedule of the Misuse of Drugs Regulations 2001, for example morphine, oxycodone or fentanyl patches."
+              ],
+              [
+                "Pharmacy",
+                "The community pharmacy or dispensing GP practice that supplies and labels the person's medicines."
+              ],
+              [
+                "Medicines-related problem",
+                "Any error, near miss or concern involving medicines, including missed, late, wrong or extra doses, recording and dispensing errors, side effects, stockpiling, misuse, missing medicines and deliberate withholding."
+              ],
+              [
+                "Named contact",
+                "The person recorded in the care plan as the contact for questions about the person's medicines: the person themselves where they choose and are able, otherwise a relative, carer or our Care Coordinator."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [
+        {
+          "p": "Every employee is personally responsible for following this policy and for reporting any concern about medicines straight away."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "bullets": [
+                "Hold overall accountability for {{organisation}}'s compliance with Regulations 12(2)(g) and 17, approve this policy, and provide the resources for safe medicines support, including training time, competency assessors and visit times long enough for medicines support.",
+                "Receive and challenge the quarterly medicines governance report, and are told by the Registered Manager within 24 hours of any medicines incident that causes serious harm, is referred to safeguarding, is notified to CQC or involves the police."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is our medicines lead, accountable for medicines practice day to day. The Registered Manager may delegate these tasks to the Deputy Manager while remaining accountable, except the approval of covert administration plans and Level 3 tasks, which only the Registered Manager gives, or during an absence an acting manager whose appointment letter gives that authority under the Registered Manager Role and Absence Cover Policy."
+            },
+            {
+              "bullets": [
+                "Makes sure this policy and the medicines procedures are followed, kept up to date and acknowledged by every employee.",
+                "Authorises which staff may assess medicines support needs, set up and change eMAR entries, and assess medicines competency.",
+                "Approves, before support starts, every covert administration plan and every Level 3 task.",
+                "Approves, before support starts, every assessment that includes a Schedule 2 or 3 controlled drug or a best interests decision about medicines; the Deputy Manager may give this approval in the Registered Manager's absence. Out of hours, the On-call Manager obtains it by phone from the Registered Manager or Deputy Manager on the management escalation rota and records who approved it and when; covert administration and Level 3 tasks never start out of hours.",
+                "Reviews every medicines incident on the day it is reported, makes the resulting CQC notifications and safeguarding referrals, and leads the quarterly trend review and the annual medicines audit."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "bullets": [
+                "Deputises for the Registered Manager on medicines matters, oversees the monthly eMAR audits and in-home medicines checks, audits medicines assessments under the Assessing Medicines Support Needs Procedure, and makes sure actions are completed on time."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator and Field Care Supervisor",
+          "blocks": [
+            {
+              "bullets": [
+                "Assess and review medicines support needs, write the medicines section of the care plan and, where authorised, set up and change eMAR entries with a second check.",
+                "The Care Coordinator schedules visits so that time-sensitive windows and minimum dose intervals are kept, and allocates medicines visits only to care workers whose medicines competency is current; on a double-handed visit only such a worker gives and records medicines.",
+                "Carry out the eMAR audits and act on what they find; Field Care Supervisors also carry out the in-home medicines checks and observed practice spot checks."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Worker",
+          "blocks": [
+            {
+              "bullets": [
+                "Gives medicines support, advises care workers by phone and, where authorised by the Registered Manager, second-checks eMAR entries, receives verbal changes from prescribers, carries out in-home medicines checks and assesses medicines competency."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Care Worker",
+          "blocks": [
+            {
+              "bullets": [
+                "Gives only the medicines support agreed in the care plan and shown on the eMAR, following the six rights and the firm rules in this policy, and phones the office about any concern, error or declined dose before leaving: in office hours a Senior Care Worker or Care Coordinator advises, and out of hours the On-call Manager."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            {
+              "bullets": [
+                "Office staff in office hours, and the On-call Manager outside them, monitor visit check-in and the eMAR, escalate missed or late medicines visits and unrecorded doses, and record every medicines decision in the daily visit notes or the incident log."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "bullets": [
+                "Keeps medicines training and competency dates accurate in the training and compliance records, reports overdue items to the Registered Manager monthly, and makes sure no new care worker is rostered for medicines visits before being signed off as competent."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Principles of our medicines support",
+      "blocks": [
+        {
+          "bullets": [
+            "Independence first. People manage their own medicines wherever they can and want to; we support rather than take over, using aids such as easy-open tops or large-print labels arranged with the pharmacy.",
+            "Person-centred. Support reflects the person's preferences and their cultural, religious and dietary needs, such as preferred times and products containing animal ingredients.",
+            "Fair blame and openness. Honest mistakes are treated as a chance to learn. Repeated errors despite retraining and support are managed under the Capability and Performance Procedure; only deliberate harm, recklessness or wilful disregard of this policy leads to action under the Disciplinary Policy and Procedure.",
+            "Clinical decisions stay with health professionals. In support of NHS England's STOMP programme (stopping over-medication of people with a learning disability and autistic people), we tell the prescriber of any concern that a psychotropic medicine is being used to manage behaviour rather than treat a diagnosed condition."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Agreeing medicines support before it starts",
+      "blocks": [
+        {
+          "p": "NICE NG67 recommends that a provider does not take on responsibility for a person's medicines unless the assessment shows a need and this has been agreed, and that the decisions are recorded in the care plan. Our arrangements are as follows."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Assessment",
+          "blocks": [
+            {
+              "p": "Every new package includes a medicines support assessment, even when the referral says no support is needed. An authorised medicines assessor carries it out face to face in the person's home, with the medicines present. For a planned package, the medicines section of the care plan is completed on the assessment day and always before the first medicines visit. The steps are in the Assessing Medicines Support Needs Procedure and the Self-Administration of Medicines Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Agreement with the commissioner",
+          "blocks": [
+            {
+              "p": "Where the commissioner's support plan does not mention medicines, or differs from our assessment, the Registered Manager agrees the medicines support with the commissioner by email before it starts and saves the agreement in the care plan; for a person who pays for their own care, it is recorded in their service agreement. A change in scope, such as from prompting to administration, is agreed in the same way before it starts."
+            },
+            {
+              "p": "When a care worker reports that the person needs more help than the care plan allows, the Care Coordinator reviews the plan and the Registered Manager emails the commissioner, both the same day. If the person would be at risk before the commissioner replies, the Registered Manager, or the On-call Manager out of hours, may authorise the higher level as an interim arrangement under the Assessing Medicines Support Needs Procedure, confirmed or ended with the commissioner within 5 working days."
+            },
+            {
+              "p": "The Registered Manager declines in writing, with the reason, any medicines support we cannot provide safely, such as a clinical task no health professional will delegate, a time-sensitive dose at a time we cannot staff, or medicines support at a visit planned to last less than 15 minutes."
+            }
+          ]
+        },
+        {
+          "heading": "Conditions before the first dose",
+          "blocks": [
+            {
+              "p": "No care worker gives any medicines support until the Care Coordinator has confirmed in the care plan that:"
+            },
+            {
+              "steps": [
+                "the assessment is recorded, and the care plan states the level of support for each medicine, who orders, collects, stores and disposes of medicines, what family members and other providers such as community nurses do and how doses they give are recorded, and the named contact;",
+                "consent to medicines support and to sharing information with the GP practice and pharmacy is recorded, or a best interests decision is recorded under the Mental Capacity Act 2005;",
+                "each medicine is on the eMAR, set up from its dispensing label or another written source from the prescriber or pharmacy, confirmed against at least one authoritative source and checked by a second authorised person;",
+                "allergies, time-sensitive medicines and when required guidance are recorded in the care plan and on the eMAR; and",
+                "the allocated care workers hold current medicines competency for the support and routes involved."
+              ]
+            },
+            {
+              "p": "Any discrepancy between a label, the authoritative sources and the medicines in the home is raised with the GP practice or pharmacist the same day, and we do not give that medicine until it is resolved."
+            },
+            {
+              "p": "For a short-notice start (within 48 hours of accepting the referral, including every start on the day of hospital discharge), the assessment is completed at the first visit, the second check may be made by telephone with the labels read back, and a full home review follows within 7 days. If any condition cannot be met before a dose is due, the On-call Manager obtains advice from the prescriber, the discharging ward or NHS 111 and records it."
+            }
+          ]
+        },
+        {
+          "heading": "Telling the GP practice and pharmacy",
+          "blocks": [
+            {
+              "p": "Within 2 working days of medicines support starting, changing or ending, the Care Coordinator tells the person's GP practice and supplying pharmacy, by secure email or letter, the support we give for each medicine and the named contact, and records this in the care plan."
+            }
+          ]
+        },
+        {
+          "heading": "Review",
+          "blocks": [
+            {
+              "p": "Medicines support is reviewed 6 weeks after it starts, at every care plan review and at least every 12 months. It is reviewed within 7 days after a change to the person's medicines, a hospital admission, a medicines incident, a concern about capacity, a pattern of declined doses (any medicine declined at two consecutive visits or three times in seven days) or a significant life event such as a bereavement. Each review asks whether the person could now do more for themselves."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Levels of medicines support",
+      "blocks": [
+        {
+          "p": "We use four levels of medicines support, set for each individual medicine. Care workers give only the level recorded for that medicine; if the person needs more help, the care worker phones the office and 'Agreement with the commissioner' applies."
+        },
+        {
+          "table": {
+            "columns": [
+              "Level",
+              "What it means",
+              "What care workers do",
+              "How it is recorded"
+            ],
+            "rows": [
+              [
+                "Level 0: Self-administration",
+                "The person, or their family by agreement, manages the medicine without help from us.",
+                "Nothing with the medicine itself. Care workers report concerns they notice, such as confusion, missed doses or stockpiling.",
+                "In the care plan; on the eMAR only where the care plan says so."
+              ],
+              [
+                "Level 1: Prompting and assisting",
+                "The person stays in control and takes the medicine themselves, with a reminder or practical help they direct. Never used where the person cannot reliably say whether they have taken it.",
+                "Remind the person and, if asked, open containers, read the label or pass a drink. Never select or prepare the dose.",
+                "Each prompt or assist on the eMAR: Given only where the care worker saw it taken; Already Done where the person took it unseen and the pack confirms it; otherwise Not Given / Missed and a call to the office."
+              ],
+              [
+                "Level 2: Administration",
+                "The care worker takes responsibility for giving the medicine as prescribed.",
+                "Select, prepare and give the dose following the six rights, including creams, patches, inhalers and drops.",
+                "Each dose and its outcome on the eMAR at the time."
+              ],
+              [
+                "Level 3: Specialised or delegated tasks",
+                "A task needing specific skills, delegated by a registered health professional for a named person.",
+                "Only named care workers trained and signed off for that person and task, following the health professional's written instructions.",
+                "Each administration and task-specific check on the eMAR."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Any support in which the care worker selects a medicine, removes a dose from its packaging, measures it or applies it is administration (Level 2), whatever the referral calls it, and is never recorded as prompting."
+        }
+      ]
+    },
+    {
+      "heading": "Consent, capacity and declined medicines",
+      "blocks": [
+        {
+          "p": "The law requires consent for care and treatment (Regulation 11). Where a person aged 16 or over may lack capacity, we apply the Mental Capacity Act 2005 principles: we presume capacity, give all practicable help to decide, do not treat an unwise decision as a lack of capacity, and make any decision for a person who lacks capacity in their best interests and in the least restrictive way. The detail is in the Consent, Mental Capacity and Declined Medicines Policy."
+        },
+        {
+          "bullets": [
+            "Care workers ask the person whether they are ready before removing a medicine from its packaging, unless another arrangement is recorded in the care plan.",
+            "If a person declines a medicine, the care worker respects the decision, asks gently about reasons such as pain or side effects, and may offer it once more later in the same visit while the dose is still within its time window. The care worker never forces, threatens or tricks the person, records the dose on the eMAR as Refused (Partially given where only part was taken) with a note, seals any dose already out of its packaging for return to the pharmacy, and phones the office before leaving the home.",
+            "The Care Coordinator contacts the GP or pharmacist the same day when a time-sensitive medicine, or another medicine the care plan flags for advice if declined, is declined, or any medicine is declined at two consecutive visits or three times in seven days. The Registered Manager reviews such a pattern by the end of the next working day as a possible safeguarding or capacity concern.",
+            "Where capacity is in doubt or fluctuates, the Care Coordinator arranges a decision-specific capacity assessment and checks for a lasting power of attorney for health and welfare."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Giving medicines safely",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Authority and the six rights",
+          "blocks": [
+            {
+              "p": "A care worker gives a medicine only when there is clear written authority, normally the pharmacy dispensing label (for a bought medicine, the pack record with the pharmacist's or GP's recorded advice), the eMAR entry matches it, and the care worker is competent for that medicine and route. Before every dose the care worker checks the six rights against the label and the eMAR:"
+            },
+            {
+              "bullets": [
+                "Right person: both are in the person's name.",
+                "Right medicine: name and strength match, the medicine is in date, and there is no recorded allergy to it.",
+                "Right route: as stated on both.",
+                "Right dose: the amount matches, and the person and the eMAR confirm it has not already been taken.",
+                "Right time: as in the care plan, with the minimum interval since the last dose passed.",
+                "Right to decline: the person agrees to take it."
+              ]
+            },
+            {
+              "p": "If any check fails, the care worker does not give the dose and phones the office. While waiting for advice the care worker stays with the person and carries on with other planned tasks; if no advice comes within 30 minutes after the planned end of the visit, the office arranges an extra visit to act on it, and any worsening means 999. Practice for each formulation is in the Administering and Supporting People with Medicines Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Timing of doses",
+          "blocks": [
+            {
+              "p": "Visits are planned so that the interval between doses is never shorter than the minimum on the label or in the care plan, and doses of any medicine containing paracetamol are always at least 4 hours apart. A care worker who arrives late checks when the last dose was given; if the minimum interval has not passed, they phone the office, which obtains advice from the pharmacist or GP before the dose is given. When a visit with medicines due is missed, or the care worker cannot get in, the office obtains clinical advice on the missed doses and the Care Coordinator tells the GP practice by the end of the next working day (Missed, Late and Short Visits Procedure; No Reply, No Access and Missing Person Procedure)."
+            }
+          ]
+        },
+        {
+          "heading": "When required and time-sensitive medicines",
+          "blocks": [
+            {
+              "p": "Every when required medicine has written guidance in the care plan stating what it is for, the signs that it is needed, the dose, the minimum interval and the maximum in 24 hours, and care workers record the time, dose, reason and effect of every dose (When Required (PRN) Medicines Protocol)."
+            },
+            {
+              "p": "Time-sensitive medicines are flagged in the care plan and on the eMAR with the time and window agreed with the prescriber or pharmacist, or a window of 30 minutes either side of the agreed time where they set none. The visit is never moved outside the window without their agreement. If no care worker has checked in within 15 minutes of the planned start, office staff or the On-call Manager act immediately to get one there and seek clinical advice if the dose will be outside the window (Time-Sensitive Medicines Protocol)."
+            }
+          ]
+        },
+        {
+          "heading": "Covert administration",
+          "blocks": [
+            {
+              "p": "Medicines are never given without the person's knowledge unless the person lacks capacity for the decision, a best interests decision has been made with the prescriber, a pharmacist has advised how each medicine can be given, and the Registered Manager (or an authorised acting manager) has approved written instructions in the care plan. Otherwise it is a medicines incident and a safeguarding concern. See the Covert Administration of Medicines Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Controlled drugs",
+          "blocks": [
+            {
+              "p": "Controlled drugs in a person's home belong to the person; {{organisation}} holds no stock of them. Regulation 7 of the Misuse of Drugs Regulations 2001 allows anyone to administer a controlled drug in Schedule 2, 3 or 4 to a patient in accordance with the directions of the prescriber, so care workers give them exactly as directed on the label and the eMAR. The Misuse of Drugs (Safe Custody) Regulations 1973 do not apply to a person's own home. Our policy is that where the risk assessment finds a risk of misuse, diversion or access by others, lockable storage is agreed with the person and recorded in the care plan."
+            },
+            {
+              "p": "The care plan flags for a stock count every Schedule 2 or 3 controlled drug we support, every oral morphine solution of any strength, and any other controlled drug where the risk assessment finds a risk of misuse, diversion or overdose. Care workers count the stock before and after each dose (a rescue medicine is counted once the person is safe), record the balance in the eMAR note for that dose and phone any discrepancy to the office immediately; the office treats it as a medicines incident. The detail is in the Controlled Drugs in the Community Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Over-the-counter medicines and homely remedies",
+          "blocks": [
+            {
+              "p": "{{organisation}} keeps no stock of homely remedies. Care workers support a person with a bought medicine, herbal product or vitamin only after the Care Coordinator has checked with the pharmacist or GP that it is safe for the person and added it to the care plan and eMAR (Over-the-Counter Medicines and Homely Remedies Guideline)."
+            }
+          ]
+        },
+        {
+          "heading": "Delegated healthcare activities",
+          "blocks": [
+            {
+              "p": "Tasks such as medicines through a gastrostomy (PEG) tube, insulin by pen, rectal or nebulised medicines or buccal midazolam are accepted as Level 3 tasks only when a registered health professional delegates them for a named person, consent or a best interests decision is recorded, responsibilities are agreed in writing with the professional, and each named care worker is trained and signed off for that person and task, with the professional keeping clinical oversight (Skills for Care guiding principles, updated November 2024; Delegated Healthcare Activities and Specialised Medicines Tasks Policy)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What staff must never do",
+      "blocks": [
+        {
+          "p": "These are firm rules. Breaking any of them is a medicines incident that must be reported, and a deliberate or repeated breach is a disciplinary matter."
+        },
+        {
+          "bullets": [
+            "Never give medicines support that is not agreed in the care plan and shown on the eMAR, or give a medicine prescribed for someone else.",
+            "Never give medicines from a container filled by anyone other than the pharmacy, such as a family-filled pill organiser, or whose label is missing, altered or unreadable. Where the care plan records it, you may remind a person who self-administers from such an organiser, but never handle doses from it.",
+            "Never leave doses out for later except under a leave-out arrangement approved by the Registered Manager or Deputy Manager after a risk assessment and recorded in the care plan; then record the dose on the eMAR as left out, never as Given.",
+            "Never crush, split, open or mix a medicine with food or drink unless a pharmacist or the prescriber has advised this in writing for that medicine and it is in the care plan.",
+            "Never give a medicine covertly except under an approved plan in the care plan, and never use force, restraint or threats to make someone take a medicine.",
+            "Never give an injection, or a medicine by any route needing specialised skills, unless it is a delegated healthcare activity you are signed off for. The only exception: in a severe allergic reaction, any care worker calls 999 and gives the person's own prescribed adrenaline auto-injector under the First Aid Procedure, even if the care plan does not yet set this out. Regulation 238 of, and Schedule 19 to, the Human Medicines Regulations 2012 allow anyone to inject adrenaline for anaphylaxis to save life.",
+            "Never change a dose or time, or stop or restart a medicine, on a relative's instruction or your own judgement. Only a prescriber can change a prescription, and only authorised staff can change the eMAR or accept a verbal change from a prescriber; otherwise ask the prescriber to call the office.",
+            "Never record a dose before it is given, record as given a dose you did not see taken, or alter an eMAR entry except through the correction process in the Medicines Administration Records (MAR and eMAR) Procedure.",
+            "Never give a missed dose late, or a double dose, without advice from the office, which takes advice from the pharmacist, GP or NHS 111.",
+            "Never give or recommend your own medicines, or buy medicines for a person unless the care plan says so.",
+            "Never take medicine out of the person's home, or put it in the bin, sink or toilet, except to return it to a pharmacy under the Ordering, Collecting, Storing and Disposing of Medicines Procedure.",
+            "Never adjust oxygen flow rates, infusion devices or syringe drivers, and never give clinical advice about medicines; refer concerns and clinical questions to the office, the responsible nurse, the prescriber, a pharmacist or NHS 111."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Ordering, storage, disposal and transfers of care",
+      "blocks": [
+        {
+          "p": "Ordering, collecting and disposing of medicines usually stays with the person or their family. Where the care plan gives us any of these tasks, the Ordering, Collecting, Storing and Disposing of Medicines Procedure applies, with these firm rules:"
+        },
+        {
+          "bullets": [
+            "Repeat medicines are ordered at least 7 days before the current supply runs out, and what was ordered and what was received are recorded and checked against each other.",
+            "Medicines are given from the original pharmacy-labelled packaging; a monitored dosage system is used only where a pharmacist has assessed that the person needs one.",
+            "Medicines are kept where agreed with the person and recorded in the care plan, in lockable storage where a risk has been identified, and in the fridge where the label requires. Codes for a lockable medicines box are recorded only in the person's home access details in CareFlow, which care workers see only for people on their rota, like key safe codes, and are never written down or shared beyond the people the care plan names.",
+            "Care workers who collect medicines take them straight to the person's home and never leave them unattended in a vehicle. No person's medicines are ever kept at the branch office, in a vehicle or at an employee's home.",
+            "Where a person using any emollient, paraffin-free included, smokes or uses an open heat source, the fire risk from dried emollient on fabrics (MHRA) is managed under the Fire Safety in People's Homes Policy.",
+            "Unwanted, out-of-date or stopped medicines are returned to a community pharmacy with the person's agreement, recording what was returned, when, where and by whom."
+          ]
+        },
+        {
+          "p": "When a person's medicines change, or they go into or come home from hospital, the Medicines Changes, Transfers of Care and Hospital Discharge Procedure applies. After discharge, no dose is given until an authorised member of staff has checked the discharge information against the medicines in the home and the previous eMAR; if this cannot be done before a dose is due, the office or On-call Manager obtains advice from the prescriber, the discharging ward or NHS 111 and records it. Verbal changes from a prescriber are accepted only by authorised staff, who record who gave them, read them back and obtain written confirmation by the end of the next working day."
+        }
+      ]
+    },
+    {
+      "heading": "Working with GPs, pharmacists and other health professionals",
+      "blocks": [
+        {
+          "bullets": [
+            "The office takes clinical questions, such as swallowing difficulties, crushing, interactions or side effects, to the prescriber or pharmacist; out of hours, the On-call Manager uses NHS 111.",
+            "The Care Coordinator asks the GP for a medication review when a person shows possible side effects, such as falls or new confusion after a medicines change, uses a when required medicine often or not at all, finds a regimen hard to follow, regularly declines a medicine, or takes 10 or more regular medicines.",
+            "We share information about a person's medicines only as the person has agreed or the law allows, under the Confidentiality and Information Sharing Policy, and we tell people how to report side effects through the MHRA Yellow Card scheme.",
+            "When we notice a dispensing error, the office tells the pharmacy the same day and records it in the incident log."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Medicines errors, concerns and safeguarding",
+      "blocks": [
+        {
+          "p": "When medicines support starts, the Care Coordinator gives the person and their named contact written information, in a format they can use, on raising a concern about their medicines, complaining under the Complaints Policy and Procedure and getting an advocate. Every medicines-related problem is reported, however small, under the Medication Errors, Near Misses and Incidents Procedure. The firm rules are:"
+        },
+        {
+          "steps": [
+            "The care worker makes sure the person is safe, calls 999 if they are seriously unwell, and does not give or withhold doses to correct the error without advice.",
+            "The care worker phones the office, or the On-call Manager out of hours, at once from the home if the error reached the person, and otherwise before leaving; the office obtains clinical advice from the GP, pharmacist or NHS 111 and makes sure it is followed.",
+            "The care worker records what happened in the daily visit notes and on the eMAR, and enters the incident in the incident log before the end of their shift.",
+            "The Registered Manager, or the Deputy Manager in their absence, reviews the incident the same day (out of hours, by phone with the On-call Manager) and decides whether it is a safeguarding concern, a notifiable safety incident under the duty of candour or a CQC notification.",
+            "The investigation uses the Skills for Care contributory factors framework, looks at systems as well as individuals, and is completed within 10 working days; the person, and their family or representative where the person agrees or lacks capacity, are told what happened, and the learning is shared with staff."
+          ]
+        },
+        {
+          "p": "Regulation 13 requires us to protect people from abuse and improper treatment, including neglect, theft of their property and control or restraint that is not necessary and proportionate, which includes restraint by chemical means. Deliberately withholding medicines, using medicines to sedate or control a person, covert administration without lawful authority, and theft or misuse of a person's medicines are therefore safeguarding concerns, and the safeguarding lead considers every medicines incident that caused harm, and any pattern of missed doses or errors, as possible neglect. These concerns are handled under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+        },
+        {
+          "p": "The law requires us to notify CQC without delay of a person's death while we are providing care or as a result of it, a serious injury, abuse or an allegation of abuse, and any incident reported to or investigated by the police (Regulations 16 and 18 of the Care Quality Commission (Registration) Regulations 2009). The Registered Manager makes these notifications for medicines incidents under the Statutory Notifications to CQC Procedure. The duty of candour is met under the Duty of Candour Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "The law requires an accurate, complete and contemporaneous record for each person, kept securely (Regulation 17(2)(c)). For medicines support:"
+        },
+        {
+          "bullets": [
+            "Every prompt, dose, declined dose and dose not given is recorded on the eMAR at the time by the care worker concerned, on their mobile device under their own log-in. The only medicines records we leave in the person's home are the home copy of the care plan, a back-up MAR sheet during an outage and any between-visits record of when required doses.",
+            "eMAR entries are set up and changed only by authorised staff, from a written source, and each is second-checked before the next dose is due, under the Medicines Administration Records (MAR and eMAR) Procedure.",
+            "If the eMAR is unavailable, staff follow the downtime arrangement in that procedure and confirm with the office that a dose has not already been given before giving it. The Care Coordinator (the On-call Manager at weekends and bank holidays) enters the paper record into CareFlow within 24 hours of the system returning.",
+            "Records are kept for the periods in the Records Management and Retention Policy."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "p": "Regulation 12(2)(c) requires that people providing care have the competence, skills and experience to do so safely. Our arrangements, set out in full in the Medicines Training and Competency Assessment Procedure, are:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Requirement",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Read and acknowledge this policy and the medicines procedures in CareFlow",
+                "All employees",
+                "By the deadline in the Induction and Care Certificate Procedure, and within 14 days of each new major version"
+              ],
+              [
+                "Medicines awareness: the levels of support, what staff must never do and how to report concerns",
+                "All employees, including office staff",
+                "By the end of week 1 of induction, then every 3 years for staff who do not give medicines support"
+              ],
+              [
+                "Full medicines training with a knowledge assessment (80% overall, all five critical safety questions correct)",
+                "Care Workers, Senior Care Workers, Field Care Supervisors, Care Coordinators and any manager or On-call Manager covering visits",
+                "Before giving any medicines support"
+              ],
+              [
+                "Observed competency assessment in a person's home by an authorised assessor",
+                "Everyone who gives medicines support",
+                "Before giving medicines support without supervision"
+              ],
+              [
+                "Refresher training and observed competency review",
+                "Everyone who gives medicines support",
+                "At least every 12 months"
+              ],
+              [
+                "eMAR set-up and change competency",
+                "Staff authorised by the Registered Manager",
+                "Before making any eMAR entry, then every 12 months"
+              ],
+              [
+                "Person-specific and task-specific sign-off",
+                "Named care workers for delegated healthcare activities and covert administration",
+                "Before carrying out the task, then as often as the delegating health professional specifies and at least every 12 months"
+              ],
+              [
+                "Competency reassessment",
+                "The employee concerned",
+                "Before further unsupervised medicines support after an error that reached the person, two recording errors within 3 months, an absence of 3 months or more, or a new system or formulation"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Competency assessors are Field Care Supervisors, Senior Care Workers authorised in writing by the Registered Manager, the Deputy Manager and the Registered Manager who have completed assessor training. An employee whose medicines training or competency lapses is taken off medicines visits until it is renewed."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "p": "Every problem found by the checks below produces an action with a named owner and a deadline, recorded with the audit."
+        },
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Doses not recorded, declined, late or missed on the eMAR",
+                "At 11am, 3pm, 7pm and 11pm each day, and in real time for time-sensitive medicines",
+                "Office staff and Care Coordinator; On-call Manager out of hours",
+                "Registered Manager, through the incident log where needed"
+              ],
+              [
+                "Full eMAR audit for every person receiving medicines support",
+                "Monthly",
+                "Care Coordinator or Field Care Supervisor, for people outside their own caseload, allocated by the Deputy Manager",
+                "Deputy Manager"
+              ],
+              [
+                "In-home medicines check: stock against the eMAR, labels, storage, expiry dates and controlled drug balances",
+                "At least every 3 months and at every care plan review; counted controlled drugs monthly",
+                "Field Care Supervisor or authorised Senior Care Worker",
+                "Deputy Manager"
+              ],
+              [
+                "Observed medicines practice during spot checks",
+                "At least every 6 months for each care worker who gives medicines",
+                "Field Care Supervisor",
+                "Supervision and appraisal records; concerns to the Registered Manager"
+              ],
+              [
+                "Medicines training and competency compliance",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Review of all medicines-related problems to identify trends",
+                "Quarterly",
+                "Registered Manager",
+                "Directors, staff, and GP practices and pharmacies where the learning concerns them"
+              ],
+              [
+                "Medicines governance report: incidents, audit results, training compliance and actions",
+                "Quarterly",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ],
+              [
+                "Annual medicines audit against this policy and NICE NG67",
+                "Every 12 months, in September",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Learning is shared through team meetings, supervision and briefings, and results feed into the Governance and Quality Assurance Policy."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in the law or national guidance, after a serious medicines incident or an inspection finding, or when monitoring shows that our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

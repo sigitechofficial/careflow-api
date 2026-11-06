@@ -1,0 +1,785 @@
+{
+  "reference": "POL-GOV-016",
+  "revision": 1,
+  "title": "Confidentiality and Information Sharing Policy",
+  "documentType": "POLICY",
+  "summary": "Sets out how everyone who works for us keeps information about the people we support, their families and staff confidential on visits, in the office, on call and online, and how we share it lawfully: for direct care, with families and representatives, without agreement when someone is at risk or the law requires it, and in answer to requests from the police, courts, regulators and others.",
+  "keyPoints": {
+    "intro": "You hear, see and record private things on every visit. This policy tells you how to keep them private, what you may share and with whom, and what to pass to a manager.",
+    "points": [
+      "Everything you learn about the people we support, their homes and families, and about colleagues, is confidential. Use it only for your work, look only at the records you need, and keep it confidential after you leave us.",
+      "Never talk about a person where you could be overheard, including in public or in a car with people who are not on the visit, and never talk about one person we support in another person's home.",
+      "Before telling a relative, friend, neighbour or caller anything, check the People involved and Consent and decisions parts of the care plan. If they are not recorded there, say the office will contact them.",
+      "Give paramedics you called, and district nurses or other professionals caring for the person once you have checked their identity badge, the information they need for that care. Record what you told them in the daily visit notes.",
+      "If a person tells you they no longer want something shared, record it in the daily visit notes and tell the office the same day. Never promise to keep a secret about abuse, neglect or a risk to anyone.",
+      "Only a manager can decide to share information without the person's agreement. If you think someone is at risk, phone the office (the On-call Manager out of hours) before you leave the visit; in an emergency, call 999 first.",
+      "Pass every request for information from the police, a solicitor, a council, an insurer, a journalist or anyone you do not know to the office the same working day (at once if someone may be at risk), without confirming that the person receives our care.",
+      "Use only CareFlow and phone calls on your work phone for care information. Never use texts, personal email, social media or messaging apps, and never post anything about a person, their home or your visits, even without names.",
+      "Key safe codes, addresses and visit times are confidential. Never write a code down or tell it to anyone except fire or ambulance crews in an emergency, and never show, photograph or send your rota to anyone.",
+      "If information reaches the wrong person, or you see it being misused, phone the office at once and record it in the incident log before your shift ends. Reporting your own mistake promptly is never in itself a reason for disciplinary action.",
+      "Looking at, taking or sharing information without a work reason is a disciplinary matter, can be gross misconduct and can be a criminal offence."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "SAFEGUARDING",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-GOV-013",
+    "POL-GOV-014",
+    "POL-GOV-015",
+    "POL-GOV-017",
+    "POL-SG-002",
+    "POL-CD-004",
+    "POL-HS-013",
+    "POL-HR-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "National Data Guardian: The Caldicott Principles (December 2020)",
+      "url": "https://www.gov.uk/government/publications/the-caldicott-principles"
+    },
+    {
+      "source": "Health and Social Care Act 2012, section 251B (duty to share information)",
+      "url": "https://www.legislation.gov.uk/ukpga/2012/7/section/251B"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 6 (lawfulness of processing, including point (ea) recognised legitimate interests, in force from 5 February 2026)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/6"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Annex 1 (recognised legitimate interests: paragraph 5 crime; paragraphs 6 to 8 safeguarding vulnerable individuals)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/annex/1"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 9 (special categories of personal data, including points (c), (f) and (h) and paragraph 3)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/9"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 2 (paragraph 10 preventing or detecting unlawful acts; paragraph 18 safeguarding of children and individuals at risk)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/part/2"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 2, Part 1 (paragraph 2 crime; paragraph 5 disclosures required by law or in connection with legal proceedings)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/2/part/1"
+    },
+    {
+      "source": "Data Protection Act 2018, section 10 (special categories and criminal offence data: Schedule 1 conditions)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/10"
+    },
+    {
+      "source": "Data Protection Act 2018, section 170 (unlawful obtaining etc. of personal data)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/170"
+    },
+    {
+      "source": "Health and Social Care Act 2008, section 64 (CQC power to require documents and information)",
+      "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/64"
+    },
+    {
+      "source": "Care Act 2014, section 45 (supply of information to Safeguarding Adults Boards)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/45"
+    },
+    {
+      "source": "Coroners and Justice Act 2009, Schedule 5, paragraph 1 (coroner's power to require evidence and documents)",
+      "url": "https://www.legislation.gov.uk/ukpga/2009/25/schedule/5"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 17(2)(c) and (d) (records maintained securely)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Social Care Institute for Excellence: Safeguarding adults, sharing information",
+      "url": "https://www.scie.org.uk/safeguarding/adults/practice/sharing-information/"
+    },
+    {
+      "source": "Children Act 2004, section 16LA (duty to share information about children, in force from 30 September 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2004/31/section/16LA"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 1 (paragraph 2 health or social care purposes)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/part/1"
+    },
+    {
+      "source": "Local Government Act 1974, section 34G (Local Commissioner's power to require information from adult social care providers)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/7/section/34G"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} is trusted with some of the most private information people have: their health and bodies, their medicines, their money and family relationships, when they are alone and how to get into their home. We keep it confidential, use it only for their care, and share it only when the person agrees, when the law requires or allows it, or when sharing is needed to protect someone from serious harm."
+        },
+        {
+          "p": "Failing to share can harm people as surely as careless sharing. Every decision to share without a person's agreement, or not to share, is made by a named manager and recorded with the reasons."
+        },
+        {
+          "p": "This policy applies the common law duty of confidentiality, data protection law and the eight Caldicott principles to the everyday work of a home care agency."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Everyone knows what is confidential and how to protect it wherever they work.",
+            "People we support decide, wherever they can, who is told what about them, and that is recorded and followed.",
+            "Professionals caring for the person get what they need, promptly and securely.",
+            "Sharing without agreement, and every third-party request, is decided by the right manager, lawfully, on time and on record."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors and every employee, including bank staff, during and after their employment, and through their agreements to agency workers, students, interpreters, contractors and suppliers. It covers all confidential information we hold or learn, in any form, wherever it is used: in a person's home, between visits, in the branch office, where an On-call Manager works from home, and online. It covers information about the people we support, including people who have died, their families and visitors, and our staff."
+        },
+        {
+          "p": "It sits beneath the Data Protection Policy, which sets our lawful bases, privacy notices and information governance roles. It does not cover a person's request for their own information (Subject Access and Individual Rights Procedure), handling a breach (Personal Data Breach Procedure), retention (Records Management and Retention Policy), technical and device security (Information and Cyber Security Policy), everyday use of work devices, email and artificial intelligence tools (Acceptable Use of IT and Devices Policy), work phone issue and use, photographs and social media (Mobile Phones and Social Media Policy), staff records (Staff Personal Data and HR Records Policy), making safeguarding referrals (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure) or key safe codes (Key Holding, Key Safes and Access to People's Homes Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Confidential information",
+                "Information about an identifiable person that they would expect to stay private, such as their health, medicines, access arrangements, visit times, finances and relationships, including what staff see and hear in a home, and staff personal details."
+              ],
+              [
+                "Direct care",
+                "Assessing, planning, giving and reviewing a particular person's care, by us and by the GP, pharmacy, community nurses, hospital, ambulance service, social worker, telecare service and other providers caring for them. Audits, contract monitoring, training and research are not direct care."
+              ],
+              [
+                "Agreement to share",
+                "The person's agreement, recorded in the Consent and decisions part of the care plan, to named people being told named kinds of information. For direct care, a person who has been told who we share with and why, and has not objected, has given implied agreement."
+              ],
+              [
+                "Sharing without agreement",
+                "Disclosing information that a person with capacity has refused to share, or has not been asked about because asking would increase a risk or prejudice an investigation. Sharing for a person who lacks capacity to decide is a best interests decision."
+              ],
+              [
+                "Deciding manager",
+                "The Registered Manager or, in their absence, the Deputy Manager. Out of hours, the On-call Manager where the decision cannot wait until the next working day, after phoning the manager on the management escalation rota unless someone is at immediate risk."
+              ],
+              [
+                "Third-party request",
+                "A request for information about a person we support or an employee from anyone other than that person or the professionals caring for them, such as the police, a court, a coroner, a solicitor, an insurer, a regulator or a journalist."
+              ],
+              [
+                "Caldicott decision log",
+                "The log in the governance records, kept by the Caldicott Guardian under the Data Protection Policy, of every decision to share or not to share without agreement and every third-party request, with the advice and reasons."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and make sure the Caldicott Guardian has the time and training the role needs."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual (Senior Information Risk Owner)",
+          "blocks": [
+            {
+              "p": "The Nominated Individual approves every data sharing agreement and any routine sharing beyond direct care (Data Protection Policy), is told of the requests set out in Requests from third parties, decides any third-party request about a Director, the Registered Manager, the Deputy Manager or the HR Manager, and is, with the Directors, the only person who speaks to the media."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (Caldicott Guardian)",
+          "blocks": [
+            {
+              "p": "The Registered Manager is our Caldicott Guardian, with the Deputy Manager as deputy. They decide on sharing without agreement and third-party requests about the people we support, advise staff and keep the Caldicott decision log."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager covers the Registered Manager's duties under this policy in their absence, carries out the second check of records before disclosure to a third party, and runs the quarterly caller checks in Monitoring and review."
+            }
+          ]
+        },
+        {
+          "heading": "Data Protection Officer",
+          "blocks": [
+            {
+              "p": "Our external Data Protection Officer advises on finely balanced decisions and unusual requests: the same day where someone may be at risk, otherwise within 2 working days. Waiting for advice never delays sharing needed to protect someone from serious harm."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager decides on third-party requests about employees, former employees and applicants, including references and police requests."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "As assessors and reviewers they explain how we share information and record the person's agreement, the people involved and any objections. Care Coordinators share for direct care and keep the People involved and Consent and decisions parts of the care plan current. Field Care Supervisors check confidentiality practice at every spot check."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Managers and Office staff",
+          "blocks": [
+            {
+              "p": "They follow the caller rules in Phone calls, messages, email and post and pass third-party requests to the right manager the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "They follow the everyday rules on every visit, share only as the care plan allows or with professionals caring for the person, and pass everything else to the office."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The Caldicott principles in our work",
+      "blocks": [
+        {
+          "p": "The National Data Guardian's eight Caldicott principles guide every use of confidential information about the people we support, however their care is funded."
+        },
+        {
+          "table": {
+            "columns": [
+              "Principle",
+              "What it means for us"
+            ],
+            "rows": [
+              [
+                "1. Justify the purpose",
+                "Every use or sharing has a reason linked to the person's care, safety, a legal duty or running the service."
+              ],
+              [
+                "2. Use confidential information only when necessary",
+                "Governance papers, training examples and team meeting notes use CareFlow reference numbers or no identifiers."
+              ],
+              [
+                "3. Use the minimum necessary",
+                "A district nurse needs to know about a pressure area, not the person's finances."
+              ],
+              [
+                "4. Access on a strict need-to-know basis",
+                "Care workers see in CareFlow only the people on their round: those they visit regularly or are rostered to visit in the next 14 days. Nobody looks up a person, colleague, neighbour or relative out of interest."
+              ],
+              [
+                "5. Everyone understands their responsibilities",
+                "Every employee is trained before seeing any care record, acknowledges this policy by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version, and is checked on it at spot checks."
+              ],
+              [
+                "6. Comply with the law",
+                "Every disclosure without agreement has a legal ground recorded by a deciding manager."
+              ],
+              [
+                "7. The duty to share for individual care is as important as the duty to protect confidentiality",
+                "Staff never withhold what a professional caring for the person needs. A doubt about sharing is phoned to the office at once."
+              ],
+              [
+                "8. Inform people about how their information is used",
+                "Every person is told at assessment, in their communication format, who we share with and why, and is told when we share without their agreement unless that would increase risk."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Everyday confidentiality",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "On visits and travelling between them",
+          "blocks": [
+            {
+              "bullets": [
+                "Ask the person before discussing their care, health or money in front of visitors, including family.",
+                "Never discuss one person we support in another person's home, and never tell anyone which other people we visit; if asked, say you cannot talk about other people.",
+                "Never discuss people, or dictate a CareFlow voice note, where you could be overheard: in public, on public transport or in a car with passengers who are not on the visit.",
+                "Addresses, visit times and key safe codes show when a person is alone and how to get in. Codes are held only in CareFlow and the encrypted business continuity access file, and are never written down, said aloud where others can hear or passed on, except as the Key Holding, Key Safes and Access to People's Homes Procedure allows, such as by the office to a rostered worker or to fire or ambulance crews in an emergency. Never tell anyone where you are going next, and never show, photograph or send your rota.",
+                "Keep your work phone locked, with you and out of others' sight, in the home and in a vehicle.",
+                "Paper in the home is limited to what the Records Management and Retention Policy allows, kept where the person chooses, and never holds key safe codes, infection or blood-borne virus status, safeguarding information, staff contact details or other people's risks. Nothing is taken out of the home.",
+                "What you see or hear about family members or neighbours is recorded only where it affects the person's care or safety.",
+                "Cameras or video doorbells in a person's home are their choice; the Care Coordinator tells you about any before your first visit."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Phone calls, messages, email and post",
+          "blocks": [
+            {
+              "bullets": [
+                "Care workers pass care information to the office by phone or record it in CareFlow, never by text or messaging app.",
+                "Office staff and On-call Managers never confirm to an unknown caller that a person receives our care. A family member or friend is told only what the People involved part of the care plan allows, after confirming two details we hold about them, such as their address and relationship to the person. Professionals are phoned back through their organisation's main number, found independently, never a number the caller gives.",
+                "A voicemail or message gives only the caller's first name and a request to call back, unless the People involved part of the care plan records that more may be left on that number.",
+                "Only managers, Care Coordinators, Field Care Supervisors and Office staff email outside {{organisation}}, from work accounts. Care information goes only to a secure NHS or government address or encrypted, with the password sent separately; a new address is confirmed by phone first, and names and health details never go in the subject line.",
+                "Letters are marked private and confidential, with nothing on the envelope showing that the person receives care."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "In the branch office and when working from home",
+          "blocks": [
+            {
+              "p": "Screens are locked and papers locked away whenever a desk is left; printing is collected at once and confidential paper shredded. Visitors are never left alone where records can be seen or calls overheard, and whiteboards never show a person's name with their address or care details. On-call Managers working from home follow these rules and the Data Protection Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Online, social media and other tools",
+          "blocks": [
+            {
+              "p": "Never post, share or comment on anything about a person we support, their home, family or visits, or about an incident or complaint, even without names, including in private groups and staff group chats. Photographs, video and voice notes are made only in the CareFlow app on a work device, never a personal one, as the Consent to Care Policy allows; voice notes never capture anyone else speaking. Only an assessor, with recorded consent, records an assessment conversation; nobody else records a conversation, call or visit. Never enter information about a person we support or a colleague into an artificial intelligence tool or app that is not on the approved software list (Acceptable Use of IT and Devices Policy). Contact and friend requests from people we support or families are handled under the Professional Boundaries Policy."
+            }
+          ]
+        },
+        {
+          "heading": "When you leave us",
+          "blocks": [
+            {
+              "p": "The duty of confidentiality continues after employment ends. On or before their last working day a leaver returns their work phone, ID badge, any keys and any papers, keeps no copies, and has their CareFlow access removed under the Data Protection Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Recording what each person agrees to",
+      "blocks": [
+        {
+          "p": "At the assessment visit the assessor explains our privacy notice (Data Protection Policy) and that we normally share information for the person's care with their GP practice, pharmacy, community nurses, ambulance service and hospital, other providers involved, any telecare service and the commissioner of their care. The assessor then asks and records:"
+        },
+        {
+          "bullets": [
+            "any of those organisations the person does not want told, and about what;",
+            "each family member, friend, neighbour or advocate who may be told about their care, what each may be told, and whether by phone;",
+            "anyone who must not be told anything, even whether they are at home or in hospital;",
+            "whether messages may be left, on which numbers, and what they may say;",
+            "which family members provide part of the care, such as medicines or meals, and what they need to know to do it safely."
+          ]
+        },
+        {
+          "p": "Agreement is recorded as recorded consent (Consent to Care Policy) in the Consent and decisions part of the care plan, and each person who may be told, with what, in the People involved part. Both are checked at every care plan review. When a person changes their mind, the member of staff told records it in the daily visit notes and tells the office the same day; the Care Coordinator updates the care plan and tells everyone affected the same working day."
+        },
+        {
+          "p": "Where there is reason to doubt that the person can decide who is told about them, the assessor assesses their capacity for that decision under the Mental Capacity Act and Best Interests Policy. If they lack it, a verified attorney or deputy with authority over the decision decides; otherwise a best interests decision is made, approved by the Registered Manager or Deputy Manager, giving weight to the person's past and present wishes."
+        },
+        {
+          "p": "When a person with capacity refuses sharing with their GP practice or pharmacy that their care depends on, the Registered Manager decides within 1 working day whether the rest of the care can be given safely and tells the commissioner in writing, as the Consent, Mental Capacity and Declined Medicines Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Sharing for direct care",
+      "blocks": [
+        {
+          "p": "The common law allows sharing for direct care with the person's agreement, including implied agreement. Data protection law allows it on the bases in the Data Protection Policy, with UK GDPR Article 9(2)(h) and Data Protection Act 2018, Schedule 1, paragraph 2 for health information. For care arranged by a local authority or the NHS, section 251B of the Health and Social Care Act 2012 also requires us to share information with other health and adult social care providers and commissioners where it is likely to help the person's care and is in their best interests, unless we reasonably consider that the person objects or would be likely to object; it never overrides confidentiality or data protection law. Our policy applies the same standard to care a person arranges privately."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "Who shares",
+              "What and how"
+            ],
+            "rows": [
+              [
+                "Emergency at a visit: 999 call, paramedics, ambulance crew",
+                "Care worker",
+                "What the crew needs to treat the person: medicines from the eMAR, allergies, conditions, communication needs and where any DNACPR or ReSPECT form is kept. Then phone the office and record it in the daily visit notes."
+              ],
+              [
+                "A professional at the visit: district nurse, GP, occupational therapist or another agency's care worker",
+                "Care worker, after seeing their identity badge",
+                "What they need for the task they are doing with the person, recorded in the daily visit notes. Anything else they ask for is referred to the office."
+              ],
+              [
+                "Changes in health, medicines, skin or mobility, falls, and medicines notifications",
+                "Care Coordinator (On-call Manager out of hours)",
+                "To the GP practice, pharmacy or community nurses within the timescales the Care Plan Review Procedure and the Medicines Management Policy set, by phone or secure email, identified by NHS number."
+              ],
+              [
+                "Hospital admission and discharge",
+                "Care worker and Care Coordinator",
+                "As the Hospital Admission and Discharge Procedure sets out."
+              ],
+              [
+                "Care reviews and funding decisions",
+                "Care Coordinator",
+                "To the social worker or commissioner of the person's care: what the review or decision needs, by their deadline, by secure email."
+              ],
+              [
+                "A new provider taking over, or another provider sharing the care",
+                "Care Coordinator",
+                "The care plan, risks and anything needed for safe care, before its first visit, with the person's agreement. The full record is not sent."
+              ],
+              [
+                "A risk to other agencies' staff, such as violence or a dangerous animal",
+                "Registered Manager or Deputy Manager",
+                "A warning to agencies whose staff visit the person where the risk is High or Very high, as the Violence and Aggression Towards Staff Policy and Animals and Pets in People's Homes Guideline set out."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Whoever shares makes sure the recipient is who they say they are, gives only what that recipient needs, uses secure means, and records what was shared, with whom, when and why in the person's care record. Where a person objects to sharing that a care worker or Care Coordinator believes their care or safety needs, they tell the Registered Manager or Deputy Manager the same day, who decides under Sharing without agreement."
+        }
+      ]
+    },
+    {
+      "heading": "Sharing with families, friends and representatives",
+      "blocks": [
+        {
+          "p": "A relative or next of kin has no right to information because of the relationship. Staff tell family members, friends and neighbours only what the People involved part of the care plan records they may be told. A relative who asks for more, or who is not recorded, is told that the office will contact them. The Care Coordinator asks the person within 2 working days, records the answer and replies to the relative only as the person agrees."
+        },
+        {
+          "bullets": [
+            "Family members who provide part of the care, such as evening medicines or meals, are told what they need to do it safely, such as doses given or declined at our visit, as the care plan records.",
+            "A friend or neighbour who holds a key or is a no-reply contact is told only what that role needs.",
+            "An attorney or deputy whose authority has been verified and recorded under the Consent to Care Policy receives the information needed for decisions within that authority, when the person lacks capacity for them: care and health information for a health and welfare attorney, invoices and money records for a property and financial affairs attorney, and what the court order covers for a deputy. They are not given information the person shared in confidence, asked us not to share, or that would put the person at risk.",
+            "Where a person lacks capacity to decide and has no attorney or deputy, family and carers involved in their care are told what they need to support the person and to give their views on best interests decisions, as the best interests decision in the care plan sets out. A relative's written request for such a person's records is decided by the Registered Manager in the person's best interests and answered within one month.",
+            "Where two people in the same household both receive our care, information about each is kept separate and shared with the other only as each has agreed.",
+            "Nobody who may be harming the person is given information about them. Where that person is an attorney or deputy, the Registered Manager decides what they are told after taking the local authority's advice, and records why.",
+            "Staff never promise the person or a family member to keep a secret about abuse, neglect or a risk to anyone; they explain that it will be recorded and passed to a manager."
+          ]
+        },
+        {
+          "p": "Our duty of confidentiality continues after a person dies. Staff do not discuss the person or their care with anyone. Requests from the personal representative, relatives or anyone with a claim are passed to the Registered Manager and handled under the Subject Access and Individual Rights Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Sharing without agreement",
+      "blocks": [
+        {
+          "p": "Sharing without the person's agreement is lawful only on one of the grounds in the table below. Only a deciding manager may authorise it, except that anyone may call 999 and tell the emergency services what they need."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What allows sharing",
+              "Who decides and how quickly"
+            ],
+            "rows": [
+              [
+                "Life or health at immediate risk and the person cannot agree, for example they are unconscious",
+                "Vital interests (UK GDPR Articles 6(1)(d) and 9(2)(c))",
+                "Anyone present, at once; the office is told straight afterwards"
+              ],
+              [
+                "An adult or child at risk of abuse or neglect",
+                "Recognised legitimate interest of safeguarding a vulnerable individual (Article 6(1)(ea), Annex 1, paragraphs 6 to 8); for health information without agreement, Data Protection Act 2018, Schedule 1, paragraph 18; for a package commissioned by children's services, also the duty to share information about a child in section 16LA of the Children Act 2004 (Article 6(1)(c))",
+                "Safeguarding lead (Registered Manager, Deputy Manager, or On-call Manager out of hours): risk decided within 1 hour, referral the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure)"
+              ],
+              [
+                "Preventing, detecting or investigating a crime, including violence towards staff",
+                "Recognised legitimate interest in crime (Annex 1, paragraph 5); for health information, Schedule 1, paragraph 10 where asking for agreement would prejudice that purpose",
+                "Registered Manager or Deputy Manager, the same working day; at once where someone is at immediate risk. Terrorism concerns follow the Prevent and Radicalisation Guideline"
+              ],
+              [
+                "Disclosure required by law: court order, witness summons, coroner's notice, CQC requirement (Health and Social Care Act 2008, section 64), Local Government and Social Care Ombudsman investigation (Local Government Act 1974, section 34G) or Safeguarding Adults Board request (Care Act 2014, section 45)",
+                "Legal obligation (Article 6(1)(c)), with Article 9(2)(f) for courts and coroners and Article 9(2)(h) with Schedule 1, paragraph 2 for CQC, the Ombudsman and Safeguarding Adults Boards",
+                "Registered Manager (HR Manager for staff), by the deadline set"
+              ],
+              [
+                "The person lacks capacity to decide about sharing",
+                "Best interests decision (Mental Capacity Act 2005) on the bases for care in the Data Protection Policy",
+                "As in Recording what each person agrees to; out of hours the On-call Manager approves where it cannot wait"
+              ],
+              [
+                "Serious risk to other people that is not a safeguarding matter or a crime, such as a fire risk to neighbours",
+                "Public interest, where the risk outweighs the person's interest in confidentiality; legitimate interests (Article 6(1)(f)), with any health information shared only on a condition the Data Protection Officer confirms the same day",
+                "Registered Manager, or Deputy Manager in their absence, the same working day; anyone may call 999 where the danger is immediate"
+              ],
+              [
+                "A care worker exposed to a person's blood or body fluid, where the clinician treating the worker needs the person's known blood-borne virus status",
+                "Public interest in protecting the worker's health; legitimate interests (Article 6(1)(f)), with Article 9(2)(h) and Schedule 1, paragraph 2 (occupational medicine and diagnosis), shared only with that clinician",
+                "Registered Manager, or Deputy Manager in their absence, at once, asking the person first only where that does not delay the worker's treatment (Sharps Safety and Needlestick Injury Procedure)"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The deciding manager follows these steps and records each one:"
+        },
+        {
+          "steps": [
+            "Establish the facts: what the risk or legal requirement is, to whom, how serious and how soon.",
+            "Ask the person for their agreement, explaining what would be shared, with whom and why, unless asking would increase a risk, prejudice a crime investigation or cause a harmful delay. Explore their reasons for refusing and offer an advocate.",
+            "Decide whether a ground in the table applies and whether sharing is necessary and proportionate, or whether a less intrusive step would work, such as asking advice without naming the person.",
+            "Decide the minimum information and who needs it, and confirm the recipient's identity by phoning back on a number found independently.",
+            "Share by phone, confirmed by secure email the same working day, or by secure email alone where the matter is not urgent.",
+            "Tell the person what was shared, with whom and why, unless that would increase a risk or the police advise it would prejudice an investigation.",
+            "Record the decision, including a decision not to share, in the person's care record (the safeguarding record for a safeguarding matter) and in the Caldicott decision log within 1 working day: the facts, the person's answer, the ground, what was shared, with whom, when and how, and whether the person was told."
+          ]
+        },
+        {
+          "p": "Information about a crime, an allegation or a conviction, whether about a person we support, a family member or an employee, is criminal offence data. It is shared only where one of the Schedule 1 conditions above applies (paragraph 10 or 18), or paragraph 1 for employment purposes, as section 10(5) of the Data Protection Act 2018 requires."
+        },
+        {
+          "p": "An On-call Manager who decides out of hours hands the decision to the Registered Manager or Deputy Manager by 10am the next working day, who confirms it or puts right anything that should have been done differently."
+        }
+      ]
+    },
+    {
+      "heading": "Requests from third parties",
+      "blocks": [
+        {
+          "p": "No member of staff gives information to a third party on the spot, apart from what the emergency services need in an emergency. A care worker asked at a visit, including by a police officer at the door, says the office deals with requests and phones the office (the On-call Manager out of hours) before leaving. Whoever receives a request takes the requester's name, organisation, contact details and what they want, neither confirms nor denies that the person receives our care, and passes it to the office the same working day, at once where someone may be at risk."
+        },
+        {
+          "p": "The office passes every request the same working day to the Registered Manager (people we support) or the HR Manager (staff and applicants), who enters it in the Caldicott decision log the day they receive it. The decision-maker verifies the requester through a contact route found independently, such as the organisation's main number or a police force's control room, or by seeing a warrant card or official identity in person, and requires the request in writing, stating what is wanted, why and the legal basis, except during a CQC inspection or where someone is at immediate risk. They decide and reply within 5 working days of receipt, or by the requester's deadline if sooner; records that the police, a coroner, the local authority or CQC ask for about an incident or safeguarding concern go by their deadline or within 2 working days (Incident Reporting, Investigation and Learning Policy). Only the records needed are copied, with information about other people and key safe codes removed, and checked page by page by the Deputy Manager (the Registered Manager where the Deputy prepared them) before being sent securely. The Nominated Individual is told within 1 working day of every court order, witness summons, coroner's notice and Safeguarding Adults Board request. A coroner's request about a death is checked by the Registered Manager the same day against the Statutory Notifications to CQC Procedure."
+        },
+        {
+          "table": {
+            "columns": [
+              "Requester",
+              "What we need before disclosing",
+              "Our arrangements"
+            ],
+            "rows": [
+              [
+                "Police, routine enquiry",
+                "The force's written data protection request, approved by an officer, stating the purpose, the information needed and why not having it would be likely to prejudice the investigation (Data Protection Act 2018, Schedule 2, paragraph 2), or a court order",
+                "Without a court order the law allows, but does not require, disclosure; we give what is necessary and proportionate. The person is told unless the police advise this would prejudice the investigation. Where our care or staff are under investigation, the Nominated Individual is told within 24 hours."
+              ],
+              [
+                "Police, urgent: missing person, welfare concern or risk to life",
+                "Identity confirmed by phoning back through the force's control room",
+                "Any deciding manager, including the On-call Manager, gives at once what is needed to find or protect the person (No Reply, No Access and Missing Person Procedure); the written request follows."
+              ],
+              [
+                "Court order, witness summons or coroner's notice",
+                "A copy of the order, summons or notice",
+                "We comply by the date set. Our solicitors and insurers are consulted where a claim against us is possible. The Registered Manager supports staff asked for statements or evidence."
+              ],
+              [
+                "CQC",
+                "Inspector's CQC identification checked, phoning CQC on its published number if in doubt",
+                "During an inspection, records CQC requires are provided at once and in every case the same day, shown on screen in CareFlow by a manager or Office staff member, never through a staff member's login; contact details of people we support go with their recorded contact preferences (Inspection Readiness and Working with Regulators Guideline). A request outside an inspection goes to the Registered Manager and Nominated Individual the same day and is answered by CQC's deadline with the Nominated Individual's approval."
+              ],
+              [
+                "Local authority safeguarding team or Safeguarding Adults Board",
+                "Request from a verified officer",
+                "Records by the deadline set or within 2 working days (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure)."
+              ],
+              [
+                "Commissioner contract monitoring",
+                "Contract terms checked by the Nominated Individual",
+                "Only records of people the commissioner funds, and only what monitoring needs; records of self-funders, including people paying through a direct payment, never without their agreement. Regular data returns need a data sharing agreement."
+              ],
+              [
+                "Solicitors, insurers, benefits assessors, housing providers, employers, MPs and councillors",
+                "The signed authority of the person, or of a verified attorney or deputy, naming the requester and the information; for an MP or councillor, the person's confirmation to us that they asked them to act",
+                "Without it, nothing is disclosed. A solicitor asking for the person's own records is handled under the Subject Access and Individual Rights Procedure; a solicitor acting against us goes to the Nominated Individual the same day."
+              ],
+              [
+                "Journalists and the media",
+                "Never disclosed",
+                "Passed to the Nominated Individual the same day; we never confirm that anyone receives our care."
+              ],
+              [
+                "Researchers, students and survey organisations",
+                "Not disclosed in identifiable form",
+                "Only as the Data Protection Policy allows: the Nominated Individual decides, with a data protection impact assessment."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Confidentiality about staff",
+      "blocks": [
+        {
+          "p": "Staff are entitled to the same confidentiality. We never give a person we support, their family or anyone outside {{organisation}} a colleague's home address, personal phone number, social media details, health, sickness reasons, disciplinary matters or rota, and staff do not discuss colleagues' personal circumstances. Care Coordinators and Field Care Supervisors are told only how a colleague's health affects allocation, never the reasons. References, police requests and requests from other employers, the Disclosure and Barring Service or professional regulators are handled only by the HR Manager under the Staff Personal Data and HR Records Policy and the Managing Allegations Against Staff Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Breaches of confidentiality",
+      "blocks": [
+        {
+          "p": "Information given to the wrong person, overheard, seen on an unlocked phone, posted online or looked at without a work reason is a personal data breach. Anyone who discovers or suspects one phones the office (the On-call Manager out of hours) at once, before leaving the visit, and records it in the incident log before the end of their shift, under the Personal Data Breach Procedure. Reporting promptly, including one's own mistake, is never in itself a reason for disciplinary action; hiding a breach is."
+        },
+        {
+          "p": "Gossip, careless disclosure and looking at records without a work reason are handled under the Disciplinary Policy and Procedure; a serious breach of confidentiality is gross misconduct under the Staff Code of Conduct. Knowingly or recklessly obtaining or disclosing personal data without our consent can be a criminal offence under section 170 of the Data Protection Act 2018, and we report it to the police where the Personal Data Breach Procedure requires. Raising a concern with CQC, the local authority or the police under the Whistleblowing (Speaking Up) Policy is not a breach of this policy."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "What the person agrees may be shared, with whom and how, objections, message preferences, and capacity assessments and best interests decisions about sharing",
+                "Consent and decisions and People involved parts of the care plan",
+                "With the care record"
+              ],
+              [
+                "Information shared for direct care",
+                "The person's care record; daily visit notes for sharing during a visit",
+                "With the care record"
+              ],
+              [
+                "Decisions to share or not to share without agreement",
+                "Care record or safeguarding record, and the Caldicott decision log",
+                "With the care or safeguarding record; Caldicott decision log 6 years after the decision"
+              ],
+              [
+                "Third-party requests, verification, decisions and copies of what was disclosed",
+                "Caldicott decision log in the governance records",
+                "6 years after the request is closed, longer while a complaint, claim, inquest or investigation is open"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Only the Registered Manager, Deputy Manager, Nominated Individual, HR Manager (for staff requests) and the Data Protection Officer can see the Caldicott decision log."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "Information governance, including confidentiality and this policy, with a knowledge assessment (pass mark 80%)",
+                "In the first week, before any access to care records; every 12 months"
+              ],
+              [
+                "Care Workers and Senior Care Workers",
+                "Confidentiality on visits during shadowing: family members and callers, professionals at the door, phones and paper in the home",
+                "At induction, before working without a shadowing colleague"
+              ],
+              [
+                "Assessors",
+                "Explaining how we share information and recording agreement, people involved and objections",
+                "Before their first assessment"
+              ],
+              [
+                "Office staff and On-call Managers",
+                "Checking callers' identity and entitlement, third-party requests and out-of-hours sharing decisions",
+                "Before taking calls alone or their first on-call shift; every 12 months"
+              ],
+              [
+                "Registered Manager and Deputy Manager",
+                "Caldicott Guardian training, including sharing without agreement and third-party requests",
+                "Within 3 months of appointment; every 3 years"
+              ],
+              [
+                "HR Manager",
+                "Third-party requests about staff, references and police requests",
+                "Within 3 months of appointment; every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Training is recorded in the training and compliance records."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Who and how often",
+              "Reported to",
+              "Target"
+            ],
+            "rows": [
+              [
+                "Confidentiality on visits: work phone locked and kept on the care worker, no paper notes or personal phones used for care information, care worker can say what they may tell the family members present",
+                "Field Care Supervisors, at every spot check",
+                "Supervision and appraisal records",
+                "Shortfall put right at once and rechecked at the next spot check, or within 4 weeks where recorded as a spot check shortfall"
+              ],
+              [
+                "Every sharing-without-agreement decision and third-party request in the Caldicott decision log, for grounds, reasons, timeliness and the person being told",
+                "Registered Manager with the Nominated Individual and Data Protection Officer, quarterly",
+                "Data protection section of the quarterly governance report",
+                "100% recorded with reasons; 100% of requests answered on time"
+              ],
+              [
+                "Caller checks: two test calls from an unknown caller asking about a person we support, one in office hours and one to the On-call Manager",
+                "Deputy Manager, quarterly",
+                "Monthly Quality and Governance Meeting",
+                "No information given; anyone who gives information is retrained within 1 week"
+              ],
+              [
+                "Agreement to sharing and People involved complete and current in sampled care plans",
+                "Monthly care records audit and the December records and data protection audit, under the Quality Audit and Monitoring Procedure",
+                "Quality dashboard; next Directors' governance meeting",
+                "Green"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan within 5 working days."
+        },
+        {
+          "p": "The Registered Manager reviews this policy every 12 months, and sooner after a change in law or national guidance, a breach reported to the Information Commission, a serious incident, an inspection or audit finding, or when monitoring shows the arrangements are not working. The Directors approve it under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

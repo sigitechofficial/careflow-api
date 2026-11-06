@@ -1,0 +1,671 @@
+{
+  "reference": "POL-GOV-015",
+  "revision": 1,
+  "title": "Personal Data Breach Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How every employee recognises and reports a suspected personal data breach at once, and how managers contain it, grade the risk to the people affected, decide within the 72-hour legal limit whether to report it to the Information Commission, tell the people affected, commissioners, police and insurers, investigate and learn. Covers lost work phones, misdirected messages, exposed key safe codes, misuse of records, supplier and cyber incidents, on paper and electronically. For all staff.",
+  "keyPoints": {
+    "intro": "Any of us can cause or discover a data breach on a visit, in the office or on call. This procedure tells you how to spot one, what to do in the first minutes and who decides what happens next.",
+    "points": [
+      "A personal data breach is any loss, theft, wrong sharing, unauthorised viewing, wrong change or unavailability of personal information, on paper or electronic. If you think one may have happened, treat it as one.",
+      "Phone the office (the On-call Manager out of hours) at once, before you leave the visit, and speak to a person. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly.",
+      "If your work phone is lost or stolen, report it at once, whatever the time, so it can be locked and wiped and its key safe codes protected. Report a theft to the police the same day and give the office the crime reference.",
+      "If you lose your work phone during your visits, carry on with them: phone the office on arrival and before leaving each visit, and the office gives you any key safe code by voice.",
+      "If a key safe code may be known by someone not entitled to it, or you find one written down, tell the office straight away so the code can be changed. Never write a code down or pass it on.",
+      "If you send information to the wrong person, report it at once. Do not wait to see whether they reply, and do not send the information again until the office has checked.",
+      "Record the breach in the incident log before the end of your shift: what happened, what information, whose, when you found out and what you have done. Facts only. If you cannot use CareFlow, the office records it during your call.",
+      "Do what the office asks to limit the harm. Do not investigate on your own, do not contact the people affected unless asked, and never delete or change anything to hide what happened.",
+      "Reporting a breach promptly, including your own mistake, is never in itself a reason for disciplinary action. Hiding a breach is a disciplinary matter. So is looking at, taking or sharing records without a work reason, which can also be a criminal offence.",
+      "Pass any question about a breach from a person we support, a family member, a journalist or anyone else to the office. Do not discuss it yourself.",
+      "Managers: the 72 hours for reporting to the Information Commission run from when any employee first learns of the breach, including at weekends and on bank holidays."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INCIDENT",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-GOV-013",
+    "POL-GOV-007",
+    "POL-GOV-018",
+    "POL-GOV-019",
+    "POL-HS-013",
+    "POL-GOV-016",
+    "POL-GOV-009",
+    "POL-HR-008"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "UK General Data Protection Regulation, Article 4(12) (definition of a personal data breach)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/4"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 33 (notification of a personal data breach to the Information Commission, as amended from 30 September 2026 by S.I. 2026/386)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/33"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 34 (communication of a personal data breach to the data subject)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/34"
+    },
+    {
+      "source": "Data Protection Act 2018, section 170 (unlawful obtaining etc. of personal data)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/170"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 17(2)(c) and (d) (records maintained securely)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Data Security and Protection Toolkit: incident reporting help (reporting to the regulator, DHSC and NHS England)",
+      "url": "https://www.dsptoolkit.nhs.uk/Help/29"
+    },
+    {
+      "source": "NHS Digital: Guide to the Notification of Data Security and Protection Incidents (September 2018), breach assessment grid",
+      "url": "https://www.dsptoolkit.nhs.uk/Help/Attachment/148"
+    },
+    {
+      "source": "Digital Care Hub: Data breach guidance for adult social care providers",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/data-breach-guidance/"
+    },
+    {
+      "source": "GOV.UK: Information Commission succeeds the ICO as UK's data protection regulator (30 September 2026)",
+      "url": "https://www.gov.uk/government/news/information-commission-succeeds-the-ico-as-uks-data-protection-regulator"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} holds information that opens the door to the lives and homes of the people we support: their health, medicines and routines, who they live with, when we visit and how to get in. If it is lost, stolen, sent to the wrong person, wrongly changed or unavailable when needed, they can be exposed to harm, fraud, distress or a missed visit."
+        },
+        {
+          "p": "{{organisation}} treats every suspected personal data breach as real until it is shown not to be, is open with the people affected and the regulator, and supports staff who report promptly, including their own mistakes."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every suspected breach reaches a manager and is contained at once, day or night.",
+            "Risk is graded consistently and reporting decisions are made within the 72-hour legal limit.",
+            "Everyone who needs to know is told in time, and every breach is recorded, investigated and learned from."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to all personal data we or our processors hold, electronic or on paper, wherever it is: in a person's home, a vehicle, the branch office or where an On-call Manager works from home. It covers information about the people we support, their families, staff, applicants and anyone else, and near misses. It applies to the Directors and every employee, and through their agreements to agency workers, students, contractors and processors."
+        },
+        {
+          "p": "This procedure adds the data protection steps to the Incident Reporting, Investigation and Learning Policy, which governs the incident log, investigation and fair treatment of staff. Roles and the legal framework are in the Data Protection Policy; technical security and the response to a cyber attack in the Information and Cyber Security Policy; and code and lock changes in the Key Holding, Key Safes and Access to People's Homes Procedure."
+        },
+        {
+          "p": "Data protection law covers only living people. A breach of the records of someone who has died is still handled under this procedure but is not reported to the Information Commission unless the records also contain information about living people, such as relatives or staff."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Personal data breach",
+                "A breach of security leading to the accidental or unlawful destruction, loss, alteration, unauthorised disclosure of, or access to, personal data (UK GDPR Article 4(12)). Mistakes count. A breach may affect confidentiality (seen or shared wrongly), integrity (changed wrongly or recorded in the wrong record) or availability (lost or out of reach when needed)."
+              ],
+              [
+                "Near miss",
+                "An event that would have been a breach but was stopped in time, such as an email to the wrong address caught before sending."
+              ],
+              [
+                "Aware",
+                "The moment any employee first learns of an event that is or may be a breach, at any time. Our 72 hours run from then, which is earlier than the law requires: the law counts from when we become aware, which guidance treats as when we are reasonably certain that a breach has happened."
+              ],
+              [
+                "Escalation manager",
+                "The Registered Manager or Deputy Manager on the management escalation rota, or a manager covering for them under the Registered Manager Role and Absence Cover Policy."
+              ],
+              [
+                "Trusted recipient",
+                "An organisation bound by confidentiality that we work with regularly, such as a GP practice, pharmacy, district nursing team, local authority or processor, which confirms in writing that it has deleted or returned the information unused."
+              ],
+              [
+                "DSPT incident reporting tool",
+                "The Data Security and Protection Toolkit's incident reporting tool, which passes reportable incidents to the Information Commission and the most serious also to the Department of Health and Social Care and NHS England."
+              ],
+              [
+                "Information Commission",
+                "The UK data protection regulator, which replaced the Information Commissioner's Office (ICO) on 30 September 2026."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for how we handle breaches and receive breach figures in each quarterly governance report. The Director they name each year at their meeting held by mid-May, under the Governance and Quality Assurance Policy, acts for the Nominated Individual whenever the Nominated Individual is absent, cannot be reached within 1 hour or is involved in the breach."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual (Senior Information Risk Owner)",
+          "blocks": [
+            {
+              "p": "The Nominated Individual decides, on the Data Protection Officer's advice, whether each breach is reported to the Information Commission and whether the people affected must be told because the risk to them is high. They submit reports, answer the Information Commission, tell commissioners and insurers, and are breach lead themselves where the breach involves CareFlow as a system, a processor, a cyber attack, more than one branch, or the usual breach lead personally."
+            }
+          ]
+        },
+        {
+          "heading": "Data Protection Officer",
+          "blocks": [
+            {
+              "p": "Our external Data Protection Officer advises on grading, reporting and telling people, and is the contact point named in every report and letter to people affected. Where the service is closed when advice is needed, it is asked as soon as it opens; a reporting decision never passes the 72-hour limit while advice is awaited."
+            }
+          ]
+        },
+        {
+          "heading": "Breach lead",
+          "blocks": [
+            {
+              "p": "The Registered Manager is breach lead for information about the people we support, their families and branch records, and the HR Manager for information about staff, applicants, agency workers and students; where a breach involves both, the Registered Manager leads. The Deputy Manager covers an absent Registered Manager, and the Registered Manager an absent HR Manager; out of hours the escalation manager acts until the breach lead takes over. The breach lead confirms containment, grades the breach, tells the Nominated Individual, arranges for people to be told, opens the investigation and keeps the breach record complete."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Managers",
+          "blocks": [
+            {
+              "p": "They take reports, start containment at once, make sure the breach is in the incident log and pass it on as this procedure sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "They carry out the containment tasks the breach lead gives them, such as retrieving papers or arranging a code change, and explain to people what happened when asked, recording what they did in the breach record."
+            }
+          ]
+        },
+        {
+          "heading": "Every employee",
+          "blocks": [
+            {
+              "p": "Every employee follows the reporting steps below, co-operates with the investigation and passes any question about a breach to the office without discussing it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Timescales",
+      "blocks": [
+        {
+          "p": "Deadlines in hours run continuously, including weekends and bank holidays, from when we became aware."
+        },
+        {
+          "table": {
+            "columns": [
+              "Step",
+              "Our deadline",
+              "Who"
+            ],
+            "rows": [
+              [
+                "Report the suspected breach by phone",
+                "At once, before leaving the visit",
+                "Whoever discovers it"
+              ],
+              [
+                "Start containment",
+                "At once; for a lost or stolen device, CareFlow sign-out and password reset, and the lock and wipe request, within 1 hour of the report",
+                "Office staff or On-call Manager"
+              ],
+              [
+                "Incident log entry",
+                "Before the end of the shift",
+                "Whoever discovers it, or whoever takes the call if they cannot use CareFlow"
+              ],
+              [
+                "Pass to the breach lead or escalation manager",
+                "At once in office hours and for an urgent breach out of hours; otherwise by 10am the next morning",
+                "Office staff or On-call Manager"
+              ],
+              [
+                "Grade the breach and open the breach record",
+                "The same day it reaches the breach lead or escalation manager, and within 24 hours at the latest",
+                "Breach lead"
+              ],
+              [
+                "Tell the Nominated Individual and ask the Data Protection Officer",
+                "The same day as grading for every breach graded 2 or more for likelihood; at once for an urgent breach",
+                "Breach lead"
+              ],
+              [
+                "Decide whether to report to the Information Commission",
+                "Within 48 hours, and in time for any 24-hour report",
+                "Nominated Individual"
+              ],
+              [
+                "Report to the Information Commission",
+                "Within 24 hours where severity is 4 or 5 and likelihood 3 or more; otherwise within 72 hours",
+                "Nominated Individual"
+              ],
+              [
+                "Tell people at high risk",
+                "The same day where their safety or the security of their home is at risk; otherwise within 1 working day of the decision",
+                "Breach lead"
+              ],
+              [
+                "Tell people about other breaches of their information",
+                "Within 5 working days of grading",
+                "Breach lead"
+              ],
+              [
+                "Send further information to the Information Commission",
+                "Within 2 working days of each significant new fact",
+                "Nominated Individual"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reporting a suspected breach",
+      "blocks": [
+        {
+          "p": "Whoever discovers or suspects a breach, on a visit, in the office or on call:"
+        },
+        {
+          "steps": [
+            "Stops anything that would make it worse, where safe to do so: stops sending messages, picks up papers, closes the key safe and scrambles the code.",
+            "Phones the office (the On-call Manager out of hours) at once, before leaving the visit, and speaks to a person, phoning from outside the home if someone involved is present or they feel unsafe. If nobody answers within 15 minutes, they phone the Registered Manager or Deputy Manager directly.",
+            "Says what happened, what information and about whom, when and where, who may now hold it, and what they have already done.",
+            "Follows the containment instructions given. They do not investigate on their own, contact the people affected or the recipient unless asked, or delete anything, such as the wrongly sent message, unless told to.",
+            "Records the breach in the incident log before the end of their shift, giving facts only; if they cannot use CareFlow, whoever takes the call records it during the call. The daily visit notes say only that an incident was reported to the office."
+          ]
+        },
+        {
+          "p": "Whoever takes the call records when the caller first learned of the breach as the time we became aware, starts containment and passes the breach on. Out of hours the On-call Manager phones the escalation manager at once about an urgent breach and passes every other breach to them by 10am the next morning, any day. An urgent breach is: a lost or stolen device holding personal data not yet confirmed locked; a key safe code, key, access details, address or visit times reaching someone who may pose a risk; a suspected cyber attack or unauthorised access to CareFlow or work email; a breach affecting 10 or more people; information published online or attracting media interest; or suspected deliberate misuse by an employee."
+        },
+        {
+          "p": "A processor must tell us of a breach within 24 hours of becoming aware under its contract; its report goes straight to the Nominated Individual. A complaint or rights request that reveals a breach is also handled under this procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Containment and recovery",
+      "blocks": [
+        {
+          "p": "Containment starts during the first call; each action and its time go in the breach record."
+        },
+        {
+          "table": {
+            "columns": [
+              "What has happened",
+              "What we do at once"
+            ],
+            "rows": [
+              [
+                "Work phone or other device lost or stolen",
+                "Office staff or the On-call Manager sign the user out of the CareFlow app, reset their CareFlow password and ask our IT support provider to lock and wipe the device remotely. The care worker continues their visits under the Mobile Phones and Social Media Policy, phoning the office on arrival and before leaving each one and getting key safe codes by voice. Key safe codes the device could show are treated as compromised unless the Registered Manager (the escalation manager out of hours) confirms the same day that the device was locked and its access removed before it could be used."
+              ],
+              [
+                "Email, text or letter sent to the wrong person",
+                "The sender recalls an email where possible. The office contacts the recipient, by phone where possible, asks them not to read further, to delete the message (including from deleted items) or return the letter, and to confirm this in writing. Nothing is resent until the breach lead has checked the correct address."
+              ],
+              [
+                "Care plan or other paper lost, left in the wrong home or found",
+                "A Care Coordinator or Field Care Supervisor retrieves it the same day and asks who may have read it."
+              ],
+              [
+                "Key safe code seen by someone not entitled, or found written down",
+                "The person is told the same day and the code changed within the timescales in the Key Holding, Key Safes and Access to People's Homes Procedure."
+              ],
+              [
+                "Information given to the wrong caller, relative or visitor",
+                "The employee records exactly what was said and to whom. Where the recipient could harm the person, the safeguarding lead is told at once under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+              ],
+              [
+                "Records looked at, taken or shared without a work reason, including photographs or social media posts",
+                "The Registered Manager restricts the employee's CareFlow access the same day, keeps CareFlow's audit log entries as evidence (it records changes, not every record viewed), and asks for posts to be removed and reports them to the platform."
+              ],
+              [
+                "Body map photograph, video or voice note kept outside CareFlow, such as on a personal phone",
+                "Deleted the same day from the device and by anyone it was sent to, who confirm in writing."
+              ],
+              [
+                "Information recorded in or sent from the wrong person's record",
+                "Corrected the same working day under the Records Management and Retention Policy, telling the care team where it concerns allergies, medicines, key safe information or resuscitation decisions; anyone who received it is asked to delete it."
+              ],
+              [
+                "Suspected cyber attack, suspicious link clicked or account taken over",
+                "The user stops using the device and phones the office; the Nominated Individual is told at once and the Information and Cyber Security Policy followed."
+              ],
+              [
+                "CareFlow, email or phones unavailable, or data lost",
+                "Care continues under the Business Continuity and Emergency Planning Policy. Once systems return, the breach lead assesses whether information was lost, changed or exposed."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where another organisation sends us someone else's information in error, we tell the sender the same working day, do not use it, delete it once they confirm and record it in the incident log; it is their breach. Where a breach involves information another organisation controls, such as a shared NHS record, the breach lead tells it the same working day so it can decide on its own reporting."
+        }
+      ]
+    },
+    {
+      "heading": "Assessing the risk",
+      "blocks": [
+        {
+          "p": "The breach lead grades every breach, including near misses, on the breach assessment grid from the Data Security and Protection Toolkit guidance, scoring the impact on the people concerned, not on us. They weigh how sensitive the information is, how many people are involved, who has it and whether they can be trusted, whether it was recovered or encrypted, how vulnerable the people are, and what could follow, from entry to a home or fraud to distress or disruption to care. The incident severity (Low to Critical) is graded separately under the Incident Reporting, Investigation and Learning Policy."
+        },
+        {
+          "table": {
+            "columns": [
+              "Score",
+              "Likelihood that an adverse effect has occurred or will occur",
+              "Severity of the adverse effect"
+            ],
+            "rows": [
+              [
+                "1",
+                "Not occurred: certain, for example from an audit trail, that there can be none",
+                "None: certain none can arise"
+              ],
+              [
+                "2",
+                "Not likely: none is expected, but it cannot be shown that none can arise",
+                "Minor: possible inconvenience or minor upset"
+              ],
+              [
+                "3",
+                "Likely",
+                "Adverse: embarrassment or distress, or disruption to care without a decline in health"
+              ],
+              [
+                "4",
+                "Highly likely: almost certain to happen",
+                "Serious: suffering, decline in health, financial loss or loss of employment"
+              ],
+              [
+                "5",
+                "Occurred: an adverse effect has been reported",
+                "Catastrophic: death or a catastrophic event"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our minimum scores, which apply unless the information was contained with certainty (likelihood 1):"
+        },
+        {
+          "bullets": [
+            "Information about any person we support: at least 2 for likelihood and 2 for severity, because many lack capacity for some decisions or are known to adult safeguarding.",
+            "Key safe codes, keys or access details together with the address; bank, card or payment details; health, DBS or criminal offence information about staff; and safeguarding, domestic abuse or police information: severity at least 3.",
+            "A person's address, visit times or access details reaching someone who may pose a risk to them: severity at least 4."
+          ]
+        },
+        {
+          "p": "The breach lead records each score with the reasons and the number of people and records affected. A trusted recipient's written confirmation of deletion normally supports likelihood 1 or 2. Where facts are unclear, the higher score is used until they are known, and the breach is regraded within 1 working day of new information."
+        }
+      ]
+    },
+    {
+      "heading": "Reporting to the Information Commission",
+      "blocks": [
+        {
+          "p": "The law requires a controller to report a personal data breach to the Information Commission without undue delay and, where feasible, within 72 hours of becoming aware of it, unless the breach is unlikely to result in a risk to people's rights and freedoms. A report made later must give the reasons for the delay (UK GDPR Article 33)."
+        },
+        {
+          "p": "Our policy is that a breach is reported when it is graded 3 or more for likelihood and 2 or more for severity, the threshold the DSPT incident reporting tool uses. The Nominated Individual also reports any breach below that threshold that the Data Protection Officer advises is likely to result in a risk. If in doubt, we report. A decision not to report is recorded in the breach record with the reasons and the Data Protection Officer's advice."
+        },
+        {
+          "steps": [
+            "The Nominated Individual reports through the DSPT incident reporting tool, answering its grading questions with the breach lead's scores. If the tool is unavailable, they report directly using the Information Commission's breach reporting service.",
+            "The report gives the nature of the breach, the categories and approximate numbers of people and records concerned, the Data Protection Officer's contact details, the likely consequences, and the measures taken or proposed, including steps to reduce possible harm. People are described by category and number, never by name.",
+            "Where facts are still being established at the deadline, the report is made with what is known, as the law allows information in phases without undue further delay.",
+            "The Nominated Individual records the report reference, time and route in the breach record, tells the Directors within 1 working day and adds the breach to the risk register within 5 working days under the Risk Management Policy.",
+            "Further information follows as the Timescales table sets out, with a final update when the investigation closes. Questions from the Information Commission are answered by its deadline."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Telling the people affected",
+      "blocks": [
+        {
+          "p": "The law requires us to tell the people affected without undue delay when a breach is likely to result in a high risk to their rights and freedoms (UK GDPR Article 34). Our policy is that the risk is high when a breach is graded 3 or more for both likelihood and severity. We also tell people about any other breach of their information graded 2 or more for likelihood."
+        },
+        {
+          "p": "The breach lead, or a Field Care Supervisor they brief, tells a person we support in person or by phone, followed by a letter in their recorded communication format under the Communication and Accessible Information Policy. Where the person lacks capacity to understand it, we tell their attorney or deputy, or otherwise the family member recorded in the care plan as involved in decisions, never anyone who may pose a risk to them, and explain to the person as far as they can understand. Staff are told by the HR Manager. In plain language we explain what happened and what information was involved, the likely consequences, what we have done and will do, what they can do to protect themselves, such as watching bank statements, and the Data Protection Officer's contact details, how to complain to us and their right to complain to the Information Commission. We apologise where we were at fault."
+        },
+        {
+          "p": "The law does not require us to tell people where the information was unintelligible to anyone not authorised, such as on an encrypted device; where our later action means the high risk is no longer likely; or where telling each person would involve disproportionate effort, when an equally effective public announcement is made instead. The Nominated Individual decides any exception on the Data Protection Officer's advice and records the reasons. A police request to delay is recorded and reviewed at least weekly. If the Information Commission requires us to tell people, we do so by its deadline."
+        },
+        {
+          "p": "Where a breach causes harm that may be a notifiable safety incident, the Registered Manager also decides under the Duty of Candour Policy, treating it as notifiable while that is unclear."
+        }
+      ]
+    },
+    {
+      "heading": "Other notifications",
+      "blocks": [
+        {
+          "p": "The breach lead records each of these decisions in the breach record, including notifications not needed, with reasons."
+        },
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "When they are told",
+              "Who tells them and how quickly"
+            ],
+            "rows": [
+              [
+                "Commissioner (local authority or integrated care board funding the person)",
+                "Any breach reported to the Information Commission or graded high risk that involves a person they fund, and anything else the contract requires",
+                "Nominated Individual, by the end of the next working day after the reporting decision, or the contract's shorter timescale"
+              ],
+              [
+                "Police",
+                "Theft of a device or papers; suspected crime, including a code used to enter a home, fraud, a cyber attack, or an employee knowingly or recklessly obtaining or disclosing personal data without our consent (Data Protection Act 2018, section 170)",
+                "The care worker for a theft, the same day, giving the office the crime reference; otherwise the Nominated Individual, the same day, or within 2 working days on the Data Protection Officer's advice for suspected misuse by an employee"
+              ],
+              [
+                "Local authority safeguarding team",
+                "The breach puts a person at risk of abuse or neglect",
+                "The safeguarding lead, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure"
+              ],
+              [
+                "CQC",
+                "A breach is not itself notifiable. The same events may meet a test, such as a police incident involving a person we support or CareFlow being unavailable for over 24 hours",
+                "The Registered Manager decides under the Statutory Notifications to CQC Procedure"
+              ],
+              [
+                "Insurers",
+                "Any breach reported to the Information Commission, any cyber attack and any breach that may lead to a claim",
+                "Nominated Individual, within 5 working days, or at once where the policy requires"
+              ],
+              [
+                "Other organisations whose information or systems are involved",
+                "A shared record, another provider's information, or a processor's system",
+                "Breach lead, the same working day"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Only the Nominated Individual or a Director speaks to the media about a breach."
+        }
+      ]
+    },
+    {
+      "heading": "Investigation and learning",
+      "blocks": [
+        {
+          "p": "Every breach is investigated under the Incident Reporting, Investigation and Learning Policy, which sets levels, timescales and closure. A breach is investigated at the higher of the level that policy sets and these minimums: Standard for any breach; Enhanced for a breach reported to the Information Commission or where a worker's practice is in question; Comprehensive for a high-risk breach, a cyber attack affecting CareFlow, suspected deliberate misuse by an employee, or as the Nominated Individual directs."
+        },
+        {
+          "p": "Reporting a breach promptly, including one's own mistake, is never in itself a reason for disciplinary action; an honest mistake leads to support and, where needed, retraining. Hiding a breach, or altering or deleting records to conceal one, is a disciplinary matter under the Disciplinary Policy and Procedure. So is knowingly or recklessly looking at, taking or sharing records without a work reason, which may also be a criminal offence; misuse of a key safe code, or misuse that may have harmed a person, is decided the same day under the Managing Allegations Against Staff Procedure. An employee involved in a second breach within 12 months completes information governance training again within 1 month and discusses it at supervision."
+        },
+        {
+          "p": "Practice-changing actions go into the service improvement plan within 5 working days of the investigation's completion. Where a breach shows a weakness in a system or way of working covered by a data protection impact assessment, the Nominated Individual has that assessment reviewed within 1 month. The breach record is closed only when containment is confirmed, every notification decision is recorded, the people affected have been told where required and the investigation's actions are in the service improvement plan."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "The law requires us to document every personal data breach, reported or not, with its facts, effects and the remedial action taken (UK GDPR Article 33(5))."
+        },
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "Incident log entry for every suspected breach and near miss, including those found not to be breaches",
+                "Incident log in CareFlow",
+                "As the Incident Reporting, Investigation and Learning Policy sets out"
+              ],
+              [
+                "Breach record: time we became aware, containment actions, grading and reasons, Data Protection Officer's advice, reporting decision, report reference, people told, other notifications and closure",
+                "Attached to the incident log entry",
+                "With the incident log entry"
+              ],
+              [
+                "Breach register: incident log reference, date aware, type, numbers affected, scores, whether reported, report reference and outcome, using CareFlow reference numbers only",
+                "Governance records",
+                "Life of the organisation plus 6 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Breach records are seen only by the Nominated Individual, the Registered Manager, the Deputy Manager, the HR Manager for staff breaches, the investigation lead and the Data Protection Officer. Nothing is destroyed while a complaint, claim or Information Commission investigation is open."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "Recognising and reporting a breach, within information governance training",
+                "In the first week, before any access to care records; every 12 months"
+              ],
+              [
+                "Office staff and On-call Managers",
+                "Taking a breach report, urgent breaches, the containment table and escalation",
+                "Before taking calls alone or their first on-call shift; every 12 months"
+              ],
+              [
+                "Registered Managers, Deputy Manager and HR Manager",
+                "Leading a breach: grading on the breach assessment grid, the breach record and telling people",
+                "Within 3 months of appointment and before leading a first breach; every 3 years"
+              ],
+              [
+                "Nominated Individual and the named Director",
+                "Reporting decisions and the DSPT incident reporting tool, within Senior Information Risk Owner training",
+                "Within 3 months of appointment and before a first report; every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Until a breach lead is trained, the Nominated Individual checks their grading the same day. Each April the breach leads and the Nominated Individual grade 5 breach scenarios with the Data Protection Officer; anyone with more than one wrong reporting decision is re-briefed within 1 month. Training is recorded in the training and compliance records."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Who and how often",
+              "Reported to",
+              "Target"
+            ],
+            "rows": [
+              [
+                "Breaches by type and branch, reported or not, and timescales met",
+                "Deputy Manager, monthly",
+                "Quality dashboard by the 7th working day",
+                "100% graded within 24 hours; 100% of reportable breaches reported within 72 hours"
+              ],
+              [
+                "Every breach closed in the quarter, including every decision not to report or not to tell people",
+                "Nominated Individual with the Data Protection Officer, quarterly",
+                "Data protection section of the quarterly governance report",
+                "100% of decisions recorded with reasons"
+              ],
+              [
+                "Patterns: 3 or more breaches of the same type in a branch within 3 months",
+                "Registered Manager, as they arise",
+                "Monthly Quality and Governance Meeting",
+                "Thematic review within 1 month and a service improvement plan action"
+              ],
+              [
+                "No breach or near miss recorded in a branch in a quarter",
+                "Deputy Manager, quarterly",
+                "Next staff team meeting",
+                "Possible under-reporting discussed with staff"
+              ],
+              [
+                "Breach register and a sample of breach records",
+                "Deputy Manager, in the December records and data protection audit",
+                "Next Directors' governance meeting",
+                "Green under the Quality Audit and Monitoring Procedure"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan within 5 working days."
+        },
+        {
+          "p": "The Registered Manager reviews this procedure every 12 months, and sooner after a change in law or guidance, a breach reported to, or action by, the Information Commission, or an inspection, audit or monitoring finding. The Directors approve it under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

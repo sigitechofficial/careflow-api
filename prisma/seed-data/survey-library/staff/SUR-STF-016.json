@@ -1,0 +1,648 @@
+{
+  "reference": "SUR-STF-016",
+  "revision": 1,
+  "title": "Your training and development needs",
+  "audience": "EMPLOYEE",
+  "respondents": "All employees except new starters still in probation; care staff answer the confidence questions",
+  "summary": "The yearly training needs check each January: how confident you feel with everyday care tasks, how you like to learn, what gets in the way, support you need, and qualifications or career steps you want. Answers shape your own plan and the training plan. About 9 minutes.",
+  "purpose": "A yearly training needs analysis that asks every worker where they feel least confident in everyday work, what gets in the way of training, what support they need to learn, and which qualification or career step they want. Each worker's answers go into their personal development plan; the combined results by task, role group and branch shape the training plan the HR Manager drafts by 28 February under the Training and Development Policy. It does not evaluate courses (SUR-STF-005), repeat the September training item, or test competence, which comes from observation and spot checks. A qualification named here counts as a written request, decided within 20 working days.",
+  "timing": {
+    "when": "Once a year, opening on the first working day of January and closing on 10 February",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "PAPER", "IN_PERSON"],
+  "estimatedMinutes": 9,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "WELL_LED"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Learning culture",
+      "Delivering evidence-based care and treatment",
+      "Workforce wellbeing and enablement",
+      "Learning, improvement and innovation"
+    ]
+  },
+  "introduction": "{{organisation}} wants to plan the training and support that will help you most this year. It takes about 9 minutes, in paid time. Telling us you are not confident with something will never be held against you: we will offer help. If you name a qualification you want, we treat that as your written request and decide within 20 working days.\n\nYour answers are linked to your name, so your supervisor can add what you need to your development plan. They will not affect your hours or your job.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to plan your training and our training plan. Our legal reason is our legitimate interest in being a good employer and, where an answer tells us about health or disability, the condition for employment in data protection law.\n\nYour answers are linked to you. They are read by the HR Manager, who passes what you need to your supervisor or appraiser for your development plan, and by the Registered Manager if you ask for a qualification. Reports show combined results, never for groups under 5. If you tell us someone may be at risk of harm, we must act on it.\n\nWe keep your answers for 1 year after the survey closes; needs added to your plan are kept with your supervision records, under our Records Management and Retention Policy. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Your work",
+      "questions": [
+        {
+          "id": "q-gives-care",
+          "text": "Do you visit people in their homes to give care?",
+          "type": "YES_NO",
+          "required": true,
+          "helpText": "Choose Yes if you do any care visits, even only sometimes."
+        }
+      ]
+    },
+    {
+      "title": "How confident you feel",
+      "introduction": "For each task, choose how confident you feel doing it on your own today. There are no wrong answers, and telling us you are not confident will never be held against you.",
+      "questions": [
+        {
+          "id": "q-conf-medicines",
+          "text": "Helping people with their medicines",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"I do not do this\" if the task is not part of your visits.",
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-conf-med-record",
+          "text": "Recording medicines in the app",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-conf-moving",
+          "text": "Moving and handling people",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes using equipment such as a hoist.",
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-conf-personal-care",
+          "text": "Personal care, such as washing and continence care",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-conf-unwell",
+          "text": "Noticing and reporting when someone is becoming unwell",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Effective: Delivering evidence-based care and treatment"
+        },
+        {
+          "id": "q-conf-fallen",
+          "text": "Helping someone who has fallen",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-conf-abuse",
+          "text": "Recognising and reporting abuse or neglect",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-conf-refuses",
+          "text": "Knowing what to do when someone refuses care",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Effective: Delivering evidence-based care and treatment"
+        },
+        {
+          "id": "q-conf-dementia",
+          "text": "Supporting people living with dementia",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Effective: Delivering evidence-based care and treatment"
+        },
+        {
+          "id": "q-conf-autism-ld",
+          "text": "Supporting autistic people or people with a learning disability",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Effective: Delivering evidence-based care and treatment"
+        },
+        {
+          "id": "q-conf-end-of-life",
+          "text": "Caring for someone near the end of their life",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Effective: Delivering evidence-based care and treatment"
+        },
+        {
+          "id": "q-conf-upset",
+          "text": "Staying calm and safe when someone is upset or angry",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "I do not do this"],
+          "notCountedOptions": ["I do not do this"],
+          "showIf": {
+            "question": "q-gives-care",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What would help you feel more confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "How you learn",
+      "questions": [
+        {
+          "id": "q-learn-how",
+          "text": "How do you like to learn? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Face-to-face sessions",
+            "Learning alongside an experienced colleague",
+            "E-learning on a phone",
+            "E-learning on a computer or tablet",
+            "Short talks at team meetings",
+            "Videos",
+            "Written guides"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-barriers",
+          "text": "What makes it hard for you to do training? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Training clashes with my visits",
+            "Travelling to the training",
+            "Childcare or other caring",
+            "I am not sure the time is paid",
+            "E-learning is hard on my phone",
+            "Reading or writing in English",
+            "Using computers or apps",
+            "Nothing makes it hard"
+          ],
+          "exclusiveOptions": ["Nothing makes it hard"],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          },
+          "comment": {
+            "prompt": "Please tell us more. We will check your e-learning time.",
+            "showWhen": ["I am not sure the time is paid"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-learning-support",
+          "text": "Would any of these help you with training? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "helpText": "We pay for English classes and make changes to training for anyone who needs them.",
+          "options": [
+            "English classes",
+            "Help with reading or writing",
+            "Extra time",
+            "Help using computers or apps",
+            "Training in another format",
+            "None of these",
+            "I would rather talk about this privately"
+          ],
+          "exclusiveOptions": ["None of these"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Qualifications and your future",
+      "questions": [
+        {
+          "id": "q-qual",
+          "text": "Would you like to start a qualification in the next 12 months?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "We pay the full cost and give paid study time.",
+          "options": ["Yes", "Maybe, I would like to talk about it", "No, not now", "I am already studying for one"],
+          "evidence": "Well-led: Learning, improvement and innovation"
+        },
+        {
+          "id": "q-qual-which",
+          "text": "Which qualification are you interested in?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Level 2 Adult Social Care Certificate",
+            "Level 3 Diploma in Adult Care",
+            "Level 4 Diploma in Adult Care",
+            "Level 5 Diploma in Leading and Managing an Adult Care Service",
+            "A specialist qualification, such as dementia or end of life care",
+            "I am not sure, I would like advice"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us which",
+            "textRequired": true
+          },
+          "showIf": {
+            "question": "q-qual",
+            "answers": ["Yes", "Maybe, I would like to talk about it"]
+          },
+          "evidence": "Well-led: Learning, improvement and innovation"
+        },
+        {
+          "id": "q-two-years",
+          "text": "Where would you like your work to be in 2 years?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "This helps us plan. It will not affect your hours or your job.",
+          "options": [
+            "In my current role",
+            "Senior care worker",
+            "Specialist care worker, such as dementia or health tasks",
+            "Field care supervisor or care coordinator",
+            "Office or management role",
+            "Outside care work",
+            "Not sure"
+          ],
+          "otherOption": {
+            "label": "Something else (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          },
+          "evidence": "Well-led: Learning, improvement and innovation"
+        },
+        {
+          "id": "q-learn-more",
+          "text": "What would you like to learn more about? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "options": [
+            "Dementia",
+            "End of life care",
+            "Mental health",
+            "Diabetes",
+            "Epilepsy",
+            "Stroke or Parkinson's",
+            "Catheter or stoma care",
+            "Skin care and pressure sores",
+            "Food, drinks and nutrition",
+            "Mouth care",
+            "Supporting people with behaviour that challenges",
+            "Using care technology",
+            "Mentoring new care workers",
+            "Leading and supervising"
+          ],
+          "otherOption": {
+            "label": "Something else (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          },
+          "evidence": "Well-led: Learning, improvement and innovation"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one piece of training would make the biggest difference to your work?",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "text": "Is there anything else about your training or development you would like to tell us?",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, your supervisor or the HR Manager will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it. Use Send or schedule, repeating yearly, first period on the first working day of January, kept open until 10 February, so results reach the training plan drafted by 28 February. Choose employees rather than whole branches, leaving out new starters still in probation (the first weeks and end of probation surveys cover them). Set one reminder after 2 weeks in Reminders and follow-up; it goes only to those who have not answered. January's pulse opens in the second week; send no other topic survey in January, and no training follow-up (SUR-STF-005 Part B) to the same worker in the same week. If an event survey went to a worker in the previous 4 weeks, wait until 4 weeks have passed if that is before 10 February; otherwise the supervisor covers it at the next supervision.",
+      "It is done in paid time: allow 10 minutes, and Care Coordinators roster it on request. Online in the CareFlow app; paper on request, returned to the HR Manager; or completed with the supervisor at a January supervision for staff who prefer (recorded as In person, which may make answers more positive). Offer a translated version or interpreter help, never a manager reading answers for someone.",
+      "Who may open individual answers: the HR Manager, who passes each worker's agreed needs to their supervisor or appraiser for the development plan, and the Registered Manager for qualification requests. This is set in Who can see the answers: individual responses are limited to the HR Manager and the Registered Manager, and results to the HR Manager, the Registered Manager and the training lead, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "The HR Manager reads responses as they arrive and acts under the alerts below. A need recorded from this survey is treated like one found at supervision: booked and added to the personal development plan within 5 working days of the record, under the Training and Development Policy. Low confidence is never a disciplinary matter.",
+      "Combined results: confidence by task, role group and branch, never for groups under 5. Library trigger: any task where 20% or more of the care staff who do it answer Not very or Not at all confident, in a group of 5 or more, becomes a priority in the training plan. Comments on training cancelled to cover visits, which the policy forbids except in business continuity, go to the Registered Manager.",
+      "Keep individual answers for 1 year after the survey closes; needs added to plans are kept with supervision records, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Not at all confident\" with medicines, recording medicines, moving and handling, personal care, noticing someone becoming unwell, helping after a fall, or recognising abuse or neglect, for a task the worker does now.",
+        "action": "The HR Manager tells the worker's Field Care Supervisor the same working day the answer is read; the Field Care Supervisor contacts the worker by the end of the next working day and offers an observed visit or a one-to-one session before the worker's next visit with that task where possible (library timescale); training is booked within 5 working days under the Training and Development Policy. For medicines this follows the Medicines Training and Competency Assessment Procedure: supported, never blamed.",
+        "rule": {
+          "task": "Not at all confident with a risky care task: arrange support",
+          "if": [
+            {
+              "question": "q-conf-medicines",
+              "answers": ["Not at all confident"]
+            },
+            {
+              "question": "q-conf-med-record",
+              "answers": ["Not at all confident"]
+            },
+            {
+              "question": "q-conf-moving",
+              "answers": ["Not at all confident"]
+            },
+            {
+              "question": "q-conf-personal-care",
+              "answers": ["Not at all confident"]
+            },
+            {
+              "question": "q-conf-unwell",
+              "answers": ["Not at all confident"]
+            },
+            {
+              "question": "q-conf-fallen",
+              "answers": ["Not at all confident"]
+            },
+            {
+              "question": "q-conf-abuse",
+              "answers": ["Not at all confident"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 0,
+          "urgent": true
+        }
+      },
+      {
+        "when": "\"Not very confident\" with any task, or \"Not at all confident\" with refusals, dementia, autism or learning disability, end of life care, or staying calm when someone is upset.",
+        "action": "The HR Manager passes the need to the worker's supervisor; it is added to the personal development plan and training is booked within 5 working days of the record, under the Training and Development Policy.",
+        "rule": {
+          "task": "Add confidence gaps to the development plan",
+          "if": [
+            {
+              "question": "q-conf-medicines",
+              "answers": ["Not very confident"]
+            },
+            {
+              "question": "q-conf-med-record",
+              "answers": ["Not very confident"]
+            },
+            {
+              "question": "q-conf-moving",
+              "answers": ["Not very confident"]
+            },
+            {
+              "question": "q-conf-personal-care",
+              "answers": ["Not very confident"]
+            },
+            {
+              "question": "q-conf-unwell",
+              "answers": ["Not very confident"]
+            },
+            {
+              "question": "q-conf-fallen",
+              "answers": ["Not very confident"]
+            },
+            {
+              "question": "q-conf-abuse",
+              "answers": ["Not very confident"]
+            },
+            {
+              "question": "q-conf-refuses",
+              "answers": ["Not very confident", "Not at all confident"]
+            },
+            {
+              "question": "q-conf-dementia",
+              "answers": ["Not very confident", "Not at all confident"]
+            },
+            {
+              "question": "q-conf-autism-ld",
+              "answers": ["Not very confident", "Not at all confident"]
+            },
+            {
+              "question": "q-conf-end-of-life",
+              "answers": ["Not very confident", "Not at all confident"]
+            },
+            {
+              "question": "q-conf-upset",
+              "answers": ["Not very confident", "Not at all confident"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"What makes it hard for you to do training?\" includes I am not sure the time is paid.",
+        "action": "The HR Manager checks the worker's e-learning log and pays any unpaid time in the next payroll under the Training and Development Policy; an underpayment of £50 or more, or one taking pay below the minimum wage, within 2 working days under the Working Time, Rest Breaks and Travel Time Policy. Repeated answers in one branch go into the service improvement plan.",
+        "rule": {
+          "task": "Check training time has been paid",
+          "if": [
+            {
+              "question": "q-barriers",
+              "answers": ["I am not sure the time is paid"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Any option chosen in \"Would any of these help you with training?\" other than None of these.",
+        "action": "The HR Manager arranges a private conversation within 10 working days (library timescale); adjustments are agreed and recorded in the staff record before the next session, and an English course is offered with paid study time, under the Training and Development Policy.",
+        "rule": {
+          "task": "Arrange learning support or adjustments",
+          "if": [
+            {
+              "question": "q-learning-support",
+              "answers": [
+                "English classes",
+                "Help with reading or writing",
+                "Extra time",
+                "Help using computers or apps",
+                "Training in another format",
+                "I would rather talk about this privately"
+              ]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 10
+        }
+      },
+      {
+        "when": "\"Would you like to start a qualification?\" answered Yes, with a qualification named.",
+        "action": "Treat it as a written request: the Registered Manager decides within 20 working days and gives reasons in writing, under the Training and Development Policy. \"Maybe\" gets a conversation at the next supervision instead.",
+        "rule": {
+          "task": "Qualification request: decide within 20 working days",
+          "if": [
+            {
+              "question": "q-qual",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 20
+        }
+      },
+      {
+        "when": "A comment describing a risk to a person we support, harassment or wrongdoing.",
+        "action": "Risk to a person goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure); harassment to the Registered Manager the same working day (Bullying, Harassment and Sexual Harassment Policy); wrongdoing to the Registered Manager as a speaking-up concern, with the Nominated Individual as case owner where it concerns the Registered Manager, Deputy Manager or HR Manager."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The worker's supervisor or the HR Manager contacts them within 5 working days.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {"responses": ["HR_MANAGER", "REGISTERED_MANAGER"], "results": ["HR_MANAGER", "REGISTERED_MANAGER", "TRAINING_LEAD"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-HR-006",
+    "POL-HR-005",
+    "POL-MED-016",
+    "POL-HR-014",
+    "POL-GOV-006",
+    "POL-GOV-013",
+    "POL-SG-002",
+    "POL-HR-013",
+    "POL-HR-018",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18(2)(a) and (b): staff receive appropriate training and professional development, and are enabled to obtain further qualifications",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Skills for Care, Care Certificate standards and the Level 2 Adult Social Care Certificate qualification",
+      "url": "https://www.skillsforcare.org.uk/Developing-your-workforce/Care-Certificate/Care-Certificate-standards.aspx"
+    },
+    {
+      "source": "Department of Health and Social Care, Learning and Development Support Scheme for the adult social care workforce: funding employers can claim for eligible qualifications and courses",
+      "url": "https://www.gov.uk/government/publications/adult-social-care-learning-and-development-support-scheme"
+    }
+  ]
+}

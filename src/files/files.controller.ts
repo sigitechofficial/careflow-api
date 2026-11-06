@@ -9,6 +9,7 @@ import { existsSync, statSync } from 'fs';
 import { extname, join, normalize, sep } from 'path';
 import type { Request, Response } from 'express';
 import { Public } from '../common/decorators/public.decorator';
+import { uploadBasePath } from '../common/utils/upload-path.util';
 
 const MIME_BY_EXT: Record<string, string> = {
   '.jpg': 'image/jpeg',
@@ -21,7 +22,7 @@ const MIME_BY_EXT: Record<string, string> = {
 };
 
 function uploadRoot(): string {
-  return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads');
+  return uploadBasePath();
 }
 
 function resolveSafeUploadPath(relativePath: string): string | null {

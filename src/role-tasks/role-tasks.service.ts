@@ -11,6 +11,7 @@ import {
   type RoleTaskTemplate,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { surveysWithoutResultsAccess } from '../surveys/survey-access';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -222,6 +223,19 @@ export class RoleTasksService {
     return { status: { not: RoleTaskStatus.CANCELLED } };
   }
 
+  /**
+   * Survey alert tasks from a survey whose results this user may not see (per-survey access) are
+   * left out, even for those who manage every role's tasks: the task itself says an alert was raised.
+   */
+  private async withoutHiddenSurveyTasks<T extends { sourceType: string | null; sourceId: string | null }>(user: RequestUser, rows: T[]): Promise<T[]> {
+    const alertIds = rows.filter((r) => r.sourceType === 'SURVEY_ALERT' && r.sourceId).map((r) => r.sourceId!);
+    if (!alertIds.length) return rows;
+    const alerts = await this.prisma.surveyAlert.findMany({ where: { id: { in: alertIds } }, select: { id: true, surveyId: true } });
+    const hiddenSurveys = await surveysWithoutResultsAccess(this.prisma, user, alerts.map((a) => a.surveyId));
+    const hidden = new Set(alerts.filter((a) => hiddenSurveys.has(a.surveyId)).map((a) => a.id));
+    return rows.filter((r) => !(r.sourceType === 'SURVEY_ALERT' && r.sourceId && hidden.has(r.sourceId)));
+  }
+
   /** Tasks for the signed-in user's roles (and branches). */
   async listMine(user: RequestUser, status: 'open' | 'done' | 'all' = 'open') {
     this.assertOfficeUser(user);
@@ -244,7 +258,7 @@ export class RoleTasksService {
     });
     return {
       message: 'My tasks',
-      data: { today, tasks: await this.serializeTasks(rows, today) },
+      data: { today, tasks: await this.serializeTasks(await this.withoutHiddenSurveyTasks(user, rows), today) },
     };
   }
 
@@ -270,7 +284,7 @@ export class RoleTasksService {
     });
     return {
       message: 'Role tasks',
-      data: { today, tasks: await this.serializeTasks(rows, today) },
+      data: { today, tasks: await this.serializeTasks(await this.withoutHiddenSurveyTasks(user, rows), today) },
     };
   }
 
@@ -288,10 +302,17 @@ export class RoleTasksService {
     const allowed =
       (roleIds.includes(task.roleId) || this.canManage(user)) &&
       this.inBranchScope(user, task.locationId);
-    if (!allowed)
+    if (!allowed || !(await this.withoutHiddenSurveyTasks(user, [task])).length)
       throw new ForbiddenException('This task belongs to another role');
     if (task.status === RoleTaskStatus.CANCELLED) {
       throw new BadRequestException('This task was cancelled');
+    }
+    // A survey alert is closed on its follow-up, which asks what was done (and, for a contact
+    // request, whether the person was reached): never here, where that would be skipped.
+    if (task.sourceType === 'SURVEY_ALERT' && dto.status === RoleTaskStatus.DONE) {
+      throw new BadRequestException(
+        'Close a survey follow-up on its page (Open page), saying what was done.',
+      );
     }
 
     const now = new Date();

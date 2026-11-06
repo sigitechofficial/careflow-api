@@ -1167,7 +1167,7 @@ export class EmployeeAppClientDetailService {
         ? instance.carePathwayFormVersion.sections
         : instance.carePathwayForm.currentVersion?.sections
     ) ?? [];
-    const plan = toPublishedPlanListItem(instance, pub);
+    const plan = toPublishedPlanListItem(instance, pub, (await this.orgSettings.getReviewSettings()).carePlanDueSoonDays);
     const fullSummary = sanitizeComposeTextOrNull(pub.summary);
     const acknowledgement = (await this.acknowledgementByVersionId(employeeId, [pub.id]))(pub.id);
 
@@ -1220,12 +1220,13 @@ export class EmployeeAppClientDetailService {
           instances.flatMap((i) => (i.publishedVersions[0] ? [i.publishedVersions[0].id] : [])),
         )
       : null;
+    const { carePlanDueSoonDays } = await this.orgSettings.getReviewSettings();
 
     return instances
       .flatMap((instance) => {
         const pub = instance.publishedVersions[0];
         return pub
-          ? [{ ...toPublishedPlanListItem(instance, pub), ...(ackFor ? { acknowledgement: ackFor(pub.id) } : {}) }]
+          ? [{ ...toPublishedPlanListItem(instance, pub, carePlanDueSoonDays), ...(ackFor ? { acknowledgement: ackFor(pub.id) } : {}) }]
           : [];
       })
       .sort((a, b) => {
@@ -1683,6 +1684,7 @@ const publishedCarePlanSelect = {
 function toPublishedPlanListItem(
   instance: { id: string; nextReviewDueAt: Date | null; carePathwayForm: { name: string } },
   pub: { versionNumber: number; summary: string | null; publishedAt: Date; valuesJson?: unknown },
+  carePlanDueSoonDays: number,
 ) {
   const fromSummary =
     typeof pub.summary === 'string' && pub.summary.trim() ? pub.summary.trim().slice(0, 180) : null;
@@ -1696,7 +1698,10 @@ function toPublishedPlanListItem(
     versionNumber: pub.versionNumber,
     publishedAt: pub.publishedAt.toISOString(),
     nextReviewDueAt: instance.nextReviewDueAt?.toISOString() ?? null,
-    reviewStatus: computeCarePlanReviewState({ nextReviewDueAt: instance.nextReviewDueAt }).status,
+    reviewStatus: computeCarePlanReviewState({
+      nextReviewDueAt: instance.nextReviewDueAt,
+      dueSoonDays: carePlanDueSoonDays,
+    }).status,
     summary,
   };
 }

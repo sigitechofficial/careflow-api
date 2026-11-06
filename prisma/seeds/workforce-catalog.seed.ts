@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { CARE_COMPLIANCE_CATALOG } from '../seed-data/care-compliance-catalog';
 import {
-  DEPRECATED_COMPLIANCE_CODES,
+  RETIRED_COMPLIANCE_CODES,
   WORKFORCE_CERTIFICATION_NAMES,
   WORKFORCE_CERT_VALIDITY_MONTHS,
   WORKFORCE_COMPLIANCE_ADDITIONS,
@@ -95,7 +95,7 @@ async function upsertComplianceType(prisma: PrismaClient, t: WorkforceCompliance
   return prisma.complianceType.create({ data: payload });
 }
 
-async function softRetireComplianceByCode(prisma: PrismaClient, code: string) {
+export async function softRetireComplianceByCode(prisma: PrismaClient, code: string) {
   const row = await prisma.complianceType.findFirst({ where: { code, deletedAt: null } });
   if (!row || !row.isActive) return false;
   const retiredAt = new Date();
@@ -134,6 +134,10 @@ export async function seedWorkforceLookupIntervals(prisma: PrismaClient): Promis
           code: rt.code,
           description: rt.description ?? null,
           defaultIntervalDays: rt.defaultIntervalDays,
+          scheduleKind: rt.scheduleKind ?? 'REPEATING',
+          firstDueAfterStartDays: rt.firstDueAfterStartDays ?? null,
+          milestoneDays: rt.milestoneDays ?? [],
+          audience: rt.audience ?? 'ALL_STAFF',
           isActive: true,
         },
       });
@@ -143,7 +147,8 @@ export async function seedWorkforceLookupIntervals(prisma: PrismaClient): Promis
     const fill: { code?: string; description?: string; defaultIntervalDays?: number } = {};
     if (!existing.code) fill.code = rt.code;
     if (!existing.description && rt.description) fill.description = rt.description;
-    if (existing.defaultIntervalDays == null && rt.defaultIntervalDays != null) {
+    // Only a repeating type with no interval yet gets one; milestone and event types keep theirs.
+    if (existing.scheduleKind === 'REPEATING' && existing.defaultIntervalDays == null && rt.defaultIntervalDays != null) {
       fill.defaultIntervalDays = rt.defaultIntervalDays;
       intervalsFilled += 1;
     }
@@ -182,6 +187,7 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
 
   const typeByCode: Record<string, string> = {};
   for (const t of complianceTypeDefs) {
+    if (t.code && RETIRED_COMPLIANCE_CODES.includes(t.code)) continue;
     const row = await upsertComplianceType(prisma, t);
     if (t.code) typeByCode[t.code] = row.id;
   }
@@ -202,7 +208,7 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
   }
 
   let retiredComplianceCount = 0;
-  for (const code of DEPRECATED_COMPLIANCE_CODES) {
+  for (const code of RETIRED_COMPLIANCE_CODES) {
     if (await softRetireComplianceByCode(prisma, code)) retiredComplianceCount += 1;
   }
 
@@ -286,9 +292,7 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
   const careArea = workAreaByName['Care'];
   if (careArea) {
     for (const t of CARE_COMPLIANCE_CATALOG) {
-      if (DEPRECATED_COMPLIANCE_CODES.includes(t.code as (typeof DEPRECATED_COMPLIANCE_CODES)[number])) {
-        continue;
-      }
+      if (RETIRED_COMPLIANCE_CODES.includes(t.code)) continue;
       await ensureRequirement(t.code, {
         workAreaId: careArea,
         isMandatory: t.isMandatoryByDefault,

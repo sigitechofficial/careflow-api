@@ -26,7 +26,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -41,9 +41,10 @@ import { UpdateLiveInProfileDto } from './dto/update-live-in-profile.dto';
 import { UpdateLiveInProfileStatusDto } from './dto/update-live-in-profile-status.dto';
 import { AddPreferredCarerDto } from './dto/add-preferred-carer.dto';
 import { AddBlockedCarerDto } from './dto/add-blocked-carer.dto';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 function liveInContractUploadRoot() {
-  return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'service-users', 'live-in-contracts');
+  return uploadPath('service-users', 'live-in-contracts');
 }
 
 function liveInMaxBytes() {

@@ -48,7 +48,7 @@ the same `periodKey`.
 
 ```bash
 RG=rg-careflow-prod
-az functionapp function list -g $RG -n func-careflow-jobs-prod --query "[].name" -o tsv     # 7 functions
+az functionapp function list -g $RG -n func-careflow-jobs-prod --query "[].name" -o tsv     # 10 functions
 az rest --method get --url "https://management.azure.com/subscriptions/$(az account show --query id -o tsv)/resourceGroups/$RG/providers/Microsoft.Web/sites/func-careflow-jobs-prod/config/configreferences/appsettings/JOBS_TRIGGER_SECRET?api-version=2024-11-01" --query properties.status -o tsv   # Resolved
 ```
 

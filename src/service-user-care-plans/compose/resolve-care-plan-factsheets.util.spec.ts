@@ -22,6 +22,15 @@ describe('resolveCarePlanFactsheets', () => {
     expect(sheets.map((s) => s.code)).toEqual(['falls', 'medication']);
   });
 
+  it('does not let markup in a service user name into the factsheet HTML', () => {
+    const sheets = resolveCarePlanFactsheets(
+      'Dementia Care plan',
+      buildCarePlanPersonalisationContext({ firstName: 'Ann', preferredName: '<img src=x onerror="alert(1)">Annie' }),
+    );
+    expect(sheets[0].contentHtml).toContain('Annie');
+    expect(sheets[0].contentHtml).not.toMatch(/<img|onerror/);
+  });
+
   it('returns empty list for templates without attachments', () => {
     expect(resolveCarePlanFactsheets('Continence', personalisation)).toEqual([]);
   });

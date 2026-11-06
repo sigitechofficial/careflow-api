@@ -1,0 +1,316 @@
+{
+  "reference": "SUR-PWS-019",
+  "revision": 1,
+  "title": "Your night care",
+  "audience": "SERVICE_USER",
+  "respondents": "People who get night visits, a care worker who stays awake all night, or a care worker who sleeps at their home; a representative may answer where the person cannot give their views, even with help",
+  "summary": "Asks people with night care whether it works for them: on time, familiar workers, help coming quickly when called, being able to sleep, respect for their home, dignity, feeling safe and the handover to day care workers. About 9 minutes.",
+  "purpose": "Night care differs from day visits: a worker is in the home for hours while the household sleeps, and what matters is how quickly they respond, whether the person can sleep, respect for the home overnight, and the handover to day care workers. The survey also gives the person's side of the Working Time, Rest Breaks and Travel Time Policy's sleep-in review rule: where help is needed on 3 or more nights in 7, or for more than an hour on any night, the commissioner is asked to review whether a waking night is needed. Results go to the Care Coordinator and Registered Manager, inform commissioner discussions about waking nights and sleep-ins, and each answer that needs action is followed up.",
+  "timing": {
+    "when": "About 4 weeks after night care is added to an existing package; for a new package, about 4 weeks after the first quality check (first in the new-package order); then every 6 months. Calls between 10am and 6pm, never at night",
+    "recurrence": null,
+    "trigger": "Night care starting or added to the care package; then the 6-monthly repeat"
+  },
+  "anonymous": false,
+  "channels": ["TELEPHONE", "IN_PERSON", "PORTAL", "PAPER"],
+  "estimatedMinutes": 9,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING", "RESPONSIVE"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Safeguarding",
+      "Kindness, compassion and dignity",
+      "Person-centred care",
+      "Care provision, integration and continuity"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how your night care is going for you. It takes about 9 minutes. You can skip any question.\n\nTaking part is up to you, and what you say will not affect your care. Your answers are linked to your name so we can put things right. Your care workers (carers), including the ones who come at night, will not see them.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to make sure your night care is right for you and to improve our care. Our legal reason is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name so we can put things right. They are seen only by our Registered Manager, safeguarding lead, Care Coordinators and the office staff who follow them up, never by your care workers (carers), including the ones who come at night, and reports show combined results only. With your agreement, we may ask the council or whoever pays for your care to review the help you get at night. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this survey, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care over the last few months. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your night care",
+      "questions": [
+        {
+          "id": "q-night-type",
+          "text": "What night care do you get from us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "If you have more than one, choose the one that stays longest.",
+          "options": [
+            "Short visits in the evening or night",
+            "A care worker who stays awake all night",
+            "A care worker who sleeps at my home",
+            "Don't know"
+          ],
+          "notCountedOptions": ["Don't know"]
+        },
+        {
+          "id": "q-ontime",
+          "text": "Do your care workers arrive on time?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about your night care. On time means within about half an hour of the time agreed with you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more, for example which nights are late.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-known",
+          "text": "Are you visited by care workers you know?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about the care workers who come at night.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        },
+        {
+          "id": "q-night-need",
+          "text": "How often do you need help during the night?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Think about the last month.",
+          "options": ["Most nights", "About once or twice a week", "Less than once a week", "I have not needed help at night", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-night-type",
+            "answers": ["A care worker who stays awake all night", "A care worker who sleeps at my home"]
+          },
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "id": "q-night-quick",
+          "text": "When you need help in the night, does your care worker come quickly?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not needed help in the night.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "showIf": {
+            "question": "q-night-type",
+            "answers": ["A care worker who stays awake all night", "A care worker who sleeps at my home"]
+          },
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-night-sleep",
+          "text": "Can you sleep without being disturbed by your care worker?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, by noise, lights, the TV or phone calls. Choose \"Does not apply to me\" if you do not try to sleep while they are there.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "showIf": {
+            "question": "q-night-type",
+            "answers": ["A care worker who stays awake all night", "A care worker who sleeps at my home"]
+          },
+          "comment": {
+            "prompt": "What disturbs you?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-night-home",
+          "text": "Do your night care workers respect your home and your things?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, how they use your kitchen, bathroom and the room they rest in.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us what happens.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        }
+      ]
+    },
+    {
+      "title": "How you are treated",
+      "questions": [
+        {
+          "id": "q-dignity",
+          "text": "Do your care workers treat you with dignity and respect?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "Think about help at night, for example being covered, the light kept low, and being asked first. You can skip this question.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-safe",
+          "text": "Do you feel safe with your care workers?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "Think about your night care. You can skip this question. If you do not feel safe, please phone the office now; do not wait for this survey. In an emergency, call 999.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "What would help you feel safer?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-night-handover",
+          "text": "Do your day care workers know how your night went?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if we do not visit you in the day. Choose \"Don't know\" if you cannot tell.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me", "Don't know"],
+          "notCountedOptions": ["Does not apply to me", "Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What would make your nights better?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, a commode, a night light, or a different time for your last drink."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days, during the day."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Keep a list of people with night care and when this survey is due (CareFlow cannot yet choose people by service type or start a survey from a package change): about 4 weeks after night care is added to an existing package; for a new package about 4 weeks after the first quality check, first in the new-package order (night care, then personal care SUR-PWS-013, then meals and drinks SUR-PWS-012); then every 6 months, never in February or September. Add each person to a running copy of this survey with Send or schedule, Chosen people. People with a portal account answer there; for the rest, office staff phone between 10am and 6pm, or post a large print copy, and enter the answers with Record response.",
+      "When you send, CareFlow holds back anyone who had a survey contact in the last 4 weeks (a send, or answers entered with Record response, including a quality check) and sends them this survey on their free day if the copy is still open with 3 or more days left; phone, visit or post only to people it has sent it to. CareFlow cannot see care plan reviews, so leave out anyone who had one in the last 4 weeks. By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can send or open a survey: give these to the staff who make the calls; Care Coordinators can only view surveys unless given them.",
+      "Never ask during the night, and never let a night worker hand out, help with or collect the survey. Ask the dignity and feeling safe questions only once the person is alone with the caller and says it is all right to talk; otherwise leave them unanswered, note \"not asked: not private\" and ask at the next spot check. Use the person's own words for their night care: avoid \"sleep-in\" and \"waking night\". Read every answer choice aloud; that is why it takes about 9 minutes.",
+      "For people who cannot answer by phone even with help, a Field Care Supervisor outside the core care team visits by day. A representative answers only where the person cannot give their views even with help: record them in \"Who is answering\" and report their answers separately. A household member's own view goes in the family survey (SUR-FAM-001). Use a professional interpreter, never a family member.",
+      "Who may open individual answers: the office staff who make the calls, the Care Coordinator, the safeguarding lead and the Registered Manager. This is set in Who can see the answers: individual responses are limited to Care Coordinators, the safeguarding lead and the Registered Manager, and results to Care Coordinators, the safeguarding lead, the Registered Manager and the Deputy Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who make the calls."
+    ],
+    "actingOnResults": [
+      "Act on every answer that needs it the same working day, under the alerts below. Read every comment for a worker asleep on a waking night, leaving the home, bringing someone in, drinking, or rough or sexual behaviour.",
+      "How to count: report the share answering Always or Usually, leaving out Does not apply to me and Don't know. Night services are small: report once a year, combine waking nights and sleep-ins when either group is under 5, never report a group of fewer than 5 people separately, and flag results resting on fewer than 10.",
+      "The Care Coordinator compares \"How often do you need help during the night?\" with the wakings recorded in the daily visit notes; the Registered Manager uses the results in discussions with commissioners about waking nights and sleep-ins. Actions go into the service improvement plan within 5 working days, and each person whose answers need action is told within 5 working days what we will do, under the Governance and Quality Assurance Policy.",
+      "Keep answers for 3 years after the survey closes under the Records Management and Retention Policy. For CQC, the answers and actions show night care is safe, responsive and respectful (Regulations 12, 13, 18 and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe with your care workers?\" answered Sometimes, Rarely or Never; or any comment about a worker asleep on a waking night when help was needed, leaving the home, bringing someone in, drinking, or sexual or rough behaviour.",
+        "action": "Tell the safeguarding lead the same working day; call 999 first if anyone is in immediate danger. The risk is assessed within 1 hour of the report and referred to the local authority immediately if the risk is immediate, otherwise the same working day, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, the Managing Allegations Against Staff Procedure and the Sexual Safety Policy. Check the check-in and check-out records for the nights described.",
+        "rule": {"task": "Possible safeguarding concern at night", "if": [{"question": "q-safe", "answers": ["Sometimes", "Rarely", "Never"]}], "owner": "SAFEGUARDING_LEAD", "dueWorkingDays": 0, "urgent": true, "record": "SAFEGUARDING"}
+      },
+      {
+        "when": "\"When you need help in the night, does your care worker come quickly?\" answered Rarely or Never.",
+        "action": "Tell the Care Coordinator the same working day; they contact the person within 5 working days and check the recorded wakings. For a care worker who sleeps at the home, where wakings reach 3 or more nights in any 7 or more than 1 hour on any night, they ask the commissioner (or, for a self-funder, the person or their representative) within 2 working days to review whether a waking night is needed, under the Working Time, Rest Breaks and Travel Time Policy.",
+        "rule": {"task": "Night help slow: check recorded wakings", "if": [{"question": "q-night-quick", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 2}
+      },
+      {
+        "when": "\"How often do you need help during the night?\" answered Most nights where the night care is a care worker who sleeps at the home; or, from reading the answers, the answer does not match the recorded wakings.",
+        "action": "The Care Coordinator compares it with the wakings recorded in the daily visit notes within 5 working days; where the review thresholds are met, or the records and the person disagree, they ask the commissioner within 2 working days to review whether a waking night is needed.",
+        "rule": {"task": "Sleep-in help needed most nights: compare with wakings", "if": [{"all": [{"question": "q-night-need", "answers": ["Most nights"]}, {"question": "q-night-type", "answers": ["A care worker who sleeps at my home"]}]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "Being able to sleep or respect for the home answered Rarely or Never.",
+        "action": "The Care Coordinator contacts the person within 5 working days; the Field Care Supervisor raises it with the night workers at their next supervision or spot check, under the Supervision, Spot Checks and Appraisal Policy.",
+        "rule": {"task": "Sleep disturbed or home not respected at night", "if": [{"question": "q-night-sleep", "answers": ["Rarely", "Never"]}, {"question": "q-night-home", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "\"Do your day care workers know how your night went?\" answered Rarely or Never.",
+        "action": "The Care Coordinator checks the handover recording in the daily visit notes and contacts the person within 5 working days.",
+        "rule": {"task": "Night handover missing: check daily notes", "if": [{"question": "q-night-handover", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "A missed or late night visit, a fall or any harm in any comment.",
+        "action": "Log it in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy and, for a missed or late visit, the Missed, Late and Short Visits Procedure."
+      },
+      {
+        "when": "On time, known care workers or dignity answered Rarely or Never, or the overall question Poor or Very poor, with no particular concern.",
+        "action": "The Care Coordinator contacts the person within 5 working days to agree what we will do, under the Compliments, Feedback and Involvement Procedure.",
+        "rule": {"task": "Night care poor: agree what we will do", "if": [{"question": "q-ontime", "answers": ["Rarely", "Never"]}, {"question": "q-known", "answers": ["Rarely", "Never"]}, {"question": "q-dignity", "answers": ["Rarely", "Never"]}, {"question": "q-overall", "answers": ["Poor", "Very poor"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "Dissatisfaction that needs a response.",
+        "action": "Record a complaint the same working day; it is graded within 1 working day and acknowledged within 3 working days, under the Complaints Policy and Procedure."
+      },
+      {
+        "when": "Praise for our service or a named care worker.",
+        "action": "Record it as a compliment the same working day and pass it to each employee named within 5 working days."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff contact the person within 5 working days, during the day, and record what was agreed.",
+        "rule": {"task": "Asked to be contacted about their answers", "if": [{"question": "q-contact", "answers": ["Yes"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5, "contactRequest": true}
+      }
+    ]
+  },
+  "access": {"responses": ["CARE_COORDINATOR", "SAFEGUARDING_LEAD", "REGISTERED_MANAGER"], "results": ["CARE_COORDINATOR", "SAFEGUARDING_LEAD", "REGISTERED_MANAGER", "DEPUTY_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-HR-014",
+    "POL-HS-003",
+    "POL-SG-010",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-HR-005",
+    "POL-CD-013",
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-GOV-007",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "National Minimum Wage Regulations 2015, regulation 32: time when a worker sleeps at or near the workplace with suitable facilities counts only when awake for the purposes of working",
+      "url": "https://www.legislation.gov.uk/uksi/2015/621/regulation/32"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18: sufficient, suitably qualified and competent staff",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13: safeguarding service users from abuse and improper treatment",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

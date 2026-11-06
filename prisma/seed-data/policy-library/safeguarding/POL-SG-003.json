@@ -1,0 +1,699 @@
+{
+  "reference": "POL-SG-003",
+  "revision": 1,
+  "title": "Safeguarding Children and Young People Policy",
+  "documentType": "POLICY",
+  "summary": "How we protect children and young people under 18 whom our staff meet while caring for adults in their homes: the boundaries staff keep with children, asking about children and young carers at assessment, recognising harm, reporting and referring to children's social care, female genital mutilation, allegations against staff involving children, and information sharing. It applies to everyone who works for us.",
+  "keyPoints": {
+    "intro": "We care for adults, but our staff often meet children in the homes we visit. If anything you see, hear or are told worries you about a child, you must report it in the same way as a concern about an adult.",
+    "points": [
+      "If a child is in immediate danger, seriously hurt or a crime is happening, call 999 first, then phone the office or the On-call Manager.",
+      "Report anything that worries you about any child you meet or hear about through work, including domestic abuse in a home where a child lives or stays; you do not need proof.",
+      "Phone the office, or the On-call Manager out of hours, before you leave the visit and speak to a person; if nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly.",
+      "If a child tells you something, listen calmly, do not ask leading questions, never promise to keep it secret, and never confront or warn a parent or anyone else; note the child's exact words.",
+      "Report it in the CareFlow app as a Safeguarding Concern incident before your shift ends; never examine or photograph a child, and describe in words anything you saw.",
+      "Never give a child personal care or medicines, babysit or look after a child, give a child a lift, stay alone with a child behind a closed door or bring any child to a visit, even if a parent asks.",
+      "The only exception is an emergency: if a child would otherwise be alone or unsafe, stay with them, phone the office and wait until a responsible adult, the police or children's social care takes over; the office covers your next visits.",
+      "Never give a child your phone number, a key or a key safe code, contact them by phone, text or social media, give them gifts or money, or take their photograph.",
+      "Tell the office the same day about any change in who lives in or visits the home, and if a child seems to be caring for the person, such as helping with washing, toileting, medicines or lifting; never leave a care task for a child.",
+      "Report at once to the Registered Manager any concern that a colleague has harmed a child or may be a risk to children, at work or outside it.",
+      "Tell the Registered Manager or HR Manager before your next shift if the police or children's social care start investigating your own conduct towards a child.",
+      "If you are a registered nurse, social worker or similar professional and a girl under 18 tells you she has had FGM or you see signs of it, you must personally phone the police on 101 by the end of the next working day."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "SAFEGUARDING",
+    "INITIAL_ASSESSMENT",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-SG-011",
+    "POL-HR-018",
+    "POL-GOV-016",
+    "POL-CD-002",
+    "POL-HS-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Department for Education, Working together to safeguard children 2026: statutory guidance (published 18 March 2026), including paragraphs 32 to 33 (information sharing), 164 to 167 (referral, feedback and escalation), 259 to 266 (organisational arrangements and allegations against people who work with children) and 290 to 293 (adult social care services)",
+      "url": "https://www.gov.uk/government/publications/working-together-to-safeguard-children--2"
+    },
+    {
+      "source": "Children Act 1989, section 47 (local authority's duty to investigate)",
+      "url": "https://www.legislation.gov.uk/ukpga/1989/41/section/47"
+    },
+    {
+      "source": "Children Act 1989, section 17ZA (young carers' needs assessments)",
+      "url": "https://www.legislation.gov.uk/ukpga/1989/41/section/17ZA"
+    },
+    {
+      "source": "Children Act 1989, section 66 (privately fostered children)",
+      "url": "https://www.legislation.gov.uk/ukpga/1989/41/section/66"
+    },
+    {
+      "source": "Children Act 2004, section 16LA (duty to share information to safeguard and promote the welfare of children), inserted by the Children's Wellbeing and Schools Act 2026 and in force from 30 September 2026",
+      "url": "https://www.legislation.gov.uk/ukpga/2004/31/section/16LA"
+    },
+    {
+      "source": "Care and Support (Assessment) Regulations 2014, regulation 4 (impact of needs on the individual's family, including a child involved in providing care)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2827/regulation/4"
+    },
+    {
+      "source": "Care and Support (Eligibility Criteria) Regulations 2015, regulation 2 (specified outcomes, including carrying out caring responsibilities for a child)",
+      "url": "https://www.legislation.gov.uk/uksi/2015/313/regulation/2"
+    },
+    {
+      "source": "Female Genital Mutilation Act 2003, section 5B (duty to notify police of female genital mutilation)",
+      "url": "https://www.legislation.gov.uk/ukpga/2003/31/section/5B"
+    },
+    {
+      "source": "National Health Service Reform and Health Care Professions Act 2002, section 25(3) (the regulators whose registrants are healthcare professionals for the FGM notification duty, including Social Work England)",
+      "url": "https://www.legislation.gov.uk/ukpga/2002/17/section/25"
+    },
+    {
+      "source": "Home Office, Mandatory reporting of female genital mutilation: procedural information (updated 22 January 2020)",
+      "url": "https://www.gov.uk/government/publications/mandatory-reporting-of-female-genital-mutilation-procedural-information/mandatory-reporting-of-female-genital-mutilation-procedural-information-accessible-version"
+    },
+    {
+      "source": "Domestic Abuse Act 2021, section 3 (children as victims of domestic abuse)",
+      "url": "https://www.legislation.gov.uk/ukpga/2021/17/section/3"
+    },
+    {
+      "source": "Crime and Policing Act 2026, section 85 (duty to report suspected child sex offence; not yet in force)",
+      "url": "https://www.legislation.gov.uk/ukpga/2026/20/section/85"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 13 (safeguarding service users from abuse and improper treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 18(1) and (2)(e) and (f) (notification of abuse of service users and incidents reported to or investigated by the police)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "UK GDPR, Article 6(1)(ea) and Annex 1, paragraphs 6 to 8 (recognised legitimate interest: safeguarding vulnerable individuals, including anyone aged under 18), in force from 5 February 2026",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/annex/1"
+    },
+    {
+      "source": "UK GDPR, Article 9(2)(h) (processing necessary for health or social care purposes)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/9"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 1, paragraph 2 (health or social care purposes)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/2"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 2, paragraph 18 (safeguarding of children and of individuals at risk)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/18"
+    },
+    {
+      "source": "Department for Education, Information sharing to safeguard children and young people: statutory information sharing duty guidance (updated 10 September 2026)",
+      "url": "https://www.gov.uk/government/publications/safeguarding-practitioners-information-sharing-advice"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} provides care to adults in their own homes. We do not care for children, but our staff meet them every day: the children and grandchildren of the people we support, young carers, and children who live with or visit the person. Our staff may be the first to notice that a child is being harmed or is caring for a parent without help."
+        },
+        {
+          "p": "{{organisation}} will never ignore a child at risk because the child is not the person we care for. Everyone who works for us reports any concern about a child as urgently as one about an adult. Because our staff are checked for work with adults, not children, we keep firm boundaries with children."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that every concern about a child reaches the right agency on time, young carers get support, staff never take on the care of children, and allegations against staff involving children reach the Local Authority Designated Officer within one working day."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to everyone who works for us, wherever they work, including on call and online. It covers every child (anyone under 18) we meet or hear about through our work, unborn children where there is concern for their safety after birth, and any member of our staff under 18."
+        },
+        {
+          "p": "A concern about anyone aged 18 or over, including a young person still receiving children's services, is handled under the Safeguarding Adults Policy and the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, which this policy builds on. The staff side of allegations is in the Managing Allegations Against Staff Procedure, domestic abuse in the Domestic Abuse Policy, radicalisation in the Prevent and Radicalisation Guideline, and employing under-18s in the Young Workers Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Child",
+                "Anyone who has not yet reached their 18th birthday. We say \"young person\" for 16 and 17-year-olds, who are still children in law."
+              ],
+              [
+                "Significant harm",
+                "The threshold at which the local authority must make enquiries under section 47 of the Children Act 1989; it can come from one serious event or a build-up of smaller concerns."
+              ],
+              [
+                "Children's social care front door",
+                "The local authority's single point for child safeguarding referrals and advice, with an emergency duty team out of hours."
+              ],
+              [
+                "Young carer",
+                "A person under 18 who provides or intends to provide care for another person (Children Act 1989, section 17ZA)."
+              ],
+              [
+                "Local Authority Designated Officer (LADO)",
+                "The local authority officer who manages allegations against people who work with children."
+              ],
+              [
+                "Local safeguarding children partnership",
+                "The arrangements made in each area by the local authority, integrated care board and police, whose procedures, thresholds and escalation route we follow."
+              ],
+              [
+                "FGM",
+                "Female genital mutilation: any procedure that removes or injures the female external genitalia for non-medical reasons. It is a crime in the UK."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for safeguarding children across {{organisation}} and never accept a contract or care package that would require our staff to care for or supervise a child. The Nominated Individual is the board-level lead for safeguarding children and acts as safeguarding lead if the Registered Manager and Deputy Manager are both unavailable."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (safeguarding lead)",
+          "blocks": [
+            {
+              "p": "The Registered Manager is our designated safeguarding lead for children as well as adults and takes the lead's decisions in this policy. They keep the children's social care front door, emergency duty team and LADO details for every area we work in on the Local Safeguarding Contacts sheet."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager and On-call Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager acts as safeguarding lead when the Registered Manager is absent or conflicted. Out of hours, the On-call Manager takes the lead's immediate actions and hands over to the Registered Manager or Deputy Manager by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "As assessors they record the children and young carers in each household. Care Coordinators make sure no care plan relies on a child, act on young carers, and with Office staff rearrange a care worker's next visits when the care worker stays with a child or waits for advice. Field Care Supervisors, and Senior Care Workers authorised as supervisors, test child safeguarding knowledge at supervision, including the yearly child scenario."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers, Senior Care Workers, Office staff and HR Manager",
+          "blocks": [
+            {
+              "p": "Care Workers and Senior Care Workers keep the boundaries in this policy and report and record every concern; working alone, they get advice by phone from the office in office hours or the On-call Manager out of hours. Office staff record any concern phoned in, in the caller's words, and pass it to a manager at once. The HR Manager manages the staff side of allegations and keeps a list of staff whose professional registration brings the FGM reporting duty."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The law and our position",
+      "blocks": [
+        {
+          "p": "{{organisation}} provides personal care to adults aged 18 and over only, as our statement of purpose sets out, and carries out no regulated activity relating to children. Our staff hold enhanced DBS checks for the adult workforce with a check of the adults' barred list; they are not checked against the children's barred list."
+        },
+        {
+          "table": {
+            "columns": [
+              "Source",
+              "What it says",
+              "How we apply it"
+            ],
+            "rows": [
+              [
+                "Children Act 1989, section 47",
+                "The local authority must make enquiries when it has reasonable cause to suspect that a child in its area is suffering, or is likely to suffer, significant harm.",
+                "We refer; children's social care decides whether the threshold is met. Our staff never investigate."
+              ],
+              [
+                "Working together to safeguard children 2026",
+                "Statutory guidance: anyone with a concern about a child should refer it, not assume someone else will, and immediately where a child may be suffering significant harm; adult services should ask whether there are children in the family, including any pregnancy.",
+                "We follow it and each local safeguarding children partnership's procedures."
+              ],
+              [
+                "Duty to report",
+                "Apart from the FGM duty below, no law in England yet requires a care worker to report suspected child abuse. The Crime and Policing Act 2026 duty to report suspected child sex offences (section 85) was not in force on 5 November 2026 and covers activities with children, not adult home care.",
+                "Our policy makes reporting every concern about a child mandatory."
+              ],
+              [
+                "Domestic Abuse Act 2021, section 3",
+                "A child who sees or hears, or experiences the effects of, domestic abuse, and is related to the victim or the abuser, is a victim of domestic abuse in their own right.",
+                "We always report domestic abuse in a household where a child lives or regularly stays."
+              ],
+              [
+                "Care Quality Commission (Registration) Regulations 2009, regulation 18",
+                "We must notify CQC without delay of any abuse or allegation of abuse in relation to a person we support, and of any incident reported to or investigated by the police, that occurs while we provide care or as a consequence of it.",
+                "The Registered Manager notifies under the Statutory Notifications to CQC Procedure, including a police incident involving a child and (our policy) any allegation that a person we support has abused a child, without delay and within 24 hours of the referral or police report."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The children's information sharing duty in section 16LA of the Children Act 2004, in force since 30 September 2026, falls on the bodies listed in section 11 of that Act, such as local authorities, the NHS and the police, and on providers they commission for their functions for children, not on adult home care commissioned under the Care Act 2014. If children's services ever commission care from us, such as support for a parent, the safeguarding lead shares information for that package as the duty requires."
+        }
+      ]
+    },
+    {
+      "heading": "Children in the homes we visit",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Asking about children",
+          "blocks": [
+            {
+              "p": "At every initial assessment and care plan review, the assessor asks about and records, in the initial assessment and the People involved part of the care plan: each child who lives in, stays at or regularly visits the home (first name, age and relationship); any pregnancy in the household; any child who helps with the person's care; the adult who will look after any child in the person's care if the person is suddenly taken ill or admitted to hospital, and how to reach them; any social worker or child protection plan for a child, as far as the family wishes to say; and anyone in or visiting the home known to pose a risk to children. Care workers tell the office the same day of any change in the household, and the Care Coordinator updates the care plan within 7 days. A known risk to children goes into the person's risk assessments and the care team is briefed before their next visit."
+            }
+          ]
+        },
+        {
+          "heading": "Boundaries with children",
+          "blocks": [
+            {
+              "p": "Staff are friendly to children but are never responsible for them. Staff must never:"
+            },
+            {
+              "bullets": [
+                "give a child personal care or medicines, or feed, dress, bath or change a child;",
+                "look after, supervise or babysit a child, or agree to be left in charge of one, even for a few minutes;",
+                "take a child out, give a child a lift, or collect a child from school or nursery;",
+                "take a child into a room alone or stay alone with a child behind a closed door;",
+                "give a child their phone number, a key or a key safe code, contact a child by phone, text or social media, give a child gifts or money, or photograph a child;",
+                "bring their own or any other child to a visit."
+              ]
+            },
+            {
+              "p": "If a parent asks for any of these, the care worker politely declines and tells the office the same day. Staff ask children to leave the room during personal care, for the person's dignity."
+            },
+            {
+              "p": "The only exception is an emergency: if a child would otherwise be alone or unsafe, for example because the parent we support has collapsed, the care worker stays with the child until a responsible adult, the police or children's social care takes over, and phones the office or On-call Manager. The office or On-call Manager contacts the adult named in the care plan or other family, calls the police or the emergency duty team if no responsible adult can arrive within 1 hour, and covers the care worker's next visits; the waiting time is paid working time."
+            },
+            {
+              "p": "If the person we support does not answer the door and only a child is at home, the care worker follows the No Reply, No Access and Missing Person Procedure and tells the office a child is there; if the child would otherwise be alone, the office acts as in the emergency exception above. The care worker does not go in to wait or search with the child unless the child says the person is hurt or unwell inside: then they call 999 and go in to help."
+            }
+          ]
+        },
+        {
+          "heading": "Supporting parents",
+          "blocks": [
+            {
+              "p": "An adult may be eligible for care to help them look after a child. Where commissioned care includes this, the care plan states exactly what our staff do to help the parent, who stays present and in charge of the child throughout. For example, a care worker may prepare a child's meal for the parent to give, but never feeds the child. The Registered Manager approves every such care plan before it starts."
+            }
+          ]
+        },
+        {
+          "heading": "Young carers",
+          "blocks": [
+            {
+              "p": "Local authorities must consider any child involved in caring for an adult they assess, and must assess a young carer who may need support. We make sure they know."
+            },
+            {
+              "steps": [
+                "The care worker or assessor tells the office the same day if a child seems to be providing care, especially personal care, medicines, moving and handling, care at night or care that keeps the child from school.",
+                "The Care Coordinator records it in the care plan and talks to the person, and the young carer's parent if different, about asking for support.",
+                "Within 2 working days, the Care Coordinator writes to the local authority or commissioner asking for the person's care to be reviewed and for a young carer's needs assessment; a self-funding family is helped to make the request.",
+                "If the person objects, the safeguarding lead decides whether the child's welfare requires sharing anyway, recording the reasons, and refers to children's social care if the child may be suffering significant harm."
+              ]
+            },
+            {
+              "p": "No care plan relies on a child to carry out a care task, let us into the home, cover a late or missed visit, act as interpreter or be the person's chosen contact for missed visits."
+            }
+          ]
+        },
+        {
+          "heading": "Young people and young workers",
+          "blocks": [
+            {
+              "p": "We do not accept referrals to care for anyone under 18, and care starts no earlier than the 18th birthday; before then the Registered Manager, Deputy Manager or a Care Coordinator may meet the young person to plan their care, always with a parent or the young person's social worker present. Nobody under 18 works in a care role or goes on visits for us, including students and work experience. A concern that a member of staff under 18 is being harmed is handled under this policy, and an allegation that a colleague has harmed them goes to the LADO."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Recognising harm to children",
+      "blocks": [
+        {
+          "p": "A sign is not proof; it is a reason to report. Staff report what they see and hear and the safeguarding lead decides what it means."
+        },
+        {
+          "table": {
+            "columns": [
+              "Type",
+              "Signs staff may notice in the home"
+            ],
+            "rows": [
+              [
+                "Physical abuse",
+                "Injuries the explanation does not fit; any injury to a baby who is not yet mobile; a child who flinches or is afraid to go home."
+              ],
+              [
+                "Emotional abuse",
+                "A child constantly shouted at, belittled, threatened or ignored; a very withdrawn or anxious child."
+              ],
+              [
+                "Sexual abuse",
+                "Sexual language or behaviour unusual for the child's age; sexual images on view; a child who talks about a secret with an adult."
+              ],
+              [
+                "Neglect",
+                "A child often hungry, dirty or poorly dressed; no safe sleeping place for a baby; young children left with an adult who cannot look after them; a child often at home during school hours."
+              ],
+              [
+                "Exploitation and online harm",
+                "Unexplained money, phones or gifts; unknown older 'friends'; a child who goes missing; the home of the person we support taken over for drugs or crime (cuckooing); a child secretive or distressed about online contacts."
+              ],
+              [
+                "Honour-based abuse, forced marriage and FGM",
+                "A girl who talks about a special ceremony or long trip abroad; a young person fearful of a planned marriage."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Most parents with care needs look after their children well, but risk rises where illness, mental ill-health, alcohol or drug use, or a violent or controlling relationship leaves a child's needs unmet. Staff always report:"
+        },
+        {
+          "bullets": [
+            "domestic abuse in any household where a child lives or regularly stays;",
+            "a pregnancy where there are concerns for the baby after birth;",
+            "a young carer who is doing too much or whose schooling or health is suffering;",
+            "any adult, including the person we support, who has harmed a child or is known to pose a risk to children and has contact with them;",
+            "images of child sexual abuse on any device, which staff never touch, copy or forward;",
+            "a child under 16 (under 18 if disabled) apparently living for 28 days or more with someone who is not a parent or close relative (possible private fostering)."
+          ]
+        },
+        {
+          "p": "When an adult we support says they were abused as a child, we listen and offer support. If the abuser may still have contact with children, the safeguarding lead tells the police, even without the adult's agreement, recording the reasons."
+        }
+      ]
+    },
+    {
+      "heading": "Responding to a concern about a child",
+      "blocks": [
+        {
+          "steps": [
+            "If a child is in immediate danger, seriously hurt or unwell, or a crime is happening, call 999. If you feel threatened, leave and phone from somewhere safe.",
+            "If a child tells you something, listen calmly and ask only open questions such as \"Is there anything else you want to tell me?\". Never promise to keep a secret; explain that you must tell someone whose job is to keep them safe.",
+            "Do not investigate, examine or photograph the child, any injury or the home, and never confront or warn a parent or anyone else who may be responsible.",
+            "Phone the office, or the On-call Manager out of hours, before you leave the visit, from outside the home, such as your car, if anyone who may be responsible could overhear. Give the child's name, age and address if known, what you saw, heard or were told, and who may be responsible. The office tells you whether to stay or go on, and tells your next person if you will be late. With no signal, or if your double-up colleague may be responsible, follow the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+            "If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly; if you still cannot reach a manager and the child is at risk, contact children's social care or the police yourself using your Local Safeguarding Contacts sheet.",
+            "Report the concern in the CareFlow app as a Safeguarding Concern incident before the end of your shift, with the child's exact words in quotation marks. In the daily visit notes, write only that a concern has been reported."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Referral and follow-up",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The safeguarding lead's decision",
+          "blocks": [
+            {
+              "p": "Within 1 hour of the report, the safeguarding lead or On-call Manager speaks to the person who raised the concern, checks earlier records about the household, and records whether the child is safe now, who may be responsible, whether a crime may have been committed and whether the adult we support is also at risk. Where there is reason to think a child is suffering or likely to suffer significant harm, the lead refers to children's social care, and to the police if a crime may have been committed. Where a family may need help but significant harm is not suspected, such as a struggling young carer, the lead sends a written request for help. If the adult we support is also at risk, the lead also refers under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+            },
+            {
+              "p": "If unsure, the lead asks the front door for advice the same day and records it. Every decision, including not to refer, is recorded with the reasons. A member of staff who disagrees may contact children's social care directly and will be supported in doing so."
+            }
+          ]
+        },
+        {
+          "heading": "Making the referral",
+          "blocks": [
+            {
+              "p": "The lead refers to the front door for the area where the child lives or, if the child is in danger elsewhere (for example visiting a grandparent we support), where the child is. The referral gives the child's name, age, address and school if known; the concern and the child's words; who may be responsible; what we know of the child's needs and the parents' ability to meet them; any immediate risk and action taken; and whether the parents know. The lead records the reference number and who took the referral."
+            },
+            {
+              "p": "The lead tells the parents about a referral unless that may put the child or anyone else at greater risk, a parent may be responsible, or children's social care or the police advise against it; where in doubt, the lead asks the front door first."
+            }
+          ]
+        },
+        {
+          "heading": "Timescales",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Action",
+                  "Who",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "Risk assessment and decision",
+                    "Safeguarding lead or On-call Manager",
+                    "Within 1 hour of the report"
+                  ],
+                  [
+                    "Police, where a crime against a child may have been committed",
+                    "Safeguarding lead or On-call Manager",
+                    "Immediately in an emergency; otherwise the same day"
+                  ],
+                  [
+                    "Referral where significant harm is suspected",
+                    "Safeguarding lead or On-call Manager",
+                    "By phone immediately after the decision. Out of hours: the emergency duty team, unless the lead records why the child is safe until the next working day, when the referral is made by 12 noon"
+                  ],
+                  [
+                    "Written confirmation of a phone referral, on the local referral form",
+                    "Safeguarding lead",
+                    "The same working day; by 12 noon the next working day for an out-of-hours call"
+                  ],
+                  [
+                    "Request for help where significant harm is not suspected",
+                    "Safeguarding lead",
+                    "By the end of the next working day"
+                  ],
+                  [
+                    "Nominated Individual told of a concern involving our staff, the police, serious injury to or death of a child, or likely media interest",
+                    "Registered Manager",
+                    "Within 24 hours"
+                  ],
+                  [
+                    "Commissioner of the person's care told, sharing only what it needs, where the person we support may have harmed a child, the concern involves our staff, or it changes how we deliver the person's care",
+                    "Registered Manager",
+                    "The same working day"
+                  ],
+                  [
+                    "LADO informed of an allegation against a member of staff",
+                    "Registered Manager",
+                    "Within one working day"
+                  ],
+                  [
+                    "Risk assessments updated and care team briefed where the concern affects visits or staff safety",
+                    "Care Coordinator or Field Care Supervisor",
+                    "Before the person's next visit; any focused care plan review within 7 days under the Care Plan Review Procedure"
+                  ],
+                  [
+                    "Feedback to the member of staff who raised the concern",
+                    "Safeguarding lead",
+                    "Within 2 working days"
+                  ],
+                  [
+                    "Information requested by children's social care, the police or the LADO",
+                    "Safeguarding lead",
+                    "By the date set, or within 2 working days"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Following up and escalating",
+          "blocks": [
+            {
+              "p": "Working together to safeguard children expects children's social care to acknowledge a referral and decide on next steps within one working day, and to tell the referrer its decision. If there is no acknowledgement or decision by the end of the next working day, the lead phones to ask. If there is still no decision by the end of the third working day after the referral, or we believe a decision leaves a child at risk, the Registered Manager escalates in writing under the local safeguarding children partnership's escalation procedure, starting with the team manager, and tells the Nominated Individual. If the risk becomes immediate, the lead calls 999 or the emergency duty team."
+            },
+            {
+              "p": "When asked to a strategy discussion, child protection conference or child safeguarding practice review, the Registered Manager or Deputy Manager attends or sends a written report with a chronology by the date requested, and each action given to us is recorded with an owner and deadline. The adult we support keeps receiving care throughout."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Female genital mutilation",
+      "blocks": [
+        {
+          "p": "The law requires anyone registered with a health or social work regulator, such as a nurse (Nursing and Midwifery Council), an occupational therapist (Health and Care Professions Council) or a social worker (Social Work England), who in the course of their work is told by a girl under 18 that she has had FGM, or sees physical signs that appear to show it, to notify the police for the area where she lives within one month. The duty is personal and cannot be passed to the safeguarding lead. It falls away only where the professional has reason to believe that another person registered with one of these health or social work regulators has already reported the same act; if unsure, they report."
+        },
+        {
+          "p": "Our policy, following Home Office best practice, is that the professional phones 101 by the end of the next working day, or 999 if the girl is at immediate risk, records the police reference number in the safeguarding record, and tells the safeguarding lead the same day; the lead refers to children's social care. Nobody examines a girl to look for signs of FGM."
+        },
+        {
+          "p": "Other staff report any FGM concern through the normal route. Where a girl may be at risk of FGM, the lead refers to children's social care and the police the same day, and at once if travel abroad is imminent. Where an adult woman we support says she has had FGM, the lead respects her wishes, offers support through her GP, and refers if a girl in her family may be at risk."
+        }
+      ]
+    },
+    {
+      "heading": "Allegations against staff involving children",
+      "blocks": [
+        {
+          "p": "Any concern that a member of our staff, including a bank or agency worker, student or contractor, has harmed or may have harmed a child, may have committed an offence against or related to a child, or may pose a risk to children or be unsuitable to work with them, must be reported immediately to the Registered Manager. This includes conduct outside work, such as towards the worker's own children, because it may also put the adults we support at risk. A concern about a manager or Director is reported as the Safeguarding Adults Policy sets out."
+        },
+        {
+          "steps": [
+            "Within one working day, the Registered Manager informs the LADO for the area of the branch that employs the worker (and, if the child lives in another area, that area's LADO too) and, where a crime may have been committed, the police, and records the advice given.",
+            "The same day, the Registered Manager decides on a written risk assessment whether the worker is removed from particular visits or all care work, and tells a supplying agency. Removal is not a finding of guilt.",
+            "We interview nobody, start no internal investigation and tell the worker nothing about the allegation until the LADO and police agree.",
+            "The HR Manager manages the staff side under the Managing Allegations Against Staff Procedure; DBS and regulator referrals follow the Staff Fitness Concerns and DBS Referrals Procedure and the LADO's advice.",
+            "If an adult we support may also be at risk, the lead refers to adult safeguarding the same working day."
+          ]
+        },
+        {
+          "p": "Staff must tell the Registered Manager or HR Manager before their next shift, and within 24 hours at most, if the police or children's social care begin investigating their own conduct towards a child. Failing to tell us is a disciplinary matter."
+        }
+      ]
+    },
+    {
+      "heading": "Information sharing",
+      "blocks": [
+        {
+          "p": "Worries about confidentiality must never stop a concern about a child being passed on. Staff tell the safeguarding lead everything; the lead shares only what children's social care, the police or the LADO need, by secure means, and records what was shared, with whom, when and why, including any decision not to share. The lead tells the family what has been shared, following the rule under Making the referral."
+        },
+        {
+          "p": "Under the Confidentiality and Information Sharing Policy, our lawful basis is the recognised legitimate interest of safeguarding a vulnerable individual, which includes anyone under 18 (UK GDPR, Article 6(1)(ea) and Annex 1, paragraphs 6 to 8). Health and other special category information is shared without consent under the Data Protection Act 2018, Schedule 1, paragraph 18, where consent cannot be given or reasonably obtained or asking would prejudice the child's protection, with the appropriate policy document kept under the Data Protection Policy. Where it is safe to ask and the person concerned, or a parent for a young child, agrees, we share under UK GDPR, Article 9(2)(h), with the Data Protection Act 2018, Schedule 1, paragraph 2 and section 11."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "A concern about a child is recorded in a safeguarding record in CareFlow under the adult we support through whose care it arose, holding the child's details, the concern, decisions with reasons, information shared, referrals, reference numbers and outcome; access is restricted as for all safeguarding records. Body maps are never used for a child. Allegations against staff, and concerns about a member of staff under 18, are recorded in the staff record. Retention follows the Records Management and Retention Policy and the Safeguarding Adults Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Safeguarding children awareness: signs of harm, boundaries, young carers, reporting and this policy",
+                "All employees, including the Directors",
+                "At induction, before working without a shadowing colleague or taking calls alone",
+                "Every 12 months, within the annual safeguarding refresher"
+              ],
+              [
+                "Children's safeguarding for supervisors: assessing households, young carers, taking a concern by phone",
+                "Senior Care Workers, Field Care Supervisors, Care Coordinators and On-call Managers",
+                "Before assessment, supervisory or on-call duties",
+                "Every 2 years, within supervisor-level training"
+              ],
+              [
+                "Child safeguarding lead training, including referral, escalation, the LADO and FGM, through the local safeguarding children partnership or an equivalent course",
+                "Registered Manager, Deputy Manager and Nominated Individual",
+                "Within 3 months of appointment; until then the Nominated Individual (for a new Nominated Individual, the Registered Manager) countersigns their referral decisions about children the same working day",
+                "Every 3 years"
+              ],
+              [
+                "FGM reporting duty briefing",
+                "Staff with a professional registration",
+                "At induction",
+                "Every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At least once every 12 months, the safeguarding scenario at each care worker's supervision is about a child, as the Supervision, Spot Checks and Appraisal Policy sets out; anyone who cannot say how they would report it is retrained before their next unsupervised visit. Every employee acknowledges this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every timescale in this policy for each concern about a child",
+                "Monthly, within the safeguarding records audit of every record opened (Quality Audit and Monitoring Procedure)",
+                "Deputy Manager",
+                "Registered Manager, in the monthly safeguarding report to the Nominated Individual"
+              ],
+              [
+                "Household and young carer information in assessments and care plans; no care plan relying on a child",
+                "Within the monthly care records audit of care plan quality (Quality Audit and Monitoring Procedure)",
+                "Deputy Manager",
+                "Registered Manager"
+              ],
+              [
+                "Concerns about children, referrals, LADO referrals, young carers identified and escalations",
+                "Monthly safeguarding report",
+                "Registered Manager",
+                "Nominated Individual; quarterly to the Directors"
+              ],
+              [
+                "Training compliance (100% induction, 95% refreshers in date) and acknowledgements",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Children's social care and LADO details on the Local Safeguarding Contacts sheet",
+                "Every 3 months and on starting work in a new area",
+                "Registered Manager",
+                "Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The annual safeguarding report to the Directors includes children: activity, outcomes, learning from our concerns and local child safeguarding practice reviews, and next year's actions. Every shortfall gets an action, owner and deadline in the service improvement plan."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or guidance (including commencement of the duty to report suspected child sex offences), a change to local procedures, a serious incident involving a child, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

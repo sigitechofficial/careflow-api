@@ -1,0 +1,826 @@
+{
+  "reference": "POL-GOV-005",
+  "revision": 1,
+  "title": "Complaints Policy and Procedure",
+  "documentType": "POLICY",
+  "summary": "How we receive, record, investigate, answer and learn from complaints about our care and services: who can complain and how, what staff do when someone complains on a visit or by phone, safeguarding and other checks, grading, the 3-working-day acknowledgement and 20-working-day response, the Nominated Individual's review, and the Ombudsman routes. For every employee; managers and investigators follow the full procedure.",
+  "keyPoints": {
+    "intro": "What this policy means for you whenever someone tells you they are unhappy with our care, our staff or anything we have done or not done.",
+    "points": [
+      "If what you hear suggests abuse or neglect, it is a safeguarding concern first: follow the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure at once and do not investigate it yourself.",
+      "Anyone can complain, in any way: spoken, written, by email or through someone else. Never argue, discourage a complaint, or say it must be in writing or come from a particular person.",
+      "If someone complains to you on a visit, listen, say sorry that they are unhappy, put right at once anything you safely can within the care plan, and never promise an outcome.",
+      "Phone the office, or the On-call Manager out of hours, before leaving the home if the complaint concerns safety, medicines, a missed or late visit, a colleague's conduct or anything you could not put right. Pass on other complaints before your shift ends.",
+      "If the complaint is about you, stay calm and never ask the person to withdraw it. If they do not want you to carry on, leave the home secure and phone the office before you leave so another care worker can be sent.",
+      "In the daily visit notes, write only that a complaint was made and passed to the office. Office staff record the details in the complaint record in CareFlow the same working day.",
+      "We acknowledge every complaint within 3 working days and send a full written response within 20 working days. A complaint put right by the end of the next working day is still recorded.",
+      "Help people to complain: offer the complaints leaflet, large print, easy read, translation, a professional interpreter or an advocate. Never use a child as an interpreter.",
+      "Never treat a person, or their family, worse because they complained. Doing so is a disciplinary matter.",
+      "You will be told what any complaint about you is about (unless the police or local authority ask us to wait). Give your written account within 3 working days of being asked; you will be told the outcome as it affects you.",
+      "Keep complaints confidential: never discuss them with other people we support, on social media or with colleagues who are not involved, and never reply to a complaint posted online.",
+      "If you investigate a complaint, you must not have been involved in it. Answer every point in writing and tell the complainant how to take it further, including to the Ombudsman."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "AUDIT",
+    "INCIDENT",
+    "SAFEGUARDING",
+    "BRANCH"
+  ],
+  "relatedReferences": [
+    "POL-GOV-002",
+    "POL-GOV-006",
+    "POL-GOV-007",
+    "POL-GOV-008",
+    "POL-GOV-009",
+    "POL-GOV-017",
+    "POL-SG-002",
+    "POL-CD-006"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 16 Receiving and acting on complaints",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/16"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 20 Duty of candour",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/20"
+    },
+    {
+      "source": "Local Government Act 1974, section 34B Power to investigate (adult social care providers)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/7/section/34B"
+    },
+    {
+      "source": "Local Government Act 1974, section 34C Who can complain",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/7/section/34C"
+    },
+    {
+      "source": "Local Government Act 1974, section 34D Procedure for making complaints (writing and 12-month time limit)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/7/section/34D"
+    },
+    {
+      "source": "Local Government Act 1974, Schedule 5A Matters not subject to investigation",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/7/schedule/5A"
+    },
+    {
+      "source": "Local Authority Social Services and National Health Service Complaints (England) Regulations 2009, regulations 4, 7, 9, 12, 13, 14 and 18 (NHS-funded care)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/309/contents"
+    },
+    {
+      "source": "Data Protection Act 2018, section 164A Complaints by data subjects (inserted by the Data (Use and Access) Act 2025; in force for all purposes from 19 June 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/164A"
+    },
+    {
+      "source": "Compensation Act 2006, section 2 Apologies, offers of treatment or other redress",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/29/section/2"
+    },
+    {
+      "source": "Local Government and Social Care Ombudsman, Adult Social Care Complaints Toolkit for care providers",
+      "url": "https://asctoolkit.lgo.org.uk/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} welcomes complaints. A complaint tells us where we have let someone down and gives us the chance to put it right for that person and to stop it happening to anyone else. We make complaining easy, in whatever way the person chooses; we treat every complaint seriously, fairly and promptly; we say sorry when we get something wrong; and we never let a complaint affect anyone's care."
+        },
+        {
+          "p": "The law requires us to operate effectively an accessible system for identifying, receiving, recording, handling and responding to complaints; to investigate every complaint and take necessary and proportionate action in response to any failure it identifies; and, when CQC asks, to send a summary of complaints, our responses and further correspondence within 28 days (Regulation 16 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014)."
+        },
+        {
+          "p": "Our policy is a two-stage procedure: a written response from the branch within 20 working days and, if the complainant is not satisfied, a review by the Nominated Individual, after which they can go to an Ombudsman."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Everyone affected by our service knows how to complain and gets help to do so.",
+            "Every complaint, however small or however made, is recorded, checked for risk, investigated independently and answered on time.",
+            "Complaints revealing abuse, neglect, incidents, notifiable safety incidents or data breaches enter the right process at once.",
+            "People receive an honest explanation, an apology where we fell short and a remedy that puts things right.",
+            "Complaints change how we work, with evidence the Directors see."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee, branch and service of {{organisation}}, and to complaints from anyone about our care, staff, decisions, communication or charges. Related matters are handled elsewhere:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Matter",
+              "Where it is handled"
+            ],
+            "rows": [
+              [
+                "A complaint suggesting abuse or neglect",
+                "Safeguarding Concerns: Reporting, Referral and Enquiry Procedure first; the complaint is answered under this policy once the local authority and police agree"
+              ],
+              [
+                "Compliments, suggestions and survey feedback",
+                "Compliments, Feedback and Involvement Procedure"
+              ],
+              [
+                "A request to change visit times, tasks or care workers that expresses no dissatisfaction with what has happened",
+                "Person-Centred Care, Dignity and Respect Policy"
+              ],
+              [
+                "Requests for copies of records and other data protection rights",
+                "Subject Access and Individual Rights Procedure; a complaint that we misused personal information, including an employee's or applicant's, is handled under this policy"
+              ],
+              [
+                "Employees' concerns about their employment, wrongdoing or harassment at work",
+                "Grievance Policy and Procedure; Whistleblowing (Speaking Up) Policy; Bullying, Harassment and Sexual Harassment Policy"
+              ],
+              [
+                "Contract or fee disputes with commissioners",
+                "The contract with that commissioner"
+              ],
+              [
+                "A decision by a council or integrated care board, such as an assessment of needs, a personal budget or funding",
+                "That body's own complaints procedure; the Care Coordinator tells the person how to use it and helps them if they ask"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Complaint",
+                "Any expression of dissatisfaction, spoken or written, about our service, our staff, or our actions, decisions or failure to act, that needs a response. The word complaint need not be used."
+              ],
+              [
+                "Early resolution",
+                "A complaint put right to the complainant's satisfaction by the end of the next working day, without a formal investigation."
+              ],
+              [
+                "Received",
+                "The day any employee first hears the complaint, including on a visit or out of hours."
+              ],
+              [
+                "Working day",
+                "Monday to Friday, excluding bank holidays in England. Day 1 is the first working day after the complaint is received."
+              ],
+              [
+                "Investigator",
+                "The manager or supervisor appointed to investigate, who was not involved in the events and does not supervise anyone complained about."
+              ],
+              [
+                "Commissioner",
+                "The local authority or integrated care board that arranges and pays for a person's care."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for an effective complaints system. They scrutinise the complaints sections of the quarterly governance report and the annual complaints report, approve payments above 500 pounds and agree any challenge to an Ombudsman recommendation. A Director who was not involved handles complaints about the Nominated Individual or another Director, and Stage 2 reviews where the Nominated Individual was involved at Stage 1."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual carries out Stage 2 reviews, handles complaints about a Registered Manager, leads our response to every Ombudsman enquiry and approves and sends the CQC complaints summary. They approve goodwill payments up to 500 pounds, restrictions on contact for unreasonable behaviour, and any decision to end the service of a person who has complained in the previous 6 months. They are told within 1 working day of every High complaint, and the same day of a complaint taken to an MP, a councillor, the media or an Ombudsman. For NHS-funded care they are our designated responsible person (see NHS-funded care)."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is responsible for complaints in their branch: checking, grading and allocating each complaint within 1 working day; investigating High complaints; approving and signing every Stage 1 response (the Nominated Individual signs those about a Registered Manager); deciding on late complaints; checking open complaints against their deadlines at the weekly management meeting; reviewing themes monthly; and writing the complaints sections of the quarterly governance report and the annual complaints report. In their absence the Deputy Manager does this, except that the Nominated Individual signs a response to a complaint the Deputy Manager investigated."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager investigates Medium complaints and complaints about Care Coordinators and Field Care Supervisors, audits closed complaints each quarter, and checks the evidence before complaint actions owned by others are closed."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "They resolve complaints early where this policy allows, investigate Low complaints allocated to them, put agreed changes into the care plan and rota, and make the follow-up call within 4 weeks of the final response, unless they investigated the complaint."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Managers",
+          "blocks": [
+            {
+              "p": "They record complaints in CareFlow and pass them on as Receiving a complaint sets out. The On-call Manager deals with any immediate risk out of hours."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "They receive complaints courteously, put right at once what they safely can, pass every complaint on, and give a written account within 3 working days when an investigator asks."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager advises where an investigation suggests misconduct or poor capability, and records any outcome in the staff record."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Making a complaint",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Who can complain and how",
+          "blocks": [
+            {
+              "p": "Anyone who receives our care or is affected by it can complain, and so can someone acting for them, such as a relative, friend, advocate, attorney, deputy, professional, MP or councillor. A complaint can be made to any employee, in person or on a visit; by phone to the office or On-call Manager; by letter or email; on our electronic complaints form (on our website, or emailed on request); or through the commissioner. Anonymous complaints are accepted."
+            },
+            {
+              "p": "Our leaflet, How to raise a concern or make a complaint, explains both stages, the timescales, the help available and the external routes. It is in every welcome pack, sent with every acknowledgement, displayed in each branch office and published on our website. We check that the person knows how to complain at the first-week check call, quality checks and care plan reviews."
+            }
+          ]
+        },
+        {
+          "heading": "Help to complain",
+          "blocks": [
+            {
+              "p": "The leaflet and our letters are available in large print, easy read, other languages, audio and braille, or read aloud, under the Communication and Accessible Information Policy. We book a professional interpreter, including British Sign Language, at no cost; a family member interprets only if the person chooses this after being offered a professional, and a child never does. Staff help anyone who wants it to put their complaint into words; a spoken complaint is written down and a copy sent with the acknowledgement for the complainant to correct. We give details of the local independent advocacy service and, for NHS-funded care, the NHS complaints advocacy service the local authority arranges."
+            }
+          ]
+        },
+        {
+          "heading": "Complaints made for someone else",
+          "blocks": [
+            {
+              "p": "When someone complains for a person we support, the investigator asks the person privately whether they agree to the complaint and to us sharing their information with the complainant, and records the answer. If not, we still investigate, tell the complainant only in general terms what we have done, and give the person the full outcome."
+            },
+            {
+              "p": "Where the person may lack capacity for that decision, it is assessed under the Mental Capacity Act and Best Interests Policy. An attorney or deputy with authority for the matter acts for them; otherwise the Registered Manager decides, in the person's best interests, what to share with a complainant involved in their care, and records why. After a person's death we accept a complaint from their personal representative or a close relative and share what is needed to answer it, respecting any wishes the person expressed."
+            }
+          ]
+        },
+        {
+          "heading": "Time limits",
+          "blocks": [
+            {
+              "p": "A complaint should be made within 12 months of the events, or of the complainant becoming aware of them. The Registered Manager accepts a later complaint where there is a good reason for the delay and it can still be investigated fairly, and gives the decision and reasons in writing within 5 working days, with the Ombudsman's details."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Receiving a complaint",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "On a visit",
+          "blocks": [
+            {
+              "steps": [
+                "Listen without interrupting or defending yourself or colleagues, and say sorry that the person is unhappy. Saying sorry is not admitting fault.",
+                "If anyone is at risk, make them safe first, calling 999 in an emergency. If what you hear suggests abuse or neglect, follow the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+                "Put right at once anything you safely can within the care plan, such as redoing a task. Never change the care plan, agree new tasks or times, or promise an outcome.",
+                "If the complaint is about you, stay calm and never ask the person to change or withdraw it. If they do not want you to carry on, stop, make sure they are safe, leave the home secure and phone the office before you leave so that another care worker can be sent for any essential care still due.",
+                "Tell the person that a manager will contact them.",
+                "Phone the office, or the On-call Manager out of hours, before you leave the home when the complaint is about safety, medicines, a missed or late visit, a colleague's conduct or anything you could not put right. Pass on any other complaint by phone before your shift ends. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly, or 999 in an emergency. If you still cannot reach a manager and nobody is at risk, go on to your next visit and keep trying until you speak to someone.",
+                "If you are handed a written complaint, tell the office about it when you phone, keep it sealed and out of sight, and hand it in at the branch office, or to your Field Care Supervisor, by the end of your next working day.",
+                "In the daily visit notes, write only that a complaint was made and passed to the office."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "In the office and out of hours",
+          "blocks": [
+            {
+              "p": "Whoever takes the complaint records it in CareFlow the same working day: date received, how it was made, who made it and how to reply, who it concerns, what happened in the complainant's words and what they want to happen. They pass it to the Registered Manager or Deputy Manager at once and tell the complainant they will hear from us within 3 working days. Out of hours, the On-call Manager records it, deals at once with any risk to anyone, such as arranging a visit that has been missed or is running late under the Missed, Late and Short Visits Procedure, and with any concern of abuse or neglect under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and hands the complaint over by 10am the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Early resolution",
+          "blocks": [
+            {
+              "p": "A Care Coordinator, Field Care Supervisor, Deputy Manager or Registered Manager may resolve a complaint without formal investigation when it involves no harm, safeguarding concern, staff misconduct, discrimination or personal data, can be fully put right by the end of the next working day, and the complainant agrees. It is recorded in CareFlow, graded Low and closed with an outcome. Within 3 working days of receipt, the person who resolved it confirms in writing, or in the complainant's chosen format, what we did and that they can still ask for a formal investigation, which then starts Stage 1 from that date. Anyone who asks for a formal investigation gets one."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Checking and grading a complaint",
+      "blocks": [
+        {
+          "p": "Within 1 working day of receipt, and the same day where anyone may be at risk, the Registered Manager or Deputy Manager checks whether the complaint must also enter another process. A complaint response never replaces or pre-empts these."
+        },
+        {
+          "table": {
+            "columns": [
+              "If the complaint suggests",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "Abuse or neglect",
+                "Passed straight to the safeguarding lead, who decides within 1 hour whether it is a safeguarding concern. If so, the complaint is paused in CareFlow and the response agreed with the local authority and police. The complainant is told it is being looked at under safeguarding unless the police or local authority advise otherwise."
+              ],
+              [
+                "That an employee has harmed a person",
+                "Managing Allegations Against Staff Procedure."
+              ],
+              [
+                "A missed, late or shortened visit, medicines error, fall, injury or near miss",
+                "A complaint about a visit is also reviewed under the Missed, Late and Short Visits Procedure. A missed visit, a late or short visit that caused harm or left essential care undone, a medicines error, fall, injury or near miss is logged in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy. One investigation serves all of them."
+              ],
+              [
+                "A notifiable safety incident",
+                "The Registered Manager decides within 1 working day and follows the Duty of Candour Policy, which the complaint response does not replace."
+              ],
+              [
+                "An event CQC must be told about",
+                "Statutory Notifications to CQC Procedure."
+              ],
+              [
+                "Discrimination by our staff or service",
+                "Graded High and handled with the Equality, Diversity and Human Rights in Care Policy; the protected characteristic is recorded in the complaint record."
+              ],
+              [
+                "Misuse or loss of personal information",
+                "Graded High. Where personal data may have been lost, disclosed, altered or seen by someone not entitled to it, the Nominated Individual is told the same day and the Personal Data Breach Procedure is followed; otherwise the Nominated Individual is told within 1 working day. The Data Protection Officer is consulted before the response is sent (Data Protection Policy)."
+              ],
+              [
+                "The person's home left insecure, a key lost or a key safe code shared",
+                "Dealt with the same day under the Key Holding, Key Safes and Access to People's Homes Procedure, which sets when the code or lock is changed, and logged in the incident log."
+              ],
+              [
+                "A care plan that does not match the person's needs or wishes",
+                "Focused review within 7 days under the Care Plan Review Procedure."
+              ],
+              [
+                "A request not to have a particular care worker",
+                "Actioned at once, because the person has raised a concern; the care worker is told only that the rota has changed (Person-Centred Care, Dignity and Respect Policy)."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager then records in CareFlow the grade, the investigator and the outcome the complainant wants. The grade can be raised at any time as facts emerge."
+        },
+        {
+          "table": {
+            "columns": [
+              "Grade",
+              "Typical complaints",
+              "Investigator",
+              "Also told"
+            ],
+            "rows": [
+              [
+                "Low",
+                "A single problem with no harm or risk of harm, such as one late visit, a manner issue or an invoice error",
+                "Care Coordinator, Field Care Supervisor, Deputy Manager or Registered Manager",
+                "Weekly management meeting"
+              ],
+              [
+                "Medium",
+                "Repeated or several failures, distress or inconvenience, care not given as planned without harm, poor communication",
+                "Deputy Manager or Registered Manager",
+                "The commissioner, where the contract requires"
+              ],
+              [
+                "High",
+                "Harm or risk of harm, a missed time-sensitive medicine, possible misconduct, discrimination, misuse of personal data, several people affected, legal action threatened, or an MP, councillor, the media or an Ombudsman involved",
+                "Registered Manager; the Nominated Individual where the Registered Manager is involved",
+                "Nominated Individual within 1 working day; the commissioner, where there is one, within 2 working days"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Complaints about the Deputy Manager go to the Registered Manager, about the Registered Manager to the Nominated Individual, and about the Nominated Individual or a Director to a Director who was not involved. Investigators confirm in CareFlow that they had no involvement in the events."
+        }
+      ]
+    },
+    {
+      "heading": "Stage 1: investigation and response",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Procedure",
+          "blocks": [
+            {
+              "steps": [
+                "Within 3 working days, the investigator acknowledges the complaint in writing or the complainant's chosen format, setting out the complaint as we understand it, the investigator's role, the response date, the help available, any consent needed, and an offer to discuss the complaint.",
+                "Where the complainant accepts, the investigator speaks to them by phone or meets them, in their home if they prefer, within 5 working days of the acknowledgement to agree the points to be answered, the outcome they want and how they want updates, and confirms the points in writing.",
+                "Any action needed to keep people safe or stop a failure continuing is taken at once.",
+                "The investigator reads the relevant records (care plan, risk assessments, daily visit notes, visit check-in and check-out, rota, eMAR, incident log and earlier complaints), speaks to the person we support privately, without any care worker complained about present, and obtains written accounts from the staff involved.",
+                "The investigator records what happened, why, the contributing factors and a conclusion on each point, on the balance of probabilities, in the CareFlow investigation.",
+                "The Registered Manager checks that the draft response answers every point, signs it and sends it within 20 working days of receipt, by post or email as the complainant prefers, offering a meeting to go through it.",
+                "The outcome, remedy, actions and lessons learned are recorded in CareFlow."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "When more time is needed",
+          "blocks": [
+            {
+              "p": "If the response cannot be sent within 20 working days, for example while a safeguarding enquiry or police investigation is under way, the investigator tells the Registered Manager by day 15, and the complainant is told in writing before the deadline why and given a new date no more than 20 working days later. Any further extension needs the Nominated Individual's agreement. While a complaint is open past its response date, including when paused in CareFlow, the complainant is updated at least every 10 working days. If our Stage 1 response has still not been sent 12 weeks after receipt, for whatever reason, we tell the complainant in writing that they may go to the Ombudsman without waiting."
+            }
+          ]
+        },
+        {
+          "heading": "What the response contains",
+          "blocks": [
+            {
+              "bullets": [
+                "each point, what we found and the evidence, and whether it is upheld, partly upheld or not upheld;",
+                "a clear apology for anything we got wrong and its effect;",
+                "what we have done and will do, with dates, to put things right and stop it happening again, any remedy, and whether we are satisfied that everything needed has been done or is planned;",
+                "how to ask for a Stage 2 review within 20 working days, and the Ombudsman and other external routes that apply to the person's care."
+              ]
+            },
+            {
+              "p": "Responses are in plain English and the complainant's format. They never disclose other people's personal information or the outcome of action against an employee, saying only that we have acted under our employment procedures."
+            }
+          ]
+        },
+        {
+          "heading": "Remedies",
+          "blocks": [
+            {
+              "p": "A remedy aims to put the complainant back where they would have been had we not failed. An apology or offer of redress is not of itself an admission of negligence or breach of statutory duty (Compensation Act 2006, section 2), so staff and managers apologise openly."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Remedy",
+                  "Who approves"
+                ],
+                "rows": [
+                  [
+                    "Apology, explanation, change to the care plan or rota, retraining or extra supervision",
+                    "Investigator, with the Registered Manager"
+                  ],
+                  [
+                    "Refund or credit to a self-funding person for any visit missed, shortened or not delivered as agreed; corrected invoice to the commissioner",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Repaying money lost while in our staff's care, or repairing, replacing or paying for property we damaged",
+                    "Registered Manager, within 5 working days, under the Handling Money, Property and Shopping Procedure"
+                  ],
+                  [
+                    "Goodwill or compensation payment up to 500 pounds",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "Payment above 500 pounds",
+                    "Directors"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Before any payment is offered where injury, loss or damage is alleged or legal action is mentioned, the Nominated Individual tells our insurers."
+            }
+          ]
+        },
+        {
+          "heading": "NHS-funded care",
+          "blocks": [
+            {
+              "p": "Where an integrated care board arranges a person's care, such as NHS Continuing Healthcare, the Local Authority Social Services and National Health Service Complaints (England) Regulations 2009 also apply to complaints about that care. This procedure meets them: a spoken complaint is written down and a copy given; we acknowledge within 3 working days and offer to discuss how the complaint will be handled and when we will respond (regulation 13); and the response explains how we considered the complaint, our conclusions, whether we are satisfied that the action needed has been taken or is planned, and how to go to the Parliamentary and Health Service Ombudsman (regulation 14)."
+            },
+            {
+              "p": "For that care the Nominated Individual is our designated responsible person and the Registered Manager our complaints manager, who signs Stage 1 responses on the Nominated Individual's authority (regulation 4). The complainant may complain to the integrated care board instead; if the board passes the complaint to us with their consent, we handle it as if it had been made to us (regulation 7). After our Stage 1 response, the complainant may ask for a Stage 2 review or go straight to the Parliamentary and Health Service Ombudsman."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Stage 2 and escalation",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Stage 2 review",
+          "blocks": [
+            {
+              "p": "A complainant who is not satisfied can ask for a review, in any way, within 20 working days of the Stage 1 response; the Nominated Individual accepts a later request for a good reason. The Nominated Individual, or a Director where the Nominated Individual was involved, acknowledges the request within 3 working days, reads the file, speaks to the complainant, re-investigates any point not fairly or fully answered, and sends a final response within 20 working days of the request, stating that it is our final response and giving the external routes. If the complainant declines a review, they are told the Stage 1 response is our final response."
+            }
+          ]
+        },
+        {
+          "heading": "External routes",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Route",
+                  "For whom",
+                  "What it does"
+                ],
+                "rows": [
+                  [
+                    "Local Government and Social Care Ombudsman (www.lgo.org.uk)",
+                    "Anyone whose care is arranged by a council or paid for privately",
+                    "Free, independent investigation. By law the Ombudsman must normally first be satisfied that the matter was brought to our notice and we had a reasonable opportunity to investigate and respond (Local Government Act 1974, section 34B). The complaint must be in writing and made within 12 months of the person affected first knowing of the matter, though the Ombudsman may waive either requirement (section 34D)."
+                  ],
+                  [
+                    "The local authority that arranges the care",
+                    "People whose care the council arranges",
+                    "They may complain to the council instead of, or as well as, us. Where both are involved, we agree with the council who leads and send one coordinated response."
+                  ],
+                  [
+                    "The integrated care board and the Parliamentary and Health Service Ombudsman (www.ombudsman.org.uk)",
+                    "People whose care is NHS-funded, such as NHS Continuing Healthcare",
+                    "The NHS complaints regulations apply to that care (see NHS-funded care). The complainant may complain to the integrated care board instead of us, and may go to the Parliamentary and Health Service Ombudsman after our Stage 1 response. That Ombudsman, not the Local Government and Social Care Ombudsman, considers it (Local Government Act 1974, Schedule 5A)."
+                  ],
+                  [
+                    "Information Commission, formerly the ICO (ico.org.uk)",
+                    "Complaints about how we use personal information",
+                    "The law requires us to acknowledge these within 30 days, respond without undue delay and give the outcome (Data Protection Act 2018, section 164A, fully in force from 19 June 2026); the complainant may then go to the Information Commission."
+                  ],
+                  [
+                    "CQC",
+                    "Anyone",
+                    "CQC does not resolve individual complaints, but anyone can tell CQC about their experience of our care through its website."
+                  ],
+                  [
+                    "Local Healthwatch",
+                    "Anyone",
+                    "Independent information and advice about local health and care services, and gathers people's experiences of them to improve services. It does not investigate individual complaints."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "When an Ombudsman investigates",
+          "blocks": [
+            {
+              "p": "The Nominated Individual leads our response, sends the information requested by the Ombudsman's deadline, makes sure every recommended remedy is carried out within the time set and confirms this to the Ombudsman. A recommendation we believe is wrong is raised with the Ombudsman before the deadline, with the Directors' agreement. Every Ombudsman decision about us goes to the next Directors' governance meeting."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Particular situations",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What we do"
+            ],
+            "rows": [
+              [
+                "Anonymous complaint",
+                "Investigated as far as the information allows; findings and actions recorded in CareFlow."
+              ],
+              [
+                "Withdrawn complaint",
+                "Checked for safety and safeguarding risks before closing with the outcome withdrawn; withdrawal confirmed in writing."
+              ],
+              [
+                "Legal action threatened or started",
+                "We continue unless our insurers or legal advisers advise in writing that a part must wait; the complainant is told which part and why."
+              ],
+              [
+                "Police, coroner or court dealing with the same events",
+                "Only the parts that could prejudice them are paused, after asking them; the pause is recorded in CareFlow."
+              ],
+              [
+                "Complaint about another organisation, such as a GP practice or equipment service",
+                "Passed on within 2 working days with the complainant's consent, and the complainant told."
+              ],
+              [
+                "Complaint about us and another organisation",
+                "The Registered Manager agrees with them within 5 working days who leads, and the complainant receives one coordinated response."
+              ],
+              [
+                "Complaint posted online, such as on a review site or social media",
+                "Treated as a complaint where the complainant can be identified and contacted. Only the Nominated Individual or a Director replies publicly, and only to invite private contact, never confirming that anyone receives our care. Other staff never reply."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where a complainant's contact becomes so frequent, repetitive or hostile that it stops us answering their complaint or caring for others, the Nominated Individual may, on the Registered Manager's written recommendation, limit how we communicate, for example to one named contact, set call times or writing only. The complainant is told why in writing and how to ask a Director to review it, and the restriction is reviewed within 6 months. It never affects the person's care or stops us considering a new complaint. Abuse or threats towards staff fall under the Violence and Aggression Towards Staff Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Protecting people who complain",
+      "blocks": [
+        {
+          "p": "No one's care is reduced, changed or ended because they or someone acting for them complained, and any employee who treats a person less favourably because of a complaint is dealt with under the Disciplinary Policy and Procedure. Within 4 weeks of the final response the Care Coordinator (Office staff where the Care Coordinator investigated) phones the complainant, or visits if they prefer, to check that agreed changes have been made, that the person has not been treated differently, and how well we handled the complaint. The caller reads the consent record before calling, and the call shares nothing about the person beyond what the final response shared. Any decision to end the service of a person who has complained in the previous 6 months needs the Nominated Individual's approval and a record that it is unconnected to the complaint."
+        },
+        {
+          "p": "Employees named in a complaint are told what it is about, unless the police or local authority ask us to wait, can give their account, are told the outcome as it affects them and are offered support by their line manager. A complaint not upheld is never held against an employee."
+        }
+      ]
+    },
+    {
+      "heading": "Learning from complaints",
+      "blocks": [
+        {
+          "bullets": [
+            "Every upheld or partly upheld complaint produces at least one action in the service improvement plan within 5 working days of the response, under the Governance and Quality Assurance Policy.",
+            "Where a care worker's practice may have contributed, the worker has supervision within 7 days of the Registered Manager's decision on the complaint and an unannounced spot check within 4 weeks (Supervision, Spot Checks and Appraisal Policy).",
+            "Any related risk is reviewed within 5 working days under the Risk Management Policy.",
+            "The Registered Manager reviews complaints, compliments and feedback monthly for themes by branch, type, care run and team. Any late response, or 3 or more complaints on one theme in a quarter, goes to the Nominated Individual through the quality dashboard.",
+            "Lessons are shared, without identifying anyone, at staff team meetings, in supervision and in the 6-monthly You said, we did summary.",
+            "Each complainant is asked at the 4-week follow-up call, not before, how well we handled their complaint."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Complaints information for CQC and the Directors",
+      "blocks": [
+        {
+          "p": "When CQC asks for a summary of complaints, the law requires us to send it within 28 days beginning on the day after we receive the request (Regulation 16(3)). Counting that day as day 1, the Registered Manager records the request and deadline in the governance records on receipt and prepares the summary of complaints, responses and further correspondence from CareFlow by day 14, using CareFlow reference numbers unless CQC asks for more. The Nominated Individual checks and approves it by day 18 and sends it by day 21, keeping proof of sending."
+        },
+        {
+          "p": "The quarterly governance report shows, by branch, complaints by grade, type and outcome, timescales met, Stage 2 reviews, Ombudsman cases, themes, actions and complainants' views of handling. The annual complaints report (1 April to 31 March) goes to the Directors' governance meeting held by mid-May. It states the number of complaints received, the number upheld in full or in part and the number we know were taken to an Ombudsman, and summarises their subjects, matters of general importance, how they were handled and the improvements made. It is available to anyone on request. Where we provided NHS-funded care in the year, the Nominated Individual sends a copy to each integrated care board concerned within 5 working days of that meeting (regulation 18 of the NHS complaints regulations)."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Complaint, correspondence, consent, investigation, accounts, response, outcome, remedy and lessons learned",
+                "The complaint record in CareFlow, with its reference number. CareFlow cannot attach files to a complaint, so letters, written accounts and signed consent are kept in a complaints folder in the governance records under that reference, and the complaint record notes each one",
+                "10 years after closure, or longer while a legal claim, inquest, safeguarding enquiry or Ombudsman investigation is open or expected"
+              ],
+              [
+                "Changes to care made because of a complaint",
+                "The person's care plan and risk assessments",
+                "With the care record"
+              ],
+              [
+                "Improvement actions and evidence",
+                "Service improvement plan in the governance records",
+                "As the Records Management and Retention Policy sets out"
+              ],
+              [
+                "Employment action arising from a complaint",
+                "The staff record",
+                "As the Staff Personal Data and HR Records Policy sets out"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Complaint records are kept apart from the person's care record, so that complaining never colours how staff see a person. CareFlow opens complaint records only to roles given the complaints permission. We give it to the Registered Manager, Deputy Manager, Nominated Individual and Directors, and to the Care Coordinators, Field Care Supervisors, Office staff and On-call Managers who record complaints; care workers and Senior Care Workers never have it. Everyone with access opens only the complaints they record, handle or investigate, and an investigator without that permission works from copies the Registered Manager provides."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "Care staff",
+                "Receiving a complaint on a visit, putting things right, safeguarding first, confidentiality",
+                "At induction, before working without a shadowing colleague; refreshed in the annual person-centred care and dignity refresher"
+              ],
+              [
+                "Office staff and On-call Managers",
+                "Taking and recording complaints, the leaflet and the help available",
+                "Before taking calls alone or their first on-call shift"
+              ],
+              [
+                "Registered Managers, Deputy Manager, Care Coordinators and Field Care Supervisors",
+                "Investigating complaints, writing responses, remedies, and the links to safeguarding, candour and data protection",
+                "Before their first investigation, then every 3 years; the Registered Manager checks each new investigator's first two responses"
+              ],
+              [
+                "Nominated Individual and Directors",
+                "Stage 2 reviews, the Ombudsmen and remedies",
+                "Within 3 months of appointment, and within 3 months of this policy's approval for those already in post"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Field Care Supervisors check at spot checks and supervision that care workers know what to do when someone complains; anyone who cannot explain it is retrained before their next unsupervised visit. Training is recorded in the training and compliance records."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Open complaints against acknowledgement, response and update deadlines",
+                "Weekly",
+                "Registered Manager",
+                "Weekly management meeting"
+              ],
+              [
+                "Complaints answered on time (target 100%) and themes",
+                "Monthly",
+                "Deputy Manager, in the quality dashboard",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Up to 10 complaint files closed in the quarter, chosen by risk: timescales, investigation, apology, outcome, learning",
+                "Quarterly",
+                "Deputy Manager; Nominated Individual for complaints the Deputy Manager handled",
+                "Quarterly governance report"
+              ],
+              [
+                "Complaint actions completed on time (target at least 90%)",
+                "Monthly",
+                "Registered Manager",
+                "Monthly meeting; Directors quarterly"
+              ],
+              [
+                "Stage 2 reviews, Ombudsman decisions and complainants' views of handling",
+                "Every 12 months",
+                "Registered Manager",
+                "Directors, in the annual complaints report"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall becomes an action with an owner and deadline in the service improvement plan. This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or guidance, an Ombudsman finding against us, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

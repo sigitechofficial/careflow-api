@@ -1,0 +1,825 @@
+{
+  "reference": "POL-HR-001",
+  "revision": 1,
+  "title": "Safer Recruitment Policy",
+  "documentType": "POLICY",
+  "summary": "How we recruit and engage everyone who works for us so that only safe, suitable people of good character work with the people we support. It covers job design, advertising, applications, shortlisting, values-based interviews, conditional offers, the pre-employment checks required by Regulation 19 and Schedule 3, decisions on criminal records and other concerns, clearance to start, agency workers, students, volunteers and contractors, fairness, records and audit. It is for managers, HR and anyone involved in recruitment.",
+  "keyPoints": {
+    "intro": "These points apply to everyone who shortlists, interviews, checks, clears or allocates work to new staff. The full policy and the Pre-Employment Checks and DBS Procedure give the detail.",
+    "points": [
+      "No one visits a person we support, shadows a visit, receives a key safe code or sees care records until the HR Manager has completed every check and the Registered Manager or Deputy Manager has marked the staff record cleared to work.",
+      "Care Coordinators must never allocate a visit or shadow shift to anyone whose staff record is not marked cleared to work; there are no exceptions, however short-staffed we are.",
+      "Every applicant completes our application form; a CV alone is never enough, and every gap of a calendar month or more in employment or education must be explained in writing and explored at interview.",
+      "Interview with at least two people, one trained in safer recruitment in the last 3 years; check photo ID, ask the standard values and safeguarding questions, and upload the interview record with notes and scores to the candidate's record in CareFlow the same working day.",
+      "Never appoint a candidate who scores 1 on any values or safeguarding question, whatever their other scores, and never let staffing pressure shorten or skip a check.",
+      "Never ask about health or disability before a job offer, except to arrange adjustments to the recruitment process; never look at a candidate's personal social media; keep equality monitoring forms away from shortlisting.",
+      "Obtain at least two references directly from employers, including the current or most recent employer and the most recent care employer; verify they are genuine and never accept a reference handed over by the candidate.",
+      "If you are related to a candidate, or are their partner, close friend or former colleague, declare it to the HR Manager, who notes it on the candidate's record in CareFlow, and take no further part in their recruitment.",
+      "Care and management roles need an enhanced DBS check with the adults' barred list; a criminal record is not an automatic bar, but the Registered Manager decides after a written risk assessment, with Nominated Individual approval where it is relevant to the role.",
+      "If a check shows that an applicant is barred, or documents look forged, stop the process and tell the Registered Manager the same working day.",
+      "Agency workers start only after the HR Manager, or the On-call Manager out of hours, has checked the agency's written confirmation of their checks, and their photo ID is checked before their first visit.",
+      "Tell unsuccessful candidates the outcome within 5 working days; their records are deleted 6 months after they are told, except that an identity check record for a submitted DBS application is kept for 2 years."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Admin",
+    "Manager",
+    "HR",
+    "Care Coordinator"
+  ],
+  "moduleLinks": [
+    "RECRUITMENT",
+    "HR",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-HR-002",
+    "POL-HR-003",
+    "POL-HR-004",
+    "POL-HR-012",
+    "POL-HR-019",
+    "POL-HR-020",
+    "POL-SG-001",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 19 (fit and proper persons employed), including paragraph (3A) on volunteers inserted from 15 January 2024",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/19"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 2 (interpretation, including the meaning of employment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/2"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 3 (information required in respect of persons employed)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/3"
+    },
+    {
+      "source": "Safeguarding Vulnerable Groups Act 2006, section 7 (barred person not to engage in regulated activity)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/7"
+    },
+    {
+      "source": "Safeguarding Vulnerable Groups Act 2006, section 9 (use of barred person for regulated activity)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/9"
+    },
+    {
+      "source": "Rehabilitation of Offenders Act 1974 (Exceptions) Order 1975",
+      "url": "https://www.legislation.gov.uk/uksi/1975/1023/contents"
+    },
+    {
+      "source": "Equality Act 2010, section 60 (enquiries about disability and health)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/60"
+    },
+    {
+      "source": "Disclosure and Barring Service, Eligibility for Enhanced with Adults' Barred List DBS check (1 September 2026)",
+      "url": "https://www.gov.uk/government/publications/eligibility-for-enhanced-with-adults-barred-list-dbs-check/eligibility-for-enhanced-with-adults-barred-list-dbs-check"
+    },
+    {
+      "source": "Disclosure and Barring Service, DBS checks for adult social care roles (updated 17 September 2026)",
+      "url": "https://www.gov.uk/government/publications/dbs-guidance-leaflets/dbs-checks-for-adult-social-care-roles"
+    },
+    {
+      "source": "Disclosure and Barring Service, DBS filtering guide (updated 11 September 2026)",
+      "url": "https://www.gov.uk/government/publications/dbs-filtering-guidance/dbs-filtering-guide"
+    },
+    {
+      "source": "Home Office, Revised Code of Practice for Disclosure and Barring Service Registered Persons (November 2015), Suitability Policy",
+      "url": "https://www.gov.uk/government/publications/dbs-code-of-practice"
+    },
+    {
+      "source": "Disclosure and Barring Service, Handling of DBS certificate information",
+      "url": "https://www.gov.uk/government/publications/handling-of-dbs-certificate-information/handling-of-dbs-certificate-information"
+    },
+    {
+      "source": "Disclosure and Barring Service, ID checking guidelines for Standard/Enhanced DBS check applications from 22 April 2025 (updated 6 October 2026)",
+      "url": "https://www.gov.uk/government/publications/dbs-identity-checking-guidelines/id-checking-guidelines-for-standardenhanced-dbs-check-applications-from-22-april-2025"
+    },
+    {
+      "source": "Disclosure and Barring Service, DBS digital identity verification guidance (updated 6 October 2026)",
+      "url": "https://www.gov.uk/government/publications/dbs-identity-checking-guidelines/dbs-digital-identity-verification-guidance"
+    },
+    {
+      "source": "GOV.UK, DBS Update Service",
+      "url": "https://www.gov.uk/dbs-update-service"
+    },
+    {
+      "source": "Disclosure and Barring Service, DBS Update Service: employer guide (updated 5 October 2026)",
+      "url": "https://www.gov.uk/government/publications/dbs-update-service-employer-guide/dbs-update-service-employer-guide"
+    },
+    {
+      "source": "Home Office, Right to work checks: an employer's guide (updated 1 October 2026)",
+      "url": "https://www.gov.uk/government/publications/right-to-work-checks-employers-guide"
+    },
+    {
+      "source": "Border Security, Asylum and Immigration Act 2025, section 48 (extension of the prohibition on illegal working to workers and individual contractors, in force 1 October 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/31/section/48"
+    },
+    {
+      "source": "Home Office, Criminal records checks for overseas applicants",
+      "url": "https://www.gov.uk/government/publications/criminal-records-checks-for-overseas-applicants"
+    },
+    {
+      "source": "Department of Health and Social Care, Code of practice for the international recruitment of health and social care personnel in England (updated 27 March 2025)",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    },
+    {
+      "source": "Home Office, Workers and Temporary Workers: Sponsor a Skilled Worker (version 04/26), SK4.31 to SK4.37 (care worker immigration status requirement)",
+      "url": "https://www.gov.uk/government/publications/sponsor-a-skilled-worker/workers-and-temporary-workers-sponsor-a-skilled-worker-accessible"
+    },
+    {
+      "source": "Skills for Care, Values-based recruitment",
+      "url": "https://www.skillsforcare.org.uk/Recruitment-support/Values-based-recruitment/Values-based-recruitment.aspx"
+    },
+    {
+      "source": "Acas, Recruitment: advice for employers",
+      "url": "https://www.acas.org.uk/recruitment"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} provides personal care to adults in their own homes. Our care workers usually work alone, behind closed doors, with people who may be frail, unwell or living with dementia, and who trust us with their homes, key safe codes, medicines and money. Who we employ is therefore our first safeguard, and we treat recruitment as a safeguarding activity."
+        },
+        {
+          "p": "{{organisation}} will employ only people who are of good character, who have the values, skills, competence and health to do their job well after any reasonable adjustments, and whose identity, history, right to work and criminal record have been checked. Nobody works with the people we support until every required check is complete and satisfactory and a manager has signed them off. We recruit fairly and lawfully, on merit, and welcome applicants from every background, including people with criminal records whose offences do not make them unsuitable for the role."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that we:"
+        },
+        {
+          "bullets": [
+            "meet Regulation 19 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 by operating effective recruitment procedures and having the Schedule 3 information available for every person employed;",
+            "keep people who are unsuitable, including people barred by the Disclosure and Barring Service (DBS), away from the people we support;",
+            "select people for their values, behaviours and ability through a consistent, recorded process;",
+            "recruit fairly and lawfully under the Equality Act 2010 and data protection law, with reasonable adjustments for disabled candidates;",
+            "set one standard of checks, decisions and records that every human resources policy and procedure follows."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the recruitment and engagement of everyone who works for us: employees in care, office and management roles, bank staff, apprentices, people we re-employ, staff moving to a new role, agency workers, students on placement, volunteers and contractors."
+        },
+        {
+          "p": "These matters have their own documents, read with this policy:"
+        },
+        {
+          "bullets": [
+            "how each pre-employment check is carried out and evidenced: the Pre-Employment Checks and DBS Procedure;",
+            "right to work checks, follow-up checks and visa sponsorship: the Right to Work and Sponsored Workers Policy;",
+            "induction, the Care Certificate, shadowing and probation: the Induction and Care Certificate Procedure;",
+            "concerns about a worker's suitability after appointment, DBS barring referrals and referrals to professional regulators: the Staff Fitness Concerns and DBS Referrals Procedure;",
+            "privacy notices, access to and protection of applicant and staff data: the Staff Personal Data and HR Records Policy;",
+            "the fitness of Directors and the Nominated Individual: the Fit and Proper Persons (Directors) Policy; registering a new Registered Manager with CQC: the Statement of Purpose and Registration Procedure;",
+            "workers and placement students under 18, who work only in the branch office: the Young Workers Procedure."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Regulated activity",
+                "Work with adults that a person barred by the DBS must not do, defined in the Safeguarding Vulnerable Groups Act 2006. It includes personal care, such as helping with or prompting eating, drinking, toileting, washing or dressing, in the person's own home, and the regular day-to-day management or supervision of people who provide it."
+              ],
+              [
+                "Enhanced DBS check with adults' barred list",
+                "The highest level of criminal record check: convictions and cautions that are not filtered, relevant police information and whether the person is barred from regulated activity with adults."
+              ],
+              [
+                "Schedule 3 information",
+                "The information Regulation 19(3) requires to be available for each person employed, covering identity, the DBS certificate, conduct in previous care work and why it ended, qualifications, full employment history and health."
+              ],
+              [
+                "Protected caution or conviction",
+                "A caution or conviction that the Rehabilitation of Offenders Act 1974 (Exceptions) Order 1975 filters out: it does not appear on a DBS certificate and the applicant does not have to declare it."
+              ],
+              [
+                "Information of concern",
+                "Anything found during recruitment that may bear on suitability: a declared or disclosed caution or conviction, police information, a doubtful reference, an unexplained gap, a dismissal, inconsistent dates or documents, or information from a previous employer or regulator."
+              ],
+              [
+                "Cleared to work",
+                "The status the Registered Manager or Deputy Manager (the Nominated Individual for those two posts) records as the Cleared status on the HR profile in the staff record when every check required by this policy is complete and satisfactory. Only then may the worker be allocated work with the people we support. CareFlow is also set to block rota allocation while a mandatory compliance item, such as the DBS check, is missing, expired or rejected."
+              ],
+              [
+                "Safer recruitment trained",
+                "Has completed our safer recruitment training within the last 3 years."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy, provide the budget and people to recruit safely, and review the quarterly recruitment figures in the governance report and the annual recruitment audit. The Nominated Individual:"
+            },
+            {
+              "bullets": [
+                "chairs the interview panel and signs clearance for Registered Manager and Deputy Manager appointments;",
+                "approves, within 2 working days of the request, any appointment where the risk assessment found information of concern relevant to the role."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is accountable day to day for safe recruitment: approving vacancies, making sure every panel includes a safer recruitment trained member, deciding every case of information of concern, signing clearance to work, withdrawing offers and reporting barred applicants and suspected forged documents to the police."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out the Registered Manager's duties under this policy when the Registered Manager is absent or has a conflict of interest, and carries out the quarterly staff file audit."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager runs the recruitment process in CareFlow, carries out and chases every pre-employment check, submits DBS applications through our registered umbrella body, carries out DBS Update Service checks, checks agency and college confirmations, and presents each completed file for clearance. The HR Manager also keeps recruiters' training records, has applicant records deleted on time and produces the monthly recruitment report. When the HR Manager is absent, the Registered Manager covers these duties, with trained staff checking documents, unless this policy or the document owning a task names other cover."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Care Coordinators allocate visits and shadow shifts only to workers whose staff record shows cleared to work. Field Care Supervisors and Senior Care Workers supervise shadowing, and report concerns about a new worker's conduct to the Registered Manager the same day."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and everyone involved in recruitment",
+          "blocks": [
+            {
+              "p": "Office staff handle applications confidentially, pass them to the HR Manager the same working day, and never give information about a candidate to anyone outside the recruitment process. Anyone involved in shortlisting, interviewing, checking or clearance must declare to the HR Manager, who notes it on the candidate's record, any relationship with a candidate, as a relative, partner, close friend or former colleague, and take no further part in that candidate's recruitment."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Safer recruitment principles",
+      "blocks": [
+        {
+          "bullets": [
+            "Safeguarding first: each stage is designed to deter, identify and reject people unsuitable to work with adults at risk.",
+            "Good character: we look for evidence of honesty, trustworthiness, reliability and respect, and take account of convictions, cautions, dismissals and removal from a professional register. Honesty during recruitment is itself evidence of character.",
+            "Values first: for care roles we select for values such as compassion, respect for dignity and choice, and reliability, and we train for skills. Care experience is not required for Care Worker roles.",
+            "Consistent and fair: every candidate for a role goes through the same stages, questions and checks, judged on evidence against the person specification. Staffing pressure is never a reason to shorten or skip a check.",
+            "Recorded: every stage, decision and reason is recorded in CareFlow the same working day."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Planning the role and advertising",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Vacancy approval and job design",
+          "blocks": [
+            {
+              "p": "The Registered Manager approves each vacancy, confirming the role, hours, area and DBS level, before the HR Manager opens it in CareFlow. A post beyond the staffing establishment agreed by the Directors also needs the Nominated Individual's approval. Every role has a job description and a person specification of essential and desirable criteria that can be assessed. The HR Manager reviews them when a role changes and at least every 2 years."
+            },
+            {
+              "p": "For every care role the person specification includes:"
+            },
+            {
+              "bullets": [
+                "a minimum age of 18, because care workers work alone in people's homes, including at night and in emergencies; people under 18 are employed only in office roles under the Young Workers Procedure;",
+                "the ability to read, write and speak English well enough to follow care plans, record accurately in daily visit notes and the eMAR, and explain an emergency to the 999 service;",
+                "our care values and a commitment to complete the Care Certificate;",
+                "a full driving licence and use of a vehicle only where the Registered Manager decides in writing, before the advert is placed, that the rounds cannot be covered on foot or by public transport."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "DBS check level for each role",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Role",
+                  "DBS check",
+                  "Reason"
+                ],
+                "rows": [
+                  [
+                    "Care Worker, Senior Care Worker, Field Care Supervisor",
+                    "Enhanced with adults' barred list",
+                    "Personal care, or day-to-day supervision of those providing it"
+                  ],
+                  [
+                    "Care Coordinator, On-call Manager, Deputy Manager, Registered Manager",
+                    "Enhanced with adults' barred list",
+                    "Day-to-day management of care workers; all also cover visits in an emergency"
+                  ],
+                  [
+                    "HR Manager, Office staff and staff allocation roles that do not provide personal care or manage care workers",
+                    "The highest level the role is eligible for under the DBS eligibility guidance, and at least a basic check",
+                    "The HR Manager records the eligibility decision when the vacancy is approved"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Advertising",
+          "blocks": [
+            {
+              "p": "Adverts give the job title, pay, hours, area, essential requirements and our values. For roles in regulated activity they state that the role involves regulated activity with adults and that any offer is conditional on satisfactory checks, including an enhanced DBS check with the adults' barred list, references and right to work. Every advert states that we welcome applications from all backgrounds and offer an interview to disabled applicants who meet the essential criteria. Adverts and the application pack describe the work honestly: working alone in people's homes, early morning, evening and weekend visits, travel between visits, and how travel time and mileage are paid under the Working Time, Rest Breaks and Travel Time Policy."
+            },
+            {
+              "p": "Adverts use plain, inclusive language and never use wording linked to a protected characteristic, such as young, energetic, mature or native English speaker. Where people we support on a round need care workers of a particular sex for intimate personal care, the Registered Manager decides in writing, before the advert is placed, whether an occupational requirement under the Equality Act 2010 applies; it is never assumed."
+            },
+            {
+              "p": "We never charge applicants for recruitment, DBS checks or pre-employment training. We use only recruitment agencies and job platforms that charge candidates nothing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Applications and shortlisting",
+      "blocks": [
+        {
+          "p": "Every applicant completes our application form, online or on paper, with help if they need it. A CV may be attached but never replaces the form. Applicants receive our applicant privacy notice with the form. The form asks for:"
+        },
+        {
+          "bullets": [
+            "a full history since leaving full-time education, with start and end month and year, employer, role and reason for leaving each job, and what the applicant was doing in every period between jobs, such as study, caring, unemployment or travel;",
+            "qualifications and any professional registration;",
+            "referees who meet the rules in this policy, and whether the applicant has worked with children or adults at risk;",
+            "any relationship with an employee or a person we support;",
+            "a declaration that the information is true and complete, and that false or missing information may lead to an offer being withdrawn or to dismissal."
+          ]
+        },
+        {
+          "p": "A separate criminal records declaration asks whether the applicant has any caution, conviction, reprimand or final warning that is not protected under the Exceptions Order, is barred from regulated activity, or is subject to a current police investigation. Shortlisters do not see it. The Registered Manager reads the declarations of shortlisted candidates before interview so that anything declared can be discussed in private. The equality monitoring form is also kept separate and is never seen by shortlisters or interviewers."
+        },
+        {
+          "p": "Two people, at least one safer recruitment trained, score each application against the person specification and record their scores and reasons in the candidate's stage note in CareFlow. For each shortlisted candidate they note on the interview record every gap, overlapping date, frequent change of job and reason for leaving a care role, so that the panel asks about it. Applicants are told within 5 working days of the closing date whether they have been shortlisted."
+        },
+        {
+          "p": "We do not search candidates' personal social media, and no candidate is rejected by an automated filter or tool without a person reviewing the application. If we receive unsolicited information about a candidate, the Registered Manager decides whether it is relevant to suitability, and the candidate is given the chance to respond before it is used."
+        }
+      ]
+    },
+    {
+      "heading": "Interviews and selection",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The interview panel",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Role recruited",
+                  "Panel (at least two people, one safer recruitment trained)"
+                ],
+                "rows": [
+                  [
+                    "Care Worker, Senior Care Worker",
+                    "Two of: Registered Manager, Deputy Manager, Care Coordinator, Field Care Supervisor"
+                  ],
+                  [
+                    "Office staff, staff allocation roles",
+                    "HR Manager and the post's line manager"
+                  ],
+                  [
+                    "Care Coordinator, Field Care Supervisor, HR Manager",
+                    "Registered Manager (chair) and Deputy Manager"
+                  ],
+                  [
+                    "Deputy Manager, Registered Manager",
+                    "Nominated Individual (chair) and a Director; the Registered Manager also sits for a Deputy Manager post"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Interviews take place face to face at the branch office or by video with the candidate's camera on. The candidate is interviewed alone: a companion waits outside unless they are a professional interpreter we booked or a supporter agreed as a reasonable adjustment. Under the Compliments, Feedback and Involvement Procedure, the People's Voice group suggests interview questions for care roles each year, and a person we support or a family carer meets shortlisted Registered Manager and Deputy Manager candidates; their views go to the panel, which decides."
+            }
+          ]
+        },
+        {
+          "heading": "Conducting the interview",
+          "blocks": [
+            {
+              "steps": [
+                "Check identity: the candidate shows photo ID and the panel compares it with the person.",
+                "Ask the values and motivation questions from our question bank for the role, which the Registered Manager reviews every year.",
+                "Ask the safeguarding questions and at least one scenario about a real care situation, such as finding an unexplained bruise, getting no reply at the door or being offered a gift.",
+                "Go through the history: every gap, overlapping date and reason for leaving, and especially why any job in care or with children or vulnerable adults ended.",
+                "In private, the Registered Manager or HR Manager discusses anything the candidate has declared on the criminal records declaration.",
+                "For care roles, the candidate completes a 15-minute written exercise, writing a visit note from a scenario, to show that they can record clearly and accurately.",
+                "Tell the candidate which checks follow and when they will hear the outcome, and confirm that they agree to us contacting their referees.",
+                "Each panel member scores each answer independently from 1 (no evidence) to 4 (strong evidence); the panel then agrees the scores and uploads the interview record with notes, scores and reasons to the candidate's record the same working day."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Making the decision",
+          "blocks": [
+            {
+              "p": "We offer the post to the highest-scoring candidate who meets every essential criterion. A candidate who scores 1 on any values or safeguarding question is not appointed, whatever their other scores. Where the panel is unsure, it holds a second interview or does not appoint. Unsuccessful candidates are told within 5 working days of the interview and given feedback if they ask."
+            }
+          ]
+        },
+        {
+          "heading": "Reasonable adjustments",
+          "blocks": [
+            {
+              "p": "Every candidate invited to interview is asked whether they need adjustments to the process, such as an accessible venue, extra time for the written exercise, questions in advance or a support worker present. Adjustments are agreed by the HR Manager and recorded separately from the interview record."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Conditional offers and pre-employment checks",
+      "blocks": [
+        {
+          "p": "The HR Manager sends a written offer within 2 working days of the decision. Every offer, spoken or written, is conditional on satisfactory checks, and the offer letter lists each condition. The candidate accepts in writing. The Pre-Employment Checks and DBS Procedure sets out how each check is done; this table sets the standard every check must meet."
+        },
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Our standard"
+            ],
+            "rows": [
+              [
+                "Identity",
+                "Verified under the DBS ID checking guidelines from original documents, including proof of current address and evidence of any change of name, at an identity appointment with the candidate alone, as for interviews; documents are never brought by a third party. A digital identity service is used only if certified for DBS checks at the high level of confidence, and the ID checker still meets the person and sees the originals before clearance. A recent photograph is kept in the staff record."
+              ],
+              [
+                "Right to work",
+                "Completed by a method set out in the Home Office employer's guide before any work starts, including paid induction training. Since 1 October 2026 the law also requires these checks for workers and individual contractors we engage who are not employees."
+              ],
+              [
+                "Criminal record",
+                "A new DBS certificate at the level for the role, applied for through our registered umbrella body at our cost. DBS sends the certificate only to the applicant, who shows us the original before clearance. An existing certificate is accepted only if it is an enhanced certificate for the Adult Workforce only, with the adults' barred list, the original is seen, the worker is subscribed to the Update Service and a status check shows no new information."
+              ],
+              [
+                "Overseas criminal record",
+                "Where the applicant has lived outside the UK for 12 months or more, continuously or in total, in the last 10 years while aged 18 or over: a criminal record certificate or certificate of good conduct from each such country, translated where necessary. If one cannot be obtained, the attempts are recorded and the Registered Manager completes a risk assessment and seeks a reference covering that period."
+              ],
+              [
+                "Employment history",
+                "Full history since leaving full-time education, with a written explanation of every gap of a calendar month or more, explored at interview and verified where possible."
+              ],
+              [
+                "References",
+                "At least two written references meeting the standards below."
+              ],
+              [
+                "Reason for leaving care work",
+                "Why each previous job in health or social care, or with children or vulnerable adults, ended is verified with that employer as far as reasonably practicable, and every attempt is recorded."
+              ],
+              [
+                "Qualifications and registration",
+                "Certificates for qualifications required for the role, or relied on in the appointment, seen in original or confirmed with the awarding body. Professional registration, such as with the Nursing and Midwifery Council, checked on the public register before the start date."
+              ],
+              [
+                "Health",
+                "Health questionnaire after the offer and before the start date, covering health conditions relevant to the role, infection history, immunisation and time spent living overseas, reviewed by the HR Manager, with occupational health advice where a condition may affect tasks intrinsic to the role. No offer is withdrawn on health grounds without that advice and full consideration of reasonable adjustments."
+              ],
+              [
+                "Driving",
+                "Where the role requires driving: licence seen, a DVLA licence check with the applicant's consent, and business use insurance, under the Driving at Work Policy."
+              ],
+              [
+                "Declaration",
+                "Signed self-declaration before starting that the person is not barred and is not under investigation by the police, a regulator or a previous employer, and consent to Update Service status checks where subscribed."
+              ]
+            ]
+          }
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "References",
+          "blocks": [
+            {
+              "bullets": [
+                "We obtain at least two written references that together cover at least the last 3 years of employment: one from the current or most recent employer, and one from the most recent employer in health or social care or work with children or vulnerable adults where that is a different employer.",
+                "References come from the employer's organisation, written by a manager or HR, never by a colleague, friend or relative. They are requested directly and returned to the HR Manager from an organisational email address or on headed paper; anything else is verified by phone using the organisation's published number.",
+                "We never accept open references or references supplied by the candidate.",
+                "Applicants with no employment history give one reference from a school, college or training provider and one from a person in a professional role who has known them for at least 2 years and is not a relative.",
+                "Referees are asked for dates, role, reason for leaving, conduct, any disciplinary sanction or safeguarding concern relevant to working with adults at risk, and whether they would re-employ. We do not ask about sickness absence.",
+                "References are chased after 5 and 10 working days. If a referee does not respond, the HR Manager asks the candidate for an alternative and records every attempt. We never clear a worker with fewer than two satisfactory references, or without the most recent care employer's reference unless that employer has closed and this is recorded.",
+                "Discrepancies between a reference, the application and the interview are followed up with the referee and the candidate and treated as information of concern."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Timescales",
+          "blocks": [
+            {
+              "p": "If checks are not complete 6 weeks after the candidate accepts the offer, the HR Manager and the Registered Manager review the file and decide whether to keep the offer open; the reason is recorded. Our target is that new care staff are cleared to work within 4 weeks of accepting an offer."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing information of concern",
+      "blocks": [
+        {
+          "p": "It is an offence for a barred person to seek, offer or engage in regulated activity from which they are barred, and for us to permit it if we know or have reason to believe they are barred. A person barred from regulated activity with adults is never appointed to such a role. The Registered Manager withdraws the offer and reports the application to the police the same working day."
+        },
+        {
+          "p": "No other information automatically rules a candidate out. A criminal record, a poor reference or a past dismissal is assessed on its facts. Before any decision, the Registered Manager completes a written risk assessment in the restricted part of the staff record, considering:"
+        },
+        {
+          "bullets": [
+            "how relevant the information is to the duties, for example offences of dishonesty for a role with access to homes and money, violence, sexual offences, or drug offences for a role supporting people with medicines;",
+            "how serious it was, how long ago, and the candidate's age at the time;",
+            "whether it was a single event or part of a pattern;",
+            "the circumstances and the candidate's explanation;",
+            "whether the candidate declared it honestly and in full;",
+            "evidence of change since, such as later employment and references."
+          ]
+        },
+        {
+          "p": "The application pack explains this approach, as the DBS Code of Practice requires. The Registered Manager tells the candidate what information we hold and gives them the chance to explain, in person or by phone, before deciding; the conversation is recorded. The decision is to appoint, to appoint with recorded safeguards, such as additional spot checks or not supporting with money during probation, which are reviewed at the end of probation, or to withdraw the offer. Where the risk assessment finds information relevant to the role and the decision is to appoint, the Nominated Individual must approve before clearance."
+        },
+        {
+          "p": "Deliberately withholding a relevant caution or conviction, or giving false information, leads to the offer being withdrawn. Where identity or right to work documents appear forged, the Registered Manager reports this to the police through Report Fraud, and to the Home Office. When an offer is withdrawn, the HR Manager writes to the candidate within 2 working days giving the reason, unless the police ask us not to."
+        }
+      ]
+    },
+    {
+      "heading": "Clearance and starting work",
+      "blocks": [
+        {
+          "steps": [
+            "The HR Manager completes the pre-employment checklist in the staff record, uploading the evidence for each item and confirming that each is complete and satisfactory.",
+            "The Registered Manager or Deputy Manager, or the Nominated Individual for those two posts, reviews the whole file, including the references, the history and any risk assessment, and records cleared to work with the date. The same person never both completes the checks and signs clearance.",
+            "The HR Manager confirms the start date and induction plan to the worker and the Care Coordinator.",
+            "The worker starts induction and serves a 6-month probation period under the Induction and Care Certificate Procedure."
+          ]
+        },
+        {
+          "p": "Before clearance a new starter must not visit or contact the people we support, shadow a visit, receive key safe codes or have access to care records. Office-based induction training with no people we support present may start before the DBS certificate arrives once identity and right to work are confirmed, the DBS application has been submitted and at least one satisfactory reference has been received."
+        },
+        {
+          "p": "We do not start anyone in work with the people we support, including shadowing, on the strength of a DBS Adult First result (an early check of the adults' barred list) or any other partial check. If a delay in checks puts visits at risk, the Registered Manager covers them under the Business Continuity and Emergency Planning Policy, not by starting an uncleared worker."
+        }
+      ]
+    },
+    {
+      "heading": "Other workers and changes of role",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Agency workers",
+          "blocks": [
+            {
+              "p": "We use only agencies with a written agreement requiring them to complete the Schedule 3 checks, supply only workers aged 18 or over, supervise and appraise their workers, confirm vaccination offers and immunity checks for each worker before their first shift, report RIDDOR events for their workers and confirm their decision to us in writing within 5 working days, meet the agency terms in the Right to Work and Sponsored Workers Policy, the Modern Slavery and Human Trafficking Policy, the Anti-Bribery and Fraud Prevention Policy and the Conflicts of Interest Policy, and require their workers to follow the Staff Code of Conduct. Before an agency worker's first shift, the HR Manager, or the On-call Manager out of hours, receives and checks the agency's written profile confirming the worker's photo, identity, right to work, an enhanced DBS check with the adults' barred list and its date, references, employment history and training. The Care Coordinator or Field Care Supervisor checks their photo ID and gives a local induction before the first visit."
+            }
+          ]
+        },
+        {
+          "heading": "Bank staff, returners and internal moves",
+          "blocks": [
+            {
+              "p": "Bank staff are recruited exactly as employees. A former worker returning after a break of less than 3 months, whose previous checks with us were satisfactory, completes an updated application covering the break and a new self-declaration; we obtain a reference from any employer during the break, a DBS Update Service status check or a new DBS check, and a right to work check. After a break of 3 months or more, or where there was any concern about their previous employment with us, the full process applies."
+            },
+            {
+              "p": "A worker moving to a new role is interviewed against its person specification. The panel reviews their supervision, conduct and training records, and a new DBS check is completed before they start if the new role needs a higher level of check."
+            }
+          ]
+        },
+        {
+          "heading": "Students, volunteers and contractors",
+          "blocks": [
+            {
+              "p": "Students aged 18 or over on care placements start only after their college or university confirms in writing their identity, right to work and an enhanced DBS check with the adults' barred list, and the HR Manager has checked that confirmation and their photo ID. They visit only alongside a named member of staff, with the person's agreement as for shadowing, and never alone. Students under 18 and school work experience pupils are placed only in the branch office under the Young Workers Procedure: they are never in regulated activity or alone with anyone, so no DBS check is requested. We do not use volunteers in regulated activity. Any other volunteer role is approved by the Registered Manager and filled through an application with a 5-year history, an interview, two references and the DBS check the role is eligible for. Contractors who may meet the people we support or access their personal data confirm their identity, have at least a basic DBS check, sign a confidentiality agreement and are never unaccompanied in a person's home."
+            }
+          ]
+        },
+        {
+          "heading": "Overseas recruitment and sponsored workers",
+          "blocks": [
+            {
+              "p": "We follow the Code of practice for the international recruitment of health and social care personnel in England: we do not actively recruit from countries on its red list, we use only recruitment agencies on the ethical recruiters list, and candidates never pay recruitment fees. Care worker and senior care worker roles (occupation codes 6135 and 6136) cannot be sponsored for anyone applying from overseas, and we do not recruit care staff from abroad. They can be sponsored only for a person in the UK who meets the care worker immigration status requirement in the current Home Office sponsor guidance, as the Right to Work and Sponsored Workers Policy sets out. We offer sponsorship only after the HR Manager has confirmed eligibility against that guidance."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Equality and fairness",
+      "blocks": [
+        {
+          "p": "We do not discriminate because of age, disability, gender reassignment, marriage or civil partnership, pregnancy or maternity, race, religion or belief, sex or sexual orientation, and we never treat a candidate less favourably because they are or are not a trade union member. The Equality, Diversity and Inclusion Policy applies to every stage of recruitment."
+        },
+        {
+          "p": "Section 60 of the Equality Act 2010 restricts questions about health or disability before a job offer. We ask only about adjustments to the recruitment process before an offer and collect all other health information through the post-offer questionnaire."
+        },
+        {
+          "p": "Each year the HR Manager analyses applicants, shortlisted candidates and appointments by protected characteristic using anonymised figures recorded when each recruitment closes and before monitoring forms are deleted; the Registered Manager acts on any group that is under-represented or less successful at any stage."
+        }
+      ]
+    },
+    {
+      "heading": "Keeping checks up to date after appointment",
+      "blocks": [
+        {
+          "p": "Regulation 19 requires us to act when a person we employ no longer meets the fit and proper requirements, and to tell the relevant professional regulator where that person is registered with one. Our arrangements are:"
+        },
+        {
+          "bullets": [
+            "Every worker must tell the Registered Manager or HR Manager before their next shift, and within 24 hours at most, if they are arrested, charged, cautioned or convicted, become subject to a police investigation, are referred to the DBS or a professional regulator, or lose their driving licence when the role requires driving. Failing to tell us is a disciplinary matter.",
+            "We ask every worker in regulated activity to join the DBS Update Service within 30 days of their certificate being issued, and we reimburse the annual fee. The HR Manager checks each subscriber's status every 12 months. Workers who do not subscribe have a new enhanced DBS check every 3 years.",
+            "Every worker signs a renewed self-declaration each year at their appraisal, under the Supervision, Spot Checks and Appraisal Policy.",
+            "Right to work follow-up checks, professional registration renewals and driving documents are tracked by expiry date in the training and compliance records and checked before they expire.",
+            "Any new information about suitability is handled under the Staff Fitness Concerns and DBS Referrals Procedure."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Application, shortlisting scores, interview notes and scores, offer and acceptance",
+                "Recruitment record, then the staff record on appointment",
+                "Employment plus 6 years"
+              ],
+              [
+                "Pre-employment checklist, check evidence and clearance",
+                "Staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Copy of the DBS certificate, criminal records declaration and risk assessment",
+                "Restricted section of the staff record, open only to the HR Manager, Registered Manager, Deputy Manager and, when approving an appointment, the Nominated Individual",
+                "Certificate copy deleted when employment ends; its date, type, number, the role and the decision are kept for employment plus 6 years"
+              ],
+              [
+                "Right to work evidence",
+                "Staff record",
+                "Employment plus 2 years, as the Home Office employer's guide requires"
+              ],
+              [
+                "Health questionnaire and occupational health advice",
+                "Restricted section of the staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Unsuccessful candidates, including any DBS information and equality monitoring forms",
+                "Recruitment record",
+                "6 months after the candidate is told the outcome, then deleted at the HR Manager's written request to the CareFlow supplier, as CareFlow cannot yet delete a candidate record; where a DBS application was submitted, the identity check record alone is kept for 2 years from submission, as the DBS ID checking guidelines require"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "We keep a copy of each DBS certificate during employment because Regulation 19(3) and Schedule 3 require a copy to be available; Paper documents are scanned into CareFlow by the HR Manager within 2 working days of arrival and shredded the same day as the page check. Applicant and staff data are handled under the Staff Personal Data and HR Records Policy and the Records Management and Retention Policy, and no record is deleted while a claim, investigation or safeguarding enquiry is open."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Safer recruitment: Regulation 19 and Schedule 3, values-based interviewing, exploring gaps and reasons for leaving, assessing information of concern, equality and reasonable adjustments, and this policy",
+                "Anyone who shortlists, interviews or signs clearance, including the Nominated Individual",
+                "Before first shortlisting or interviewing, followed by sitting in on 2 interviews led by a trained colleague",
+                "Every 3 years"
+              ],
+              [
+                "Identity and right to work document checking, including Home Office online checks and signs of forgery",
+                "HR Manager, Office staff who check documents, and On-call Managers who check agency profiles",
+                "Before carrying out a first check",
+                "Every 12 months, and within 2 weeks of a change to the Home Office employer's guide or the DBS ID checking guidelines"
+              ],
+              [
+                "DBS certificates: eligibility, filtering, the DBS Code of Practice and handling certificate information",
+                "HR Manager, Registered Manager, Deputy Manager",
+                "Before making a first decision on a certificate",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager or Deputy Manager checks item by item the first 5 recruitment files completed by a new HR Manager or Office staff member before those workers are cleared. Anyone whose recruitment work falls short in an audit is retrained before they recruit again. Training is recorded in training and compliance records, and everyone in this policy's audience acknowledges it in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Vacancies, time from offer to clearance, offers withdrawn and why, offers kept open beyond 6 weeks, overdue DBS status checks, right to work and registration renewals, recruiters' training",
+                "Monthly recruitment report",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Staff files against Schedule 3 and this policy, target 100% compliant",
+                "Audit of 10 files of staff appointed in the quarter, or all if fewer, plus 5 files of longer-serving staff for ongoing checks, quarterly",
+                "Deputy Manager",
+                "Registered Manager; quarterly governance report to the Directors"
+              ],
+              [
+                "Agency assurance",
+                "Sample of 3 worker files from each agency used, and the agreement terms, each November",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Fairness and data retention",
+                "Equality analysis of each recruitment stage and check that expired applicant records were deleted, annually",
+                "HR Manager",
+                "Directors in the annual recruitment report"
+              ],
+              [
+                "The whole recruitment process",
+                "End-to-end audit of 5 recruitments, including at least one involving information of concern, annually",
+                "Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "If anyone works with the people we support before being cleared, the Registered Manager stops them at once, it is logged as an incident the same day, the safeguarding lead decides the same day whether any person they visited is at risk and acts under the Safeguarding Adults Policy, the Nominated Individual is told within 24 hours, and it is investigated under the Incident Reporting, Investigation and Learning Policy. Every audit shortfall is recorded with an action, owner and deadline, and the Registered Manager checks completion at the next audit."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or DBS or Home Office guidance, a serious incident involving a member of staff, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

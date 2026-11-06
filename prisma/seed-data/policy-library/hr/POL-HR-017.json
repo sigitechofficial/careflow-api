@@ -1,0 +1,609 @@
+{
+  "reference": "POL-HR-017",
+  "revision": 1,
+  "title": "Mobile Phones and Social Media Policy",
+  "documentType": "POLICY",
+  "summary": "How everyone who works for us uses work phones and personal phones at visits, in the office and on call; when photographs and recordings are allowed; how we message about work; and the social media rules, at work and outside it, that protect the privacy, dignity and safety of the people we support and our staff. It also says what we monitor on work phones and how breaches are handled. For all employees.",
+  "keyPoints": {
+    "intro": "Your phone is how you check in, record care and get help, and also the easiest way to breach someone's privacy. These rules apply at every visit, between visits and online, at work and outside it.",
+    "points": [
+      "Use your work phone for work only. Keep it locked with your own passcode, keep it on you at every visit and never let anyone else use it. If it is lost or stolen, phone the office or On-call Manager at once, whatever the time.",
+      "During a visit your personal phone stays silent and out of sight: no personal calls, messages, social media or earphones. For an urgent personal matter, make the person safe, tell them, step aside and keep it brief.",
+      "Never use your own phone to photograph or record anything at a visit, or record a conversation or call (assessors only, with consent). Body map photographs and video are taken only in CareFlow on the work phone with consent recorded, never as evidence of abuse.",
+      "Never send information about the people we support by text, WhatsApp, personal email or social media. Use CareFlow and phone calls, and never write down, message, screenshot or photograph a key safe code or your rota.",
+      "Never post anything about the people we support, their families, homes or your visits, even without names or faces, and never post a photo showing your ID badge or taken at or near a person's home.",
+      "Unless you knew them before their care began, never give a person or their family your number or social media details, and never accept or reply to a friend request, follow or message. Tell the office the same day.",
+      "Never hold or use a phone while driving, even when stopped in traffic, and make or take no calls, even hands-free. Park safely with the engine off first. Nobody expects you to answer while driving.",
+      "Bullying, harassing or discriminatory posts or messages about anyone connected with work are misconduct, including in private groups and outside working hours. Treat colleagues online as you would face to face.",
+      "Your personal views are your own: never present them as ours and never reply to posts or reviews about us. Pass media approaches and posts about you or us to the office.",
+      "If you post, send or record something by mistake, phone the office straight away. Reporting your own mistake promptly is never in itself a reason for disciplinary action; hiding it is.",
+      "We never monitor your personal phone or social media accounts. Your work phone is managed so it can be updated, locked, wiped and found if lost; its contents are examined only in an investigation."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-SG-009",
+    "POL-HR-007",
+    "POL-GOV-016",
+    "POL-GOV-019",
+    "POL-GOV-015",
+    "POL-CD-004",
+    "POL-HR-013",
+    "POL-HR-019"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 10 (dignity and respect), paragraph (2)(a) ensuring the privacy of the service user",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/10"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 (good governance), paragraphs (2)(c) and (d): records maintained securely",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Data Protection Act 2018, section 170(1) (unlawful obtaining etc. of personal data)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/170"
+    },
+    {
+      "source": "Sexual Offences Act 2003, section 66B (sharing or threatening to share an intimate photograph or film), inserted by the Online Safety Act 2023 from 31 January 2024",
+      "url": "https://www.legislation.gov.uk/ukpga/2003/42/section/66B"
+    },
+    {
+      "source": "Road Vehicles (Construction and Use) Regulations 1986, regulation 110 (hand-held mobile phones and devices while driving; causing or permitting)",
+      "url": "https://www.legislation.gov.uk/uksi/1986/1078/regulation/110"
+    },
+    {
+      "source": "Investigatory Powers (Interception by Businesses etc. for Monitoring and Record-keeping Purposes) Regulations 2018, regulation 3 (lawful business monitoring purposes)",
+      "url": "https://www.legislation.gov.uk/uksi/2018/356/regulation/3"
+    },
+    {
+      "source": "Investigatory Powers (Interception by Businesses etc. for Monitoring and Record-keeping Purposes) Regulations 2018, regulation 4(1)(c) (all reasonable efforts to inform users that communications may be intercepted)",
+      "url": "https://www.legislation.gov.uk/uksi/2018/356/regulation/4"
+    },
+    {
+      "source": "Equality Act 2010, section 109 (liability of employers for acts of employees in the course of employment; all reasonable steps defence)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/109"
+    },
+    {
+      "source": "GOV.UK, Data protection and your business: monitoring staff at work",
+      "url": "https://www.gov.uk/data-protection-your-business/monitoring-staff-at-work"
+    },
+    {
+      "source": "Skills for Care, Code of Conduct for Healthcare Support Workers and Adult Social Care Workers in England (voluntary; adopted by us under the Staff Code of Conduct)",
+      "url": "https://www.skillsforcare.org.uk/Support-for-leaders-and-managers/Managing-people/Code-of-Conduct.aspx"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} gives its care staff a work phone because that is how care is recorded in CareFlow, how visits are checked in and out, and how a care worker alone in someone's home reaches the office or the On-call Manager. Phones and social media can also expose the people we support at their most private moments, reveal when they are alone and how to get into their homes, and take attention away from care or from the road."
+        },
+        {
+          "p": "{{organisation}} requires everyone who works for us to use phones only in ways that support safe, dignified care, to keep what they see and hear in people's homes off personal devices and off the internet, and to treat colleagues online as they would face to face. We never monitor personal phones or personal social media, and this policy limits what staff do online only where it involves the people we support, their families, colleagues or their work for us. It helps us meet Regulations 10 (privacy and dignity) and 17 (secure records) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 and data protection law."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets the rules for work and personal phones at visits, on the road and in the branch office; photographs and recordings; work messages; social media; what we monitor on work phones; and how breaches are reported and handled."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee of {{organisation}}, including bank staff, apprentices and staff on probation, to the Directors when they act for us, and to agency workers, as our agency agreements require. Students on placement follow it and never use a phone during a visit except to call 999. It covers work and personal phones, smartwatches, tablets and computers used for anything connected with work, at visits, travelling, in the branch office, on call and working from home, and conduct outside work wherever a post, message, recording or contact involves the people we support, their families, colleagues or {{organisation}}."
+        },
+        {
+          "p": "Related detail is owned by: the Acceptable Use of IT and Devices Policy (everyday use of work devices, CareFlow location records, email and artificial intelligence tools); the Information and Cyber Security Policy (device security, accounts and access reviews); the Daily Records and Visit Notes Procedure (recording visits when a phone fails); the Professional Boundaries Policy (contact with people and families); the Consent to Care Policy (consent for photographs, video and recorded assessments); the Driving at Work Policy; the Lone Working and Staff Personal Safety Policy (lone worker devices); the Personal Data Breach Procedure; the Technology-Enabled Care and Telecare Policy (cameras and sensors used in a person's care); the Complaints Policy and Procedure (online reviews); and the Staff Personal Data and HR Records Policy (staff records, including monitoring records)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Work phone",
+                "A smartphone {{organisation}} issues for work, with a work number, data, CareFlow and other apps installed through device management, including the on-call phone and the spare phones held at the branch office."
+              ],
+              [
+                "Personal device",
+                "Any phone, smartwatch, tablet, camera or computer we have not issued."
+              ],
+              [
+                "Device management",
+                "The service our IT support provider uses to set up, update and secure work phones, control their apps, and lock, wipe and locate a lost or stolen phone."
+              ],
+              [
+                "Social media",
+                "Any website or app where people share content or talk to each other, including messaging apps such as WhatsApp, forums, review sites and dating apps."
+              ],
+              [
+                "Post",
+                "Anything shared online, including photographs, videos, live streams, stories, comments, reactions, shares, check-ins and group messages, public or private, lasting or disappearing."
+              ],
+              [
+                "Recording",
+                "A photograph, video, audio recording, screenshot or screen recording."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and fund work phones with enough data, device management, spare phones and power banks. Only the Nominated Individual or a Director posts on our official social media accounts and website or replies publicly for us. The Nominated Individual approves any covert monitoring and reviews phone and social media incidents quarterly."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy and makes sure every employee acknowledges it. As safeguarding lead and breach lead, they handle reported posts, messages and recordings as set out in Reporting and handling breaches and approve any examination of a work phone's contents. The Deputy Manager acts when the Registered Manager is absent, and the Nominated Individual where the Registered Manager is involved."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager issues work phones and keeps the work phone register in each staff record, recovers phones from leavers and suspended staff and has each returned phone wiped and its CareFlow access removed the same day, reconciles the register monthly, reviews the monthly usage report and runs the acknowledgement report."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Office staff and On-call Managers",
+          "blocks": [
+            {
+              "p": "Care Coordinators issue spare phones to agency workers and to workers whose phone fails. Office staff, and On-call Managers out of hours, take reports of lost phones and start containment at once. Their texts to work phones follow Messages and calls about work, and they never give anyone a worker's personal number. On-call Managers keep the on-call phone with them, answer at once or return a missed call within 15 minutes, and divert it to the escalation manager before driving."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors check phone use at every spot check, handle a first minor lapse under the Staff Code of Conduct, and tell the Registered Manager the same working day about any other breach."
+            }
+          ]
+        },
+        {
+          "heading": "Every member of staff",
+          "blocks": [
+            {
+              "p": "Every member of staff follows this policy, reports losses, mistakes and colleagues' breaches as set out below, and asks their supervisor when unsure whether something is allowed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Work phones",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Issue and use",
+          "blocks": [
+            {
+              "p": "Every Care Worker, Senior Care Worker, Field Care Supervisor, Care Coordinator and On-call Manager receives a work phone from the HR Manager before their first shadow shift, and nobody uses CareFlow on a personal device. Agency workers receive a spare phone from the Care Coordinator at local induction, return it at the end of each assignment, and use only their own CareFlow log-in, never another worker's. Each worker signs a receipt for their phone, saved in the staff record with its register entry, which records the phone's serial number in the items issued to the worker. We never charge for a work phone, its data, repair or replacement, even when it is lost or damaged."
+            },
+            {
+              "p": "The work phone is used for CareFlow; calls to the office, the On-call Manager, colleagues about work, professionals, NHS 111 and 999; the translation app approved under the Communication and Accessible Information Policy; any lone worker app we issue; the e-learning app, in paid time as the Acceptable Use of IT and Devices Policy sets out; navigation set before moving off, with the phone in a holder; and the photographs, video and voice notes this policy allows. It is never used for personal apps, social media, personal email, games, streaming, personal photographs or contacts; a brief personal call is allowed only when urgent and the worker's own phone is unavailable. Only apps installed through device management are used, and nobody else, including the worker's family or the person we support, ever uses it."
+            }
+          ]
+        },
+        {
+          "heading": "Keeping it secure",
+          "blocks": [
+            {
+              "bullets": [
+                "Use a passcode of at least 6 digits, or fingerprint or face unlock backed by it. Never share or write it down. The screen locks after 2 minutes without use; lock it yourself whenever you put it down.",
+                "Keep it on you at every visit, never in a bag in another room, never left in a home and never on view in a vehicle.",
+                "Install updates when asked, by the end of your next shift at the latest.",
+                "Never connect it to a person's wifi or public wifi. Charge it before every shift and never plug it in at a person's home; we give you a power bank free on request.",
+                "Never touch it while wearing gloves, clean your hands after using it during a visit, and wipe it with a detergent wipe at the start of every shift and straight away if contaminated, as the Standard Infection Control Precautions Procedure requires.",
+                "Never keep key safe codes, addresses or notes about a person anywhere but CareFlow, and never install a smart lock app on your personal phone.",
+                "Phone a person we support or their family only when the care plan or the office asks you to, from the work phone with your number withheld, so that they contact us through the office. When nobody answers the door, the office makes the calls, as the No Reply, No Access and Missing Person Procedure sets out."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "When it fails or is lost",
+          "blocks": [
+            {
+              "steps": [
+                "If the phone or CareFlow fails, phone the office, or the On-call Manager out of hours, on arrival and before leaving each visit, from your own phone or the person's landline with their agreement. They record your check-in, check-out and account of the visit as the Daily Records and Visit Notes Procedure sets out and give you any key safe code by voice just before the visit. Medicines are recorded as the Medicines Administration Records (MAR and eMAR) Procedure sets out.",
+                "The Care Coordinator, or the On-call Manager out of hours, gets a spare phone to you before your next shift, or during the shift where visits remain and it can reach you.",
+                "If the phone is lost or stolen, phone the office or On-call Manager at once, whatever the time. Within 1 hour they ask our IT support provider to lock and wipe it and reset your CareFlow password, and the loss is handled under the Personal Data Breach Procedure. Report a theft to the police the same day and give the office the crime reference. Key safe codes are treated as compromised unless the Registered Manager (out of hours, the escalation manager under the Personal Data Breach Procedure) confirms the same day that the phone was locked and its access removed before it could be used, under the Key Holding, Key Safes and Access to People's Homes Procedure.",
+                "Report damage the same day and return the phone to the HR Manager; never have it repaired yourself. A lost phone that turns up is not used until the IT support provider confirms it is safe."
+              ]
+            },
+            {
+              "p": "Work phones are returned on or before the last working day, and on suspension as the Disciplinary Policy and Procedure sets out. A phone not returned by the last working day is locked remotely that day and, if not back within 2 working days, handled as a lost phone."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Phones during visits and at work",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What you do"
+            ],
+            "rows": [
+              [
+                "Using the work phone during a visit",
+                "Use it for check-in, check-out, the care plan, the eMAR and daily visit notes, and tell the person what you are doing. Never use it while giving personal care. If the office or On-call Manager phones then, finish the step safely and call back before you leave."
+              ],
+              [
+                "Your personal phone during a visit",
+                "Silent and out of sight. No personal calls, messages, social media, browsing or games, and no earphones or earbuds at any time. A smartwatch is taken off for care, as bare below the elbows requires, and never used to record."
+              ],
+              [
+                "An urgent personal matter, such as a call from your child's school",
+                "Make the person safe, tell them, step aside and keep it brief. If you must leave early, complete the essential tasks first and phone the office before you leave."
+              ],
+              [
+                "A person or relative asks to use your phone",
+                "Never lend your work or personal phone. Help them use their own phone or landline, and call 999 yourself in an emergency."
+              ],
+              [
+                "A person asks for help with their own phone, tablet or smart speaker",
+                "Help them answer a call, start a video call or play music. Never log in to their accounts, use their banking, shopping or NHS App, read their messages unless asked to read one aloud, or connect your phone to their devices."
+              ],
+              [
+                "Breaks and travel",
+                "Use your personal phone on breaks, which are never taken in a person's home, and between visits only when parked with the engine off, never while driving or cycling. If you will be more than 15 minutes late, or at all late for a time-critical visit, phone the office (the On-call Manager out of hours) once parked; the office, not you, tells the person."
+              ],
+              [
+                "Branch office and working from home",
+                "Never photograph screens, whiteboards or papers, and make personal calls away from desks where calls about people are taken. On-call Managers working from home use only work devices and cannot be overheard, as the Data Protection Policy requires."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Driving: the law forbids using a hand-held phone or other device that can send and receive data while driving, even to check the time or a notification, except to call 999 or 112 in a genuine emergency when it is unsafe or impracticable to stop, and anyone who causes or permits a driver to do so also commits an offence (Road Vehicles (Construction and Use) Regulations 1986, regulation 110). Our rule, set by the Driving at Work Policy, is stricter: never hold a phone unless parked with the engine off, and make or take no calls while driving, even hands-free. Nobody expects a driver to answer."
+        }
+      ]
+    },
+    {
+      "heading": "Photographs, video and audio recordings",
+      "blocks": [
+        {
+          "p": "Sharing a photograph or film that shows, or appears to show, a person in an intimate state, without their consent or a reasonable belief that they consent, is a criminal offence (Sexual Offences Act 2003, section 66B)."
+        },
+        {
+          "bullets": [
+            "Never photograph, film or record a person we support, their home, belongings, pets, documents or household on a personal device, including selfies at the person's request.",
+            "Body map photographs are taken only to monitor skin, wounds and pressure areas and to share with the district nurse, GP or tissue viability nurse, and only in the CareFlow app on the work phone, so they are saved only to the person's record and never kept on the phone. Ask the person each time and take one only when CareFlow records their consent as given or a best interests decision under the Mental Capacity Act 2005, as the Consent to Care Policy sets out; if consent is refused or pending, complete the body map without a photograph. Never photograph the face or intimate areas unless the care plan records this as clinically necessary and agreed, and keep the person covered throughout. Body map video follows the same rules, only where the care plan records a clinical reason, such as showing a district nurse how a wound or movement has changed.",
+            "Any other photograph for care is taken only through CareFlow on the work phone, for a purpose recorded in the care plan, with signed consent or a best interests decision approved by the Registered Manager or Deputy Manager, under the Consent to Care Policy. Delete any copy left in the phone's gallery before you check out, and never send or forward a photograph or video from the phone: the Care Coordinator shares body map photographs from CareFlow with the district nurse, GP or tissue viability nurse under the Confidentiality and Information Sharing Policy. If a relative or anyone else asks you for a photograph, explain that you cannot and phone the office.",
+            "Apart from body map photographs and video, never photograph or film, even on the work phone: a DNACPR or ReSPECT form, which is never copied (DNACPR and ReSPECT Protocol); a letter, prescription, discharge paper or other document (tell the office, which obtains a copy from the sender); the home or belongings of a person who self-neglects; a child; or anything during intimate care. Nobody photographs an injury or scene to gather evidence of suspected abuse or neglect: record it on the CareFlow body map and in the safeguarding record, and leave evidence gathering to the police and the local authority. A body map photograph already being taken for skin or wound monitoring is not evidence gathering.",
+            "Apart from body map video and the assessment recordings below, nobody makes a video or audio recording of a person we support, their family, a visit or a phone call. You may dictate your own visit notes, handovers and concerns as CareFlow voice notes: your own account, made away from the person or with them aware that you are dictating, never capturing the person, their family or anyone else speaking, and stored only in CareFlow. Anything CareFlow requires as text, such as medicines records and incident details, is still typed, as the Daily Records and Visit Notes Procedure sets out.",
+            "Only the assessor (Registered Manager, Deputy Manager, Care Coordinator or Field Care Supervisor) carrying out an initial assessment may record the conversation, in CareFlow, which keeps its transcript, and only after recording there the explicit consent of the person and anyone else present; the recording is kept only in CareFlow for the period in the Records Management and Retention Policy. Nobody records a colleague or any meeting, including supervision, investigation, disciplinary and grievance meetings, unless everyone present agrees beforehand or the HR Manager has agreed in writing to an open recording as a reasonable adjustment.",
+            "Never screenshot, screen-record or photograph CareFlow, the rota, a key safe code or a message about a person. The only exception is abusive or harassing messages you have received, kept to show your manager."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When people record us",
+      "blocks": [
+        {
+          "p": "Cameras and video doorbells in a person's home are their or their family's choice. The assessor records them in the environmental risk assessment and the Care Coordinator tells care workers before their first visit. Staff work on the basis that they may be recorded at any time and never cover, switch off, move or ask anyone to remove a camera."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "You are uncomfortable with a camera, for example where intimate care is given",
+                "Tell the Care Coordinator; care continues meanwhile. The Care Coordinator speaks with the person or family within 5 working days and records the agreed arrangement in the care plan."
+              ],
+              [
+                "You find a camera nobody told you about",
+                "Carry on and tell the office the same day, or phone before you leave if the camera seems to be used to watch, control or frighten the person, which is a safeguarding concern. The Care Coordinator updates the environmental risk assessment and tells the other workers before their next visit. Where the person may lack capacity to agree to being watched, the Registered Manager considers the same working day whether it is a restriction under the Deprivation of Liberty in the Community Procedure."
+              ],
+              [
+                "A person or relative films you on a phone",
+                "Stay professional and continue care unless you feel unsafe, when the Violence and Aggression Towards Staff Policy applies. Tell the office the same day."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Messages and calls about work",
+      "blocks": [
+        {
+          "bullets": [
+            "Care information goes only into CareFlow or by phone call, never by text, WhatsApp or any other messaging app, personal email or social media, as the Confidentiality and Information Sharing Policy requires.",
+            "Rota changes are made on the CareFlow rota and phoned through. Office texts to work phones either ask the worker to phone in or give general information, such as a weather warning; they never contain a name, address, visit time, care detail, code or link, and never ask for a password, code or personal details. A text seeming to come from us that contains a link or asks for any of these is a scam: report it to the office before the end of your shift, as the Information and Cyber Security Policy sets out.",
+            "We do not use messaging-app groups to run the service. Visit swaps, cover and information about people are never arranged or passed on in a group; only the office changes the rota.",
+            "Groups staff set up among themselves are personal, but this policy applies to them: nothing about the people we support (even without names), incidents, complaints, rotas or colleagues' personal lives, and no bullying. A manager in a group removes offensive content where they can and reports it the same working day; anyone sent content about a person we support never forwards it and tells the office the same day.",
+            "Non-urgent calls and messages to staff who are not working are made only between 8am and 8pm, and nobody is criticised for not answering on a day off or outside rostered hours. Calls about safety, an incident, a missed check-out or covering a visit that would otherwise be missed may be made at any time. A worker on a break is phoned only if a person is at risk.",
+            "Never enter information about a person we support or a colleague into an artificial intelligence tool, voice assistant or app that is not on the approved software list (Acceptable Use of IT and Devices Policy), and never discuss a person on the phone where you could be overheard."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Social media",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Your own accounts",
+          "blocks": [
+            {
+              "p": "Staff are free to use social media in their own time. You may say that you work for {{organisation}} and in what role, share our official posts and job adverts, and talk about care work in general, your training and your achievements. You must never:"
+            },
+            {
+              "bullets": [
+                "post or share anything about the people we support, their families, homes or visits, even without names or faces, including tributes after a person dies and posts in private groups or disappearing stories;",
+                "post photographs taken at or near a person's home, check in at their address, or post your location or route while working;",
+                "post a photograph showing your ID badge, keys, a key safe, the rota or CareFlow; uniform photographs are allowed only away from people's homes, with the badge out of sight and with the agreement of any colleague shown;",
+                "post anything about an incident, complaint, safeguarding concern, allegation or investigation;",
+                "post a colleague's health, personal life, rota or whereabouts without their agreement, or anything that bullies, harasses, threatens or discriminates against anyone;",
+                "set up or share an appeal or fundraising for a person we support, or write or ask anyone to write a review of us or a competitor."
+              ]
+            },
+            {
+              "p": "Your views are your own: never present them as ours, and say so when you comment on care as someone who works for us. Pass a journalist's approach to the office, which tells the Nominated Individual the same day. Raise concerns about us under the Grievance Policy and Procedure or the Whistleblowing (Speaking Up) Policy rather than online. Nothing in this policy stops anyone making a protected disclosure, taking part in lawful trade union activity or discussing pay and conditions with colleagues."
+            }
+          ]
+        },
+        {
+          "heading": "People we support and their families",
+          "blocks": [
+            {
+              "p": "The Professional Boundaries Policy applies in full online. Unless you knew them before their care began, never give a person or their family your number or social media details, never message them from your own phone or save their numbers in it (if you ever have to phone them from it, withhold your number), and never send, accept or reply to a friend request, follow or message. Tell the office the same day; a Field Care Supervisor or the Care Coordinator explains our rules to them within 5 working days. A relative who asks for updates by text or WhatsApp is told that the office keeps them informed as the care plan records. Contact with someone you knew before their care began may continue, but their care is never arranged or discussed through it, and the 12-month rule after a service ends applies online too."
+            }
+          ]
+        },
+        {
+          "heading": "Colleagues and managers",
+          "blocks": [
+            {
+              "p": "Connecting with colleagues is a personal choice and nobody is pressured to. Anyone who manages, supervises or allocates work to a colleague never sends them a friend or follow request, although they may accept one. Adult staff never connect with or privately message a colleague under 18; contact with young workers is only about work, through work channels in working hours, as the Young Workers Procedure sets out. Online conduct connected with work is treated as conduct at work: the law treats what an employee does in the course of employment as done by the employer too, unless the employer took all reasonable steps to prevent it (Equality Act 2010, section 109). Harassment of a colleague online is handled under the Bullying, Harassment and Sexual Harassment Policy."
+            }
+          ]
+        },
+        {
+          "heading": "When you are targeted online",
+          "blocks": [
+            {
+              "p": "If anyone abuses, threatens or harasses you by message or online because of your work, or shares footage or posts about you or a colleague, do not reply or react. Keep the messages, tell your manager the same day and record it in the incident log; the Registered Manager asks for removal, decides on police involvement under the Violence and Aggression Towards Staff Policy and makes sure you are supported. Posts and reviews about {{organisation}} are passed to the office without reply or reaction and handled under the Complaints Policy and Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What we monitor and your privacy",
+      "blocks": [
+        {
+          "p": "The law allows a business to intercept communications on a system it provides for its work only for specified purposes, such as establishing facts, checking standards or detecting crime or unauthorised use, and only after making all reasonable efforts to tell everyone who uses it (Investigatory Powers (Interception by Businesses etc. for Monitoring and Record-keeping Purposes) Regulations 2018, regulations 3 and 4). We never intercept or record the content of calls or messages on work phones. GOV.UK guidance says employers must tell staff that they are monitored and why; this policy and the employee privacy notice do that."
+        },
+        {
+          "table": {
+            "columns": [
+              "What",
+              "Our arrangement"
+            ],
+            "rows": [
+              [
+                "Personal devices and accounts",
+                "Never monitored. We never ask for passwords or to see private accounts and never search staff's personal social media, including when recruiting. We act only on content that is reported to us or that a manager comes across in the normal course of events."
+              ],
+              [
+                "Work phone settings and location",
+                "Device management keeps the phone updated and secure and can lock, wipe and locate it; it is used to locate a phone only when it is lost or stolen. CareFlow records the phone's location only at check-in and check-out, when the phone leaves the person's home while still checked in and with an in-app emergency alert, never between visits, as the Acceptable Use of IT and Devices Policy sets out. A lone worker app or device is used only for safety and to investigate an incident (Lone Working and Staff Personal Safety Policy)."
+              ],
+              [
+                "Usage",
+                "The HR Manager reviews the network provider's monthly report of call and data totals and numbers called, never content, and raises any unusual use with the worker within 5 working days."
+              ],
+              [
+                "Contents of a work phone",
+                "Never read or listened to routinely. Photographs, call logs or messages are examined only for a specific investigation approved by the Registered Manager (the Nominated Individual where the Registered Manager is involved), with the worker told and present unless covert monitoring is approved."
+              ],
+              [
+                "Covert monitoring",
+                "Only where a crime is suspected and telling the worker would make it hard to detect, for a specific investigation, after a DPIA and the Data Protection Officer's advice, approved in writing by the Nominated Individual, and stopped when the investigation ends."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "CareFlow check-in and check-out records are used for visit monitoring, pay and the boundary exceptions report, as the Missed, Late and Short Visits Procedure, the Working Time, Rest Breaks and Travel Time Policy and the Professional Boundaries Policy set out. Our DPIA for work phones used in people's homes covers these arrangements; any new monitoring needs a DPIA first, and staff receive the revised privacy notice at least 2 weeks before it starts, under the Data Protection Policy. It is a criminal offence knowingly or recklessly to obtain, disclose or keep personal data without the controller's consent (Data Protection Act 2018, section 170), for example by screenshotting a record, sharing a person's details online or keeping copies after leaving."
+        }
+      ]
+    },
+    {
+      "heading": "Reporting and handling breaches",
+      "blocks": [
+        {
+          "p": "Anyone who posts, sends or records something by mistake, or sees a colleague do so, reports it at once. Reporting promptly, including your own mistake, is never in itself a reason for disciplinary action; hiding a breach is."
+        },
+        {
+          "table": {
+            "columns": [
+              "What has happened",
+              "What you do",
+              "What happens next"
+            ],
+            "rows": [
+              [
+                "A recording of a person on a personal device, or a post or message that identifies a person we support or reveals their care, whoever made it",
+                "Phone the office, or the On-call Manager out of hours, at once. Take a post down when the office tells you, normally during that call, and delete nothing else unless told",
+                "Registered Manager (On-call Manager out of hours) decides within 1 hour whether it is a safeguarding concern and grades it under the Professional Boundaries Policy the same working day; Nominated Individual told at once where it has been posted or sent, otherwise the same day; Personal Data Breach Procedure"
+              ],
+              [
+                "Work phone lost or stolen",
+                "Phone at once, whatever the time",
+                "As in When it fails or is lost"
+              ],
+              [
+                "Personal phone used during a visit, or another minor lapse with no effect on anyone",
+                "Put it right",
+                "Minor lapse under the Staff Code of Conduct"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "When the Registered Manager asks for content to be removed, the employee removes it at once where it identifies a person we support, reveals a colleague's personal details or could put anyone at risk, and otherwise within 24 hours. Copies of offending content are made only by the Registered Manager or investigating officer, kept with the incident log entry and never forwarded."
+        },
+        {
+          "p": "Other breaches are investigated under the Disciplinary Policy and Procedure; phone use while driving is a conduct matter under the Driving at Work Policy. Examples of possible gross misconduct under this policy are taking, keeping or sharing a recording of a person we support without authority; posting anything that identifies a person we support or reveals their care; putting information about a person we support or a colleague into an unapproved artificial intelligence tool or onto a personal device or account; passing on a key safe code, address or visit times; looking at, copying or keeping records without a work reason; sharing an intimate image of anyone without consent; and serious online bullying, harassment or discrimination. Where a person may have been harmed or a crime committed, the Registered Manager acts under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure and tells the police. Breaches by agency workers or students are reported to their agency or college as the Staff Code of Conduct sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Work phone issue, return and wipe confirmation",
+                "Work phone register in the staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Monthly usage reports",
+                "Governance records",
+                "12 months; a query raised with a worker is kept in the staff record for employment plus 6 years"
+              ],
+              [
+                "Lost phones, mistaken posts, messages and recordings, and copies of offending content",
+                "Incident log with the breach record",
+                "Under the Records Management and Retention Policy"
+              ],
+              [
+                "Concerns about a worker's posts or recordings, and approvals to examine a work phone or monitor covertly",
+                "Restricted section of the staff record; disciplinary case file",
+                "Employment plus 6 years, or longer where the Disciplinary Policy and Procedure requires"
+              ],
+              [
+                "Spot check findings on phone use",
+                "Supervision and appraisal records",
+                "Employment plus 6 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Breach records identify people we support by their CareFlow reference only. Acknowledgements are kept in CareFlow under the Policy Management and Document Control Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "New starters cover this policy in organisational induction in their first week, alongside information governance training, using scenarios such as a friend request from a relative, a request for a selfie and a family camera. Care staff acknowledge it in CareFlow before lone working sign-off, office staff by the end of week 4, and everyone within 14 days of each new major version; a minor version does not need acknowledging again.",
+            "The HR Manager takes each worker through setting up their work phone (passcode, CareFlow including body map photographs and voice notes, saved numbers, cleaning, reporting a loss) when it is issued; the shadow lead shows how it is used at visits. Agency workers are taken through the key points and the spare phone at local induction.",
+            "Social media, recordings and messaging are covered again in the 12-monthly information governance refresher (Training and Development Policy).",
+            "A worker who falls short at a spot check is taken through the rule privately at once and rechecked at the next spot check, or within 4 weeks where recorded as a shortfall under the Quality Audit and Monitoring Procedure.",
+            "Any manager who examines a work phone in an investigation has completed the disciplinary investigation training."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Acknowledgement of each new major version: target 95% within 14 days, 100% within 28 days",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Phone use at visits: work phone locked and on the worker, no images in its gallery, personal phone out of sight and unused",
+                "Every spot check",
+                "Field Care Supervisors",
+                "Supervision records; shortfalls in the quarterly spot check audit"
+              ],
+              [
+                "Register matches the staff list and device management, and every returned phone was wiped and its CareFlow access removed the same day: target 100%",
+                "Monthly, with the account reconciliation under the Information and Cyber Security Policy",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Lost phones, improper posts, messages and recordings, and online harassment, by type and branch; lock and wipe requested within 1 hour of every loss: target 100%",
+                "Quarterly",
+                "Registered Manager",
+                "Nominated Individual; Directors in the quarterly governance report"
+              ],
+              [
+                "At least 90% of staff say they know what they may post and are not expected to answer non-urgent contact outside 8am to 8pm or on days off",
+                "Annual staff survey in September",
+                "HR Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall goes into the service improvement plan with an owner and a deadline. The Registered Manager, with the HR Manager, reviews this policy every 24 months for approval by the Directors under the Policy Management and Document Control Policy, or sooner after a change in law or national guidance, a serious incident or personal data breach involving a phone, recording or post, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

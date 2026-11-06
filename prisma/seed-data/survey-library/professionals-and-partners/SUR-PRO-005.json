@@ -1,0 +1,399 @@
+{
+  "reference": "SUR-PRO-005",
+  "revision": 1,
+  "title": "Feedback from advocates and community organisations",
+  "audience": "PUBLIC",
+  "audienceGroup": "ADVOCATES",
+  "respondents": "Independent advocates (IMCA, Care Act advocates, IMHA and paid representatives) and voluntary, faith and community organisations that worked with us in the last 12 months",
+  "summary": "A short yearly survey for advocates and community organisations: how well we communicate, follow advice, share information and work in partnership; for advocates, whether we ask for advocacy early, let you see people in private and make decisions that reflect what people want; for community groups, whether we help people take part. About 7 minutes.",
+  "purpose": "Advocates see whether we put the voice of people who struggle to speak for themselves at the centre: whether we ask for advocacy in time, let advocates meet people privately, involve them in reviews and best interests decisions, and act on what the person wants. Voluntary, faith and community organisations see whether we help people stay connected with local life. Neither group is covered by the health and social care professionals' survey, so this survey brings their views into the yearly professionals' result through the four shared themes and the overall rating, and gives separate evidence on advocacy under the Mental Capacity Act and Best Interests Policy and on community links under the Person-Centred Care, Dignity and Respect Policy.",
+  "timing": {
+    "when": "Once a year, on the first working day of February with the professionals' survey, open 4 weeks",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "TELEPHONE", "PAPER"],
+  "estimatedMinutes": 7,
+  "cqc": {
+    "keyQuestions": ["WELL_LED", "RESPONSIVE", "CARING", "EFFECTIVE"],
+    "qualityStatements": [
+      "Partnerships and communities",
+      "Listening to and involving people",
+      "Independence, choice and control",
+      "Consent to care and treatment",
+      "How staff, teams and services work together"
+    ]
+  },
+  "introduction": "{{organisation}} would like your view of how well we work with advocates and community groups, and how we support the people we both know to have a say and stay connected. It takes about 7 minutes. Taking part is up to you. Please do not name anyone we support. If you write the reference number from our invitation, we know which organisation answered and can follow up; if you leave it blank, we will still act on what you tell us.\n\nThis survey is not for urgent concerns. If you are worried about someone's safety, phone our office (out of hours, our on-call number). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve how we work with advocates and community organisations. Our legal reason is our legitimate interest in running a good, safe service.\n\nThis survey is not anonymous. We ask your role, and if you write the reference number or give your details, your answers are linked to your organisation or to you so we can follow them up. Advocacy services and community groups are small, so in a small area your role and organisation may identify you. Only our Registered Manager and Deputy Manager look at individual answers. Reports show combined results only, for groups of 5 or more. If you tell us someone may be at risk of harm, we will tell our safeguarding lead and may tell the council.\n\nWe keep your answers for 3 years after the survey closes, under our Records Management and Retention Policy. You can ask to see, correct or delete your information, or object to our using it, by contacting our office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "q-role",
+          "text": "Which best describes your role?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "IMCA means independent mental capacity advocate. IMHA means independent mental health advocate.",
+          "options": [
+            "Independent advocate, such as an IMCA, Care Act advocate, IMHA or paid representative",
+            "Voluntary, faith or community organisation"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us your role",
+            "textRequired": true
+          }
+        }
+      ]
+    },
+    {
+      "title": "How we work with you",
+      "questions": [
+        {
+          "id": "pro-communicate",
+          "text": "How well do we communicate with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, how easy we are to reach and how quickly we reply. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        },
+        {
+          "id": "pro-follow-advice",
+          "text": "How well do we follow the advice you give us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, about what a person has told you they want, or how to help them join in an activity. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Responsive: Listening to and involving people"
+        },
+        {
+          "id": "pro-share-info",
+          "text": "How well do we share information with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, telling you about reviews, meetings or changes that matter to the person, within what we are allowed to share. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        },
+        {
+          "id": "pro-partnership",
+          "text": "How well do we work in partnership with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, inviting you to reviews and best interests meetings, or helping people take part in your activities. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        }
+      ]
+    },
+    {
+      "title": "Supporting people's voice",
+      "introduction": "These questions are for independent advocates.",
+      "questions": [
+        {
+          "id": "q-advocate-early",
+          "text": "From what you see, do we ask for an advocate early enough when someone needs one?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-role",
+            "answers": ["Independent advocate, such as an IMCA, Care Act advocate, IMHA or paid representative"]
+          },
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Listening to and involving people"
+        },
+        {
+          "id": "q-decisions-wishes",
+          "text": "From what you see, do decisions about people's care reflect what they want?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-role",
+            "answers": ["Independent advocate, such as an IMCA, Care Act advocate, IMHA or paid representative"]
+          },
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Effective: Consent to care and treatment"
+        },
+        {
+          "id": "q-see-private",
+          "text": "When you visit, can you see the person in private?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not visited anyone we support.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-role",
+            "answers": ["Independent advocate, such as an IMCA, Care Act advocate, IMHA or paid representative"]
+          },
+          "comment": {
+            "prompt": "What made it hard? Please do not name anyone we support.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Caring: Independence, choice and control"
+        },
+        {
+          "text": "Has anything made it hard to see records you needed, or to take part in reviews or best interests meetings?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not name anyone we support.",
+          "showIf": {
+            "question": "q-role",
+            "answers": ["Independent advocate, such as an IMCA, Care Act advocate, IMHA or paid representative"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Community links",
+      "introduction": "This question is for voluntary, faith and community organisations.",
+      "questions": [
+        {
+          "id": "q-community-take-part",
+          "text": "Do we help the people we support to take part in your groups or activities when they want to?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-role",
+            "answers": ["Voluntary, faith or community organisation"]
+          },
+          "comment": {
+            "prompt": "What would help? Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Independence, choice and control"
+        }
+      ]
+    },
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "pro-overall",
+          "text": "Overall, how would you rate us as a care provider to work with?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What is the main reason for your rating?",
+            "showWhen": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one thing would make working with us easier or better?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not name anyone we support."
+        },
+        {
+          "id": "q-reference",
+          "text": "Please write the reference number from our invitation, so we know which organisation answered.",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "If you leave it blank, we will still act on what you tell us, but we cannot reply to you."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, our Registered Manager or Deputy Manager will contact you within 5 working days, through your organisation's main number. We can only do this if you give your details below."
+        },
+        {
+          "id": "q-contact-details",
+          "text": "Your name, organisation and a work phone number or email.",
+          "type": "TEXT",
+          "required": false,
+          "showIf": {
+            "question": "q-contact",
+            "answers": ["Yes"]
+          }
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Deputy Manager runs it under the Compliments, Feedback and Involvement Procedure, alongside the professionals' survey. CareFlow cannot yet send a survey to named people outside the organisation, so this is a public form: each year publish a new copy of this template on the first working day of February with an end date 4 weeks later.",
+      "In January, build the list from the People involved part of care plans (advocates, and advocacy requests in the last 12 months) and from organisations recorded in care plans as groups people attend or that refer people to us. Send one invitation per organisation, with a reference number, to its main inbox or coordinator, asking them to forward it to the advocates or volunteers who worked with us; keep the list of reference numbers with the invitations, because a public form cannot tell us who answered. Never send it to an organisation that gets another professionals' survey that February (SUR-PRO-001, 002 or 004).",
+      "Small community groups may prefer phone or paper: read every answer choice aloud by phone, and enter phone and paper answers with Record response on the day they arrive. CareFlow cannot send reminders for a public form: send one reminder after 2 weeks to organisations that have not given their reference number in an answer.",
+      "Who may open individual answers: the Deputy Manager, who reads comments each working day while the survey is open, and the Registered Manager. This is set in Who can see the answers: individual responses are limited to the Deputy Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "Advocates often describe people who cannot give their own views, so read every comment the working day it arrives for safeguarding and mental capacity issues, and act under the alerts below. Phone back only through the organisation's main number, found independently, and tell advocates only what they need (Confidentiality and Information Sharing Policy). With no reference number or contact details, act on the information given and record it; never try to identify who answered.",
+      "How to count: positive means Very good or Good, or Always or Usually, leaving out Don't know. Report advocates and community organisations separately only where each has 5 or more answers; otherwise report all respondents together. The four shared items and the overall rating are also pooled with the other professionals' surveys (SUR-PRO-001, 002 and 004) as the yearly professionals' result. Compare year on year.",
+      "The Deputy Manager reports within 6 weeks of closing; the Registered Manager agrees actions, which go into the service improvement plan within 5 working days; the Directors receive the results within 3 months (Governance and Quality Assurance Policy). Results and actions go to everyone asked within 3 months of closing, and the May You said, we did summary to the professionals who took part. Keep answers for 3 years after the survey closes, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "A comment suggesting abuse, neglect, a restriction or deprivation of liberty without approval, or care given against a person's wishes.",
+        "action": "Tell the safeguarding lead the same working day; the lead decides within 1 hour (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure). A possible unapproved restriction is a safeguarding concern, and the person's deprivation of liberty screen is updated the same working day (Mental Capacity Act and Best Interests Policy). Phone back through the organisation's main number where it is known."
+      },
+      {
+        "when": "\"Do decisions about people's care reflect what they want?\" answered Rarely or Never, or a comment that a best interests decision ignored the person or the advocate.",
+        "action": "The Registered Manager reviews the capacity and best interests records of the people that advocacy service works with within 5 working days; where an advocate disagrees with a capacity assessment, a second assessment is done within 10 working days (Mental Capacity Act and Best Interests Policy).",
+        "rule": {
+          "task": "Advocate says decisions miss people's wishes: review",
+          "if": [
+            {
+              "question": "q-decisions-wishes",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Asking for an advocate early, or seeing the person in private, answered Rarely or Never; or a comment that a private meeting or an IMCA's access to records was refused or hard to get.",
+        "action": "The Registered Manager contacts the advocacy service within 5 working days (library timescale), where it can be identified, and arranges access as the Mental Capacity Act and Best Interests Policy sets out; checks advocacy requests in care plan reviews for people at higher risk and reminds reviewers of the 2-working-day request rule (Person-Centred Care, Dignity and Respect Policy). An action goes into the service improvement plan within 5 working days.",
+        "rule": {
+          "task": "Advocacy access or late requests: review",
+          "if": [
+            {
+              "question": "q-advocate-early",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-see-private",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Communicate, follow advice, share information, partnership or overall answered Poor or Very poor, or help to take part in community groups answered Rarely or Never.",
+        "action": "The Registered Manager contacts the organisation's lead within 5 working days through its main number, where it can be identified, and adds an action to the service improvement plan within 5 working days (Compliments, Feedback and Involvement Procedure).",
+        "rule": {
+          "task": "Advocate or community partner concern: follow up",
+          "if": [
+            {
+              "question": "pro-communicate",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-follow-advice",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-share-info",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-partnership",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-overall",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "q-community-take-part",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment expressing dissatisfaction that needs a response.",
+        "action": "Record it as a complaint the same working day and acknowledge it within 3 working days where the respondent can be contacted (Complaints Policy and Procedure); an advocate may complain on a person's behalf."
+      },
+      {
+        "when": "A compliment about a team or care worker.",
+        "action": "Record it the same working day and pass it on within 5 working days (Compliments, Feedback and Involvement Procedure)."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Deputy Manager or Registered Manager contacts them within 5 working days, through their organisation's main number.",
+        "rule": {
+          "task": "Advocate or community partner asked for contact",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {"responses": ["DEPUTY_MANAGER", "REGISTERED_MANAGER"], "results": ["DEPUTY_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-GOV-006",
+    "POL-SG-004",
+    "POL-CD-001",
+    "POL-GOV-016",
+    "POL-GOV-005",
+    "POL-SG-002",
+    "POL-GOV-013",
+    "POL-GOV-002",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Care Act 2014, section 67: the local authority must arrange an independent advocate where a person would have substantial difficulty being involved and has no appropriate person to support them",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/67"
+    },
+    {
+      "source": "Mental Capacity Act 2005, sections 35 to 41: independent mental capacity advocates, who may interview the person in private and examine and copy relevant records (section 35(6))",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/35"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from relevant persons and other persons on the services provided",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

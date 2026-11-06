@@ -1,0 +1,688 @@
+{
+  "reference": "POL-GOV-014",
+  "revision": 1,
+  "title": "Subject Access and Individual Rights Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we recognise, log, check, search for, review and answer subject access requests and requests to correct, erase, restrict, object to or move personal data, from the people we support, their representatives, families and staff, within the legal time limits, including requests about people who have died. For managers, the HR Manager and Office staff.",
+  "keyPoints": {
+    "intro": "This procedure tells managers, the HR Manager and Office staff how to handle every request someone makes about their own personal information, from the day it arrives to the day the answer is sent.",
+    "points": [
+      "A request can be made to anyone, in any words, including to a care worker during a visit. Pass it to the request handler the same working day and treat anything unclear as a request.",
+      "The legal deadline is the day before the same date next month, counted from the relevant time. Send the response at least 5 working days before it. A two-month extension needs the Nominated Individual's approval and notice before the first month ends.",
+      "Acknowledge every request in writing within 3 working days. Ask for identity evidence only where there is reasonable doubt, and never keep a copy of an identity document.",
+      "Before disclosing to anyone acting for someone else, check their authority: the person's written agreement or agreement they gave directly to a manager, a verified attorney or deputy acting within their authority, or the personal representative of someone who has died.",
+      "Never alter, delete or hide information once a request has been made. Doing so to stop it being disclosed is a criminal offence.",
+      "Search every place the information is likely to be, including CareFlow, work email, work phones, paper and our processors, and record each search in the search record.",
+      "Remove information about other people we support, staff's personal details and key safe codes. Health information the person has not seen and does not already know needs the appropriate health professional's opinion first.",
+      "While a safeguarding enquiry, allegation against staff, staff fitness enquiry or police investigation is open, ask the local authority and police before releasing anything.",
+      "A second manager checks every page before release. Send by encrypted email, special delivery or by hand, never through a care worker on a routine visit.",
+      "Tell the Nominated Individual within 1 working day of any flagged request. If information goes to the wrong person, follow the Personal Data Breach Procedure at once."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Admin",
+    "Manager",
+    "HR"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "EMPLOYEE",
+    "HR"
+  ],
+  "relatedReferences": [
+    "POL-GOV-013",
+    "POL-GOV-015",
+    "POL-GOV-016",
+    "POL-GOV-017",
+    "POL-HR-019",
+    "POL-GOV-005",
+    "POL-CD-004",
+    "POL-SG-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "UK General Data Protection Regulation, Article 12 (transparent information, communication and modalities for exercising rights, as amended by the Data (Use and Access) Act 2025)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/12"
+    },
+    {
+      "source": "Data (Use and Access) Act 2025, section 76 (inserting UK GDPR Article 12A: time limits, extension and pausing the clock, in force 5 February 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/18/section/76"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 15 (right of access, including paragraph 1(ea) right to complain to the controller and paragraph 1A reasonable and proportionate search)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/15"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 17 (right to erasure, including paragraph 1(g) allegations by a malicious person, inserted by the Victims and Prisoners Act 2024, section 31, in force 31 March 2026)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/17"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 18 (right to restriction of processing)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/18"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 20 (right to data portability)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/20"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 21 (right to object)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/21"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 2, Part 3, paragraphs 16 and 17 (protection of the rights of others)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/2/part/3"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 2, Part 4 (legal professional privilege, management forecasts, negotiations and confidential references)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/2/part/4"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 3, Part 2 (health data: serious harm test and opinion of the appropriate health professional)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/3/part/2"
+    },
+    {
+      "source": "Data Protection Act 2018, section 173 (alteration of personal data to prevent disclosure)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/173"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 2, paragraph 2 (crime: exemption where disclosure would be likely to prejudice the prevention, investigation or detection of crime)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/2/paragraph/2"
+    },
+    {
+      "source": "Access to Health Records Act 1990, section 1 (a health record is one made by or on behalf of a health professional)",
+      "url": "https://www.legislation.gov.uk/ukpga/1990/23/section/1"
+    },
+    {
+      "source": "GOV.UK: Data (Use and Access) Act 2025: data protection and privacy changes",
+      "url": "https://www.gov.uk/guidance/data-use-and-access-act-2025-data-protection-and-privacy-changes"
+    },
+    {
+      "source": "GOV.UK: Information Commission succeeds the ICO as UK's data protection regulator (30 September 2026)",
+      "url": "https://www.gov.uk/government/news/information-commission-succeeds-the-ico-as-uks-data-protection-regulator"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} holds personal information about the people we support, their families and our staff. Everyone whose information we hold has the right to a copy of it and, where the law allows, to have it corrected, erased, restricted, no longer used or moved. We answer every request completely, accurately and within the legal time limit, while protecting other people's information and anyone who could be harmed by a disclosure, and never treat anyone less favourably for making a request."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure makes sure every request, including one made in a person's home, is passed on the day received and answered completely, on time and only to those entitled, and that we can show the Information Commission, CQC and commissioners how it was handled."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure covers requests under UK GDPR Articles 15 to 22D: access, rectification, erasure, restriction, objection, portability and rights about automated decisions. It applies to requests from or for the people we support, their families and representatives, professionals and anyone else whose information we hold, and from employees, former employees, applicants, agency workers and students. It also covers requests for the records of a person we supported who has died. It applies to every employee, because anyone can receive a request."
+        },
+        {
+          "p": "Requests by the police, the local authority, CQC, a coroner, a court, a commissioner or another provider for information about someone else follow the Confidentiality and Information Sharing Policy. Privacy notices, retention periods and staff record content are in the Data Protection Policy, the Records Management and Retention Policy and the Staff Personal Data and HR Records Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Rights request",
+                "A request by an individual, or someone acting for them, to exercise any right in UK GDPR Articles 15 to 22D about their own personal data, in any words."
+              ],
+              [
+                "Request handler",
+                "The Registered Manager for requests from or about the people we support, families, professionals and others; the HR Manager for employees, former employees, applicants, agency workers and students; the Nominated Individual where the request comes from or mainly concerns the request handler."
+              ],
+              [
+                "Relevant time",
+                "The latest of: the day we receive the request; the day we receive identity information we asked for; the day a fee we are allowed to charge is paid (UK GDPR Article 12A)."
+              ],
+              [
+                "Legal deadline",
+                "The last day of the one-month period beginning with the relevant time (see Time limits), extendable by two further months for complex or numerous requests."
+              ],
+              [
+                "Appropriate health professional",
+                "The health professional currently or most recently responsible for the person's diagnosis, care or treatment, usually their GP."
+              ],
+              [
+                "Serious harm test",
+                "Met where disclosure would be likely to cause serious harm to the physical or mental health of the person or anyone else."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual, our data protection lead, approves, on the Data Protection Officer's advice, every extension, refusal or fee, every use of an exemption other than routine removal of third-party information, and every refusal of a request about someone who has died. In their absence, or where a request comes from or mainly concerns them, a Director gives these approvals, never a request handler."
+            }
+          ]
+        },
+        {
+          "heading": "Data Protection Officer",
+          "blocks": [
+            {
+              "p": "Our external Data Protection Officer gives the advice this procedure requires within 2 working days of being asked."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and HR Manager",
+          "blocks": [
+            {
+              "p": "As request handlers they run each request from logging to response, decide what is disclosed and sign the response. While the HR Manager is absent the Registered Manager handles staff requests; while the Registered Manager is absent the Deputy Manager handles theirs."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager checks every disclosure a second time before release, except where they prepared it or it concerns them, when the Registered Manager checks it (the Nominated Individual while the Registered Manager is absent, or a Director where the Nominated Individual is the request handler)."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "They search as asked and sign the search record. Field Care Supervisors check privately with a person we support where a representative's authority is in doubt, and deliver and go through responses when asked."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Managers",
+          "blocks": [
+            {
+              "p": "They write down the request in the requester's own words, with the date, how it arrived and contact details, and email it from their work account to the request handler, or the manager covering an absent handler, the same working day; the On-call Manager does so by 10am the next working day for out-of-hours requests."
+            }
+          ]
+        },
+        {
+          "heading": "Care workers and all other employees",
+          "blocks": [
+            {
+              "p": "Anyone who receives a request tells the office the same working day, care workers by phone, and tells the person the office will contact them. They never promise what will be disclosed, show records on their work phone or hand over copies."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Recognising and logging a request",
+      "blocks": [
+        {
+          "p": "A request can be made in person, by phone, letter, email, text or social media, or through a solicitor, advocate or online request service: for example a person asking their care worker what is written about them, or a former employee asking for everything we hold."
+        },
+        {
+          "p": "Some requests are routine and are met without this procedure: a person reading the copy of their care plan kept in their home, or an employee asking for copies of payslips, contracts, rotas, or training, vaccination, hours, pay or leave records, given within the timescales in the Staff Personal Data and HR Records Policy. Anything more is a rights request."
+        },
+        {
+          "steps": [
+            "The request handler enters it in the rights request log in the governance records the day they receive it: reference, date received, requester, the person it is about, the rights asked for and the provisional legal deadline.",
+            "Within 1 working day of receipt the request handler decides which rights are being exercised, whether identity or authority need checking, and whether the request is flagged (below), telling the Nominated Individual of a flagged request.",
+            "The request handler tells each team likely to hold the information by email that nothing within the request may be deleted or altered except in normal record keeping. Altering, erasing or concealing information to prevent its disclosure is a criminal offence (Data Protection Act 2018, section 173).",
+            "Within 3 working days of receipt the request handler acknowledges in writing, in the requester's recorded format, setting out our understanding of what was asked, the legal deadline and any identity, authority or clarification needed."
+          ]
+        },
+        {
+          "p": "A request is flagged when it comes from a solicitor or is linked to a complaint, claim or employment tribunal; when a safeguarding enquiry, allegation against staff, police investigation, disciplinary or grievance is open; when it concerns someone who has died; when it comes from or mainly concerns a Director, the Registered Manager, the Deputy Manager or the HR Manager; or when an extension, refusal, fee or exemption beyond routine removal of third-party information may be needed."
+        }
+      ]
+    },
+    {
+      "heading": "Identity and authority",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Checking identity",
+          "blocks": [
+            {
+              "p": "We ask for proof of identity only where there is reasonable doubt. None is needed when a person we support asks a member of staff they know or contacts us from a phone number or email address recorded in CareFlow, or when a current employee asks in person or from the email address in their staff record. Otherwise the requester confirms two details we hold, such as date of birth and address, on a call back to a recorded number, or shows one photo identity document on a video call, at the branch office or to a Field Care Supervisor. We never keep copies; the request file records what was seen, by whom and when. If identity information has not arrived within 1 month, we write to close the request."
+            }
+          ]
+        },
+        {
+          "heading": "Someone acting for a person who has capacity",
+          "blocks": [
+            {
+              "p": "A relative, friend, advocate, solicitor or online request service may ask for a person's information only with that person's written authority, or with authority the person gives directly to a manager. Where there is any doubt that the person wants this, or a concern about pressure, coercion or abuse, a Field Care Supervisor or the Registered Manager speaks to the person privately, without the requester present, within 5 working days; any safeguarding concern goes to the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. Where the person prefers, the response goes to them and not the representative."
+            }
+          ]
+        },
+        {
+          "heading": "Attorneys and deputies",
+          "blocks": [
+            {
+              "p": "For a person who lacks capacity to make the request, an attorney or deputy whose authority has been verified and recorded in the People involved part of the care plan as the Consent to Care Policy sets out may ask within that authority: a health and welfare attorney for care information, a property and financial affairs attorney for invoices and money records, a deputy for what the court order covers. We do not disclose information the person gave us in confidence or asked us not to share, or anything that would put them at risk. Family members without legal authority have no right of access; the Registered Manager decides what to share in the person's best interests under the Confidentiality and Information Sharing Policy and replies within the same time limit."
+            }
+          ]
+        },
+        {
+          "heading": "People who have died",
+          "blocks": [
+            {
+              "p": "Data protection law does not apply to people who have died, but our duty of confidentiality continues. The Access to Health Records Act 1990 covers only records made by or for a health professional, which our care records are not; requests for GP or hospital records go to those holders. Our arrangements are:"
+            },
+            {
+              "bullets": [
+                "Personal representative (executor or administrator, shown by the grant of probate or letters of administration, or before a grant by the will and death certificate): given copies of the records they ask for, free, within 1 month, using the same steps as a subject access request.",
+                "Someone with a possible claim arising from the death: the Registered Manager decides with the Data Protection Officer's advice, and the Nominated Individual tells our insurers before disclosure where the claim is against us.",
+                "Other relatives, including a relevant person under the Duty of Candour Policy: offered a meeting with the Registered Manager about the person's care, respecting any confidentiality wishes recorded in the care plan.",
+                "While an inquest, safeguarding enquiry or police investigation is open, the Registered Manager checks with the coroner, local authority or police before releasing records to anyone."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Time limits",
+      "blocks": [
+        {
+          "p": "The law requires a response without undue delay and within one month beginning with the relevant time (Article 12A). Because that month includes the day of the relevant time, we treat the legal deadline as the day before the same date in the following month (a request received on 3 March is due by 2 April), or the last day of that month where there is no such date. Where it falls on a weekend or bank holiday, we treat the working day before as our deadline."
+        },
+        {
+          "p": "An extension of two further months is used only where the request is complex or the person has made several requests, never for staff absence or workload; written notice with reasons goes before the first month ends. For an access request, where we reasonably need more information to find what the person wants, for example where we hold a lot about them, the request handler asks with the acknowledgement; the time until they reply does not count towards the legal deadline (Article 12A). If they decline to narrow the request, we carry out a reasonable and proportionate search of everything."
+        },
+        {
+          "table": {
+            "columns": [
+              "Step",
+              "Our timescale",
+              "Who"
+            ],
+            "rows": [
+              [
+                "Pass to the request handler",
+                "Same working day; out of hours by 10am the next working day",
+                "Whoever receives it"
+              ],
+              [
+                "Issue search instructions, including to processors",
+                "Within 3 working days of the relevant time",
+                "Request handler"
+              ],
+              [
+                "Complete searches and sign the search record",
+                "Within 5 working days of being asked",
+                "Each person searching"
+              ],
+              [
+                "Ask for a health professional's opinion, police or local authority views, or third-party consent",
+                "Within 2 working days of identifying the need, asking for a reply within 5 working days",
+                "Request handler"
+              ],
+              [
+                "Approve and give notice of any extension",
+                "At least 5 working days before the legal deadline",
+                "Nominated Individual"
+              ],
+              [
+                "Second check, then send the response",
+                "At least 5 working days before the legal deadline",
+                "Second checker; request handler"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Searching for information",
+      "blocks": [
+        {
+          "p": "The law requires a reasonable and proportionate search (Article 15(1A)): every place the information is likely to be, not every conceivable place. Before the search starts the request handler lists the places to be searched and the search terms (the person's name and known variations, their CareFlow reference number and, for staff, their employee number) in the search record."
+        },
+        {
+          "table": {
+            "columns": [
+              "Where",
+              "What is searched",
+              "Who searches"
+            ],
+            "rows": [
+              [
+                "CareFlow care record, including archived records",
+                "Initial assessment, its recording and transcript, care plan, risk assessments, eMAR, daily visit and voice notes, body maps with photographs and videos, check-in/check-out records and uploaded documents",
+                "Care Coordinator"
+              ],
+              [
+                "CareFlow restricted records",
+                "Incident log, safeguarding records and complaint records",
+                "Registered Manager"
+              ],
+              [
+                "CareFlow staff records",
+                "Staff record, supervision and appraisal records, training and compliance records, policy acknowledgements, rotas, check-in/check-out records, and mileage and travel time claims",
+                "HR Manager"
+              ],
+              [
+                "Governance records",
+                "Minutes, reports and the Caldicott decision log",
+                "Registered Manager or Nominated Individual"
+              ],
+              [
+                "Work email and work phones",
+                "Mailboxes and text messages of everyone likely to have dealt with the person, including leavers' accounts",
+                "Each account holder; request handler for leavers"
+              ],
+              [
+                "Invoices and money records",
+                "Invoices, payments and records of money handled for the person",
+                "Office staff"
+              ],
+              [
+                "Paper",
+                "Back-up MAR sheets, archived paper files and unscanned papers in the branch office; our papers still in a person's home, such as the money and shopping record, copied by a Field Care Supervisor",
+                "Care Coordinator or HR Manager"
+              ],
+              [
+                "Processors and advisers",
+                "Payroll bureau, occupational health provider and other processors, the Data Protection Officer, and our solicitors for a claim",
+                "Request handler asks in writing for a reply within 5 working days"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Information deleted under our retention schedule is not restored, and backups are searched only where the Nominated Individual decides it is proportionate because the information exists nowhere else. Where an employee used a personal phone or messaging app for work about the person, contrary to the Acceptable Use of IT and Devices Policy, they are asked in writing to hand over what they hold within 5 working days. The search record shows each place searched, the terms, who searched, when and what was found. Records kept by the GP, district nurses, the local authority or other agencies, including their notes left in the home, are theirs; we tell the requester to ask them."
+        }
+      ]
+    },
+    {
+      "heading": "Reviewing and redacting",
+      "blocks": [
+        {
+          "p": "We disclose everything found unless an exemption applies, and we give copies of whole documents so the person sees their information in context. Each item withheld is entered in the redaction log with the exemption relied on and the reason."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Information about other people",
+          "blocks": [
+            {
+              "p": "We may withhold information identifying someone else unless they consent or disclosure without consent is reasonable, considering the information, any duty of confidentiality and whether consent was sought, refused or possible (Data Protection Act 2018, Schedule 2, paragraph 16). Our rules are:"
+            },
+            {
+              "bullets": [
+                "Names and work comments of our staff and of professionals acting in their work role are disclosed, because people are entitled to know who cared for them. They are withheld only where the Nominated Individual decides disclosure would put the employee at risk, for example of violence or harassment.",
+                "Staff personal details, such as personal phone numbers, home addresses and health information, are always removed.",
+                "Information about any other person we support is always removed, and key safe codes are never included in a copy.",
+                "Where a family member or other person provided information, the request handler asks for their consent where practicable. A refusal is weighed but does not decide the matter on its own. The identity of anyone who raised a concern in confidence, such as a safeguarding concern or speaking-up disclosure, is withheld unless they agree."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Health information",
+          "blocks": [
+            {
+              "p": "Because we are not health professionals, the law does not let us disclose health information in answer to a subject access request unless the person has already seen it or knows it, or the appropriate health professional has given an opinion within the last 6 months that the serious harm test is not met (Data Protection Act 2018, Schedule 3, paragraph 6). We may withhold health information as harmful only on that professional's opinion that the test is met."
+            },
+            {
+              "p": "Care plans, visit notes, eMAR entries and other records of care the person received are within their knowledge and are disclosed without consultation. Where an attorney or deputy asks for a person who lacks capacity, we do not assume the person knows what is recorded: health information goes to the appropriate health professional unless the request handler records why the person already knows it. Letters and reports from the GP, hospital or community teams, and our notes of a diagnosis or prognosis the person may not know, go to the appropriate health professional for an opinion. If none has arrived 10 working days before the legal deadline, the Nominated Individual decides whether to extend for complexity, and everything else is sent on time."
+            }
+          ]
+        },
+        {
+          "heading": "Open enquiries and investigations",
+          "blocks": [
+            {
+              "p": "While a safeguarding enquiry or police investigation is open, the Registered Manager asks the local authority and any police involved whether disclosure would prejudice it before release. While an allegation against a member of staff, or a police or local authority enquiry into a staff fitness concern, is open, the HR Manager makes the same check before releasing records under any request, including the worker's own (Managing Allegations Against Staff Procedure; Staff Fitness Concerns and DBS Referrals Procedure). Information is withheld only under an exemption, such as where disclosure would be likely to prejudice the prevention, investigation or detection of crime (Data Protection Act 2018, Schedule 2, paragraph 2). Where saying so would itself prejudice the investigation, the Nominated Individual decides what the response says."
+            }
+          ]
+        },
+        {
+          "heading": "Other exemptions",
+          "blocks": [
+            {
+              "p": "The exemptions we may use, each approved by the Nominated Individual case by case, are: legal advice protected by legal professional privilege; confidential references we gave or received; management forecasts or planning, such as proposed restructuring, where disclosure would prejudice the business; and records of our intentions in negotiations with the requester, such as a settlement (Data Protection Act 2018, Schedule 2, paragraphs 19, 22, 23 and 24)."
+            }
+          ]
+        },
+        {
+          "heading": "How we redact and check",
+          "blocks": [
+            {
+              "p": "Redaction is done on a copy, never the original, with software that permanently removes the text, sound or image, never by covering, colouring or cropping; with the requester's agreement a recording may be given as a redacted transcript instead. The second checker named under Roles and responsibilities, never the request handler, checks every page before release: right recipient, every redaction made and justified, nothing about another person we support, health information cleared, correct format and a complete letter. The Nominated Individual also checks a new request handler's first two responses."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Responding",
+      "blocks": [
+        {
+          "p": "The response letter, signed by the request handler, encloses the copy and gives the supporting information Article 15 lists: purposes, kinds of information, recipients, retention, source, that we make no solely automated decisions, the rights to correction, erasure, restriction and objection, and the right to complain to us and to the Information Commission (formerly the ICO). It explains abbreviations and care terms, says what has been withheld and why (unless that would prejudice an investigation), and offers a meeting or, for people we support, a Field Care Supervisor visit to go through it."
+        },
+        {
+          "p": "Where the request was made electronically we reply electronically unless asked otherwise. Every response is in the person's recorded communication format under the Communication and Accessible Information Policy."
+        },
+        {
+          "table": {
+            "columns": [
+              "How sent",
+              "Rules"
+            ],
+            "rows": [
+              [
+                "Secure email",
+                "Encrypted, to an address verified for the requester, with the password given separately by phone or text to a recorded number"
+              ],
+              [
+                "Post",
+                "Special delivery to the verified address, addressed to the requester by name and marked private and confidential"
+              ],
+              [
+                "By hand",
+                "By the request handler or a Field Care Supervisor, with a signed receipt; never through a care worker on a routine visit or left with anyone else"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Requests and copies are free. Where a request is manifestly unfounded or excessive, such as a repeat request with no new information held, the Nominated Individual decides whether to answer it, refuse it or charge a fee based on the actual administrative cost, told in writing before work starts. A request is never refused because it is large or linked to a complaint, dispute or claim. A refusal is sent before the legal deadline with the reasons, the right to complain to us under the Complaints Policy and Procedure and to the Information Commission, and the right to apply to a court."
+        }
+      ]
+    },
+    {
+      "heading": "Other rights requests",
+      "blocks": [
+        {
+          "p": "Each request is decided by the request handler, with the Nominated Individual's approval where it is refused, and answered in writing before the legal deadline."
+        },
+        {
+          "table": {
+            "columns": [
+              "Right",
+              "What we do",
+              "Limits"
+            ],
+            "rows": [
+              [
+                "Rectification",
+                "A factual error is corrected by a dated correcting entry under the Records Management and Retention Policy. An error affecting safety, such as allergies, medicines, key safe information or resuscitation decisions, is corrected the same working day and the care team told. Everyone we shared the error with, such as the GP or commissioner, is told unless that is impossible or disproportionate.",
+                "An accurately recorded opinion is not changed; the person's statement of disagreement is added to the record."
+              ],
+              [
+                "Erasure",
+                "Information we no longer need or hold only by consent, such as publicity photographs, survey answers or applicant details past their retention date, is erased within 1 month (staff equality monitoring answers within 5 working days) and our processors told. An allegation made by someone convicted of harassing or stalking the person it is about, or under a stalking protection order protecting them, is erased on request once we have investigated it and decided on no further action (Article 17(1)(g)).",
+                "Care and staff records we must keep by law or for possible legal claims are not erased; we explain the retention period."
+              ],
+              [
+                "Restriction",
+                "While accuracy is checked (within 10 working days) or an objection considered, a note marks the information as disputed. We tell the person before the restriction ends.",
+                "Apart from storing it, we use it only with the person's consent (for example to continue their care), for legal claims or to protect another person."
+              ],
+              [
+                "Objection",
+                "Objections to quality surveys and feedback calls take effect at once. For others, such as electronic call monitoring data or a safeguarding referral, the request handler decides on the Data Protection Officer's advice and the Nominated Individual approves any decision to continue.",
+                "We continue only where compelling legitimate grounds, such as safety or evidence of care delivered, override the person's interests, or for legal claims."
+              ],
+              [
+                "Portability",
+                "Information the person gave us that we hold electronically by consent or under a contract with them, such as an employee's bank details or what a person who contracts with us told us at assessment, is given in a structured, commonly used, machine-readable format, or sent direct to another organisation where technically possible.",
+                "Not records we write about care given, or information about care arranged by a local authority or the NHS; these go to a new provider under the Confidentiality and Information Sharing Policy, and the person can have a copy by subject access."
+              ],
+              [
+                "Automated decisions",
+                "We confirm that we make no solely automated decisions about anyone.",
+                "Not applicable."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "When something goes wrong",
+      "blocks": [
+        {
+          "bullets": [
+            "A deadline at risk: the request handler tells the Nominated Individual the same day and writes to the requester before the deadline saying when they will receive the response. A missed deadline goes into the service improvement plan within 5 working days.",
+            "Information sent to the wrong person, or not redacted when it should have been: the Personal Data Breach Procedure is followed at once and the Nominated Individual told the same day.",
+            "A complaint about how a request was handled: the Complaints Policy and Procedure, graded High, with the Data Protection Officer consulted before the response.",
+            "An enquiry from the Information Commission: the Nominated Individual tells the Directors within 1 working day and replies by its deadline on the Data Protection Officer's advice."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where kept",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "Rights request log: dates received, relevant time, legal deadline, pauses, extensions, outcome and date sent",
+                "Governance records",
+                "6 years after the request is closed"
+              ],
+              [
+                "Request file: correspondence, identity and authority check record, search record, consultation replies, advice and approvals, redaction log, an exact copy of what was sent and proof of delivery",
+                "Governance records",
+                "6 years after the request is closed, or longer while a complaint, claim, inquest, tribunal or investigation is open"
+              ],
+              [
+                "Corrections and statements of disagreement",
+                "The person's care record or staff record",
+                "With that record"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Only the Nominated Individual, the Registered Manager, the Deputy Manager, the HR Manager (for staff requests) and the Data Protection Officer can see the log and request files."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "Recognising a request and passing it on, within information governance training",
+                "In the first week and every 12 months"
+              ],
+              [
+                "Office staff and On-call Managers",
+                "Recognising, recording and passing on requests; checking callers' identity",
+                "Before taking calls alone or their first on-call shift; every 12 months"
+              ],
+              [
+                "Registered Managers, Deputy Manager and HR Manager",
+                "Running a request: identity and authority, searching, health information, exemptions, redaction software and response letters",
+                "Within 3 months of appointment and before handling or checking a first request; every 3 years"
+              ],
+              [
+                "Care Coordinators and Field Care Supervisors",
+                "Carrying out a search and completing the search record",
+                "Briefed by the request handler before their first search"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Training is recorded in the training and compliance records."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Who and how often",
+              "Reported to",
+              "Target"
+            ],
+            "rows": [
+              [
+                "Open requests against deadlines; any request within 10 working days of its deadline and not yet at second check is reported to the Nominated Individual the same day",
+                "Registered Manager, weekly",
+                "Weekly management meeting",
+                "No missed deadline"
+              ],
+              [
+                "Requests received by type, answered on time, extensions, refusals and complaints",
+                "Deputy Manager, monthly",
+                "Quality dashboard by the 7th working day",
+                "100% answered by the legal deadline"
+              ],
+              [
+                "Every request closed in the quarter for timeliness, and 3 request files (all if fewer) in full for search, redaction and response quality",
+                "Nominated Individual with the Data Protection Officer, quarterly",
+                "Data protection section of the quarterly governance report",
+                "Every file complete and every decision justified"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan within 5 working days. The Registered Manager reviews this procedure every 12 months, or sooner after a change in law or guidance, an upheld complaint, Information Commission action, an inspection or audit finding, or monitoring showing it is not working; the Directors approve it under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

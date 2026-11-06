@@ -1,0 +1,320 @@
+{
+  "reference": "POL-HS-015",
+  "revision": 1,
+  "title": "Work-Related Stress and Staff Wellbeing Policy",
+  "documentType": "POLICY",
+  "summary": "How we prevent and manage work-related stress using the HSE Management Standards, and support the mental health and wellbeing of everyone who works for us, recognising the pressures of lone, time-bound home care work. It sets out our branch stress risk assessments, early action on signs of stress, individual stress risk assessments, support after distressing events and in a crisis, adjustments and returns to work, and how we check that the arrangements work. For all employees and the managers who plan and supervise their work.",
+  "keyPoints": {
+    "intro": "Your mental health matters to us as much as your physical safety. This is what to do if work, or anything else, is getting on top of you, and what we will do to help.",
+    "points": [
+      "If stress, workload, your rota, travel or anything at work or at home is affecting you, tell your Field Care Supervisor, the HR Manager or any manager. You will never be criticised, disciplined or given fewer hours for asking for help.",
+      "Once we know stress is affecting you, the HR Manager or Registered Manager meets you within 5 working days to complete an individual stress risk assessment and agree changes, for example to your run, hours or duties.",
+      "If something at work leaves you too distressed to carry on safely, make the person safe and phone the office or the On-call Manager before you leave the home or drive on. We cover your visits and pay the rest of that day's rostered hours.",
+      "Never drive when you are too upset or exhausted to drive safely. Tell the office or the On-call Manager and we will pay for a taxi.",
+      "After a death, an emergency, an assault or anything you found distressing, your Field Care Supervisor contacts you within 1 working day and offers you a debrief within 3 working days. The debrief is your choice, and you never have to describe what happened.",
+      "The employee assistance programme gives you free, confidential counselling 24 hours a day. The number is on the branch office noticeboard and any manager will give it to you. The provider never tells us who uses it.",
+      "If a colleague says they are thinking of ending their life, take it seriously. If their life is at risk, call 999 and stay with them; otherwise help them contact their GP, NHS 111 or Samaritans. Tell a manager straight away.",
+      "Take your planned breaks and keep to the rest rules. Tell the Care Coordinator the same day if your visits cannot be done in the time allowed or your rota does not let you rest.",
+      "Take part in supervision, the September staff survey and the October staff discussion groups. What you tell us shapes our stress risk assessment and the changes we make.",
+      "What you tell us about your health stays confidential. The Care Coordinator and your supervisor are told only the changes agreed to your work, never the reason, unless you agree."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["ALL_EMPLOYEES"],
+  "moduleLinks": ["HR", "EMPLOYEE", "RISK_ASSESSMENT", "TRAINING"],
+  "relatedReferences": ["POL-HS-001", "POL-HS-003", "POL-HS-004", "POL-HR-005", "POL-HR-011", "POL-HR-012", "POL-HR-013", "POL-HR-014"],
+  "regulatoryBasis": [
+    { "source": "Health and Safety at Work etc. Act 1974, section 2 (employer's duty to ensure, so far as is reasonably practicable, the health, safety and welfare at work of employees, and to keep a written health and safety policy)", "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/2" },
+    { "source": "Management of Health and Safety at Work Regulations 1999, regulation 3 (suitable and sufficient risk assessment, review when no longer valid or after significant change, and recording of significant findings where there are five or more employees)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3" },
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18(2)(a) (staff must receive appropriate support, training, professional development, supervision and appraisal)", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18" },
+    { "source": "Equality Act 2010, section 20 (duty to make reasonable adjustments; a disabled person may not be required to pay for them)", "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20" },
+    { "source": "Equality Act 2010, Schedule 1, paragraph 2 (long-term effects: lasted or likely to last at least 12 months, or the rest of the person's life)", "url": "https://www.legislation.gov.uk/ukpga/2010/15/schedule/1/paragraph/2" },
+    { "source": "Health and Safety Executive, Work-related stress and how to manage it: risk assessment (legal duty to assess and act; written assessment with five or more workers; the six Management Standards areas)", "url": "https://www.hse.gov.uk/stress/risk-assessment.htm" },
+    { "source": "Health and Safety Executive, Stress: overview (definition of stress as the adverse reaction to excessive pressures or other demands; stress is not an illness but can make people ill)", "url": "https://www.hse.gov.uk/stress/overview.htm" },
+    { "source": "Health and Safety Executive, Management Standards: what are the Management Standards (demands, control, support, relationships, role and change)", "url": "https://www.hse.gov.uk/stress/standards/overview.htm" },
+    { "source": "Health and Safety Executive, Management Standards step 4: record your findings (action plans with priorities, owners, resources and timescales, shared with employees)", "url": "https://www.hse.gov.uk/stress/standards/step4/index.htm" },
+    { "source": "Health and Safety Executive, Management Standards step 5: monitor and review (evaluate actions using staff feedback, turnover and sickness absence; act without waiting for the next review)", "url": "https://www.hse.gov.uk/stress/standards/step5/index.htm" },
+    { "source": "Health and Safety Executive, Signs of stress (signs in individuals and teams; managers act early)", "url": "https://www.hse.gov.uk/stress/signs.htm" },
+    { "source": "Health and Safety Executive, Stress Talking Toolkits (structured conversations between managers and workers, which can replace the focus group element of the Management Standards approach)", "url": "https://www.hse.gov.uk/stress/talking-toolkit.htm" },
+    { "source": "Health and Safety Executive, INDG73(rev4) Protecting lone workers (stress, mental health and wellbeing of lone workers; how managers keep in touch with them)", "url": "https://www.hse.gov.uk/pubns/indg73.htm" },
+    { "source": "GOV.UK, Access to Work: mental health support (support plan and one-to-one sessions with a mental health professional through Able Futures or Maximus)", "url": "https://www.gov.uk/access-to-work/mental-health-support" },
+    { "source": "NHS, Where to get urgent help for mental health (NHS 111 mental health option, 999 when life is at risk, Samaritans)", "url": "https://www.nhs.uk/nhs-services/mental-health-services/where-to-get-urgent-help-for-mental-health/" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "{{organisation}} treats work-related stress like any other risk to health at work: we assess it, reduce it at source and check that what we do works. The Health and Safety Executive defines stress as the adverse reaction people have to excessive pressures or other types of demand placed on them. Stress is not an illness, but it can make people ill and lead to mistakes in care and to staff leaving." },
+        { "p": "Our care workers work alone, travel between short, time-bound visits and are often the first to find a person who has fallen or died; Care Coordinators, Office staff and On-call Managers carry the rota and the calls that keep visits running. We plan work and support so that these pressures are manageable, and we support the mental health of everyone who works for us, whatever its cause, because staff who are well give safe, kind and reliable care." },
+        { "p": "{{organisation}} never treats anyone less favourably for saying they are struggling, asking for help, stopping work they cannot do safely or taking part in a stress risk assessment." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "bullets": [
+          "Assess and reduce the causes of work-related stress in each branch using the HSE Management Standards.",
+          "Act early on signs of stress through supervision, individual stress risk assessments and changes to work.",
+          "Support staff after distressing events, in a mental health crisis and when returning to work.",
+          "Give everyone confidential routes to help, and check through data and staff feedback that the arrangements work."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This policy applies to every employee of {{organisation}}, in every role and on every type of contract, including bank and variable hours, wherever they work: in people's homes, on the road, at the branch office or at home. Agency workers and students are supported by their agency or college; we include them in debriefs after distressing events at our visits and tell their agency or college the same working day so that it can offer its own support." },
+        { "p": "It covers work-related stress, which the law requires us to assess and control, and wider mental health and wellbeing, which we support whatever the cause, such as a bereavement, caring responsibilities, money worries or a long-term mental health condition. It does not cover the mental health of the people we support. Related arrangements are in these documents:" },
+        { "table": { "columns": ["Related matter", "Document"], "rows": [
+          ["Working hours, breaks, rest, on-call limits, travel time and fatigue", "Working Time, Rest Breaks and Travel Time Policy"],
+          ["Check-in and check-out, keeping in touch with lone workers and lost contact", "Lone Working and Staff Personal Safety Policy"],
+          ["Abuse, threats and violence from people we support, families and the public, and support after an incident", "Violence and Aggression Towards Staff Policy"],
+          ["Bullying and harassment by colleagues", "Bullying, Harassment and Sexual Harassment Policy"],
+          ["Sickness reporting, sick pay, keeping in touch, occupational health referrals and phased returns", "Sickness Absence Policy"],
+          ["Supervision, spot checks and appraisal", "Supervision, Spot Checks and Appraisal Policy"],
+          ["Reasonable adjustments and the workplace adjustment record", "Equality, Diversity and Inclusion Policy"],
+          ["Complaints about workload, rota or hours", "Grievance Policy and Procedure"],
+          ["Mental health first aid at the branch office", "First Aid Procedure"],
+          ["Employees experiencing domestic abuse", "Domestic Abuse Policy"],
+          ["Alcohol or drug dependency", "Staff Code of Conduct"],
+          ["Pregnancy and new mothers", "New and Expectant Mothers at Work Procedure"]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Management Standards", "HSE's six areas of work design linked to stress when not managed well: demands, control, support, relationships, role and change."],
+          ["Branch stress risk assessment", "The written assessment of the risk of work-related stress in a branch against the six areas, with its action plan. It is one of the general risk assessments under the Health and Safety Policy."],
+          ["Individual stress risk assessment", "A confidential, structured conversation between an employee and the HR Manager or Registered Manager that identifies what is causing or adding to their stress and records the actions agreed."],
+          ["Wellbeing plan", "An optional note the employee writes with their supervisor: what keeps them well at work, their early signs of struggling and what helps. It is held in the restricted section of the staff record."],
+          ["Distressing event", "Any event a worker finds distressing, including the death of a person they support, finding a person collapsed, an emergency or resuscitation attempt, a safeguarding disclosure, violence or abuse, or a road collision."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Directors and Nominated Individual", "blocks": [
+          { "p": "The Directors approve this policy and fund the employee assistance programme, the occupational health provider, mental health first aid training, and the rota changes, second workers and adjustments that stress risk assessments require. They decline or renegotiate any package that cannot be delivered with realistic visit and travel times. The Nominated Individual receives the quarterly stress and wellbeing report, challenges any stress risk above the Directors' risk appetite, and reviews the Registered Manager's workload, hours and wellbeing at every supervision, as the Registered Manager Role and Absence Cover Policy sets out." }
+        ] },
+        { "heading": "Registered Manager", "blocks": [
+          { "p": "As Health and Safety Lead, the Registered Manager leads this policy in their branch: the branch stress risk assessment and action plan, stress impact checks before change, individual stress risk assessments when the HR Manager is unavailable or involved, adjustments the HR Manager cannot agree, and the quarterly stress and wellbeing report. The Deputy Manager covers these duties in their absence." }
+        ] },
+        { "heading": "HR Manager", "blocks": [
+          { "p": "The HR Manager runs this policy day to day: receives every report that stress is affecting an employee, completes individual stress risk assessments, makes occupational health referrals, keeps the restricted section of the staff record, manages the employee assistance programme contract, runs the September staff survey and October discussion groups, sends the survey after a difficult event, and produces the monthly indicators." }
+        ] },
+        { "heading": "Field Care Supervisors and supervising Senior Care Workers", "blocks": [
+          { "p": "They cover wellbeing against the six Management Standards areas at every supervision, with a reminder of the employee assistance programme, and check that actions from any individual stress risk assessment are working. They watch for signs of stress at supervision, spot checks and every other contact and tell the HR Manager the same working day. The Field Care Supervisor gives the support after distressing events set out below." }
+        ] },
+        { "heading": "Care Coordinators and On-call Managers", "blocks": [
+          { "p": "Care Coordinators build rotas with realistic visit and travel time, breaks and rest, and build agreed adjustments into the rota before the worker's next shift. They are told the adjustment, never the reason. They take calls from distressed workers, cover their remaining visits and tell the Field Care Supervisor the same working day. On-call Managers do the same out of hours and hand over to the Care Coordinator by 10am the next working day." }
+        ] },
+        { "heading": "Mental health first aiders", "blocks": [
+          { "p": "The mental health first aider at each branch listens to colleagues in distress and directs them to the employee assistance programme, their GP or NHS 111. They do not diagnose or counsel. They tell the Registered Manager or Deputy Manager at once when someone may be at risk of harm, and are themselves offered a debrief with the Registered Manager within 3 working days of supporting a colleague in crisis." }
+        ] },
+        { "heading": "Every employee", "blocks": [
+          { "p": "Every employee takes their planned breaks and rest, raises concerns about workload or wellbeing early, takes part in surveys, discussion groups and stress risk assessments, treats colleagues with respect and tells a manager if they are worried about a colleague." }
+        ] }
+      ]
+    },
+    {
+      "heading": "The law and our standard",
+      "blocks": [
+        { "bullets": [
+          "The Health and Safety at Work etc. Act 1974, section 2, requires us to protect the health, safety and welfare of employees so far as is reasonably practicable. HSE states that employers have a legal duty to protect workers from stress at work by assessing the risk and acting on it.",
+          "The Management of Health and Safety at Work Regulations 1999, regulation 3, require a suitable and sufficient risk assessment, which includes the risk of work-related stress, reviewed when it may no longer be valid or after significant change. Because we employ five or more people, the law requires the significant findings to be written down.",
+          "Under the Equality Act 2010, a mental health condition is a disability when it has a substantial and long-term adverse effect on normal day-to-day activities; long-term means it has lasted, or is likely to last, at least 12 months (or the rest of the person's life). Where our arrangements put a disabled employee at a substantial disadvantage we must take reasonable steps to avoid it, and we may not ask the employee to pay for them.",
+          "Regulation 18 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires staff to receive appropriate support, supervision and appraisal to do their work."
+        ] },
+        { "p": "The HSE Management Standards are HSE's recommended approach, not a legal requirement. Our policy is to use them as the standard for every stress risk assessment, at branch level and for individuals." }
+      ]
+    },
+    {
+      "heading": "Assessing stress across each branch",
+      "blocks": [],
+      "subsections": [
+        { "heading": "How we assess", "blocks": [
+          { "steps": [
+            "Staff views: the anonymous September staff survey run by the HR Manager has two linked parts, and its work pressures check asks about each of the six areas. In October the HR Manager and a representative of employee safety hold at least two paid discussion groups in each branch using HSE's Stress Talking Toolkit: one between morning and evening runs for care staff and Field Care Supervisors, and one for Office staff, Care Coordinators and On-call Managers. Staff who cannot attend may join by video or send views to a representative.",
+            "Data: the Registered Manager reviews the previous 12 months of the indicators in Monitoring and review, with exit questionnaire themes, grievances and bullying reports, visit overruns, violence and abuse incidents and supervision themes.",
+            "Hazards and people: for each of the six areas the assessment records the hazards, the groups most at risk (for example new care workers, night and weekend workers, workers on long rural runs, sponsored workers living far from family, Care Coordinators and On-call Managers) and the controls in place.",
+            "Rating: each area is rated using the method in the Risk Assessment and Home Environment Risk Assessment Procedure. Any area with a residual score above 6, the Directors' risk appetite for staff health, safety and wellbeing, gets further actions. Any High or Very high residual risk also goes on the branch risk register under the Risk Management Policy.",
+            "Action plan: each action has a priority, an owner, the resources needed and a completion date, and goes into the service improvement plan. The plan is agreed at the Health and Safety Meeting with the representatives of employee safety and shared with all staff with the minutes within 10 working days.",
+            "Follow-through: actions are tracked in the service improvement plan and at each quarterly Health and Safety Meeting. An action that is not working is changed straight away, without waiting for the annual review."
+          ] }
+        ] },
+        { "heading": "When we review", "blocks": [
+          { "bullets": [
+            "Every year by 30 November, using the September survey and October discussion groups.",
+            "Within 7 days after a significant incident or change, as for every general risk assessment, including the death or serious assault of a colleague, or a capacity pause or business continuity activation once it has lasted 2 weeks.",
+            "Within 10 working days when a monitoring trigger in Monitoring and review is reached.",
+            "Before any planned change to the runs, hours, roles or base of 5 or more staff: the Registered Manager records a stress impact check in the assessment and consults the affected staff at least 10 working days before the change starts. Changes made in an emergency are checked within 7 days afterwards."
+          ] }
+        ] }
+      ]
+    },
+    {
+      "heading": "Home care pressures and our standing controls",
+      "blocks": [
+        { "p": "These controls are in place in every branch. The branch stress risk assessment adds local actions." },
+        { "table": { "columns": ["Area", "Pressures in our work", "Standing controls"], "rows": [
+          ["Demands", "Too little travel time, visits too short for the care needed, split shifts, long days, early starts, night and on-call work and the fatigue they cause, late changes, emotionally demanding care such as end of life care, and difficult home environments.", "Paid, realistic travel time, planned breaks, 11 hours' rest, a 60-hour weekly cap and the fatigue stop on full pay (Working Time, Rest Breaks and Travel Time Policy). Rota published by 12 noon each Thursday. Care that cannot be delivered in the visit time is reported to the Care Coordinator the same working day; the Care Coordinator reviews the visit length with the person within 7 days and asks the commissioner within 2 working days where it must agree more time (Care Plan Review Procedure). The Registered Manager pauses new packages when the rota cannot safely cover existing care."],
+          ["Control", "Little say over runs, changes at short notice and pressure to cover extra visits.", "Recorded availability is respected. Extra visits outside contracted hours may be refused without any effect on hours offered later. Changes after publication are made on the CareFlow rota and the worker is phoned. Flexible working requests follow the Flexible Working and Family Leave Policy."],
+          ["Support", "Working alone with no colleague or manager on site, and long periods without seeing a colleague.", "The office in office hours and the On-call Manager out of hours can always be reached by phone; On-call Managers answer at once or return a missed call within 15 minutes. A planned supervision or spot check about every 6 weeks, a paid staff team meeting at least every 3 months, the employee assistance programme, a mental health first aider in every branch and occupational health."],
+          ["Relationships", "Abuse from people we support, families or the public, and conflict or bullying between colleagues.", "Every incident reported and acted on under the Violence and Aggression Towards Staff Policy; nobody is required to return to a home where they were harmed. Colleague complaints under the Bullying, Harassment and Sexual Harassment Policy; a request not to be paired with a colleague is met within 2 working days without loss of hours."],
+          ["Role", "Families asking for tasks outside the care plan, and uncertainty about what to do in an emergency.", "The care plan and My care at a glance set out each visit. Staff never change the safe system of work at anyone's request and phone the office instead. No task is done without training and sign-off. Escalation routes are taught at induction."],
+          ["Change", "Packages starting, ending or suspended for hospital admission, new systems, and colleagues leaving.", "Stress impact check and consultation before change. Policy change summaries and discussion at team meetings and supervision. Cancellation pay protects pay when a visit is cancelled less than 24 hours ahead."]
+        ] } },
+        { "p": "Office and management roles carry their own pressures. Care Coordinators and Office staff may end abusive calls under the Violence and Aggression Towards Staff Policy; On-call Managers work within the on-call limits in the Working Time, Rest Breaks and Travel Time Policy and can always reach the escalation manager." },
+        { "p": "Lone workers are kept in touch: each month the HR Manager checks the supervision, training and rota records in CareFlow and lists any care worker who has had no supervision, spot check, team meeting, training or double-handed visit for 8 weeks, and their Field Care Supervisor phones them within 5 working days." }
+      ]
+    },
+    {
+      "heading": "Recognising and acting on signs of stress",
+      "blocks": [
+        { "p": "Signs in an individual include more absence or lateness, missed check-ins, more errors in daily visit notes or the eMAR, withdrawal, irritability, tearfulness, loss of confidence and changes in mood. Signs in a team include arguments, rising absence and turnover, and more complaints and grievances. A sign is a reason to ask, not to judge: the supervisor or manager who notices it speaks to the employee privately the same or next working day, asks how they are and listens, and suggests they see their GP if their health is affected." },
+        { "p": "An individual stress risk assessment starts whenever one of these applies:" },
+        { "table": { "columns": ["Trigger", "Who acts", "Timescale"], "rows": [
+          ["An employee says stress is affecting them or asks for an assessment", "Whoever is told passes it to the HR Manager", "The same working day; assessment within 5 working days"],
+          ["A supervisor or manager sees signs of stress at supervision, a spot check or any other contact", "Supervisor tells the HR Manager", "The same working day; assessment within 5 working days"],
+          ["Absence relating to stress, anxiety or depression", "HR Manager, by phone or video if the employee prefers", "Within 5 working days of learning of it; occupational health referral offered once the absence passes 7 days"],
+          ["A grievance about stress, workload or hours", "HR Manager", "Within 5 working days, without waiting for the grievance outcome"],
+          ["Signs of stress after a distressing event, or during a bullying complaint, disciplinary, capability, attendance or safeguarding process", "HR Manager", "Within 5 working days"],
+          ["A fatigue stop where the Field Care Supervisor's review of hours and rest (within 5 working days) shows workload or stress is a cause", "Field Care Supervisor tells the HR Manager", "The same working day as the review; assessment within 5 working days"],
+          ["Return after absence caused by stress", "HR Manager or Registered Manager", "Assessment reviewed before the first shift back"]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Individual stress risk assessment",
+      "blocks": [
+        { "steps": [
+          "The HR Manager, or the Registered Manager where the HR Manager is unavailable or involved, meets the employee in private and in paid time at the branch office, by video or by phone, as the employee prefers, never in a person's home, a car or a public place. The employee may bring a colleague or trade union representative.",
+          "They go through the six areas as they apply to the employee: their run, hours, rest and tiredness, travel, the people they support, colleagues, role and recent changes, and anything outside work the employee chooses to share. They ask whether the employee has any thoughts of harming themselves and follow Distressing events and crises if so.",
+          "They agree actions, each with an owner and a date, such as a stable run near home, no split shifts or early starts for a time, longer gaps between visits, a break from a particular person's visits, more frequent supervision, an occupational health referral, the employee assistance programme or Access to Work mental health support.",
+          "Where the employee or the assessor thinks the employee cannot safely work as rostered, interim changes are made the same day. Contracted hours, or for variable-hours staff the hours already rostered, are paid in full.",
+          "The HR Manager records the assessment in the restricted section of the staff record and gives the employee a copy within 2 working days. The Care Coordinator and named supervisor are told only the changes to work, which are built into the rota before the employee's next shift.",
+          "The assessment is reviewed after 4 weeks, then at least every 3 months while any action is open, and within 5 working days whenever the employee asks or things get worse. It is closed when the employee and the assessor agree, and the closure is recorded.",
+          "Anything the HR Manager cannot agree is decided by the Registered Manager within 5 working days, with written reasons and the nearest alternative. An employee who disagrees may use the Grievance Policy and Procedure."
+        ] },
+        { "p": "Every employee may also write a wellbeing plan with their supervisor at any time. It is voluntary, the employee decides what it says, and they may change or withdraw it whenever they wish." }
+      ]
+    },
+    {
+      "heading": "Distressing events and crises",
+      "blocks": [],
+      "subsections": [
+        { "heading": "During a visit or run", "blocks": [
+          { "p": "If something at work, such as a distressing event, abuse or the pressure of the run, leaves you too distressed to carry on safely:" },
+          { "steps": [
+            "Make the person safe and give any care that cannot wait, unless staying would put you at risk. If someone in the home is the cause, leave and act from a safe place under the Violence and Aggression Towards Staff Policy.",
+            "Phone the office, or the On-call Manager out of hours, and speak to a person before you leave the home or drive on, from outside if anyone there makes you feel unsafe. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly.",
+            "Say whether the person is safe, what care is still due and whether the home and key safe are secure, and check out on CareFlow or give the time you left.",
+            "The office or On-call Manager agrees with you whether you can continue. If not, they arrange the care still due and cover your remaining visits under the Missed, Late and Short Visits Procedure; leaving early for this reason is never counted against you. The rest of that day's rostered hours are paid, and if you should not drive you go home by taxi at our cost.",
+            "A manager phones you before your next shift, and the Registered Manager (the Deputy Manager in their absence) agrees with you before that shift whether you are ready to work alone."
+          ] },
+          { "p": "A worker who becomes physically ill during a run follows the same steps, but pay for the rest of the day follows the Sickness Absence Policy. After any distressing event at a visit, even when the care worker feels able to carry on, the office or On-call Manager checks that they are fit to go on before they travel to their next visit." }
+        ] },
+        { "heading": "After a distressing event", "blocks": [
+          { "bullets": [
+            "The Field Care Supervisor contacts the worker within 1 working day and offers a debrief within 3 working days, in paid time at the branch office, by video or by phone as the worker prefers. The debrief is also offered to colleagues who were involved or witnessed it. It is offered, never required, and the worker never has to describe the event: the facts go to the incident investigation under the Incident Reporting, Investigation and Learning Policy.",
+            "Within 4 weeks the Field Care Supervisor checks again with the worker, and in the same week the HR Manager sends the confidential survey after a difficult event. Only the HR Manager reads the survey answers, because they may include health details that supervisors do not see (Staff Personal Data and HR Records Policy).",
+            "The worker may ask not to visit that person or home for a time; the Care Coordinator makes the change from the next rota without loss of hours.",
+            "The employee assistance programme is offered every time. Signs of stress lead to an individual stress risk assessment.",
+            "After the death of a person we support, the core care team is told personally before their next shift and a group reflective session may be offered, as the End of Life Care Policy sets out.",
+            "Violence or abuse also follows the Violence and Aggression Towards Staff Policy, including the choice to stop for the rest of that day on full pay."
+          ] }
+        ] },
+        { "heading": "Suicidal thoughts or self-harm", "blocks": [
+          { "steps": [
+            "Take it seriously, listen, and ask them directly whether they are thinking of ending their life.",
+            "If their life is at risk, they have seriously harmed themselves or they cannot keep themselves safe, call 999 and stay with them, or on the phone, until help arrives. Never leave them alone.",
+            "If they are not in immediate danger, help them contact their GP, NHS 111 using the mental health option, Samaritans or the employee assistance programme, and agree who they will be with.",
+            "Tell the Registered Manager or Deputy Manager at once (the On-call Manager out of hours). Do not promise to keep it secret when a life may be at risk.",
+            "The Registered Manager or Deputy Manager contacts the employee by the end of the next working day, and agrees with them before their next shift whether and how they work, including lone visits and driving, with occupational health advice where needed. Their visits are covered meanwhile, and any rostered hours we ask them not to work are paid. The manager records what was agreed in the restricted section of the staff record; the employee's health details never go in the incident log or daily visit notes. The person who first helped is offered a debrief within 3 working days."
+          ] }
+        ] },
+        { "heading": "Death of a colleague", "blocks": [
+          { "p": "The Registered Manager (the Deputy Manager in their absence) tells the team personally, by phone or in person, before they hear by other means where possible, and never by group message. A group debrief is offered within 3 working days, with the employee assistance programme and individual support. The branch stress risk assessment is reviewed within 7 days." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Support available",
+      "blocks": [
+        { "table": { "columns": ["Support", "What it offers", "How to get it"], "rows": [
+          ["Supervisor and managers", "A private conversation, practical changes and an individual stress risk assessment", "At any time; extra supervision on request within 5 working days, by phone the same day if urgent; out of hours, the On-call Manager by phone at once"],
+          ["Employee assistance programme", "Free, confidential counselling and advice 24 hours a day on work, health, money, family and bereavement. We receive only anonymised numbers and themes.", "Phone it directly. The number is on each branch office noticeboard, given at induction and available from any manager"],
+          ["Mental health first aider", "Someone to listen and help you find support", "Named on the first aid notice at the branch office; in person or by phone, and the office gives their name on request"],
+          ["Occupational health", "Independent advice on fitness for work, adjustments and returning to work", "HR Manager refers within 5 working days of the employee's written consent; the employee sees the referral and the report; appointments in working hours are paid"],
+          ["Access to Work mental health support", "A tailored plan to help the employee stay in work and one-to-one sessions with a mental health professional", "The employee applies directly to one (only one) of the two providers named on GOV.UK, Able Futures or Maximus; anyone who has had this support before cannot apply again. The HR Manager helps on request"],
+          ["GP and NHS 111", "Assessment and treatment; urgent mental health help through the NHS 111 mental health option", "Directly"],
+          ["Representatives of employee safety and trade union representatives", "Raising shared concerns about workload or working conditions", "Directly, or at the Health and Safety Meeting"]
+        ] } },
+        { "p": "Counselling through the employee assistance programme agreed as an action in an individual stress risk assessment may be taken in working hours with the Care Coordinator's agreement and is paid, up to 6 sessions in any 12 months. Concerns about practices causing stress that are not resolved may be raised under the Whistleblowing (Speaking Up) Policy." }
+      ]
+    },
+    {
+      "heading": "Adjustments, absence and returning to work",
+      "blocks": [
+        { "p": "We do not wait for a diagnosis, or decide whether someone is disabled, before making adjustments for stress or a mental health condition. Requests, interim arrangements, the workplace adjustment record and its reviews follow the Equality, Diversity and Inclusion Policy." },
+        { "p": "Stress-related absence is reported, paid and managed under the Sickness Absence Policy, including the named contact's call within 3 working days, the occupational health referral once the absence passes 7 days and phased returns. Nobody is asked to deal with work while off sick. Absence caused by work-related violence or aggression is recorded as a work-related injury and does not count towards review points." },
+        { "p": "Before the first shift after stress-related absence, the HR Manager or Registered Manager reviews the individual stress risk assessment with the employee, by phone or video if that is quicker, so that agreed changes are on the rota before they return. The return-to-work conversation and any phased return then follow the Sickness Absence Policy." }
+      ]
+    },
+    {
+      "heading": "Fair treatment and confidentiality",
+      "blocks": [
+        { "bullets": [
+          "Health information goes only in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions), as the Staff Personal Data and HR Records Policy sets out. CareFlow cannot hide one employee's documents from those roles, so the Registered Manager's and Deputy Manager's own health information is saved as a password-protected document that only the Nominated Individual can open, and the HR Manager gives a copy of a wellbeing plan to the supervisor who helped write it. It is shared further only with the employee's consent, or where someone's life or safety is at serious risk.",
+          "Where stress affects safe practice, for example medicines errors, missed check-ins or unsafe driving, the Registered Manager may set temporary changes to duties, such as no lone visits, medicines support or driving, on a written risk assessment reviewed at least every 4 weeks. This is never a sanction. Contracted hours, or for variable-hours staff the hours already rostered, are paid in full, and the Care Coordinator offers other suitable work in the same rota week.",
+          "Stress during a disciplinary, capability, attendance or safeguarding process does not stop it, but the process is adjusted, for example in timing, breaks or video meetings, unless occupational health advises that the employee is not fit to take part. A shortfall caused by ill health that no adjustment can overcome moves to the ill-health route in the Sickness Absence Policy.",
+          "Asking for help or using the employee assistance programme is never reported to the Home Office. The HR Manager explains to sponsored workers how any absence or change of hours affects their sponsorship, under the Right to Work and Sponsored Workers Policy."
+        ] }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "table": { "columns": ["Record", "Where", "Retention"], "rows": [
+          ["Branch stress risk assessment, action plan and stress impact checks", "Branch health and safety file and risk assessment register; actions in the service improvement plan", "6 years from replacement"],
+          ["Individual stress risk assessments, wellbeing plans, occupational health referrals and reports", "Restricted section of the staff record", "Employment plus 6 years"],
+          ["Supervision discussions on wellbeing, without health details", "Supervision and appraisal records", "Employment plus 6 years"],
+          ["Distressing events, and the dates support and debriefs were offered and held (no health details)", "Incident log entry", "10 years from closure (20 years for a serious incident or one involving a person who lacked capacity for the matter), as the Records Management and Retention Policy sets out"],
+          ["Interim changes and adjustments to work", "Workplace adjustment record in the restricted section of the staff record; CareFlow rota", "Employment plus 6 years"],
+          ["Training", "Training and compliance records", "Employment plus 6 years"],
+          ["Survey, discussion group and employee assistance programme results", "Governance records, anonymised", "6 years"]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "table": { "columns": ["Training", "Who", "When", "Refresher"], "rows": [
+          ["Mental health awareness, including signs of stress, looking after yourself, this policy and where to get help", "All employees", "Induction", "Every 3 years"],
+          ["Managing stress and wellbeing conversations: the Management Standards, signs of stress, individual stress risk assessments, debriefs, and responding to suicidal thoughts", "Registered Manager, Deputy Manager, HR Manager, Field Care Supervisors, supervising Senior Care Workers, Care Coordinators and On-call Managers", "Before their first supervision, rota or on-call duty", "Every 3 years"],
+          ["Stress risk assessment using the Management Standards approach and the Stress Talking Toolkit", "Registered Manager, Deputy Manager and HR Manager", "Within 3 months of appointment", "Every 3 years"],
+          ["Mental health first aid (2-day course)", "At least one mental health first aider per branch", "Before appointment", "Every 3 years"]
+        ] } },
+        { "p": "The Registered Manager reviews the first two individual stress risk assessments completed by a new HR Manager or Deputy Manager within 5 working days of each, and gives feedback. The HR Manager warns the employee and the Care Coordinator 30 days before this training expires." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["What is checked", "How and how often", "By", "Reported to"], "rows": [
+          ["Stress, anxiety and depression absence (days and share of all sickness absence); individual assessments started within 5 working days (target 100%); overdue actions; occupational health referrals within 5 working days of consent (target 100%); debriefs offered within 3 working days (target 100%); missed breaks and weeks over 60 hours; turnover (target below 30% over 12 months)", "Monthly workforce figures by the 5th working day", "HR Manager", "Registered Manager; Monthly Quality and Governance Meeting"],
+          ["5 individual stress risk assessments (all if fewer) for timeliness, completed actions and restricted recording, target 100%", "Quarterly audit, by the 10th working day after the quarter ends", "Deputy Manager", "Health and Safety Meeting"],
+          ["Anonymised employee assistance programme use and themes; exit questionnaire themes; progress on the branch action plan", "Quarterly stress and wellbeing report", "Registered Manager", "Health and Safety Meeting; Nominated Individual; Directors in the quarterly governance report"],
+          ["Staff survey results on the six areas, target at least 80% positive in each", "Annually after the September survey; any area below 80%, or 10 percentage points lower than the year before, gets an action in the plan", "HR Manager", "Health and Safety Meeting; Directors"]
+        ] } },
+        { "p": "The Registered Manager reviews the branch stress risk assessment within 10 working days, and tells the Nominated Individual, when stress-related absence days rise by 50% or more on the previous 3-month average, or when 3 or more individual stress risk assessments start in the same team or role in a branch in a quarter. The annual independent health and safety audit includes this policy." },
+        { "p": "The Registered Manager reviews this policy every 12 months, and sooner after a change in law or guidance, a serious incident, an inspection finding or when monitoring shows the arrangements are not working. The Directors approve it under the Policy Management and Document Control Policy, and every employee acknowledges it in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again." }
+      ]
+    }
+  ]
+}

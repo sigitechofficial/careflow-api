@@ -1,5 +1,5 @@
 /**
- * Scheduled jobs catalogue — the single list of the 11 background jobs.
+ * Scheduled jobs catalogue — the single list of the 14 background jobs.
  * Names are the canonical IDs used everywhere (JobRun.jobName, POST /internal/jobs/:name,
  * the CLI, the Azure Functions and Container Apps Jobs, the admin System jobs screen).
  */
@@ -15,6 +15,10 @@ export const JOB_NAMES = [
   'visit-plan-scheduled-end',
   'learning-maintenance',
   'care-plan-review-reminders',
+  'supervision-reminders',
+  'compliance-expiry-reminders',
+  'assessment-review-reminders',
+  'policy-acknowledgement-reminders',
 ] as const;
 
 export type JobName = (typeof JOB_NAMES)[number];
@@ -53,7 +57,8 @@ export const JOB_CATALOGUE: readonly JobDefinition[] = [
   {
     name: 'survey-distribution',
     label: 'Survey distribution',
-    description: 'Sends scheduled surveys whose distribution time has passed.',
+    description:
+      'Sends scheduled surveys and due periods of repeating surveys, and closes periods past their open window.',
     trigger: 'function',
     schedule: { cron: '* * * * *', human: 'Every minute' },
     expectedIntervalMinutes: 1,
@@ -173,6 +178,62 @@ export const JOB_CATALOGUE: readonly JobDefinition[] = [
     expectedIntervalMinutes: 1440,
     period: { kind: 'utc-date' },
     retentionDays: DAILY_JOB_RETENTION_DAYS,
+  },
+  {
+    name: 'supervision-reminders',
+    label: 'Supervision reminders',
+    description:
+      'Hourly check; from the reminder time in Settings → Supervision (organisation time) tells supervisors, branch managers and carers about supervisions, spot checks and appraisals coming due or overdue. Each reminder is sent once.',
+    trigger: 'function',
+    schedule: {
+      cron: '10 * * * *',
+      human: 'Hourly at :10 (sends from the reminder time, organisation time)',
+    },
+    expectedIntervalMinutes: 60,
+    period: { kind: 'minutes', minutes: 60 },
+    retentionDays: MINUTE_JOB_RETENTION_DAYS,
+  },
+  {
+    name: 'compliance-expiry-reminders',
+    label: 'Compliance expiry reminders',
+    description:
+      'Hourly check; from the reminder time in Settings → Reviews & reminders (organisation time) tells supervisors and branch managers (and the employee) about DBS and other compliance documents expiring or expired. Each reminder stage is sent once per expiry date.',
+    trigger: 'function',
+    schedule: {
+      cron: '20 * * * *',
+      human: 'Hourly at :20 (sends from the reminder time, organisation time)',
+    },
+    expectedIntervalMinutes: 60,
+    period: { kind: 'minutes', minutes: 60 },
+    retentionDays: MINUTE_JOB_RETENTION_DAYS,
+  },
+  {
+    name: 'assessment-review-reminders',
+    label: 'Assessment review reminders',
+    description:
+      'Hourly check; from the reminder time in Settings → Reviews & reminders (organisation time) tells key workers, named nurses and branch managers about service user assessment reviews due soon or overdue. Each reminder is sent once.',
+    trigger: 'function',
+    schedule: {
+      cron: '25 * * * *',
+      human: 'Hourly at :25 (sends from the reminder time, organisation time)',
+    },
+    expectedIntervalMinutes: 60,
+    period: { kind: 'minutes', minutes: 60 },
+    retentionDays: MINUTE_JOB_RETENTION_DAYS,
+  },
+  {
+    name: 'policy-acknowledgement-reminders',
+    label: 'Policy acknowledgement reminders',
+    description:
+      'Hourly check; from the reminder time in Settings → Reviews & reminders (organisation time) reminds staff to read and acknowledge policies (3 days before the due date, on it, 1 day overdue, then every 7 days) and sends managers a weekly overdue summary. Each reminder is sent once.',
+    trigger: 'function',
+    schedule: {
+      cron: '35 * * * *',
+      human: 'Hourly at :35 (sends from the reminder time, organisation time)',
+    },
+    expectedIntervalMinutes: 60,
+    period: { kind: 'minutes', minutes: 60 },
+    retentionDays: MINUTE_JOB_RETENTION_DAYS,
   },
 ];
 

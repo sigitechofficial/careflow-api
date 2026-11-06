@@ -1,0 +1,677 @@
+{
+  "reference": "POL-CD-007",
+  "revision": 1,
+  "title": "Nutrition and Hydration Policy",
+  "documentType": "POLICY",
+  "summary": "How we assess, plan and give support with eating and drinking, screen for malnutrition, dehydration and swallowing difficulty, prepare texture-modified food and thickened drinks safely, respond to choking, keep food and drink records and escalate concerns to health professionals. It applies to everyone who works for us, on every visit.",
+  "keyPoints": {
+    "intro": "Food and drink keep the people we support well at home. This is what the policy means for you on every visit, whether or not meals are in the care plan.",
+    "points": [
+      "Before every visit where you help with food or drink, check My care at a glance for allergies, the food and drink texture levels, thickener, choking risk and any fluid restriction, and follow them exactly.",
+      "Never change the texture of food or the thickness of a drink yourself. Prepare it as the care plan says, check it with the IDDSI test you were taught, and always close thickener and store it out of reach of anyone who could swallow it.",
+      "If someone is choking and cannot cough, speak or breathe, give up to 5 back blows, then up to 5 abdominal thrusts (back blows only if pregnant), and call 999 if it does not clear. Always call 999 for anyone you gave abdominal thrusts.",
+      "Call 999 if the person is newly confused, very drowsy or hard to wake, has blue, grey or blotchy skin, or has a severe allergic reaction.",
+      "Phone the office before you leave about dark urine, a dry mouth or dizziness. If the person coughs or splutters when eating or drinking, has a wet, gurgly voice or holds food in their mouth, stop that food or drink, phone and wait for advice.",
+      "Make sure the person is fully awake and sitting as upright as possible, with dentures, glasses and hearing aids in, and help them eat at their own pace. Never rush a meal to save time.",
+      "Offer a choice of food and drink, offer a drink at every visit, and leave a fresh drink and any snack the care plan names within reach before you leave.",
+      "Record what you offered and how much the person ate and drank in the daily visit notes. Where a food and drink record is in place, record every drink in millilitres at every visit.",
+      "If the person declines a meal or drink, offer an alternative and offer again later in the visit; if they still decline, phone the office before you leave. Never force, trick or pressure anyone to eat or drink.",
+      "Phone the office before you leave if there is no food the person can eat or thickener, supplements or feed are running out, and tell the office the same day if clothes, rings or dentures have become loose.",
+      "Never prepare or serve food past its use-by date or that looks or smells spoiled. Wash your hands with soap and water and put on a new disposable apron before preparing food."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "INITIAL_ASSESSMENT",
+    "RISK_ASSESSMENT",
+    "VISIT",
+    "INFECTION_CONTROL"
+  ],
+  "relatedReferences": [
+    "POL-CD-002",
+    "POL-CD-003",
+    "POL-CD-004",
+    "POL-CD-016",
+    "POL-CD-018",
+    "POL-IPC-007",
+    "POL-MED-015",
+    "POL-SG-012"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 14 (meeting nutritional and hydration needs)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/14"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9(3)(i) (person-centred care: nutrition, hydration and well-being)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "NHS England, Patient Safety Alert NHS/PSA/W/2015/002, Risk of death from asphyxiation by accidental ingestion of fluid/food thickening powder (5 February 2015)",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2015/02/psa-thickening-agents.pdf"
+    },
+    {
+      "source": "NHS, Dehydration (page last reviewed 1 May 2026)",
+      "url": "https://www.nhs.uk/conditions/dehydration/"
+    },
+    {
+      "source": "NHS, Malnutrition (page last reviewed 23 May 2023)",
+      "url": "https://www.nhs.uk/conditions/malnutrition/"
+    },
+    {
+      "source": "NHS, Water, drinks and hydration (page last reviewed 17 May 2023)",
+      "url": "https://www.nhs.uk/live-well/eat-well/food-guidelines-and-food-labels/water-drinks-nutrition/"
+    },
+    {
+      "source": "BAPEN Malnutrition Advisory Group, 'Malnutrition Universal Screening Tool' ('MUST'), including management guidelines and alternative measurements (copy published on NHS Scotland Right Decisions)",
+      "url": "https://rightdecisions.scot.nhs.uk/media/1624/must-full.pdf"
+    },
+    {
+      "source": "St George's University Hospitals NHS Foundation Trust, IDDSI Fluid Levels and Information (IDDSI drink levels and flow test)",
+      "url": "https://www.stgeorges.nhs.uk/service/therapies/speech-and-language-therapy/our-new-fluid-and-diet-terminology/iddsi-fluid-levels-information/"
+    },
+    {
+      "source": "UK Health Security Agency, Supporting vulnerable people before and during hot weather: social care managers (updated 8 July 2025)",
+      "url": "https://www.gov.uk/guidance/supporting-vulnerable-people-before-and-during-hot-weather-social-care-managers"
+    },
+    {
+      "source": "GOV.UK, Understanding food labelling: best before and use-by dates",
+      "url": "https://www.gov.uk/understanding-food-labelling/best-before-and-use-by-dates"
+    },
+    {
+      "source": "North East Ambulance Service NHS Foundation Trust, Emergency advice: choking",
+      "url": "https://www.neas.nhs.uk/community-learning/emergency-advice/choking"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} supports many people for whom eating and drinking well is what keeps them well at home. Where help with food or drink is part of a person's care, we make sure they have food and drink they enjoy, suited to their health, culture and beliefs, in the form and with the help they need to eat and drink safely and with dignity."
+        },
+        {
+          "p": "{{organisation}} treats malnutrition, dehydration and choking as avoidable harm: we screen for risk, follow health professionals' advice exactly, record intake when it matters and act quickly when it falls or a swallowing problem appears. For everyone we visit, staff report these signs the same day. We never force anyone to eat or drink, and we respect informed choices while making sure the person and their GP understand the risks."
+        },
+        {
+          "p": "This policy sits under the Person-Centred Care, Dignity and Respect Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets out how we meet Regulations 14 and 9(3)(i) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, with the timescales and responsibilities for food and drink support, swallowing and choking risks, monitoring intake and escalating concerns."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to all Directors, managers, office staff, care staff, bank and agency workers and students working for us. The assessment, planning and support duties apply to every person whose care plan includes any help with food, drink, food shopping, meal preparation, prompting or help to eat or drink. The duty to notice and report concerns applies to every person we visit."
+        },
+        {
+          "p": "Owned elsewhere: food handling and storage (Food Hygiene Guideline); supplements and thickeners as medicines (Medicines Management Policy); tube feeding as a delegated task (Delegated Healthcare Activities and Specialised Medicines Tasks Policy); shopping (Handling Money, Property and Shopping Procedure); mouth and denture care (Personal Care, Continence and Oral Care Procedure); and the last weeks of life (End of Life Care Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Dysphagia",
+                "Difficulty swallowing food, drink, saliva or medicines safely. It can cause choking, chest infections, malnutrition and dehydration."
+              ],
+              [
+                "MUST",
+                "BAPEN's Malnutrition Universal Screening Tool for adults, designed for use in community settings by trained care staff. It scores body mass index, unplanned weight loss in the past 3 to 6 months and the effect of acute illness to give a Low (0), Medium (1) or High (2 or more) risk of malnutrition."
+              ],
+              [
+                "IDDSI levels",
+                "The International Dysphagia Diet Standardisation Initiative framework used by the NHS: drinks from level 0 (thin) to level 4 (extremely thick), foods from level 3 (liquidised) to level 7 (regular). Only a speech and language therapist sets a person's levels."
+              ],
+              [
+                "Eating and drinking with acknowledged risks",
+                "A decision, made by the person or in their best interests with the speech and language therapist or GP, that they will keep eating and drinking by mouth although some risk of choking or chest infection remains."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors do not accept contract terms that would stop us meeting the meal visit lengths in this policy, and approve this policy. The Nominated Individual reviews the nutrition and hydration results in the quarterly quality report and challenges any shortfall."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on nutrition and hydration; approves enteral tube feeding as a delegated task (Registered Manager only); approves, as may the Deputy Manager, plans for eating and drinking with acknowledged risks; and reviews every choking incident, allergic reaction and hospital admission linked to dehydration or malnutrition within the initial review timescale in the Incident Reporting, Investigation and Learning Policy (at once for a death or permanent harm; the same working day where the person needed treatment, or by 12 noon the next working day if reported out of hours), deciding whether a safeguarding referral, a notification under the Statutory Notifications to CQC Procedure, the Duty of Candour Policy or a care plan change applies. The Deputy Manager covers these duties, except approving tube feeding, in the Registered Manager's absence and carries out the monthly checks in Monitoring and review."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators plan visits that allow safe meal support, start and review food and drink records, contact health professionals and arrange supplies within the timescales in this policy, and tell every rostered care worker about a change before their next visit."
+            }
+          ]
+        },
+        {
+          "heading": "Assessors and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Authorised assessors (Care Coordinators, Field Care Supervisors, the Deputy Manager, the Registered Manager and, at a short-notice start out of hours, an authorised On-call Manager) complete the nutrition, hydration and choking risk assessment and MUST screening. Field Care Supervisors carry out repeat screening and observe mealtime practice at spot checks."
+            }
+          ]
+        },
+        {
+          "heading": "Care workers, On-call Manager and Office staff",
+          "blocks": [
+            {
+              "p": "Senior Care Workers and Care Workers follow the care plan and this policy at every visit and phone the office about any concern in it before leaving the home. During a visit they get advice from a Senior Care Worker or the Care Coordinator in office hours and the On-call Manager out of hours; if nobody answers within 15 minutes, they phone the Registered Manager or Deputy Manager directly. Office staff record reported concerns in the daily visit notes the same working day and pass them to the Care Coordinator at once. Out of hours the On-call Manager takes the Care Coordinator's urgent actions, using NHS 111 when the GP practice is closed, reviews fluid records at weekends and on bank holidays, and hands over by 10am the next working day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law requires",
+      "blocks": [
+        {
+          "bullets": [
+            "Regulation 14 requires the nutritional and hydration needs of the people we support to be met where meeting them is part of the arrangements for their care. Those needs include suitable and nutritious food and hydration adequate to sustain life and good health, parenteral nutrition and dietary supplements when prescribed by a health care professional, reasonable requirements arising from preferences or religious or cultural background, and support to eat or drink where necessary.",
+            "Regulation 14 does not require care that would breach the person's consent under Regulation 11, or that would not be in the best interests of a person who lacks capacity, judged under section 4 of the Mental Capacity Act 2005.",
+            "Regulation 9(3)(i) requires us to have regard to the person's well-being in meeting these needs."
+          ]
+        },
+        {
+          "p": "Applying the reporting standards in this policy to everyone we visit, including people whose care plan has no food or drink tasks, is our policy, not a legal requirement."
+        }
+      ]
+    },
+    {
+      "heading": "Assessing nutrition, hydration and swallowing",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "At every assessment",
+          "blocks": [
+            {
+              "p": "Under the Needs Assessment and Care Planning Policy, every assessment covers nutrition, hydration and swallowing. The assessor asks every person whether they have lost weight without trying, whether their appetite has changed, whether they have difficulty chewing or swallowing food, drink or tablets, what they usually drink, and how they get food and drink between visits, and notes signs in the home such as little or out-of-date food, loose clothing or dentures, or untouched drinks."
+            }
+          ]
+        },
+        {
+          "heading": "Nutrition, hydration and choking risk assessment",
+          "blocks": [
+            {
+              "p": "For anyone who needs help with food or drink, has lost weight without trying or has difficulty swallowing, the assessor completes a nutrition, hydration and choking risk assessment in CareFlow, rated by the method in the Risk Assessment and Home Environment Risk Assessment Procedure, before the care plan is approved (at the first visit of a short-notice start). It records:"
+            },
+            {
+              "bullets": [
+                "the MUST result and the weight, height or alternative measures used, with date and source;",
+                "swallowing: any dysphagia, the IDDSI levels with the date and author of the speech and language therapist's advice, choking episodes and signs seen;",
+                "allergies and intolerances, the reaction and any emergency plan;",
+                "conditions affecting eating and drinking, such as diabetes, a fluid restriction, dementia, stroke, Parkinson's disease, poor oral health or low mood;",
+                "what the person can do themselves, from shopping and opening packets to getting a drink between visits, and the equipment they use;",
+                "risks such as scalds from hot drinks, alcohol use or someone else controlling access to food, and the controls agreed, which are written into the visit plans."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Screening for malnutrition",
+          "blocks": [
+            {
+              "p": "The assessor screens with MUST. With the person's agreement, and only where they can stand safely, the assessor weighs them on the branch's portable class III medical scales; the Deputy Manager has the scales checked for accuracy every 12 months and keeps the certificate in the branch health and safety file. Otherwise the assessor uses the MUST alternatives: recently documented or reliable self-reported height and weight loss, height estimated from ulna length, and the subjective criteria supported by mid upper arm circumference. Bathroom scales are never used for screening. Results are recorded in the risk assessment."
+            },
+            {
+              "table": {
+                "columns": [
+                  "MUST result",
+                  "What we do",
+                  "Repeat screening"
+                ],
+                "rows": [
+                  [
+                    "Low",
+                    "Support as the care plan sets out; care workers report the concerns in this policy.",
+                    "At every full care plan review, and within 7 days of any concern in Acting on concerns."
+                  ],
+                  [
+                    "Medium",
+                    "Food and drink record at every visit for 3 days, reviewed by the Care Coordinator on day 4. Where the record shows the person ate or drank less than half of what was offered, the GP is asked within 2 working days to review the person and consider a dietitian referral. Food-first measures the person agrees to, such as extra snacks and full-fat foods they like, go into the care plan.",
+                    "Every month by the Field Care Supervisor."
+                  ],
+                  [
+                    "High",
+                    "The Care Coordinator writes to the GP within 2 working days asking for a review and dietitian referral (the same day where the person is also unwell, has a swallowing difficulty or is eating almost nothing). Food and drink record at every visit until the GP's or dietitian's plan is in the care plan. Care plan and risk assessment updated before the next visit.",
+                    "Every month by the Field Care Supervisor, and whenever the GP or dietitian asks."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Everyone screened is rescreened at the home review within 7 days of hospital discharge under the Hospital Admission and Discharge Procedure. A move to a higher MUST category is a change in health under the Care Plan Review Procedure, with a focused review within 7 days."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Planning support in the care plan",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the care plan records",
+          "blocks": [
+            {
+              "p": "For every person whose care includes food or drink, the care plan records:"
+            },
+            {
+              "bullets": [
+                "the support at each visit (preparing and serving, prompting and encouraging, or helping the person to eat and drink) and what the person does themselves;",
+                "likes, dislikes, portion sizes, mealtimes and how food and drinks are served, including temperature, cup, plate and adapted utensils;",
+                "cultural, religious and ethical requirements, such as halal, kosher or vegetarian food, separate utensils and fasting;",
+                "allergies, special diets and IDDSI levels, with the health professional's written advice;",
+                "the drinks plan: a health professional's target or, where none is set, the person's usual cup size and the number of drinks we offer and leave, working towards the NHS guide of 6 to 8 drinks a day;",
+                "what is left within reach at the end of each visit, and whether thickened drinks may be left standing (only where the speech and language therapist's advice allows);",
+                "who shops and how food reaches the home, which meals or drinks family carers or another agency provide, and any food and drink record with its reason and review date."
+              ]
+            },
+            {
+              "p": "My care at a glance shows any food allergy, IDDSI levels, thickener, choking risk, fluid restriction and tube feeding, so care workers see them before every visit."
+            }
+          ]
+        },
+        {
+          "heading": "Time for meals",
+          "blocks": [
+            {
+              "bullets": [
+                "No meal is prepared and no help to eat is given in a visit planned for less than 30 minutes; a shorter visit may include making a drink, or heating and serving a ready-prepared meal for a person who eats without help.",
+                "Visits at which we provide a main meal are planned at least 3 hours apart.",
+                "Where more than 12 hours pass between the last visit of the day and the first of the next, the care plan records the drink and snack left within reach at the last visit, unless swallowing advice says otherwise.",
+                "A person who needs help to eat is never rushed. If a meal will make the visit run more than 15 minutes over, the care worker stays and phones the office before the expected finish, and the office tells the next person or sends cover; visit length is reviewed under the Needs Assessment and Care Planning Policy where this happens at 3 or more visits in 2 weeks.",
+                "A person who cannot eat or drink without our help, or needs food with insulin, has a High missed-visit risk level under the Needs Assessment and Care Planning Policy. After a visit more than 60 minutes late, the office moves the next one, with the person's agreement, to keep main-meal visits 3 hours apart (Missed, Late and Short Visits Procedure)."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Supporting people to eat and drink",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "At every visit involving food or drink",
+          "blocks": [
+            {
+              "steps": [
+                "Check My care at a glance and the visit plan for allergies, IDDSI levels, thickener, fluid restriction and any food and drink record, and look at how much of what was left at the last visit has been eaten or drunk.",
+                "Before preparing food, wash your hands with soap and water and put on a new disposable apron, as the Food Hygiene Guideline sets out. Gloves are not worn to serve food unless the care plan says so.",
+                "Offer a real choice, using pictures, the food itself or two options where open questions are hard, and involve the person in preparing food as far as they want.",
+                "Make sure the person is fully awake and sitting as upright as possible, or positioned as their swallowing advice says, with dentures, glasses and hearing aids in.",
+                "Serve food and drink at a safe temperature and at the texture and thickness the care plan sets, and support the person to eat and drink for themselves wherever they can.",
+                "Before leaving, leave a fresh drink and any planned snack within reach, and record what was offered and taken in the daily visit notes."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Helping someone to eat",
+          "blocks": [
+            {
+              "p": "Sit at the person's level, facing them, and tell them what is on the plate. Offer small amounts, wait until each mouthful is swallowed and let the person set the pace. Use a clothes protector only if the person agrees. Stop if the person coughs, splutters, becomes drowsy or has had enough. A person at risk of choking stays upright after eating for as long as their swallowing advice says, and otherwise for at least 30 minutes."
+            }
+          ]
+        },
+        {
+          "heading": "Drinks and hydration",
+          "blocks": [
+            {
+              "p": "A drink is offered at every visit to everyone in scope. Water, milk, tea and coffee all count. Hot drinks are left to cool, or served in the insulated or lidded cup the care plan names, for anyone who could spill or scald themselves. A fluid restriction is followed only where a health professional has set it; care workers never restrict drinks on their own judgement or at a relative's request."
+            },
+            {
+              "p": "During hot weather and any UKHSA heat-health alert the Severe Weather and Extreme Temperatures Procedure applies. Care workers also offer extra drinks and water-rich foods such as fruit, lollies and salads, leave at least two full drinks within reach, one of them water (unless a health professional has restricted fluids), and report the signs in Acting on concerns."
+            }
+          ]
+        },
+        {
+          "heading": "Culture, beliefs and fasting",
+          "blocks": [
+            {
+              "p": "Care workers follow the person's food and drink rules, including separate utensils and how food is stored and prepared. Before a planned fast, the Care Coordinator agrees visit times with the person, gets medicines advice as the Consent, Mental Capacity and Declined Medicines Policy requires, and asks the GP for advice where fasting could harm the person's health, such as with diabetes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Swallowing difficulties and choking",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Recognising swallowing difficulty",
+          "blocks": [
+            {
+              "p": "Signs include coughing, choking or spluttering when eating or drinking, a wet or gurgly voice, food held in the mouth, food or drink coming back out of the mouth or nose, taking a long time to eat, avoiding certain foods, tablets found spat out and repeated chest infections. A care worker who sees a new or worsening sign stops the food or drink that caused it, keeps the person upright, and phones the office before leaving. They wait up to 30 minutes after the planned end of the visit for the office's advice on what to leave within reach; after that, the office arranges an extra visit. The Care Coordinator (On-call Manager through NHS 111 when the practice is closed) contacts the GP the same day, asks for a speech and language therapy referral and advice on what to offer meanwhile, records that advice in the care plan and tells every rostered care worker before their next visit."
+            }
+          ]
+        },
+        {
+          "heading": "Texture-modified food and thickened drinks",
+          "blocks": [
+            {
+              "bullets": [
+                "Only a speech and language therapist sets or changes IDDSI levels. Staff never change a texture or thickness on their own judgement or at anyone's request; requests are passed to the office the same day.",
+                "Thickener is given and recorded on the eMAR as the Medicines Administration Records (MAR and eMAR) Procedure sets out, measured with the scoop supplied in the amount the prescription and care plan give for the volume of drink.",
+                "Every thickened drink at levels 1 to 3 is checked with the IDDSI flow test (10 ml syringe, 10 seconds), and every level 4 drink and texture-modified food with the IDDSI fork or spoon tilt test. One that fails is never served; it is remade.",
+                "Following NHS England Patient Safety Alert NHS/PSA/W/2015/002, thickener is always closed after use and stored where the care plan names, out of reach of anyone who could swallow the dry powder, such as a person with dementia or poor sight.",
+                "Mixed textures, such as cereal in milk or soup with pieces, are served only where the person's IDDSI level allows.",
+                "If thickener runs out, the care worker phones the office before leaving and waits for advice as for a new swallowing sign, and the Care Coordinator (On-call Manager out of hours) gets a supply from the GP and community pharmacy the same day and GP, pharmacist or NHS 111 advice on what to offer meanwhile. Thin drinks are never given to someone who needs thickened drinks without that advice."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Responding to choking",
+          "blocks": [
+            {
+              "steps": [
+                "If the person can cough, encourage them to keep coughing and to spit out anything in their mouth. Never put your fingers in their mouth.",
+                "If they cannot cough, speak or breathe, ask anyone else present to call 999 at once, and give up to 5 sharp back blows between the shoulder blades, checking after each one.",
+                "If it has not cleared, give up to 5 abdominal thrusts. Never give abdominal thrusts to a woman who is pregnant: keep giving back blows and call 999.",
+                "If it still has not cleared, call 999, say the person is choking, and repeat 5 back blows and 5 abdominal thrusts until help arrives. If the person becomes unresponsive and is not breathing normally, start CPR, following the DNACPR and ReSPECT Protocol where the person has a DNACPR decision or ReSPECT plan.",
+                "Our policy: call 999 for anyone given abdominal thrusts, or who still has a cough, pain or difficulty swallowing, so that a medical professional checks them. Where back blows alone cleared it and the person is well, phone the office before leaving.",
+                "Record the episode in the incident log before the end of your shift."
+              ]
+            },
+            {
+              "p": "After any choking episode the Care Coordinator (On-call Manager through NHS 111 when the practice is closed) asks the GP the same day for a speech and language therapy referral and advice on what to offer meanwhile, and a focused review is held within 7 days under the Care Plan Review Procedure. Where the person is taken to hospital, the office (On-call Manager out of hours) phones the Registered Manager or Deputy Manager at once, as the RIDDOR Reporting Procedure requires."
+            }
+          ]
+        },
+        {
+          "heading": "Eating and drinking with acknowledged risks",
+          "blocks": [
+            {
+              "p": "Where the person, or the health professional making a best interests decision, decides with the speech and language therapist or GP that the person will keep eating and drinking by mouth despite the risks, we follow that decision. We obtain the written plan (food and drink allowed, positioning, signs to act on, who to contact), record it as a positive risk-taking plan under the Positive Risk-Taking Policy, have it approved by the Registered Manager or Deputy Manager before we act on it, and brief the core care team before their next visit. Staff still respond to choking as set out above."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Supplements, tube feeding and special diets",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Oral nutritional supplements and food first",
+          "blocks": [
+            {
+              "p": "Prescribed supplements are medicines, set up on the eMAR and given under the Medicines Management Policy; opened supplements are stored and discarded as the label says. Food-first measures, such as fortified milk or extra snacks, are used as the GP, dietitian or MUST plan advises and written into the care plan with the person's agreement."
+            }
+          ]
+        },
+        {
+          "heading": "Enteral tube feeding",
+          "blocks": [
+            {
+              "p": "Feeds, water flushes and medicines through an established gastrostomy or jejunostomy tube, and tube site care, are Level 3 delegated tasks. They start only when a registered health professional has delegated them for the named person, the person has given signed consent under the Consent to Care Policy, the Registered Manager has approved them and each named care worker is trained and signed off under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy. We never insert, replace or reposition a tube, never give feeds through or check the position of a nasogastric tube, and never give parenteral nutrition. If a tube comes out, care workers do not reinsert it: they cover the site with a clean dressing, keep the tube and phone the office before leaving. The office contacts the community nursing or enteral feeding team at once, or NHS 111 if that team cannot be reached."
+            }
+          ]
+        },
+        {
+          "heading": "Allergies and diabetes",
+          "blocks": [
+            {
+              "p": "For a person with a recorded food allergy, care workers check the label of every packaged food for that allergen each time, treat 'may contain' as containing it unless the person, once told, chooses otherwise, and do not serve food whose ingredients they cannot confirm; a recorded allergen given, even without a reaction, is phoned to the office at once, under the Food Hygiene Guideline. For a severe allergic reaction they call 999 and give the person's own adrenaline auto-injector as the First Aid Procedure sets out. For a person with diabetes the care plan records meal times linked to their medicines, the signs of low blood sugar and what to do. Food or drink is never given by mouth to anyone who is drowsy or cannot swallow safely; staff call 999."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Food in the home",
+      "blocks": [
+        {
+          "p": "Staff prepare, store and throw away food as the Food Hygiene Guideline sets out. Care workers never prepare or serve food past its use-by date, which relates to safety, or food that looks or smells spoiled; food past its best before date, which relates to quality, may be served if it looks and smells as it should. A person with capacity may keep food we will not serve; the care worker explains the risk, offers an alternative and records it in the daily visit notes. Where unsafe food was also found at a visit in the last 7 days, the care worker phones the office the same day and the Care Coordinator reviews the care plan with the person within 7 days, as the Food Hygiene Guideline sets out."
+        },
+        {
+          "p": "If there is no food, or none the person can safely eat, the care worker makes the best meal and drink possible from what is there and phones the office before leaving. The Care Coordinator (On-call Manager out of hours) contacts the family or representative the same working day and, where the person would otherwise go without, makes sure food reaches them that day through shopping under the Handling Money, Property and Shopping Procedure or, with the person's agreement, local emergency food support. The Care Coordinator records whether there is a safeguarding or self-neglect concern. Staff never buy food with their own money."
+        },
+        {
+          "p": "Where a family carer or another agency stops providing the meals or drinks the care plan says they do, the care worker tells the office the same day, before leaving if the person has nothing to eat or drink until our next visit; the Care Coordinator arranges cover before it is next needed and tells the commissioner the same working day (Care Plan Review Procedure). If the person's cooker, microwave or kettle is not working or looks unsafe, the care worker does not use or try to fix it, makes the best meal possible another safe way and phones the office before leaving; the Care Coordinator (On-call Manager out of hours) contacts the person or family the same working day about a repair. A faulty fridge follows the Food Hygiene Guideline."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring intake and acting on concerns",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Food and drink records",
+          "blocks": [
+            {
+              "p": "The Care Coordinator or reviewer starts a food and drink record when MUST is Medium or High, when there are signs of dehydration or poor intake, when a health professional asks, after hospital discharge where the discharge information raises a concern, or after diarrhoea or vomiting as the Infections of Concern Guideline sets out, recording the reason, start date and review date in the care plan. At every visit the care worker records in the daily visit notes what was offered; how much was eaten (all, three quarters, half, a quarter or none); each drink in millilitres, using the cup size in the care plan; what was left within reach; and what the person says they had since the last visit."
+            },
+            {
+              "p": "The Care Coordinator reviews each record every working day, and the On-call Manager reviews fluid records at weekends and on bank holidays, acting on the thresholds below. At least every 7 days the Care Coordinator records whether the record continues and why. A health professional's request is followed for as long as they ask."
+            }
+          ]
+        },
+        {
+          "heading": "Acting on concerns",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "What is seen",
+                  "What happens",
+                  "Who and when"
+                ],
+                "rows": [
+                  [
+                    "New or sudden confusion; very drowsy or hard to wake; blue, grey, pale or blotchy skin; difficulty breathing or very fast breathing; choking that does not clear; severe allergic reaction",
+                    "Call 999, give first aid, then phone the office",
+                    "Care worker, at once"
+                  ],
+                  [
+                    "Signs of dehydration: dark, strong-smelling urine, passing urine less often, dry mouth, dizziness on standing, unusual tiredness, headache",
+                    "Offer a drink and phone the office before leaving; GP contacted and food and drink record started",
+                    "Care worker before leaving; Care Coordinator the same day (On-call Manager via NHS 111 out of hours)"
+                  ],
+                  [
+                    "Less than half of the planned drinks taken across the day's visits on 2 consecutive days",
+                    "GP contacted; care plan reviewed",
+                    "Care Coordinator the same working day (On-call Manager through NHS 111 at weekends and on bank holidays)"
+                  ],
+                  [
+                    "A quarter or less of the meals we provide eaten across 3 consecutive days",
+                    "GP contacted; MUST repeated",
+                    "Care Coordinator the same working day; Field Care Supervisor screens within 7 days"
+                  ],
+                  [
+                    "A meal or drink in the care plan declined at a visit",
+                    "Offer an alternative and offer again later in the visit; if still declined, phone the office before leaving. Declined at 2 consecutive visits or 3 times in 7 days: focused review within 7 days under the Care Plan Review Procedure",
+                    "Care worker; Care Coordinator decides the same working day, and contacts the GP the same day where the person takes insulin or another diabetes medicine"
+                  ],
+                  [
+                    "Clothes, rings or dentures looser, reported weight loss, or poor appetite for a week",
+                    "Recorded in the daily visit notes and phoned to the office",
+                    "Care worker the same day; Field Care Supervisor repeats MUST within 7 days"
+                  ],
+                  [
+                    "Swallowing difficulty, no suitable food in the home, or thickener, supplements or feed running out",
+                    "As set out in Swallowing difficulties and choking and Food in the home",
+                    "Care worker before leaving; Care Coordinator the same day"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Advice that changes how care is given is written into the care plan and approved under the Care Plan Review Procedure before the next visit at which it applies. The Care Coordinator tells the person's chosen contact where the person agrees or it is in their best interests, and writes to the commissioner within 2 working days where more visit time is needed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Declined food and drink, capacity and safeguarding",
+      "blocks": [
+        {
+          "p": "Everyone may choose what, when and whether to eat and drink. Care workers look for reasons such as pain, a sore mouth, ill-fitting dentures, constipation, low mood, nausea, disliked food or the wrong texture, offer an alternative, record declines in the daily visit notes and phone the office as Acting on concerns sets out, in line with the Consent to Care Policy."
+        },
+        {
+          "bullets": [
+            "Person with capacity: we respect the decision, explain the risks honestly and record the discussion. Where intake meets a threshold in Acting on concerns, the Care Coordinator contacts the GP and tells the Registered Manager the same working day, and a plan is agreed with the person under the Positive Risk-Taking Policy. Where the person is neglecting their own needs, the Self-Neglect and Hoarding Procedure applies.",
+            "Capacity in doubt: reported the same day and assessed under the Consent to Care Policy and the Mental Capacity Act and Best Interests Policy. A best interests plan approved by the Registered Manager or Deputy Manager sets out how food and drink are offered and when to stop and record. An advance decision cannot refuse the offer of food and drink by mouth, so care workers keep offering it.",
+            "Staff never force, hold, restrain, pressure or trick anyone into eating or drinking, and never hide declined food or drink in other food. A restriction on access to food or drink, such as a locked fridge, is used only where the Consent to Care Policy approval rules are met, and the deprivation of liberty screen is updated the same working day under the Deprivation of Liberty in the Community Procedure.",
+            "Signs that someone is withholding food or drink, taking the person's food or leaving them without food between visits are a safeguarding concern, phoned before the care worker leaves under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. Weight loss or dehydration where our care may have contributed is reported to the Registered Manager (On-call Manager out of hours) the same day, who decides within 1 hour whether it is a safeguarding concern under the Safeguarding Adults Policy.",
+            "In the last weeks of life falling appetite and thirst are expected. Once the GP or community nurse has confirmed this in the end of life plan, the intake thresholds in Acting on concerns stop applying; care workers still offer the food and drink the person wants, give mouth care and record what they take, as the End of Life Care Policy sets out."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Screening answers go in the initial assessment; weights, MUST results and the risk assessment in the risk assessments; support and advice in the care plan; intake, declines and health professional contacts in the daily visit notes; supplements, thickener and feeds on the eMAR; choking, allergic reactions, food-related illness and thickener incidents in the incident log before the end of the shift. Records are written as the Daily Records and Visit Notes Procedure sets out, in respectful language (for example supported to eat, never fed), and kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Fluids, nutrition and food hygiene (Care Certificate Standard 8), including this policy, signs of dehydration and malnutrition, and dignity at mealtimes",
+                "Care staff",
+                "Before preparing food or drinks without a shadowing colleague; refreshed every 3 years under the Training and Development Policy"
+              ],
+              [
+                "Choking response",
+                "Care staff, Field Care Supervisors and On-call Managers",
+                "Within basic life support training, every 12 months"
+              ],
+              [
+                "Dysphagia, IDDSI levels and preparing thickened drinks and texture-modified food, with an observed competency check including the IDDSI tests",
+                "The core care team of any person with IDDSI levels or thickener, and Field Care Supervisors",
+                "Before the first unshadowed visit to that person; refreshed every 12 months"
+              ],
+              [
+                "MUST screening and the nutrition, hydration and choking risk assessment",
+                "Assessors, including On-call Managers who assess",
+                "Before the first screen; refreshed every 3 years. A new assessor's first three screens are checked by the Registered Manager or Deputy Manager"
+              ],
+              [
+                "Enteral tube feeding",
+                "Named care workers",
+                "Before the task, then at least every 12 months or sooner as the delegating health professional specifies"
+              ],
+              [
+                "Escalation thresholds and food and drink record review",
+                "Care Coordinators and On-call Managers",
+                "Before first allocating visits or the first on-call shift; every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Under the Training and Development Policy, a care worker whose fluids and nutrition, dysphagia or tube feeding training has expired is not allocated visits involving that task or person until it is renewed. Serving food or a drink at the wrong IDDSI level is a critical item under the Quality Audit and Monitoring Procedure and is logged in the incident log the same day: the care worker gets feedback the same day, is retrained and observed preparing it before doing so alone again, and is re-observed within 4 weeks. Staff acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Nutrition content of care plans, risk assessments and My care at a glance",
+                "Within the monthly audit of 10 care plans",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Every person whose risk assessment shows a Medium or High MUST result, a swallowing difficulty, thickener or tube feeding: screening in date, food and drink records reviewed, GP contacts within timescale (target 100%)",
+                "Monthly check of every such person",
+                "Deputy Manager",
+                "Registered Manager and Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Thickener and supplement storage and stock against the eMAR",
+                "At each in-home medicines check",
+                "The member of staff carrying out the check",
+                "Care Coordinator; Deputy Manager by exception"
+              ],
+              [
+                "Mealtime practice, including IDDSI levels, positioning, pace, choice and drinks left",
+                "Every spot check that includes food or drink",
+                "Field Care Supervisor",
+                "Registered Manager monthly"
+              ],
+              [
+                "Choking, allergic reactions, food-related illness and hospital admissions linked to dehydration or malnutrition",
+                "Each reviewed within the initial review timescale in the Incident Reporting, Investigation and Learning Policy; trends monthly",
+                "Registered Manager",
+                "Quarterly quality report to the Nominated Individual and Directors"
+              ],
+              [
+                "Training compliance (100% induction, 95% refreshers in date) and policy acknowledgements (by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version)",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is recorded with an action, owner and deadline in the service improvement plan. This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious incident, an inspection finding, or when monitoring shows that our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,273 @@
+{
+  "reference": "POL-HS-017",
+  "revision": 1,
+  "title": "Young Workers Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we protect people under 18 who work with us: employees and apprentices in branch office roles, and pupils and students on work experience. It sets out the roles and tasks young people may and may not do, the risk assessment before they start, mentoring and supervision, working hours, placements, incidents and concerns, and review until the 18th birthday. For managers, the HR Manager and everyone who rotas or works alongside young people.",
+  "keyPoints": {
+    "intro": "This procedure tells managers, the HR Manager, Care Coordinators, Office staff and senior staff how to keep anyone under 18 safe in our branch offices, from before their first day until their 18th birthday.",
+    "points": [
+      "Never give anyone under 18 a care role, a visit to a person's home, driving for work or any time working alone, including from home, out of hours or on call. This applies to employees, apprentices and work experience students.",
+      "No young person starts until the Registered Manager has signed off their individual risk assessment, at least 5 working days before the start date, and no task begins before their mentor has given the day-one safety induction.",
+      "Report any concern that a young person is being harmed to the Registered Manager at once. An allegation that a colleague has harmed them goes to the LADO within 1 working day, and nobody questions anyone until the LADO agrees.",
+      "Make sure the named mentor or substitute mentor is in the office whenever the young person works. If neither can be there, the Deputy Manager names another briefed adult, or the young person does not work that day and is paid for their rostered hours.",
+      "Roster young people only between 8am and 6pm, Monday to Friday: never more than 8 hours a day or 40 hours a week, counting other jobs and college time, with a 30-minute break on any day over 4 and a half hours.",
+      "Young people pass every safeguarding concern, complaint, incident, missed visit report, emergency or abusive call straight to an adult colleague. They never handle keys we hold, key safe codes, visit monitoring alerts, safeguarding records, or DBS or health information.",
+      "If a young person answers when you phone the office from a visit, ask for an adult. If no adult calls you back within 15 minutes, phone the Registered Manager or Deputy Manager directly; in an emergency call 999.",
+      "Young people never lift more than 5 kg, unload deliveries, use ladders or step stools, or handle cleaning chemicals, waste or equipment returned from people's homes.",
+      "Show each new task, watch the young person do it and sign it off before they do it on their own. Check understanding by asking them to explain it back.",
+      "Contact a young colleague only about work, through work phones, email or messaging during working hours. Never use private social media, give lifts, give gifts or alcohol, or meet them alone outside work.",
+      "If a young person is hurt, does a ruled-out task or works beyond the limits, stop it at once and log it in the incident log the same day. A hurt placement student's school or college and parent are told the same working day."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["Manager", "HR", "Care Coordinator", "Staff Allocation", "Senior Carer/Nurse", "Admin"],
+  "moduleLinks": ["RISK_ASSESSMENT", "RECRUITMENT", "TRAINING", "EMPLOYEE", "HR"],
+  "relatedReferences": ["POL-HS-001", "POL-HS-002", "POL-HS-003", "POL-HR-001", "POL-HR-004", "POL-SG-007", "POL-HR-014", "POL-SG-003"],
+  "regulatoryBasis": [
+    { "source": "Management of Health and Safety at Work Regulations 1999, regulation 3(4) and (5) (risk assessment before employing a young person, and the matters it must consider)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3" },
+    { "source": "Management of Health and Safety at Work Regulations 1999, regulation 10 (information for employees, and for a parent before employing a child)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/10" },
+    { "source": "Management of Health and Safety at Work Regulations 1999, regulation 19 (protection of young persons)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/19" },
+    { "source": "Working Time Regulations 1998, regulation 2 (definitions of young worker, restricted period and working time)", "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/2" },
+    { "source": "Working Time Regulations 1998, regulation 5A (maximum working time for young workers, including work for more than one employer)", "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/5A" },
+    { "source": "Working Time Regulations 1998, regulation 6A (night work by young workers)", "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/6A" },
+    { "source": "Working Time Regulations 1998, regulation 10(2) and (3) (daily rest for young workers)", "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/10" },
+    { "source": "Working Time Regulations 1998, regulation 11(3) and (8) (weekly rest for young workers)", "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/11" },
+    { "source": "Working Time Regulations 1998, regulation 12(4) and (5) (rest breaks for young workers)", "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/12" },
+    { "source": "Education Act 1996, section 560 (work experience in the last two years of compulsory schooling)", "url": "https://www.legislation.gov.uk/ukpga/1996/56/section/560" },
+    { "source": "Equality Act 2010, section 13(2) (different treatment because of age justified as a proportionate means of achieving a legitimate aim)", "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/13" },
+    { "source": "Health and Safety Executive, Young people at work: employers", "url": "https://www.hse.gov.uk/young-workers/employer/index.htm" },
+    { "source": "Health and Safety Executive, Young workers: the law", "url": "https://www.hse.gov.uk/young-workers/employer/law.htm" },
+    { "source": "Health and Safety Executive, Work experience: employers", "url": "https://www.hse.gov.uk/young-workers/employer/work-experience.htm" },
+    { "source": "GOV.UK, School leaving age (England) and staying in education or training until 18", "url": "https://www.gov.uk/know-when-you-can-leave-school" },
+    { "source": "GOV.UK, National Minimum Wage and National Living Wage rates (from April 2026)", "url": "https://www.gov.uk/national-minimum-wage-rates" },
+    { "source": "GOV.UK, Become an apprentice: pay and conditions for apprentices", "url": "https://www.gov.uk/become-apprentice/pay-and-conditions" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "{{organisation}} welcomes young people into work as office employees, apprentices and work experience students, and protects them from the risks of inexperience and immaturity. Most of our work is done by care workers alone in people's homes, early, late and at night, often in distressing situations. That work is not suitable for anyone under 18, so we employ and place people under 18 only in our branch offices, always alongside adult colleagues." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "bullets": [
+          "Apply the young person rules in the Management of Health and Safety at Work Regulations 1999 and the Working Time Regulations 1998 to our branch offices.",
+          "Make sure nobody under 18 works in a care role, visits a person's home, drives for work or works alone.",
+          "Set out the arrangements from before a young person starts until their 18th birthday."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This procedure applies to every young person who works with us: employees aged 16 or 17, including apprentices; pupils on work experience arranged by their school or local authority; and students under 18 on college placements, including T Level industry placements. It also applies to every adult who manages, mentors, rotas or works alongside them, in every branch office. Our agency agreements require every worker an agency supplies to be 18 or over." },
+        { "p": "Owned elsewhere: recruitment and checks (Safer Recruitment Policy; Pre-Employment Checks and DBS Procedure); office induction and probation (Induction and Care Certificate Procedure); working time for staff aged 18 and over (Working Time, Rest Breaks and Travel Time Policy); children we meet in people's homes, and any concern that a young worker is being harmed (Safeguarding Children and Young People Policy); students aged 18 or over (Safer Recruitment Policy)." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Young person", "Anyone under 18 who works with us in any capacity, including on placement."],
+          ["Child", "A young person who has not yet reached the minimum school leaving age. In England this is the last Friday in June of the school year in which they turn 16, provided they are 16 by the end of the summer holidays."],
+          ["Young worker", "Under the Working Time Regulations 1998, a worker aged 15 to 17 who is over compulsory school age. In our practice, an employee aged 16 or 17."],
+          ["Work experience student", "A pupil placed with us by their school or local authority as part of their education, or a college student under 18 on placement. Under health and safety law, work experience students are treated as our employees."],
+          ["Mentor", "The adult member of Office staff named in the individual risk assessment to guide and supervise the young person; a substitute mentor covers their absence."],
+          ["Ruled-out task", "Any role, task, place or time this procedure or the young person's individual risk assessment says a young person must not do or work."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Directors and Nominated Individual", "blocks": [
+          { "p": "The Directors approve the age rules in this procedure. At each insurance renewal the Nominated Individual confirms in writing with our employers' liability insurer that the policy covers apprentices and work experience students." }
+        ] },
+        { "heading": "Registered Manager", "blocks": [
+          { "p": "The Registered Manager owns this procedure, keeps the general young persons risk assessment, signs off individual risk assessments, approves placements and decides on every breach. As designated safeguarding lead for children, the Registered Manager handles any concern that a young person is being harmed. The Deputy Manager covers these duties in the Registered Manager's absence." }
+        ] },
+        { "heading": "Deputy Manager", "blocks": [
+          { "p": "The Deputy Manager supervises every young employee and apprentice, briefs the office team before a young person starts, checks the office rota and timesheets each month, and audits young person files every quarter." }
+        ] },
+        { "heading": "HR Manager", "blocks": [
+          { "p": "The HR Manager identifies every applicant under 18 at offer, completes individual risk assessments, arranges placements and apprenticeships, makes sure parents receive the information the law requires, keeps the records and reports monthly on every young person." }
+        ] },
+        { "heading": "Care Coordinator", "blocks": [
+          { "p": "The Care Coordinator who keeps the daily office rota rosters a young person only within the limits in this procedure, with the mentor or substitute mentor rostered on every day they work." }
+        ] },
+        { "heading": "Mentor", "blocks": [
+          { "p": "The mentor guides and checks on the young person each day as set out in Mentoring and supervision, makes sure breaks and finishing times are kept, and passes any concern to the Deputy Manager the same day. A mentor is aged 18 or over, has passed probation and has completed the mentor briefing." }
+        ] },
+        { "heading": "All managers, Office staff and care staff", "blocks": [
+          { "p": "Everyone, including Senior Care Workers and care workers who phone or call in at the office, never asks a young person to do a ruled-out task, never passes them a report, concern or emergency to handle, keeps the boundaries in Mentoring and supervision, and tells the mentor or Deputy Manager at once if a young person seems unwell, upset or at risk." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Where young people may work",
+      "blocks": [
+        { "p": "We never employ a child in any paid job, including weekend or holiday work. Our youngest employees are 16 and past the minimum school leaving age. Children come to us only on work experience arranged by their school or local authority in their last two years of compulsory schooling, under section 560 of the Education Act 1996, with the same protections as young workers." },
+        { "p": "Young people work only in a branch office, in office administration, reception and customer service roles, including office apprenticeships. They are never Care Workers or in any care role, Care Coordinators, staff allocation roles, HR Manager, On-call Managers or lone working monitors." },
+        { "table": { "columns": ["Area", "A young person may", "A young person never"], "rows": [
+          ["People we support and families", "Greet people and families visiting the branch office with an adult colleague present.", "Visit a person's home, even with an adult colleague or only to drop off PPE, paperwork or equipment; be alone with a person we support or a member of their family."],
+          ["Phones and messages", "Answer general calls and take messages.", "Handle a safeguarding concern, complaint, incident or missed visit report, emergency or abusive caller: the call, and any identity check call or request for information about a person or member of staff, is passed to an adult at once. If every adult is on a call, the young person takes the caller's name and number for the mentor straight away, and tells anyone reporting an emergency to call 999. Answer the on-call phone; watch visit check-in and check-out alerts; phone a care worker, a person or a family about a late or missed visit; change a visit or the care rota."],
+          ["Information", "Data entry, scanning, filing, post and recruitment administration, with CareFlow access the Registered Manager sets for those tasks once information governance training is complete, without access to people's records, which show key safe codes.", "Handle keys we hold for people's homes; see key safe codes, safeguarding records, staff record documents (the restricted section), criminal records declarations, references, DBS or health information, or anyone's bank or payment details."],
+          ["Working alone and travel", "Travel to training or another branch with an adult colleague by public transport or a taxi we pay for.", "Work alone in the office, from home or out of hours; count as the office's fire marshal or first aider; drive for work; travel for work in a colleague's private car."],
+          ["Physical tasks", "Prepare PPE packs, stationery and light stock, with no single load over 5 kg.", "Lift more than 5 kg or from floor to above shoulder height; unload deliveries; use ladders or step stools; use cleaning chemicals; handle waste, sharps or equipment returned from homes."],
+          ["Times", "Work between 8am and 6pm, Monday to Friday, with an adult colleague present throughout.", "Work evenings after 6pm, weekends, bank holidays or on call."]
+        ] } },
+        { "p": "A care worker phoning from a visit who reaches a young person asks for an adult; the young person passes it to an adult at once, telling the caller so, and gives no advice, codes or personal details. If no adult calls back within 15 minutes, the care worker phones the Registered Manager or Deputy Manager directly, or 999 in an emergency." },
+        { "p": "The law allows different treatment because of age only where it is a proportionate means of achieving a legitimate aim. Our aim is to protect young people and the people we support from the risks of lone work in people's homes; the restrictions go no further than that aim needs and end on the 18th birthday. The Registered Manager reviews this justification at each review of this procedure." }
+      ]
+    },
+    {
+      "heading": "Before a young person starts",
+      "blocks": [],
+      "subsections": [
+        { "heading": "General young persons risk assessment", "blocks": [
+          { "p": "The Registered Manager keeps a general young persons risk assessment for each branch office in the branch health and safety file and risk assessment register, rated with the method in the Risk Assessment and Home Environment Risk Assessment Procedure. It is reviewed every 12 months and within 7 days after a significant incident or change. Any task with a residual risk to a young person of Medium or higher is a ruled-out task. We do not use the training exception in regulation 19(3): no young person does work on the regulation 19(2) list, even under supervision." }
+        ] },
+        { "heading": "Individual risk assessment", "blocks": [
+          { "steps": [
+            "When an offer is made to an applicant under 18, the HR Manager records in the staff record that they are a young worker, with their 18th birthday, and tells the Registered Manager and Deputy Manager the same working day.",
+            "From the post-offer health questionnaire and a conversation with the young person, the HR Manager finds out about any health condition, disability, learning need, medicine or allergy affecting their safety, any other job and their study timetable.",
+            "At least 10 working days before the start date, the HR Manager completes the individual risk assessment with the named mentor, using the general assessment and the factors below. It lists the tasks allowed, the ruled-out tasks, the hours, the mentor and substitute mentor, and any adjustment.",
+            "The Registered Manager signs it off at least 5 working days before the start date. Nobody starts without a signed-off assessment.",
+            "The HR Manager records the hours and ruled-out tasks as an allocation restriction in the staff record and tells the Care Coordinator who keeps the office rota.",
+            "Before the start date, the Deputy Manager briefs the office team on the young person's ruled-out tasks and the boundaries in this procedure, and the Care Coordinator sends the branch's care workers a work message setting out what to do if a young person answers the office phone.",
+            "On day one the mentor goes through the assessment with the young person, gives them a written summary of the significant risks and controls, and records any concern they raise."
+          ] },
+          { "table": { "columns": ["What the law and HSE guidance say we must consider", "How we control it in our branch offices"], "rows": [
+            ["Inexperience, lack of awareness of risks and immaturity, including wanting to impress and not knowing how to raise concerns", "One new task at a time, shown and signed off before it is done alone; daily mentor check-ins; the young person is told on day one, and reminded at every supervision, that asking and stopping are always right."],
+            ["Physical and psychological capacity", "No moving of people, no loads over 5 kg, no ruled-out phone work, and distressing information about people we support kept from them."],
+            ["Workplace layout, workstation and work equipment", "Desk, chair and screen set up on day one and a workstation assessment within the first week; standard office equipment only, each item shown by the mentor before use."],
+            ["Physical, biological and chemical agents, and work the law lists as harmful to young people", "None: the physical tasks in Where young people may work are ruled out."],
+            ["How work is organised, and training", "Hours and rest as set out in this procedure; never alone; no deadlines that depend on staying late; day-one safety induction before any task."]
+          ] } }
+        ] },
+        { "heading": "Information for the young person and parents", "blocks": [
+          { "p": "The law requires us to tell every employee the significant risks and controls and, before employing a child, to tell a parent. For a child on work experience, the HR Manager sends the written summary to the placement organiser for the parents at least 10 working days before the first day, and the placement starts only once the organiser confirms it has been given. For an employee aged 16 or 17, our policy is to send a copy to a parent or guardian too, with the young person's agreement. The emergency contact is a parent, guardian or another adult the young person chooses." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Mentoring and supervision",
+      "blocks": [
+        { "p": "The mentor or substitute mentor is in the office whenever the young person works. If neither can be, the Deputy Manager names another adult who has completed the mentor briefing for that day, or the young person does not work that day and is paid for their rostered hours." },
+        { "bullets": [
+          "Induction: the day-one safety induction covers fire exits and the alarm, the first aider, how to report an accident, the ruled-out tasks, breaks and finishing times, who to ask and how to raise a concern. The mentor checks understanding by asking the young person to explain each point back, re-explains anything missed before any task, and records the induction in the training and compliance records.",
+          "New tasks: shown by the mentor, done with the mentor watching, then signed off in the training and compliance records before the young person does them alone. A task not in the individual risk assessment is added only after the assessment is reviewed.",
+          "Check-ins: in the first 4 weeks the mentor checks in at the start and end of each day and holds a recorded 15-minute weekly review.",
+          "Supervision: monthly with the Deputy Manager for the first 6 months, then every 2 months until the 18th birthday, in working hours in a room with a glass panel or the door open, recorded in the supervision and appraisal records. Every supervision asks how the young person is finding the work, whether anything has worried them and whether their hours and breaks have been kept."
+        ] },
+        { "p": "Adults keep clear boundaries with a young colleague. Contact is about work only, through work phones, work email or our messaging system during working hours. Nobody contacts a young person on private social media, gives them a lift, gives them gifts or alcohol, meets them alone outside work, or makes sexual or personal comments. A breach is handled under the Bullying, Harassment and Sexual Harassment Policy, and as a safeguarding concern where it may harm the young person." },
+        { "p": "A young person may raise any concern with their mentor, the Deputy Manager, the HR Manager, the Registered Manager, a staff health and safety representative, or under the Whistleblowing (Speaking Up) Policy; a placement student may also go to their school or college contact. Concerns are acknowledged the same working day and answered within 5 working days." }
+      ]
+    },
+    {
+      "heading": "Working hours, breaks and rest",
+      "blocks": [
+        { "table": { "columns": ["Matter", "What the law requires", "Our rule"], "rows": [
+          ["Maximum hours", "No more than 8 hours a day and 40 hours a week (Monday to Sunday), adding together work for every employer", "The same limits, also counting time at school, college or with a training provider. Rostered hours are planned within them."],
+          ["Night work", "No work in the restricted period (10pm to 6am, or 11pm to 7am where the contract provides for work after 10pm)", "Work only between 8am and 6pm."],
+          ["Rest break", "At least 30 minutes, in one block if possible and away from the workstation, when working more than 4 and a half hours (all employers added together)", "An uninterrupted 30-minute break away from the desk on any day over 4 and a half hours, which the mentor makes sure is taken."],
+          ["Daily rest", "12 consecutive hours in each 24 hours", "Met by the 8am to 6pm window."],
+          ["Weekly rest", "48 hours in each 7 days, which may be reduced to 36 for technical or organisational reasons", "Saturday and Sunday off every week; never reduced."]
+        ] } },
+        { "p": "These limits cannot be opted out of, and we use none of the exceptions the Working Time Regulations 1998 allow for young workers. The young person declares any other job and their study timetable at offer and tells the HR Manager of any change before their next shift. The Care Coordinator checks each week's office rota against the limits before publishing it, and the HR Manager checks the young person's timesheet against them every week." },
+        { "p": "Young people in England must stay in education or training until 18: full-time study, an apprenticeship, or work or volunteering of 20 hours or more a week alongside part-time education or training. We employ a young person for 20 hours or more a week only as an apprentice or alongside part-time education or training, with the study timetable agreed before they start and study time in working hours paid." },
+        { "p": "Pay: the law sets a lower minimum rate for workers under 18 and apprentices (£8.00 an hour from 1 April 2026, £8.31 from 1 April 2027). Our policy is that every employee under 18, including apprentices, is paid at least the National Living Wage for all working time, including off-the-job training. Work experience students are not paid." }
+      ]
+    },
+    {
+      "heading": "Work experience and student placements",
+      "blocks": [
+        { "steps": [
+          "We accept placements only through a school, local authority or college placement organiser, never by private arrangement. The Registered Manager approves each placement in writing. A branch office takes no more than one placement student under 18 at a time.",
+          "The HR Manager agrees a written placement agreement with the organiser: dates, hours, tasks, mentor, emergency contacts, insurance, and how incidents and concerns are reported both ways.",
+          "The HR Manager asks the organiser, the student and, for a child, a parent about any health condition, disability, learning need, medicine or allergy, and meets the student, with a parent if they wish, at the branch office at least 5 working days before the start.",
+          "The HR Manager decides and records whether the general young persons risk assessment covers the student. An individual risk assessment, signed off as for employees, is always completed for a student with a health condition, disability or learning need, and for the first placement in a branch office with no young person in the last 12 months.",
+          "On day one the student signs a confidentiality agreement, countersigned by a parent before the start for a child, receives an ID badge marked Student and has the day-one safety induction. Students have no CareFlow log-in and do not look at care records, and staff take calls about identifiable people out of their hearing wherever they can. Nobody photographs the student, and the student takes no photographs in the office.",
+          "The mentor checks in at the start and end of each day.",
+          "On the last day the mentor holds a feedback conversation with the student; the HR Manager sends the organiser a written report within 5 working days."
+        ] },
+        { "p": "Placement students under 18 are never in regulated activity and never alone with anyone, so we do not ask for a DBS check. Health and social care students are told before accepting that the placement is office-based and that visits start only at 18." }
+      ]
+    },
+    {
+      "heading": "Apprentices",
+      "blocks": [
+        { "p": "Apprentices under 18 follow office apprenticeships, such as business administration or customer service; we offer the adult care apprenticeship only from 18. Before an apprentice starts, the HR Manager makes sure the apprenticeship agreement and training plan with the approved training provider are signed. The mentor or the Deputy Manager attends each progress review with the training provider and records the outcome in the training and compliance records." }
+      ]
+    },
+    {
+      "heading": "Incidents, breaches and concerns",
+      "blocks": [
+        { "table": { "columns": ["Event", "What happens"], "rows": [
+          ["Injury, near miss or work-related illness", "First aid from the office first aider; incident log entry the same day; the individual risk assessment reviewed before the young person does that task again. The emergency contact is told the same day if the young person needs treatment beyond first aid, after the young person has been told we are doing so. For a placement student, the organiser and a parent are told of any injury the same working day. Reporting to HSE follows the RIDDOR Reporting Procedure, under which placement students are reported as if they were our employees."],
+          ["Ruled-out task, or hours or conditions beyond the limits", "Stopped at once by whoever finds it; incident log entry the same day; the Registered Manager reviews it by the end of the next working day and records what changes."],
+          ["Serious breach: a young person visited a person's home, was alone with a person we support, drove for work or was alone in the office", "As above; the safeguarding lead decides the same day whether the young person or anyone we support was at risk, and the Nominated Individual is told within 24 hours."],
+          ["Distressing event, such as overhearing an emergency or an abusive caller", "The mentor checks on the young person the same day; the Deputy Manager offers a debrief within 3 working days and, for employees, the employee assistance programme. A placement student's organiser is told the same working day."],
+          ["Concern that a young person is being harmed, at work or elsewhere", "Reported to the Registered Manager at once and handled under the Safeguarding Children and Young People Policy."],
+          ["Allegation that a member of staff has harmed a young person", "The Registered Manager informs the LADO within 1 working day and the police the same day where a crime may have been committed, and decides the same day, on a written risk assessment, whether the member of staff is removed from work; the two never work together meanwhile. Nobody questions the young person or the member of staff, tells the member of staff what has been alleged, or starts an internal investigation until the LADO and police agree (Managing Allegations Against Staff Procedure)."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Review and turning 18",
+      "blocks": [
+        { "table": { "columns": ["Trigger", "Who reviews the individual risk assessment", "When"], "rows": [
+          ["First month", "HR Manager with the mentor and the young person", "By the end of week 4"],
+          ["Routine", "HR Manager", "Every 6 months"],
+          ["Change in tasks, hours, other job, study timetable or office", "HR Manager, signed off by the Registered Manager", "Before the change takes effect"],
+          ["Change in health, disability or learning need", "HR Manager", "Within 5 working days of being told, with any ruled-out task added the same day"],
+          ["Incident, near miss or concern", "HR Manager with the Deputy Manager", "Before the young person does the task again, and within 5 working days"],
+          ["Approaching 18", "HR Manager and Deputy Manager meet the young person", "4 weeks before the 18th birthday"]
+        ] } },
+        { "p": "On the 18th birthday the HR Manager closes the individual risk assessment, removes the allocation restriction from the staff record and tells the Care Coordinator. The young person then works under the arrangements for all Office staff, including the Lone Working and Staff Personal Safety Policy." },
+        { "p": "A young person who wants to move into a care role may apply up to 3 months before their 18th birthday, and checks run under the Safer Recruitment Policy as an internal move. Care induction, shadow shifts and visits start no earlier than the 18th birthday." }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "bullets": [
+          "Staff record: young worker status and 18th birthday, individual risk assessment and reviews, allocation restriction, emergency contact, study timetable and other jobs; health information in the restricted section only.",
+          "Training and compliance records: induction, check of understanding, task sign-offs, training and apprenticeship progress reviews. Supervision and appraisal records: weekly mentor reviews and supervisions.",
+          "Incident log: injuries, near misses, breaches and distressing events. Concerns and allegations are recorded as the Safeguarding Children and Young People Policy sets out.",
+          "Placements: a staff record for each placement student holding the placement agreement, information given to parents, confidentiality agreement, risk assessment decision, induction, attendance and final report."
+        ] },
+        { "p": "Records for young employees are kept for employment plus 6 years. Placement records are kept for 6 years after the placement ends. Any record of an injury to someone while under 18 is kept for the incident log period in the Records Management and Retention Policy or until their 25th birthday, whichever is later." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "table": { "columns": ["Who", "Training", "When"], "rows": [
+          ["Registered Manager, Deputy Manager and HR Manager", "Young persons risk assessment, the law on young workers and placements, given by our external health and safety adviser", "Before their first assessment, then every 3 years and within 2 months of a change in the law or HSE guidance"],
+          ["Mentors and substitute mentors", "Mentor briefing by the Deputy Manager: ruled-out tasks, hours and breaks, checking understanding, boundaries, child safeguarding and escalation", "Before first mentoring, then every 3 years"],
+          ["Care Coordinators who keep the office rota", "Young worker hours and conditions, within the rota working time training in the Working Time, Rest Breaks and Travel Time Policy", "Before first rostering a young person, then every 12 months"],
+          ["Young employees and apprentices", "Day-one safety induction; office organisational induction, health and safety awareness, fire safety, child and adult safeguarding awareness, and information governance before CareFlow access", "Safety induction on day one; the rest in week 1"],
+          ["Placement students", "Day-one safety induction and confidentiality briefing", "Before any task on day one"]
+        ] } },
+        { "p": "Staff in this procedure's audience acknowledge it in CareFlow as new starters under the Induction and Care Certificate Procedure, within 14 days of moving into a role in the audience, and within 14 days of each new major version; a minor version needs no new acknowledgement. Young employees acknowledge the documents for their office role by the end of week 4. A mentor who allows a ruled-out task is re-briefed by the Deputy Manager before mentoring again." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "bullets": [
+          "Monthly: the HR Manager reports to the Monthly Quality and Governance Meeting on every young person and placement: 18th birthdays, assessment, review and supervision dates, and hours against the limits. The Deputy Manager checks each young person's rota and timesheets against the hours, times, breaks and mentor cover. Target 100%.",
+          "Quarterly: the Deputy Manager audits every young person and placement file, target 100%, and reports to the Health and Safety Meeting with incidents, breaches, concerns and the themes of feedback questionnaires, which young people complete at week 4 and when they leave or turn 18, and placement students on their last day.",
+          "Yearly: the Registered Manager includes young workers and placements in the annual health and safety report to the Directors, and the independent health and safety audit includes this procedure in any year we employ or place a young person."
+        ] },
+        { "p": "The Registered Manager reviews this procedure every 12 months, and sooner after a change in the law or HSE guidance, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working. The Directors approve each new version under the Policy Management and Document Control Policy." }
+      ]
+    }
+  ]
+}

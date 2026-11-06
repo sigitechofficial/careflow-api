@@ -1,0 +1,636 @@
+{
+  "reference": "POL-SG-013",
+  "revision": 1,
+  "title": "No Reply, No Access and Missing Person Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "What care workers, the office and the On-call Manager do when nobody answers at a visit or a planned welfare call, when a care worker cannot get in or is stopped from seeing the person, and when a person is missing from home or leaves during a visit: doorstep checks, escalation times, calling the police, what happens when the person is found, and reporting and learning. For all staff.",
+  "keyPoints": {
+    "intro": "A person who does not answer may be on the floor, seriously ill or lost. Until we know they are safe, treat every no reply as a possible emergency.",
+    "points": [
+      "If nobody answers, knock or ring, call the person's name through the letterbox, wait 2 minutes and try again, then look through the windows. Phone the office, or the On-call Manager out of hours, within 5 minutes of arriving.",
+      "Call 999 at once if you see or hear the person collapsed or calling for help, or a pendant alarm is sounding. With smoke, fire, a smoke or carbon monoxide alarm, smelling gas or a break-in, do not go in: move away and call 999.",
+      "Where the care plan gives you key safe or key access, knock and call out first, then let yourself in, calling out, and check every room the person uses. If the door is open or unlocked, phone the office before going in.",
+      "If the key safe is empty, the key or code fails, or the door is bolted or chained, phone the office. Never force entry, climb in or ask anyone else to break in; only the emergency services force entry.",
+      "Never leave until the office tells you that you may. Wait somewhere safe, such as your car, and answer the office's calls. Your waiting time is paid and the office covers your next visits.",
+      "Never phone or text the person or their family from your own phone, and never leave a note on the door or anywhere it can be seen from outside. The office makes the calls.",
+      "If a relative or anyone else stops you seeing the person, do not argue or push in. Leave calmly and phone the office. Someone else saying the person is fine is not enough.",
+      "If you let yourself in and the person is not there, note what they seem to have taken, such as coat, keys and walking aid, and anything worrying, then phone the office from inside the home.",
+      "If a person who cannot keep safe outside alone walks out during a visit, go with them, keep them in sight and encourage them back, but never hold or block them. Phone the office; if you lose sight of them, phone 999.",
+      "If the person has died, call 999 unless the death is recorded as expected, the DNACPR or ReSPECT form is there and nothing worries you: then phone the named nurse or GP, then the office. Move nothing unless told to; stay until someone takes over.",
+      "Record what you saw and did, with times, in the daily visit notes. When the office opens an incident log entry, add your account before the end of your shift."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "VISIT",
+    "INCIDENT",
+    "SAFEGUARDING",
+    "CARE_PLAN",
+    "RISK_ASSESSMENT"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-002",
+    "POL-CD-013",
+    "POL-HS-013",
+    "POL-HS-003",
+    "POL-CD-014",
+    "POL-GOV-007",
+    "POL-GOV-009"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(1) and 12(2)(a) and (b) (safe care and treatment: assessing risks and doing all that is reasonably practicable to mitigate them)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 16 (notification of death of service user)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/16"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18(2)(a), (b), (e) and (f) (notification of serious injury, abuse or allegation of abuse, and incidents reported to or investigated by the police)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Police and Criminal Evidence Act 1984, section 17(1)(e) (entry without warrant to save life or limb or prevent serious damage to property)",
+      "url": "https://www.legislation.gov.uk/ukpga/1984/60/section/17"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1(2) and (4) (presumption of capacity; an unwise decision is not a lack of capacity)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Home Office and Department of Health and Social Care, National Partnership Agreement: Right Care, Right Person (updated 17 April 2024)",
+      "url": "https://www.gov.uk/government/publications/national-partnership-agreement-right-care-right-person/national-partnership-agreement-right-care-right-person-rcrp"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "When nobody answers, the person may have fallen, become ill or died, be in hospital, be kept from us by someone else, or be lost, while our care worker waits alone at the doorstep."
+        },
+        {
+          "p": "{{organisation}} treats every no reply, no access and missing person as a possible emergency until the person is accounted for. We plan ahead with each person, never leave a doorstep without a decision, call the emergency services without delay when life may be at risk, respect each person's right to go out as they choose, and learn from every event."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure sets the steps and times for care workers and the office, from the doorstep to learning afterwards. The law requires us to assess and reduce risks to people's safety and to notify CQC of deaths and police incidents; it sets no timescales for a no-reply event, so the times here are our policy."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to all staff, including bank and agency workers and managers who give care, at every visit and every planned welfare phone call, however the care is funded."
+        },
+        {
+          "p": "Owned elsewhere: a person who answers but turns us away (Visit Cancellations and Refusals of Care Procedure); a visit nobody attended (Missed, Late and Short Visits Procedure); the care worker's safety when a check-in or check-out is overdue (Lone Working and Staff Personal Safety Policy); keys, key safes and codes (Key Holding, Key Safes and Access to People's Homes Procedure); a person found on the floor (Falls Prevention and Response Procedure); emergencies and waiting for an ambulance (First Aid Procedure); deaths (End of Life Care Policy and DNACPR and ReSPECT Protocol); and reporting abuse or neglect (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "No reply",
+                "The care worker arrives for a planned visit and cannot see or hear the person, and nobody answers. It also covers a planned welfare phone call that is not answered. A no-reply visit the care worker attended is not a missed visit."
+              ],
+              [
+                "No access",
+                "The care worker cannot get in by the agreed access arrangement (key safe empty, code or key not working, door bolted or chained), or someone other than the person refuses entry, stops the care worker seeing or speaking to the person or, where abuse is suspected, insists on staying when the person wants privacy."
+              ],
+              [
+                "Accounted for",
+                "We know where the person is and that they are safe because one of our staff has seen or spoken to them; a hospital, ambulance service, police force, day centre or other care provider confirms the person is with them; or a named contact in the People involved part of the care plan confirms they are with the person. Where a safeguarding or domestic abuse concern is recorded, or the contact is the person who refused us access, only the first two count."
+              ],
+              [
+                "Missing person",
+                "A person who is not where they are expected to be, whose whereabouts cannot be established and who may be at risk of harm. A person with capacity who has chosen to go out is not missing just because they are out."
+              ],
+              [
+                "Office lead",
+                "The person running the office response: the Care Coordinator for the person in office hours (the monitor where no Care Coordinator can be reached at once); the On-call Manager out of hours."
+              ],
+              [
+                "Escalation manager",
+                "The Registered Manager or Deputy Manager on the management escalation rota under the Lone Working and Staff Personal Safety Policy, or a manager covering for them under the Registered Manager Role and Absence Cover Policy."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors fund on-call cover and paid waiting time. The Nominated Individual receives escalations and quarterly trends."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on this procedure and is safeguarding lead; the Deputy Manager covers. They make the manager decisions below, review every logged event, decide CQC notifications and act as escalation manager out of hours."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators act as office lead in office hours, keep contacts and no-reply plans current and review the plan after every event."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "The monitor records manual times and reallocates visits. Out of hours the On-call Manager is office lead and makes the manager decisions."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and assessors",
+          "blocks": [
+            {
+              "p": "Assessors write the no-reply plan. Field Care Supervisors check at spot checks that care workers know this procedure and attend homes when sent."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Care workers follow the doorstep steps, wait until released and record what they saw and did. Senior Care Workers also attend when sent."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Planning ahead",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The no-reply plan",
+          "blocks": [
+            {
+              "p": "At assessment and every care plan review the assessor agrees the no-reply plan with the person, and their representative where appropriate. It records:"
+            },
+            {
+              "bullets": [
+                "how the person gets to the door and anything that may stop them hearing, such as hearing loss or sleeping late;",
+                "whether they can leave home without help, and their regular outings, such as a day centre, appointments, place of worship or family visits;",
+                "named contacts and key holders in the order we phone them and how quickly each can reach the home (contact details in the People involved part of the care plan);",
+                "any telecare, pendant alarm or location device and who monitors it;",
+                "for a person with memory problems who goes out alone or has been lost before: places they may go and where the Herbert Protocol form is kept;",
+                "who the person does and does not want us to contact."
+              ]
+            },
+            {
+              "p": "The Care Coordinator updates the plan the same working day when contacts, access or the person's ability to go out changes. Key safe codes are never written in it."
+            }
+          ]
+        },
+        {
+          "heading": "Telling the person what we will do",
+          "blocks": [
+            {
+              "p": "The assessor explains, and the welcome pack confirms, that the person or family should phone the office, not just tell the care worker, whenever the person will be out at a visit time, and that if we cannot account for them we will phone their contacts and hospitals and may call the police, who can force entry to save life."
+            },
+            {
+              "p": "For a person with dementia, where the local police force uses the Herbert Protocol, the assessor encourages the family to complete its form (kept by the family to hand to the police) and records where it is kept. We do not take or keep photographs for it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the care worker does at the door",
+      "blocks": [
+        {
+          "steps": [
+            "Check you are at the right address at the right time. Knock or ring firmly, call the person's name through the letterbox, wait 2 full minutes and try again.",
+            "Where the care plan gives you key safe or key access and no danger sign keeps you out (table below), let yourself in as the Key Holding, Key Safes and Access to People's Homes Procedure sets out, calling out, and go to step 6. If the door is unlocked or open, phone the office first and go in, calling out, only if the office agrees. If the key safe is empty, the code or key fails, or the door is bolted or chained, phone the office at once and go on to step 3.",
+            "Otherwise look through ground-floor windows and the letterbox, and check the back door and garden where you can reach them safely without climbing. Look for danger signs and warning signs (table below).",
+            "Phone the office, or the On-call Manager out of hours, no later than 5 minutes after arriving; if you cannot get through within 15 minutes, phone the Registered Manager or Deputy Manager directly. Stay near the door while the office rings the person's phones, and listen for ringing inside. Never phone or text the person or their family yourself; the office makes these calls.",
+            "Speak to a neighbour only if named in the care plan or the office agrees, and say only that you have called to see the person.",
+            "Once inside, check in and look in every room the person uses, and the garden where safe. Never force a locked inner door: if the person may be behind it, call 999. If the person is not there, follow the steps for a person not at home.",
+            "Wait somewhere safe, such as your car, keeping any medicines, money, receipts and shopping you are holding for the person on you, and answer the office's calls until it tells you that you may leave. Never leave a note on the door or anywhere it can be seen from outside.",
+            "Record your arrival time, each check, what you saw and every call in the daily visit notes before the end of your shift."
+          ]
+        },
+        {
+          "p": "Never force entry, break a window, climb in, or ask a neighbour, relative or locksmith to break in. If you feel unsafe at any point, move to a safe place and tell the office; the Lone Working and Staff Personal Safety Policy applies. On a two-worker visit, one worker phones the office while the other continues the checks. If only a child is at home, tell the office; do not go in unless the child says the person is hurt or unwell inside: then call 999 and go in to help (Safeguarding Children and Young People Policy)."
+        },
+        {
+          "table": {
+            "columns": [
+              "What you find",
+              "What you do"
+            ],
+            "rows": [
+              [
+                "Danger sign: the person is seen or heard collapsed, on the floor, not moving, moaning or calling for help, or a telecare or pendant alarm unit is sounding",
+                "Call 999 for an ambulance and say whether you can get in. If you have access, go in and give first aid within your training. Then phone the office."
+              ],
+              [
+                "Danger sign: smoke, fire, or a smoke or carbon monoxide alarm sounding",
+                "Do not go in. Move away, call 999, then the office (Fire Safety in People's Homes Policy)."
+              ],
+              [
+                "Danger sign: smell of gas",
+                "Do not go in, and do not use a phone or switch near the door. Move well away, call 999 and the National Gas Emergency Service, then the office."
+              ],
+              [
+                "Danger sign: signs of a break-in or a stranger inside; shouting, threats or someone being hurt",
+                "Do not go in. Get to safety and call 999 for the police, and an ambulance if the person may be hurt, then the office."
+              ],
+              [
+                "Warning sign: a door bolted or chained from inside; post, milk or deliveries not taken in; curtains closed or lights on in daytime; the last visit notes recording illness or a new problem; food or medicines left out from the last visit; a pet in distress",
+                "Tell the office when you phone; it shortens the escalation time."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "What the office does",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "First checks",
+          "blocks": [
+            {
+              "steps": [
+                "Record the call on the visit's check-in/check-out record as a manual arrival with the reason no reply or no access, and tell the care worker to wait. The monitor reallocates the care worker's next visits at once.",
+                "Ring the person's landline and mobile.",
+                "Check CareFlow: cancellations, messages and office notes, hospital admissions and appointments; the last daily visit notes and check-out (who was there, when, how the person was, how the door was left and whether the key was kept); and the no-reply plan.",
+                "Phone the named contacts and key holders in the order the plan gives, and ask a key holder who can arrive before the deadline to come.",
+                "Phone the places in the person's routine, any other agency visiting, the telecare monitoring centre (asking about alarm activations and to call the person through the unit) and the local hospital to ask about an admission, giving the NHS number.",
+                "Phone the waiting care worker at least every 15 minutes.",
+                "Tell the Registered Manager or Deputy Manager (the escalation manager out of hours) when calling 999, and whenever the person is not accounted for 30 minutes after the care worker's call."
+              ]
+            },
+            {
+              "p": "The office lead records every call, its time and result in the timeline as it happens, and on every call says when any time-sensitive dose is due. Hospitals, police and ambulance services get only what they need to find or help the person, under the Confidentiality and Information Sharing Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Escalation times",
+          "blocks": [
+            {
+              "p": "Times run from the care worker's first call. The office lead may call 999 earlier; waiting for a key holder never delays it beyond the deadline. Where our care worker is already inside and the person is not there, the 999 call reports a missing person."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "If not accounted for by",
+                  "Action"
+                ],
+                "rows": [
+                  [
+                    "Any danger sign",
+                    "At once",
+                    "999. The care worker calls first; the office lead checks the call was made."
+                  ],
+                  [
+                    "The person cannot leave home without help; the visit is time-critical; the person is under post-fall watch (Falls Prevention and Response Procedure); or a welfare call arranged after a fall, head injury or illness was not answered",
+                    "15 minutes",
+                    "999 for police and ambulance, asking for entry."
+                  ],
+                  [
+                    "High missed-visit risk level, or any warning sign",
+                    "30 minutes",
+                    "999 for police and ambulance, asking for entry."
+                  ],
+                  [
+                    "Standard missed-visit risk level",
+                    "60 minutes",
+                    "999 for police and ambulance, asking for entry, unless the Registered Manager, Deputy Manager or On-call Manager records a positive reason to believe the person has gone out safely, such as a regular outing, a contact who saw them leave today, or their coat, keys and walking aid gone. Then a member of our staff or a key holder checks the home within 2 hours of the care worker's call. If the person is still not accounted for, the office lead reports them missing: on 999 where there is a risk to life or of serious harm, otherwise through the police non-emergency route on the Local Safeguarding Contacts sheet."
+                  ],
+                  [
+                    "The person is out of the home and meets a 999 condition under Reporting a person missing",
+                    "At once",
+                    "Report the person missing on 999 while the other checks continue."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "When the care worker may leave",
+          "blocks": [
+            {
+              "p": "The care worker leaves when the person is accounted for, or when police, ambulance crew, a key holder or another of our staff arrives and takes over. For a Standard missed-visit risk level with no danger or warning sign, the Registered Manager, Deputy Manager or On-call Manager may release the care worker earlier once the first checks are complete, recording why. Waiting time is paid working time."
+            }
+          ]
+        },
+        {
+          "heading": "Unanswered welfare calls",
+          "blocks": [
+            {
+              "p": "When a planned welfare phone call is not answered, the office rings again after 10 minutes and phones the named contact. If the person is still not accounted for, the office lead sends a member of staff, or asks a key holder, to reach the home within 1 hour, or within 30 minutes where the call was arranged after a fall, head injury or illness. If nobody can arrive in that time, the office lead calls 999. The doorstep steps then apply."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Calling the police and gaining entry",
+      "blocks": [
+        {
+          "p": "Under the national Right Care, Right Person approach, police attend to protect people where there is a real and immediate risk to life or of serious harm, so the call handler needs facts: the address and how to get in; the person's age, health, mobility and any time-critical medicine; when and by whom they were last seen; every check made; any danger or warning signs; and whether a care worker is at the door."
+        },
+        {
+          "p": "The law allows a police officer to enter premises without a warrant to save life or limb (Police and Criminal Evidence Act 1984, section 17(1)(e)). A key safe code is given to an emergency service only as the Key Holding, Key Safes and Access to People's Homes Procedure allows, and is then changed under that procedure."
+        },
+        {
+          "p": "After a forced entry the home is made secure before it is left empty: the office lead asks a key holder or family member to arrange the repair or, where there is nobody, asks the police how the home will be secured and phones any landlord's emergency repairs line. A care worker stays at an insecure empty home only where a manager agrees, for no more than 1 hour, paid. The Care Coordinator explains to the person or representative within 1 working day why entry was needed and helps them contact their insurer or landlord."
+        }
+      ]
+    },
+    {
+      "heading": "When someone stops us seeing the person",
+      "blocks": [
+        {
+          "p": "When a relative, household member, visitor or another agency's worker blocks access in any way set out under No access:"
+        },
+        {
+          "steps": [
+            "Stay calm and do not argue or try to go in. Ask to see the person, even briefly, to check they are well.",
+            "If refused, leave and phone the office from somewhere you cannot be overheard, such as your car.",
+            "The office lead phones the person on their own phone where they have one. A relative's word that the person is fine is not enough.",
+            "The office lead tells the safeguarding lead at once, who completes the 1-hour risk assessment under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+            "The escalation times run from the care worker's call. Any return visit before the deadline is made by two members of staff, never one."
+          ]
+        },
+        {
+          "p": "Where domestic abuse is known or suspected, the Domestic Abuse Policy also applies."
+        }
+      ]
+    },
+    {
+      "heading": "Missing persons",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The person is not at home",
+          "blocks": [
+            {
+              "p": "When the care worker gets in and the person is not there, they look, without searching belongings, for what the person seems to have taken (coat, shoes, keys, bag, phone, walking aid) and for anything worrying, such as glasses or medicines left behind, nightwear, a cooker left on, or signs of a fall or struggle. They make safe anything dangerous and phone the office from inside the home."
+            },
+            {
+              "p": "When the care worker leaves, they secure the home as the care plan sets out and, where the office lead agrees, leave a card inside showing only the office phone number and the visit time."
+            }
+          ]
+        },
+        {
+          "heading": "Reporting a person missing",
+          "blocks": [
+            {
+              "p": "We never wait for a set time to pass before reporting a person missing. The office lead reports on 999 at once where the person has dementia or lacks capacity to keep safe outside, cannot normally leave home without help, needs a time-sensitive medicine due within the next 4 hours, is out at night or in severe weather, or anything worrying was found."
+            },
+            {
+              "p": "Besides the facts every 999 call needs, the office lead gives the police the person's description and likely clothing, communication needs, capacity, places they may go, and where any Herbert Protocol form is kept."
+            }
+          ]
+        },
+        {
+          "heading": "While the person is missing",
+          "blocks": [
+            {
+              "p": "The office lead stays the police's contact and passes on anything new at once. The person's visits stay on the rota, so a care worker checks the home at each visit time unless the police ask otherwise. The safeguarding lead decides within 1 hour of the report whether a safeguarding concern is raised."
+            }
+          ]
+        },
+        {
+          "heading": "A person who leaves during a visit",
+          "blocks": [
+            {
+              "steps": [
+                "A person with capacity may choose to go out. Record it in the daily visit notes and phone the office before you leave if an essential task was not done or you are worried.",
+                "If the care plan records that the person cannot keep safe outside alone, or they seem confused or at risk, go with them, keep them in sight, talk calmly and encourage them back. Never hold, block or lock them in (Restraint and Restrictive Practice Policy). Pull the door closed behind you only where you can do so without losing sight of them.",
+                "Phone the office as soon as you safely can, and 999 if they refuse to return and are at risk.",
+                "If you lose sight of them, phone 999, then search on foot in the streets next to the home for no more than 10 minutes, never by car, and follow the office's instructions."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When the person is found",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "How the person is found",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "Safe and well",
+                "The care worker gives the visit and checks for harm, such as wet clothes, thirst, injury or a missed medicine. The office lead tells everyone contacted, the police first, within 1 hour. A person who returns home later gets the essential care still due within 1 hour of return for a High missed-visit risk level, otherwise within 2 hours; time-sensitive doses follow the Time-Sensitive Medicines Protocol."
+              ],
+              [
+                "In hospital",
+                "Visits are cancelled from the admission, confirmed with the ward, under the Hospital Admission and Discharge Procedure."
+              ],
+              [
+                "Unwell or injured",
+                "999 and first aid under the First Aid Procedure, or the Falls Prevention and Response Procedure for a fall. The care worker stays until the crew or another of our staff takes over."
+              ],
+              [
+                "Dead",
+                "A death recorded as expected in My care at a glance, with the DNACPR or ReSPECT form found and no injury or other concern, follows the End of Life Care Policy's expected death steps; otherwise call 999 and follow the call handler and the DNACPR and ReSPECT Protocol. Touch or move nothing, medicines included, except to check for signs of life, give CPR or as the call handler says, and ask others present to do the same; note the time, what you saw and who was present; stay until the police or paramedics take over. The office sends a Field Care Supervisor, Senior Care Worker or the On-call Manager to support the care worker, arriving within 1 hour."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Reporting, review and learning",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Incident log and notifications",
+          "blocks": [
+            {
+              "p": "The office lead opens an incident log entry for every no-reply, no-access or missing person event except one where the person was accounted for during the first checks and came to no harm; the timeline is recorded in it. The care worker adds their account before the end of their shift. Events are graded and investigated under the Incident Reporting, Investigation and Learning Policy. An event reported to the police only for a welfare check, entry or search is High until the person is accounted for; then, with no serious harm, no sign our care contributed and no suspected abuse, neglect or crime, it is regraded on the harm caused, at least Medium."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Who is told",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "Nominated Individual",
+                    "By the Registered Manager the same day for a High incident, at once for a Critical incident."
+                  ],
+                  [
+                    "CQC",
+                    "Within 24 hours of our becoming aware of a police call-out, a missing person report we make, or a death found on a visit or on gaining entry; a serious injury within 24 hours of the health care professional's opinion reaching us (Statutory Notifications to CQC Procedure). Out of hours the On-call Manager phones the escalation manager at once."
+                  ],
+                  [
+                    "Safeguarding lead",
+                    "Decides within 1 hour where access was blocked by another person, signs of abuse, neglect or self-neglect were found, the person was found after a long lie that followed a missed or late visit, or a person who lacks capacity went missing."
+                  ],
+                  [
+                    "Commissioner",
+                    "By the end of the next working day for a High or Critical incident; the same working day where a safeguarding concern is raised."
+                  ],
+                  [
+                    "GP practice",
+                    "The same day where the person was found unwell or injured (NHS 111 when the practice is closed)."
+                  ],
+                  [
+                    "Named contact or representative",
+                    "The same day, with the person's agreement where they can give it."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Reviewing the person's plan",
+          "blocks": [
+            {
+              "p": "The Care Coordinator reviews the no-reply plan and risk assessment with the person within 7 days of every logged event. Two or more no-reply or no-access events for one person in 4 weeks, or any missing episode, lead to a focused review under the Care Plan Review Procedure within 7 days and a safeguarding lead decision on possible neglect or self-neglect (Self-Neglect and Hoarding Procedure). Door sensors, location devices and other restrictions follow the Restraint and Restrictive Practice Policy and the Deprivation of Liberty in the Community Procedure."
+            },
+            {
+              "p": "Where the person was out without telling us, the Care Coordinator agrees with them how they will tell us in future. For a self-funder or direct payment holder whose service agreement allows it, the visit is charged as a short-notice cancellation under the Visit Cancellations and Refusals of Care Procedure, with its waivers. A visit we could not complete for a reason within our control, such as a key our staff did not return, is never charged."
+            }
+          ]
+        },
+        {
+          "heading": "Supporting staff",
+          "blocks": [
+            {
+              "p": "A care worker who found a person dead or seriously injured, or waited through a forced entry, is offered cover for the rest of that day's visits, paid, is contacted by a Field Care Supervisor within 1 working day and is offered a debrief within 3 working days."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Manual times and reasons go on the check-in/check-out record; what the care worker saw and did in the daily visit notes; the timeline, decisions, police reference and notifications in the incident log entry; safeguarding matters only in the safeguarding records; and the no-reply plan in the Risks part of the care plan. Retention follows the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "This procedure, including blocked access, a person who leaves during a visit and finding a person dead",
+                "Care staff, Field Care Supervisors",
+                "At induction before working without a shadowing colleague; refreshed every 12 months within the safeguarding refresher"
+              ],
+              [
+                "Office response, escalation times, calling 999 and reporting a person missing, with a scenario walk-through",
+                "Office staff who act as monitor, Care Coordinators, On-call Managers",
+                "Within the monitoring and escalation training in the Lone Working and Staff Personal Safety Policy, before monitoring alone or the first on-call shift, then every 12 months"
+              ],
+              [
+                "Writing the no-reply plan",
+                "Assessors",
+                "Within assessment and care planning training and the annual assessor update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At every spot check the Field Care Supervisor asks the care worker what they would do if nobody answered at that home. A care worker who cannot explain it is briefed before their next lone visit."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every logged event against this procedure's times, the care worker's release and notifications (target 100%)",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "No-reply plan complete and current, within the monthly 10-care-plan audit (target 100%)",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Open missing person events and repeat no-reply events",
+                "Weekly",
+                "Registered Manager",
+                "Weekly management meeting"
+              ],
+              [
+                "Trends: events by cause, time to account for the person, police calls, forced entries and outcomes",
+                "Quarterly",
+                "Registered Manager",
+                "Quarterly quality report to the Nominated Individual and Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls become actions with an owner and deadline in the service improvement plan. This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or guidance, a serious incident or an inspection finding."
+        }
+      ]
+    }
+  ]
+}

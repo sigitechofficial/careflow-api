@@ -1,0 +1,903 @@
+{
+  "reference": "POL-HR-019",
+  "revision": 1,
+  "title": "Staff Personal Data and HR Records Policy",
+  "documentType": "POLICY",
+  "summary": "How we collect, use, protect, share and delete personal information about applicants, employees, former employees, Directors, agency workers, students, volunteers and contractors: what the staff record holds and why, who may open its restricted section, how staff see and correct their information, how references and outside requests are answered, what we monitor, and how long staff records are kept. For all employees, with detail for managers and the HR Manager.",
+  "keyPoints": {
+    "intro": "We hold your personal information to employ you, pay you, keep you safe and meet the law. These points tell you what to keep up to date, how sensitive information is protected, and how to treat information about colleagues.",
+    "points": [
+      "Never look at a colleague's record unless your work needs it, and never share a colleague's phone number, address, health, absence or circumstances with anyone, including the people we support and their families. This is a disciplinary matter and can be a criminal offence.",
+      "If a payslip, letter, email or list with staff details is lost or reaches the wrong person, phone the office or the On-call Manager at once and record it in the incident log before your shift ends.",
+      "Never give a reference or confirm anyone's employment for {{organisation}}. Pass every reference request, and any request about a colleague from the police, a lender, a landlord or anyone else, to the HR Manager the same working day.",
+      "Give health, criminal record and other sensitive information only to the HR Manager or a manager this policy names. Supervisors and Care Coordinators learn only how it affects your work, unless you agree; for infection symptoms, only the symptom group, dates and restrictions are recorded.",
+      "If you supervise or manage staff, record everything about a worker in CareFlow. Never keep notes, files, photographs or messages about staff on paper, a personal phone, personal email or a messaging app.",
+      "Tell the HR Manager within 5 working days if your address, phone number, emergency contact or vehicle changes. Bank details change only by email from the address in your staff record or in person with photo ID, and we phone you to confirm.",
+      "Texts about your employment only ask you to phone in or arrange a meeting. Health, pay, conduct and immigration matters reach you by encrypted email, letter or in person.",
+      "CareFlow records your phone's location only at check-in and check-out, if you leave the home while checked in, or with an emergency alert, never between visits. We never monitor your personal phone or social media.",
+      "Ask the HR Manager for your own information. Payslip, contract and rota copies come within 5 working days, other everyday records within 10; a request for everything we hold is answered within one month, free of charge.",
+      "Tell the HR Manager if anything we hold about you is wrong; it is corrected within 10 working days. You check your personal details each year at your appraisal.",
+      "When you leave, your CareFlow access ends on your last working day and your DBS certificate copy is deleted. Most of your staff record is kept for 6 years after you leave, then deleted except for a short summary."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "RECRUITMENT"
+  ],
+  "relatedReferences": [
+    "POL-GOV-013",
+    "POL-GOV-014",
+    "POL-GOV-015",
+    "POL-GOV-016",
+    "POL-GOV-017",
+    "POL-HR-001",
+    "POL-HR-002",
+    "POL-HR-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 17(2)(d) (secure records about persons employed)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 19(3) (information available for each person employed)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/19"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 3 (information required in respect of persons employed)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/3"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 9 (special categories of personal data, including 9(2)(b) employment and 9(2)(h) assessment of working capacity)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/9"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, paragraph 1 (employment, social security and social protection; appropriate policy document)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/1"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 15(1A) (reasonable and proportionate search, inserted by the Data (Use and Access) Act 2025)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/15"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 33 (notification of a personal data breach to the Information Commission)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/33"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 2, paragraph 24 (confidential references)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/2/paragraph/24"
+    },
+    {
+      "source": "Data Protection Act 2018, section 170 (unlawful obtaining etc. of personal data)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/170"
+    },
+    {
+      "source": "Employers' Duties (Registration and Compliance) Regulations 2010, regulations 6 and 8 (automatic enrolment records preserved for 6 years; opt-out notices 4 years)",
+      "url": "https://www.legislation.gov.uk/uksi/2010/5/regulation/8"
+    },
+    {
+      "source": "GOV.UK: Data protection and your business, recruitment and managing staff records",
+      "url": "https://www.gov.uk/data-protection-your-business/recruitment-managing-staff-records"
+    },
+    {
+      "source": "GOV.UK: Data protection and your business, monitoring staff at work",
+      "url": "https://www.gov.uk/data-protection-your-business/monitoring-staff-at-work"
+    },
+    {
+      "source": "Disclosure and Barring Service: Handling of DBS certificate information",
+      "url": "https://www.gov.uk/government/publications/handling-of-dbs-certificate-information/handling-of-dbs-certificate-information"
+    },
+    {
+      "source": "GOV.UK: Holiday entitlement, holiday pay (from 6 April 2026, annual leave and holiday pay records kept for at least 6 years)",
+      "url": "https://www.gov.uk/holiday-entitlement-rights/holiday-pay"
+    },
+    {
+      "source": "GOV.UK: Information Commission succeeds the ICO as UK's data protection regulator (30 September 2026)",
+      "url": "https://www.gov.uk/government/news/information-commission-succeeds-the-ico-as-uks-data-protection-regulator"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, paragraph 18 (safeguarding of children and of individuals at risk)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/18"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} holds a great deal of personal information about the people who work for us and apply to us, from identity, criminal record and health information to bank details, home addresses, family circumstances and records of absence, conduct and performance. Staff trust us with it, often at difficult times. Our care workers work alone and travel between people's homes on rotas, so a home address, phone number or rota in the wrong hands can put them at risk."
+        },
+        {
+          "p": "{{organisation}} is the controller of all staff and applicant information. We collect only what employment, the law and safe care need; keep it in the staff record in CareFlow, with health, criminal record and other sensitive information in a restricted section open only to the managers named in this policy; tell staff how it is used; share it only as this policy allows; keep it accurate; and delete it on time. The law requires us to keep secure records about the people we employ and to have the Schedule 3 information available for each of them (Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulations 17(2)(d) and 19(3)). This policy applies our Data Protection Policy to staff and applicant records."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every item of staff and applicant information has a purpose, a lawful basis, a place in the staff record, named people who may see it and a retention period.",
+            "Sensitive information is seen only by the managers who need it; supervisors and Care Coordinators learn only what allocation and supervision need.",
+            "Staff know what we hold and can see and correct it; references and outside requests are answered by one person, accurately and on time; and the Schedule 3 information is complete for every person employed and can be shown to CQC."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy covers personal information about applicants, employees (including bank staff, apprentices and staff on probation, leave or suspension), former employees, Directors, agency workers, students on placement, volunteers and contractors, in any form: CareFlow, email, payroll, paper and phone calls. It applies to everyone who handles that information, and through their contracts to our processors, such as our payroll bureau, pension provider, occupational health provider and DBS umbrella body."
+        },
+        {
+          "p": "Owned elsewhere: organisation-wide lawful bases, privacy notices and DPIAs (Data Protection Policy); rights request steps (Subject Access and Individual Rights Procedure); breach handling (Personal Data Breach Procedure); the retention schedule and destruction (Records Management and Retention Policy); sharing decisions generally (Confidentiality and Information Sharing Policy); recruitment checks (Safer Recruitment Policy; Pre-Employment Checks and DBS Procedure; Right to Work and Sponsored Workers Policy); work phones (Mobile Phones and Social Media Policy); user accounts and technical security (Information and Cyber Security Policy); allegations (Managing Allegations Against Staff Procedure); and DBS and regulator referrals (Staff Fitness Concerns and DBS Referrals Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Staff record",
+                "The CareFlow record for each employee, Director, agency worker, student, volunteer and contractor: personal details, recruitment and checks, contract and pay information, declarations, case files and correspondence, linked to their training and compliance records, supervision and appraisal records and policy acknowledgements. An applicant's recruitment record becomes part of it on appointment."
+              ],
+              [
+                "Restricted section",
+                "The sensitive items listed in this policy, held as documents in the staff record. CareFlow opens staff documents only to roles given the staff document permissions, which we give only to the HR Manager, Registered Manager, Deputy Manager and Nominated Individual. Each of them opens only the items this policy names them for, and CareFlow logs every download. Because CareFlow controls this access by role, an item about one of those managers, such as a grievance or complaint about them, is saved as a password-protected document whose password they are not given."
+              ],
+              [
+                "Criminal offence data",
+                "Information about convictions, cautions, offences and alleged offences, including DBS certificates, Update Service results, criminal records declarations, overseas certificates and driving licence endorsements. Special category data is defined in the Data Protection Policy."
+              ],
+              [
+                "Staff record summary",
+                "The short record the HR Manager creates when a staff record is closed and keeps until the former employee's 75th birthday, as the Records Management and Retention Policy sets out."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and receive the staff figures in the data protection section of each quarterly governance report. The Nominated Individual, as Senior Information Risk Owner, approves processors of staff information, handles staff rights requests that come from or mainly concern the HR Manager or Registered Manager, decides outside requests about a Director, the Registered Manager, Deputy Manager or HR Manager, approves named staff information for commissioners and signs off the quarterly access review."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy, approves every reference before it is sent, checks in the quarterly user access review that only the roles named in this policy hold the staff document permissions and that the CareFlow download log shows no restricted item opened by anyone this policy does not name for it, and covers the HR Manager's duties under this policy when the HR Manager is absent or involved. The Deputy Manager covers the Registered Manager."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager is the information asset owner for staff, applicant and Director records. They keep the staff record and file restricted items, issue the applicant and employee privacy notices, handle staff rights requests, references and outside requests about staff, lead on breaches of staff information, run the annual personal details check, and close and delete leavers' records on time."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out the quarterly staff file audit and the staff record sample in the December records and data protection audit."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors and supervising Senior Care Workers",
+          "blocks": [
+            {
+              "p": "They record supervision, spot checks, appraisals and allocation decisions in CareFlow, use only the information their task needs, and pass sensitive information to the HR Manager as the restricted section rules below set out."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Managers",
+          "blocks": [
+            {
+              "p": "They use a worker's emergency contact, vehicle details and photograph only for the worker's safety under the Lone Working and Staff Personal Safety Policy, never confirm to a caller that someone works for us, and pass any request about a member of staff to the HR Manager the same working day. On-call Managers open cleared to work status, skills and sign-offs, training expiry dates, allocation restrictions and infection-related absence entries only to allocate visits out of hours, and record infection-related absence entries as the restricted section rules set out."
+            }
+          ]
+        },
+        {
+          "heading": "Every employee",
+          "blocks": [
+            {
+              "p": "Every employee uses colleagues' information only as their work needs and keeps it confidential during and after employment. Looking up, sharing or keeping staff information without a work reason is handled under the Disciplinary Policy and Procedure and can be an offence under section 170 of the Data Protection Act 2018."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What we hold and why",
+      "blocks": [
+        {
+          "p": "We hold only the information below. Lawful bases follow the Data Protection Policy; where special category or criminal offence data is involved, the condition is shown as well. Every use that relies on legitimate interests has a legitimate interests assessment recorded under the Data Protection Policy before it starts."
+        },
+        {
+          "table": {
+            "columns": [
+              "Information",
+              "Why we hold it",
+              "Lawful basis and condition"
+            ],
+            "rows": [
+              [
+                "Application, history, interview notes, references and pre-employment checks, including the Schedule 3 photograph",
+                "Safe recruitment and the Schedule 3 information",
+                "Steps before a contract (6(1)(b)) and legal obligation (6(1)(c)); post-offer health questionnaire under Article 9(2)(b) with Schedule 1, paragraph 1"
+              ],
+              [
+                "DBS certificate, Update Service results, criminal records declaration and overseas certificates",
+                "Checks the law allows for the role",
+                "Legal obligation; criminal offence data under Schedule 1, paragraph 1"
+              ],
+              [
+                "Identity, right to work and sponsorship records",
+                "Immigration law and sponsor duties",
+                "Legal obligation"
+              ],
+              [
+                "Contact details, home postcode and emergency contact",
+                "Running employment, travel planning and the worker's safety",
+                "Contract; emergency contact under legitimate interests (6(1)(f))"
+              ],
+              [
+                "Contract, pay, bank, tax, National Insurance, pension, mileage, sick pay and family pay",
+                "Paying staff correctly; HMRC, minimum wage, holiday pay and automatic enrolment duties",
+                "Contract and legal obligation; health information under Article 9(2)(b) with paragraph 1"
+              ],
+              [
+                "Rota, check-in/check-out, working time and leave",
+                "Allocation, pay, working time and holiday records, lone worker safety",
+                "Contract and legal obligation; call monitoring under legitimate interests"
+              ],
+              [
+                "Training, qualifications, sign-offs, supervision, spot checks, appraisals and policy acknowledgements",
+                "Showing staff are trained, supervised and appraised, as regulation 18 requires",
+                "Legal obligation and contract"
+              ],
+              [
+                "Health: questionnaire, fit notes, occupational health reports, adjustments, vaccination, health surveillance, pregnancy and night work assessments",
+                "Health and safety duties, adjustments, sick pay and fitness for the role",
+                "Article 9(2)(b) with paragraph 1; occupational health under Article 9(2)(h) with paragraph 2"
+              ],
+              [
+                "Driving licence checks, endorsements, insurance and vehicle details",
+                "Safety of staff who drive for work",
+                "Legal obligation; endorsements under paragraph 1"
+              ],
+              [
+                "Disciplinary, capability, grievance and harassment case files; allegation records",
+                "Managing employment fairly and keeping people safe",
+                "Contract and legal obligation; paragraph 1, and paragraph 18 when shared for safeguarding"
+              ],
+              [
+                "Equality monitoring answers",
+                "Checking we treat applicants and staff fairly",
+                "Legitimate interests with paragraph 8"
+              ],
+              [
+                "Trade union representative role",
+                "Time off and consultation rights",
+                "Legal obligation with Article 9(2)(b) and paragraph 1"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "We never ask for health information before a job offer (other than adjustments to the recruitment process), nationality or immigration history at interview, personal social media accounts, biometric data, or information about family members beyond an emergency contact and what family leave or pay needs. Employees tell their emergency contact that we hold their details. The appropriate policy document that Schedule 1, paragraph 1 requires is kept by the Nominated Individual under the Data Protection Policy."
+        }
+      ]
+    },
+    {
+      "heading": "The restricted section",
+      "blocks": [
+        {
+          "p": "Sensitive items are kept only in the restricted section. Items are filed there by the HR Manager, the Registered Manager or Deputy Manager, or by the manager another library document makes responsible for that record, such as an allegation case manager's risk assessment or a pregnancy review by a Field Care Supervisor the worker agreed may know the reason. Anyone else who receives such information, such as a fit note, an occupational health letter, a disclosure in supervision or a DBS letter, passes it to the HR Manager the same working day by hand, encrypted email or a phone call, keeps no copy, and records only that a matter was passed to the HR Manager. Office staff and Care Coordinators never open the restricted section, except that an ID checker sees the right to work check they made. Concerns raised under the Whistleblowing (Speaking Up) Policy are never filed in the staff record; they stay in the speaking-up log."
+        },
+        {
+          "table": {
+            "columns": [
+              "Item",
+              "Who may open it"
+            ],
+            "rows": [
+              [
+                "Health information, occupational health reports, workplace adjustment records, vaccination records, stress risk assessments and wellbeing plans",
+                "HR Manager, Registered Manager and Deputy Manager (the Nominated Individual for the Registered Manager's and Deputy Manager's own records); a wellbeing plan also the supervisor who helped write it"
+              ],
+              [
+                "Health surveillance records, the COSHH exposure register and pregnancy or new mother risk assessment reviews",
+                "As above, and a Field Care Supervisor only for the task another library document gives them, such as reviewing skin health questionnaires, or where the employee agrees"
+              ],
+              [
+                "DBS certificate copy, status check results, criminal records declaration, overseas certificates and risk assessments",
+                "HR Manager, Registered Manager and Deputy Manager; the Nominated Individual when approving an appointment"
+              ],
+              [
+                "Immigration information, right to work check records and sponsorship records",
+                "HR Manager, Registered Manager, Deputy Manager and Nominated Individual; the ID checker who made a check sees that check only"
+              ],
+              [
+                "Equality monitoring answers",
+                "HR Manager only"
+              ],
+              [
+                "Disciplinary, capability, grievance, bullying and harassment case files",
+                "HR Manager, Registered Manager, Deputy Manager, Nominated Individual and managers appointed to the case; a grievance file never to anyone it is about"
+              ],
+              [
+                "Allegation records",
+                "Registered Manager, Deputy Manager, Nominated Individual, HR Manager and the case manager"
+              ],
+              [
+                "Fitness concern records; DBS and regulator referral decisions, including decisions not to refer, with referrals, evidence and correspondence",
+                "HR Manager, Registered Manager, Deputy Manager, Nominated Individual and managers appointed to the case"
+              ],
+              [
+                "Domestic abuse safety plans, safe leave records, bereavement and dependant details, and payroll flags",
+                "HR Manager, Registered Manager and, for a safety plan, the manager the employee chose"
+              ],
+              [
+                "A Director's fit and proper person file",
+                "HR Manager, the fitness decision-maker and the independent quality reviewer; a Director never sees another Director's file"
+              ],
+              [
+                "A previous name kept for DBS, right to work, payroll or pension purposes",
+                "HR Manager only"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A manager who needs restricted information for a decision asks the HR Manager, who gives only what that decision needs. Care Coordinators and supervisors are told an adjustment or allocation restriction and its end date, never the condition or reason unless the worker agrees, and rota notes never record it. The one exception is infection: when a worker phones in with symptoms, Office staff record only that the worker is unavailable, and the Care Coordinator (the On-call Manager out of hours) records an infection-related absence entry outside the restricted section, holding the symptom group, dates and any restriction with its end date, which Care Coordinators and On-call Managers need for allocation and linked-case checks under the Staff Infection-Related Illness and Exclusion Policy. Diagnoses and medical evidence stay in the restricted section. The Disclosure and Barring Service's guidance recognises that CQC-registered providers may keep certificate information for inspection. We keep one electronic copy in the restricted section, open only to those named above, make no further copies, and delete it when employment ends, keeping only the details that guidance allows."
+        }
+      ]
+    },
+    {
+      "heading": "The staff record and who sees what",
+      "blocks": [
+        {
+          "p": "CareFlow is our only place for staff and applicant records. Nobody keeps a separate personnel file, spreadsheet, notebook, email folder, photograph or messaging group about staff. A note made on paper at a meeting is entered in CareFlow within 2 working days and the paper shredded. An email that forms part of a worker's record is saved into the staff record within 1 working day, because mailbox items are deleted automatically after 2 years. Access outside the restricted section follows the role."
+        },
+        {
+          "table": {
+            "columns": [
+              "Role",
+              "What they see"
+            ],
+            "rows": [
+              [
+                "Care Workers and Senior Care Workers",
+                "Their own rota, visit records and policy acknowledgements, and the first names of colleagues on shared visits; a supervising Senior Care Worker also sees their supervisees' supervision records"
+              ],
+              [
+                "Field Care Supervisors",
+                "Supervision, spot check, appraisal and training records of their supervisees, with adjustments and allocation restrictions but no reasons"
+              ],
+              [
+                "Care Coordinators and staff allocation roles",
+                "Cleared to work status, availability, contracted hours, skills and sign-offs, training expiry dates, allocation restrictions and adjustments, infection-related absence entries, home postcode for travel planning, driving clearance and any weekly hours limit, never immigration status"
+              ],
+              [
+                "Office staff and On-call Managers",
+                "Work and personal phone numbers, emergency contact, vehicle details and photograph, for the worker's safety and rota contact only; On-call Managers, to allocate visits out of hours, also see cleared to work status, skills and sign-offs, training expiry dates, allocation restrictions and infection-related absence entries"
+              ],
+              [
+                "HR Manager, Deputy Manager and Registered Manager",
+                "The whole staff record for their branch, and the restricted section as listed above"
+              ],
+              [
+                "Nominated Individual and Directors",
+                "Only what their decisions under a library document need; Directors have no routine access to individual staff records"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The people we support and their representatives learn only a worker's first name, description and what the ID badge shows. A worker's personal phone number, home address and circumstances are never given to them or to colleagues without the worker's agreement; a colleague who needs to reach them is offered a message. A care worker asked during a visit why a regular colleague is away, or for their number, says only that the office arranges cover and will pass on a message, and tells the office. The HR Manager changes a user's CareFlow access the day a change of role takes effect, suspends it the same day as a suspension and ends it on the last working day, as the Information and Cyber Security Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Telling staff and sharing staff information",
+      "blocks": [
+        {
+          "p": "The HR Manager gives the applicant privacy notice with the application form and the employee privacy notice with the offer letter or before the first shift, and goes through it at organisational induction. Agency workers and students receive the employee privacy notice at local induction. A revised notice reaches staff at least 2 weeks before a change in how we use their information takes effect. The notice names the Data Protection Officer, whom staff may contact directly, and the right to complain to the Information Commission (formerly the ICO)."
+        },
+        {
+          "table": {
+            "columns": [
+              "Recipient",
+              "What we share and when"
+            ],
+            "rows": [
+              [
+                "Payroll bureau and pension scheme provider (processors under written contract)",
+                "What pay, tax and automatic enrolment need, each payroll"
+              ],
+              [
+                "HMRC, the Department for Work and Pensions, the Child Maintenance Service and courts",
+                "What the law requires, after the HR Manager confirms the request through the body's published contact route"
+              ],
+              [
+                "DBS umbrella body, the Disclosure and Barring Service and professional regulators",
+                "Identity and application details for checks; Update Service checks with the worker's consent; referrals and information requests under the Staff Fitness Concerns and DBS Referrals Procedure"
+              ],
+              [
+                "Home Office",
+                "Right to work and sponsor information, as the Right to Work and Sponsored Workers Policy sets out"
+              ],
+              [
+                "CQC",
+                "Staff files at inspection or on request, viewed at the branch office or sent through CQC's secure route; the Registered Manager or HR Manager opens restricted items for the specific file asked for"
+              ],
+              [
+                "Local authority, designated officer and police",
+                "Information about an allegation, under the Managing Allegations Against Staff Procedure"
+              ],
+              [
+                "Occupational health provider; employment law adviser and insurers",
+                "Referral details with the employee's written consent; what advice, a claim or our cover needs"
+              ],
+              [
+                "Training providers, awarding bodies and Skills for Care",
+                "Names and training details for courses, qualifications, funding claims and the Adult Social Care Workforce Data Set"
+              ],
+              [
+                "Commissioners",
+                "Aggregate figures; named information only where the contract requires it, approved by the Nominated Individual and limited to name, role, DBS check date and training dates"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Nothing else is shared without the employee's agreement, except under the grounds in the Confidentiality and Information Sharing Policy."
+        }
+      ]
+    },
+    {
+      "heading": "References and other requests about staff",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "References we give",
+          "blocks": [
+            {
+              "p": "Only the HR Manager gives references for {{organisation}}. Anyone else asked for a reference, or to confirm someone's employment, passes the request to the HR Manager the same working day and confirms nothing. Staff may give a personal character reference only in their own name, from their own email, saying it is personal and using nothing from our records; a manager asked about someone they manage or managed passes the request to the HR Manager."
+            },
+            {
+              "steps": [
+                "The HR Manager checks that the request comes from a genuine organisation, using its published address or phone number, and that the worker named us as a referee or agrees.",
+                "The HR Manager drafts the reference from the staff record only, using the content rules below.",
+                "The Registered Manager approves it, and the HR Manager sends it from their work email to the verified address within 3 working days of receiving the request, keeping a copy in the staff record.",
+                "Where a disciplinary, capability or allegation case is open, the HR Manager tells the requester the reference will follow, takes the employment law adviser's and, for an allegation, the local authority's advice, and sends it once advice is received."
+              ]
+            },
+            {
+              "table": {
+                "columns": [
+                  "Reference for",
+                  "What it contains"
+                ],
+                "rows": [
+                  [
+                    "Any employer",
+                    "Dates of employment, job titles and the reason employment ended"
+                  ],
+                  [
+                    "Work in health or social care, or with adults or children",
+                    "Also: any disciplinary warning live when employment ended; dismissal and its reason; any resignation during a disciplinary or allegation process, with the conclusion recorded; and the facts and outcome of any substantiated allegation of harm or risk to an adult or child"
+                  ],
+                  [
+                    "Never included",
+                    "Sickness absence, health or disability, pregnancy or family leave, grievances, discrimination complaints, whistleblowing, informal action, expired warnings, allegations that were unsubstantiated, unfounded, false or malicious or had no case to answer, and opinions the records do not support"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "We give references under legitimate interests (6(1)(f)); the only sensitive content ever included is a substantiated allegation, shared under Schedule 1, paragraph 18 (safeguarding). No settlement agreement or other term ever limits an accurate reference. References are given in confidence and the Data Protection Act 2018, Schedule 2, paragraph 24 exempts them from the right of access; a worker who asks to see a reference we gave or received is handled under the Subject Access and Individual Rights Procedure, and the exemption is used only with the Nominated Individual's approval on the Data Protection Officer's advice."
+            }
+          ]
+        },
+        {
+          "heading": "Other requests",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Request",
+                  "How it is handled"
+                ],
+                "rows": [
+                  [
+                    "Mortgage lender, landlord, letting agent or bank",
+                    "HR Manager confirms only dates, role and pay, and only with the employee's written agreement naming the requester"
+                  ],
+                  [
+                    "Police",
+                    "HR Manager under the police rules in the Confidentiality and Information Sharing Policy; an urgent out-of-hours request goes to the escalation manager"
+                  ],
+                  [
+                    "Another employer of the worker",
+                    "Nothing about matters at our service; an allegation is shared only by the local authority or designated officer"
+                  ],
+                  [
+                    "Family members, unknown callers or the people we support",
+                    "Nothing confirmed, not even that the person works for us; a message is taken and passed on"
+                  ],
+                  [
+                    "Trade union",
+                    "Only with the employee's agreement, except information the law requires for consultation"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Every request is logged by the HR Manager in the Caldicott decision log the day it is received and answered within 5 working days, or by the requester's deadline if sooner. The employee is told what was shared unless the police advise this would prejudice an investigation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring staff at work",
+      "blocks": [
+        {
+          "p": "We monitor only as below and tell staff about it in this policy and the employee privacy notice."
+        },
+        {
+          "table": {
+            "columns": [
+              "What",
+              "Used only for",
+              "Owned by"
+            ],
+            "rows": [
+              [
+                "Check-in/check-out, with the phone location at check-in and check-out, on leaving the home while checked in and with an emergency alert; never between visits",
+                "Safety, confirming visits, rota, pay, invoicing and investigations; never to fine or deduct pay, or on its own for disciplinary action",
+                "Acceptable Use of IT and Devices Policy; Missed, Late and Short Visits Procedure"
+              ],
+              [
+                "Lone worker device location",
+                "Finding a worker after an alarm or failed contact, and investigating incidents",
+                "Lone Working and Staff Personal Safety Policy"
+              ],
+              [
+                "Monthly review of the CareFlow data access log: staff records, assessments and documents opened or downloaded, and exports",
+                "Finding access without a work reason; the user is asked to explain first",
+                "Acceptable Use of IT and Devices Policy"
+              ],
+              [
+                "Work email and internet: spam and malware scanning, sign-in logs and web filter logs of blocked attempts",
+                "Security and specific investigations; email never read routinely; filter logs looked at only for repeated attempts or an investigation",
+                "Acceptable Use of IT and Devices Policy"
+              ],
+              [
+                "Work phone device management and the monthly usage report (totals and numbers called, never content)",
+                "Security, locating a lost or stolen phone and querying unusual use; contents never read routinely",
+                "Mobile Phones and Social Media Policy"
+              ],
+              [
+                "Spot checks and observed practice",
+                "Quality of care and support for the worker",
+                "Supervision, Spot Checks and Appraisal Policy"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "We use no CCTV at the branch office, vehicle tracking, body-worn cameras, biometric systems or screen or keystroke monitoring, and never monitor personal phones or social media. No decision about a worker is made solely by automated processing; a manager reviews every CareFlow alert or report first. Another employee's mailbox is opened, and covert monitoring used, only as the Acceptable Use of IT and Devices Policy and the Mobile Phones and Social Media Policy allow. New monitoring needs an approved DPIA and a revised privacy notice first."
+        }
+      ]
+    },
+    {
+      "heading": "Keeping information accurate and staff rights",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Keeping details up to date",
+          "blocks": [
+            {
+              "bullets": [
+                "Employees tell the HR Manager within 5 working days of a change of address, phone number, emergency contact or vehicle; the HR Manager updates the staff record within 2 working days. A change of name is updated with a new ID badge within 5 working days.",
+                "Pay goes only into an account in the worker's own name. Bank details change only on a request from the email address in the staff record or in person at the branch office with photo ID, and the HR Manager phones the worker on their recorded number to confirm before the next payroll. A change requested any other way is refused and treated as possible fraud.",
+                "Before each annual appraisal the HR Manager sends the employee a summary of their personal details, emergency contact, vehicle, qualifications and document expiry dates; the employee confirms or corrects it at the appraisal.",
+                "Gaps or errors in a staff record are corrected within 10 working days by a dated correcting entry, without deleting the original. A worker who disagrees with an opinion recorded about them, such as in a supervision record, has their comments added beside it."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Seeing your own information",
+          "blocks": [
+            {
+              "p": "Employees see their rota, visit records and policy acknowledgements in CareFlow. Copies of a payslip, contract or rota are given within 5 working days; a training record, vaccination record, or hours, pay and leave records within 10 working days. A request for more, in any words and to anyone, is passed to the office the same working day and handled by the HR Manager under the Subject Access and Individual Rights Procedure: free of charge, after a reasonable and proportionate search, and answered within one month. While an allegation case, or a police or local authority enquiry into a fitness concern, about the worker is open, the HR Manager checks with the local authority and police before releasing anything, including to the worker. Former employees and applicants have the same rights."
+            }
+          ]
+        },
+        {
+          "heading": "Other rights and complaints",
+          "blocks": [
+            {
+              "p": "Staff records cannot be erased while we must keep them; we explain why and record the worker's view. Equality monitoring answers are removed within 5 working days of a request. An objection to processing under legitimate interests is decided by the HR Manager on the Data Protection Officer's advice within one month, with the Nominated Individual approving any decision to continue; check-in/check-out and lone worker monitoring continue where safety needs them, and we explain why. A complaint about how we use staff information is handled under the Complaints Policy and Procedure as a High complaint, and the reply tells the worker they may complain to the Information Commission."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Keeping staff information secure",
+      "blocks": [
+        {
+          "bullets": [
+            "Paper: staff and applicant documents received on paper are kept in the locked HR cabinet in the branch office until the HR Manager scans them, within 2 working days, then shredded. We never keep anyone's original identity documents or passport. Paper kept in a person's home never holds staff contact details or rotas.",
+            "Email: HR correspondence is sent only by the HR Manager and managers from work accounts, to the address recorded in the staff record, confirmed by phone before first use. Anything containing health, criminal record, conduct, capability, grievance, allegation, immigration or bank information is sent as an encrypted attachment with the password given separately by phone, or handed over in person in a sealed envelope. Subject lines never pair a name with the matter.",
+            "Texts and messaging: messages to staff, including to work phones, only arrange a call or meeting and never contain health, pay, conduct or immigration details. Nobody uses a messaging app for HR matters.",
+            "Post: letters are marked private and confidential, addressee only; formal outcome letters go by encrypted email or by a signed-for postal service.",
+            "Conversations: staff matters are discussed only in private, at the branch office, by phone or by video, never in a person's home, in a car with others or where they can be overheard; spot check feedback is given away from the person and their family. On-call Managers working from home open staff details only on the on-call laptop or work phone, out of others' sight and hearing. HR documents are printed only at the branch office and collected at once."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When employment ends",
+      "blocks": [
+        {
+          "steps": [
+            "On the last working day, the HR Manager ends the worker's CareFlow access and the work phone, ID badge, keys and any papers are returned, as the Mobile Phones and Social Media Policy and the Uniform, ID Badges and Dress Code Policy set out.",
+            "Within 1 working day of employment ending, the HR Manager deletes the DBS certificate copy, keeping only its date, type, number, the role and the decision, deletes any driving licence copy, keeping the check results, and stops Update Service status checks.",
+            "Within 10 working days, the HR Manager closes the staff record: leaving date and reason, final pay and P45, property returned, and any open claim, investigation, allegation or referral, placing a retention hold where needed under the Records Management and Retention Policy.",
+            "At the same time the HR Manager deletes the emergency contact details and, once they are counted in the anonymised figures, the equality monitoring answers, creates the staff record summary and records the destruction date for each part of the record.",
+            "Records are then deleted through the quarterly retention review under the Records Management and Retention Policy. Deleting in CareFlow removes an item so that no user can open it, but CareFlow does not yet erase it permanently, so the HR Manager also asks the CareFlow supplier in writing to erase it; the same applies to applicant records, which CareFlow cannot yet delete."
+          ]
+        },
+        {
+          "p": "The main periods, all set by the Records Management and Retention Policy, are:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "Staff record, including references we gave and received, case files and the restricted section",
+                "Employment plus 6 years, unless a row below sets a different period"
+              ],
+              [
+                "Staff record summary",
+                "Until the former employee's 75th birthday"
+              ],
+              [
+                "Fitness concern records",
+                "Employment plus 6 years; 20 years from closure where the concern involved alleged harm or risk to an adult or child"
+              ],
+              [
+                "DBS and regulator referral decisions, including decisions not to refer, with referrals, evidence and correspondence",
+                "20 years from the referral decision"
+              ],
+              [
+                "Allegation records",
+                "20 years from closure; a false or malicious allegation is removed from the staff record by the HR Manager within 5 working days of the outcome"
+              ],
+              [
+                "DBS certificate copy",
+                "Deleted when employment ends; its details kept for employment plus 6 years"
+              ],
+              [
+                "A Director's fit and proper person file",
+                "Period in office plus 6 years; a concern alleging harm 20 years from closure"
+              ],
+              [
+                "Right to work evidence",
+                "Employment plus 2 years"
+              ],
+              [
+                "Unsuccessful applicants",
+                "6 months after they are told the outcome; the identity check record for a submitted DBS application 2 years from submission"
+              ],
+              [
+                "Payroll, tax and sick and family pay records",
+                "6 years from the end of the tax year"
+              ],
+              [
+                "Pension and automatic enrolment records, including opt-out notices",
+                "6 years from the end of the tax year (the law requires 6 years, and 4 years for opt-out notices)"
+              ],
+              [
+                "Policy acknowledgements",
+                "With each policy version, for the life of {{organisation}} plus 6 years"
+              ],
+              [
+                "Annual leave and holiday pay records",
+                "6 years from the end of the leave year"
+              ],
+              [
+                "Health surveillance records and the COSHH exposure register",
+                "40 years from the last entry"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Breaches involving staff information",
+      "blocks": [
+        {
+          "p": "A payslip, letter or email sent to the wrong person, a lost staff list, a colleague's details shown to someone not entitled to them, or payslips our payroll bureau sends to the wrong people is a personal data breach. Whoever finds it phones the office (the On-call Manager out of hours) at once and records it in the incident log before the end of their shift. The HR Manager is breach lead under the Personal Data Breach Procedure, which grades staff health, DBS and criminal offence information and bank details at severity 3 or higher and sets how the Nominated Individual decides on and makes any report to the Information Commission, within 72 hours of awareness where feasible as Article 33 requires. The HR Manager tells the staff affected."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "Privacy notice given and annual personal details confirmation",
+                "Staff record",
+                "With the staff record"
+              ],
+              [
+                "References given and outside requests about staff, with decisions",
+                "Staff record; Caldicott decision log",
+                "With the staff record; log entries 6 years after the request is closed"
+              ],
+              [
+                "Quarterly access review",
+                "Governance records",
+                "6 years"
+              ],
+              [
+                "Staff record closure checklist and destruction dates",
+                "Staff record, then the destruction log",
+                "As the Records Management and Retention Policy sets out"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "Information governance, including this policy and confidentiality about colleagues, with a knowledge assessment (pass mark 80%)",
+                "In the first week, before any access to records; every 12 months"
+              ],
+              [
+                "HR Manager",
+                "Rights requests, third-party requests about staff, references and breach leadership",
+                "Within 3 months of appointment and before the first request or breach; every 3 years"
+              ],
+              [
+                "Registered Manager, Deputy Manager and Nominated Individual",
+                "Briefing by the HR Manager on the restricted section, references and this policy",
+                "Before first opening the restricted section; every 3 years"
+              ],
+              [
+                "Field Care Supervisors, supervising Senior Care Workers and Care Coordinators",
+                "What may and may not be recorded about a worker, and passing sensitive information to the HR Manager",
+                "In supervision skills or rota training, before the first supervision or rota; every 3 years"
+              ],
+              [
+                "Office staff who check documents or scan HR papers",
+                "Handling identity, right to work and HR documents",
+                "Before handling them alone; every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Training is recorded in the training and compliance records. Staff acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again. An employee involved in a second breach within 12 months repeats information governance training within 1 month."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Who and how often",
+              "Reported to",
+              "Target"
+            ],
+            "rows": [
+              [
+                "Access review: CareFlow roles and restricted-section access match the staff list and this policy; leavers' access ended on the last working day",
+                "Registered Manager, within the quarterly user access review under the Information and Cyber Security Policy; signed off by the Nominated Individual",
+                "Data protection section of the quarterly governance report",
+                "100%"
+              ],
+              [
+                "Staff file audit: 10 new starters' files and 5 longer-serving files (all if fewer) for Schedule 3 information, restricted items correctly filed and privacy notice given",
+                "Deputy Manager, quarterly",
+                "Quarterly governance report",
+                "100%"
+              ],
+              [
+                "References within 3 working days and outside requests within 5 working days; staff rights requests on time",
+                "HR Manager, monthly",
+                "Monthly Quality and Governance Meeting",
+                "100%"
+              ],
+              [
+                "Annual personal details confirmation at appraisal",
+                "HR Manager, monthly",
+                "Monthly Quality and Governance Meeting",
+                "100%"
+              ],
+              [
+                "Leavers' records closed within 10 working days and DBS copies deleted within 1 working day",
+                "HR Manager, quarterly with the retention review",
+                "Nominated Individual",
+                "100%"
+              ],
+              [
+                "10 staff records (all if fewer) in the records and data protection audit",
+                "Deputy Manager, every December",
+                "Next Directors' governance meeting",
+                "Green"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan within 5 working days. Restricted information opened without a work reason is recorded in the incident log and handled under the Personal Data Breach Procedure and the Disciplinary Policy and Procedure."
+        },
+        {
+          "p": "The Registered Manager reviews this policy every 12 months with the HR Manager, and sooner after a change in data protection or employment law or guidance, a breach involving staff information, an inspection or audit finding, or when monitoring shows the arrangements are not working. The Directors approve it under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,243 @@
+{
+  "reference": "POL-GOV-023",
+  "revision": 1,
+  "title": "Inspection Readiness and Working with Regulators Guideline",
+  "documentType": "GUIDELINE",
+  "summary": "How we stay ready for CQC assessment every day and work openly with CQC and other regulators: self-assessment, the inspection readiness pack, information requests, site visits, CQC contact with people we support and staff, factual accuracy, findings and enforcement. For Directors, managers, Care Coordinators and Office staff.",
+  "keyPoints": {
+    "intro": "This guideline tells managers, Care Coordinators and Office staff how we deal with CQC and other regulators. We aim to be ready every day, so an assessment shows how we normally work.",
+    "points": [
+      "Pass every CQC call, email, letter, portal message or visit to the Registered Manager and the Nominated Individual the same day, at once for a site visit or enforcement; out of hours, the On-call Manager passes it on by 10am the next working day.",
+      "Check an inspector's CQC identification before they enter the office or see any record. If in doubt, phone CQC on the number published on its website, never a number the visitor gives you.",
+      "Never alter, tidy, backdate or remove a record before or during an assessment. Correct an error only as a dated, clearly marked late entry.",
+      "During a site visit, give inspectors the records they ask for the same day, and record every request and what was given in the inspection log.",
+      "Never coach, discourage or question staff or people we support about what they tell CQC. Staff speak to inspectors in private and in paid time.",
+      "We arrange an inspector's visit to a person's home only with that person's agreement, or a recorded best interests decision if they cannot decide. The Care Coordinator arranges it and never chooses who CQC contacts.",
+      "If a care worker phones because someone from CQC has arrived during a visit, check whether the visit was agreed; if the person cannot decide and it was not, the Registered Manager or On-call Manager speaks to the inspector by phone at once.",
+      "Send every reply to a CQC information request at least 1 working day before CQC's deadline, after the Deputy Manager has checked each figure against CareFlow and the Nominated Individual has approved it.",
+      "Factual accuracy comments correct facts with evidence and do not argue with CQC's judgement. They go at least 2 working days before CQC's deadline.",
+      "An enforcement notice goes to the Nominated Individual at once. We act on an urgent notice the same day and send representations against a notice of proposal by day 21 of the 28 days the law allows.",
+      "Every finding goes into the service improvement plan within 5 working days. Staff hear the outcome within 5 working days of the report's publication, and people we support within 10 working days."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["Admin", "Manager", "Care Coordinator"],
+  "moduleLinks": ["AUDIT", "BRANCH"],
+  "relatedReferences": ["POL-GOV-002", "POL-GOV-003", "POL-GOV-005", "POL-GOV-009", "POL-GOV-012", "POL-GOV-016", "POL-HR-018", "POL-HS-007"],
+  "regulatoryBasis": [
+    { "source": "Health and Social Care Act 2008, section 62 (Entry and inspection), including production of the inspector's authority on request", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/62" },
+    { "source": "Health and Social Care Act 2008, section 63 (Entry and inspection: supplementary), including private interviews with staff and, with their consent, people receiving care, and the offence of obstruction", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/63" },
+    { "source": "Health and Social Care Act 2008, section 64 (Power to require documents and information etc.)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/64" },
+    { "source": "Health and Social Care Act 2008, sections 26 and 27 (Notice of proposals; right to make representations within 28 days)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/27" },
+    { "source": "Health and Social Care Act 2008, section 29 (Warning notices)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/29" },
+    { "source": "Health and Social Care Act 2008, section 31 (Urgent procedure for suspension, variation etc.)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/31" },
+    { "source": "Health and Social Care Act 2008, section 32 (Appeals to the Tribunal within 28 days)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/32" },
+    { "source": "Health and Social Care Act 2008, section 86 (Fixed penalty notices)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/86" },
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 Good governance, including 17(3) reports within 28 days beginning on the day after the request", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17" },
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 20A Requirement as to display of performance assessments", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/20A" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "{{organisation}} works openly and honestly with the Care Quality Commission (CQC) and every other body that regulates or inspects us. We do not prepare for inspections as one-off events: on any day our records show how we normally work, and our own governance finds problems before a regulator does." },
+        { "p": "The law allows CQC to enter and inspect our branch offices, inspect and copy any record and interview staff in private (sections 62 and 63 of the Health and Social Care Act 2008), and to require any information, document or record it considers necessary or expedient for its regulatory functions (section 64). Obstruction, or failing without reasonable excuse to comply, is a criminal offence. We give CQC what it asks for promptly, accurately and in full, and never mislead it." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "bullets": [
+          "An evidence-based view of our own quality, so no CQC finding surprises us.",
+          "Every CQC contact reaching the right manager the same day and every request answered accurately on time.",
+          "People we support and staff free to speak to CQC, with people's privacy at home protected.",
+          "Findings and enforcement acted on in time."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This guideline applies to every registered branch of {{organisation}} and to everyone who deals with CQC, another regulator or a commissioner's quality monitoring for us." },
+        { "p": "Owned elsewhere: Regulation 17(3) reports, rating displays and the service improvement plan (Governance and Quality Assurance Policy); the Regulation 16(3) complaints summary (Complaints Policy and Procedure); notifications (Statutory Notifications to CQC Procedure); registration and conditions (Statement of Purpose and Registration Procedure); audits (Quality Audit and Monitoring Procedure); and the lawful basis for sharing information (Confidentiality and Information Sharing Policy)." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Assessment", "CQC's review of a branch or of {{organisation}} against the five key questions: safe, effective, caring, responsive and well-led, usually leading to a rating."],
+          ["Inspection log", "The record in the governance records of each CQC request and assessment: what was asked, what was provided, by whom and when, and feedback and actions."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Directors", "blocks": [
+          { "p": "The Directors are accountable for our relationship with CQC. They decide on representations, appeals and ratings reviews and oversee resulting action plans." }
+        ] },
+        { "heading": "Nominated Individual", "blocks": [
+          { "p": "The Nominated Individual is our main contact with CQC for {{organisation}} as a whole. They track CQC's assessment approach, approve every response to CQC, lead our response to enforcement and lead a branch's assessment when its Registered Manager and Deputy Manager are both unavailable." }
+        ] },
+        { "heading": "Registered Manager", "blocks": [
+          { "p": "Each Registered Manager is CQC's contact for their branch and leads its assessment: self-assessment, responses, site visits, factual accuracy comments and the action plan. The Deputy Manager does this in their absence." }
+        ] },
+        { "heading": "Deputy Manager", "blocks": [
+          { "p": "The Deputy Manager updates the inspection readiness pack monthly, checks every figure in a response to CQC against CareFlow, and keeps the inspection log." }
+        ] },
+        { "heading": "Other staff", "blocks": [
+          { "p": "Office staff and On-call Managers check inspectors' identity and pass on every CQC contact. Care Coordinators record people's CQC contact preferences and arrange any CQC home visit a person agrees to." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Keeping up to date with CQC's approach",
+      "blocks": [
+        { "p": "CQC rates each key question, and the service overall, as Outstanding, Good, Requires improvement or Inadequate, currently using its single assessment framework of quality statements. On 24 March 2026 CQC published draft sector-specific frameworks that keep the five key questions but replace quality statements with key lines of enquiry. Until CQC confirms that its new adult social care framework applies, we self-assess against the current framework." },
+        { "p": "The Nominated Individual checks CQC's website and provider bulletins at least monthly, reports changes to the next Monthly Quality and Governance Meeting, and within 1 month of a change updates the self-assessment format." }
+      ]
+    },
+    {
+      "heading": "Being ready every day",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Self-assessment", "blocks": [
+          { "p": "Our evidence comes from normal governance under the Governance and Quality Assurance Policy. By the 15th working day after each quarter ends, the Registered Manager completes the self-assessment on its CareFlow form, open only to the roles with access to the governance records: for each key question, the rating we would award ourselves, the strongest evidence, the main gaps and the actions addressing them, and the quality statements with the weakest evidence. The Nominated Individual challenges any unsupported rating within 5 working days. The final version goes in the quarterly governance report, which reaches the Directors at least 5 working days before their meeting, and a copy is filed with it." }
+        ] },
+        { "heading": "Inspection readiness pack", "blocks": [
+          { "p": "The Deputy Manager updates each branch's pack by the 7th working day of each month, with the quality dashboard. The Registered Manager, or the Deputy Manager in their absence, must be able to produce it within 1 hour of a request. It contains:" },
+          { "bullets": [
+            "the registration certificate and conditions, the current statement of purpose and the latest CQC report;",
+            "the last 12 monthly dashboards, the last 4 quarterly self-assessments, the service improvement plan and the risk register;",
+            "the audit schedule and the latest result of every audit;",
+            "the notifications register and, by CareFlow reference number, the last 12 months' safeguarding records, incidents, complaints and duty of candour cases;",
+            "lists of people we support, with visit pattern, double-handed visits, medicines support level and funding, and of staff, with role, start date and training, supervision and spot check status;",
+            "visit monitoring figures, the next 2 weeks' rota, on-call arrangements and the business continuity plan; and",
+            "the policy list with review dates and acknowledgement rates for each current major version."
+          ] }
+        ] },
+        { "heading": "People's contact preferences", "blocks": [
+          { "p": "CQC may require the contact details of people we support and their representatives (section 64). At the initial assessment and each care plan review, the Care Coordinator explains this and records in the care plan how the person prefers CQC to contact them, whether someone else should be contacted instead, and any communication needs. We give CQC these preferences with any list." }
+        ] }
+      ]
+    },
+    {
+      "heading": "When CQC gets in touch",
+      "blocks": [
+        { "p": "Whoever receives a CQC call, email, letter, portal message or visit tells the Registered Manager and the Nominated Individual the same day, and at once for a site visit or an enforcement notice. The Nominated Individual tells the Directors within 1 working day. Out of hours the On-call Manager passes a message on by 10am the next working day, or at once if it concerns enforcement." },
+        { "p": "On the day of notice of an assessment the Registered Manager records it and any deadlines in the inspection log, checks the pack, tells Office staff, has Care Coordinators and Field Care Supervisors remind care workers that they may speak freely to CQC, and arranges management cover. No visit to a person is cut short or moved to free staff for the assessment." },
+        { "p": "If someone says they are from CQC at a person's home during a visit, the care worker checks their identification and phones the office or the On-call Manager to check whether the visit was agreed, then finishes the person's care. The person decides whether the inspector comes in. If the person cannot decide, the care worker asks the inspector to wait outside while this is checked; if no visit was agreed, the Registered Manager, or the On-call Manager out of hours, speaks to the inspector by phone at once. The care worker never discusses anyone else we support or gives out key safe codes." }
+      ]
+    },
+    {
+      "heading": "Information and records requests",
+      "blocks": [
+        { "p": "Regulation 17(3) reports and Regulation 16(3) complaints summaries follow the timetables in the Governance and Quality Assurance Policy and the Complaints Policy and Procedure. Requests made during a site visit follow the next section. Every other request is handled as follows:" },
+        { "steps": [
+          "The Registered Manager records the request and CQC's deadline in the inspection log on the day it arrives. Where CQC sets no deadline, we reply within 2 working days; where its deadline is under 3 working days, the Nominated Individual sets a timetable that day that meets it.",
+          "The Registered Manager prepares the response from CareFlow and the governance records, identifying people by CareFlow reference number unless CQC asks for names.",
+          "The Deputy Manager checks every figure and statement against the source records; the Registered Manager does so when the Deputy Manager prepared it.",
+          "The Nominated Individual approves it, and it is sent at least 1 working day before CQC's deadline by the secure route CQC specifies, otherwise from the branch's secure email account.",
+          "An error found later is corrected with CQC within 1 working day."
+        ] }
+      ]
+    },
+    {
+      "heading": "Site visits to the branch office",
+      "blocks": [
+        { "steps": [
+          "Office staff ask each inspector for their CQC identification, which the law requires them to produce on request, and phone CQC on its published number if in doubt. Nobody sees records until identity is confirmed.",
+          "The Registered Manager leads the visit, or the Deputy Manager, or the Nominated Individual if neither is available, and phones the Nominated Individual at once.",
+          "Inspectors have a private room, the readiness pack and records shown on screen in CareFlow by a manager or Office staff member, never using a staff member's login. Only the Registered Manager or HR Manager opens staff files.",
+          "The Deputy Manager logs every request. Records asked for are provided at once, and in every case the same day; copies inspectors take away go by CQC's secure route or the branch's secure email account. Anything that cannot be found is recorded as missing, never recreated.",
+          "Everyone answers honestly and says when they do not know. Records are never altered, tidied, backdated or removed; an error is corrected only as a dated, clearly marked late entry.",
+          "Any risk to a person that inspectors raise is acted on the same day, with the person made safe before their next visit, as the Quality Audit and Monitoring Procedure sets out.",
+          "The Registered Manager and the Nominated Individual attend the feedback meeting; the Registered Manager logs the feedback and immediate actions within 1 working day."
+        ] }
+      ]
+    },
+    {
+      "heading": "CQC contact with people we support and staff",
+      "blocks": [
+        { "p": "CQC's power to interview a person receiving care in private during an inspection applies only where they consent (section 63). The home is the person's, so we arrange a CQC visit there, or observation of their care, only with their agreement. When CQC asks:" },
+        { "bullets": [
+          "The Care Coordinator asks each person CQC has chosen, in their preferred format and without influence, and records the answer in their care plan. Where a person may lack capacity to decide, a capacity assessment and best interests decision are recorded under the Mental Capacity Act and Best Interests Policy, involving any attorney or deputy for health and welfare. A person who shows they do not want the visit is not visited.",
+          "We never select or steer who CQC contacts, prepare the answers of people or their families, or ask them afterwards what they said.",
+          "Care is observed at its usual time, and the Care Coordinator tells the allocated care workers beforehand. The care worker carries on with the care and leaves the person alone with the inspector only if the person wishes."
+        ] },
+        { "p": "CQC may contact staff directly. Staff may speak to CQC in private, in paid time, with a colleague present if they wish. No manager asks what a member of staff told CQC or tries to find out who raised a concern. Discouraging anyone from speaking to CQC is misconduct, and penalising them is victimisation, treated as gross misconduct under the Whistleblowing (Speaking Up) Policy and the Disciplinary Policy and Procedure." }
+      ]
+    },
+    {
+      "heading": "Draft reports, factual accuracy and ratings",
+      "blocks": [
+        { "steps": [
+          "The Registered Manager sends the draft report to the Nominated Individual on the day it arrives; the Nominated Individual sends it to the Directors within 1 working day. Nobody else sees it except managers checking it.",
+          "Within 5 working days of receipt, the Registered Manager drafts comments on factual errors and omissions, each with supporting evidence. Disagreement with CQC's judgement is not a factual accuracy comment.",
+          "The Nominated Individual approves the comments within 2 further working days and sends them by CQC's required route at least 2 working days before CQC's deadline. Where CQC's deadline is shorter, the Nominated Individual sets a timetable on the day of receipt that keeps this margin.",
+          "If the Directors believe a published rating is wrong, they decide within 5 working days of publication whether the Nominated Individual applies through CQC's published ratings review process, within the time it allows."
+        ] }
+      ]
+    },
+    {
+      "heading": "Acting on findings and enforcement",
+      "blocks": [
+        { "p": "Every shortfall CQC identifies goes into the service improvement plan within 5 working days of the final report. Any action plan CQC asks for, including after a requirement notice, is prepared by the Registered Manager, approved by the Nominated Individual and sent at least 1 working day before CQC's deadline. A rating below Good for any key question, or any enforcement action, goes on the risk register within 5 working days, the Directors review governance within 1 month, and the new rating is displayed within 5 working days of publication (Governance and Quality Assurance Policy; Regulation 20A)." },
+        { "p": "Within 10 working days of publication, the Registered Manager and the Nominated Individual compare CQC's rating for each key question with our last self-assessment. Any key question CQC rated lower than we did gets its own action to improve our monitoring. The Registered Manager tells staff the outcome within 5 working days of publication and sends people we support a summary in their preferred format within 10 working days; the Nominated Individual sends commissioners the report within 2 working days." },
+        { "table": { "columns": ["Enforcement action", "What the law says", "What we do"], "rows": [
+          ["Warning notice", "Sets out the apparent failure and, where it continues, the time by which we must comply; no appeal to the Tribunal (sections 29 and 32)", "Nominated Individual leads; Directors approve a compliance plan within 2 working days; compliance evidenced to CQC before the deadline."],
+          ["Notice of proposal to impose or change conditions, suspend or cancel registration", "Written representations may be made within 28 days of service (section 27)", "Legal advice within 3 working days; Directors decide by day 10; representations sent by day 21, counting the day after service as day 1."],
+          ["Notice of decision", "Appeal to the First-tier Tribunal within 28 days of service (section 32)", "Directors decide on legal advice by day 14; any appeal lodged by day 21."],
+          ["Urgent notice to suspend registration or impose, vary or remove conditions", "Takes effect when given, where CQC has reasonable cause to believe a person will or may be exposed to the risk of harm (section 31); appeal within 28 days (section 32)", "Complied with from the day received, as the Statement of Purpose and Registration Procedure sets out; appeal decided as for a notice of decision."],
+          ["Fixed penalty notice or proposed prosecution", "Paying a fixed penalty discharges liability to conviction for that offence (section 86)", "Legal advice within 3 working days; Directors decide before the notice's deadline. For an interview under caution the Nominated Individual arranges our legal advice and tells the worker they may get their own."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Other regulators and inspecting bodies",
+      "blocks": [
+        { "p": "With every regulator and inspecting body we check identity, tell the Registered Manager and the Nominated Individual the same day, arrange no home visit without the person's agreement, and add findings to the service improvement plan within 5 working days." },
+        { "table": { "columns": ["Body", "Arrangements in"], "rows": [
+          ["Health and Safety Executive or local authority inspectors", "RIDDOR Reporting Procedure and Health and Safety Policy"],
+          ["Home Office sponsor compliance officers", "Right to Work and Sponsored Workers Policy"],
+          ["Information Commission (formerly the ICO)", "Data Protection Policy and Personal Data Breach Procedure"],
+          ["Local Government and Social Care Ombudsman; Parliamentary and Health Service Ombudsman", "Complaints Policy and Procedure"],
+          ["Local authority and integrated care board contract monitoring and quality visits", "This guideline, handled like a CQC request or visit within contract timescales; commissioners see only records of people they fund (Confidentiality and Information Sharing Policy)"]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "p": "The inspection log, CQC requests and our responses with proof of sending, draft and final reports, factual accuracy comments, action plans, enforcement notices, representations and appeals are kept in the governance records for the life of {{organisation}} plus 6 years (Records Management and Retention Policy). Legal advice is seen only by the Directors and the Nominated Individual." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "bullets": [
+          "Registered Managers and Deputy Managers are briefed by the Nominated Individual on this guideline and CQC's current approach within 3 months of appointment and before leading an assessment, then every 24 months and within 1 month of a change in CQC's approach.",
+          "Office staff and On-call Managers learn to check an inspector's identity and pass on CQC contact before working on reception or on call alone.",
+          "Every 12 months, at a staff team meeting, the Registered Manager tells care staff how CQC may contact them, that they may speak freely, and what to do if an inspector arrives at a person's home.",
+          "The Directors cover this guideline at their annual governance update. Briefings are recorded in the training and compliance records."
+        ] }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["What is checked", "How often", "By whom", "Reported to"], "rows": [
+          ["Readiness pack complete and current", "Monthly", "Deputy Manager", "Monthly Quality and Governance Meeting"],
+          ["Each self-assessment rating supported by evidence", "Quarterly", "Nominated Individual", "Directors' governance meeting"],
+          ["Registered Manager or Deputy Manager produces the pack within 1 hour; gaps into the service improvement plan within 5 working days", "At the annual unannounced branch visit", "Nominated Individual", "Directors' governance meeting"],
+          ["Requests, factual accuracy comments and action plans on time; target 100%", "After each one", "Nominated Individual", "Directors' governance meeting"],
+          ["CQC ratings compared with our self-assessment; target: no key question rated lower by CQC", "After each report", "Registered Manager and Nominated Individual", "Directors"]
+        ] } },
+        { "p": "This guideline is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner when CQC confirms its new framework or changes how it assesses home care, after any CQC assessment, enforcement action, change in law or serious incident, or when monitoring shows it is not working." }
+      ]
+    }
+  ]
+}

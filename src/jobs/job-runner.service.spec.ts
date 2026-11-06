@@ -716,6 +716,10 @@ describe('cut-over: internal @Cron tick and external trigger share the period ke
     ['visit-plan-scheduled-end', '2026-10-02T00:30:00.000Z', 60_000],
     ['learning-maintenance', '2026-10-02T02:30:00.000Z', 60_000],
     ['care-plan-review-reminders', '2026-10-02T06:00:00.000Z', 60_000],
+    ['supervision-reminders', '2026-10-02T10:10:00.000Z', 30_000],
+    ['compliance-expiry-reminders', '2026-10-02T10:20:00.000Z', 30_000],
+    ['assessment-review-reminders', '2026-10-02T10:25:00.000Z', 30_000],
+    ['policy-acknowledgement-reminders', '2026-10-02T10:35:00.000Z', 30_000],
     ['rolling-rota', '2026-10-02T02:00:00.000Z', 60_000],
   ];
 

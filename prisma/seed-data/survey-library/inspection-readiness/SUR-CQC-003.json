@@ -1,0 +1,556 @@
+{
+  "reference": "SUR-CQC-003",
+  "revision": 1,
+  "title": "Registered Manager's quarterly self-assessment",
+  "audience": "EMPLOYEE",
+  "audienceGroup": "MANAGERS",
+  "respondents": "Each branch's Registered Manager (the Deputy Manager when the Registered Manager is absent), one response per branch each quarter",
+  "summary": "The structured self-assessment for each quarterly governance report: for each key question, the rating we would award ourselves, the strongest evidence, the quality statements with the weakest evidence, the main gaps and the actions addressing them. About 25 minutes once the evidence is gathered, which takes about 40 minutes.",
+  "purpose": "The Inspection Readiness and Working with Regulators Guideline requires each quarterly governance report to include the Registered Manager's self-assessment for each key question: the rating we would award ourselves, the strongest evidence, the main gaps and the actions addressing them, which the Nominated Individual challenges where the evidence does not support the rating. This form makes the self-assessment consistent between branches and comparable quarter to quarter, points the challenge to the quality statements where evidence is weakest, and is the 'last self-assessment' compared with CQC's ratings after a CQC report. It is a governance record, not an opinion survey.",
+  "timing": {
+    "when": "Every 3 months, opening on the first working day after the quarter ends and completed by the 15th working day, after the quarterly audits and before the governance report",
+    "recurrence": "QUARTERLY",
+    "trigger": null
+  },
+  "anonymous": false,
+  "channels": [
+    "ONLINE"
+  ],
+  "estimatedMinutes": 25,
+  "cqc": {
+    "keyQuestions": [
+      "SAFE",
+      "EFFECTIVE",
+      "CARING",
+      "RESPONSIVE",
+      "WELL_LED"
+    ],
+    "qualityStatements": [
+      "Governance, management and sustainability",
+      "Learning culture",
+      "Monitoring and improving outcomes",
+      "Person-centred care",
+      "Treating people as individuals"
+    ]
+  },
+  "introduction": "This is your self-assessment for {{organisation}}'s quarterly governance report. For each key question, give the rating we would award ourselves, our strongest evidence, the main gaps and the actions addressing them, as the Inspection Readiness and Working with Regulators Guideline requires. Gather the evidence first (about 40 minutes); filling in the form then takes about 25 minutes. Use reference numbers, never people's names.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999. An immediate governance risk goes through the immediate escalation route in the Governance and Quality Assurance Policy, not this form.",
+  "privacyNotice": "{{organisation}} keeps this self-assessment as a governance record, to run the service well and meet our duty to assess, monitor and improve the quality of our care. Our legal reason is our legitimate interest in running a good, safe service, and our legal duties as a registered provider.\n\nIt is linked to your name as its author. Only the Registered Manager, Deputy Manager, Nominated Individual and HR Manager can open it in CareFlow, and the Directors see it in the governance report. It should contain no personal information about the people we support or staff.\n\nWe keep it for 1 year in CareFlow, and the copy filed with the quarterly governance report for the life of {{organisation}} plus 6 years, under our Records Management and Retention Policy. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "This quarter",
+      "questions": [
+        {
+          "id": "q-quarter",
+          "text": "Which quarter is this self-assessment for?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "The year comes from the date you answer.",
+          "options": [
+            "April to June",
+            "July to September",
+            "October to December",
+            "January to March"
+          ]
+        },
+        {
+          "id": "q-since-last",
+          "text": "Since your last self-assessment, has any of these happened? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "A CQC assessment or inspection",
+            "A CQC report, requirement or enforcement action",
+            "A serious incident",
+            "A safeguarding enquiry that found harm",
+            "A complaint upheld at Stage 2 or by an Ombudsman",
+            "A commissioner quality concern",
+            "The independent quality review report",
+            "None of these"
+          ],
+          "exclusiveOptions": [
+            "None of these"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-evidence-used",
+          "text": "Which evidence have you looked at for this self-assessment? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Monthly quality dashboards",
+            "Audit results",
+            "Spot check results",
+            "Incidents and safeguarding records",
+            "Complaints and compliments",
+            "People's survey results",
+            "Staff survey results",
+            "Partner survey results",
+            "The independent quality review",
+            "The CQC evidence area in CareFlow",
+            "The risk register",
+            "The service improvement plan"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-pack",
+          "text": "Is the inspection readiness pack complete and up to date?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "It must be possible to produce it within 1 hour of a request.",
+          "options": [
+            "Yes",
+            "Mostly",
+            "No"
+          ],
+          "comment": {
+            "prompt": "What is missing, and when will it be added?",
+            "showWhen": [
+              "Mostly",
+              "No"
+            ]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        }
+      ]
+    },
+    {
+      "title": "Safe",
+      "questions": [
+        {
+          "id": "q-rating-safe",
+          "text": "What rating would we award ourselves for Safe?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "People are protected from abuse and avoidable harm.",
+          "options": [
+            "Outstanding",
+            "Good",
+            "Requires improvement",
+            "Inadequate"
+          ],
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-evidence-safe",
+          "text": "What is our strongest evidence for Safe?",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Name each source, such as a dashboard month, audit, survey or report, and the result. Use reference numbers, never people's names."
+        },
+        {
+          "id": "q-weakest-safe",
+          "text": "For which Safe quality statements is our evidence weakest? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Learning culture",
+            "Safe systems, pathways and transitions",
+            "Safeguarding",
+            "Involving people to manage risks",
+            "Safe environments",
+            "Safe and effective staffing",
+            "Infection prevention and control",
+            "Medicines optimisation",
+            "None: our evidence is strong for all of them"
+          ],
+          "exclusiveOptions": [
+            "None: our evidence is strong for all of them"
+          ],
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-gaps-safe",
+          "text": "What are the main gaps in Safe?",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Honest gaps are expected. Use reference numbers, never people's names."
+        },
+        {
+          "id": "q-actions-safe",
+          "text": "Which service improvement plan actions address these gaps?",
+          "type": "TEXT",
+          "required": true,
+          "helpText": "Give the action reference numbers. Add any new action to the plan within 5 working days."
+        }
+      ]
+    },
+    {
+      "title": "Effective",
+      "questions": [
+        {
+          "id": "q-rating-effective",
+          "text": "What rating would we award ourselves for Effective?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Care and support achieve good outcomes, help people keep a good quality of life and follow the best available evidence.",
+          "options": [
+            "Outstanding",
+            "Good",
+            "Requires improvement",
+            "Inadequate"
+          ],
+          "evidence": "Effective: Monitoring and improving outcomes"
+        },
+        {
+          "id": "q-evidence-effective",
+          "text": "What is our strongest evidence for Effective?",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Name each source, such as a dashboard month, audit, survey or report, and the result. Use reference numbers, never people's names."
+        },
+        {
+          "id": "q-weakest-effective",
+          "text": "For which Effective quality statements is our evidence weakest? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Assessing needs",
+            "Delivering evidence-based care and treatment",
+            "How staff, teams and services work together",
+            "Supporting people to live healthier lives",
+            "Monitoring and improving outcomes",
+            "Consent to care and treatment",
+            "None: our evidence is strong for all of them"
+          ],
+          "exclusiveOptions": [
+            "None: our evidence is strong for all of them"
+          ],
+          "evidence": "Effective: Monitoring and improving outcomes"
+        },
+        {
+          "id": "q-gaps-effective",
+          "text": "What are the main gaps in Effective?",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Honest gaps are expected. Use reference numbers, never people's names."
+        },
+        {
+          "id": "q-actions-effective",
+          "text": "Which service improvement plan actions address these gaps?",
+          "type": "TEXT",
+          "required": true,
+          "helpText": "Give the action reference numbers. Add any new action to the plan within 5 working days."
+        }
+      ]
+    },
+    {
+      "title": "Caring",
+      "questions": [
+        {
+          "id": "q-rating-caring",
+          "text": "What rating would we award ourselves for Caring?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Staff involve people and treat them with compassion, kindness, dignity and respect.",
+          "options": [
+            "Outstanding",
+            "Good",
+            "Requires improvement",
+            "Inadequate"
+          ],
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-evidence-caring",
+          "text": "What is our strongest evidence for Caring?",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Name each source, such as a dashboard month, audit, survey or report, and the result. Use reference numbers, never people's names."
+        },
+        {
+          "id": "q-weakest-caring",
+          "text": "For which Caring quality statements is our evidence weakest? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Kindness, compassion and dignity",
+            "Treating people as individuals",
+            "Independence, choice and control",
+            "Responding to people's immediate needs",
+            "Workforce wellbeing and enablement",
+            "None: our evidence is strong for all of them"
+          ],
+          "exclusiveOptions": [
+            "None: our evidence is strong for all of them"
+          ],
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-gaps-caring",
+          "text": "What are the main gaps in Caring?",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Honest gaps are expected. Use reference numbers, never people's names."
+        },
+        {
+          "id": "q-actions-caring",
+          "text": "Which service improvement plan actions address these gaps?",
+          "type": "TEXT",
+          "required": true,
+          "helpText": "Give the action reference numbers. Add any new action to the plan within 5 working days."
+        }
+      ]
+    },
+    {
+      "title": "Responsive",
+      "questions": [
+        {
+          "id": "q-rating-responsive",
+          "text": "What rating would we award ourselves for Responsive?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Services are organised so that they meet people's needs.",
+          "options": [
+            "Outstanding",
+            "Good",
+            "Requires improvement",
+            "Inadequate"
+          ],
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "id": "q-evidence-responsive",
+          "text": "What is our strongest evidence for Responsive?",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Name each source, such as a dashboard month, audit, survey or report, and the result. Use reference numbers, never people's names."
+        },
+        {
+          "id": "q-weakest-responsive",
+          "text": "For which Responsive quality statements is our evidence weakest? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Person-centred care",
+            "Care provision, integration and continuity",
+            "Providing information",
+            "Listening to and involving people",
+            "Equity in access",
+            "Equity in experiences and outcomes",
+            "Planning for the future",
+            "None: our evidence is strong for all of them"
+          ],
+          "exclusiveOptions": [
+            "None: our evidence is strong for all of them"
+          ],
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "id": "q-gaps-responsive",
+          "text": "What are the main gaps in Responsive?",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Honest gaps are expected. Use reference numbers, never people's names."
+        },
+        {
+          "id": "q-actions-responsive",
+          "text": "Which service improvement plan actions address these gaps?",
+          "type": "TEXT",
+          "required": true,
+          "helpText": "Give the action reference numbers. Add any new action to the plan within 5 working days."
+        }
+      ]
+    },
+    {
+      "title": "Well-led",
+      "questions": [
+        {
+          "id": "q-rating-well-led",
+          "text": "What rating would we award ourselves for Well-led?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Leadership, management and governance make sure care is high quality and person-centred, with an open and fair culture that supports learning.",
+          "options": [
+            "Outstanding",
+            "Good",
+            "Requires improvement",
+            "Inadequate"
+          ],
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-evidence-well-led",
+          "text": "What is our strongest evidence for Well-led?",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Name each source, such as a dashboard month, audit, survey or report, and the result. Use reference numbers, never people's names."
+        },
+        {
+          "id": "q-weakest-well-led",
+          "text": "For which Well-led quality statements is our evidence weakest? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Shared direction and culture",
+            "Capable, compassionate and inclusive leaders",
+            "Freedom to speak up",
+            "Workforce equality, diversity and inclusion",
+            "Governance, management and sustainability",
+            "Partnerships and communities",
+            "Learning, improvement and innovation",
+            "Environmental sustainability – sustainable development",
+            "None: our evidence is strong for all of them"
+          ],
+          "exclusiveOptions": [
+            "None: our evidence is strong for all of them"
+          ],
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-gaps-well-led",
+          "text": "What are the main gaps in Well-led?",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Honest gaps are expected. Use reference numbers, never people's names."
+        },
+        {
+          "id": "q-actions-well-led",
+          "text": "Which service improvement plan actions address these gaps?",
+          "type": "TEXT",
+          "required": true,
+          "helpText": "Give the action reference numbers. Add any new action to the plan within 5 working days."
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Anything else the Nominated Individual should know about this self-assessment?",
+          "type": "TEXTAREA",
+          "required": false
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Nominated Individual sets it up: use Send or schedule with each branch's Registered Manager as a chosen employee, repeating quarterly from the first working day after each quarter ends; it reaches them in the CareFlow app and by email. The form is due by the 15th working day after the quarter ends, after the quarterly audits (due by the 10th working day). When the Registered Manager is absent, the Deputy Manager completes it; CareFlow records who answered. Each branch answers for itself; the owning Registered Manager compiles the organisation view for the governance report.",
+      "Before opening the form, the Registered Manager reviews the CQC evidence area by quality statement, the quarter's dashboards, audits, incidents, complaints, survey results (including the independent quality review, SUR-CQC-001 and SUR-CQC-002, when it falls in the quarter) and the service improvement plan. Name evidence by its source and result (for example \"October dashboard: 96% of visits on time\"). Every evidence, gaps and actions field must be completed: the Nominated Individual returns a form with any of them empty.",
+      "Who may open individual answers: the Registered Manager, Deputy Manager, Nominated Individual and HR Manager, the governance records roles; the Directors see it in the governance report. This is set in Who can see the answers: individual responses and results are limited to the Registered Manager, the Deputy Manager, the Nominated Individual and the HR Manager. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. File a copy (export) with the quarterly governance report and in the inspection readiness pack, which holds the last 4 self-assessments.",
+      "CareFlow does not yet turn a self-assessment into CQC evidence (survey evidence keeps only figures from 5 or more answers, never written answers): the Registered Manager adds one manual evidence item per key question in the CQC evidence area, with the rating, strongest evidence, gaps and action references, replacing last quarter's item. When CQC confirms its new adult social care framework, the Nominated Individual issues a new revision of this form within 1 month, with the new key lines of enquiry as options."
+    ],
+    "actingOnResults": [
+      "The Nominated Individual reads each self-assessment and challenges any rating the evidence does not support within 5 working days, recording the challenge and outcome in the governance report. CareFlow takes one answer per person per quarter, so a rating revised after challenge is recorded in the governance report beside the original, never as a second response. A rating that changes from last quarter is explained in the governance report. Every gap without an action reference gets an action in the service improvement plan within 5 working days (Governance and Quality Assurance Policy).",
+      "The final self-assessment goes in the quarterly governance report, which reaches the Directors at least 5 working days before their governance meeting, held within 6 weeks of the quarter end. Within 10 working days of a CQC report being published, the Registered Manager and Nominated Individual compare CQC's rating for each key question with the last self-assessment; any key question CQC rated lower gets its own action (Inspection Readiness and Working with Regulators Guideline).",
+      "Keep responses for 1 year in CareFlow, which covers the last 4 quarters the readiness pack needs; the copy filed with the governance report is kept for the life of the organisation plus 6 years (Records Management and Retention Policy)."
+    ],
+    "alerts": [
+      {
+        "when": "Any key question rated Requires improvement or Inadequate.",
+        "action": "The Nominated Individual discusses it with the Registered Manager before the governance report is sent and makes sure it is on the risk register within 5 working days (library proposal, mirroring the Governance and Quality Assurance Policy's rule that a CQC rating below Good for any key question triggers a Directors' review of governance within 1 month).",
+        "rule": {
+          "task": "Self-assessment below Good: discuss and add to risk register",
+          "if": [
+            {
+              "question": "q-rating-safe",
+              "answers": [
+                "Requires improvement",
+                "Inadequate"
+              ]
+            },
+            {
+              "question": "q-rating-effective",
+              "answers": [
+                "Requires improvement",
+                "Inadequate"
+              ]
+            },
+            {
+              "question": "q-rating-caring",
+              "answers": [
+                "Requires improvement",
+                "Inadequate"
+              ]
+            },
+            {
+              "question": "q-rating-responsive",
+              "answers": [
+                "Requires improvement",
+                "Inadequate"
+              ]
+            },
+            {
+              "question": "q-rating-well-led",
+              "answers": [
+                "Requires improvement",
+                "Inadequate"
+              ]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Is the inspection readiness pack complete and up to date?\" answered Mostly or No.",
+        "action": "The Deputy Manager completes the pack within 5 working days (the pack is updated monthly by the 7th working day under the Inspection Readiness and Working with Regulators Guideline).",
+        "rule": {
+          "task": "Complete the inspection readiness pack",
+          "if": [
+            {
+              "question": "q-pack",
+              "answers": [
+                "Mostly",
+                "No"
+              ]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A rating the evidence does not support, a key question with no named evidence, a key question with no gaps while rated Good or below, or a rating higher than the latest independent quality review or SUR-CQC-001 and SUR-CQC-002 results support (from reading the answers).",
+        "action": "The Nominated Individual challenges it within 5 working days and records the challenge and outcome (Inspection Readiness and Working with Regulators Guideline)."
+      },
+      {
+        "when": "A gap with no service improvement plan action reference (from reading the answers).",
+        "action": "The Registered Manager adds an action to the service improvement plan within 5 working days (Governance and Quality Assurance Policy)."
+      }
+    ]
+  },
+  "alertsNeverTo": [
+    "REGISTERED_MANAGER"
+  ],
+  "access": {
+    "responses": [
+      "REGISTERED_MANAGER",
+      "DEPUTY_MANAGER",
+      "NOMINATED_INDIVIDUAL",
+      "HR_MANAGER"
+    ],
+    "results": [
+      "REGISTERED_MANAGER",
+      "DEPUTY_MANAGER",
+      "NOMINATED_INDIVIDUAL",
+      "HR_MANAGER"
+    ],
+    "reportingThreshold": 1
+  },
+  "relatedPolicies": [
+    "POL-GOV-023",
+    "POL-GOV-002",
+    "POL-GOV-003",
+    "POL-GOV-001",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(a): assess, monitor and improve the quality and safety of the services provided",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

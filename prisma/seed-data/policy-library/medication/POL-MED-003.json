@@ -1,0 +1,681 @@
+{
+  "reference": "POL-MED-003",
+  "revision": 1,
+  "title": "Consent, Mental Capacity and Declined Medicines Policy",
+  "documentType": "POLICY",
+  "summary": "How we obtain and record consent for medicines support and for every dose, who decides when a person may lack capacity for a medicines decision, how we support people whose capacity fluctuates, and exactly what care workers and the office do when a person declines a medicine. For all employees.",
+  "keyPoints": {
+    "intro": "Every dose needs the person's agreement, every time. This tells you how to ask, what to do when someone says no or may not understand, and who to tell.",
+    "points": [
+      "Before you take any dose out of its packaging, tell the person what is due and ask if they are ready, unless their care plan records a different way of asking. Give it only when they agree.",
+      "Never force, hold, threaten, bribe or trick anyone into taking a medicine, and never hide it in food or drink. Only an approved covert administration plan allows a medicine to be given without the person knowing.",
+      "If the person declines, stop, ask gently why, such as pain, side effects or difficulty swallowing, and offer once more later in the visit if still within its time. Never keep persuading.",
+      "Record a declined dose on the eMAR as Refused, with a note of what you offered and what the person said. Spat out or only partly taken is Partially given. Asleep, vomiting or too drowsy uses a not-given outcome, never Refused.",
+      "Phone the office, or the On-call Manager out of hours, before you leave whenever a dose is declined, only partly taken or not given (except a dose left out under an approved arrangement), saying first if the care plan flags it as time-sensitive or advice-if-declined.",
+      "Never put a declined dose back in its pack, leave it out or throw it away. Seal it, marked with the person's name, the medicine and the date, and put it in the return bag with their medicines for the pharmacy.",
+      "Always assume the person can decide; saying no, or a choice you think unwise, does not mean they lack capacity. Never carry out a formal capacity assessment yourself: report what you saw and heard.",
+      "Tell the office that day if the person's reasons do not fit what is happening or they seem less able to decide; before you leave if it is sudden or a dose is due. Sudden confusion or being hard to wake is a 999 call.",
+      "A relative cannot accept or refuse a medicine for the person; only an attorney or deputy the office has checked can, when the person cannot decide. Phone the office if a relative tells you to give or withhold one.",
+      "Where the care plan has a medicines best interests plan, try its approaches exactly. If the person still resists, stop, never hold or restrain them, and record and report a declined dose.",
+      "If you think someone else is stopping the person taking their medicines, or taking or misusing them, phone the office or On-call Manager before you leave. Call 999 if the person is seriously unwell."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "MEDICATION",
+    "CARE_PLAN",
+    "RISK_ASSESSMENT",
+    "SAFEGUARDING"
+  ],
+  "relatedReferences": [
+    "POL-MED-001",
+    "POL-MED-002",
+    "POL-MED-009",
+    "POL-MED-014",
+    "POL-MED-008",
+    "POL-CD-004",
+    "POL-SG-004",
+    "POL-SG-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 Need for consent",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(g) the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 Safeguarding service users from abuse and improper treatment, including 13(4)(b) and 13(7) restraint by physical, mechanical or chemical means",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1 The principles",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 2 People who lack capacity",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/2"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 3 Inability to make decisions",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/3"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 4 Best interests",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/4"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 6 Section 5 acts: limitations",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/6"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 11 Lasting powers of attorney: restrictions",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/11"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 26 Effect of advance decisions",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/26"
+    },
+    {
+      "source": "Office of the Public Guardian, Mental Capacity Act Code of Practice (2007; GOV.UK page last updated 14 October 2020)",
+      "url": "https://www.gov.uk/government/publications/mental-capacity-act-code-of-practice"
+    },
+    {
+      "source": "NICE and SCIE, Discussing and planning medicines support: a quick guide for home care managers providing medicines support (2018, based on NICE guideline NG67), including the six rights of administration and recording how consent for decisions about medicines is obtained",
+      "url": "https://bswtogether.org.uk/medicines/wp-content/uploads/sites/3/2018/01/Discussingandplanningmedicinessupportquickguide-1.pdf"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), summarising NICE guideline NG67 on recording whether a person has taken or declined a medicine and on covert administration",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} gives medicines support only with the agreement of the person, or lawfully under the Mental Capacity Act 2005 where they cannot make the decision themselves. Whether to take a medicine is the person's decision. Agreeing to medicines support at assessment is not agreement to every dose: we ask before each one, and the right to decline is one of the six rights checked before every dose."
+        },
+        {
+          "p": "The law requires that care and treatment are provided only with the consent of the relevant person and that, where a person aged 16 or over lacks capacity to consent, we act in accordance with the Mental Capacity Act 2005 (Regulation 11 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). A declined dose can be the first sign of side effects, illness, a change in capacity or abuse, so {{organisation}} treats every declined dose as information to act on, never as a task to complete by other means."
+        },
+        {
+          "p": "This policy adds the medicines detail to the Medicines Management Policy and the Consent to Care Policy, following NICE guideline NG67."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Agreement to medicines support is recorded before it starts, and every dose is offered only with the person's agreement, never by force or deception.",
+            "Everyone knows who decides each kind of medicines decision, and people whose capacity fluctuates decide for themselves for as long as they can.",
+            "Every declined dose is recorded accurately and escalated in time, and patterns are acted on as possible clinical, capacity or safeguarding concerns."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to all employees, including bank and agency workers placed with us, and to every person who receives medicines support from us at any level; at Level 0 it covers what we notice and share about their medicines. We support adults aged 18 and over only."
+        },
+        {
+          "p": "It does not cover consent to care in general or verifying attorneys and deputies (Consent to Care Policy), the method of formal capacity assessment (Mental Capacity Act and Best Interests Policy), covert administration (Covert Administration of Medicines Policy) or medicines incidents (Medication Errors, Near Misses and Incidents Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Declined dose",
+                "A dose the person chooses not to take when offered, said or shown, for example by pushing it away or keeping their mouth closed. Recorded on the eMAR with the Refused outcome. A dose the person spits out or only partly takes because they do not want it is recorded as Partially given and also counts as a declined dose."
+              ],
+              [
+                "Dose not given",
+                "A dose not taken for a reason other than the person's choice, such as being asleep where the care plan says not to wake them, vomiting or being too drowsy to swallow safely. Recorded with the eMAR outcome that matches the reason, such as Nausea / Vomiting or Not Given / Missed, never Refused."
+              ],
+              [
+                "Pattern of declined doses",
+                "A medicine declined at two consecutive visits at which it is due, or three times in seven days."
+              ],
+              [
+                "Advice-if-declined medicine",
+                "A medicine flagged in the care plan, with 'Advice if declined' in its eMAR entry's instructions, because one declined dose needs clinical advice the same day: every time-sensitive medicine, and any other the prescriber or pharmacist names at assessment or review, such as an anticoagulant or anti-epileptic medicine."
+              ],
+              [
+                "Medicines support decision",
+                "A decision about the help we give: whether the person accepts medicines support from us, its level, information sharing, lockable storage, and how each dose is offered."
+              ],
+              [
+                "Medicines treatment decision",
+                "A decision about the medicine itself: whether to start, take, stop or change it, its form, and whether it may be crushed, mixed with food or given covertly. These belong to the prescriber."
+              ],
+              [
+                "Medicines wishes record",
+                "An advance statement about medicines: the person's own statement, made while they have capacity, of what matters to them about their medicines and what they would want if they later cannot decide."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for {{organisation}} meeting Regulation 11 in its medicines support and approve this policy. The Nominated Individual challenges the declined-dose and medicines capacity figures in the quarterly medicines governance report. The Directors are told within 24 hours of any medicines incident that causes serious harm, is referred to safeguarding, is notified to CQC or involves the police, as the Medicines Management Policy requires."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "bullets": [
+                "Leads on medicines consent and capacity, and authorises the staff who carry out formal capacity assessments.",
+                "Approves every best interests decision about medicines support before it is used, never one they prepared; the Deputy Manager may approve in the Registered Manager's absence or where the Registered Manager prepared it, and out of hours the On-call Manager obtains approval by phone from either and records who approved it and when.",
+                "Reviews every pattern of declined doses by the end of the next working day as a possible clinical, capacity or safeguarding concern, recording the outcome in the care plan.",
+                "Decides within 1 working day whether the rest of the medicines support can be given safely when a person with capacity declines recommended support, information sharing or a medicine they have decided to stop, and tells the commissioner in writing."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "Carries out the Registered Manager's duties in their absence and carries out the monthly audits in Monitoring and review."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator and Field Care Supervisor",
+          "blocks": [
+            {
+              "p": "As medicines assessors and reviewers they seek and record consent, flag advice-if-declined medicines, offer the medicines wishes record, carry out authorised capacity assessments and prepare best interests decisions. The Care Coordinator obtains the clinical advice the escalation table requires and briefs care workers on any change before their next visit."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            {
+              "p": "They take and record calls about declined doses and capacity doubts and check the eMAR at 11am, 3pm, 7pm and 11pm, as the escalation table sets out, marking each Refused, Partially given and not-given dose as reviewed on the eMAR's missed and refused doses list with the action taken, the same working day. Out of hours the On-call Manager obtains clinical advice through NHS 111 and hands decisions over to the Registered Manager or Deputy Manager by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "They ask before every dose, respect every decline, follow any medicines best interests plan exactly, record every outcome on the eMAR at the time and report as this policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "Keeps consent, capacity and medicines training dates in the training and compliance records and reports overdue items to the Registered Manager monthly."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Consent to medicines support",
+      "blocks": [
+        {
+          "p": "At the medicines assessment the assessor explains, in the person's preferred format, the support proposed for each medicine, what the care worker will and will not do, and what happens if the person says no. The person is asked to agree to the support for each medicine and, separately, to sharing information with their GP practice and pharmacy, under the Assessing Medicines Support Needs Procedure."
+        },
+        {
+          "p": "The medicines section of the care plan records, for each medicine: the person's decision; how care workers ask for consent at each dose, including the words, language and aids that work; whether the person wants to be asked before the dose leaves its packaging or prefers another arrangement; when they are best able to decide; and any advice-if-declined flag. The agreement, with the date, how it was given, who was present and who recorded it, goes in the Consent and decisions part. Routine medicines support needs recorded consent; signed consent is needed only for a Level 3 delegated task and lockable medicines storage."
+        },
+        {
+          "p": "The assessor also records who else may be told about the person's medicines and declined doses; being the named contact gives nobody authority to make medicines decisions. Information is shared without consent only where the Registered Manager or Deputy Manager (the On-call Manager out of hours, only where the decision cannot wait) confirms that the Confidentiality and Information Sharing Policy allows it, recording the reason."
+        },
+        {
+          "p": "Consent is revisited at every medicines review and whenever a medicine is added or a level changes. A person may withdraw agreement to any part of their medicines support at any time. The care worker respects it and phones the office before leaving. The Care Coordinator speaks to the person the same working day and tells the prescriber the same day if a time-sensitive or advice-if-declined medicine is affected; the Registered Manager decides within 1 working day whether the rest of the support can be given safely and tells the commissioner in writing, and the GP practice and pharmacy are told within 2 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Asking for consent before every dose",
+      "blocks": [
+        {
+          "steps": [
+            "Check the care plan and eMAR for how this person gives consent and for any medicines best interests plan.",
+            "Tell the person which medicine is due and, if they want to know, what it is for. Ask whether they are ready to take it before you remove any dose from its packaging.",
+            "Wait for an answer, spoken or shown. Watch for agreement or refusal without words, such as nodding, turning away, closing their mouth or becoming distressed.",
+            "Give the medicine only when the person agrees, and stop at once if they change their mind part way through.",
+            "Record the outcome on the eMAR at the time. A Given record confirms the person agreed; no separate consent note is needed."
+          ]
+        },
+        {
+          "p": "Where the care plan records another arrangement, the care worker follows it: for example, preparing the dose while the person finishes breakfast at their own request, or showing a person with dementia the prepared dose as their medicines best interests plan sets out. At Level 1 the care worker reminds once and never presses; a person who says they will not take the medicine has declined it."
+        },
+        {
+          "p": "Staff never force, hold, threaten or bribe a person, make other care depend on taking a medicine, pretend a medicine is something else, or hide it in food or drink. Giving it with food the person knows about, on a pharmacist's written advice in the care plan, is not covert. Using or threatening force to make a person do something they resist is restraint in law. The Mental Capacity Act 2005 protects restraint only where the person doing it reasonably believes it is necessary to prevent harm and it is proportionate (section 6), and Regulation 13 prohibits control or restraint that is not necessary and proportionate, including by chemical means. Our policy goes further: no restraint or force is ever used to give a medicine. A medicine given against a refusal, or covertly without an approved plan under the Covert Administration of Medicines Policy, is a medicines incident and a safeguarding concern."
+        }
+      ]
+    },
+    {
+      "heading": "Mental capacity and medicines decisions",
+      "blocks": [
+        {
+          "p": "We apply the principles in section 1 of the Mental Capacity Act 2005 to every medicines decision. We assume the person has capacity. We give all practicable help before anyone concludes they cannot decide: the right time of day, glasses and hearing aids, plain words, a large-print or translated leaflet, showing the medicine itself, or a professional interpreter. A decision we think unwise is not evidence of a lack of capacity. Capacity is specific to the decision and the time: a person may be able to decide about a cream but not a complex heart medicine, or in the morning but not the evening."
+        },
+        {
+          "p": "A person lacks capacity for a decision only if they cannot understand, retain, use or weigh the relevant information, including the likely consequences of deciding either way, or communicate their decision, and this is because of an impairment of, or a disturbance in the functioning of, the mind or brain (sections 2 and 3)."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Who decides and who assesses capacity",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Decision",
+                  "Who assesses capacity, and decides if the person lacks it",
+                  "Our part"
+                ],
+                "rows": [
+                  [
+                    "Whether to take this dose now",
+                    "The person. Care workers never carry out formal capacity assessments; if the person may not be able to decide, the dose is given only under a best interests decision recorded in the care plan.",
+                    "Ask, respect the answer, record it and report any doubt as set out under Fluctuating and declining capacity."
+                  ],
+                  [
+                    "Medicines support decisions",
+                    "Our authorised assessor (Care Coordinator, Field Care Supervisor, Deputy Manager or Registered Manager, or an authorised On-call Manager where the decision cannot wait); best interests decisions approved by the Registered Manager or Deputy Manager.",
+                    "We lead, with the prescriber's and pharmacist's advice."
+                  ],
+                  [
+                    "Medicines treatment decisions",
+                    "The prescriber, with the pharmacist's advice.",
+                    "We give our observations, the person's wishes and the views of those close to them, and act only on the decision in writing."
+                  ],
+                  [
+                    "Covert administration",
+                    "A prescriber-led best interests decision with a pharmacist's advice; the Registered Manager approves our plan.",
+                    "As the Covert Administration of Medicines Policy sets out."
+                  ],
+                  [
+                    "A decision within a verified attorney's or deputy's authority",
+                    "The attorney or deputy, when the person lacks capacity for it.",
+                    "Follow the decision and raise any concern as below."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Formal capacity assessments follow the Mental Capacity Act and Best Interests Policy and are recorded in the Consent and decisions part of the care plan."
+            }
+          ]
+        },
+        {
+          "heading": "Best interests decisions about medicines support",
+          "blocks": [
+            {
+              "p": "Where a person lacks capacity to agree to their medicines support and nobody holds legal authority for it, the assessor prepares a best interests decision under section 4 of the Act and the Consent to Care Policy: involving the person as fully as possible, consulting those close to them, and choosing the least restrictive option. For medicines it must also take account of any medicines wishes record and record the prescriber's or pharmacist's view of how important each medicine is. It is approved before use as Roles and responsibilities sets out. Where those consulted disagree, or the plan involves a restriction such as lockable storage the person cannot open, the Care Coordinator arranges a best interests meeting within 10 working days, chaired by the Registered Manager or Deputy Manager. Where nobody other than paid staff can be consulted, the Care Coordinator asks the local authority in writing within 2 working days to consider instructing an independent mental capacity advocate."
+            },
+            {
+              "p": "The resulting medicines best interests plan tells care workers, for each medicine, how to explain and offer it, what to try if the person declines (such as returning later in the visit within the time window, offering their preferred drink, sitting at eye level or a familiar care worker offering), when to stop and record a declined dose, and who to phone. It never includes force, restraint or deception. It is reviewed at every medicines review and within 7 days whenever a pattern of declined doses shows it is not working. Where a person who lacks capacity repeatedly objects to or is distressed by their medicines support, or a sedating medicine is newly prescribed for them, the care worker reports it the same day and the Care Coordinator (On-call Manager out of hours) updates the deprivation of liberty screen the same working day, with a focused review within 7 days, under the Deprivation of Liberty in the Community Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Attorneys, deputies and advance decisions",
+          "blocks": [
+            {
+              "p": "The assessor asks at every assessment and medicines review whether anyone holds a lasting power of attorney for health and welfare or is a deputy for health decisions. Until their authority is verified under the Consent to Care Policy, the holder is consulted but does not decide. A verified attorney may consent to or refuse a medicine only when the person lacks, or the attorney reasonably believes they lack, capacity for that decision, within any conditions in the document, and may refuse life-sustaining treatment only if the document expressly says so (section 11). A property and financial affairs attorney, appointee or relative cannot."
+            },
+            {
+              "p": "When a verified attorney or deputy refuses a medicine, the care worker does not give it and phones the office before leaving, and the Care Coordinator tells the prescriber the same day. If we believe the refusal is not in the person's best interests, the Registered Manager discusses it with them and, if it is not resolved, writes to the local authority within 2 working days of the concern arising, asking it to take the matter forward, including any application to the Court of Protection. A concern that they are misusing their authority is also reported under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+            },
+            {
+              "p": "A valid and applicable advance decision to refuse treatment has the same effect as a refusal made with capacity (section 26). We do not judge validity. Where a person who cannot make the decision themselves has an advance decision that may cover a medicine, the care worker does not give that medicine and phones the office before leaving; the Care Coordinator, or the On-call Manager through NHS 111 out of hours, obtains the prescriber's decision the same day and records it in the care plan."
+            },
+            {
+              "p": "Where Part 4 or 4A of the Mental Health Act 1983 applies, for example to a person on a community treatment order or on leave from hospital under section 17, Regulation 11 requires us to act in accordance with that Act, and the person's mental health team decides what happens when a medicine is declined. Care workers never use force, and the Care Coordinator, or the On-call Manager out of hours, tells the person's community mental health team the same day about any declined dose of a medicine prescribed for their mental health, using the contacts in the care plan."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Fluctuating and declining capacity",
+      "blocks": [
+        {
+          "p": "Many people we support, such as people living with dementia, have capacity that varies or is slowly declining. We support them to make their own medicines decisions for as long as they can:"
+        },
+        {
+          "bullets": [
+            "The care plan records when the person is best able to decide and what helps, and decisions that can wait, such as a change of level, are discussed at those times.",
+            "Where a person's condition is likely to affect their capacity, the assessor offers at assessment, and the reviewer at every care plan review, to complete a medicines wishes record with them: which medicines matter most, what care workers should try if they decline when confused, who to contact, and any religious or cultural needs. It is written in the person's words, read back, dated and kept in What matters to me, with family or carers involved where the person agrees.",
+            "A medicines wishes record does not bind anyone, but a relevant written statement made while the person had capacity must be considered in any best interests decision (section 4(6)). Where the person wants to refuse a medicine in advance, the assessor tells them about advance decisions to refuse treatment and suggests they discuss it with their GP, without advising on making one.",
+            "When a person regains capacity, decisions made for them are revisited and the person decides again."
+          ]
+        },
+        {
+          "p": "Care workers record in the daily visit notes, and tell the office the same day (before leaving where the change is sudden or a dose is due at that visit), when a person gives reasons for declining that do not fit what is happening, such as believing a medicine is poison; cannot recall what they were told minutes earlier; becomes more confused or drowsy than usual; or seems less able to decide than before. Sudden new confusion, or a person who is hard to wake, is a 999 call first under the First Aid Procedure, then a call to the office. Once the office is told:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Step",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Record the doubt in the care plan and set a focused review",
+                "Care Coordinator (On-call Manager out of hours)",
+                "The same working day"
+              ],
+              [
+                "Tell the GP about a sudden change, which may be an illness such as an infection or delirium, and ask the prescriber to consider capacity for any treatment decision",
+                "Care Coordinator (On-call Manager through NHS 111 out of hours)",
+                "The same day"
+              ],
+              [
+                "Formal capacity assessment for a medicines support decision",
+                "Authorised assessor",
+                "Within 7 days; before the next visit where the decision is needed then"
+              ],
+              [
+                "Review of medicines support at home",
+                "Care Coordinator or Field Care Supervisor",
+                "Within 7 days"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Until then, care workers keep asking before every dose and never give a medicine the person declines. Going along with a dose is not consent: where the care worker doubts that the person understands a medicine due at the visit and no best interests decision covers it, they phone the office before giving it. The Care Coordinator, or the On-call Manager out of hours, obtains phone approval from the Registered Manager or Deputy Manager for a best interests decision covering that visit only, recorded in the care plan before the dose, as the Consent to Care Policy sets out. The care worker carries on with other planned tasks while waiting; if no decision comes within 30 minutes after the planned end of the visit, the office arranges an extra visit to act on it. If the person resists, the dose is recorded as declined."
+        }
+      ]
+    },
+    {
+      "heading": "When a person declines a medicine",
+      "blocks": [
+        {
+          "p": "A person with capacity may decline any medicine without giving a reason, even when that puts them at risk. A person who lacks capacity cannot be made to take a medicine either: their refusal is respected, recorded and reported."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "At the visit",
+          "blocks": [
+            {
+              "steps": [
+                "Stop. Do not press, bargain or keep persuading.",
+                "Ask gently why, and look for reasons such as pain, side effects like nausea or dizziness, difficulty swallowing, the size or taste of the medicine, believing it has already been taken, fasting, low mood, or someone having told them not to take it.",
+                "Remove the obstacle where the care plan allows: tell the person what the medicine is for, offer a drink of their choice, help them sit upright, or follow the medicines best interests plan. Never crush, split or mix the medicine, offer a different one or give clinical advice.",
+                "Offer it once more later in the same visit, if it is still within its time window. If the person still declines, accept their decision.",
+                "If the dose was already out of its packaging, never put it back, leave it out or throw it away. Seal it in an envelope, or a lidded container for a liquid, marked with the person's name, the medicine and the date, and put it in the labelled return bag in the person's medicines storage for return to a pharmacy with their agreement under the Ordering, Collecting, Storing and Disposing of Medicines Procedure. For a counted controlled drug, record the sealed dose in the eMAR note with the running balance, as the Controlled Drugs in the Community Procedure sets out.",
+                "Record the dose on the eMAR with the Refused outcome, or Partially given where some was taken or it was spat out, and a note of what you offered, what the person said or showed, whether you offered again and whether a dose was sealed for return.",
+                "Phone the office, or the On-call Manager out of hours, before you leave. Call 999 if the person is seriously unwell."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Recording accurately",
+          "blocks": [
+            {
+              "p": "Patterns are found from these records, so outcomes must be exact. A dose the person did not decide against is recorded with the not-given outcome that matches the reason, never as Refused, and phoned to the office in the same way. The only exception to the call is a dose recorded as Other with the note Left out under a leave-out arrangement approved under the Self-Administration of Medicines Procedure, which the office marks reviewed at its eMAR checks. A dose spat out, not swallowed, vomited soon after or only partly taken is recorded as Partially given with the matching reason and a note of how much the person appeared to take; it is never repeated without advice, and the office asks the pharmacist the same day whether anything further is needed. Each medicine is recorded separately, and a dose is never recorded as given unless the care worker saw it taken."
+            },
+            {
+              "p": "Tablets found dropped, hidden or spat out are phoned to the office, and the Care Coordinator tells the GP or pharmacist the same day as a possible swallowing difficulty. A when required medicine the person does not need is recorded under the When Required (PRN) Medicines Protocol and is not a declined dose; one the person appears to need, for example because they are in pain, but declines is recorded as declined."
+            }
+          ]
+        },
+        {
+          "heading": "An informed decision to stop a medicine",
+          "blocks": [
+            {
+              "p": "When a person with capacity says they no longer want a medicine at all, the care worker phones the office before leaving. The Care Coordinator checks with the person that they understand what it is for and the likely consequences of stopping, tells the prescriber the same day and asks for a review, and records the informed decision in the care plan; the Registered Manager decides within 1 working day whether the rest of the support can continue safely."
+            },
+            {
+              "p": "Until the prescriber has reviewed it, care workers offer the medicine at each due time with a single neutral question and record the outcome. Only the prescriber stops a medicine; if they do, the eMAR is changed under the Medicines Administration Records (MAR and eMAR) Procedure. If the prescriber continues it and the person still declines, the care plan records the arrangement the person has agreed, such as being offered it once a day, and the risk is recorded in their risk assessments."
+            }
+          ]
+        },
+        {
+          "heading": "Pressure from others and particular situations",
+          "blocks": [
+            {
+              "bullets": [
+                "Care workers follow the person's wishes, not a relative's, and phone the office before leaving whenever a relative tells them to withhold a medicine or to keep trying after a decline. Where a relative says a prescriber advised withholding, the office checks with the prescriber the same day, and until then the medicine is offered as the eMAR shows. Where the person seems pressured, or says someone told them not to take it, the office tells the safeguarding lead (On-call Manager out of hours) at once.",
+                "Where the person turns the care worker away at the door or declines the whole visit, every dose due is a declined dose under this policy, recorded as Refused, and the care worker phones the office from the doorstep before leaving, as the Visit Cancellations and Refusals of Care Procedure sets out.",
+                "Where a person plans to fast for religious reasons, the Care Coordinator asks the prescriber or pharmacist before the fast how dose times should change and records the advice in the care plan.",
+                "Where the care plan says to phone the office before giving certain medicines if the person appears intoxicated, the care worker does so, and a dose withheld on that advice is recorded with a not-given outcome and the reason."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Escalation and reporting",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "Who acts",
+              "What happens",
+              "Timescale"
+            ],
+            "rows": [
+              [
+                "Any declined, partially given or not given dose (not a when required medicine the person does not need, or a dose left out under an approved leave-out arrangement)",
+                "Care worker; Office staff or On-call Manager",
+                "Care worker phones; the office records the call in the daily visit notes, checks whether the next dose is affected, tells any family member who gives it under the care plan (with the person's agreement or, if they lack capacity to agree, where it is in their best interests), marks the dose reviewed on the eMAR and tells the Care Coordinator.",
+                "Before the care worker leaves; Care Coordinator told the same working day, or by 10am the next working day out of hours"
+              ],
+              [
+                "Declined dose of a time-sensitive or advice-if-declined medicine",
+                "Care Coordinator (On-call Manager through NHS 111 out of hours)",
+                "GP or pharmacist advice on the missed dose and the next one, recorded in the care plan; next care worker briefed.",
+                "The same day, before the next dose is due"
+              ],
+              [
+                "Decline suggesting a clinical cause, such as side effects, pain or swallowing difficulty",
+                "Care Coordinator",
+                "GP or pharmacist asked about the cause and other formulations; the person told how to report side effects through the MHRA Yellow Card scheme.",
+                "The same day"
+              ],
+              [
+                "Pattern of declined doses",
+                "Care Coordinator; Registered Manager",
+                "GP or pharmacist contacted; named contact told where the person has agreed or, if they lack capacity to agree, where it is in their best interests; Registered Manager review; medicines support reviewed at home.",
+                "GP and named contact the same day; Registered Manager by the end of the next working day; review within 7 days"
+              ],
+              [
+                "Signs that someone else withholds, takes or misuses the person's medicines, or pressures them",
+                "Care worker; safeguarding lead",
+                "Handled under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+                "Before the care worker leaves; risk assessed within 1 hour"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "When reviewing a pattern, the Registered Manager considers whether the person's health or capacity is changing, whether the medicine may be causing harm, whether someone else is influencing them, whether it reflects self-neglect (Self-Neglect and Hoarding Procedure), and whether our own practice, such as rushed or late visits or Refused recorded for a dose not properly offered, is the cause. Possible abuse or neglect is reported under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+        },
+        {
+          "p": "A declined dose is not itself a medicines incident. It becomes one, entered in the incident log before the end of the shift, when a medicine is given against a refusal or covertly without an approved plan, a dose is recorded inaccurately, the escalation above does not happen in time, or the person comes to harm."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Agreement to medicines support, how consent is sought at each dose, information sharing, capacity assessments, best interests decisions with who was consulted, approvals and medicines best interests plans",
+                "Consent and decisions part and medicines section of the care plan"
+              ],
+              [
+                "Prescribers' and attorneys' decisions, advance decisions, clinical advice after declines and Registered Manager pattern reviews",
+                "Medicines section of the care plan; risks in the risk assessments"
+              ],
+              [
+                "Medicines wishes record",
+                "What matters to me and the medicines section of the care plan"
+              ],
+              [
+                "Every dose given, declined or not given, with notes",
+                "eMAR, at the time, under the care worker's own log-in"
+              ],
+              [
+                "Calls to the office, capacity observations, withdrawn consent",
+                "Daily visit notes"
+              ],
+              [
+                "Safeguarding concerns and medicines incidents",
+                "Safeguarding records; incident log"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training or check",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Read and acknowledge this policy in CareFlow",
+                "All employees",
+                "By the deadline in the Induction and Care Certificate Procedure, and within 14 days of each new major version"
+              ],
+              [
+                "Full medicines training covering this policy, with knowledge assessment (pass mark 80%)",
+                "Everyone who gives medicines support",
+                "Before giving any medicines support, then every 12 months"
+              ],
+              [
+                "Observed competency assessment, including asking before removing a dose from its packaging, responding to a decline and choosing the right eMAR outcome",
+                "Everyone who gives medicines support",
+                "Before medicines support without supervision, then every 12 months"
+              ],
+              [
+                "Consent and the Mental Capacity Act, under the Consent to Care Policy",
+                "Care Workers and Senior Care Workers",
+                "At induction, then every 12 months"
+              ],
+              [
+                "Capacity assessment and best interests decisions, including medicines support decisions",
+                "Care Coordinators, Field Care Supervisors, On-call Managers, Deputy Manager and Registered Manager",
+                "Before the first formal capacity assessment and before joining the on-call rota, then every 2 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Observed medicines practice spot checks record whether the care worker asked before removing the dose and responded correctly to any decline; a shortfall means feedback the same day, retraining and re-observation within 4 weeks. Where a care worker gives a medicine against a refusal or covertly without an approved plan, it is reported under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, the Registered Manager decides the same day whether they continue medicines visits, and their medicines competency is reassessed before further unsupervised medicines support."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Declined, partially given and not given doses and new patterns, from the eMAR's missed and refused doses list",
+                "At each eMAR check (11am, 3pm, 7pm and 11pm), and in real time for time-sensitive medicines",
+                "Office staff and Care Coordinator; On-call Manager out of hours",
+                "Registered Manager for every pattern"
+              ],
+              [
+                "Each declined dose has a note, an office call, a completed review on the eMAR and any required same-day advice; Refused, Partially given and not-given outcomes used correctly",
+                "Monthly, in the full eMAR audit",
+                "Care Coordinator or Field Care Supervisor, outside their own caseload",
+                "Deputy Manager"
+              ],
+              [
+                "Every pattern of declined doses that month (if more than 10, a sample of 10 chosen by risk): GP the same day, Registered Manager review by the end of the next working day, review within 7 days",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager and the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Capacity assessments and best interests decisions about medicines support complete and approved before use; agreement to medicines support recorded for each medicine",
+                "Monthly, in the MCA records audit under the Mental Capacity Act and Best Interests Policy and the audit of medicines assessments and reviews under the Assessing Medicines Support Needs Procedure",
+                "Deputy Manager",
+                "Registered Manager and the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Consent practice at medicines visits",
+                "Every observed medicines practice spot check, at least every 6 months per care worker",
+                "Field Care Supervisor",
+                "Supervision and appraisal records; concerns to the Registered Manager"
+              ],
+              [
+                "Declined doses by medicine, person and reason; capacity doubts and best interests decisions",
+                "Quarterly, in the medicines trend review",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of time-sensitive and advice-if-declined declines with clinical advice the same day, and 100% of patterns reviewed on time. Every shortfall produces an action with a named owner and a deadline, recorded with the audit. This policy is also checked in the annual medicines audit against NICE NG67."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, such as a revised Mental Capacity Act Code of Practice or an update to NICE NG67, a serious medicines incident, an inspection finding, or when monitoring shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

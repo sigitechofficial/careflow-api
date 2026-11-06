@@ -1,0 +1,299 @@
+{
+  "reference": "SUR-FAM-002",
+  "revision": 1,
+  "title": "Your family member's care at the end of life",
+  "audience": "PUBLIC",
+  "respondents": "The main family contact, or another close relative or friend, of a person who died while receiving our care; one invitation 6 to 8 weeks after the death",
+  "summary": "One gentle invitation, 6 to 8 weeks after a death, asking the family how we cared for their relative or friend in their last weeks and how we treated the family, so we can learn and care better for others. About 12 minutes.",
+  "purpose": "Lets us learn about our end of life care from the people closest to the person, as the End of Life Care Policy requires: the Deputy Manager writes once to the family between 6 and 8 weeks after the death. The answers are added to the after-death review and give the Registered Manager evidence for the quarterly review of end of life care themes: dignity, time, what mattered to the person, continuity, working with nurses and doctors, information, kindness to the family, support offered, place of death and the practical things after the death. It asks only what the family saw and experienced: our duty of confidentiality continues after a death.",
+  "timing": {
+    "when": "Once, between 6 and 8 weeks after the death, never sooner and with no reminder; avoiding the 2 weeks after a known funeral, known birthdays and Christmas",
+    "recurrence": null,
+    "trigger": "A death recorded while the person was receiving our care, unless the family asked us not to write"
+  },
+  "anonymous": false,
+  "channels": ["PAPER", "ONLINE", "TELEPHONE"],
+  "estimatedMinutes": 12,
+  "cqc": {
+    "keyQuestions": ["EFFECTIVE", "CARING", "RESPONSIVE"],
+    "qualityStatements": [
+      "Planning for the future",
+      "Person-centred care",
+      "Kindness, compassion and dignity",
+      "How staff, teams and services work together"
+    ]
+  },
+  "introduction": "We are very sorry for your loss. {{organisation}} would like to learn from your experience of our care for your relative or friend who died. In this survey, \"they\" means them. Answering is entirely up to you, every question except the first can be skipped, and it takes about 12 minutes.\n\nIf you are unhappy with any part of our care, you can tell us at any time, and we will treat it as a complaint. For bereavement support, Cruse Bereavement Support's free helpline is 0808 808 1677.\n\nThis survey is not for urgent concerns. If you need to speak to us now, phone our office. In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to learn about our end of life care and to improve it. Our legal reason is our legitimate interest in running a good, safe service.\n\nIf you write the reference number from our letter, your answers are linked to you so we can follow them up and add them to our review of their care; if you leave it blank, we cannot reply. Your answers are seen only by our Registered Manager, Deputy Manager and the office staff who follow them up, never by care workers, and we never quote words that could identify you. If you tell us someone may have been at risk of harm, we must act on it.\n\nWe keep your answers for 3 years after we receive them, under our Records Management and Retention Policy. You can ask to see, correct or delete your information by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about the care we gave them, and how we treated you. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Their care in the last weeks",
+      "questions": [
+        {
+          "id": "q-dignity",
+          "text": "Did our care workers treat them with dignity and respect?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose \"Don't know\" if you were not usually there or are not sure.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened, if you would like to.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-rushed",
+          "text": "Did our care workers have time to care for them without rushing?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose \"Don't know\" if you were not usually there or are not sure.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more, if you would like to.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-mattered",
+          "text": "Did we respect what mattered most to them?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, where they wanted to be cared for, their faith or beliefs, their routines, or who they wanted with them. Choose \"Don't know\" if you are not sure.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more, if you would like to.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Planning for the future"
+        },
+        {
+          "id": "q-known",
+          "text": "Did they see care workers they knew?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose \"Don't know\" if you were not usually there or are not sure.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "id": "q-nurses",
+          "text": "Did we work well with their nurses and doctors?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, the district nurses, GP, hospice or palliative care team. Choose \"Don't know\" if you are not sure.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more, if you would like to.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        },
+        {
+          "id": "q-place",
+          "text": "As far as you know, did they die in the place they wanted?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Plans often change near the end of life, and that is nobody's fault.",
+          "options": ["Yes", "No", "They had not said", "Don't know"],
+          "notCountedOptions": ["They had not said", "Don't know"],
+          "evidence": "Responsive: Planning for the future"
+        }
+      ]
+    },
+    {
+      "title": "You and your family",
+      "questions": [
+        {
+          "id": "q-informed",
+          "text": "Did we tell you what you needed to know about their care?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "We could only share what they had agreed to, or what you needed as their attorney or deputy. Choose \"Does not apply to me\" if you did not need information from us.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "id": "q-kind-to-you",
+          "text": "Were our care workers kind to you?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose \"Does not apply to me\" if you did not meet our care workers.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-support",
+          "text": "Did we tell you where you could get support for yourself?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, bereavement support services.",
+          "options": ["Yes", "No", "I did not need this", "Don't know"],
+          "notCountedOptions": ["I did not need this", "Don't know"],
+          "evidence": "Caring: Kindness, compassion and dignity"
+        }
+      ]
+    },
+    {
+      "title": "After they died",
+      "questions": [
+        {
+          "id": "q-practical",
+          "text": "How well did we deal with practical things after they died?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, cancelling visits, returning keys and collecting our folder. Choose \"Does not apply to me\" if someone else dealt with this.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What could we have done better?",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything we could have done differently?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Anything you tell us helps us care for other families."
+        },
+        {
+          "text": "Is there anything you would like us to pass on to the care workers who looked after them?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "You can name them if you wish."
+        },
+        {
+          "id": "q-reference",
+          "text": "Please write the reference number from your letter, so we can follow up your answers if needed.",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "If you leave it blank, we cannot reply to you."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, our Registered Manager or Deputy Manager, not one of the care workers, will contact you within 5 working days, in the way you prefer. We can only do this if you gave your reference number."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Registered Manager's condolence letter (within 5 working days of the death) includes one sentence: \"In a few weeks we may write to ask about your experience of our care. If you would rather we did not, just let us know.\" Record the choice in the person's notes. Keep a published copy of this survey open all year (start a new copy each January and close the old one); CareFlow cannot send a survey to a family member by name or from a death record, so keep an office list of deaths and the date each letter is due.",
+      "Between week 6 and week 8, never earlier and with no reminder, the Deputy Manager sends one letter, signed by name and opening with condolences, to the main family contact in People involved or the person who asked to hear from us. It says replying is entirely up to them, encloses a paper form with a prepaid envelope, the link and QR code, a reference number, and offers to answer by phone with the Registered Manager or Deputy Manager. Other family members may answer; extra forms on request. Avoid the 2 weeks after a known funeral, known birthdays and Christmas: if week 8 falls in these, send in week 6 or 7.",
+      "Do not send where the family declined, there is no known contact, or the addressee is the subject of a safeguarding concern about the person. Hold while a safeguarding enquiry, police or coroner's investigation, or a complaint about our care around the death is open: the Registered Manager writes personally offering a conversation, and offers the survey afterwards only if the family wishes. Once a death is recorded, cancel every other survey due to the person or their family.",
+      "The letter, form and phone call give no information about the person's care; a family member who asks for records or details is referred to the Registered Manager under the Subject Access and Individual Rights Procedure. By phone, only the Registered Manager or Deputy Manager calls: let the person talk, record their words in the comments, and offer to stop at any time. Enter paper and phone answers with Record response (channel Paper or Telephone) on the day. Use the family member's own communication needs: large print, translation or a professional interpreter.",
+      "Who may open individual answers: the Registered Manager, the Deputy Manager and the office staff who enter paper and phone answers. This is set in Who can see the answers: individual responses are limited to the Registered Manager and the Deputy Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who enter paper and phone answers. By default only managers and admins can record survey answers (\"Record survey responses\")."
+    ],
+    "actingOnResults": [
+      "The Registered Manager reads each response within 5 working days and acts under the alerts below. The Deputy Manager adds the family's view to the after-death review.",
+      "How to count: report the share answering Always or Usually (Very good or Good for practical things; Yes for support and place of death), leaving out Don't know and the \"did not\" answers. Combined results go in the quarterly end of life themes and the annual report only for 5 or more responses; never quote words that could identify a family. The You said, we did summary goes only to families who ask for it.",
+      "Keep answers for 3 years under the Records Management and Retention Policy. For CQC, these answers show how we care for people at the end of life and support their families (Regulations 9, 10 and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "Any comment suggesting abuse or neglect of the person.",
+        "action": "Tell the safeguarding lead the same working day; they decide within 1 hour and refer to the local authority where needed, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. A death does not end the duty: the Safeguarding Adults Board may consider a Safeguarding Adults Review. The Registered Manager also considers the duty of candour (Duty of Candour Policy) and whether CQC must be notified (Statutory Notifications to CQC Procedure). Hold any later contact with the family until the safeguarding lead agrees."
+      },
+      {
+        "when": "Any comment showing dissatisfaction that needs a response.",
+        "action": "Record a complaint the same working day, accepted from a close relative or the personal representative; it is graded within 1 working day and acknowledged within 3 working days, under the Complaints Policy and Procedure. Our recommendation: the Registered Manager phones first rather than sending a standard letter."
+      },
+      {
+        "when": "A comment describing harm, a missed visit or a medicines error near the death.",
+        "action": "Log it in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy (and the Medication Errors, Near Misses and Incidents Procedure), and reopen the after-death review."
+      },
+      {
+        "when": "A comment showing the family member is at risk, for example thoughts of harming themselves, or in crisis.",
+        "action": "The Registered Manager phones the same working day if contact details are known and signposts Cruse, their GP or NHS 111 (our recommendation). Call 999 if life is at risk."
+      },
+      {
+        "when": "Dignity, what mattered most or working with nurses and doctors answered Rarely or Never.",
+        "action": "The Deputy Manager reopens the after-death review and adds the family's view within 5 working days; learning goes into the service improvement plan within 5 working days, under the End of Life Care Policy.",
+        "rule": {"task": "Reopen the after-death review with the family's view", "if": [{"question": "q-dignity", "answers": ["Rarely", "Never"]}, {"question": "q-mattered", "answers": ["Rarely", "Never"]}, {"question": "q-nurses", "answers": ["Rarely", "Never"]}], "owner": "DEPUTY_MANAGER", "dueWorkingDays": 5}
+      },
+      {
+        "when": "The overall question Poor or Very poor with no particular concern, with a reference number.",
+        "action": "The Registered Manager or Deputy Manager, not the core care team, contacts the family within 5 working days, only if they gave a reference number or asked for contact.",
+        "rule": {"task": "Bereaved family rated us poorly: contact them", "if": [{"question": "q-overall", "answers": ["Poor", "Very poor"]}], "owner": "REGISTERED_MANAGER", "dueWorkingDays": 5}
+      },
+      {
+        "when": "A message or thanks for the care workers.",
+        "action": "Record it as a compliment the same working day; the Field Care Supervisor passes it to each named care worker personally within 5 working days, mindful of their own grief."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes, with a reference number.",
+        "action": "The Registered Manager or Deputy Manager, never a member of the core care team, contacts the family member within 5 working days, in the way they prefer.",
+        "rule": {"task": "Asked to be contacted about their answers", "if": [{"question": "q-contact", "answers": ["Yes"]}], "owner": "REGISTERED_MANAGER", "dueWorkingDays": 5, "contactRequest": true}
+      }
+    ]
+  },
+  "access": {"responses": ["REGISTERED_MANAGER", "DEPUTY_MANAGER"], "results": ["REGISTERED_MANAGER", "DEPUTY_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-CD-011",
+    "POL-GOV-005",
+    "POL-GOV-006",
+    "POL-GOV-016",
+    "POL-GOV-002",
+    "POL-SG-001",
+    "POL-SG-002",
+    "POL-GOV-007",
+    "POL-MED-014",
+    "POL-CD-006",
+    "POL-GOV-008",
+    "POL-GOV-014",
+    "POL-GOV-017",
+    "POL-GOV-009"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "ONS, National Survey of Bereaved People (VOICES): 2014: domains included dignity and respect, coordination between services, support for relatives and preferred place of death; mailings avoided Christmas and anniversaries",
+      "url": "https://www.ons.gov.uk/peoplepopulationandcommunity/healthandsocialcare/healthcaresystem/bulletins/nationalsurveyofbereavedpeoplevoices/2015-07-09"
+    },
+    {
+      "source": "Care Act 2014, section 44: Safeguarding Adults Reviews by the Safeguarding Adults Board",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/44"
+    },
+    {
+      "source": "Cruse Bereavement Support, helpline 0808 808 1677 (check the opening hours each year)",
+      "url": "https://www.cruse.org.uk/get-support/helpline/"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from relevant persons and other persons",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

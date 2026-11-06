@@ -1,0 +1,866 @@
+{
+  "reference": "POL-GOV-018",
+  "revision": 1,
+  "title": "Information and Cyber Security Policy",
+  "documentType": "POLICY",
+  "summary": "How we protect CareFlow, email, work phones, computers and the branch office network from attack, failure and misuse: who leads on data security, user accounts, passwords and multi-factor authentication, device and network protections, backups and recovery, scams and phishing, suppliers and new software, cyber incidents, Cyber Essentials and our yearly Data Security and Protection Toolkit. For all staff, the Directors and our IT support provider.",
+  "keyPoints": {
+    "intro": "Every visit depends on CareFlow and your work phone, and the codes and visit details they hold can open a person's front door. These are the security rules that apply to you every day.",
+    "points": [
+      "Your log-ins, passwords, passcode and sign-in codes are yours alone. Never share them, write them down or let anyone watch you type them. Nobody from our office, our IT support provider or the CareFlow supplier will ever ask you for them.",
+      "Never approve a sign-in request on your phone that you did not start yourself. Report it to the office at once: it means someone else has your password.",
+      "Treat any unexpected call, text or email asking for a key safe code, address, visit times, log-in or money as a scam. Never click its links. Hang up and phone the office on the number you already have.",
+      "If you clicked a link, opened an attachment, gave out details or a device behaves strangely, stop using it, switch on airplane mode or unplug its network cable, leave it on and phone the office or On-call Manager at once from another phone.",
+      "If CareFlow or your phone fails during a visit, carry on with the care and phone the office or On-call Manager to check in and out. Medicines and notes are handled as the office tells you.",
+      "Use only the work phone and computers we issue for CareFlow, email and our files. Never connect them to a person's Wi-Fi, public Wi-Fi, a USB stick or anyone else's device.",
+      "Install updates when asked, by the end of your next shift at the latest. Only apps and software our IT support provider installs may be used.",
+      "Report a lost or stolen work phone or laptop to the office or On-call Manager at once, whatever the time, from your own phone or the person's landline with their agreement, so a lock and wipe is requested within the hour, protecting key safe codes.",
+      "Office staff and managers: never change bank details, pay money or send records because of an email, text or call alone. Check by phoning a number already on our records first.",
+      "Managers: tell the HR Manager the same day someone joins, changes role, is suspended or leaves, so that their access is set up, changed or ended that day.",
+      "Complete information governance training, including cyber security, in your first week and every 12 months. Email users also receive test phishing emails; anyone who clicks one completes a short refresher within 2 weeks.",
+      "Reporting a mistake promptly, such as clicking a bad link, is never in itself a reason for disciplinary action. Hiding it, sharing a log-in or getting round a security control is."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "EMPLOYEE",
+    "TRAINING",
+    "BUSINESS_CONTINUITY",
+    "EQUIPMENT"
+  ],
+  "relatedReferences": [
+    "POL-GOV-013",
+    "POL-GOV-015",
+    "POL-GOV-019",
+    "POL-GOV-020",
+    "POL-HR-017",
+    "POL-GOV-017",
+    "POL-GOV-004",
+    "POL-HS-013"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "UK General Data Protection Regulation, Article 32 (security of processing: appropriate technical and organisational measures, encryption, resilience, timely restoration and regular testing)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/32"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(1) and (2)(c) and (d) (good governance: records maintained securely)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Computer Misuse Act 1990, section 1 (unauthorised access to computer material)",
+      "url": "https://www.legislation.gov.uk/ukpga/1990/18/section/1"
+    },
+    {
+      "source": "National Cyber Security Centre: Cyber Essentials Requirements for IT Infrastructure v3.3 (effective 27 April 2026)",
+      "url": "https://www.ncsc.gov.uk/cyberessentials/resources"
+    },
+    {
+      "source": "National Cyber Security Centre: About Cyber Essentials (the five technical controls and Cyber Essentials Plus)",
+      "url": "https://www.ncsc.gov.uk/cyberessentials/overview"
+    },
+    {
+      "source": "National Cyber Security Centre: Small Business Guide",
+      "url": "https://www.ncsc.gov.uk/collection/small-business-guide"
+    },
+    {
+      "source": "National Cyber Security Centre: Reporting a scam email, and reporting fraud and cyber crime to Report Fraud",
+      "url": "https://www.ncsc.gov.uk/collection/phishing-scams/report-scam-email"
+    },
+    {
+      "source": "Data Security and Protection Toolkit (2026-27, version 9)",
+      "url": "https://www.dsptoolkit.nhs.uk/"
+    },
+    {
+      "source": "Digital Care Hub: DSPT before you start (toolkit year 1 July to 30 June; Standards Met; Approaching Standards for a first publication only; required policies and evidence)",
+      "url": "https://www.digitalcarehub.co.uk/dspt/before-you-start/"
+    },
+    {
+      "source": "Digital Care Hub: Including DSPT requirements in adult social care contracts (Standards Met by 30 June each year)",
+      "url": "https://www.digitalcarehub.co.uk/dspt/commissioners/including-dspt-requirements-in-adult-social-care-contracts/"
+    },
+    {
+      "source": "Digital Care Hub: Data security and protection responsibilities in adult social care",
+      "url": "https://www.digitalcarehub.co.uk/resource/data-security-and-protection-responsibilities/"
+    },
+    {
+      "source": "Digital Care Hub: Reduce the risk and impact of a cyber incident",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/cyber-security/reduce-the-risk-and-impact-of-a-cyber-incident/"
+    },
+    {
+      "source": "Digital Care Hub: Respond to a cyber incident",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/cyber-security/respond-to-a-cyber-incident/"
+    },
+    {
+      "source": "Digital Care Hub: Report a cyber incident",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/cyber-security/report-a-cyber-incident/"
+    },
+    {
+      "source": "Digital Care Hub: eLearning (Data Security and Protection - Staff, and Data Security and Protection - Leads)",
+      "url": "https://www.digitalcarehub.co.uk/elearning/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} runs its care on digital systems. CareFlow holds the care plan, eMAR, daily visit notes, rota and key safe codes for every person we support, and care workers reach it on work phones in people's homes, often alone and early or late in the day. If those systems are attacked, fail or are misused, visits can be missed, medicines given wrongly and a home made unsafe. Information security is part of keeping people safe."
+        },
+        {
+          "p": "The law requires security appropriate to the risk, including the ability to restore information promptly after an incident and regular testing of our measures (UK GDPR Article 32), and requires care, staff and management records to be kept securely (Regulation 17(2)(c) and (d) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). {{organisation}} goes further: we meet the five Cyber Essentials controls and hold the certificate, publish the Data Security and Protection Toolkit at Standards Met every year, and plan so that care continues safely when our systems do not."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Only the right people, on devices we control, reach our information, and their access ends the day it is no longer needed.",
+            "Devices, systems and the branch office network resist the common attacks on small organisations.",
+            "Information is restored quickly and care continues safely when CareFlow, email, phones or the internet fail.",
+            "Staff recognise and report scams, including attempts to obtain key safe codes and visit times.",
+            "Suppliers meet our security standards before they start, and we can show regulators and commissioners how we keep information secure."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy covers every system and device that holds or can reach our information: CareFlow, including the eMAR and visit check-in/check-out (electronic call monitoring); our cloud email and file storage; work phones, including the on-call phone and spare phones; office computers and laptops; the branch office network, Wi-Fi, printers and phone system; and online services such as the CQC provider portal, the Data Security and Protection Toolkit, NHSmail, payroll and online banking. It applies to the Directors and every employee and, through their agreements, to agency workers, students, contractors, our IT support provider and other suppliers."
+        },
+        {
+          "p": "Owned elsewhere: lawful bases, impact assessments and processor contracts (Data Protection Policy); breaches (Personal Data Breach Procedure); retention and destruction (Records Management and Retention Policy); everyday use of computers and email (Acceptable Use of IT and Devices Policy); phones at visits and social media (Mobile Phones and Social Media Policy); keeping care going when systems fail (Business Continuity and Emergency Planning Policy); key safe codes (Key Holding, Key Safes and Access to People's Homes Procedure). Telecare and other technology in a person's home belongs to them or their equipment service (Technology-Enabled Care and Telecare Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Cyber incident",
+                "An event that threatens our systems or information through technology: a phishing link clicked, malware or ransomware, an account taken over, an unexpected sign-in, a device behaving strangely or a supplier's system attacked. One that affects personal information is also a personal data breach."
+              ],
+              [
+                "Phishing",
+                "Emails, texts or calls designed to trick someone into giving information, access or money, often pretending to be the office, a bank, the NHS, the police or a supplier."
+              ],
+              [
+                "Multi-factor authentication",
+                "Signing in with a password plus a second check, such as a prompt from an authenticator app on the work phone or a security key."
+              ],
+              [
+                "Privileged account",
+                "An account that can create users, change permissions or change system settings, such as an administrator account."
+              ],
+              [
+                "Digital asset register",
+                "Our list of every device, system, software product, online service and privileged account, with its owner, supplier and support end date."
+              ],
+              [
+                "Data Security and Protection Toolkit (DSPT)",
+                "The online self-assessment health and care providers publish at least once in each toolkit year (1 July to 30 June); the 2026-27 toolkit is version 9."
+              ],
+              [
+                "Cyber Essentials",
+                "The government-backed certification, developed by the National Cyber Security Centre (NCSC), of five controls: firewalls, secure configuration, security update management, user access control and malware protection."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for information and cyber security. They approve this policy and each DSPT publication, set our risk appetite for information and cyber security (target score no higher than 8 under the Risk Management Policy), and fund the IT support provider, device management, backups, Cyber Essentials, cyber insurance and the replacement of devices before their support ends. A Director uses our email or governance records only on a device we issue."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual is our data security and protection lead and, under the Data Protection Policy, Senior Information Risk Owner. They lead the DSPT and Cyber Essentials; manage the IT support contract and supplier security checks; approve the approved software list, every privileged account and every exception to this policy; review the digital asset register quarterly; own the standing risk of losing CareFlow, phones or electronic call monitoring, including through a cyber attack; lead the response to every cyber attack as breach lead; and keep cyber insurance in place. When they are absent or cannot be reached within 1 hour, the Director named each year to act for them under the Governance and Quality Assurance Policy acts. The Nominated Individual tells each commissioner whose contract asks which roles hold the data security and protection lead, Data Protection Officer and Caldicott Guardian posts, and tells them of any change within 5 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy and makes it work in their branch: approving CareFlow permissions beyond a role's standard set, carrying out the quarterly user access review, keeping the branch office physically secure and making sure nobody reaches care records before passing information governance training. The Deputy Manager covers in their absence."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager requests, changes and ends access when people join, move, are suspended or leave; reconciles accounts monthly; verifies changes to employees' bank details; and reports training compliance monthly."
+            }
+          ]
+        },
+        {
+          "heading": "IT support provider",
+          "blocks": [
+            {
+              "p": "Our IT support provider works under a contract meeting UK GDPR Article 28 and holds Cyber Essentials Plus. It secures every phone and computer through device management; applies updates and malware protection; manages the firewall, Wi-Fi and email security; runs and tests backups of email and file storage; applies the mailbox deletion periods the Records Management and Retention Policy sets (items deleted 2 years after being sent or received, leavers' mailboxes 3 months after their last working day, mailboxes under a retention hold excluded); holds administrator accounts, each named to one engineer with multi-factor authentication; keeps the digital asset register; locks and wipes a lost device within 1 hour of our request; runs a 24-hour emergency line for security incidents, responding within 1 hour; and reports to the Nominated Individual by the 5th working day of each month."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff, Care Coordinators, On-call Managers and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Office staff, Care Coordinators and On-call Managers take reports of lost devices, scams and suspected incidents and act at once, verify callers as the Confidentiality and Information Sharing Policy sets out, issue spare phones, and never send a log-in or key safe code by text, email or messaging app. Field Care Supervisors check work phone security at every spot check under the Mobile Phones and Social Media Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Everyone",
+          "blocks": [
+            {
+              "p": "Everyone keeps their log-ins secret, uses only the devices and software we provide, reports anything suspicious at once and completes their training. Sharing a log-in, getting round a security control or reaching information without a work reason is handled under the Disciplinary Policy and Procedure; reaching computer material without authority can also be an offence under section 1 of the Computer Misuse Act 1990. A mistake reported promptly, such as clicking a scam link, is handled as learning under the Incident Reporting, Investigation and Learning Policy and is never in itself a reason for disciplinary action; hiding it is."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Accounts and access",
+      "blocks": [
+        {
+          "p": "Everyone has their own account and sees only what their role needs. Care workers see in CareFlow only the people on their round: those they visit regularly or are rostered to visit in the next 14 days. CareFlow shows a key safe code with the person's record, so only roles whose permissions open people's records, which the Key Holding, Key Safes and Access to People's Homes Procedure names, see codes."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Joiners, movers and leavers",
+          "blocks": [
+            {
+              "p": "The Registered Manager or Deputy Manager tells the HR Manager the same working day that a start date, change of role or branch, suspension or leaving date is decided, so that access changes on the day it takes effect."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Event",
+                  "What happens",
+                  "Who and when"
+                ],
+                "rows": [
+                  [
+                    "New employee",
+                    "CareFlow account with the job's standard permissions, opened to care records only once the person is cleared to work and has passed information governance training. Email only for managers, Care Coordinators, Field Care Supervisors, Office staff, the HR Manager and Directors; care workers have no work email.",
+                    "HR Manager, before the first shadow shift or office day"
+                  ],
+                  [
+                    "Agency worker or student",
+                    "Own CareFlow log-in, limited to the people allocated, on a spare work phone",
+                    "HR Manager (Registered Manager or Deputy Manager in their absence) after the agency profile check; ended on the last day of the assignment"
+                  ],
+                  [
+                    "Extra permission, such as authorised eMAR user, document management, governance records or seeing key safe codes",
+                    "Only on the Registered Manager's written approval in the staff record; eMAR permissions as the Medicines Administration Records (MAR and eMAR) Procedure sets out",
+                    "HR Manager sets it up"
+                  ],
+                  [
+                    "Change of role or branch",
+                    "New permissions set, old ones removed",
+                    "HR Manager, the day the change takes effect"
+                  ],
+                  [
+                    "Suspension",
+                    "CareFlow and email suspended, work phone recovered",
+                    "HR Manager, the same day; by 10am the next working day if out of hours"
+                  ],
+                  [
+                    "Leaving",
+                    "All accounts ended, devices returned and wiped, mailbox closed and deleted 3 months later as the Records Management and Retention Policy sets out",
+                    "HR Manager tells the IT support provider by 12 noon on the last working day; access ends that day"
+                  ],
+                  [
+                    "Account unused for 60 days",
+                    "Disabled until the HR Manager confirms the person is returning",
+                    "HR Manager, at the monthly reconciliation"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Passwords and multi-factor authentication",
+          "blocks": [
+            {
+              "bullets": [
+                "No shared log-ins. Shared mailboxes, such as a branch inbox or our DSPT registration address, are opened only through each user's own account.",
+                "Passwords are at least 12 characters, made of three or more random words and used nowhere else. We do not force regular changes or complexity rules, which lead people to write passwords down; a password is changed at once if anyone else may know it.",
+                "Passwords are memorised or kept in the business password manager our IT support provider supplies, never written down, kept in phone notes, sent in a message or saved in a shared computer's browser.",
+                "Work phones use a passcode of at least 6 digits, and every phone and computer locks after no more than 10 wrong attempts.",
+                "Multi-factor authentication is on for every online service that offers it, and always for email, NHSmail, file storage, device management, banking, payroll, the DSPT and the CQC provider portal, using an authenticator app on a work phone or a security key we issue; text message codes only where nothing else is offered. CareFlow does not offer multi-factor authentication, so like any service without it, it is used only on our managed devices, with the Nominated Individual's written approval and the risk on the digital asset register.",
+                "A sign-in prompt or code nobody asked for is rejected and reported at once, and the IT support provider resets that password the same day."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Privileged accounts",
+          "blocks": [
+            {
+              "bullets": [
+                "Staff have no administrator rights on their devices. Only the IT support provider's named engineers administer our devices, email, file storage and network, using those accounts only for administration, never for email or browsing.",
+                "Only the HR Manager, Registered Manager, Deputy Manager and Nominated Individual create CareFlow users or change permissions.",
+                "The Nominated Individual holds one emergency administrator account for email and file storage, independent of the IT support provider and protected by a security key locked in the branch office; any use is reported to the next Directors' meeting.",
+                "Every privileged account is on the digital asset register, created only with the Nominated Individual's approval, and a supplier's account is removed the day its contract or task ends."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Access reviews",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Review",
+                  "Who and how often",
+                  "What is checked"
+                ],
+                "rows": [
+                  [
+                    "Account reconciliation",
+                    "HR Manager, monthly",
+                    "CareFlow users, email accounts, the work phone register and issued laptops against the staff list and device management"
+                  ],
+                  [
+                    "User access review",
+                    "Registered Manager, quarterly",
+                    "Every user's role and extra permissions in the branch, including authorised eMAR users and named Office staff who see key safe codes"
+                  ],
+                  [
+                    "Privileged account review",
+                    "Nominated Individual, quarterly",
+                    "Every administrator and supplier account and any use of the emergency account"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Wrong or unneeded access is removed the same day. A leaver or suspended employee found with access is recorded in the incident log as a possible personal data breach."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Protecting devices and systems",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Control",
+              "Our standard"
+            ],
+            "rows": [
+              [
+                "Approved devices",
+                "CareFlow, email and our files are used only on devices we issue and enrol in device management: work phones, office computers, the on-call laptop, and laptops for managers, Directors and office staff approved to work from home. Personal devices never open CareFlow, work email, our files or any work account (Acceptable Use of IT and Devices Policy)."
+              ],
+              [
+                "Encryption and removable storage",
+                "Full-device encryption on every phone, computer and laptop. USB memory sticks and other removable storage are blocked."
+              ],
+              [
+                "Screen lock",
+                "Phones after 2 minutes, computers after 5 minutes; users lock their computer whenever they leave it."
+              ],
+              [
+                "Security updates",
+                "Automatic updates on. Updates fixing critical or high-risk vulnerabilities installed within 14 days of release, as Cyber Essentials requires; staff install phone updates by the end of their next shift. A device more than 14 days behind is blocked from email and file storage until updated."
+              ],
+              [
+                "Supported software",
+                "Only software still supported by its maker. The IT support provider lists anything reaching end of support 6 months ahead, and the Nominated Individual has it replaced before that date."
+              ],
+              [
+                "Malware and apps",
+                "Malware protection on every computer, updating itself and scanning files and web pages. Only items on the approved software list are installed, by the IT support provider or device management; staff cannot install software, browser extensions or apps."
+              ],
+              [
+                "Secure configuration",
+                "Default passwords changed, unused accounts and software removed and automatic running of files switched off before any device is used."
+              ],
+              [
+                "Lost, stolen and disposed devices",
+                "A care worker who loses a work phone on a visit phones the office (the On-call Manager out of hours) at once from their own phone or the person's landline, with their agreement, reports a theft to the police the same day and gives the office the crime reference; the office gives each remaining key safe code by voice just before the visit until a spare phone reaches them. Lock, wipe and password reset requested by Office staff or the On-call Manager within 1 hour of the report and carried out by the IT support provider within 1 hour of the request, under the Personal Data Breach Procedure; key safe codes the device could show are handled as the Key Holding, Key Safes and Access to People's Homes Procedure sets out. Old devices wiped or destroyed by the IT support provider with a certificate in the destruction log."
+              ]
+            ]
+          }
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "The branch office network",
+          "blocks": [
+            {
+              "bullets": [
+                "A business firewall managed by the IT support provider protects the internet connection, with its default password changed, remote administration from the internet off and its software kept up to date.",
+                "Staff Wi-Fi uses WPA2 or WPA3 and admits only our managed devices, set up through device management so staff never need its password. Visitors and personal devices use a separate guest Wi-Fi.",
+                "Network equipment and the phone system are in a locked cabinet; the office is locked when empty, visitors are accompanied, screens face away from windows and visitors, and printing is collected at once.",
+                "If the office internet fails, Office staff connect through the mobile data of the branch's spare work phones, and the IT support provider restores the connection within 1 working day."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "On visits, on call and at home",
+          "blocks": [
+            {
+              "p": "Care workers never connect their work phone to a person's Wi-Fi, public Wi-Fi or the person's own devices, as the Mobile Phones and Social Media Policy sets out. On-call Managers and office staff working from home, which is allowed only after the HR Manager's home working risk assessment, use only the laptop and phone we issue, on a password-protected home network or their work phone's mobile data, never public Wi-Fi, and never let anyone else use them."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Backups and recovery",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What",
+              "How it is backed up",
+              "How restore is tested"
+            ],
+            "rows": [
+              [
+                "CareFlow",
+                "By the CareFlow supplier under its contract with us, which sets backup frequency, retention and time to restore",
+                "Supplier's written confirmation of its restore testing obtained by the Nominated Individual every year"
+              ],
+              [
+                "Email and file storage",
+                "Daily by the IT support provider to a separate backup service outside our account, so that an attacker or a mistake in our account cannot delete it, kept for 90 days; retention holds apply as the Records Management and Retention Policy sets out",
+                "Sample of files and one mailbox restored every 3 months, result recorded"
+              ],
+              [
+                "Computers and work phones",
+                "Hold no work information of their own: files live in file storage and care records in CareFlow, so a failed device is replaced and rebuilt through device management",
+                "Each time a device is replaced"
+              ],
+              [
+                "Firewall, Wi-Fi, phone system and device management settings",
+                "Saved by the IT support provider after every change",
+                "At the annual cyber incident exercise"
+              ],
+              [
+                "Business continuity records, including MAR chart exports",
+                "Encrypted in a restricted folder of file storage, also available offline on the branch business continuity laptop and the on-call laptop so they open without CareFlow or the internet; only the Registered Manager, Deputy Manager, Care Coordinators, On-call Managers and Office staff named by the Registered Manager can open them, and the HR Manager only the staff lists",
+                "Opened offline by the Deputy Manager at the quarterly business continuity copy check"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records deleted under the Records Management and Retention Policy are never restored from a backup, and backups are searched for a rights request only with the Nominated Individual's approval under the Subject Access and Individual Rights Procedure."
+        },
+        {
+          "p": "Recovery targets: a spare work phone before the care worker's next shift, or during the shift where visits remain; a replacement office computer within 1 working day, from the spare laptop each branch keeps ready; email and file storage restored within 1 working day. When CareFlow, phones or electronic call monitoring are, or are expected to be, unavailable for more than 2 hours, or any visit is at risk, the Registered Manager (the On-call Manager out of hours) activates the Business Continuity and Emergency Planning Policy, which plans for an outage lasting weeks. Care continues with phoned check-ins, the office downtime log and back-up MAR sheets, and records are brought into CareFlow within 24 hours of its return, as the Daily Records and Visit Notes Procedure and the Medicines Administration Records (MAR and eMAR) Procedure set out."
+        }
+      ]
+    },
+    {
+      "heading": "Phishing, scams and social engineering",
+      "blocks": [
+        {
+          "p": "Most attacks start with a message or a call: by text and phone for care workers, by email too for managers and office staff. Criminals want log-ins, money and what we know about the people we support: who lives alone, how to get in and when nobody is there. Warning signs are an unexpected request for a password, code or personal details, urgency, an unexpected link or attachment, a caller who resists being checked, new bank details, or a request to keep something from your manager. Texts from the office never contain a link and never ask for a password, code or personal details, so a text seeming to come from us that does either is a scam."
+        },
+        {
+          "bullets": [
+            "Never give a password, sign-in code, key safe code, a person's address or visit times, or a colleague's details because someone asks. Our office, the IT support provider and the CareFlow supplier never ask for passwords or codes.",
+            "Check any request on a number or address we already hold or find independently, never one given in the message.",
+            "A supplier's new bank details are confirmed by phoning the supplier on the number already on our records and approved by the Nominated Individual before the next payment; a new payee is set up by one person and approved by the Nominated Individual or a Director after its bank details are confirmed by phone to a number found independently; an employee's new bank details are accepted only as the Staff Personal Data and HR Records Policy sets out, after the HR Manager phones the employee on the number in their staff record.",
+            "Suspicious emails are reported with the report button in our email, or forwarded to the IT support provider, then deleted. The IT support provider blocks the sender, checks who else received it and forwards it to the NCSC's suspicious email reporting service.",
+            "A suspicious text or call on a work phone is reported to the office before the end of the shift. Any attempt to obtain a key safe code, address, visit times or log-in is recorded in the incident log the same day, and the Registered Manager decides the same working day whether to warn staff, the people we support or commissioners.",
+            "A care worker who sees a possible scam call, letter or message to a person we support never replies, clicks or pays for them and tells the person it may be a scam; they call 999 if money or cards are about to change hands, otherwise they phone the office before leaving, as the Handling Money, Property and Shopping Procedure sets out."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Suppliers, software and new systems",
+      "blocks": [
+        {
+          "p": "No system, app, artificial intelligence tool, online service or supplier that will hold or reach our information is bought, trialled or used, even free of charge, until the Nominated Individual has recorded that:"
+        },
+        {
+          "steps": [
+            "a change risk assessment is complete under the Risk Management Policy, with a data protection impact assessment approved where the Data Protection Policy requires one;",
+            "the supplier meets our standard: DSPT Standards Met for anyone holding care records, Cyber Essentials Plus for our IT support provider, and Cyber Essentials or equivalent independent assurance for others;",
+            "the service supports multi-factor authentication and stores information where the Data Protection Policy allows;",
+            "the contract has the Article 28 terms the Data Protection Policy requires, including security standards, approval of sub-processors, breach reports within 24 hours, audit and return or deletion of our information;",
+            "it is on the digital asset register and the approved software list, with an owner."
+          ]
+        },
+        {
+          "p": "The Nominated Individual reviews the approved software list quarterly. By 31 July each year they check that every supplier holding care records has published at Standards Met; one that has not is asked in writing for its improvement plan within 1 month and the risk goes on the risk register. Suppliers reach our systems only through named accounts with multi-factor authentication, and the IT support provider opens a remote session on a computer only after its user accepts it."
+        }
+      ]
+    },
+    {
+      "heading": "Cyber incidents",
+      "blocks": [
+        {
+          "p": "A suspected cyber attack, or unauthorised access to CareFlow or work email, is an urgent breach under the Personal Data Breach Procedure, whatever the time. Report first; the office and the IT support provider decide."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "What you do",
+          "blocks": [
+            {
+              "steps": [
+                "Stop using the device and type no passwords into it. Do not switch it off, which can destroy evidence.",
+                "Disconnect it: airplane mode on a phone; unplug a computer's network cable or switch off its Wi-Fi.",
+                "Phone the office, or the On-call Manager out of hours, at once from another phone, such as your own phone or the person's landline with their agreement, and on a visit before you leave. No answer within 15 minutes: phone the Registered Manager or Deputy Manager directly.",
+                "Say what happened, when, and what you clicked, opened or gave out.",
+                "Carry on with your visits, phoning the office at arrival and departure until a spare phone reaches you. The office gives you each key safe code by voice just before the visit, and you give medicines only as the Medicines Administration Records (MAR and eMAR) Procedure sets out.",
+                "Delete, forward or fix nothing. Record the incident in the incident log before the end of your shift, or ask the office to record it during your call."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "What the office and managers do",
+          "blocks": [
+            {
+              "steps": [
+                "The person taking the call phones the IT support provider's emergency line and the Nominated Individual at once and, out of hours, the escalation manager.",
+                "Within 1 hour the IT support provider isolates affected devices, suspends affected accounts, resets passwords, ends signed-in sessions (for CareFlow accounts the HR Manager or Registered Manager does this in CareFlow), blocks the source, checks other devices and keeps the logs as evidence.",
+                "The Nominated Individual leads as breach lead, decides with the IT support provider whether to disconnect further systems, and tells the CareFlow supplier and any other supplier whose systems may be affected the same working day.",
+                "Where a work phone or CareFlow account may have been used by someone else, the key safe codes it could show are treated as compromised unless the Registered Manager (out of hours the escalation manager) confirms the same day that it was locked and its access removed before use; compromised codes are changed within the Key Holding, Key Safes and Access to People's Homes Procedure timescales.",
+                "Where CareFlow, phones or electronic call monitoring may be unavailable for more than 2 hours, or a visit is at risk, the Registered Manager (On-call Manager out of hours) activates the Business Continuity and Emergency Planning Policy.",
+                "Nothing is reconnected until the IT support provider confirms in writing that it is clean, and information is restored only from backups taken before the attack.",
+                "Where the same scam may reach others, the Registered Manager warns all staff within 1 working day without naming anyone involved."
+              ]
+            },
+            {
+              "p": "We never pay a ransom or negotiate with attackers. A demand is not answered; the Nominated Individual reports it to the police and the NCSC. Only the Nominated Individual or a Director speaks to the media."
+            }
+          ]
+        },
+        {
+          "heading": "Who is told",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Who",
+                  "When",
+                  "By whom"
+                ],
+                "rows": [
+                  [
+                    "Information Commission (formerly the ICO)",
+                    "A personal data breach that meets the Personal Data Breach Procedure's reporting threshold, through the DSPT incident reporting tool within that procedure's timescales",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "Directors",
+                    "Within 1 working day of any attack affecting CareFlow, email, phones or our network",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "NCSC",
+                    "The same day for ransomware, takeover of a manager's or administrator's account, stolen information, or systems down for more than 2 hours",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "NHS Data Security Centre",
+                    "The same day where NHSmail or another NHS system we use may be affected",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "Police",
+                    "The same day for any cyber crime, through Report Fraud, the national fraud and cyber crime reporting service for England, Wales and Northern Ireland; a stolen device reported to the police by the care worker the same day, with the crime reference given to the office",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "Cyber insurer",
+                    "At once, through its incident line, for any suspected attack",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "CQC",
+                    "CareFlow, phones or electronic call monitoring unavailable for over 24 hours, or for any time if visits are missed or medicines cannot be given safely (Statutory Notifications to CQC Procedure)",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Commissioners",
+                    "The same working day where care for people they fund is disrupted; data breaches as the Personal Data Breach Procedure sets out",
+                    "Nominated Individual"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "After the incident",
+          "blocks": [
+            {
+              "p": "A cyber attack affecting CareFlow is investigated at Comprehensive level; other cyber incidents at the level the Personal Data Breach Procedure and the Incident Reporting, Investigation and Learning Policy set. Actions go into the service improvement plan within 5 working days of the investigation's completion, the risk register is updated, and any DSPT answer that has changed is corrected and republished within 1 month."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Data Security and Protection Toolkit and Cyber Essentials",
+      "blocks": [
+        {
+          "p": "Commissioners' contracts commonly require Standards Met by 30 June each year, and commissioners, NHS partners and CQC can check our published status. Approaching Standards, with an action plan, is open to a provider only at its first publication; every later publication must reach Standards Met. {{organisation}} publishes one submission covering every branch, aims for Standards Met every year and never publishes late."
+        },
+        {
+          "table": {
+            "columns": [
+              "Step",
+              "Deadline",
+              "Who"
+            ],
+            "rows": [
+              [
+                "New toolkit year opened; an owner named for each evidence item; evidence kept in the governance records",
+                "31 July, then kept current",
+                "Nominated Individual; the HR Manager owns training evidence and the IT support provider the technical answers"
+              ],
+              [
+                "Data security training needs analysis, feeding the annual training plan",
+                "31 January",
+                "Nominated Individual with the Data Protection Officer"
+              ],
+              [
+                "Cyber Essentials certification renewed through an accredited certification body",
+                "By 31 March each year, and always before the certificate expires",
+                "Nominated Individual with the IT support provider"
+              ],
+              [
+                "Draft complete, with evidence for every answer",
+                "15 April",
+                "Nominated Individual"
+              ],
+              [
+                "Draft reviewed",
+                "30 April",
+                "Data Protection Officer and Caldicott Guardian"
+              ],
+              [
+                "Approved",
+                "Directors' governance meeting held by mid-May, with the papers",
+                "Directors"
+              ],
+              [
+                "Published",
+                "31 May, always before 30 June",
+                "Nominated Individual"
+              ],
+              [
+                "Republished after a new branch or system, a cyber attack or a change in status",
+                "Within 1 month",
+                "Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "If by 15 April Standards Met looks unachievable by 31 May, the Nominated Individual tells the Directors at once, adds a High risk to the organisation risk register and writes before 30 June to each commissioner whose contract requires it, giving the reason and the date it will be met."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "Digital asset register and approved software list",
+                "Governance records, every version",
+                "6 years after each version is replaced"
+              ],
+              [
+                "Account requests, changes and removals",
+                "Staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Access reviews, IT support monthly reports, backup and restore test results",
+                "Governance records",
+                "6 years"
+              ],
+              [
+                "Supplier security checks",
+                "With the register of processors (Data Protection Policy)",
+                "6 years after the contract ends"
+              ],
+              [
+                "DSPT submissions and evidence; Cyber Essentials certificates",
+                "Governance records",
+                "6 years after the toolkit year or certificate ends"
+              ],
+              [
+                "Cyber incidents",
+                "Incident log entry and breach record",
+                "As the Records Management and Retention Policy sets out for incident log entries (at least 10 years from closure)"
+              ],
+              [
+                "Sign-in, administrator, device management and firewall logs",
+                "IT support provider's systems",
+                "At least 12 months; longer while an incident, investigation or retention hold needs them"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "Information governance including cyber security (passwords, multi-factor authentication, scams, lost devices, reporting incidents), knowledge assessment pass mark 80%, under the Training and Development Policy",
+                "First week, before any access to care records; every 12 months"
+              ],
+              [
+                "Email users",
+                "Simulated phishing emails from the IT support provider; anyone who clicks completes a short refresher",
+                "Twice a year; refresher within 2 weeks"
+              ],
+              [
+                "Office staff, Care Coordinators and On-call Managers",
+                "First steps in a cyber incident, the emergency line, checking callers and payment requests",
+                "Before taking calls alone or the first on-call shift; every 12 months"
+              ],
+              [
+                "HR Manager, Registered Manager and Deputy Manager",
+                "Managing CareFlow access and access reviews",
+                "Before first doing either"
+              ],
+              [
+                "Nominated Individual",
+                "Digital Care Hub's Data Security and Protection - Leads e-learning, and the DSPT",
+                "Within 3 months of appointment; updated each toolkit year"
+              ],
+              [
+                "Directors",
+                "Cyber security accountability, within the data protection briefing",
+                "Within 1 month of appointment; annual governance update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Each year, within the annual business continuity exercise, the Nominated Individual runs a cyber incident exercise with the Registered Manager, Deputy Manager, an On-call Manager and the IT support provider, testing a ransomware attack that takes CareFlow and email out of use. Gaps go into the service improvement plan within 5 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Who and how often",
+              "Reported to",
+              "Target"
+            ],
+            "rows": [
+              [
+                "Updates, malware, backups, devices unseen for 14 days, privileged account changes, blocked phishing",
+                "IT support provider's report, by the 5th working day monthly",
+                "Nominated Individual; quality dashboard",
+                "100% of critical and high-risk updates within 14 days; 100% of backups successful"
+              ],
+              [
+                "Leavers' and suspended staff's access",
+                "HR Manager, monthly",
+                "Registered Manager; quality dashboard",
+                "100% ended on the last working day or suspended the same day"
+              ],
+              [
+                "Access reviews, asset register, software list, supplier assurance and restore tests",
+                "Registered Manager and Nominated Individual, quarterly",
+                "Data protection section of the quarterly governance report",
+                "100% on time; no unsupported device or software"
+              ],
+              [
+                "Information governance training",
+                "HR Manager, monthly",
+                "Quality dashboard",
+                "95% in date; below 90% to the Nominated Individual"
+              ],
+              [
+                "Simulated phishing",
+                "IT support provider, twice a year",
+                "Quarterly governance report",
+                "Fewer than 5% of recipients click"
+              ],
+              [
+                "December records and data protection audit, adding 5 user accounts against their role and 5 devices against the asset register",
+                "Deputy Manager, yearly",
+                "Next Directors' governance meeting",
+                "Green under the Quality Audit and Monitoring Procedure"
+              ],
+              [
+                "DSPT and Cyber Essentials",
+                "Nominated Individual, yearly",
+                "Directors' governance meeting held by mid-May",
+                "Standards Met by 31 May; certificate in date"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan within 5 working days, and a cyber incident affecting CareFlow goes on the risk register under the Risk Management Policy."
+        },
+        {
+          "p": "The Registered Manager reviews this policy every 12 months, and sooner after a change in law or national guidance, a new DSPT version or Cyber Essentials requirements, a cyber incident, an inspection or audit finding, or when monitoring shows the arrangements are not working. The Directors approve it under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

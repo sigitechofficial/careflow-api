@@ -1,0 +1,703 @@
+{
+  "reference": "POL-IPC-012",
+  "revision": 1,
+  "title": "Infection Control Audit and Annual Statement Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we check that infection prevention and control works in people's homes: the IPC audit programme and tools, IPC observation at spot checks, the monthly infection surveillance review, the quarterly IPC report to the Directors, the March annual IPC audit and the annual IPC statement. For the IPC lead, managers, Care Coordinators, Field Care Supervisors and Senior Care Workers who audit or observe practice.",
+  "keyPoints": {
+    "intro": "What this procedure means for you when you audit infection control, observe a care worker's practice or report infection data. Every check has a due date, a tool and a deadline for putting things right.",
+    "points": [
+      "If a check shows a person is at immediate risk of infection, stop the practice, make the person safe and phone the Registered Manager or Deputy Manager (the On-call Manager out of hours) at once. Never wait for the audit report.",
+      "Complete every infection control check on your My tasks list in CareFlow by its due date, using the approved IPC tool and the stated sample. Never audit a record you wrote or approved, or care on your own caseload.",
+      "At every spot check, score hand hygiene, bare below the elbows, PPE, the kit box, equipment cleaning and waste handling on the IPC observation tool. Every care worker's IPC practice must be observed at least every 6 months.",
+      "Confirm the person's agreement on arrival; observe intimate care only if they agree on that occasion. Spot check a visit under transmission-based precautions only with the IPC lead's or Deputy Manager's agreement that day, never if you are a higher-risk worker for that infection.",
+      "Give the care worker private feedback the same day, away from the person and their family, and record the result in CareFlow before the end of your working day. A failed IPC observation means coaching at the time and a repeat observation within 4 weeks.",
+      "If you notice similar symptoms in two or more people you visit or colleagues, phone the office at once. Do not wait for the monthly surveillance review.",
+      "Record every standard not met as an action with one owner. Safety-related errors are put right before the person's next visit; a Red result is re-audited with a fresh sample within 1 month.",
+      "The IPC lead completes the infection surveillance review by the 5th working day of each month and the quarterly IPC report by the 15th working day after each quarter ends.",
+      "The annual IPC audit is completed in March. The annual IPC statement is completed by 30 April and published within 5 working days of the Directors approving it.",
+      "Anyone may ask for the annual IPC statement. Send it free within 10 working days, in an accessible format where needed. Statements, reports and audit summaries never name or identify people we support or staff."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Admin",
+    "Manager",
+    "Care Coordinator",
+    "Senior Carer/Nurse"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "AUDIT",
+    "TRAINING",
+    "INCIDENT",
+    "BRANCH"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-002",
+    "POL-IPC-003",
+    "POL-IPC-008",
+    "POL-IPC-009",
+    "POL-GOV-002",
+    "POL-GOV-003",
+    "POL-HR-005"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(h) assessing the risk of, and preventing, detecting and controlling the spread of, infections",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 Good governance, including 17(1) and 17(2)(a), (b) and (e)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Department of Health and Social Care, The Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance (updated 13 December 2022), criterion 1 guidance (IPC lead reporting to the registered provider; annual statement available on request) and Appendix A adult social care (annual statement contents; criterion 2 not expected of domiciliary care)",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "source": "UKHSA and DHSC, Background, context and responsibilities for infection prevention and control (IPC) in adult social care (ASC) settings (28 October 2026): managers to conduct regular IPC audits",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/background-context-and-responsibilities-for-infection-prevention-and-control-ipc-in-adult-social-care-asc-settings"
+    },
+    {
+      "source": "UKHSA and DHSC, Additional information and resources for adult social care managers (28 October 2026): IPC audit, annual statement and patterns of infection across households",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/additional-information-and-resources-for-adult-social-care-managers"
+    },
+    {
+      "source": "NHS England, National infection prevention and control manual for England, including the Standard Infection Control Precautions (SICPs) Monitoring Tool",
+      "url": "https://www.england.nhs.uk/national-infection-prevention-and-control-manual-nipcm-for-england/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} checks that infection prevention and control (IPC) works in practice, not only on paper. Our care workers give care alone in many households each day, so one gap in practice can carry infection from home to home. We watch care as it is given in people's homes, test the records behind it, and look every month for patterns of infection across the people we support and our staff. Every shortfall is put right and checked again, and the Directors see the results every quarter."
+        },
+        {
+          "p": "The law requires us to assess the risk of, and prevent, detect and control the spread of, infections, and to operate systems that assess, monitor and improve the quality and safety of the service, mitigate risks and act on feedback (Regulations 12(2)(h) and 17(2)(a), (b) and (e) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). The Code of Practice on the prevention and control of infections, which CQC must take into account in registration decisions, expects our IPC lead to report directly to the registered provider and to produce an annual IPC statement that anyone may see. UKHSA's adult social care guidance (28 October 2026) states that there is no legal requirement to produce or publish an annual statement; our policy is to produce and publish one every year."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure puts every IPC check into one programme with a due date, auditor, tool and sample; makes sure every observer scores real visits the same way; finds links between households that daily checks miss; and makes sure findings are acted on, re-checked and reported to the Directors."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to every branch of {{organisation}} and every service in which we provide personal care, including extra care housing, supported living and sheltered housing, and to everyone who plans, carries out or acts on an IPC check. Each branch is audited and reported separately. Where we have more than one branch, each branch's Registered Manager is IPC lead for that branch, and the one the Directors name combines the results for {{organisation}}."
+        },
+        {
+          "p": "Other documents own related subjects: the method for every audit, including sampling, scoring, independence, immediate risks and the service improvement plan (Quality Audit and Monitoring Procedure); spot check frequency and supervision (Supervision, Spot Checks and Appraisal Policy); the daily linked-case check and outbreak management (Transmission-Based Precautions and Outbreak Management Procedure); governance meetings and the quality dashboard (Governance and Quality Assurance Policy); and investigation of IPC incidents (Incident Reporting, Investigation and Learning Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "IPC observation",
+                "The infection control part of a spot check, or an observed competency check, scored on the IPC observation tool during a real visit in the person's home."
+              ],
+              [
+                "Observed compliance rate",
+                "The percentage of IPC observations in a month in which every item observed was met."
+              ],
+              [
+                "Failed IPC observation",
+                "An IPC observation at a spot check in which any critical standard, or more than two other items, are not met. An observed competency check is failed if any item is not met."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve the IPC audits within the annual audit programme, scrutinise each quarterly IPC report, receive the annual IPC audit and approve the annual IPC statement, recording their decisions in their minutes. The Nominated Individual tests and scores the annual IPC audit, checks the statement's accuracy and publishes the approved statement on our website."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (IPC lead)",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as IPC lead, owns this procedure. The IPC lead runs the audit programme and keeps its tools current, completes the monthly surveillance review, writes the quarterly IPC report and annual IPC statement, prepares the annual IPC audit evidence, sets IPC action plans and decides on immediate risks. The Deputy Manager covers these duties when the Registered Manager is absent, and the Nominated Individual when both are."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager (deputy IPC lead)",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out the monthly care plan infection audit and infection report audit, the quarterly audits of infection-related absences and staff vaccination records, and calculates the monthly observed compliance rate. The Registered Manager audits any item the Deputy Manager wrote, approved or reviewed."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager produces the monthly IPC training, competency, policy acknowledgement, vaccination, higher-risk assessment and occupational health referral report and supplies the absence and vaccination figures this procedure sets out, by the dates given."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Office staff and On-call Managers",
+          "blocks": [
+            {
+              "p": "Care Coordinators carry out the stock summary and PPE issue checks in the programme, the eMAR audits the Deputy Manager allocates to them, and correct the findings on their caseload by the deadline. Office staff count PPE and hand hygiene stock weekly. Out of hours, the On-call Manager decides on any immediate risk an observer phones in and hands it to the IPC lead by 10am the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors carry out IPC observations at every spot check and observed competency checks. Senior Care Workers carry out observed competency checks only when the Registered Manager has authorised them in writing as assessors."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The IPC audit programme",
+      "blocks": [
+        {
+          "p": "The audit year runs from 1 April to 31 March. By 31 May each year the IPC lead makes sure every check below is set up in CareFlow as a task for the auditor's role (My tasks) with its due date, and that the programme names its auditor, tool and sample, within the programme the Directors approve. These are minimum frequencies. The IPC lead may add a check or increase a frequency at any time, telling the Nominated Individual within 2 working days."
+        },
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Frequency and sample",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "IPC observation",
+                "Every spot check; every care worker at least every 6 months",
+                "Field Care Supervisors; the Registered Manager or Deputy Manager for Care Coordinators and Field Care Supervisors who give care",
+                "Deputy Manager, as the monthly observed compliance rate (target 95%)"
+              ],
+              [
+                "Care plan infection audit",
+                "Monthly: 5 care plans, all if fewer, including, where we support them, a person with a device or wound, a current infection, a catheter user, a person with a stoma or delegated task, a food allergy, and previous C. difficile, a resistant organism or an antibiotic course. One plan may cover several groups; the sample is increased if needed to include each",
+                "Deputy Manager",
+                "IPC lead"
+              ],
+              [
+                "Infection report audit",
+                "Monthly, by the 3rd working day of the following month: every infection report opened, including every diarrhoea and vomiting and C. difficile report",
+                "Deputy Manager",
+                "IPC lead"
+              ],
+              [
+                "Antibiotic courses",
+                "Monthly, within the full eMAR audit",
+                "Care Coordinator or Field Care Supervisor, outside their own caseload",
+                "Deputy Manager"
+              ],
+              [
+                "PPE and hand hygiene stock; PPE issued against each care worker's personal care visits",
+                "Weekly count and monthly summary; quarterly comparison",
+                "Office staff; Care Coordinator",
+                "IPC lead"
+              ],
+              [
+                "Infection-related absences; staff vaccination records",
+                "Quarterly: 10 of each, all if fewer, new starters first for vaccination",
+                "Deputy Manager",
+                "IPC lead; quarterly governance report"
+              ],
+              [
+                "IPC training, competency, policy acknowledgements, vaccination offers, higher-risk assessments and occupational health referrals",
+                "Monthly, every employee",
+                "HR Manager",
+                "IPC lead"
+              ],
+              [
+                "Outbreak exercise",
+                "By 31 October",
+                "IPC lead",
+                "Directors"
+              ],
+              [
+                "Annual IPC audit; annual IPC statement",
+                "March; statement completed by 30 April",
+                "IPC lead with the Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Checks set by other IPC documents also feed the surveillance review and the annual audit: the daily linked-case check, the weekly catheter date check, sharps container checks, the 12-monthly COSHH review, the role vaccination risk assessment by 15 September and the monthly guidance check. An overdue check is handled as an overdue audit under the Quality Audit and Monitoring Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "IPC audit tools",
+      "blocks": [
+        {
+          "p": "Each IPC check uses its approved audit tool, set up under the Quality Audit and Monitoring Procedure, which lists the standards of the IPC document it tests and marks the critical ones. Completed tools are kept in the audit records, and the auditor marks the CareFlow task done with a note of the score and actions. The IPC observation tool is adapted from the Standard Infection Control Precautions Monitoring Tool published with NHS England's National infection prevention and control manual, with hospital items removed and home care items added: the kit box, the household's arrangements and leaving the home. The other tools are built from our IPC documents and the Code of Practice."
+        },
+        {
+          "table": {
+            "columns": [
+              "Tool",
+              "What it checks",
+              "Critical standards"
+            ],
+            "rows": [
+              [
+                "IPC observation tool",
+                "Hand hygiene moments and technique; bare below the elbows; PPE by task, put on and taken off in order; kit box complete, clean and never on the floor or bed; equipment cleaning recorded; waste handling",
+                "Hand hygiene before touching the person and after body fluids or removing gloves; gloves and apron for body fluid contact; no PPE worn out of the home. Where they apply: extra PPE under precautions; soap and water and chlorine cleaning under diarrhoea and vomiting or C. difficile precautions; the critical items in the Catheter Care and Continence Hygiene Protocol; hand washing before food and the allergen check; safe sharps practice"
+              ],
+              [
+                "Care plan infection audit tool",
+                "Infection questions at assessment; PPE per task; precautions and end point; device section; waste, laundry and food arrangements; vaccination status; review dates",
+                "Precautions recorded for a known infection; device section complete before a device task; allergies recorded; infection status never shown where visitors can see it"
+              ],
+              [
+                "Infection report audit tool",
+                "Office phoned before leaving; GP the same day; incident log entry; review by the end of the next working day; care plan updated; end point recorded",
+                "GP contacted the same day; every allocated worker, including agency workers, briefed before their next visit; exposure list made the same working day"
+              ],
+              [
+                "Staff illness and vaccination record tools",
+                "The standards in the Staff Infection-Related Illness and Exclusion Policy and the Staff Vaccination and Immunisation Policy",
+                "No visit made during an exclusion; no restricted worker allocated to rash or airborne precautions"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The IPC lead updates a tool within 1 month of a major change to the document it checks or to national guidance, has it approved under the Policy Management and Document Control Policy, and records the new version in the audit programme. Where a change affects immediate safety, observers are briefed by phone the same day and the tool is updated before the next spot check."
+        }
+      ]
+    },
+    {
+      "heading": "IPC observation in people's homes",
+      "blocks": [
+        {
+          "p": "Spot checks follow the Quality Audit and Monitoring Procedure; these steps add the infection control part. The same tool is used for the observed competency check before a care worker first works alone and every 12 months, where every item must be met to pass."
+        },
+        {
+          "steps": [
+            "Before the visit, read the care plan's PPE for each task, any current precautions, and any device, food or sharps task, and check that the person has agreed to spot check visits. Carry your own full kit.",
+            "At a visit under transmission-based precautions, get the IPC lead's or Deputy Manager's agreement the same day before going. You must not attend if you are a higher-risk worker for that infection, and under airborne precautions only a named FFP3 user may attend.",
+            "Clean your hands on arrival and confirm the person's agreement; if they decline, leave, record it and rearrange the observation. Observe from the care worker's arrival to their leaving the home, both workers on a double-handed visit, and observe intimate care only if the person agrees on that occasion.",
+            "Observe without taking over or shortening the person's care. If practice puts the person at risk of infection, stop it at once, make the person safe and follow the immediate risk steps in the Quality Audit and Monitoring Procedure.",
+            "Check the kit box against the kit list in the Infection Prevention and Control Policy, including at least one week's supply, items in date, the laundry bags and the exposure card. Restock it from your own supplies, or ask the office to restock it before the worker's next visit.",
+            "Check that the care waste bin, sharps container, spill kit and laundry arrangements match the care plan, and tell the Care Coordinator the same working day about any change.",
+            "Ask the person privately whether care workers clean their hands and wear gloves and aprons when they should, and whether they feel able to ask. Record their answer on the tool.",
+            "Give the care worker private feedback the same day, away from the person and their family, after the visit or by phone if that would make them late for their next visit, and record the result in the supervision and appraisal records before the end of your working day."
+          ]
+        },
+        {
+          "p": "Any item not met is coached at the time. A care worker who fails an IPC observation is retrained before next doing a task where a critical item failed, has additional supervision within 7 days where a critical item failed, and is observed again within 4 weeks. A second failure means reassessment and no lone working until they pass. An agency worker's shortfall is sent to their agency in writing by the Care Coordinator within 2 working days."
+        },
+        {
+          "p": "Each month the Deputy Manager calculates the observed compliance rate for each branch. If it falls below 90%, or the same failure appears in three or more observations in a month, the IPC lead sets an action plan within 2 weeks."
+        }
+      ]
+    },
+    {
+      "heading": "Infection surveillance",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What we collect",
+          "blocks": [
+            {
+              "p": "Surveillance uses records we already keep, with people and staff identified by CareFlow reference number only:"
+            },
+            {
+              "bullets": [
+                "infection reports and outbreak records in the incident log, and hospital admissions, sepsis and deaths linked to infection;",
+                "infection-related absence entries from the staff record, by symptom group and onset date;",
+                "exposures, IPC breaches, PPE failures and shortages, and waste and laundry incidents;",
+                "antibiotic courses by reason from the eMAR, and C. difficile recurrences;",
+                "catheter and other device incidents;",
+                "visit check-in and check-out, showing which care workers visited whom on which care run."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Monthly infection surveillance review",
+          "blocks": [
+            {
+              "p": "The daily linked-case check under the Transmission-Based Precautions and Outbreak Management Procedure finds most clusters as they happen, and anyone who notices similar symptoms in two or more people they visit or colleagues phones the office at once. The monthly review finds slower patterns and tests whether the daily check worked."
+            },
+            {
+              "steps": [
+                "By the 3rd working day of each month the HR Manager sends the IPC lead the previous month's infection-related absence figures, and the Deputy Manager provides the infection report audit results.",
+                "The IPC lead lists every infection in the month by type, onset date, care run, household and the care workers who visited in the 7 days before onset.",
+                "The IPC lead calculates infections by type per 1,000 visits delivered and compares each figure with the previous 12 months.",
+                "The IPC lead looks back over the previous 3 months for the same infection or organism in two or more people or staff sharing a care worker, care run or household.",
+                "The IPC lead acts on every finding in the table below and records the review, its figures and decisions in the governance records by the 5th working day of the month, so that the figures appear in the quality dashboard by the 7th working day and are discussed at the Monthly Quality and Governance Meeting."
+              ]
+            },
+            {
+              "table": {
+                "columns": [
+                  "Finding",
+                  "Action"
+                ],
+                "rows": [
+                  [
+                    "Linked cases not found at the time, or a slower cluster found in the 3-month look-back",
+                    "The IPC lead decides the same day whether this is a suspected outbreak (if in doubt, it is treated as one) and takes community IPC team advice where unsure. A missed link is recorded in the incident log the same day."
+                  ],
+                  [
+                    "A rise of 50% or more on the previous 3-month average in any infection type with at least 3 cases in the month, or the same type of IPC incident affecting 3 or more people in a month",
+                    "Reason and action recorded in the service improvement plan; reported to the Nominated Individual within 2 working days if found between monthly meetings."
+                  ],
+                  [
+                    "A hospital admission, sepsis or death linked to infection",
+                    "The IPC lead checks that the review required by the Catheter Care and Continence Hygiene Protocol or the Infections of Concern Guideline was done, with its safeguarding, CQC notification and duty of candour decisions, and that the Directors were told within 24 hours where the Infection Prevention and Control Policy requires it. Included in the quarterly IPC report."
+                  ],
+                  [
+                    "Two or more sharps or body fluid exposures in a quarter from the same task or device",
+                    "The IPC lead reviews the task risk assessment within 10 working days."
+                  ],
+                  [
+                    "Any urine dipstick use by staff",
+                    "Recorded as an IPC breach in the incident log; the care worker briefed by their Field Care Supervisor before their next visit."
+                  ],
+                  [
+                    "A figure that cannot be produced because a record is missing or late",
+                    "Recorded as a finding, with an action for the record's owner."
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Quarterly IPC report",
+      "blocks": [
+        {
+          "p": "The IPC lead completes the quarterly IPC report by the 15th working day after each quarter ends and includes it in the quarterly governance report, which the Nominated Individual checks before it goes to the Directors. The IPC lead presents it in person at the Directors' governance meeting. Sharps and body fluid exposures, RIDDOR reports and COSHH matters also go to the quarterly Health and Safety Meeting."
+        },
+        {
+          "p": "The report covers, for each branch and for {{organisation}} as a whole:"
+        },
+        {
+          "bullets": [
+            "infections per 1,000 visits with four-quarter trends, C. difficile cases and recurrences, and infection-linked admissions and deaths;",
+            "outbreaks, post-outbreak review learning and any outbreak exercise;",
+            "IPC audit ratings, the observed compliance rate, re-audits and open actions;",
+            "IPC training and competency in date, and staff vaccination uptake in season;",
+            "exposures, IPC breaches, PPE failures and stock below the 4-week minimum;",
+            "guidance changes and how they reached staff, IPC risks on the risk register, and decisions needed."
+          ]
+        },
+        {
+          "p": "The Directors' decisions are recorded in their minutes, and every resulting action goes into the service improvement plan or the risk register. Within 10 working days of the meeting, the IPC lead sends all staff a short IPC update by email or text, giving the main results and what will change."
+        }
+      ]
+    },
+    {
+      "heading": "The annual IPC audit",
+      "blocks": [
+        {
+          "p": "Each March the IPC lead and the Nominated Individual audit all our IPC arrangements. Because most of the evidence is the IPC lead's own work, the IPC lead gathers the evidence and completes a self-assessment by 15 March, and the Nominated Individual tests and scores it by 31 March."
+        },
+        {
+          "steps": [
+            "The IPC lead brings together the year's audit results, the 12 surveillance reviews, the quarterly IPC reports, outbreak records and post-outbreak reviews, and the records named in the table below.",
+            "The Nominated Individual tests the evidence: at least 3 home visits alongside a Field Care Supervisor's spot check, with the person's agreement, one of them before 8am, after 8pm or at a weekend; conversations with at least 5 care workers, including an agency worker where we use them; and phone calls to at least 5 people we support or their families about hygiene and infection.",
+            "Each criterion is scored Green, Amber or Red under the Quality Audit and Monitoring Procedure. The Code of Practice does not expect home care services to meet criterion 2 (clean environment); we test the items in the table below instead.",
+            "The audit report goes to the Directors' governance meeting held by mid-May with the annual IPC statement, and its actions go into the service improvement plan within 5 working days of completion."
+          ]
+        },
+        {
+          "table": {
+            "columns": [
+              "Criterion",
+              "What we test in home care"
+            ],
+            "rows": [
+              [
+                "1. Systems",
+                "IPC lead appointment minuted; monthly guidance checks; contacts sheets checked every 3 months; audits, surveillance reviews and quarterly reports on time; actions closed with evidence"
+              ],
+              [
+                "2. Clean environment",
+                "Kit boxes, reusable equipment, office PPE store and COSHH assessments"
+              ],
+              [
+                "3. Antimicrobial stewardship",
+                "Antibiotic courses on the eMAR with reason and duration; no dipstick use"
+              ],
+              [
+                "4. Information",
+                "Service information on our IPC approach and contacts; people know they may ask about hand hygiene"
+              ],
+              [
+                "5. Identifying infection",
+                "Assessment questions; infection reports actioned on time; status shared on admission or transfer"
+              ],
+              [
+                "6. Staff responsibilities",
+                "Job descriptions; training and competency in date; agency confirmations"
+              ],
+              [
+                "7. Isolation",
+                "Precautions applied and ended on advice; visit planning under precautions"
+              ],
+              [
+                "8. Laboratory support",
+                "Samples collected only at the GP's request and taken to the surgery the same day by the family, a Field Care Supervisor or Office staff, never on a care run"
+              ],
+              [
+                "9. Policies",
+                "IPC documents in date and acknowledged by staff within 14 days of each new major version; waste carrier checks, special collections and food business registration answers"
+              ],
+              [
+                "10. Staff health",
+                "Exclusions, higher-risk assessments, occupational health referrals and vaccination offers on time"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Action planning and learning",
+      "blocks": [
+        {
+          "bullets": [
+            "Every standard not met becomes an action with one owner and a deadline under the Quality Audit and Monitoring Procedure: safety-related errors before the person's next visit, other care record errors within 7 days, staff record gaps within 10 working days. Audit results and actions go into the service improvement plan within 5 working days.",
+            "A Red result is re-audited with a fresh sample within 1 month. If it is Red again, the IPC lead tells the Nominated Individual within 2 working days, adds the risk to the risk register under the Risk Management Policy, audits that area monthly until two consecutive Green or Amber results, and asks the community IPC team within 1 month for advice or a review of that area.",
+            "Field Care Supervisors go through each care worker's IPC results at their next supervision. IPC results are an item at every quarterly staff team meeting, alongside learning from incidents.",
+            "Where a finding shows an IPC document is wrong or unclear, the IPC lead decides within 10 working days whether to review it early under the Policy Management and Document Control Policy."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The annual IPC statement",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What it contains",
+          "blocks": [
+            {
+              "p": "The statement covers 1 April to 31 March and includes everything the Code of Practice Appendix A lists for adult social care. It is in plain English and no longer than 4 pages."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Part",
+                  "Content"
+                ],
+                "rows": [
+                  [
+                    "Our service",
+                    "Branches, people supported, visits delivered, and the IPC lead and deputy by role"
+                  ],
+                  [
+                    "Outbreaks and significant incidents",
+                    "Each outbreak by infection type and month, how it was managed and what changed; infection-linked admissions and deaths"
+                  ],
+                  [
+                    "Audits",
+                    "Audits carried out, ratings, the observed compliance rate, the annual IPC audit result and improvements made"
+                  ],
+                  [
+                    "Risk assessments",
+                    "COSHH and role vaccination risk assessments reviewed; care plan infection risk results"
+                  ],
+                  [
+                    "Training and vaccination",
+                    "IPC training and competency rates; frontline flu vaccination uptake; hepatitis B vaccination offers"
+                  ],
+                  [
+                    "Antimicrobial stewardship and feedback",
+                    "Antibiotic course monitoring; complaints, concerns and compliments about hygiene"
+                  ],
+                  [
+                    "Policies",
+                    "IPC documents reviewed or changed"
+                  ],
+                  [
+                    "Priorities",
+                    "Three to five priorities for the coming year, each with an owner by role and a deadline"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The statement never names or identifies people we support or staff and contains no CareFlow reference numbers. Any number from 1 to 4 is shown as fewer than 5."
+            }
+          ]
+        },
+        {
+          "heading": "Preparing, approving and publishing",
+          "blocks": [
+            {
+              "steps": [
+                "By the 5th working day of April the HR Manager provides the year's training, competency and vaccination figures, and the Deputy Manager provides the year's audit summary.",
+                "The IPC lead completes the statement by 30 April from the annual IPC audit, the surveillance reviews, the quarterly IPC reports and the post-outbreak reviews.",
+                "Within 5 working days of receiving it, the Nominated Individual checks three of its figures against the source records and returns any corrections.",
+                "The Directors approve the statement at their governance meeting held by mid-May, and the minutes record the approval and any changes.",
+                "Within 5 working days of approval, the Nominated Individual publishes it on our website, the Registered Manager places a copy in each branch office and sends it to each commissioner and to all staff by email or text, and presents it at the next staff team meeting.",
+                "The priorities go into the service improvement plan within 5 working days of approval, and each quarterly IPC report shows progress against them."
+              ]
+            },
+            {
+              "p": "Our service information tells people we support that the statement is available. Anyone who asks is sent a copy free within 10 working days, in another format or language where needed under the Communication and Accessible Information Policy; CQC and commissioners receive it by any deadline they set."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "IPC audit programme, completed tools, samples by CareFlow reference, scores, evidence and actions",
+                "Audit records by branch, with each check's completed CareFlow task"
+              ],
+              [
+                "IPC observations and observed competency checks",
+                "Supervision and appraisal records; competency results also in training and compliance records"
+              ],
+              [
+                "Infection reports, outbreak records, exposures, IPC breaches and immediate risks found in a check",
+                "Incident log, cross-referenced in the audit record"
+              ],
+              [
+                "Monthly surveillance reviews, quarterly IPC reports, annual IPC audits and annual IPC statements",
+                "Governance records, with the Directors' papers"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Quarterly IPC reports, annual IPC audits and annual IPC statements are kept for the life of {{organisation}} plus 6 years with the Directors' papers. Other records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "This procedure, the IPC tools, sampling and scoring",
+                "Everyone who carries out an IPC audit",
+                "Before their first IPC audit, then every 12 months; first two audits of each type checked before results are reported"
+              ],
+              [
+                "Competency assessor training",
+                "Everyone who carries out IPC observations",
+                "Before their first observation, then every 2 years; observed assessing by the Registered Manager or Deputy Manager every 12 months"
+              ],
+              [
+                "Surveillance review and quarterly IPC report",
+                "Deputy Manager",
+                "From the IPC lead before first covering them, then every 12 months"
+              ],
+              [
+                "Code of Practice criteria and the annual audit method",
+                "Nominated Individual",
+                "From the IPC lead before their first annual IPC audit and after any change to the Code"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "An auditor or observer must hold current IPC training and, where they give care, a current observed hand hygiene and PPE competency. Training is recorded in the training and compliance records."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "Target",
+              "How often and by whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "IPC checks, including the surveillance review, completed by their due date",
+                "100%",
+                "Monthly, Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Care workers with an IPC observation in the last 6 months",
+                "100%",
+                "Monthly, HR Manager",
+                "IPC lead"
+              ],
+              [
+                "Observed compliance rate",
+                "At least 95%",
+                "Monthly, Deputy Manager",
+                "Quarterly IPC report"
+              ],
+              [
+                "Re-audits after a Red result within 1 month; quarterly report and annual statement on time",
+                "100%",
+                "Quarterly, Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager as IPC lead, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law, the Code of Practice, UKHSA's adult social care IPC guidance or the National infection prevention and control manual, an outbreak or serious infection-related incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

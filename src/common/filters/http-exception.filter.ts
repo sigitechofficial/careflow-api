@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
+import { stripSecretFields } from '../security/secret-fields';
 
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {
@@ -24,7 +25,8 @@ export class HttpExceptionFilter implements ExceptionFilter {
       fallbackStatus,
       fallbackMessage,
     );
-    response.status(status).json(body);
+    // Error bodies can echo objects (warnings, carers...), so they get the same secret stripping as successes.
+    response.status(status).json(stripSecretFields(body));
   }
 
   private toResponse(

@@ -1,0 +1,676 @@
+{
+  "reference": "POL-GOV-008",
+  "revision": 1,
+  "title": "Duty of Candour Policy",
+  "documentType": "POLICY",
+  "summary": "How we meet the duty of candour under regulation 20: being open with people about their care every day and, after a notifiable safety incident, deciding it with a health care professional's opinion, identifying the relevant person, telling them in person with an apology, following up in writing, supporting them, sharing the results of our enquiries and keeping a full record. For managers, Care Coordinators, Senior Care Workers and nurses.",
+  "keyPoints": {
+    "intro": "This policy tells managers, Care Coordinators, Field Care Supervisors, Senior Care Workers and nurses how we stay open with people about their care and what we must do, by law and our own rules, when our care causes serious harm.",
+    "points": [
+      "Tell people truthfully what has happened and say sorry at the time. Saying sorry is not an admission of liability, and nobody is disciplined for an honest apology.",
+      "Never guess at causes, blame colleagues or other services, promise outcomes, or hide or alter a record. Phone the office (On-call Manager out of hours) before you leave the home and record the facts in the incident log before your shift ends.",
+      "At later visits, if the person or family ask about the incident, say only what you saw and did, never discuss the investigation, and phone the office with their questions the same day.",
+      "The Registered Manager decides whether an incident is notifiable and records why; fault does not matter. Harm beyond first aid is judged not notifiable only on a health care professional's opinion. Until then, the candour steps begin as if it were notifiable.",
+      "Care Coordinators ask the treating GP, nurse, paramedic or hospital team for that opinion on the day of the initial review, and record who gave it, the question and the answer.",
+      "We tell the person, or the person acting for them if they have died or lack capacity for the matter. Check the care plan and any verified attorney or deputy on the day of the decision.",
+      "The relevant person is contacted within 1 working day of the initial review or a later notifiable decision. The in-person notification, with a truthful account and an apology, follows within 5 working days of the decision, later only if they or the police ask.",
+      "The written notification follows within 5 working days of the meeting. Updates are given at least every 4 weeks, and the results of our enquiries in writing within 10 working days of the investigation finishing.",
+      "Offer support every time: a professional interpreter where needed (never a family member), accessible formats, an advocate, help with health care and a named contact.",
+      "If the person cannot be reached, make at least three attempts on different days over 10 working days, including a letter. If they decline to talk, respect it and record their words.",
+      "Where police or the local authority are involved, the Registered Manager first agrees with them what can be shared. The On-call Manager never gives the formal notification or decides that an incident is not notifiable.",
+      "Every decision, contact attempt, meeting and letter goes in the candour record in the incident log entry, never in the daily visit notes."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Senior Carer/Nurse"
+  ],
+  "moduleLinks": [
+    "INCIDENT",
+    "SAFEGUARDING"
+  ],
+  "relatedReferences": [
+    "POL-GOV-007",
+    "POL-GOV-009",
+    "POL-GOV-005",
+    "POL-SG-002",
+    "POL-SG-004",
+    "POL-CD-006",
+    "POL-HR-007",
+    "POL-MED-014"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 20 (Duty of candour)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/20"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 22 (Offences)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/22"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 23 (Penalties)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/23"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 2 (Interpretation, including health care professional)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/2"
+    },
+    {
+      "source": "Health Act 1999, section 60(2) (professions whose members are health care professionals)",
+      "url": "https://www.legislation.gov.uk/ukpga/1999/8/section/60"
+    },
+    {
+      "source": "Compensation Act 2006, section 2 (Apologies, offers of treatment or other redress)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/29/section/2"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 5 (Fixed penalty offences)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/5"
+    },
+    {
+      "source": "Nursing and Midwifery Council and General Medical Council, Openness and honesty when things go wrong: the professional duty of candour (joint guidance, refreshed December 2024)",
+      "url": "https://www.nmc.org.uk/standards/guidance/the-professional-duty-of-candour/"
+    },
+    {
+      "source": "Department of Health and Social Care, Duty of candour review: call for evidence and findings (November 2024)",
+      "url": "https://www.gov.uk/government/calls-for-evidence/duty-of-candour-review"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} is open and honest with the people we support, and with those acting for them, about their care, including when something goes wrong. When our care causes or may have caused serious harm, we tell the person what happened, say sorry, explain how we will find out why, support them, and share what we learn. People have a right to the truth about their care, trust depends on it, and hiding mistakes stops us learning from them."
+        },
+        {
+          "p": "The law requires this. Regulation 20 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 places a general duty on us to act in an open and transparent way with relevant persons about the care we provide, and sets specific steps we must take after a notifiable safety incident. Failing to notify the relevant person, or to do so as regulation 20(3) requires, is a criminal offence (regulation 22) punishable on conviction by a fine of up to level 4 on the standard scale (regulation 23); instead of prosecuting, CQC may give a fixed penalty notice of 1,250 pounds for each failure (Schedule 5), and it can also use its other enforcement powers. Timescales and steps the law does not fix are our policy."
+        },
+        {
+          "p": "The duty rests on {{organisation}} as the registered provider and on its Registered Manager, never on an individual care worker alone. Nobody is discouraged from being open for fear of blame or of a legal claim."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every incident that harmed or may have harmed a person we support is tested against the notifiable safety incident definition, with a health care professional's opinion, and the decision is recorded with reasons.",
+            "The right person is told promptly, in person and in writing, truthfully and with an apology, is supported and kept informed, and receives the results of our enquiries.",
+            "Every step is recorded securely, and compliance is checked and reported to the Directors."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies in every branch to all employees, bank and agency workers, the Nominated Individual and the Directors. The general duty of openness applies to all the care we provide; the statutory steps apply to notifiable safety incidents. Our statement of purpose limits our service to personal care for adults aged 18 and over (Statement of Purpose and Registration Procedure), so the rules in regulation 20 for children under 16 do not apply to us."
+        },
+        {
+          "p": "This policy owns the decision whether an incident is notifiable and every candour step that follows. Reporting, grading, investigating and learning from the incident belong to the Incident Reporting, Investigation and Learning Policy; notifying CQC to the Statutory Notifications to CQC Procedure; safeguarding referrals to the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure; and complaint responses to the Complaints Policy and Procedure. One event may need all of these, and none replaces another."
+        },
+        {
+          "p": "Harm that arose only from another provider's care is not our notifiable safety incident: we record it, tell that provider the same working day and raise a safeguarding concern where needed. Where our care and another provider's care were both involved, see Safeguarding, police, other providers and complaints below."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Notifiable safety incident",
+                "As regulation 20(9) defines it for providers that are not health service bodies: an unintended or unexpected incident in respect of a person we support, during our care, which in the reasonable opinion of a health care professional appears to have resulted in the person's death (relating directly to the incident rather than the natural course of their illness or underlying condition), an impairment of sensory, motor or intellectual functions which has lasted or is likely to last for a continuous period of at least 28 days, changes to the structure of their body, prolonged pain or prolonged psychological harm, or the shortening of their life expectancy; or which requires treatment by a health care professional to prevent their death or an injury that, if left untreated, would lead to one of those outcomes."
+              ],
+              [
+                "Prolonged pain and prolonged psychological harm",
+                "Pain or psychological harm which a health care professional reasonably considers the person has experienced, or is likely to experience, for a continuous period of at least 28 days."
+              ],
+              [
+                "Health care professional",
+                "A member of a profession listed in section 60(2) of the Health Act 1999, such as a doctor, nurse, midwife, pharmacist, paramedic, physiotherapist or occupational therapist. Social workers and care staff without such a registration are not health care professionals for this purpose."
+              ],
+              [
+                "Relevant person",
+                "The person we support or, where they have died or are aged 16 or over and lack capacity in relation to the matter, a person lawfully acting on their behalf (regulation 20(7))."
+              ],
+              [
+                "Apology",
+                "An expression of sorrow or regret in respect of a notifiable safety incident (regulation 20(7))."
+              ],
+              [
+                "Candour record",
+                "The part of the incident log entry that holds the notifiable decision, the opinion relied on, and every candour step, contact attempt, meeting record and piece of correspondence."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for an open culture and for the duty being met, and scrutinise the candour figures in the quarterly governance report. The Nominated Individual reviews decisions that High or Critical incidents are not notifiable, leads the notification after a death or where the Registered Manager was involved (an uninvolved Director where the Nominated Individual was involved), reads every written notification for a Critical incident before it is sent, and audits candour records every quarter."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy, decides whether each incident is notifiable and records the reasons and the opinion relied on, confirms who the relevant person is, leads the in-person notification and signs the written notification and results letter in every case the Nominated Individual does not lead, makes sure support is offered and every step is recorded, and agrees with the police or local authority what can be shared where they are involved."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out the Registered Manager's duties under this policy in their absence, including notifiable decisions and leading notifications, and produces the monthly candour figures in the quality dashboard."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours the On-call Manager makes the person safe, makes the escalations in the Incident Reporting, Investigation and Learning Policy, may tell the person or family what is known so far and say sorry, and records what was said, to whom and when in the incident log entry. The On-call Manager never gives the formal notification or decides that an incident is not notifiable."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "The Care Coordinator obtains the health care professional's opinion, identifies the relevant person, makes the initial contact, books interpreters and accessible formats, records every contact attempt and acts as the named contact. The Care Coordinator or Field Care Supervisor who knows the person attends the notification meeting unless involved in the incident, and briefs the care team on any change to the person's care before their next visit."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers, registered nurses and Care Workers",
+          "blocks": [
+            {
+              "p": "Staff with the person follow the steps at the visit in Being open every day, including at later visits while enquiries continue. They never speculate about causes, blame anyone, promise outcomes, or hide or alter a record (Staff Code of Conduct). Registered nurses and other registered health professionals we employ, in whatever role they hold with us, also meet their professional duty of candour under the joint GMC and NMC guidance Openness and honesty when things go wrong: the professional duty of candour."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Being open every day",
+      "blocks": [
+        {
+          "p": "Openness does not wait for a notifiable safety incident. Under the general duty we tell people truthfully about their care, answer their questions about their own records, and tell them when something has gone wrong, whatever the level of harm, within the timescales in the Incident Reporting, Investigation and Learning Policy and with an apology where we got something wrong."
+        },
+        {
+          "p": "Care workers are usually alone with the person when something goes wrong. At the visit, the care worker:"
+        },
+        {
+          "steps": [
+            "makes the person safe, calls 999 in an emergency and gives first aid, under the Incident Reporting, Investigation and Learning Policy;",
+            "says sorry for what has happened, explains what they know and what they are doing about it, and tells the person, and any family member or informal carer present, that a manager will be in touch;",
+            "phones the office (the On-call Manager out of hours) before leaving, or the Registered Manager or Deputy Manager directly if nobody answers within 15 minutes, and passes on what was said and any questions the person or family asked;",
+            "stays with the person beyond the planned visit time where they need it, while the office or On-call Manager tells the person at their next visit about the delay and covers that visit if needed;",
+            "records the facts in the incident log before the end of their shift; the daily visit notes, which the person and family may read, record the care given and the person's condition and say only that an incident was reported to the office."
+          ]
+        },
+        {
+          "p": "The same care workers usually keep visiting the home while enquiries continue. If the person or family ask them about the incident, they say what they saw and did, never discuss other people's accounts or the investigation, explain that the named contact will answer, and phone the office with the questions the same day. The Care Coordinator passes them to the manager leading the notification."
+        },
+        {
+          "p": "An honest apology is never a disciplinary matter. Discouraging anyone from being open or reporting is, and a worker who believes an incident is being hidden can raise it under the Whistleblowing (Speaking Up) Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Deciding whether an incident is notifiable",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The test",
+          "blocks": [
+            {
+              "p": "The Registered Manager, or the Deputy Manager in their absence, applies these questions to every incident that harmed or may have harmed a person we support:"
+            },
+            {
+              "steps": [
+                "Was it unintended or unexpected? This includes what we failed to do, such as a missed visit or an omitted medicine, but not harm arising solely from the natural course of the person's illness or condition.",
+                "Did it happen in respect of the person during our care, at a visit or as a result of care we were responsible for?",
+                "In a health care professional's reasonable opinion, does it appear to have caused one of the outcomes in the definition, or does it need treatment to prevent death or such an outcome?"
+              ]
+            },
+            {
+              "p": "If every answer is yes, the incident is notifiable. Fault is not part of the test: an incident can be notifiable when nobody did anything wrong. Where any answer is unclear, including while a professional's opinion is awaited, the candour steps in this policy begin from the initial review as for a notifiable incident, but the investigation stays at the level its grade sets until the incident is decided notifiable. If a health care professional later gives the opinion that it is not notifiable, the Registered Manager records the change within 1 working day and tells the relevant person; they are still kept informed and given the findings under the Incident Reporting, Investigation and Learning Policy."
+            }
+          ]
+        },
+        {
+          "heading": "The health care professional's opinion",
+          "blocks": [
+            {
+              "p": "Our care staff are not health care professionals, so we rely on the professional treating the person. For every incident that caused harm beyond first aid, the Care Coordinator asks the GP, district nurse, hospital team, paramedic or other treating professional, on the day of the initial review, at the Registered Manager's request and with the person's consent or in their best interests, whether the incident appears to have caused, or needs treatment to prevent, any of the outcomes in the definition. One request also asks the serious injury question in the Statutory Notifications to CQC Procedure; for a pressure ulcer it is the written request to the treating nurse in the Pressure Ulcer Prevention and Skin Integrity Procedure. A registered nurse we employ may give the opinion only if not involved in the incident or the person's care. The candour record notes the professional's name, profession and employer, the date, the question asked and the answer."
+            },
+            {
+              "p": "An incident that caused harm beyond first aid is decided as not notifiable only on a health care professional's opinion; a near miss, or harm needing first aid at most, may be decided without one. The Care Coordinator chases an outstanding opinion every 2 working days and records each request. Where an incident is plainly notifiable, such as a death after a fall from a hoist, the steps begin at once and the opinion is recorded when it arrives."
+            }
+          ]
+        },
+        {
+          "heading": "When the decision is made",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Trigger",
+                  "Decision made"
+                ],
+                "rows": [
+                  [
+                    "An incident is reported",
+                    "At the initial review, within the timescales the Incident Reporting, Investigation and Learning Policy sets for its grade"
+                  ],
+                  [
+                    "A complaint suggests that our care caused harm",
+                    "Within 1 working day of receipt, under the Complaints Policy and Procedure"
+                  ],
+                  [
+                    "Harm is found at an audit or spot check",
+                    "The same day, under the Quality Audit and Monitoring Procedure"
+                  ],
+                  [
+                    "New information arrives, such as a hospital diagnosis, the person's death, a later professional opinion, or the outcome of a safeguarding enquiry or inquest",
+                    "Within 1 working day of the information reaching us"
+                  ],
+                  [
+                    "No opinion has arrived by the date the investigation report is due",
+                    "That day, on what we know; an incident that is still unclear is decided notifiable"
+                  ],
+                  [
+                    "Harm continues 28 days after an incident not judged notifiable",
+                    "The Care Coordinator asks the treating professional again on day 28; decision within 1 working day of the answer"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Every decision, including a decision that an incident is not notifiable, is recorded in the candour record with the reasons and the opinion relied on. The Registered Manager tells the Nominated Individual the same working day of every notifiable decision and of every decision that a High or Critical incident is not notifiable; the Nominated Individual confirms or overturns each such not-notifiable decision within 2 working days. Every notifiable safety incident is investigated at Comprehensive level under the Incident Reporting, Investigation and Learning Policy, moving to that level on the day of the notifiable decision and never stepped down, even if a later opinion changes the decision. The relevant person's questions are included in the terms of reference."
+            }
+          ]
+        },
+        {
+          "heading": "Examples from home care",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "Notifiable?"
+                ],
+                "rows": [
+                  [
+                    "A person falls during a hoist transfer and an X-ray shows a fractured hip",
+                    "Yes: a change to the structure of the body and an impairment likely to last at least 28 days"
+                  ],
+                  [
+                    "A missed morning visit leaves a person without insulin and a paramedic treats very high blood glucose",
+                    "Yes, where the paramedic's opinion is that the treatment was needed to prevent death or lasting harm of the kinds in the definition"
+                  ],
+                  [
+                    "A care worker gives a second dose of morphine and the person needs naloxone in hospital",
+                    "Yes: treatment was needed to prevent death or serious injury"
+                  ],
+                  [
+                    "Repositioning in the care plan is not done for several days and the district nurse finds a category 3 pressure ulcer that, in the nurse's opinion, resulted from it",
+                    "Yes: changes to the structure of the body and prolonged pain"
+                  ],
+                  [
+                    "The wrong tablet is selected but noticed before it is given",
+                    "No: a near miss, handled under the Incident Reporting, Investigation and Learning Policy"
+                  ],
+                  [
+                    "A skin tear during a transfer heals within 2 weeks with dressings from the practice nurse",
+                    "No, on the practice nurse's recorded opinion that the harm is below the thresholds; the person is still told and given an apology under the general duty"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Who we notify",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "Relevant person"
+            ],
+            "rows": [
+              [
+                "The person has capacity in relation to the matter",
+                "The person. Family or friends are told only with the person's agreement, and the person chooses who joins the meeting."
+              ],
+              [
+                "The person lacks capacity in relation to the matter, shown by an assessment under the Mental Capacity Act and Best Interests Policy",
+                "Their health and welfare attorney or personal welfare deputy, verified under the Consent to Care Policy. Where there is none, the law does not name anyone, and our policy is to notify the family member or friend recorded in the care plan as involved in decisions about their care. The person is also told what happened in a way they can understand."
+              ],
+              [
+                "The person has died",
+                "Their executor or administrator where known. Otherwise, as our policy, the next of kin recorded in the care plan. We do not wait for probate or letters of administration."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Care Coordinator checks the People involved part of the care plan and any verified authority on the day of the decision, and records who the relevant person is and why. Where nobody can be identified, the Registered Manager records why, asks the commissioner within 2 working days for help to find family or an advocate, and explains to the person, as far as they can understand, what happened. Where family members disagree, the Registered Manager notifies the relevant person in the table and, with their agreement, invites others to the meeting. A capable person's wish that their family is not told is respected."
+        }
+      ]
+    },
+    {
+      "heading": "Notifying in person",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Arranging the notification",
+          "blocks": [
+            {
+              "steps": [
+                "Within 1 working day of the initial review, or of a later notifiable decision, the incident owner or Care Coordinator contacts the relevant person by their preferred method, tells them what is known so far, says sorry and offers a meeting. Where this first contact is made in person by the manager leading the notification and covers everything listed below, it is the in-person notification.",
+                "The meeting is held within 5 working days of the notifiable decision, at a time and place the relevant person chooses: usually the person's home, agreeing with them beforehand who else in the household is present; the relevant person's own home or the branch office where they live elsewhere or the person has died; or, if the person is in hospital, there with the hospital team's agreement or after discharge if they prefer. It is never combined with a care visit. It is held later only at their request or at the request of the police, and the reason is recorded.",
+                "The Registered Manager leads, or the Deputy Manager in their absence; after a death, or where the Registered Manager was involved, the Nominated Individual leads. The Care Coordinator or Field Care Supervisor who knows the person attends unless they were involved. A worker involved in the incident attends only if the relevant person asks, the worker agrees and the police and local authority have no objection.",
+                "Before the meeting the lead reads the incident log entry, the opinion relied on, and the visit check-in and check-out times, daily visit notes and eMAR entries for the visits concerned, confirms the facts known so far, and books a professional interpreter or communication support under the Communication and Accessible Information Policy; family members never interpret at a notification meeting. The relevant person is told they may bring a relative, friend or advocate.",
+                "The law requires the notification to be given in person, so a meeting is always offered. If the relevant person, having been offered a meeting, says they do not want one but will speak by video or telephone, the lead records their words in the candour record, covers the same content by that method, sends the written notification as usual and keeps a meeting available whenever they want one."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "At the meeting",
+          "blocks": [
+            {
+              "p": "The lead:"
+            },
+            {
+              "bullets": [
+                "explains that we have a legal duty to tell them about the incident and that this is that conversation;",
+                "gives a truthful account of all the facts we know at that date, in plain language, separating what is known from what is still being checked, without speculation or blame;",
+                "says sorry, naming what happened and its effect on the person, for example: I am sorry that your mother fell during the transfer and broke her hip;",
+                "explains the further enquiries we will make, including our investigation, its expected completion date and any safeguarding enquiry, police or coroner involvement, and asks what questions they want our investigation to answer;",
+                "offers reasonable support, agrees how and how often they want updates, names their contact, and explains how to complain under the Complaints Policy and Procedure and how to share their experience with CQC;",
+                "summarises what has been said and agreed before the meeting ends."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Reasonable support",
+          "blocks": [
+            {
+              "p": "Regulation 20(2)(b) requires us to give the relevant person reasonable support. We offer, and record what is accepted:"
+            },
+            {
+              "bullets": [
+                "help to arrange or attend follow-up health care, including asking the GP for a review;",
+                "a professional interpreter, accessible formats and communication support for every meeting and letter, under the Communication and Accessible Information Policy;",
+                "information about independent advocacy and help to contact an advocate, and information about bereavement support after a death;",
+                "a change of care worker from the next rota where the person asks, and any change to their care needed to keep them safe, approved by the Registered Manager and in place before the next visit;",
+                "a named contact for questions between updates;",
+                "information about emotional support through their GP or NHS talking therapies services."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Recording the meeting",
+          "blocks": [
+            {
+              "p": "The lead records the meeting in the candour record by the end of the next working day: date, place, who was present (with the interpreter's name, language and booking reference), the account given, the apology, the enquiries explained, the support offered and accepted, the relevant person's questions and views, and the update arrangements. Daily visit notes never contain candour details."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Written notification, updates and results",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Step",
+              "Timescale (our policy)",
+              "Content",
+              "Signed or given by"
+            ],
+            "rows": [
+              [
+                "Written notification",
+                "Within 5 working days of the in-person notification",
+                "The account of the facts given in person, with anything learned since; the enquiries we are making and when we expect to finish; an apology; the support offered and the named contact; how to complain",
+                "The manager who led the meeting; the Nominated Individual reads it before it is sent for every Critical incident"
+              ],
+              [
+                "Updates",
+                "At the agreed frequency and at least every 4 weeks while enquiries continue; within 2 working days of a significant new fact or a pause; before the deadline when an investigation is extended",
+                "Progress, new facts and revised dates",
+                "The named contact, confirmed in writing where a date or fact changes"
+              ],
+              [
+                "Results of our enquiries",
+                "Within 10 working days of the investigation's completion, with an offer to meet",
+                "What we found, why it happened, what we are changing and by when, and a further apology; where we were at fault, we say so plainly",
+                "The manager who led the in-person notification"
+              ],
+              [
+                "Results of other enquiries, such as a safeguarding enquiry or inquest",
+                "Within 10 working days of the outcome reaching us, where we may share it",
+                "The outcome and any further action we are taking",
+                "The manager who led the in-person notification"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Letters are sent by the method the relevant person prefers, by post, secure email or hand delivery, in plain English and in their accessible format or language. Where a translation or other format takes longer, the content is read aloud or explained within 2 working days, as the Communication and Accessible Information Policy sets. A copy of every letter and email, and a note of every call and meeting with the relevant person, is kept in the candour record, as regulation 20(6) requires."
+        },
+        {
+          "p": "With the results letter, the manager who led the notification asks the relevant person how well we handled it and what we could have done better, and records the answer. If the relevant person says the written account is wrong, that manager replies in writing within 5 working days, corrects any factual error through a recorded correction, and adds their view to the candour record where we disagree."
+        }
+      ]
+    },
+    {
+      "heading": "When the relevant person cannot be contacted or declines",
+      "blocks": [
+        {
+          "p": "The law provides that where the relevant person cannot be contacted in person or declines to speak to us, the notification, support and written steps do not apply, but we must keep a written record of our attempts to contact or speak to them (regulation 20(5)). Our policy is to keep the door open."
+        },
+        {
+          "bullets": [
+            "Cannot be contacted: the Care Coordinator makes at least three attempts on different days over 10 working days, using at least two methods, one of them a letter to the last known address, and records each attempt. If there is still no contact, the Registered Manager records that the person cannot be contacted, tells the Nominated Individual, and tries again when the results are ready and whenever new contact details become known.",
+            "Declines: we respect the decision and do not press. The lead records the person's words, the date and who heard them. Unless they ask us not to write, we send a short letter within 5 working days saying that we respect their decision, that we are sorry, and how to contact us if they change their mind. When the investigation finishes, we offer the results once more by letter unless they asked not to be contacted again.",
+            "Changes their mind: the in-person notification takes place within 5 working days of their request, and the remaining steps follow as usual.",
+            "A capable person who does not want to talk but wants a family member told instead: we tell that family member, with the person's consent recorded in the candour record."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Safeguarding, police, other providers and complaints",
+      "blocks": [
+        {
+          "bullets": [
+            "Safeguarding and police: the duty still applies. On the day of the notifiable decision the Registered Manager contacts the police or local authority to agree what can be shared without harming their enquiries, and never tells a worker about an allegation or shares details they ask us to withhold. Where they ask us to delay, the Registered Manager records who asked, when and why, tells the Nominated Individual and reviews the delay with them at least every 4 weeks. Where they agree, we still meet the relevant person within 5 working days to apologise, offer support and share what we can.",
+            "Other providers: where another provider's care was also involved, such as district nursing, a community pharmacy, the community equipment service that supplied a hoist or a hospital discharge, the Registered Manager contacts that provider within 2 working days to agree who leads, so that the relevant person receives one coordinated notification, at a joint meeting where possible. Each provider remains responsible for its own duty: we give our own account and apology, and never rely on another provider's notification.",
+            "Family and informal carers: harm arising only from care a family member gave, such as medicines from an organiser they filled, is not our notifiable safety incident unless our care also contributed; we still tell the person openly, record it in the incident log and raise a safeguarding concern where needed.",
+            "Commissioners: the Registered Manager tells the commissioner or integrated care board within the timescales in the Incident Reporting, Investigation and Learning Policy, and tells the relevant person that we have done so.",
+            "Complaints: the candour steps run alongside the complaint, one investigation serves both, letters are coordinated so that they are consistent, and the complaint response never replaces the written notification.",
+            "Coroner: an inquest does not suspend the duty. We give the coroner the information requested by the coroner's deadline, tell the relevant person that we have done so, and share our own findings with them as the table above sets.",
+            "Insurers: the notification and apology are never delayed for an insurer's agreement."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Apologies and liability",
+      "blocks": [
+        {
+          "p": "The law treats an apology as part of the duty, not as an admission. Under section 2 of the Compensation Act 2006, an apology, an offer of treatment or other redress does not of itself amount to an admission of negligence or breach of statutory duty. The formal apology is given in person by the manager leading the notification and repeated in the written notification."
+        },
+        {
+          "p": "The apology expresses genuine sorrow for what happened and its effect on the person, and does not wait for the investigation to establish fault. It is never conditional, such as sorry if you feel upset, and never blames the person, a colleague or another organisation. If the investigation finds we were at fault, the results letter says so and apologises again. Any refund, goodwill or compensation payment follows the remedies and approvals in the Complaints Policy and Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where",
+              "Kept"
+            ],
+            "rows": [
+              [
+                "Notifiable decision, opinion relied on and reasons; the Nominated Individual's review; initial contact; record of the in-person notification; contact attempts and any decline; written notification, updates, results letters, all other correspondence and notes of calls",
+                "Candour record in the incident log entry",
+                "With the incident log entry: 10 years from closure; 20 years from closure for serious incidents and incidents involving a person who lacked capacity for the matter"
+              ],
+              [
+                "Who the relevant person is and how their authority was verified",
+                "People involved part of the care plan, referenced in the candour record",
+                "With the person's care record"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Candour records are factual. They sit in the incident log entry, which CareFlow opens only to roles given incident permissions, so anyone who can open the incident can see them; only the Registered Manager, Deputy Manager, Nominated Individual, the investigation lead and the named contact open or use them. No candour record is destroyed while an investigation, safeguarding enquiry, inquest, enforcement action or claim is open or expected. The incident is not closed until every candour step is complete or the candour record shows why a step could not be taken. A relevant person who asks for copies of records is helped under the Subject Access and Individual Rights Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "All care staff",
+                "Being open, saying sorry at the time, what never to say or do, and reporting",
+                "Induction, before working alone",
+                "With the incident reporting refresher every 3 years"
+              ],
+              [
+                "Senior Care Workers and registered nurses",
+                "The duty of candour, the professional duty and their role at the time of an incident",
+                "On appointment",
+                "Every 3 years"
+              ],
+              [
+                "Care Coordinators and Field Care Supervisors",
+                "Obtaining the professional's opinion, identifying the relevant person, initial contact, supporting meetings, recording contact attempts",
+                "Within 3 months of starting the role and before first acting as a named contact",
+                "Every 3 years"
+              ],
+              [
+                "On-call Managers",
+                "Their role out of hours and what they must not do",
+                "Before the first on-call shift",
+                "Every 12 months, with on-call training"
+              ],
+              [
+                "Registered Manager, Deputy Manager and Nominated Individual",
+                "The notifiable test, the relevant person, leading notification meetings, difficult conversations and bereavement, and writing notifications",
+                "Within 3 months of appointment and before leading a notification",
+                "Every 3 years"
+              ],
+              [
+                "Directors",
+                "The duty, the offence and their oversight role",
+                "Within 1 month of appointment",
+                "At the annual governance update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A manager's first notification meeting is attended by the Nominated Individual or a manager who has led one before wherever practicable; otherwise the Nominated Individual reads their first written notification before it is sent. Each April the Registered Manager and Deputy Manager decide 5 anonymised candour scenarios alongside the incident grading scenarios; anyone who decides more than one wrongly is briefed again within 1 month."
+        },
+        {
+          "p": "Managers, Care Coordinators, Field Care Supervisors, Senior Care Workers and registered nurses acknowledge this policy in CareFlow. New starters do so under the Induction and Care Certificate Procedure: care staff before their lone working sign-off and other staff by the end of their fourth week. Existing staff moving into one of these roles do so within 14 days of starting it, and everyone within 14 days of each new major version; a minor version does not need acknowledging again. Care Workers learn their part through the training for all care staff above."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Open notifiable safety incidents and the next candour step due",
+                "Weekly",
+                "Registered Manager",
+                "Weekly management meeting"
+              ],
+              [
+                "Candour figures: notifiable incidents; decisions, in-person notifications, written notifications and results letters on time (target 100% each); candour also checked in the monthly incident log audit under the Quality Audit and Monitoring Procedure",
+                "Monthly",
+                "Deputy Manager",
+                "Quality dashboard and Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Every candour record completed in the quarter, and 5 High or Critical incidents decided as not notifiable (all if fewer), against this policy (target 100% compliant)",
+                "Quarterly",
+                "Nominated Individual",
+                "Directors' governance meeting, in the incidents, notifications and candour part of the quarterly governance report"
+              ],
+              [
+                "Relevant persons' views of how we handled notifications, and themes",
+                "Every 12 months",
+                "Registered Manager",
+                "Directors, in the annual incident report at the mid-May meeting"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall becomes an action in the service improvement plan with an owner and a deadline, and a missed statutory step is reported to the Nominated Individual within 1 working day of discovery. This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or guidance, including the final response to the Department of Health and Social Care's review of the statutory duty of candour (the findings of its call for evidence were published in November 2024 ahead of that response), a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

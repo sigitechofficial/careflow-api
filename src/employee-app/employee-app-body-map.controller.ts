@@ -30,9 +30,10 @@ import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
 import { EmployeeAppVisitsService } from './employee-app-visits.service';
 import { EmployeeAppBodyMapWizardSubmitDto } from './dto/employee-app-body-map-wizard.dto';
 import { EmployeeAppCreateBodyMapRecordDto } from './dto/employee-app-body-map-record.dto';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 function ensureBodyMapPhotoDir() {
-  const root = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'body-map', 'photos');
+  const root = uploadPath('body-map', 'photos');
   if (!existsSync(root)) mkdirSync(root, { recursive: true });
   return root;
 }

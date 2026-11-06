@@ -3,6 +3,10 @@ import {
   InitialAssessmentRiskType,
   Prisma,
 } from '@prisma/client';
+import {
+  DEFAULT_REVIEW_SETTINGS,
+  type ReviewSettings,
+} from '../organisation-general-settings/review-settings.util';
 import { waterlowScoreFromMetadata } from './initial-assessment-waterlow.util';
 import {
   carParkingMatrixToRiskLevel,
@@ -127,14 +131,18 @@ function severityFor(q: QuestionRow, riskType: InitialAssessmentRiskType): Initi
   return InitialAssessmentRiskLevel.LOW;
 }
 
-export function reviewDaysFor(level: InitialAssessmentRiskLevel): number {
+/** Days to the first review of a risk, by level (Settings → Reviews & reminders `riskReviewDays`). */
+export function reviewDaysFor(
+  level: InitialAssessmentRiskLevel,
+  days: ReviewSettings['riskReviewDays'] = DEFAULT_REVIEW_SETTINGS.riskReviewDays,
+): number {
   switch (level) {
     case InitialAssessmentRiskLevel.HIGH:
-      return 14;
+      return days.HIGH;
     case InitialAssessmentRiskLevel.MEDIUM:
-      return 30;
+      return days.MEDIUM;
     default:
-      return 90;
+      return days.LOW;
   }
 }
 
@@ -142,6 +150,7 @@ export function buildAutoRiskRecordsFromSubmission(params: {
   questions: QuestionRow[];
   answers: AnswerRow[];
   metadata: Prisma.JsonValue;
+  riskReviewDays?: ReviewSettings['riskReviewDays'];
 }): RiskRecordDraft[] {
   const answerMap = new Map(params.answers.map(a => [a.questionId, a]));
   const drafts: RiskRecordDraft[] = [];
@@ -169,7 +178,7 @@ export function buildAutoRiskRecordsFromSubmission(params: {
       sourceSectionNumber: q.section.sectionNumber,
       sourceQuestionId: q.id,
       sourceQuestionText: q.questionText,
-      reviewDate: addDays(now, reviewDaysFor(riskLevel)),
+      reviewDate: addDays(now, reviewDaysFor(riskLevel, params.riskReviewDays)),
     });
   }
 
@@ -184,7 +193,7 @@ export function buildAutoRiskRecordsFromSubmission(params: {
       severity,
       riskLevel: calculateRiskLevel(likelihood, severity),
       sourceSectionNumber: 11,
-      reviewDate: addDays(now, reviewDaysFor(calculateRiskLevel(likelihood, severity))),
+      reviewDate: addDays(now, reviewDaysFor(calculateRiskLevel(likelihood, severity), params.riskReviewDays)),
     });
   }
 
@@ -214,7 +223,7 @@ export function buildAutoRiskRecordsFromSubmission(params: {
         sourceSectionNumber: parkingLikelihoodQ.section.sectionNumber,
         sourceQuestionId: parkingLikelihoodQ.id,
         sourceQuestionText: parkingLikelihoodQ.questionText,
-        reviewDate: addDays(now, reviewDaysFor(riskLevel)),
+        reviewDate: addDays(now, reviewDaysFor(riskLevel, params.riskReviewDays)),
       });
     }
   }

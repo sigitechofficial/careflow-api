@@ -1,0 +1,897 @@
+{
+  "reference": "POL-IPC-001",
+  "revision": 1,
+  "title": "Infection Prevention and Control Policy",
+  "documentType": "POLICY",
+  "summary": "Our overarching infection prevention and control policy for care in people's own homes: the law and guidance we follow, the IPC lead, everyone's responsibilities, the rules staff follow on every visit, assessing and acting on infection risk, reporting outbreaks and exposures, supplies, training and audit. Every other infection control document sits under it.",
+  "keyPoints": {
+    "intro": "These are the infection prevention and control rules you must follow on every visit, for every person, whether or not anyone is known to have an infection.",
+    "points": [
+      "Clean your hands when you arrive and before you leave, before and after touching the person, before handling food or medicines, after contact with body fluids, after taking off gloves, and after handling waste or laundry.",
+      "Use liquid soap and water, not hand rub, when your hands are visibly dirty, after contact with body fluids, and whenever the person has diarrhoea, vomiting or C. difficile. Dry your hands on paper towels, never on the person's towels.",
+      "When giving care, be bare below the elbows: no watch or hand or wrist jewellery except one plain ring, short clean nails with no varnish or false nails, long hair tied back, cuts covered, and a clean uniform every shift.",
+      "Wear nitrile gloves and an apron for contact with blood, body fluids, broken skin or soiled items, and change them between people and between tasks. Wear a Type IIR mask and eye protection where splashes are possible.",
+      "Carry your full kit in its clean, lidded box to every visit. If you are running low, phone the office before your next visit. Never give personal care without gloves, an apron and a way to clean your hands.",
+      "If the person has signs of infection, such as a high temperature, new cough, diarrhoea or vomiting, pain passing urine or a red or weeping wound, phone the office before you leave. Call 999 if they seem seriously unwell or newly confused.",
+      "If you have diarrhoea or vomiting, do not work until you are well and 48 hours have passed since your last episode. Tell the office before your shift about any symptoms of infection; you will never be penalised for reporting honestly.",
+      "After a needlestick, human bite or scratch, or splash of blood or body fluid, make the person safe, let the wound bleed, wash and cover it, phone the office and go straight to the nearest emergency department. Animal bites: see the First Aid Procedure.",
+      "Never recap a needle or put sharps in a waste bag. Double-bag care waste and put it in the household bin only where the care plan records the person's permission.",
+      "Tell the person what you are doing and why, respect their choices about their home, and record any infection control advice you give them or their family in the daily visit notes.",
+      "Complete infection control training and an observed hand hygiene and PPE check before you work alone, and every 12 months. Record any exposure or infection control breach in the incident log before your shift ends."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "RISK_ASSESSMENT",
+    "CARE_PLAN",
+    "INITIAL_ASSESSMENT",
+    "TRAINING",
+    "AUDIT"
+  ],
+  "relatedReferences": [
+    "POL-IPC-002",
+    "POL-IPC-003",
+    "POL-IPC-004",
+    "POL-IPC-008",
+    "POL-IPC-009",
+    "POL-IPC-011",
+    "POL-IPC-012",
+    "POL-HS-009"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(e) safe equipment and 12(2)(h) assessing the risk of, and preventing, detecting and controlling the spread of, infections",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Department of Health and Social Care, The Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance (updated 13 December 2022), including Appendix A for adult social care",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Infection prevention and control (IPC) in adult social care (ASC) (published 28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc"
+    },
+    {
+      "source": "UKHSA and DHSC, Background, context and responsibilities for infection prevention and control (IPC) in adult social care (ASC) settings (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/background-context-and-responsibilities-for-infection-prevention-and-control-ipc-in-adult-social-care-asc-settings"
+    },
+    {
+      "source": "UKHSA and DHSC, Standard infection control precautions in adult social care (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/standard-infection-control-precautions-in-adult-social-care"
+    },
+    {
+      "source": "UKHSA and DHSC, Managing outbreaks in adult social care settings (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/managing-outbreaks-in-adult-social-care-settings"
+    },
+    {
+      "source": "UKHSA and DHSC, Managing suspected infectious diarrhoea and/or vomiting in adult social care (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/managing-suspected-infectious-diarrhoea-andor-vomiting-in-adult-social-care"
+    },
+    {
+      "source": "UKHSA and DHSC, Staff health and managing sickness related to infection in adult social care (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/staff-health-and-managing-sickness-related-to-infection-in-adult-social-care"
+    },
+    {
+      "source": "UKHSA and DHSC, Vaccinations for care and support workers and people accessing care and support in adult social care (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/vaccinations-for-care-and-support-workers-and-people-accessing-care-and-support-in-adult-social-care"
+    },
+    {
+      "source": "UKHSA and DHSC, Additional information and resources for adult social care managers (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/additional-information-and-resources-for-adult-social-care-managers"
+    },
+    {
+      "source": "UKHSA and DHSC, Tuberculosis (TB) guidance for adult social care settings (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/tuberculosis-tb-guidance-for-adult-social-care-settings"
+    },
+    {
+      "source": "Control of Substances Hazardous to Health Regulations 2002, regulation 3 (duties extend to other persons affected by the work) and regulation 6 (assessment of the risk to health before work starts)",
+      "url": "https://www.legislation.gov.uk/uksi/2002/2677/regulation/6"
+    },
+    {
+      "source": "Control of Substances Hazardous to Health Regulations 2002, regulation 7 (prevention or control of exposure, with personal protective equipment in addition where other measures cannot give adequate control)",
+      "url": "https://www.legislation.gov.uk/uksi/2002/2677/regulation/7"
+    },
+    {
+      "source": "Personal Protective Equipment at Work Regulations 1992, regulation 3(3) (the Regulations do not apply where COSHH requires the provision or use of PPE)",
+      "url": "https://www.legislation.gov.uk/uksi/1992/2966/regulation/3"
+    },
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 9 (no charge to employees for anything provided under specific health and safety requirements)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/9"
+    },
+    {
+      "source": "Health and Safety Executive, Blood-borne viruses: incident reporting under RIDDOR 2013 (dangerous occurrence, over-seven-day injury and disease)",
+      "url": "https://www.hse.gov.uk/biosafety/blood-borne-viruses/incident-reporting.htm"
+    },
+    {
+      "source": "Health and Safety Executive, HSIS1 Reporting injuries, diseases and dangerous occurrences in health and social care: guidance for employers (sharps injuries)",
+      "url": "https://www.hse.gov.uk/pubns/hsis1.pdf"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 4(2) (over-seven-day injuries), with regulation 2(1) (an accident includes non-consensual physical violence done to a person at work)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/4"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18 Notification of other incidents, including 18(2)(g) events that threaten the safe carrying on of the regulated activity",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "UKHSA, Notifiable diseases and how to report them (updated 19 May 2026)",
+      "url": "https://www.gov.uk/guidance/notifiable-diseases-and-causative-organisms-how-to-report"
+    },
+    {
+      "source": "Skills for Care, Care Certificate standards (updated 2025), Standard 15 Infection prevention and control",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Developing-your-workforce/Care-Certificate/Care-Certificate-Standards/Care-Certificate-standards-March-2025.pdf"
+    },
+    {
+      "source": "NHS, Sepsis: symptoms in adults and when to call 999",
+      "url": "https://www.nhs.uk/conditions/sepsis/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} provides personal care to people in their own homes. Many of the people we support are older, frail, living with long-term conditions or using devices such as urinary catheters, and are the most likely to become seriously ill from an infection. Our care workers visit several homes a day, so poor practice can carry infection from one household to the next."
+        },
+        {
+          "p": "{{organisation}} is committed to assessing every person's risk of infection, preventing infection through consistent precautions on every visit, recognising infection early and getting the person the right medical help, and controlling spread when infection occurs, including outbreaks. We do this as guests in the person's home, with their dignity, choices and consent first."
+        },
+        {
+          "p": "The Directors hold overall accountability for infection prevention and control (IPC); the Registered Manager is our IPC lead."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that we meet Regulation 12(2)(h), the Code of Practice and current national guidance; that every person's infection risk is assessed and planned for; that infections, outbreaks and exposures are recognised and reported on time; and that staff know the rules and are equipped, trained and competent, with audit and an annual IPC statement showing the Directors that our arrangements work."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to all Directors, the Nominated Individual, managers, office staff, care staff, bank and agency workers, students on placement, volunteers and contractors working for us or on our behalf. It covers every visit to a person's home, including extra care housing, supported living and sheltered housing where we provide personal care, escorted trips and appointments, and our branch office, where staff collect supplies."
+        },
+        {
+          "p": "The person's home is not our premises: we control our practice, our equipment and the care tasks agreed with the person, not the home."
+        },
+        {
+          "p": "This is our overarching IPC policy. The detailed arrangements are in the following documents, read with it:"
+        },
+        {
+          "bullets": [
+            "Standard Infection Control Precautions Procedure;",
+            "Transmission-Based Precautions and Outbreak Management Procedure;",
+            "Sharps Safety and Needlestick Injury Procedure;",
+            "Waste Management in People's Homes Procedure;",
+            "Laundry, Soiled Linen and Spillages Procedure;",
+            "Food Hygiene Guideline;",
+            "Staff Infection-Related Illness and Exclusion Policy;",
+            "Staff Vaccination and Immunisation Policy;",
+            "Catheter Care and Continence Hygiene Protocol;",
+            "Infections of Concern Guideline, including antimicrobial stewardship;",
+            "Infection Control Audit and Annual Statement Procedure."
+          ]
+        },
+        {
+          "p": "Cleaning products we supply are covered by the Hazardous Substances (COSHH) Procedure; antibiotics and other medicines by the Medicines Management Policy; delegated clinical tasks such as wound care or tube feeding by the Delegated Healthcare Activities and Specialised Medicines Tasks Policy; and sick pay and absence management by the Sickness Absence Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Standard infection control precautions",
+                "The precautions every member of staff uses for every person on every visit, whether or not an infection is known."
+              ],
+              [
+                "Transmission-based precautions",
+                "Extra precautions used alongside standard precautions when a person has, or may have, an infection that can spread, such as additional PPE, more frequent cleaning and fewer different care workers visiting."
+              ],
+              [
+                "Outbreak",
+                "Two or more people (people we support or staff) with the same infection, linked in time and place or by a common exposure; more infections than usual for our service; a single case of a rare or high-consequence infection; or suspected contamination of food, water, medicines or medical devices. In home care, cases in different households can be linked through a shared care worker or care run."
+              ],
+              [
+                "IPC lead",
+                "The manager who leads IPC and reports directly to the Directors: our Registered Manager, with the Deputy Manager as deputy."
+              ],
+              [
+                "Health protection team",
+                "The local UK Health Security Agency (UKHSA) team that leads the response to outbreaks and notifiable infections."
+              ],
+              [
+                "Community IPC team",
+                "The local NHS or local authority team of IPC specialists that advises care providers."
+              ],
+              [
+                "Antimicrobial stewardship",
+                "Using antibiotics only when needed and exactly as prescribed, to reduce harm such as C. difficile infection and antimicrobial resistance."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "bullets": [
+                "Hold overall accountability for {{organisation}}'s compliance with Regulation 12(2)(h), appoint the IPC lead and approve this policy.",
+                "Provide the resources IPC needs: free PPE and hand hygiene supplies, training time, visit lengths that allow hand hygiene and safe care, and occupational health advice.",
+                "Receive and challenge the quarterly IPC report and the annual IPC statement, recording their decisions in the Directors' meeting minutes."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (IPC lead)",
+          "blocks": [
+            {
+              "p": "The Registered Manager is the IPC lead, accountable for IPC practice day to day, with the duties in the section Infection prevention and control lead. Tasks may be delegated to the Deputy Manager; accountability may not."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager (deputy IPC lead)",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out the IPC lead's duties when the Registered Manager is absent, carries out the monthly care plan infection audit, and makes sure every care worker is observed at the required frequency."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "bullets": [
+                "Record infection risk at assessment and every review, and write the precautions into the care plan and risk assessments.",
+                "In office hours, act on reports of infection as set out in Recognising and responding to infection.",
+                "Keep the number of different care workers visiting an infectious person to a minimum, and allocate visits only to care workers whose IPC training and competency are current.",
+                "Check new infection reports and infection-related staff sickness each working day for links between households.",
+                "Field Care Supervisors observe hand hygiene, PPE and kit at every spot check (Supervision, Spot Checks and Appraisal Policy) and give feedback at the time."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Senior Care Workers model good IPC practice on shadowing shifts, correct poor practice when they see it and, where authorised by the Registered Manager as assessors, carry out observed hand hygiene and PPE competency checks."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers",
+          "blocks": [
+            {
+              "p": "Care Workers follow the standard precautions and the precautions in each care plan, carry a full and clean kit, report infections, risks, breaches, exposures and their own symptoms as this policy requires, and keep their IPC training and competency in date."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            {
+              "p": "Office staff pass infection reports from care workers at once to the Care Coordinator and issue supplies. Outside office hours the On-call Manager takes the reports, contacts NHS 111 or emergency services as needed, records each report in the incident log, decides whether the health protection team must be phoned before morning, and hands every infection matter to the IPC lead by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager includes IPC duties in every job description, reviews the health questionnaire completed after an offer of work, keeps IPC training, competency and vaccination dates accurate, reports overdue items to the IPC lead monthly, and makes sure no new care worker is rostered to work alone before IPC induction and competency sign-off."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Legal and regulatory framework",
+      "subsections": [
+        {
+          "heading": "What the law requires",
+          "blocks": [
+            {
+              "bullets": [
+                "Regulation 12(2)(h) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires us to assess the risk of, and prevent, detect and control the spread of, infections, including those that are health care associated. Regulation 12(2)(e) requires the equipment we use for care to be safe and used safely.",
+                "The Code of Practice on the prevention and control of infections (Department of Health and Social Care, updated 13 December 2022) sets ten criteria. It is not itself mandatory, but CQC must take it into account in registration decisions, and a provider meeting the regulations another way must justify this to CQC.",
+                "The Control of Substances Hazardous to Health Regulations 2002 (COSHH) apply to biological agents as well as cleaning chemicals. We must assess the risk before the work starts (regulation 6) and prevent or adequately control exposure, with PPE where other measures cannot give adequate control (regulation 7), protecting others affected by our work so far as is reasonably practicable (regulation 3). Because COSHH governs PPE against infection, the Personal Protective Equipment at Work Regulations 1992 do not apply to it. We may not charge employees for anything provided to meet these duties (Health and Safety at Work etc. Act 1974, section 9).",
+                "The Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013 (RIDDOR) require us to report to the Health and Safety Executive an injury from a sharp known to be contaminated with a blood-borne virus (a dangerous occurrence), any injury at work, including a sharps injury or bite, that itself keeps a worker off routine work for more than 7 consecutive days, not counting the day of the injury, and an infection a doctor diagnoses as caused by exposure to a biological agent at work.",
+                "Regulation 18(2)(g) of the Care Quality Commission (Registration) Regulations 2009 requires us to notify CQC without delay of any event that prevents, or appears likely to threaten to prevent, us continuing to provide care safely, including an insufficient number of suitably qualified, skilled and experienced staff, which an outbreak among staff can cause.",
+                "Only registered medical practitioners and diagnostic laboratories have a legal duty to notify notifiable diseases and their causative organisms to UKHSA; we support it by reporting signs of infection promptly to the GP."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "National guidance we follow",
+          "blocks": [
+            {
+              "p": "We follow Infection prevention and control (IPC) in adult social care (ASC), published by UKHSA and the Department of Health and Social Care on 28 October 2026. It covers domiciliary care and consolidates the 2022 adult social care and 2013 care home IPC guidance, which we no longer use. Where it does not answer a question, the IPC lead takes and records advice from the community IPC team or the health protection team."
+            }
+          ]
+        },
+        {
+          "heading": "How we meet the Code of Practice",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Criterion",
+                  "How we meet it in home care"
+                ],
+                "rows": [
+                  [
+                    "1. Systems to manage and monitor IPC",
+                    "IPC lead reporting to the Directors; this policy and its procedures; risk assessment for every person; audits; quarterly report and annual statement."
+                  ],
+                  [
+                    "2. Clean environment",
+                    "Not expected of domiciliary providers in people's homes. We keep our equipment, kit boxes and office store clean, and consider at assessment whether the home suits the care needed."
+                  ],
+                  [
+                    "3. Antimicrobial stewardship",
+                    "Antibiotic courses we support recorded on the eMAR with reason, dose, duration and allergies; early, accurate reporting of symptoms; no urine dipstick testing."
+                  ],
+                  [
+                    "4. Information",
+                    "Plain-English information on our approach, staff roles and who to contact, in accessible formats."
+                  ],
+                  [
+                    "5. Identifying infection",
+                    "Risk recorded at assessment; signs reported before the care worker leaves; GP gives initial advice; status shared safely on transfer."
+                  ],
+                  [
+                    "6. Staff responsibilities",
+                    "IPC duties in every job description; induction, annual training and competency checks, including agency workers and students."
+                  ],
+                  [
+                    "7. Isolation",
+                    "No isolation facilities in a person's home: we use transmission-based precautions and, with the person's agreement, support them to stay apart from others while infectious."
+                  ],
+                  [
+                    "8. Laboratory support",
+                    "The GP arranges testing; trained staff help collect samples when the GP asks."
+                  ],
+                  [
+                    "9. Policies",
+                    "This policy and the documents listed in Scope."
+                  ],
+                  [
+                    "10. Staff health",
+                    "Confidential health questionnaire, occupational health advice, vaccination, and rules on illness and exclusion."
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Infection prevention and control lead",
+      "subsections": [
+        {
+          "heading": "Appointment, authority and cover",
+          "blocks": [
+            {
+              "p": "The Directors appoint the Registered Manager as IPC lead and record it in their minutes. Where we have more than one branch, each branch's Registered Manager is IPC lead for that branch, and the Directors name one of them to combine branch results in the quarterly IPC report and annual IPC statement. The IPC lead reports directly to the Directors, presenting the quarterly IPC report in person, and may stop any practice that puts people at risk of infection, require retraining, change rotas to control spread, and buy PPE and hand hygiene supplies without further approval during an outbreak or shortage. Cover is provided by the Deputy Manager, then the Nominated Individual (Registered Manager Role and Absence Cover Policy), and out of hours by the On-call Manager."
+            }
+          ]
+        },
+        {
+          "heading": "Duties of the IPC lead",
+          "blocks": [
+            {
+              "bullets": [
+                "Checks the UKHSA adult social care guidance, the Code of Practice and health protection team alerts at least monthly, records each check, and tells staff about any change to practice within 2 weeks by bulletin and team briefing, or the same day where it affects immediate safety.",
+                "Keeps a Local IPC and Health Protection Contacts sheet for every area we work in: the health protection team's daytime and out-of-hours numbers and reporting route, the community IPC team, the local authority public health team and adult social care link, commissioners, our occupational health provider and local sharps and clinical waste collections. It is held by the office and the On-call Manager and checked every 3 months and when we start working in a new area.",
+                "Tells the Directors within 24 hours of a suspected or confirmed outbreak, a death or serious harm from infection that may be linked to our care, an infection or sharps occurrence reportable under RIDDOR, or a supply shortage that threatens visits.",
+                "Leads antimicrobial stewardship in the service.",
+                "Makes sure COSHH assessments cover biological agents and the cleaning products we supply, reviewed every 12 months under the Hazardous Substances (COSHH) Procedure.",
+                "Runs the audit programme, reviews infection surveillance monthly, and produces the quarterly IPC report and the annual IPC statement."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Keeping the IPC lead's knowledge up to date",
+          "blocks": [
+            {
+              "p": "The IPC lead and the Deputy Manager complete an externally delivered IPC lead course within 3 months of taking up the role and every 3 years after. Until then, the IPC lead takes community IPC team advice on every outbreak decision. Both complete the annual IPC refresher and attend community IPC team forums where offered."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Working in people's own homes",
+      "subsections": [
+        {
+          "heading": "Consent, dignity and choice",
+          "blocks": [
+            {
+              "p": "Care workers explain what they are doing and why before using PPE or cleaning, and ask for consent. Staff explain PPE carefully to people living with dementia or a sensory impairment, who may find it frightening."
+            },
+            {
+              "p": "A person with capacity may decline IPC measures that affect only themselves, such as cleaning advice. We respect that, explain the risks, record it in the daily visit notes and tell the Care Coordinator. Staff never give up the precautions that protect themselves and others: gloves and an apron for contact with blood and body fluids, and hand hygiene. If a person objects to these, the Care Coordinator meets them within 2 working days to agree a safe approach and records it in the care plan. Where capacity is in doubt, the Mental Capacity Act and Best Interests Policy applies."
+            }
+          ]
+        },
+        {
+          "heading": "What the household does and what we do",
+          "blocks": [
+            {
+              "p": "Cleaning, household laundry and household waste remain the household's responsibility unless the care plan gives a task to us. At assessment the Care Coordinator agrees with the person, and their family where appropriate, which IPC tasks we carry out and which family carers keep, such as cleaning a commode, washing soiled bedding or preparing meals, and records them in the care plan with the person's permission for care waste to go in their household bin. Staff use the household's own cleaning products only where the care plan names them. Advice given to the person or family is recorded in the daily visit notes."
+            }
+          ]
+        },
+        {
+          "heading": "When the home creates an infection risk we cannot control",
+          "blocks": [
+            {
+              "p": "Examples include no running water or working toilet, heavy soiling, pests, hoarding, or a household member with an infection who will not take precautions."
+            },
+            {
+              "steps": [
+                "The care worker uses standard precautions and cleans the surface needed for the task first. Without running water, they remove visible dirt with a detergent hand wipe, use hand rub, and wash with soap and water at the first opportunity.",
+                "The care worker completes the essential care; care is never withdrawn because of the home's condition without a decision by the Registered Manager (the Deputy Manager in their absence).",
+                "The care worker phones the office or the On-call Manager before leaving and records the risk in the daily visit notes.",
+                "The Field Care Supervisor reviews the home environment risk assessment under the Risk Assessment and Home Environment Risk Assessment Procedure: before the next visit where care cannot be given safely, otherwise within 7 days. Where the person declines a change we need, the Health and Safety Policy applies; the Self-Neglect and Hoarding Procedure or the Safeguarding Adults Policy also apply where relevant."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Standard precautions on every visit",
+      "blocks": [
+        {
+          "p": "Standard precautions are used for every person on every visit, because infection is often present before anyone knows about it. Breaches that continue despite retraining and support are managed under the Capability and Performance Procedure, and a deliberate or reckless breach under the Disciplinary Policy and Procedure. Techniques are in the Standard Infection Control Precautions Procedure."
+        },
+        {
+          "table": {
+            "columns": [
+              "Precaution",
+              "Our rule"
+            ],
+            "rows": [
+              [
+                "Hand hygiene",
+                "On arrival and before leaving, before and after touching the person, before a clean task or handling food or medicines, after contact with body fluids, after removing gloves, and after handling waste or linen. Hand rub of at least 60% alcohol on visibly clean hands; liquid soap and water when hands are visibly dirty, after body fluids, and whenever the person has diarrhoea, vomiting or C. difficile. Dry with paper towels, never the person's towels."
+              ],
+              [
+                "Bare below the elbows",
+                "When giving care: no watch or hand or wrist jewellery except one plain band ring; short, clean nails with no varnish or artificial nails; a religious bangle pushed up the forearm; long hair tied back; cuts covered with a waterproof dressing."
+              ],
+              [
+                "Gloves and aprons",
+                "Nitrile gloves and a disposable apron for contact with blood, body fluids, broken skin, mucous membranes or soiled items. Changed between people and between tasks; never washed or rubbed with hand rub; never double-gloved; not worn for social contact. Latex gloves are not used."
+              ],
+              [
+                "Masks and eye protection",
+                "Type IIR mask where splashes to the face are possible or the care plan requires one for a respiratory infection; goggles or a visor where splashes to the eyes are possible. Fit-tested FFP3 respirators for suspected or confirmed infectious tuberculosis of the lungs or throat (the IPC lead contacts the local TB specialist service the same day), otherwise only on community IPC team or health protection team advice."
+              ],
+              [
+                "Respiratory hygiene",
+                "Catch coughs and sneezes in a tissue, bin it and clean hands. When a respiratory infection is suspected or confirmed, open a window during and after care where the person agrees and it is safe and secure."
+              ],
+              [
+                "Care equipment",
+                "Single-use items used once. Reusable equipment cleaned before and after each use as the manufacturer directs, and immediately after use when it moves between homes. Carried in the lidded kit box with clean and used items apart."
+              ],
+              [
+                "Spillages, linen, waste and sharps",
+                "Handled under the Laundry, Soiled Linen and Spillages Procedure, the Waste Management in People's Homes Procedure and the Sharps Safety and Needlestick Injury Procedure. Care waste is double-bagged before it goes in the household bin. Needles are never recapped and sharps never go in a waste bag."
+              ],
+              [
+                "Uniform",
+                "Clean every shift, changed as soon as possible if soiled, washed at the hottest temperature the fabric allows and at least 60°C where the label permits (Uniform, ID Badges and Dress Code Policy). A uniform never replaces an apron."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Assessing infection risk and care planning",
+      "subsections": [
+        {
+          "heading": "At the initial assessment",
+          "blocks": [
+            {
+              "p": "The Care Coordinator or Field Care Supervisor carrying out the initial assessment records in the assessment and risk assessments:"
+            },
+            {
+              "bullets": [
+                "any current or recent infection, including MRSA, C. difficile or another resistant organism, and any recent positive test;",
+                "hospital stays and antibiotic courses in the last 3 months;",
+                "invasive devices such as a urinary catheter, feeding tube or stoma, and any wounds or pressure damage;",
+                "continence needs and conditions that raise the risk of infection, such as diabetes or treatment that weakens the immune system;",
+                "the home: running water, toilet and washing facilities, laundry facilities, waste arrangements, pets and pests, and any sharps used by the person or their family;",
+                "anyone in the household who is currently unwell with an infection."
+              ]
+            },
+            {
+              "p": "For a short-notice start (within 48 hours of accepting the referral, including every start on the day of hospital discharge), the infection information in the referral and discharge letter is recorded in the care plan before the first visit, and the full assessment is completed at the first visit."
+            }
+          ]
+        },
+        {
+          "heading": "The care plan",
+          "blocks": [
+            {
+              "p": "Where there is an infection risk, the care plan states the PPE for each task, any transmission-based precautions, device care, the cleaning, laundry and waste tasks agreed, where clean equipment and any sharps container are kept, and the signs to report. The infection section is reviewed at every care plan review, and before the next visit when an infection is suspected or confirmed, the person returns from hospital, a device is inserted or removed, or precautions start or end. Precautions end only on the advice of the GP, another health professional or the IPC lead."
+            }
+          ]
+        },
+        {
+          "heading": "Sharing infection information",
+          "blocks": [
+            {
+              "p": "When care is shared, or the person moves to hospital, a care home or another provider, we share their infection status and the precautions needed with those who need it, with consent or as the Confidentiality and Information Sharing Policy allows. Infection status, including blood-borne virus status, is confidential and never written where visitors can see it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Recognising and responding to infection",
+      "subsections": [
+        {
+          "heading": "What staff do",
+          "blocks": [
+            {
+              "p": "Older people may have no temperature and show infection only as new confusion, a fall, or loss of appetite."
+            },
+            {
+              "steps": [
+                "If the person seems seriously unwell or may have sepsis, for example breathing very fast, newly confused, slurred or not making sense, with blue, pale or blotchy skin, lips or tongue, or a rash that does not fade when pressed, call 999, stay with the person and phone the office, which covers your next visits.",
+                "For other signs, such as a high temperature or shivering, a new or worse cough, diarrhoea (three or more loose stools in 24 hours) or vomiting, a fall, going off food or drink, pain passing urine, or a red, hot, swollen or weeping wound or device site, phone the office or the On-call Manager before leaving; if nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. Until advised otherwise, wear gloves and an apron for all personal care.",
+                "Record what you saw, the person's own words and what you did in the daily visit notes before leaving.",
+                "The Care Coordinator, or the On-call Manager out of hours, contacts the GP the same day (NHS 111 out of hours), records the advice in the daily visit notes and care plan, and records an infection report in the incident log.",
+                "The Care Coordinator updates the care plan before the next visit and tells every care worker allocated to the person. If the person gets worse at any point, the GP is contacted again the same day, or 999 is called."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Antibiotics and antimicrobial stewardship",
+          "blocks": [
+            {
+              "p": "When we support a person with an antibiotic, the eMAR records the reason, dose, start date, duration and allergies. Care workers support the full course exactly as prescribed and phone the office before leaving if they notice side effects, such as diarrhoea or a rash. If the person is not improving after 48 hours of an antibiotic, the Care Coordinator contacts the GP the same day. Staff never use urine dipsticks to judge whether a person has a urine infection, and never suggest leftover antibiotics. See the Infections of Concern Guideline."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting infections, outbreaks and exposures",
+      "subsections": [
+        {
+          "heading": "Who reports what, and when",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Event",
+                  "Who acts",
+                  "Reports to",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "Signs of infection in a person we support",
+                    "Care worker",
+                    "Office or On-call Manager by phone",
+                    "Before leaving the home"
+                  ],
+                  [
+                    "Same event",
+                    "Care Coordinator, or On-call Manager out of hours",
+                    "GP, NHS 111 out of hours, or 999 if seriously unwell",
+                    "Same day; immediately if seriously unwell"
+                  ],
+                  [
+                    "Two or more people supported or staff with similar symptoms starting within 7 days of each other and sharing a care worker, care run, household or other exposure",
+                    "Care Coordinator",
+                    "IPC lead",
+                    "At once by phone, and always the same working day"
+                  ],
+                  [
+                    "Suspected or confirmed outbreak, or a single case of a rare or high-consequence infection",
+                    "IPC lead",
+                    "UKHSA health protection team by phone; GPs of those affected; local authority public health team or adult social care link; community IPC team; commissioners",
+                    "Immediately by phone once an outbreak is suspected. Out of hours, the On-call Manager phones the health protection team's out-of-hours service for a rare or high-consequence infection, where advice is needed before morning or where the local reporting route on the Local IPC and Health Protection Contacts sheet asks for out-of-hours reports; otherwise the IPC lead reports by 10am on the next working day"
+                  ],
+                  [
+                    "Outbreak or staff illness threatening our ability to staff visits safely",
+                    "Registered Manager",
+                    "CQC (Statutory Notifications to CQC Procedure) and commissioners",
+                    "CQC the same working day if identified in office hours, otherwise within 24 hours; commissioners the same working day"
+                  ],
+                  [
+                    "Needlestick, human bite or scratch, or splash of blood or body fluid to broken skin, eyes, nose or mouth (animal bites: First Aid Procedure)",
+                    "Care worker",
+                    "Office by phone, then the nearest emergency department",
+                    "Immediately, after making the person safe and giving first aid: let a wound bleed, wash and cover it; rinse a splash with plenty of water. Incident log before the end of the shift"
+                  ],
+                  [
+                    "Breach of IPC practice, PPE failure or near miss",
+                    "Any member of staff",
+                    "Office; incident log",
+                    "Before the end of the shift"
+                  ],
+                  [
+                    "Infection symptoms in a member of staff",
+                    "Staff member",
+                    "Office",
+                    "Before the shift"
+                  ],
+                  [
+                    "Exposure or work-related infection reportable under RIDDOR",
+                    "Registered Manager",
+                    "Health and Safety Executive",
+                    "Within RIDDOR timescales (RIDDOR Reporting Procedure)"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The Directors are told as set out under Duties of the IPC lead. Where infection harm may be linked to a failing in our care, the Registered Manager decides whether the Duty of Candour Policy applies and whether to raise a safeguarding concern. Infection incidents are investigated under the Incident Reporting, Investigation and Learning Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Managing an outbreak",
+          "blocks": [
+            {
+              "p": "The IPC lead opens an outbreak record in the incident log; follows the health protection team's advice; briefs all staff, including agency workers, the same day; allocates dedicated care workers to affected people where possible; checks PPE stock daily; and uses the Business Continuity and Emergency Planning Policy if visits are at risk. Essential visits continue, changes to care are agreed with the person, and people affected and their families are kept informed. Within 28 days of the outbreak being declared over, the IPC lead reviews what worked and updates our procedures (Transmission-Based Precautions and Outbreak Management Procedure)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Staff health, illness and vaccination",
+      "blocks": [
+        {
+          "bullets": [
+            "The health questionnaire every new worker completes after an offer of work, under the Safer Recruitment Policy, covers infection history, immunisation and time spent living overseas. It is confidential and held in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions).",
+            "{{organisation}} uses an external occupational health provider, listed on the Local IPC and Health Protection Contacts sheet, for advice on staff health and infection and for the skin checks described in the Health and Safety Policy.",
+            "Staff with diarrhoea or vomiting stay off work until they are well and 48 hours have passed since the last episode; staff with a high temperature stay off until it has gone and they feel well enough to work. Other exclusion periods are in the Staff Infection-Related Illness and Exclusion Policy. Visits are allocated again only once the Care Coordinator has confirmed the exclusion has ended. Nobody is penalised for reporting symptoms or staying away as required.",
+            "The HR Manager starts, and the Registered Manager completes, an individual risk assessment within 5 working days of learning that a worker is at higher risk from infection, for example through pregnancy, and the same day during an outbreak. Until it is done, the worker is not allocated to anyone with a known infection.",
+            "Hepatitis B vaccination is offered free in the first week of induction to everyone who gives personal care or carries a sharps pick-up kit, and flu vaccination is strongly encouraged each autumn. Vaccination is not a condition of employment (Staff Vaccination and Immunisation Policy)."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Equipment and supplies",
+      "subsections": [
+        {
+          "heading": "The kit every care worker carries",
+          "blocks": [
+            {
+              "p": "{{organisation}} provides all PPE and hand hygiene supplies free of charge. Each care worker receives a full kit at induction and keeps at least one week's supply for their rota:"
+            },
+            {
+              "bullets": [
+                "hand rub of at least 60% alcohol, liquid soap in a portable dispenser, paper towels or kitchen roll, and detergent hand wipes;",
+                "nitrile gloves in the worker's size, disposable aprons, Type IIR masks (transparent masks for visits to people who lip-read), and personal-issue reusable goggles (disposable visors where needed);",
+                "tissues, waste bags, and two water-soluble laundry bags and two clear outer bags at all times; the office delivers a home supply where the care plan requires it (Laundry, Soiled Linen and Spillages Procedure);",
+                "the exposure card (Sharps Safety and Needlestick Injury Procedure) and DO NOT USE tags for faulty equipment;",
+                "a clean, dry, lidded box to carry the kit, cleaned at least weekly and whenever soiled."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Ordering, storing and issuing stock",
+          "blocks": [
+            {
+              "p": "Office staff keep the office PPE store clean, dry and off the floor, issue and record supplies, count stock weekly and reorder when any item falls below 6 weeks of normal use. The Care Coordinator tells the IPC lead the same day if any item falls below 4 weeks' supply, the minimum held under the Business Continuity and Emergency Planning Policy. Stock is used oldest first."
+            }
+          ]
+        },
+        {
+          "heading": "If a care worker runs short during a shift",
+          "blocks": [
+            {
+              "steps": [
+                "The care worker phones the office or the On-call Manager before the next visit.",
+                "The office or On-call Manager gets supplies to the care worker before that visit, by delivery from the office, a supervisor or a colleague.",
+                "Personal care is never given without gloves, an apron and a means of hand hygiene. If supplies cannot arrive in time, the Care Coordinator or On-call Manager arranges another way to make the visit safely, such as sending another care worker, and records the decision.",
+                "The shortage is recorded in the incident log."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Information for the people we support",
+      "blocks": [
+        {
+          "p": "At the start of the service each person, and their family where the person agrees, receives our service information. It explains how our staff prevent infection and when they wear PPE, what we ask of the household, such as somewhere to wash hands and put care waste, and who to contact about an infection or hygiene concern: the office, or the On-call Manager out of hours, with the right to complain under our Complaints Policy and Procedure. People are told they may ask any care worker whether they have cleaned their hands. The information is available in other formats and languages under the Communication and Accessible Information Policy, and the annual IPC statement is available on request."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Infection risk, precautions and agreed household tasks: the person's care plan and risk assessments.",
+            "Signs of infection, advice from health professionals, and IPC advice given to the person or family: daily visit notes.",
+            "Infection reports, outbreak records, exposure incidents, IPC breaches and supply shortages: the incident log.",
+            "Antibiotic courses we support: the eMAR.",
+            "Concerns about neglect or abuse linked to infection: safeguarding records.",
+            "IPC training and competency: training and compliance records; spot check observations: supervision and appraisal records; staff health assessments, higher-risk assessments and vaccination status: the staff record; acknowledgement of this policy: policy acknowledgements.",
+            "Audit results, action plans, quarterly IPC reports and annual IPC statements: kept with each audit and in the Directors' minutes."
+          ]
+        },
+        {
+          "p": "Records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "IPC induction: the Care Certificate infection prevention and control standard, this policy, standard precautions, putting on and taking off PPE, waste, linen, spillages, responding to exposures and recognising infection",
+                "Care Workers, Senior Care Workers and any other staff who give care",
+                "During induction, before working without a shadowing colleague",
+                "Every 12 months"
+              ],
+              [
+                "Observed hand hygiene and PPE competency check",
+                "Care Workers, Senior Care Workers and any other staff who give care",
+                "Before working alone",
+                "Every 12 months, and observed at every spot check"
+              ],
+              [
+                "IPC awareness: this policy, hand hygiene, reporting routes and stock control",
+                "Office staff, HR and staff allocation roles",
+                "Within the first week of employment",
+                "Every 12 months"
+              ],
+              [
+                "Task-specific IPC: catheter care, stoma care, wound care and aseptic technique",
+                "Named care workers allocated to those tasks",
+                "Before carrying out the task",
+                "As set out in the Catheter Care and Continence Hygiene Protocol, and at least every 12 months"
+              ],
+              [
+                "Competency assessor training",
+                "Field Care Supervisors, authorised Senior Care Workers, the Deputy Manager and the Registered Manager",
+                "Before carrying out competency checks",
+                "Every 2 years; each assessor observed assessing by the Registered Manager or Deputy Manager every 12 months"
+              ],
+              [
+                "Outbreak and out-of-hours reporting briefing",
+                "On-call Managers",
+                "Before the first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "IPC lead course",
+                "Registered Manager and Deputy Manager",
+                "Within 3 months of taking up the role",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A care worker who fails a hand hygiene or PPE observation is coached at the time and observed again within 4 weeks. A care worker who fails that second observation, causes an IPC incident through their practice, or returns after 3 months or more away from care work is reassessed and does not work alone until they pass. The HR Manager tells each worker and the Care Coordinator 30 days before a refresher or competency check is due. A worker whose IPC training or competency check has expired is not allocated visits until it is renewed."
+        },
+        {
+          "p": "Before an agency worker's first shift, the agency confirms in writing that their IPC training is current and the Care Coordinator issues our kit and briefs them on this policy. Students who give personal care complete IPC induction and the observed competency check; volunteers and students who give no personal care complete IPC awareness training. Staff acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Hand hygiene, PPE practice and kit",
+                "Observation at every spot check, and every care worker observed at least every 6 months",
+                "Field Care Supervisors",
+                "Deputy Manager monthly, then the IPC lead"
+              ],
+              [
+                "Infection risk in care plans",
+                "5 care plans a month, or all if fewer, always including people with an invasive device, a wound or a current infection",
+                "Deputy Manager",
+                "IPC lead"
+              ],
+              [
+                "PPE and hand hygiene stock",
+                "Weekly count and monthly stock summary",
+                "Office staff and Care Coordinator",
+                "IPC lead"
+              ],
+              [
+                "Infection surveillance: infections by type, links between households, infection-related staff absence, antibiotic courses, exposure incidents and supply shortages",
+                "Monthly review",
+                "IPC lead",
+                "Directors in the quarterly IPC report"
+              ],
+              [
+                "IPC training, competency and vaccination records, and policy acknowledgements (target 100% for induction training and 95% in date for refreshers)",
+                "Monthly",
+                "HR Manager",
+                "IPC lead"
+              ],
+              [
+                "Full IPC audit against this policy and the ten criteria of the Code of Practice",
+                "Every 12 months, in March",
+                "IPC lead with the Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Annual IPC statement for 1 April to 31 March, with priorities for the year ahead",
+                "Every 12 months, completed by 30 April",
+                "IPC lead",
+                "Directors, who approve it"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall produces an action with a named owner and a deadline, recorded with the audit and re-checked at the next audit. The quarterly IPC report forms part of the quarterly governance report to the Directors. The audit method and tools are set out in the Infection Control Audit and Annual Statement Procedure."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager as IPC lead, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, an outbreak or serious infection-related incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

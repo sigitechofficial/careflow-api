@@ -1,7 +1,7 @@
 name: Deploy job triggers to Azure Functions
 
 # Every merge into `azure` that touches functions/ (or a manual run): test and build the timer
-# functions, deploy them to the Flex Consumption app, and check that all 7 functions registered.
+# functions, deploy them to the Flex Consumption app, and check that all 10 functions registered.
 # Signs in with OIDC (managed identity id-careflow-github-deploy, needs Website Contributor on the
 # function app). No stored credentials or publish profiles.
 on:
@@ -27,7 +27,8 @@ env:
   NODE_VERSION: "22"
   EXPECTED_FUNCTIONS: >-
     survey-distribution visit-start-reminder late-visit-alert ecm-missed-visit
-    ecm-missing-checkout platform-costs-sync employee-payout-auto
+    ecm-missing-checkout platform-costs-sync employee-payout-auto supervision-reminders
+    compliance-expiry-reminders assessment-review-reminders policy-acknowledgement-reminders
 
 jobs:
   deploy:
@@ -95,7 +96,7 @@ jobs:
           app-name: ${{ env.FUNC_APP }}
           package: .deploy-functions
 
-      - name: Verify all 7 functions are registered
+      - name: Verify all 10 functions are registered
         run: |
           set -euo pipefail
           for i in $(seq 1 24); do

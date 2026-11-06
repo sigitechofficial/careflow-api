@@ -1,5 +1,5 @@
 import { DataAccessType, ServiceUserCarePlanInstanceStatus, type Prisma } from '@prisma/client';
-import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, BadRequestException, OnModuleInit, Optional } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -19,6 +19,8 @@ import { activeServiceUserAbsenceWhere } from '../service-user-absences/active-a
 import { activeServiceUserFlashMessageWhere } from '../service-user-flash-messages/active-flash-message.util';
 import { mapServiceUserDetail, mapServiceUserListRow } from './mappers/service-user.mapper';
 import { carePlanListStatusByServiceUser } from '../service-user-care-plans/care-plan-review-schedule';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { DEFAULT_REVIEW_SETTINGS } from '../organisation-general-settings/review-settings.util';
 import { assertDefaultChargeCard } from '../billing/charge-card-assignment.util';
 import {
   inferBranchFromAddress,
@@ -101,7 +103,14 @@ export class ServiceUsersService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly orgScope: OrgScopeService,
+    @Optional() private readonly orgSettings?: OrganisationGeneralSettingsService,
   ) {}
+
+  /** Settings → Reviews & reminders: the list's amber care plan window. */
+  private async carePlanListDueWithinDays(): Promise<number> {
+    return (this.orgSettings ? await this.orgSettings.getReviewSettings() : DEFAULT_REVIEW_SETTINGS)
+      .carePlanListDueWithinDays;
+  }
 
   private async ensureActiveEmployee(id: string | null | undefined): Promise<void> {
     if (!id) return;
@@ -430,7 +439,10 @@ export class ServiceUsersService implements OnModuleInit {
       appendWhereAnd(where, hospitalisedListWhere());
     }
     if (query.carePlanListStatus) {
-      appendWhereAnd(where, carePlanListStatusWhere(query.carePlanListStatus));
+      appendWhereAnd(
+        where,
+        carePlanListStatusWhere(query.carePlanListStatus, new Date(), await this.carePlanListDueWithinDays()),
+      );
     }
     if (query.carePlanFormIds?.length) {
       appendWhereAnd(where, carePlanFormIdsWhere(query.carePlanFormIds));
@@ -589,7 +601,12 @@ export class ServiceUsersService implements OnModuleInit {
             select: { id: true, firstName: true, lastName: true, email: true, username: true },
           }),
     ]);
-    const carePlanListStatusByUserId = carePlanListStatusByServiceUser(pageIds, publishedCarePlans);
+    const carePlanListStatusByUserId = carePlanListStatusByServiceUser(
+      pageIds,
+      publishedCarePlans,
+      new Date(),
+      await this.carePlanListDueWithinDays(),
+    );
     const creatorNameById = new Map(
       creators.map((u) => {
         const name = [u.firstName, u.lastName].filter(Boolean).join(' ').trim();

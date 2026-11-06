@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Observable, map } from 'rxjs';
 import { trackedHoursRequests } from '../request-context/super-admin-context';
+import { stripSecretFields } from '../security/secret-fields';
 
 type StandardResponse = {
   success: boolean;
@@ -50,6 +51,9 @@ export class ResponseInterceptor implements NestInterceptor {
         };
       }),
       map(withHoursRequests),
+      // Last safety net: no response body may carry a credential column (passwordHash, refreshTokenHash...),
+      // even when a query included a whole User row by mistake.
+      map(stripSecretFields),
     );
   }
 }

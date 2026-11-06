@@ -1,0 +1,772 @@
+{
+  "reference": "POL-SG-011",
+  "revision": 1,
+  "title": "Domestic Abuse Policy",
+  "documentType": "POLICY",
+  "summary": "How we recognise and respond safely to domestic abuse affecting the people we support, including abuse by partners, ex-partners and relatives who may also be their carers, coercive control, economic abuse, so-called honour-based abuse and forced marriage; how we assess risk and work with MARAC and specialist services; how we keep lone workers safe; and how we support employees who experience domestic abuse and act on those who perpetrate it. For all employees.",
+  "keyPoints": {
+    "intro": "You may be the only person outside the family who sees the person regularly, and the abuser may be in the home when you arrive. This is how you notice domestic abuse, respond without making it more dangerous, and get support if it happens to you.",
+    "points": [
+      "If anyone is in immediate danger, call 999; if you cannot speak on a mobile, press 55 when asked. If you feel unsafe in the home, leave and phone from somewhere safe.",
+      "Domestic abuse includes a partner, ex-partner or relative, including a family carer, controlling the person's money, medicines, walking aids, phone, visitors or care visits. Report it even if the person says it is normal or the carer seems stressed.",
+      "Only ask about abuse when the person is alone and nobody, not even a child, can overhear. Never use a relative to interpret. Listen, believe them, and never confront the abuser or tell the person to leave.",
+      "Phone the office, or the On-call Manager out of hours, before leaving, from outside if the abuser is there. Report it in the CareFlow app as a Safeguarding Concern incident before your shift ends; daily visit notes say only that a concern was reported.",
+      "Never write about the abuse where the abuser could see it, text or leave voicemails about it, or leave leaflets unless the person asks and has somewhere safe to keep them.",
+      "Never give anyone the person's visit times, information or key safe code. Never agree to a relative's request to cancel or shorten visits; tell the office. Where a domestic abuse concern is recorded, visits continue until the person confirms the change privately.",
+      "If someone refuses entry or will not let you see the person, leave calmly and phone the office from somewhere you cannot be overheard. A relative's word that the person is fine is never enough.",
+      "Domestic abuse in a home where a child lives or regularly stays is always reported. If you hear of a forced marriage or so-called honour-based abuse, never contact the family; phone the office at once.",
+      "Look and listen before you open the door: if you hear shouting or threats, do not go in; wait somewhere safe and phone the office. Follow your visit safety plan, including two workers where it says so.",
+      "If you are experiencing domestic abuse, tell any manager or the HR Manager in confidence. You can have up to 10 days' paid safe leave in any 12 months, rota and contact changes, and free counselling.",
+      "If you are arrested, investigated by the police or made subject to a court order for domestic abuse, tell the Registered Manager or HR Manager before your next shift and within 24 hours at most."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "SAFEGUARDING",
+    "RISK_ASSESSMENT",
+    "INCIDENT",
+    "HR"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-002",
+    "POL-SG-003",
+    "POL-SG-007",
+    "POL-SG-013",
+    "POL-HS-003",
+    "POL-HS-004",
+    "POL-HR-015"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Domestic Abuse Act 2021, section 1 (definition of domestic abuse)",
+      "url": "https://www.legislation.gov.uk/ukpga/2021/17/section/1"
+    },
+    {
+      "source": "Domestic Abuse Act 2021, section 2 (definition of personally connected)",
+      "url": "https://www.legislation.gov.uk/ukpga/2021/17/section/2"
+    },
+    {
+      "source": "Domestic Abuse Act 2021, section 3 (children as victims of domestic abuse)",
+      "url": "https://www.legislation.gov.uk/ukpga/2021/17/section/3"
+    },
+    {
+      "source": "Serious Crime Act 2015, section 76 (controlling or coercive behaviour in an intimate or family relationship, extended from 5 April 2023 to partners, ex-partners and relatives who do not live together)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/9/section/76"
+    },
+    {
+      "source": "Serious Crime Act 2015, section 75A (strangulation or suffocation, in force 7 June 2022)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/9/section/75A"
+    },
+    {
+      "source": "Anti-social Behaviour, Crime and Policing Act 2014, section 121 (offence of forced marriage, including any conduct causing a person who lacks capacity to marry, and any conduct to cause a child under 18 to marry, from 27 February 2023)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/12/section/121"
+    },
+    {
+      "source": "Care Act 2014, section 42 (enquiry by local authority)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/42"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 (safeguarding service users from abuse and improper treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18(2)(e) and (f) (notification of abuse or allegations of abuse, and of incidents reported to or investigated by the police)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Victims and Prisoners Act 2024, section 19 (domestic abuse related death reviews, inserting section 8A into the Domestic Violence, Crime and Victims Act 2004; in force 15 September 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2024/21/section/19"
+    },
+    {
+      "source": "Home Office, Domestic Abuse: statutory guidance (July 2022, updated 13 April 2023), paragraphs 154 to 167 (older and disabled victims), 229 to 230 (risk assessment and DASH), 288 to 298 (enquiry by health professionals, interpreters and recording) and 402 to 412 (employers)",
+      "url": "https://www.gov.uk/government/publications/domestic-abuse-act-2021/domestic-abuse-statutory-guidance-accessible-version"
+    },
+    {
+      "source": "Home Office, Controlling or coercive behaviour: statutory guidance framework (April 2023, updated 27 July 2023), paragraphs 10, 32, 84 and 95 to 99 (relatives not living together; control of medicines, equipment and care; the best interests defence and capacity)",
+      "url": "https://www.gov.uk/government/publications/controlling-or-coercive-behaviour-statutory-guidance-framework/controlling-or-coercive-behaviour-statutory-guidance-framework-accessible"
+    },
+    {
+      "source": "Department of Health and Social Care, Care and support statutory guidance, chapter 14 Safeguarding, paragraph 14.20 (domestic abuse) and the partnership training example (DASH and MARAC awareness), updated 30 October 2026",
+      "url": "https://www.gov.uk/government/publications/care-act-2014-supporting-implementation/care-and-support-statutory-guidance"
+    },
+    {
+      "source": "HM Government, Multi-agency statutory guidance for dealing with forced marriage and multi-agency practice guidelines (2023): no family involvement, mediation or family interpreters; adults with care and support needs; the Forced Marriage Unit",
+      "url": "https://www.gov.uk/government/publications/the-right-to-choose-government-guidance-on-forced-marriage/multi-agency-statutory-guidance-for-dealing-with-forced-marriage-and-multi-agency-practice-guidelines-handling-cases-of-forced-marriage-accessible"
+    },
+    {
+      "source": "GOV.UK, Domestic abuse: how to get help (national helplines, Silent Solution and Bright Sky), updated 29 April 2025",
+      "url": "https://www.gov.uk/guidance/domestic-abuse-how-to-get-help"
+    },
+    {
+      "source": "SafeLives, Marac referral criteria (visible high risk on the Dash risk checklist, professional judgement, potential escalation)",
+      "url": "https://safelives.org.uk/resources-library/marac-referral-criteria-and-form/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Domestic abuse affects people of every age, and older and disabled people are at particular risk. The abuser is often a partner, an adult son or daughter or another relative who is also the person's carer and controls their money, medicines, equipment, visitors and contact with services. Our care workers visit these homes alone and may be the only people outside the family who see what is happening."
+        },
+        {
+          "p": "{{organisation}} will recognise domestic abuse, respond in a way that does not increase the danger, report it under our safeguarding procedures, and work with the police, the local authority, multi-agency risk assessment conferences and specialist services so that the person is safer in the way they want to be. We will keep our staff safe in homes where an abuser lives or visits."
+        },
+        {
+          "p": "{{organisation}} also recognises that some of our employees experience domestic abuse. We will support them confidentially and practically, and we will act on any employee who abuses a partner or relative, because that conduct may put the people we support at risk."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that everyone who works for us recognises domestic abuse, including coercive control and economic abuse, in care at home; asks about it only when it is safe; reports every concern so that risk is assessed with a recognised tool and referred to MARAC when the criteria are met; keeps visits, records, key safes and contacts from becoming a route for an abuser; protects lone workers; and supports employees affected by domestic abuse."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, office and care staff, bank and agency workers, students and volunteers, at visits, on call, travelling and in the branch office. It covers the adults we support, other adults in their households such as family carers, and our own employees. It adds the domestic abuse arrangements to these documents and does not repeat them:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Related matter",
+              "Document"
+            ],
+            "rows": [
+              [
+                "Steps, timescales and notifications for every safeguarding concern",
+                "Safeguarding Adults Policy; Safeguarding Concerns: Reporting, Referral and Enquiry Procedure"
+              ],
+              [
+                "A child living with domestic abuse",
+                "Safeguarding Children and Young People Policy"
+              ],
+              [
+                "Sexual violence by a partner or relative",
+                "Sexual Safety Policy"
+              ],
+              [
+                "An allegation that one of our staff has abused anyone",
+                "Managing Allegations Against Staff Procedure"
+              ],
+              [
+                "Check-in, the code phrase and lone worker devices",
+                "Lone Working and Staff Personal Safety Policy"
+              ],
+              [
+                "The behaviour and aggression risk assessment and support after violence",
+                "Violence and Aggression Towards Staff Policy"
+              ],
+              [
+                "Refused entry or a person who cannot be found",
+                "No Reply, No Access and Missing Person Procedure"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Domestic abuse",
+                "Behaviour by one person towards another where both are aged 16 or over and personally connected, and the behaviour is physical or sexual abuse, violent or threatening behaviour, controlling or coercive behaviour, economic abuse, or psychological, emotional or other abuse, whether one incident or a course of conduct (Domestic Abuse Act 2021, section 1)."
+              ],
+              [
+                "Personally connected",
+                "Current or former spouses, civil partners, fiancés and intimate partners, people who share a parental relationship to a child, and relatives (section 2). Living together is not required."
+              ],
+              [
+                "Controlling or coercive behaviour",
+                "A pattern of isolation, monitoring, threats, humiliation and control of daily life, money or care that makes a person dependent or afraid."
+              ],
+              [
+                "Economic abuse",
+                "Behaviour that substantially affects a person's ability to get, use or keep money or property, or to obtain goods or services."
+              ],
+              [
+                "So-called honour-based abuse and forced marriage",
+                "Abuse to protect a family's or community's perceived honour, usually by several relatives; and a marriage, including a religious or unofficial ceremony, without free and full consent or of a person who lacks capacity to consent to it."
+              ],
+              [
+                "DASH risk checklist",
+                "The SafeLives Domestic Abuse, Stalking and Harassment and Honour-based Violence risk identification checklist, used by trained professionals to identify high risk."
+              ],
+              [
+                "MARAC",
+                "Multi-agency risk assessment conference: a local meeting of police, social care, health, housing, independent domestic violence advisers (IDVAs) and others that agrees a safety plan for each victim at high risk of serious harm or death."
+              ],
+              [
+                "Alleged abuser",
+                "The person who may be responsible. The term does not mean we have decided what happened."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and fund second workers, lone worker devices, DASH and MARAC training, safe leave and the employee assistance programme. The Nominated Individual is told within 24 hours of any domestic abuse concern involving our staff, the police, serious injury or death, possible organisational abuse or likely media interest, and reviews the domestic abuse figures in the safeguarding report part of the quarterly governance report to the Directors."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is our domestic abuse lead within the safeguarding lead role: they decide on every concern, complete the DASH risk checklist, make MARAC referrals and represent us at MARAC, keep the MARAC and local domestic abuse service routes on the Local Safeguarding Contacts sheet, and, with the HR Manager, approve salary advances and decide whether absence caused by domestic abuse counts towards sickness review points. The Deputy Manager acts when the Registered Manager is absent or involved. Out of hours the On-call Manager takes the immediate decisions and hands over by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "As assessors they ask the safe enquiry question. Care Coordinators protect visit information, check any request to cancel visits with the person, and change rotas, contacts and key safe arrangements. Field Care Supervisors include the alleged abuser in the behaviour and aggression risk assessment and ask the person privately at every spot check and review whether they feel safe."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager agrees and reviews the workplace safety and support plan of an employee who discloses domestic abuse, arranges safe leave, payroll changes and counselling, and manages the employment side when an employee is accused of domestic abuse."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers, Senior Care Workers and Office staff",
+          "blocks": [
+            {
+              "p": "Care Workers and Senior Care Workers notice and report signs, ask about abuse only when it is safe, follow the visit safety plan and keep information from the alleged abuser. Office staff never give anyone information about a person's visits or a worker's whereabouts, and pass every request to cancel or change visits for a person whose risk assessment records a domestic abuse concern to the Care Coordinator."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The law and how we apply it",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Source",
+              "What it says",
+              "How we apply it"
+            ],
+            "rows": [
+              [
+                "Domestic Abuse Act 2021, sections 1 to 3",
+                "Defines domestic abuse. A child who sees, hears or experiences the effects of it, and is related to the victim or abuser, is a victim in their own right.",
+                "Abuse by adult children and other relatives counts as well as by partners. Domestic abuse where a child lives or regularly stays is always reported under the Safeguarding Children and Young People Policy."
+              ],
+              [
+                "Serious Crime Act 2015, sections 75A and 76",
+                "Controlling or coercive behaviour, including by an ex-partner or relative who lives elsewhere, and strangulation or suffocation are offences. A carer's claim to have acted in the person's best interests is no defence if the behaviour was unreasonable or caused fear of violence.",
+                "Control of medicines, equipment, money, visitors or care, and any account of choking or smothering, are treated as possible crimes and reported to the police, unless a person with capacity does not want that, nobody else is at risk and no member of staff is implicated."
+              ],
+              [
+                "Anti-social Behaviour, Crime and Policing Act 2014, section 121",
+                "Forcing a person to marry is an offence; any conduct causing a person who lacks capacity to marry is forced marriage.",
+                "Every forced marriage concern goes to the police the same day and is never discussed with the family."
+              ],
+              [
+                "Care Act 2014, section 42; Regulation 13",
+                "The local authority must make enquiries where it has reasonable cause to suspect that an adult with care and support needs is experiencing or at risk of abuse and, because of those needs, cannot protect themselves. We must have effective systems to prevent and investigate abuse.",
+                "Domestic abuse is referred like any other abuse. A MARAC referral is made as well where the criteria are met; it never replaces the safeguarding referral."
+              ],
+              [
+                "Victims and Prisoners Act 2024, section 19",
+                "From 15 September 2026, domestic abuse related death reviews replace domestic homicide reviews in England and Wales.",
+                "We are not a body the law directs to take part, but our policy is that the Registered Manager sends any information a review requests, with a chronology, by the date requested."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Recognising domestic abuse in home care",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What staff may see",
+          "blocks": [
+            {
+              "p": "Abuse in long relationships is often hidden as 'how we have always been', and older people are less likely to leave or ask for help. A sign is a reason to report, not proof."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Form",
+                  "Signs in the home"
+                ],
+                "rows": [
+                  [
+                    "Control of care and daily life",
+                    "A relative who answers for the person, will not leave the room, cancels or shortens visits, refuses health appointments, stops friends visiting or threatens a care home; walking aids, glasses, hearing aids, phone or pendant alarm out of reach or taken; food, heating or the toilet controlled."
+                  ],
+                  [
+                    "Medicines",
+                    "Medicines withheld, hidden, not collected or overused; the person drowsy or confused after time alone with the relative; eMAR and stock not matching."
+                  ],
+                  [
+                    "Physical and sexual abuse",
+                    "Injuries the explanation does not fit, grip marks, marks on the neck, burns; fear of a particular person; distress during intimate care; any account of choking or smothering."
+                  ],
+                  [
+                    "Economic abuse",
+                    "No food or heating despite enough income; the person's card, pension or benefits kept by a relative; debts run up in their name; sudden changes to a will or power of attorney."
+                  ],
+                  [
+                    "Psychological abuse and technology",
+                    "The person belittled, blamed for being a burden or frightened of the relative's moods; cameras, phone checks or trackers used to watch the person."
+                  ],
+                  [
+                    "So-called honour-based abuse and forced marriage",
+                    "An adult kept at home, talk of a marriage or a long trip abroad, a passport held by relatives, fear of shaming the family."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Carers under strain and people we support who harm others",
+          "blocks": [
+            {
+              "p": "A family carer under great strain may become abusive. We report it in the same way, because the person's safety comes first; support for the carer becomes part of the response but never delays a report."
+            },
+            {
+              "p": "A person we support may abuse a partner or relative, deliberately or because of a condition such as dementia. The relative may be an adult at risk: the safeguarding lead decides within 1 hour whether to refer them to the local authority, the Care Coordinator asks the local authority in writing within 2 working days for a carer's assessment and a care review, and the person's care plan has a focused review within 7 days. Condition-related behaviour leads to care review, not sanctions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Asking safely and responding at the visit",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Safe enquiry",
+          "blocks": [
+            {
+              "p": "At every initial assessment and care plan review the assessor, if the person agrees to time alone, asks a simple question such as 'Does anyone at home hurt you, frighten you or stop you doing things you want to do?' It is asked only when nobody else, including a child, can overhear, and never through a relative or friend acting as interpreter; a professional interpreter is booked instead. The initial assessment, or the Reviews part of the care plan, records only that the question was asked, or why it could not be; anything the person discloses goes in the safeguarding record and is reported as a concern. Care workers do not ask routinely; they respond to signs and to what the person tells them."
+            }
+          ]
+        },
+        {
+          "heading": "What the care worker does",
+          "blocks": [
+            {
+              "steps": [
+                "Look and listen before you open the key safe or door. If you hear shouting, threats or someone being hurt, do not go in: wait somewhere safe, such as your locked car, call 999 if anyone may be in danger, and phone the office, or the On-call Manager out of hours, who decides how the visit goes ahead. If you cannot speak on a 999 call from a mobile, press 55 when asked.",
+                "If you are threatened or feel unsafe during the visit, leave at once, even if care is unfinished, and phone from somewhere safe; if you cannot speak freely, use the code phrase under the Lone Working and Staff Personal Safety Policy. Tell the office whether the home and key safe were left secure. The office arranges any essential care still due, and never sends you back alone to give it.",
+                "If the person tells you about abuse or you notice signs, talk only when you are alone, for example during personal care with the door closed. Listen, believe them, say it is not their fault, and ask only open questions such as 'Are you safe now?' If the person wants to keep talking and it is safe, you may stay beyond the planned visit time; if the visit will run more than 15 minutes over, phone the office before the expected finish time so that your next visit is covered.",
+                "Never confront or warn the alleged abuser, discuss the concern with any relative, or tell the person to leave the relationship. Keep your routine as usual.",
+                "Tell the person you must tell your manager so that they can help, and that a free national domestic abuse helpline is open 24 hours a day. Give written information only if they ask and have somewhere safe to keep it.",
+                "Phone the office, or the On-call Manager out of hours, before you leave the visit, from outside the home if the alleged abuser is present or could overhear. You must speak to a person: if nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly, as the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure sets out.",
+                "Report the concern in the CareFlow app as a Safeguarding Concern incident before the end of your shift, with the person's exact words and any injury on its body map. Daily visit notes say only that a concern has been reported."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Blocked access, cancelled visits and court orders",
+          "blocks": [
+            {
+              "p": "If the alleged abuser refuses entry, will not let you see the person or insists on staying for care the person wants in private, do not argue: leave and phone the office from somewhere you cannot be overheard, such as your car. The visit is handled under the No Reply, No Access and Missing Person Procedure. Because a domestic abuse concern is involved, the person is accounted for only when our staff see or speak to them, or a hospital, the ambulance service, the police, a day centre or another care provider confirms the person is with them; a relative's word that the person is fine is never enough. If the person turns you away or refuses care while the alleged abuser is present or seems to be telling them what to say, accept it calmly and phone the office before you go; the office tells the safeguarding lead at once, as the Visit Cancellations and Refusals of Care Procedure requires."
+            },
+            {
+              "p": "Where the risk assessment records a domestic abuse concern, a request from anyone other than the person to cancel, shorten or change visits goes to the Care Coordinator (the On-call Manager out of hours), and visits continue as planned until the person has confirmed the change privately or, where they lack capacity to decide, the Care Coordinator has agreed it with the commissioner. The commissioner, where there is one, is told the same working day of any such request."
+            },
+            {
+              "p": "The safeguarding lead records the terms of any non-molestation order, restraining order, domestic abuse protection order or bail condition we learn of in the risk assessment, and the team is briefed before their next visit. A care worker who finds the alleged abuser at the home in breach of an order calls 999 if the person seems at risk, otherwise phones the office before leaving, and the safeguarding lead tells the police the same day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing risk and referring",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The DASH risk checklist",
+          "blocks": [
+            {
+              "p": "Every concern follows the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, including its 1-hour risk assessment, police contact and local authority referral. In addition, the Registered Manager or Deputy Manager completes the DASH risk checklist with the person, in person or by the safe contact method, within 1 working day of the concern, or the same day where the risk is graded High. It is repeated after any new incident or disclosure and reviewed at the weekly review of the interim safety plan. Where the person cannot safely take part or answer, the manager reaches a professional judgement from what we and other agencies know and records why. Where neither manager has completed DASH training, the safeguarding lead asks the local IDVA service or the police to complete the checklist."
+            }
+          ]
+        },
+        {
+          "heading": "Responding to the level of risk",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Finding",
+                  "Action",
+                  "Who and when"
+                ],
+                "rows": [
+                  [
+                    "Immediate danger",
+                    "999, protective actions, phone referral to the local authority.",
+                    "Whoever is leading, at once"
+                  ],
+                  [
+                    "MARAC criteria met: 14 or more 'yes' answers on the DASH checklist, professional judgement of high risk, potential escalation (3 or more incidents in 12 months), or the area's own threshold",
+                    "MARAC referral on the local form, police told, and referral to the IDVA service, as well as the safeguarding referral.",
+                    "Registered Manager or Deputy Manager, the same working day the criteria are met"
+                  ],
+                  [
+                    "Below the MARAC threshold",
+                    "Safeguarding referral where the section 42 conditions may be met; with the person's agreement, referral to the local domestic abuse service.",
+                    "Registered Manager or Deputy Manager; service referral within 2 working days"
+                  ],
+                  [
+                    "A child lives in or regularly stays at the home",
+                    "Referral to children's social care.",
+                    "Safeguarding lead, under the Safeguarding Children and Young People Policy"
+                  ],
+                  [
+                    "Forced marriage or so-called honour-based abuse",
+                    "Police (999 if harm or travel abroad may be imminent) and the Forced Marriage Unit, as well as the safeguarding referral; no contact with family or community members, no relative or community member as interpreter, and no mediation.",
+                    "Safeguarding lead, the same day"
+                  ],
+                  [
+                    "An attorney, deputy or appointee may be the abuser",
+                    "Office of the Public Guardian or Department for Work and Pensions informed after discussion with the local authority.",
+                    "Safeguarding lead, within 2 working days"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "MARAC thresholds and forms differ between areas, so the Local Safeguarding Contacts sheet for each area lists the MARAC referral route and the local domestic abuse and IDVA services, and is checked every 3 months."
+            }
+          ]
+        },
+        {
+          "heading": "The person's wishes and sharing without consent",
+          "blocks": [
+            {
+              "p": "The safeguarding lead, or a Field Care Supervisor they brief, talks with the person privately about what they want to happen and records their desired outcomes in their own words. A person with capacity may choose to stay with a partner or relative, and we respect that. Because domestic abuse often involves coercion, the safeguarding lead considers whether the choice is freely made, and shares information without consent where the Safeguarding Adults Policy allows, in particular where the DASH checklist or professional judgement shows high risk, children or other adults are at risk, the person may be under coercion or intimidation, or a serious crime may have been committed. A MARAC referral for a person at high risk is made without consent where needed. The person is told what is shared and why, unless that would increase the risk."
+            },
+            {
+              "p": "Where a capable person declines a referral and no exception applies, the Field Care Supervisor follows up privately every 4 weeks for at least three months, as the Safeguarding Adults Policy sets out, including the safe enquiry question. Where capacity is in doubt it is assessed under the Mental Capacity Act and Best Interests Policy, bearing in mind that fear can make a capable person appear to agree with the abuser."
+            }
+          ]
+        },
+        {
+          "heading": "Notifications and MARAC",
+          "blocks": [
+            {
+              "p": "The law requires CQC to be notified without delay of abuse or an allegation of abuse in relation to a person we support, and of any incident reported to or investigated by the police, occurring while we provide care or as a consequence of it (regulation 18). Our policy goes further: the Registered Manager notifies CQC, under the Statutory Notifications to CQC Procedure, of every allegation of domestic abuse of a person we support, even if unproven or unconnected with our care, and of any police-reported domestic abuse incident involving a person we support, including one where they are the alleged abuser. The commissioner, GP and Nominated Individual are told as the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure requires."
+            },
+            {
+              "p": "When a MARAC discusses a person we support, the Registered Manager or Deputy Manager attends or sends the information requested by the date set and records each agreed action, with an owner and a deadline, in the safeguarding record. MARAC minutes are kept only in the safeguarding record; our actions are built into the visit safety plan."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Keeping the person safe while care continues",
+      "blocks": [
+        {
+          "p": "Care continues: we never reduce or end a package because of domestic abuse in the household. Only where staff cannot be kept safe even with two workers do the suspension rules in the Violence and Aggression Towards Staff Policy apply, with essential care arranged first and a safeguarding referral the same day. The Care Coordinator agrees a visit safety plan with the person and the safeguarding lead, records it in the risk assessment, and briefs each care worker before their next visit on what to do, not on the details of the abuse."
+        },
+        {
+          "table": {
+            "columns": [
+              "Area",
+              "Our arrangement"
+            ],
+            "rows": [
+              [
+                "Who visits and when",
+                "A small, consistent team; visit times set, where the rota allows, for when the alleged abuser is usually out; two workers where the risk assessment requires it."
+              ],
+              [
+                "Information",
+                "Office staff never give the alleged abuser visit times, the person's whereabouts or any information about the person, even if they are next of kin, and pass such calls to the Registered Manager or Deputy Manager. Where the alleged abuser is the person's attorney or deputy, the Registered Manager decides what they are told after advice from the local authority, and records why. With the person's agreement, or where the sharing rules allow, the Care Coordinator tells the district nurses and any other provider visiting the person the parts of the plan that affect them, such as never giving the alleged abuser visit times."
+              ],
+              [
+                "Contacts",
+                "With the person's agreement, or in their best interests if they lack capacity, the Care Coordinator replaces the alleged abuser as the chosen contact for late and missed visits and as a key holder, asks any telecare monitoring service to remove them as a responder, and updates the People involved part of the care plan within 1 working day."
+              ],
+              [
+                "Contacting the person",
+                "The risk assessment records whether it is safe to phone, text, write or leave messages, and when. Without a recorded safe method we discuss the concern with the person only at a visit. Routine calls about visit times continue but never mention the concern, and we never send letters or texts or leave voicemails about it."
+              ],
+              [
+                "Keys and key safes",
+                "Where the alleged abuser does not live at the home and may know the code, the Care Coordinator offers the person a code change the same day and, with their agreement, has it changed that day under the Key Holding, Key Safes and Access to People's Homes Procedure, never by or through the alleged abuser. Keys we hold are never given to the alleged abuser."
+              ],
+              [
+                "Medicines and equipment",
+                "Any medicine, walking aid, pendant alarm or phone missing or moved out of reach is phoned to the office before the worker leaves; where medicines are being misused the Care Coordinator asks the GP or pharmacy the same working day about safer supply. Where the alleged abuser gives the person's medicines, meals or other care between our visits, the Care Coordinator agrees with the person and any commissioner whether we take over that support (medicines under the Medicines Management Policy) and records who does what in the care plan."
+              ],
+              [
+                "Leaving home",
+                "If the person wants to go to a refuge or stay with someone safe, the Care Coordinator, with their agreement, contacts the local domestic abuse service and any commissioner the same working day so that care continues or transfers. The new address is shared only with staff who need it."
+              ],
+              [
+                "Hospital",
+                "Where the sharing rules allow, the safeguarding lead tells the hospital safeguarding team on admission, and the visit safety plan is reviewed before care restarts."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "If a person we support dies and domestic abuse may have contributed, the Registered Manager tells the police and the local authority the same day, decides on CQC notification under the Statutory Notifications to CQC Procedure, and preserves every record for any review or inquest."
+        }
+      ]
+    },
+    {
+      "heading": "Keeping staff safe in homes where abuse is known",
+      "blocks": [
+        {
+          "p": "An alleged abuser who lives at or visits the home is included in the behaviour and aggression risk assessment under the Violence and Aggression Towards Staff Policy. Whenever we learn of violence, threats, weapons, an order, or police, MARAC or local authority information about them, the Registered Manager or Deputy Manager reviews it with the Field Care Supervisor before the next visit and approves the controls. The Lone Working and Staff Personal Safety Policy then applies: two workers or an approved alternative where the residual risk to staff is High; at Medium, no worker in their first 4 weeks of lone working visits alone and lone visits are made with a lone worker device. Where two workers are required, the first never goes in before the second arrives, and phones the office or On-call Manager if the second has not arrived 10 minutes after the planned start. The alleged abuser's history and police or MARAC information are recorded only in the risk assessment, never in the home copy of the care plan. A worker who feels unsafe leaves, phones the office and is never blamed; a worker threatened or harmed receives the support in the Violence and Aggression Towards Staff Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Supporting employees experiencing domestic abuse",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Telling us",
+          "blocks": [
+            {
+              "p": "There is no statutory right to paid domestic abuse leave in England; the support below is our policy, following the Home Office statutory guidance for employers. An employee can tell any manager, their Field Care Supervisor or the HR Manager. They will be believed and not judged. The HR Manager, or a manager the employee chooses, meets them privately within 2 working days, or the same day if they are in immediate danger, to agree a workplace safety and support plan, recorded in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions) and reviewed with them at least every 4 weeks while needed. Information is shared only with people who need it to carry out the plan, with the employee's agreement, unless someone is at risk of serious harm. Absence, lateness or performance problems linked to the abuse are dealt with through the plan, not the Disciplinary Policy and Procedure or the Capability and Performance Procedure, unless people we support were put at risk."
+            }
+          ]
+        },
+        {
+          "heading": "What the plan can include",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Support",
+                  "Our arrangement"
+                ],
+                "rows": [
+                  [
+                    "Safe leave",
+                    "Up to 10 rostered days' paid safe leave in any rolling 12 months, at normal pay as defined in the Sickness Absence Policy, for moving home or police, court, legal, housing, health or support appointments. Requested by phone to the HR Manager or, if they cannot be reached, the Care Coordinator, who records only that the employee is unavailable and tells the HR Manager the same day. No evidence is needed, and the HR Manager records it as safe leave, not sickness, in the restricted section of the staff record. Further unpaid leave, or annual leave at short notice, is agreed where needed."
+                  ],
+                  [
+                    "Working pattern",
+                    "Rotas that avoid predictable start and finish times and places, visits in another area, or office duties for a period; flexible working under the Flexible Working and Family Leave Policy."
+                  ],
+                  [
+                    "Safety at work",
+                    "A lone worker device where needed, and a personal alarm for an employee who does not already carry one; with the employee's agreement, Office staff told what the abuser looks like and never to confirm whether or where the employee works; police called if the abuser comes to the branch office or a visit."
+                  ],
+                  [
+                    "Contact details and pay",
+                    "A new work phone number; the emergency contact changed if it is the abuser; bank and address changes made in the next payroll run; payslips and letters sent the way the employee chooses; a salary advance of up to one week's normal pay, repaid from pay over up to 12 weeks under a signed agreement, approved by the HR Manager and Registered Manager within 2 working days of the request."
+                  ],
+                  [
+                    "Support",
+                    "Free 24-hour confidential counselling through the employee assistance programme; the national helplines and local domestic abuse service; an occupational health referral where health is affected."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Sickness absence caused by domestic abuse is recorded under the Sickness Absence Policy, but the HR Manager and Registered Manager decide within 5 working days of learning the cause whether to disregard it for review points, and record the decision in the restricted section of the staff record. The safe leave and salary advance in this section apply equally to an employee who may be a victim of modern slavery, whose support plan is agreed under the Modern Slavery and Human Trafficking Policy."
+            }
+          ]
+        },
+        {
+          "heading": "When an employee's situation affects others",
+          "blocks": [
+            {
+              "p": "The Registered Manager acts, telling the employee first unless that would increase the risk, where a child lives in the employee's household and children's social care is not already involved (referral under the Safeguarding Children and Young People Policy); the abuser threatens colleagues or people we support (police told and those people's risk assessments reviewed before their next visit); the abuser is a person we support or lives in their household (the employee is moved from those visits from the next rota without loss of hours); or the employee cannot currently work safely (temporary duties agreed with them)."
+            }
+          ]
+        },
+        {
+          "heading": "Employees who perpetrate domestic abuse",
+          "blocks": [
+            {
+              "p": "An employee who is arrested, cautioned, charged, investigated by the police or made subject to a non-molestation, restraining or domestic abuse protection order in connection with domestic abuse must tell the Registered Manager or HR Manager before their next shift and within 24 hours at most. It is handled as an allegation under the Managing Allegations Against Staff Procedure, with interim measures decided the same day. Where the victim is also an employee, the two never share visits or rota areas while the matter is open. Using our phones, CareFlow, rotas or lone working information to find, monitor or contact a victim, or failing to tell us of an arrest or order, is dealt with under the Disciplinary Policy and Procedure as possible gross misconduct. An employee who wants help to change their behaviour is told about the Respect Phoneline."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where in CareFlow"
+            ],
+            "rows": [
+              [
+                "The concern, the person's words, body maps, the DASH checklist, referrals, MARAC actions and minutes, decisions and notifications",
+                "The safeguarding record, viewable only by the Registered Manager, Deputy Manager, On-call Manager and staff they authorise"
+              ],
+              [
+                "Safe enquiry answers",
+                "The initial assessment or the Reviews part of the care plan: only that the question was asked, or why not; any disclosure goes in the safeguarding record"
+              ],
+              [
+                "The alleged abuser's history, orders, the safe contact method and staff safety controls",
+                "The behaviour and aggression risk assessment, never the home copy of the care plan"
+              ],
+              [
+                "Threats or harm to staff",
+                "The incident log, linked to the safeguarding record"
+              ],
+              [
+                "An employee's disclosure, support plan and safe leave, and any allegation against an employee",
+                "The restricted section of the staff record"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are kept under the Records Management and Retention Policy and never destroyed while an enquiry, review, police investigation, inquest or legal claim is open or expected."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Domestic abuse awareness: forms including coercive control and economic abuse, signs in care at home, responding safely, recording, and support for staff",
+                "All employees, including Office staff and Directors",
+                "At induction within safeguarding training, before care staff work without a shadowing colleague",
+                "Every 12 months, in the safeguarding refresher"
+              ],
+              [
+                "Safe enquiry, visit safety planning, MARAC awareness and supporting a colleague who discloses",
+                "Senior Care Workers, Field Care Supervisors, Care Coordinators and On-call Managers",
+                "Before assessment, supervisory or on-call duties",
+                "Every 2 years"
+              ],
+              [
+                "DASH risk checklist and MARAC referral, through the local domestic abuse partnership or an equivalent course",
+                "Registered Manager and Deputy Manager",
+                "Within 3 months of appointment",
+                "Every 3 years"
+              ],
+              [
+                "Supporting employees experiencing or accused of domestic abuse",
+                "HR Manager",
+                "Before managing a first case",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At least once every 12 months the safeguarding scenario at a worker's supervision is about domestic abuse, as the Supervision, Spot Checks and Appraisal Policy sets out; a worker who cannot say what they would do is taken through this policy at once and rechecked at the next spot check. Staff acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every domestic abuse safeguarding record against this policy's timescales, including the DASH checklist, MARAC referral, safe contact method and visit safety plan: target 100%",
+                "Monthly, within the safeguarding records audit of every record opened (Quality Audit and Monitoring Procedure)",
+                "Deputy Manager (Registered Manager for cases the Deputy Manager led)",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Concerns, DASH checklists, MARAC and IDVA referrals, children's referrals, cancellations requested by others and incidents involving staff",
+                "Monthly safeguarding report; quarterly trends",
+                "Registered Manager",
+                "Nominated Individual; Directors in the quarterly governance report"
+              ],
+              [
+                "Safe enquiry recorded at initial assessments and care plan reviews",
+                "Monthly, within the care records audit of care plan quality (Quality Audit and Monitoring Procedure)",
+                "Deputy Manager",
+                "Registered Manager"
+              ],
+              [
+                "Employee support plans reviewed on time, safe leave used and allegations against staff, anonymised",
+                "Quarterly",
+                "HR Manager",
+                "Registered Manager and Nominated Individual"
+              ],
+              [
+                "Staff who know how to report a concern and how to get support if they experience domestic abuse: target at least 90%",
+                "Annual staff survey in September",
+                "HR Manager",
+                "Directors"
+              ],
+              [
+                "Training compliance: 100% induction, 95% refreshers in date",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The annual safeguarding report to the Directors includes a domestic abuse section, and every shortfall goes into the service improvement plan with an owner and a deadline."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or statutory guidance on domestic abuse, a change to local MARAC arrangements, a domestic abuse related death review or Safeguarding Adults Review involving us, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

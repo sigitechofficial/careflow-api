@@ -1,0 +1,794 @@
+{
+  "reference": "POL-HR-012",
+  "revision": 1,
+  "title": "Equality, Diversity and Inclusion Policy",
+  "documentType": "POLICY",
+  "summary": "How we treat job applicants, employees and everyone who works with us fairly, prevent discrimination, harassment and victimisation under the Equality Act 2010, and build an inclusive workforce. It covers fair recruitment, rota allocation and pay, reasonable adjustments, religion or belief, pregnancy, menopause and gender reassignment, harassment by people we support and their families, raising concerns, equality monitoring and the annual workforce equality report. For all employees and managers.",
+  "keyPoints": {
+    "intro": "Everyone who works for us has the right to be treated fairly and with respect, by colleagues, managers, the people we support and their families. This is what that means for you.",
+    "points": [
+      "Never treat anyone worse because of their age, disability, gender reassignment, marriage or civil partnership, pregnancy or maternity, race, religion or belief, sex or sexual orientation. Discriminatory remarks, jokes, nicknames or messages about anyone, including online, are misconduct.",
+      "If anyone in a home you visit abuses, harasses or refuses you because of who you are, leave if you feel unsafe, securing the home if you can, phone the office or On-call Manager before leaving the area, and log it before your shift ends.",
+      "You will not be sent back to someone who refused you because of who you are. If a person's preference or request takes visits from you, your Care Coordinator offers you equivalent hours in the same rota week.",
+      "Hours, visits, training and promotion are offered on care needs, skills, continuity, availability and travel, never on who you are. Ask your Care Coordinator to explain an allocation and you will get a written answer within 5 working days.",
+      "If a disability or health condition makes work harder, tell your supervisor, Care Coordinator or the HR Manager what would help. You do not need a diagnosis. The HR Manager replies within 2 working days and we pay for agreed adjustments.",
+      "Ask your Care Coordinator about prayer gaps, festival leave or a task your beliefs make difficult before you are allocated it, never at the visit. Ask for festival leave at least 4 weeks ahead; you get an answer within 5 working days.",
+      "Tell the HR Manager as soon as you know you are pregnant. Unsuitable tasks come off your rota before your next visit, your risk assessment is done within 5 working days and the Care Coordinator offers other visits so you keep your hours.",
+      "Ask your supervisor or the HR Manager for support with the menopause or a gender transition; you do not need a diagnosis. What you tell us stays confidential and is shared only as you agree.",
+      "Never ask a colleague about their health, religion, sexuality, gender history or immigration status, and never pass on anything they have told you about it.",
+      "Report discrimination or harassment by a colleague or manager to your supervisor or the HR Manager, or report harassment to the Nominated Individual without giving your name. Nobody will treat you worse for raising a concern, supporting someone who does, or giving evidence.",
+      "Equality monitoring questions are voluntary. Only the HR Manager sees your answers, they are used only in anonymous totals and they never affect any decision about you."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "RECRUITMENT"
+  ],
+  "relatedReferences": [
+    "POL-CD-005",
+    "POL-HR-001",
+    "POL-HR-013",
+    "POL-HR-009",
+    "POL-HS-004",
+    "POL-SG-010",
+    "POL-HR-011",
+    "POL-HR-018"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Equality Act 2010, section 4 (the protected characteristics)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/4"
+    },
+    {
+      "source": "Equality Act 2010, section 20 (duty to make adjustments; no cost passed to the disabled person, subsection (7))",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20"
+    },
+    {
+      "source": "Equality Act 2010, section 26 (harassment, including sexual harassment, and the relevant protected characteristics)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/26"
+    },
+    {
+      "source": "Equality Act 2010, section 16 (absence because of gender reassignment treated no less favourably than sickness absence)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/16"
+    },
+    {
+      "source": "Equality Act 2010, section 40, subsections (1A) to (1C) (employer must not permit third-party harassment of employees), inserted by the Employment Rights Act 2025, section 21, in force 30 October 2026",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40"
+    },
+    {
+      "source": "Equality Act 2010, section 40A (duty to prevent sexual harassment of employees, in force since 26 October 2024; strengthened to all reasonable steps by the Employment Rights Act 2025, section 20, from 30 October 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40A"
+    },
+    {
+      "source": "Equality Act 2010, section 60 (enquiries about disability and health before an offer of work)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/60"
+    },
+    {
+      "source": "Equality Act 2010, section 78A (equality action plans for employers with 250 or more employees; power in force 6 April 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/78A"
+    },
+    {
+      "source": "GOV.UK, Creating an action plan: guidance for employers (updated 13 May 2026: voluntary equality action plans now, mandatory from spring 2027 subject to legislation)",
+      "url": "https://www.gov.uk/government/publications/creating-an-action-plan-guidance-for-employers/overview"
+    },
+    {
+      "source": "Equality Act 2010, section 109 (liability of employers for employees; all reasonable steps defence, subsection (4))",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/109"
+    },
+    {
+      "source": "Equality Act 2010, section 123 (time limit for employment tribunal claims, 6 months from 1 October 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/123"
+    },
+    {
+      "source": "Equality Act 2010, section 158 (positive action)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/158"
+    },
+    {
+      "source": "Equality Act 2010, Schedule 1, paragraph 6 (cancer, HIV infection and multiple sclerosis are each a disability)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/schedule/1/paragraph/6"
+    },
+    {
+      "source": "Equality Act 2010, Schedule 9, paragraph 1 (occupational requirements)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/schedule/9/paragraph/1"
+    },
+    {
+      "source": "The Employment Rights Act 2025 (Commencement No. 6 and Transitional and Saving Provisions) Regulations 2026 (S.I. 2026/1065), regulation 3 (sections 20 to 22 in force 30 October 2026)",
+      "url": "https://www.legislation.gov.uk/uksi/2026/1065/made"
+    },
+    {
+      "source": "Employment Rights Act 1996, sections 67 and 68 (offer of suitable alternative work before, and pay during, suspension on maternity grounds)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/67"
+    },
+    {
+      "source": "Employment Rights Act 2025, section 23 (disclosures about sexual harassment protected from 6 April 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/36/section/23"
+    },
+    {
+      "source": "Employment Rights Act 2025, section 24 (terms preventing allegations or disclosures of harassment or discrimination void; new section 202A of the Employment Rights Act 1996, commenced in stages from 6 January 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/36/section/24"
+    },
+    {
+      "source": "Equality Act 2010 (Gender Pay Gap Information) Regulations 2017 (S.I. 2017/172), regulation 2 (publication within 12 months beginning with the snapshot date)",
+      "url": "https://www.legislation.gov.uk/uksi/2017/172/regulation/2"
+    },
+    {
+      "source": "Equality Act 2010 (Gender Pay Gap Information) Regulations 2017 (S.I. 2017/172), regulation 15 (publication on the employer's website for at least three years and on the government website)",
+      "url": "https://www.legislation.gov.uk/uksi/2017/172/regulation/15"
+    },
+    {
+      "source": "Gender Recognition Act 2004, section 22 (prohibition on disclosure of protected information, including by employers and employees)",
+      "url": "https://www.legislation.gov.uk/ukpga/2004/7/section/22"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, paragraph 8 (equality of opportunity or treatment; no decisions about an individual; written notice to stop)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/8"
+    },
+    {
+      "source": "Workplace (Health, Safety and Welfare) Regulations 1992, regulation 20 (sanitary conveniences: separate rooms for men and women unless each is a room lockable from inside)",
+      "url": "https://www.legislation.gov.uk/uksi/1992/3004/regulation/20"
+    },
+    {
+      "source": "Workplace (Health, Safety and Welfare) Regulations 1992, regulation 25(4) (suitable facilities for pregnant women and nursing mothers to rest)",
+      "url": "https://www.legislation.gov.uk/uksi/1992/3004/regulation/25"
+    },
+    {
+      "source": "Disclosure and Barring Service, Transgender applications (sensitive applications route)",
+      "url": "https://www.gov.uk/guidance/transgender-applications"
+    },
+    {
+      "source": "Acas, Reasonable adjustments at work (updated 30 January 2025)",
+      "url": "https://www.acas.org.uk/reasonable-adjustments"
+    },
+    {
+      "source": "Acas, Discrimination, bullying and harassment",
+      "url": "https://www.acas.org.uk/discrimination-bullying-and-harassment"
+    },
+    {
+      "source": "GOV.UK, Access to Work: get support if you have a disability or health condition",
+      "url": "https://www.gov.uk/access-to-work"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Our care workers come from many backgrounds, faiths and nationalities, often work variable hours, and spend most of their day alone in other people's homes, where they can face discrimination no manager sees. {{organisation}} does not accept discrimination, harassment or victimisation of any applicant, employee or worker, by a colleague, a manager, a person we support, their family or anyone else."
+        },
+        {
+          "p": "{{organisation}} will recruit, allocate work, pay, train, promote and manage people on evidence and merit; make reasonable adjustments so that disabled people can work for us on equal terms; support staff through religious observance, pregnancy, the menopause and gender transition; take all reasonable steps to prevent harassment of our staff by the people we support and others; act on every concern; and use anonymised equality information to find and correct unfairness."
+        },
+        {
+          "p": "The Directors are accountable for this policy, the Registered Manager leads on equality in employment and the HR Manager runs the arrangements day to day."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets out how we meet our duties as an employer under the Equality Act 2010: fair rules for recruitment, progression, hours and pay; clear routes and timescales for support and concerns; and checks that our arrangements are fair in practice."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, Office staff, care staff, bank staff and apprentices, and to job applicants, agency workers, students, volunteers and contractors while they work with us, from advertising a job to leaving and giving a reference. It applies in rostered hours, on call, travelling between visits, at training and work social events, and online wherever conduct concerns colleagues. Related matters belong to other documents:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Matter",
+              "Document"
+            ],
+            "rows": [
+              [
+                "Equality in the care we give and discriminatory requests from the people we support",
+                "Equality, Diversity and Human Rights in Care Policy"
+              ],
+              [
+                "Recruitment and pre-employment checks",
+                "Safer Recruitment Policy; Right to Work and Sponsored Workers Policy"
+              ],
+              [
+                "Complaints of bullying, harassment and sexual harassment",
+                "Bullying, Harassment and Sexual Harassment Policy"
+              ],
+              [
+                "Abuse and violence towards staff by people we support, families and visitors",
+                "Violence and Aggression Towards Staff Policy"
+              ],
+              [
+                "Other complaints about treatment at work",
+                "Grievance Policy and Procedure"
+              ],
+              [
+                "Disability-related absence and ill-health capability",
+                "Sickness Absence Policy"
+              ],
+              [
+                "Pregnancy risk assessment, family leave and flexible working",
+                "New and Expectant Mothers at Work Procedure; Flexible Working and Family Leave Policy"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Protected characteristics",
+                "The nine characteristics in section 4 of the Equality Act 2010: age, disability, gender reassignment, marriage and civil partnership, pregnancy and maternity, race (including colour, nationality and ethnic or national origin), religion or belief (including lack of belief), sex and sexual orientation."
+              ],
+              [
+                "Disabled person",
+                "Someone with a physical or mental impairment that has a substantial and long-term adverse effect on their ability to carry out normal day-to-day activities. Cancer, HIV and multiple sclerosis count from diagnosis. Nobody has to prove they are disabled before asking us for an adjustment."
+              ],
+              [
+                "Reasonable adjustment",
+                "A change to how work is organised, to a physical feature, or an extra aid or service that removes or reduces a substantial disadvantage a disabled person would otherwise face at work."
+              ],
+              [
+                "Third party",
+                "Anyone other than {{organisation}} and our employees, including the people we support, their families and visitors, staff of other organisations and members of the public."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for fair employment. They approve this policy and the pay structure, fund reasonable adjustments and receive the workforce equality report. The Nominated Individual is told within 2 working days of every formal complaint of discrimination and at once of any Acas early conciliation notification or tribunal claim, agrees any refusal of an adjustment on cost grounds, and audits adjustment and discrimination cases each November."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on equality in employment: deciding adjustments the HR Manager cannot agree, occupational requirements, essential driving and positive action, and, with the HR Manager, requests linked to religion or belief; acting on every report of discrimination or third-party harassment; and investigating differences found in the workforce equality report. The Deputy Manager acts in their absence."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager runs the adjustment process and support plans, is the only person who sees individual equality monitoring answers, logs every discrimination complaint, advertises internal vacancies, and carries out the hours analysis, the equal pay check and the workforce equality report."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Managers",
+          "blocks": [
+            {
+              "p": "They allocate hours and visits using the criteria in this policy, build adjustments, religious observance and pregnancy arrangements into the rota before the next shift without telling anyone the reason, and keep a care worker's hours when a person's preference or request removes visits."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and supervising Senior Care Workers",
+          "blocks": [
+            {
+              "p": "At every supervision they ask whether the worker has faced discrimination or abuse, including at visits, and whether agreed adjustments are working. They pass adjustment requests and discrimination concerns to the HR Manager within 1 working day, and tell the Registered Manager the same working day about possible discrimination by a member of staff."
+            }
+          ]
+        },
+        {
+          "heading": "Every employee",
+          "blocks": [
+            {
+              "p": "Every employee treats colleagues, applicants and everyone they meet at work fairly, challenges or reports discrimination, keeps confidential anything a colleague tells them about their health, beliefs, sexuality or gender history, and completes the training in this policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law requires",
+      "blocks": [
+        {
+          "p": "The Equality Act 2010 protects job applicants, employees, workers, agency workers and former employees from discrimination, harassment and victimisation because of a protected characteristic. We are liable for what our employees do in the course of their employment, whether or not we knew, unless we took all reasonable steps to prevent it (section 109). The legal protection from harassment does not cover marriage and civil partnership or pregnancy and maternity; our policy treats unwanted conduct related to any protected characteristic as harassment."
+        },
+        {
+          "table": {
+            "columns": [
+              "Unlawful conduct",
+              "Example in our work"
+            ],
+            "rows": [
+              [
+                "Direct discrimination: less favourable treatment because of a protected characteristic, including one a person is thought to have or someone close to them has",
+                "Offering a pregnant care worker fewer hours to be safe, or not putting an older worker forward for a Senior Care Worker post."
+              ],
+              [
+                "Indirect discrimination: a rule for everyone that disadvantages people sharing a characteristic and is not a proportionate means of achieving a legitimate aim",
+                "Requiring every care worker to drive, or to work every weekend, without checking that each run needs it."
+              ],
+              [
+                "Discrimination arising from disability: unfavourable treatment because of something resulting from a disability, unless justified",
+                "Taking hours from a care worker because diabetes means they must eat at set times between visits."
+              ],
+              [
+                "Failure to make reasonable adjustments",
+                "Keeping a care worker with a back condition on double-handed hoisting runs when suitable other runs exist."
+              ],
+              [
+                "Pregnancy and maternity discrimination",
+                "Counting pregnancy-related sickness towards absence review points."
+              ],
+              [
+                "Harassment: unwanted conduct related to a protected characteristic, or of a sexual nature, that violates dignity or creates an intimidating, hostile, degrading, humiliating or offensive environment",
+                "Mocking a colleague's accent, a nickname based on religion, or a relative making racist or sexual comments during a visit."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Recent changes that shape this policy:"
+        },
+        {
+          "bullets": [
+            "The duty to take reasonable steps to prevent sexual harassment of our employees (section 40A), in force since 26 October 2024, became a duty to take all reasonable steps on 30 October 2026. From the same date we must not permit a third party, such as a person we support or a relative, to harass an employee in the course of their work, and we are liable unless we took all reasonable steps to prevent it (section 40(1A) to (1C)). This covers harassment related to the characteristics in section 26 and sexual harassment.",
+            "Terms that stop a worker alleging or disclosing harassment or discrimination, or our response to it, are being made void in stages (Employment Rights Act 2025, section 24); our own rule applies now.",
+            "Since 1 October 2026 the time limit for discrimination claims to an employment tribunal, and most other claims, is six months (section 123).",
+            "Since 6 April 2026 regulations may require employers with 250 or more employees to publish gender equality action plans (section 78A). None had been made by November 2026; government guidance invites voluntary plans now, expected to become mandatory from spring 2027, subject to legislation.",
+            "Following the Supreme Court judgment in For Women Scotland Ltd v The Scottish Ministers (16 April 2025), sex in the Equality Act 2010 means biological sex. Trans staff remain protected because of gender reassignment, with or without medical treatment or a gender recognition certificate."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Fair recruitment and progression",
+      "blocks": [
+        {
+          "p": "The Safer Recruitment Policy and the Right to Work and Sponsored Workers Policy set the recruitment process and its fairness rules, including no health question before an offer except about adjustments to the process (Equality Act 2010, section 60) and the same right to work checks for everyone. Our further rules are:"
+        },
+        {
+          "bullets": [
+            "Every requirement in a person specification must be needed for the job. Before a care vacancy is advertised, the Registered Manager decides in writing whether a driving licence and car are essential for the runs it covers; where visits can be reached on foot, by bicycle or by public transport, the advert says so.",
+            "Care roles need enough English to read care plans and CareFlow records, write daily visit notes and speak with the people we support, health professionals and 999 call handlers. Every candidate is assessed the same way, at interview and through the written visit-note exercise. Accent is never a criterion and we never ask for a native speaker; workers who need help with English are offered a paid course under the Training and Development Policy.",
+            "A requirement to be of a particular sex is used only where people on a run need same-sex intimate care, decided in writing by the Registered Manager under Schedule 9, paragraph 1 before the advert is placed. No other occupational requirement is used.",
+            "Care roles have a minimum age of 18 because they involve lone working and intimate personal care in people's homes; the Registered Manager reviews this justification with this policy. We have no retirement age and never assume what anyone can do because of their age.",
+            "Every internal vacancy, and every acting-up arrangement expected to last more than 3 months, is advertised by the HR Manager to all employees, including part-time and bank staff and those on leave or off sick, for at least 10 working days. A panel of two appoints against the person specification and offers every internal candidate feedback within 5 working days of the decision.",
+            "We may use positive action under section 158 to encourage applications from under-represented groups, such as men in care roles or ethnic groups under-represented in our workforce, through where and how we advertise and open days, approved in writing by the Registered Manager with the evidence. We never appoint a less suitable candidate because of a protected characteristic and do not use the tie-break in section 159.",
+            "Part-time, bank, evening and weekend staff have the same access to training, qualifications and development as full-time staff. References we give never mention disability, pregnancy, family leave, sickness absence or a complaint of discrimination."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Fair allocation of hours and visits",
+      "blocks": [
+        {
+          "p": "Most care workers' pay depends on the hours they are given. Care Coordinators and On-call Managers allocate visits using these criteria, in this order of priority:"
+        },
+        {
+          "steps": [
+            "The person's care needs and the skills, training and sign-offs the visit requires.",
+            "Continuity of care: the person's core care team and the preferences the Person-Centred Care, Dignity and Respect Policy and the Equality, Diversity and Human Rights in Care Policy allow.",
+            "The availability the worker has given, and any agreed adjustment, religious observance or pregnancy arrangement.",
+            "Working time limits, rest breaks and travel between visits under the Working Time, Rest Breaks and Travel Time Policy.",
+            "Contracted hours first; then extra hours shared fairly among variable-hours workers who want them, with weekend, evening and bank holiday work rotated among those available."
+          ]
+        },
+        {
+          "p": "A protected characteristic, part-time or bank status, a request for an adjustment or flexible working, pregnancy, family leave or having raised a concern is never a reason to give anyone fewer or worse hours, runs or visits."
+        },
+        {
+          "p": "The only allocation by a care worker's sex is the personal care preference and the same-sex arrangements the Equality, Diversity and Human Rights in Care Policy allows. Requests for or against care workers because of race, religion or belief, sexual orientation, age, disability or gender reassignment are never met. Where a person's preference or request removes visits from a care worker, the Care Coordinator offers equivalent hours in the same rota week, and contracted hours are always paid in full. An allocation question touching a trans care worker's gender history is handled privately by the Registered Manager with that worker."
+        },
+        {
+          "p": "A worker who thinks hours or visits have been allocated unfairly may ask their Care Coordinator to explain and receives a written answer within 5 working days; they may then use the Grievance Policy and Procedure. Each quarter the HR Manager compares, for variable-hours care workers, the hours offered with the hours of availability given, by sex, age band, ethnicity and disability, and reports any difference of 10 percentage points or more for a group of 5 or more to the Registered Manager, who investigates within 10 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Pay and terms",
+      "blocks": [
+        {
+          "bullets": [
+            "Every role has a published rate in a single pay structure, approved by the Directors each year by 1 April. Everyone in a role receives the same rate, plus only the supplements the pay structure publishes, such as weekend and bank holiday rates. New starters in care roles start on the published starting rate with no individual negotiation; a starting salary above the published rate in any other role is approved by the Nominated Individual with the reason recorded.",
+            "Travel time, mileage and training time are paid the same way for everyone. Part-time, bank and sponsored workers receive the same rates and pro rata benefits as anyone else in the role. Employees may discuss their pay with anyone; no contract we issue forbids it.",
+            "Each year the HR Manager compares average hourly pay, including supplements, within each role by sex, and by ethnicity, disability, age band and full-time or part-time status where each group has 5 or more people. The Registered Manager investigates any difference of 5% or more, and the Directors correct any difference the published pay structure does not explain at the next pay review.",
+            "Each 5 April the HR Manager counts our employees. If there are 250 or more, the HR Manager calculates our gender pay gap and publishes it, with the signed statement, on our website and the government's reporting service within 12 months of that date, as the law requires, and keeps it published for at least 3 years."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reasonable adjustments for staff",
+      "blocks": [
+        {
+          "p": "The law requires us to make reasonable adjustments for disabled applicants, employees and workers at our cost (Equality Act 2010, section 20), acting on what we know or could reasonably be expected to know, not only on a request. Our policy is to consider adjustments for anyone whose health condition affects their work, whether or not it meets the legal definition of disability."
+        },
+        {
+          "steps": [
+            "The employee tells their named supervisor, Care Coordinator or the HR Manager what makes work harder and what would help; no diagnosis is needed. Whoever receives the request passes it to the HR Manager within 1 working day and tells nobody else about the condition.",
+            "The HR Manager acknowledges it within 2 working days and meets the employee within 5 working days of receiving it, privately and in paid time, at the branch office, by video or by phone.",
+            "Where advice is needed, the HR Manager makes an occupational health referral within 5 working days of written consent and tells the employee about Access to Work, which can fund support such as travel or specialist equipment but never replaces an adjustment we must make.",
+            "The HR Manager agrees adjustments within 5 working days of the meeting, or of occupational health advice where it was needed, and confirms them in writing. Where the employee would otherwise be unsafe or at a substantial disadvantage, an interim arrangement, such as removing a task from their visits, starts the same day. A care worker whose health stops them doing a task safely during a visit gives the rest of the care and phones the office, or the On-call Manager out of hours, who arranges another worker for that task and passes the request to the HR Manager by 10am the next working day.",
+            "An adjustment the HR Manager cannot agree is decided by the Registered Manager within 5 working days of referral, after speaking with the employee. A refusal gives written reasons and the nearest alternative and may be challenged under the Grievance Policy and Procedure. No adjustment is refused on cost without the Nominated Individual's agreement.",
+            "Agreed adjustments go in a workplace adjustment record in the restricted section of the staff record. The Care Coordinator and named supervisor are told the adjustment, never the condition, and the Care Coordinator builds it into the rota before the employee's next shift.",
+            "Adjustments are reviewed at every appraisal, within 4 weeks of any change in health or role, and whenever the employee asks. The record moves with the employee to a new role or branch."
+          ]
+        },
+        {
+          "table": {
+            "columns": [
+              "Barrier",
+              "Examples of adjustments in our work"
+            ],
+            "rows": [
+              [
+                "Back, joint or mobility condition",
+                "Runs without double-handed hoisting or heavy transfers where suitable other visits exist; shorter runs in a compact area."
+              ],
+              [
+                "Condition needing set breaks, food or toilet access, such as diabetes or Crohn's disease",
+                "Planned gaps at set times; runs that pass the branch office or public facilities; an agreed limit on unbroken visit chains."
+              ],
+              [
+                "Dyslexia, autism, ADHD or another neurodivergent condition",
+                "Extra time for e-learning and assessments; written instructions alongside spoken ones; speech-to-text and larger text on the work phone for daily visit notes in CareFlow; a consistent run."
+              ],
+              [
+                "Deafness or hearing loss",
+                "Office and on-call contact by text; a British Sign Language interpreter for training and meetings; captioned e-learning."
+              ],
+              [
+                "Mental health condition",
+                "A rota published further ahead; no late lone visits where agreed; planned disability leave for therapy under the Sickness Absence Policy."
+              ],
+              [
+                "Unable to drive because of a disability",
+                "Walking or public transport runs; Access to Work travel support."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Supporting staff at work",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Religion or belief",
+          "blocks": [
+            {
+              "bullets": [
+                "Care workers may pray in gaps in their run and Office staff in their breaks; the Care Coordinator builds a short gap at the times a worker asks where visit times allow. The branch office has a private room for prayer or quiet reflection. Staff do not pray in a person's home during a visit.",
+                "Leave or rota changes for festivals and holy days are requested from the Care Coordinator at least 4 weeks ahead where possible and decided within 5 working days. They are refused only where visits cannot be covered safely, with the reason in writing. Where many staff ask for the same dates, leave is shared by rotation from year to year and no faith takes priority.",
+                "A worker who is fasting may ask the Care Coordinator to adjust their run, for example for a break at sunset, and the Field Care Supervisor reviews tiredness, heat and driving risks with them. Nobody is asked whether they are fasting.",
+                "Religious dress, head coverings and jewellery are worn as the Uniform, ID Badges and Dress Code Policy and the Standard Infection Control Precautions Procedure allow; the Registered Manager agrees any other arrangement within 5 working days of the request.",
+                "A worker whose religion or belief makes a task difficult tells their Care Coordinator before being allocated it, never at the visit. The Registered Manager, with the HR Manager, decides within 5 working days whether allocation can reasonably be adjusted without affecting anyone's care. A task met unexpectedly, for example on a cover visit, is completed as the care plan says and raised with the Care Coordinator afterwards. Personal care and other core care are never refused because of who a person is.",
+                "Staff may hold and respectfully express any religion or belief, or none, but never harass colleagues about belief or promote their beliefs to the people we support."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Pregnancy, maternity and breastfeeding",
+          "blocks": [
+            {
+              "p": "When an employee tells us they are pregnant, any task the general risk assessments mark unsuitable in pregnancy is taken off their rota before their next visit and their individual risk assessment is completed within 5 working days under the New and Expectant Mothers at Work Procedure. The Care Coordinator offers equivalent visits in the same rota week so their hours are kept; where no suitable work exists they are suspended on full normal pay (Employment Rights Act 1996, sections 67 and 68). Antenatal appointments and family leave follow the Flexible Working and Family Leave Policy. Staff on family leave are told about every internal vacancy and training opportunity. The law requires suitable facilities for pregnant and breastfeeding workers to rest (Workplace (Health, Safety and Welfare) Regulations 1992, regulation 25(4)); our policy is that an employee who is pregnant or breastfeeding may use a private room, not a toilet, at the branch office to rest or express milk. The Care Coordinator builds rest gaps, and expressing gaps of at least 30 minutes, into their run at the times they ask; expressing never takes place in a person's home."
+            }
+          ]
+        },
+        {
+          "heading": "Menopause",
+          "blocks": [
+            {
+              "p": "Menopause symptoms can affect work and may amount to a disability. Any employee may ask their supervisor or the HR Manager for a confidential conversation, with a manager of the sex they prefer where one is available, without a diagnosis. Support includes lighter-weight uniform items, time to change clothes, planned gaps with toilet access, flexibility on early starts, a desk fan for Office staff, an occupational health referral on request and the employee assistance programme, recorded as for any other adjustment."
+            }
+          ]
+        },
+        {
+          "heading": "Gender reassignment and trans staff",
+          "blocks": [
+            {
+              "p": "The HR Manager meets a trans employee within 10 working days of their request to agree a support plan: whether, when and how colleagues and the people they visit are told, name and pronouns, uniform and ID badge, and time off, which the law requires us to treat no less favourably than sickness absence (Equality Act 2010, section 16). Their name is changed in the staff record and CareFlow, with a new ID badge, within 5 working days of their request; a previous name is kept only in the restricted section of the staff record where DBS, right to work, payroll or pension records need it, and the HR Manager tells them about the DBS sensitive applications route. Gender history is never disclosed without their agreement; passing on information acquired at work about a gender recognition application, or a certificate holder's previous gender, is an offence (Gender Recognition Act 2004, section 22)."
+            },
+            {
+              "p": "The law requires separate toilet rooms for men and women unless each toilet is in its own room lockable from inside (Workplace (Health, Safety and Welfare) Regulations 1992, regulation 20). Our branch office provides separate toilets and washing facilities for men and women and at least one lockable single-occupancy toilet that anyone may use. Private changing space is arranged for any employee who asks, including at training venues."
+            }
+          ]
+        },
+        {
+          "heading": "Race, nationality and language",
+          "blocks": [
+            {
+              "p": "Nationality and immigration status play no part in rota decisions; Care Coordinators are told any limit on a worker's hours, never their status. Staff may speak any language with colleagues in private and on breaks; in front of a person we support they speak a language the person understands unless the person asks otherwise, as the Staff Code of Conduct sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Harassment by people we support, families and visitors",
+      "blocks": [
+        {
+          "p": "A person we support, a relative or a visitor may make discriminatory or sexual remarks to a care worker, refuse them because of who they are, or harass them, with no colleague present. Our preventive steps, including starting deliberate discriminatory abuse and sexual harassment at stage 2 of the staged response, are set out in the Violence and Aggression Towards Staff Policy, the Sexual Safety Policy and the Equality, Diversity and Human Rights in Care Policy. The organisation-wide harassment risk assessment kept under the Sexual Safety Policy also covers third-party harassment related to any protected characteristic, and is reviewed within 7 days after any such harassment reaching stage 2 and whenever incidents or the staff survey show a new risk."
+        },
+        {
+          "p": "If it happens to you:"
+        },
+        {
+          "steps": [
+            "Stay calm and do not argue. Call 999 if you or anyone else is in danger.",
+            "If you feel safe to stay, say calmly that the remark or behaviour is not acceptable, give the care the person still accepts, and phone the office, or the On-call Manager out of hours, before you leave the home.",
+            "If you feel unsafe, or the person will not accept care from you, leave. Secure the home and key safe if you safely can, check out in CareFlow or tell the office the time you left, and do not go back in until the Registered Manager, Deputy Manager or On-call Manager says it is safe.",
+            "Before you leave the area, phone the office or On-call Manager and speak to a person: say what care is still due and whether the home is secure. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. The office or On-call Manager arranges the outstanding care with another worker under the Missed, Late and Short Visits Procedure.",
+            "Record it in the incident log before your shift ends, with the words used. Never reply to later abusive messages or calls, and never record a call; keep the messages, tell the office the same day and show your supervisor.",
+            "The Registered Manager is told the same day. You are not sent back to a person who refused you because of a protected characteristic, or to a home where you were harassed unless you ask to return, and the Care Coordinator offers equivalent hours in the same rota week.",
+            "You may stop work for the rest of that day on full pay. A manager calls you before your next shift, you are offered a debrief within 3 working days and the employee assistance programme, and the Registered Manager or Deputy Manager reports a possible hate crime to the police for you the same day if you ask."
+          ]
+        },
+        {
+          "p": "Where the behaviour arises from a condition such as dementia, the response is a care plan review and specialist advice rather than a warning, but you receive the same protection and support. A care worker refused in their absence, for example in a call to the office, is told privately before their next shift by the Registered Manager or their Field Care Supervisor and offered support."
+        }
+      ]
+    },
+    {
+      "heading": "Raising a concern about discrimination",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What happened",
+              "Who to tell",
+              "How it is handled"
+            ],
+            "rows": [
+              [
+                "Harassment, bullying or sexual harassment by a colleague, manager, agency worker or contractor",
+                "Your supervisor, a Care Coordinator, the HR Manager or any manager, or the Nominated Individual without giving your name; the incident log before your shift ends if it happened at a visit or while travelling",
+                "Bullying, Harassment and Sexual Harassment Policy"
+              ],
+              [
+                "Other unfair treatment, such as hours, pay, training, promotion, a refused adjustment or a decision about you",
+                "Informally to your Care Coordinator, supervisor or the HR Manager; formally in writing to the HR Manager",
+                "Grievance Policy and Procedure"
+              ],
+              [
+                "Abuse, refusal or harassment by a person we support, their family or a visitor",
+                "The office or On-call Manager before you leave the area; the incident log before your shift ends",
+                "This policy and the Violence and Aggression Towards Staff Policy"
+              ],
+              [
+                "A colleague discriminating against a person we support",
+                "The office or On-call Manager before you leave the home",
+                "Equality, Diversity and Human Rights in Care Policy; Safeguarding Adults Policy"
+              ],
+              [
+                "Wrongdoing, a cover-up, or sexual harassment you wish to report as a disclosure",
+                "As that policy sets out",
+                "Whistleblowing (Speaking Up) Policy"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The HR Manager records every report of discrimination by a colleague or manager in the case file of the policy used, takes advice from our employment law adviser, and tells the Nominated Individual within 2 working days of any formal complaint. A manager senior to and independent of the people involved investigates under the policy named, and mediation never replaces that investigation."
+        },
+        {
+          "p": "Nobody may be treated worse because they raised a concern about discrimination, supported someone who did, gave evidence or brought a claim. Victimisation is unlawful (Equality Act 2010, section 27) and is misconduct. While a discrimination complaint is open, any change to the employee's usual run or hours that they did not ask for is agreed in advance by the Registered Manager with the reason recorded, as the Grievance Policy and Procedure sets out."
+        },
+        {
+          "p": "Discrimination, harassment or victimisation by an employee, at work or online where it concerns colleagues, is dealt with under the Disciplinary Policy and Procedure, and serious or deliberate cases can be gross misconduct. Where an agency worker or contractor discriminates, the Registered Manager decides the same working day whether they continue to work with us and tells their agency or employer. No contract, settlement agreement or other agreement we make contains a term that stops anyone reporting, alleging or discussing discrimination or harassment, or our response to it."
+        }
+      ]
+    },
+    {
+      "heading": "Equality monitoring and the workforce equality report",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Equality monitoring information",
+          "blocks": [
+            {
+              "p": "Applicants are invited to complete an equality monitoring form, kept separately under the Safer Recruitment Policy, and employees are invited again when they start. The questions cover age, disability, ethnicity, religion or belief, sex, whether gender identity is the same as sex at birth, sexual orientation, marriage or civil partnership, caring responsibilities and first language. Every question is voluntary and includes prefer not to say."
+            },
+            {
+              "p": "Answers are held in the restricted section of the staff record, opened only by the HR Manager and used only in totals, never for a decision about an individual; groups of fewer than 5 people are never reported separately. Individual arrangements, such as an adjustment, use only what the employee tells us for that purpose. Each September the HR Manager invites every employee to check their answers; anyone may change them at any time, and if an employee asks us to stop using them the HR Manager removes them within 5 working days. The lawful basis is recorded under the Data Protection Policy and, for special category answers, is Data Protection Act 2018, Schedule 1, paragraph 8, covered by our appropriate policy document."
+            }
+          ]
+        },
+        {
+          "heading": "Workforce equality report",
+          "blocks": [
+            {
+              "p": "The HR Manager prepares a workforce equality report each year covering 1 April to 31 March, completed by 30 April. For each characteristic where numbers allow, it compares the workforce in each role; recruitment outcomes; hours offered against availability; pay; training, qualifications and promotions; adjustment decisions; discrimination complaints and third-party harassment reports; the disciplinary, capability, grievance and attendance analyses those policies require; leavers within 12 months of starting and their exit questionnaire reasons; and staff survey answers on fair treatment."
+            },
+            {
+              "p": "The Registered Manager investigates any difference of 10 percentage points or more between a group of 5 or more people and everyone else, presents the report with the annual equality review under the Equality, Diversity and Human Rights in Care Policy at the Directors' governance meeting held by mid-May, adds its actions to the service improvement plan within 5 working days, and shares a summary with all staff within 1 month. Whatever our size, the report includes a gender equality action plan covering pay and hours, men's recruitment into care, women's progression into management and menopause support; if regulations under section 78A come to apply to us, the HR Manager publishes it as they require."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Workplace adjustment records, occupational health advice, pregnancy risk assessments and transition support plans",
+                "Restricted section of the staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Equality monitoring answers",
+                "Restricted section of the staff record, HR Manager only",
+                "Deleted when employment ends, after being counted in anonymised figures; applicants as the Safer Recruitment Policy sets"
+              ],
+              [
+                "Requests linked to religion or belief, allocation queries and answers, and decisions",
+                "Staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Discrimination complaints",
+                "Case file under the policy that handled it",
+                "Employment plus 6 years"
+              ],
+              [
+                "Harassment and discrimination by people we support, families and visitors",
+                "Incident log",
+                "As the Records Management and Retention Policy sets"
+              ],
+              [
+                "Equal pay checks, hours analyses, workforce equality reports and gender pay gap reports",
+                "Governance records",
+                "6 years; gender pay gap reports also published for at least 3 years"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Equality, diversity, inclusion and human rights, as set in the Equality, Diversity and Human Rights in Care Policy, also covering this policy and how to report harassment by third parties",
+                "All employees",
+                "Care staff before working without a shadowing colleague; others in their first week",
+                "Every 12 months, within the person-centred care and dignity refresher"
+              ],
+              [
+                "Briefing on our liability since 30 October 2026 for harassment of staff by third parties, related to any protected characteristic, and how to report it (sexual harassment awareness is covered by the Sexual Safety Policy)",
+                "All employees in post on 30 October 2026",
+                "By 31 January 2027",
+                "Then within the annual refresher"
+              ],
+              [
+                "Equality in employment: fair allocation, adjustments, religion or belief, pregnancy, menopause, gender reassignment, handling concerns and victimisation",
+                "Registered Manager, Deputy Manager, HR Manager, Care Coordinators, Field Care Supervisors, supervising Senior Care Workers and On-call Managers",
+                "Before their first supervision, rota, recruitment or on-call duty, delivered with the management training in the Equality, Diversity and Human Rights in Care Policy",
+                "Every 3 years, and within 2 months of a significant change in equality law or guidance"
+              ],
+              [
+                "Employer equality duties and scrutiny of the workforce equality report",
+                "Directors and Nominated Individual",
+                "Within 3 months of appointment",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The HR Manager's annual employment law update includes equality law. The Deputy Manager checks the first 5 allocation queries answered by each new Care Coordinator for fairness and clarity."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Adjustment requests against this policy's timescales (target 100%)",
+                "Every request, monthly",
+                "HR Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Third-party harassment and discriminatory requests: worker supported, not sent back and hours kept (target 100%)",
+                "Every record, monthly, within the checks under the Violence and Aggression Towards Staff Policy and the Equality, Diversity and Human Rights in Care Policy",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Hours offered against availability by group",
+                "Quarterly",
+                "HR Manager",
+                "Registered Manager; quarterly governance report"
+              ],
+              [
+                "Themes from supervisions, allocation queries, complaints, grievances and exit questionnaires",
+                "Quarterly",
+                "Registered Manager",
+                "Quarterly governance report"
+              ],
+              [
+                "Staff survey: at least 80% agree they are treated fairly whoever they are",
+                "Each September",
+                "HR Manager",
+                "Directors"
+              ],
+              [
+                "Equal pay check and workforce equality report",
+                "Annually, by 30 April",
+                "HR Manager; Registered Manager investigates",
+                "Directors' governance meeting by mid-May"
+              ],
+              [
+                "Every formal discrimination complaint closed in the year and 5 adjustment cases (all if fewer)",
+                "Each November",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Training compliance (100% induction, 95% refreshers in date) and policy acknowledgements (by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version)",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is given an action, an owner and a deadline in the service improvement plan and tracked to completion. This policy is reviewed every 24 months by the Registered Manager with the HR Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in equality or employment law or guidance, a tribunal finding, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,735 @@
+{
+  "reference": "POL-CD-006",
+  "revision": 1,
+  "title": "Communication and Accessible Information Policy",
+  "documentType": "POLICY",
+  "summary": "How we identify, record, flag, share, meet and review the information and communication needs of the people we support and the family carers involved in their care, under the Accessible Information Standard. It covers accessible formats, contact methods, professional interpreters and communication support, communicating at every visit, aids and specialist help, training and checks. For all employees.",
+  "keyPoints": {
+    "intro": "Every person we support must be able to understand us and be understood by us. This is what that means for you on every visit, letter and call.",
+    "points": [
+      "Before every visit, read the communication needs in My care at a glance and use the aids, words, signs and methods they describe. Give the person time to answer and never finish their sentences for them.",
+      "Check that the person has their hearing aids, glasses and communication aids, clean and working, before you talk with them. If an aid is broken, lost or not working, record it in the daily visit notes and tell the office the same day.",
+      "When you arrive, say your name and that you are from us, even if the person knows you. If they cannot hear the door or see your badge, follow the arrival arrangement in their care plan.",
+      "Face the person at their eye level, in good light, with background noise turned down. Use plain words, check they have understood, and never talk about them over their head.",
+      "If you cannot understand something important during a visit, phone the office (the On-call Manager out of hours), who will connect a telephone or video interpreter while you are with the person. Tell them if this will make you late for your next visit.",
+      "Never use a child to interpret. Never use a relative, friend or colleague to interpret when the person is asked whether they feel safe, about possible abuse, or in a capacity assessment; the office books a professional interpreter.",
+      "If the person's speech, understanding, sight or hearing changes suddenly, or their face droops or an arm weakens, call 999 at once, then phone the office. Report slower changes to the office the same day.",
+      "If you notice a communication need that is not in the care plan, or the recorded approach is not working, tell the office the same day. Never guess, and never decide yourself that a person cannot understand.",
+      "Use only the translation app the Registered Manager has approved, on your work device, for simple everyday questions. Never type in names or personal details, and never use it for consent to new or changed care, medicines, health symptoms, safeguarding, capacity or complaints.",
+      "Office staff: check the person's communication needs before every letter, text, email or call, and use their recorded format and contact method every time. Never phone a person who has asked to be contacted by text or email.",
+      "If the person goes to hospital, tell the ambulance crew about their communication needs and make sure their hearing aids, glasses, communication aids and any communication or hospital passport go with them."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INITIAL_ASSESSMENT",
+    "CARE_PLAN",
+    "VISIT",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-CD-001",
+    "POL-CD-002",
+    "POL-CD-003",
+    "POL-CD-005",
+    "POL-CD-015",
+    "POL-SG-004",
+    "POL-GOV-005",
+    "POL-GOV-016"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "NHS England, Accessible Information Standard DAPB1605 (Amd 30/2025, version 1.1.0, published 3 July 2025)",
+      "url": "https://standards.nhs.uk/published-standards/accessible-information"
+    },
+    {
+      "source": "Health and Social Care Act 2012, section 250 (information standards), as amended by the Health and Care Act 2022, section 95, from 7 July 2025",
+      "url": "https://www.legislation.gov.uk/ukpga/2012/7/section/250"
+    },
+    {
+      "source": "Health and Social Care Act 2012, section 250(6) as in force on 6 July 2025 (providers of publicly arranged adult social care must have regard to information standards)",
+      "url": "https://www.legislation.gov.uk/ukpga/2012/7/section/250/2025-07-06"
+    },
+    {
+      "source": "The Health and Care Act 2022 (Commencement No. 10 and Transitional and Saving Provision) Regulations 2025 (S.I. 2025/807), regulation 3 (information standards already in effect on 7 July 2025)",
+      "url": "https://www.legislation.gov.uk/uksi/2025/807/regulation/3/made"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9(3)(c), (d), (g) and (h) (understanding and taking part in decisions, information, reasonable adjustments)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Equality Act 2010, section 20 (duty to make adjustments; accessible format, subsection (6); no charge, subsection (7); auxiliary services, subsection (11))",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 3 (explanation in a way appropriate to the person's circumstances; communicating a decision by any means)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/3"
+    },
+    {
+      "source": "British Sign Language Act 2022, section 1 (recognition of British Sign Language), in force 28 June 2022",
+      "url": "https://www.legislation.gov.uk/ukpga/2022/34/section/1"
+    },
+    {
+      "source": "Social Care Institute for Excellence, Dignity in care: Information and good communication",
+      "url": "https://www.scie.org.uk/providing-care/dignity-in-care/communication/"
+    },
+    {
+      "source": "Healthwatch England, The updated Accessible Information Standard is now available (18 July 2025): review step, self-assessment, first assessments by March 2027",
+      "url": "https://www.healthwatch.co.uk/news/2025-07-18/updated-accessible-information-standard-out"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} believes that every person we support has the right to understand the information we give them, to be understood by the people who care for them, and to take a full part in decisions about their care. People who are deaf, blind, deafblind or partially sighted, who have a learning disability, dementia, aphasia or another condition that affects communication, or who need information in another language, are at greater risk of being left out of decisions, of misunderstandings about their care and of harm that nobody notices."
+        },
+        {
+          "p": "{{organisation}} will ask every person, and the family carers involved in their care, about their information and communication needs; record them clearly; make them visible to every member of staff before any visit, letter or call; share them, with consent, with others involved in the person's care; meet them with accessible formats, professional interpreters and communication support, at no cost to the person; and review them regularly. We apply the six steps of the Accessible Information Standard to everyone we support, whoever pays for their care, and to people who need information in a language other than English."
+        },
+        {
+          "p": "The Directors are accountable for this policy. The Registered Manager is our accessible information lead. This policy puts into practice the communication standards of the Person-Centred Care, Dignity and Respect Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets out how we meet the Accessible Information Standard, Regulation 9 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 and the Equality Act 2010 duty to make reasonable adjustments for communication and information: who does what, and when, to ask about, record, flag, share, meet and review each person's needs, and how we check that these arrangements work."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, office staff, care staff, bank and agency workers, students and volunteers, in every visit, call, letter, text, email and meeting with the people we support and the family carers involved in their care. It applies to every adult we support, however their care is arranged or paid for. Related matters are covered by:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Related matter",
+              "Document"
+            ],
+            "rows": [
+              [
+                "Reasonable adjustments generally, and never charging for them",
+                "Equality, Diversity and Human Rights in Care Policy"
+              ],
+              [
+                "Assessment and care plan content, and interpreters for assessments and reviews",
+                "Needs Assessment and Care Planning Policy; Care Plan Review Procedure"
+              ],
+              [
+                "Supporting decisions and assessing capacity",
+                "Mental Capacity Act and Best Interests Policy; Consent to Care Policy"
+              ],
+              [
+                "Lawful basis and consent for sharing information",
+                "Confidentiality and Information Sharing Policy"
+              ],
+              [
+                "Help to make a complaint",
+                "Complaints Policy and Procedure"
+              ],
+              [
+                "Information sent with a person to hospital",
+                "Hospital Admission and Discharge Procedure"
+              ],
+              [
+                "Telecare and alerting devices",
+                "Technology-Enabled Care and Telecare Policy"
+              ],
+              [
+                "Accessible documents for employees",
+                "Policy Management and Document Control Policy; Equality, Diversity and Inclusion Policy"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Information and communication needs",
+                "What a person needs to receive and understand information from us and to communicate with us: an accessible format, communication support, a particular contact method or a particular way of communicating face to face. The Accessible Information Standard covers needs arising from disability, impairment or sensory loss; this policy also covers needs arising from language."
+              ],
+              [
+                "Accessible format",
+                "Information in a form the person can use: large print, easy read, braille, audio, an electronic document their screen reader or magnifier can read, British Sign Language video, a professional translation, or read aloud."
+              ],
+              [
+                "Communication support",
+                "A person or aid that makes communication possible, such as a British Sign Language or deafblind interpreter, communicator guide, lipspeaker, speech-to-text reporter, spoken-language interpreter, advocate, hearing loop, communication board, picture cards or voice output device."
+              ],
+              [
+                "Professional interpreter",
+                "An interpreter or translator supplied through our contracted language service provider who meets the standards in this policy. Relatives, friends and our own staff are never professional interpreters."
+              ],
+              [
+                "Communication passport",
+                "A document the person has made, often with family or a speech and language therapist, describing how they communicate and how others can help."
+              ],
+              [
+                "Family carer",
+                "A relative or friend, including a parent, who gives the person unpaid support with their agreement."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and fund professional interpreters, translation, accessible formats and the communication aids we provide, through a written contract with a language service provider that meets this policy's standards. The Nominated Individual oversees accessible information for the Directors, approves the annual self-assessment and challenges the communication results in the quarterly quality report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is the accessible information lead. They manage the arrangements with the language service provider and format suppliers, approve the one translation app staff may use, decide any communication adjustment a Care Coordinator cannot agree, and review every report of interpreting contrary to this policy. The Deputy Manager is deputy lead, acts in the Registered Manager's absence (the On-call Manager out of hours), keeps the accessible versions of our standard documents, audits this policy's standards monthly and prepares the annual self-assessment."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "As assessors and reviewers, both ask about, record and review communication needs. Care Coordinators also book interpreters and formats, update the care plan and brief care workers when needs change, share needs with other organisations, arrange referrals for aids and specialist advice, and use language and communication skills when choosing core care teams. Field Care Supervisors keep the copy of the care plan in the home in the person's format and, at every spot check, observe how the care worker communicates and ask the person privately whether staff understand them and whether our information is in a form they can use."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "They read the communication needs in My care at a glance before every visit, communicate and look after aids as the care plan describes, record and report new or changed needs and problems with aids the same day, and never use a child to interpret. When unsure during a visit how to communicate something, they phone a Senior Care Worker or the Care Coordinator (the On-call Manager out of hours) before acting. Senior Care Workers acting as shadow leads show new care workers on shadowing shifts how each person communicates."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff, On-call Manager and HR Manager",
+          "blocks": [
+            {
+              "p": "Office staff check a person's communication needs before every letter, text, email or call, use the recorded format and contact method, and record requests for formats or support in CareFlow the same working day. The On-call Manager does the same out of hours and connects telephone or video interpreters for urgent conversations. The HR Manager records, with each employee's agreement, the languages and sign language or other communication skills they have in the staff record, and keeps training records."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law and national standards require",
+      "blocks": [
+        {
+          "bullets": [
+            "The Accessible Information Standard (DAPB1605, version 1.1.0, published by NHS England on 3 July 2025) applies to all providers of publicly funded adult social care. It requires them to identify, record, flag, share, meet and review the information and communication needs of the people who use their services, and of their carers and parents, where those needs arise from a disability, impairment or sensory loss. The 2025 version added the review step and a self-assessment framework, and NHS England asks for the first self-assessment to be completed by the end of March 2027.",
+            "The standard is published under section 250 of the Health and Social Care Act 2012. From 7 July 2025 section 95 of the Health and Care Act 2022 replaced the duty to have regard to information standards with a duty to comply, but regulation 3 of S.I. 2025/807 keeps the earlier rule for any information standard that had effect immediately before 7 July 2025. This version was published on 3 July 2025, so a provider of adult social care arranged by a public body must have regard to it (section 250(6) as it stood before 7 July 2025). Our policy is to meet it in full for everyone we support, so a later change to its legal status will not change our practice.",
+            "Regulation 9(3) requires us to enable and support people to understand their care choices and take part in decisions as far as possible, to give them the information they need for this, and to make reasonable adjustments so they can receive their care.",
+            "Equality Act 2010, section 20: where a disabled person would be at a substantial disadvantage, we must take reasonable steps, including providing auxiliary aids and services such as interpreters and providing information in an accessible format, and we cannot ask the person to pay any of the cost.",
+            "Mental Capacity Act 2005, section 3: a person is not to be treated as unable to understand information if they can understand an explanation given in a way appropriate to them, and they may communicate a decision by any means, including sign language.",
+            "The British Sign Language Act 2022 recognises British Sign Language as a language of England, Wales and Scotland. It places no duty on care providers; we treat it as the person's own language, as we would any other."
+          ]
+        },
+        {
+          "p": "Language needs that do not arise from a disability fall outside the Accessible Information Standard; we meet them under this policy in the same way. CQC enforces Regulation 9."
+        }
+      ]
+    },
+    {
+      "heading": "Step 1: asking about needs",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "When",
+              "Who asks",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "Referral",
+                "Care Coordinator",
+                "Asks the referrer about communication needs, interpreters, formats and contact method; recorded in the initial assessment on the day the referral arrives. The assessment visit is arranged in the person's format, with any interpreter booked."
+              ],
+              [
+                "Assessment",
+                "Assessor",
+                "Asks the person the questions below and, with their agreement, asks each family carer involved about their own needs; reads any communication passport or speech and language therapy advice; watches how the person communicates."
+              ],
+              [
+                "Every care plan review, and the review within 7 days of a hospital discharge",
+                "Reviewer",
+                "Asks again, as Step 6 sets out."
+              ],
+              [
+                "A change noticed or reported at any time",
+                "Care Coordinator",
+                "Acts the same working day, as Step 2 sets out."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The assessor asks every person, in plain words and using any aids they have:"
+        },
+        {
+          "bullets": [
+            "whether they have any difficulty seeing, hearing, speaking, reading, writing or understanding information;",
+            "how they want us to contact them: phone, text, email, letter, video call, or through someone they choose;",
+            "the format they need our letters and documents in;",
+            "whether they need someone or something to help them communicate with us, such as an interpreter, hearing loop or communication board;",
+            "the language they prefer to speak and to read;",
+            "what helps them most when people talk with them, and what makes it harder."
+          ]
+        },
+        {
+          "p": "Staff never assume a need from a diagnosis, age or appearance, and never assume there is none. Where the person cannot answer, the assessor asks family carers and professionals who know them and records what they observe. At the first-week check call the Care Coordinator confirms that the person has received and understood our information in their format."
+        }
+      ]
+    },
+    {
+      "heading": "Step 2 and Step 3: recording and flagging needs",
+      "blocks": [
+        {
+          "p": "The assessor records the answers in the initial assessment on the day of the visit, and in the care plan in two places: a short summary in My care at a glance and the full detail in the communication part of My needs and support. Each need is recorded as what the person needs, not only their condition:"
+        },
+        {
+          "table": {
+            "columns": [
+              "What is recorded",
+              "Example"
+            ],
+            "rows": [
+              [
+                "The need, not only the condition",
+                "'Needs all letters in large print, 18 point', not 'visually impaired'."
+              ],
+              [
+                "Contact method",
+                "'Text or email only; cannot use the phone. Contact my daughter if I do not reply within 2 hours.'"
+              ],
+              [
+                "Format",
+                "'Easy read with pictures, read through with me at a visit.'"
+              ],
+              [
+                "Communication support and language",
+                "'British Sign Language interpreter for assessments, reviews and meetings.' 'Speaks and reads Punjabi; interpreter for anything important.'"
+              ],
+              [
+                "How to communicate at visits",
+                "'Stand in front of me and wait until I look at you. Speak slowly; I lip-read.'"
+              ],
+              [
+                "Aids and their care",
+                "'Hearing aids in both ears. Change batteries on Mondays.'"
+              ],
+              [
+                "Key words and phrases",
+                "Everyday phrases, signs or picture cards agreed with the person and checked with a professional interpreter, such as for pain, toilet, drink, yes and no."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A family carer's own needs are recorded in the People involved part of the care plan and used whenever we contact them. The person's agreement to share their needs is recorded in the Consent and decisions part."
+        },
+        {
+          "p": "My care at a glance is our flag. Care workers read it before every visit, and Office staff and the On-call Manager read it before contacting the person or sending them anything. It shows either the person's communication needs or 'No communication needs identified' with the date they were asked, so a blank entry never hides a need. For a planned package the record is complete before the first visit; for a short-notice start the initial care plan includes the communication summary and the full record is completed within 7 days."
+        },
+        {
+          "p": "When a need is new or changes, Office staff record the report in the daily visit notes the same working day and the Care Coordinator (the On-call Manager out of hours) decides what to do that day, as the Care Plan Review Procedure sets out. Where the change affects how care workers communicate with the person, the Care Coordinator updates My care at a glance, has the change approved before the next visit under that procedure and tells every care worker on the rota before their next visit; any other change is recorded and approved within 5 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Step 4: sharing needs with others",
+      "blocks": [
+        {
+          "p": "With the person's agreement, we include their communication needs whenever we share information about them, so they do not have to explain them again to every service. Where a person lacks capacity to decide, sharing is decided in their best interests under the Mental Capacity Act and Best Interests Policy, and the lawful basis is recorded as the Confidentiality and Information Sharing Policy sets out."
+        },
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "When",
+              "Who shares"
+            ],
+            "rows": [
+              [
+                "Ambulance crew and hospital",
+                "At every admission, with the information sent under the Hospital Admission and Discharge Procedure; aids and any communication or hospital passport go with the person",
+                "Care worker tells the crew; Office staff or the On-call Manager include communication needs when they phone the ward; the Care Coordinator sends the written admission information"
+              ],
+              [
+                "GP practice and pharmacy",
+                "In the medicines notification when medicines support starts, and within 2 working days of a new or changed need",
+                "Care Coordinator"
+              ],
+              [
+                "Commissioner",
+                "With assessment and review information, and within 2 working days where meeting a need requires funding or more time",
+                "Care Coordinator"
+              ],
+              [
+                "Community nurses, day services and other providers involved",
+                "Within 2 working days of a new or changed need, and before their next contact where it affects them",
+                "Care Coordinator"
+              ],
+              [
+                "A provider taking over the person's care",
+                "With the handover information",
+                "Care Coordinator"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where a person tells us that letters or calls from their GP, hospital, council or another service are not in a form they can use, the Care Coordinator, with their agreement, writes to that organisation within 2 working days asking it to record and meet the need under the Accessible Information Standard, and helps the person complain if it does not."
+        }
+      ]
+    },
+    {
+      "heading": "Step 5: meeting needs",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Information in accessible formats",
+          "blocks": [
+            {
+              "p": "Every document we give or send a person is in their recorded format: the welcome pack and service agreement, the copy of the care plan in the home, review summaries, the weekly visit schedule, letters, invoices and statements, complaints information and letters, surveys, privacy information and safeguarding information. The welcome pack tells every person that they can have any of our information in another format or language at no cost. The Deputy Manager keeps large print, easy read and audio versions of our standard documents and updates them when the standard version changes (audio within 10 working days); other formats and languages are produced on first request and kept for future use."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Format",
+                  "How we provide it",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "Read aloud or explained",
+                    "By any member of staff at a visit or by phone, through an interpreter where needed",
+                    "At once, and as the interim for any format that takes longer"
+                  ],
+                  [
+                    "Large print",
+                    "Office staff produce it in a clear sans serif typeface of at least 16 point, or the size the person asks for, on matt paper",
+                    "With the standard version"
+                  ],
+                  [
+                    "Electronic",
+                    "An email or document the person's screen reader or magnifier can read, never a scanned image",
+                    "With the standard version"
+                  ],
+                  [
+                    "Easy read",
+                    "Standard documents from our easy read set; person-specific documents written by the Care Coordinator in short sentences with pictures and checked with the person",
+                    "Standard documents at once; person-specific within 5 working days"
+                  ],
+                  [
+                    "Audio, braille, British Sign Language video or translation",
+                    "Our contracted suppliers; translations by professional translators, never by machine translation alone",
+                    "Within 10 working days"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Where a format takes longer than the standard version, the content is read aloud or explained to the person within 2 working days, and urgent information, such as a change to visit times or a safety change to the care plan, the same day."
+            }
+          ]
+        },
+        {
+          "heading": "Contacting the person",
+          "blocks": [
+            {
+              "bullets": [
+                "Office staff and the On-call Manager use the recorded contact method for every contact, including calls about late or replacement care workers and the weekly schedule sent by the end of the preceding Friday under the Person-Centred Care, Dignity and Respect Policy.",
+                "A person who cannot use the phone is never contacted only by phone; text, email, video call or their chosen contact is used, as the care plan records.",
+                "Calls made through Relay UK or a video relay service are dealt with like any other call, allowing the extra time they take.",
+                "After passing on anything important, staff check that the person has understood it and record that they did."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Interpreters and communication support",
+          "blocks": [
+            {
+              "p": "Our language service provider supplies face-to-face, video and 24-hour telephone interpreting, translation and communication professionals. British Sign Language interpreters, deafblind interpreters, lipspeakers and speech-to-text reporters must be registered with the National Registers of Communication Professionals working with Deaf and Deafblind People; spoken-language interpreters must hold a recognised public service interpreting qualification. The provider confirms in writing that interpreters attending homes have had a criminal record check, and every interpreter is bound by our confidentiality terms. Interpreters attend with our staff and are never left alone with the person. They are never given a key safe code or a key: our staff member arrives first and lets them in. An interpreted assessment, review or meeting is booked as its own visit and never takes time from a care visit. The interpreter's name, language and booking reference are recorded with the record of the conversation."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "Support we use"
+                ],
+                "rows": [
+                  [
+                    "Assessment, agreeing the care plan, reviews, capacity assessments, best interests meetings, complaint meetings, end of life planning, and conversations about changing or ending the service",
+                    "A professional interpreter, face to face or by video where the person agrees, booked when the visit or meeting is booked"
+                  ],
+                  [
+                    "Asking the person privately whether they feel safe, and any safeguarding conversation",
+                    "A professional interpreter only, never a relative, friend or member of staff"
+                  ],
+                  [
+                    "An unplanned conversation that cannot wait, such as the person being unwell or upset",
+                    "The care worker phones the office or the On-call Manager, who connects a telephone or video interpreter during the visit. While waiting, the care worker carries on with the care the person accepts. If the conversation will keep them more than 15 minutes beyond the planned finish, they say so on the call and the office or On-call Manager rearranges their next visit under the Missed, Late and Short Visits Procedure"
+                  ],
+                  [
+                    "An emergency",
+                    "999 at once. The care worker gives the crew the communication needs from My care at a glance and phones the office or the On-call Manager, who connects a telephone interpreter if the crew ask for one"
+                  ],
+                  [
+                    "Everyday care at visits",
+                    "Care workers who share the person's language where possible; the agreed key words, signs and picture cards in the care plan; and, for simple everyday questions only, the approved translation app"
+                  ]
+                ]
+              }
+            },
+            {
+              "bullets": [
+                "If no professional interpreter is available for a planned conversation, the Care Coordinator rearranges it rather than holding it without one, unless the delay would put the person at risk, in which case a telephone or video interpreter is used.",
+                "A relative or friend interprets only where the person chooses this after being offered a professional interpreter and the choice is recorded in the care plan, and never in a safeguarding conversation or a capacity assessment.",
+                "A child under 18 never interprets, whatever the person or family wish.",
+                "Care workers who speak the person's language talk with them in it during care, but do not interpret at the conversations in the first two rows of the table, because they are not independent.",
+                "The approved translation app is used only on a work device, never with names or other personal details, and never for consent to new or changed care, medicines, health symptoms, safeguarding, capacity or complaints.",
+                "Any interpreting contrary to these rules is recorded in the incident log the same day and reviewed by the Registered Manager by the end of the next working day."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Communicating at every visit",
+          "blocks": [
+            {
+              "p": "Care workers follow the approach in the person's care plan. These are our minimum standards:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Need",
+                  "What care workers do"
+                ],
+                "rows": [
+                  [
+                    "Everyone",
+                    "Give your name on arrival and say you are from us, even if the person knows you; face the person at their eye level, use plain words, give them time to answer and never finish their sentences for them, check they have understood, and never talk about them over their head."
+                  ],
+                  [
+                    "Hearing loss",
+                    "Face the person in good light, get their attention first, speak clearly without shouting, turn off background noise, check hearing aids are in, on and working, and write down anything important."
+                  ],
+                  [
+                    "Deaf British Sign Language user",
+                    "Use the agreed signs and finger-spelling, never assume the person lip-reads or reads English well, and use a professional interpreter for anything beyond everyday care."
+                  ],
+                  [
+                    "Sight loss",
+                    "Tell the person who you are on arrival and before leaving the room, describe what you are doing, put things back where the person keeps them, guide as trained, and keep glasses clean and within reach."
+                  ],
+                  [
+                    "Deafblindness",
+                    "Use the touch cues, hands-on signing or deafblind manual alphabet in the care plan, and work with any communicator guide."
+                  ],
+                  [
+                    "Dementia",
+                    "One question at a time, simple choices, objects or pictures, time to answer, and watching expression and behaviour for pain or distress; never argue with the person's version of events."
+                  ],
+                  [
+                    "Learning disability or autism",
+                    "Follow the communication passport, use easy read and agreed Makaton or other signs, keep routines and avoid sensory overload."
+                  ],
+                  [
+                    "Aphasia or other speech difficulty",
+                    "Follow speech and language therapy advice, ask questions that can be answered yes or no, use the communication board or device, and never pretend to understand."
+                  ],
+                  [
+                    "First language other than English",
+                    "Use the agreed key phrases and picture cards, speak plainly, and phone the office for an interpreter when something important cannot be understood."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Where a person cannot hear the door or see a badge, the assessor agrees with them how they will know we have arrived and who is calling, such as a flashing doorbell, letting ourselves in by the key safe while calling out, coming into their line of sight before speaking or touching, or the spoken password or office call set under the Uniform, ID Badges and Dress Code Policy. This arrival arrangement is recorded in My care at a glance, and the assessor allows for the person's hearing and sight in the no-reply plan under the No Reply, No Access and Missing Person Procedure."
+            },
+            {
+              "p": "When a care worker outside the core care team covers a visit, the Care Coordinator (the On-call Manager out of hours) chooses one who knows the person's communication methods where possible, and otherwise phones them before the visit to go through the key words, signs or picture cards in My care at a glance. Care workers never cut communication short to save time. Where communicating with the person regularly takes longer than the visit allows, the care worker tells the office the same day and the Care Coordinator reviews the visit length with the person within 7 days under the Needs Assessment and Care Planning Policy, asking the commissioner within 2 working days where it must agree more time."
+            },
+            {
+              "p": "Daily visit notes record how the person communicated, anything that could not be understood and any problem with an aid."
+            }
+          ]
+        },
+        {
+          "heading": "Aids, specialist help and emergencies",
+          "blocks": [
+            {
+              "bullets": [
+                "The care plan records who looks after each aid, such as hearing aids, glasses, a hearing loop or a voice output device, including what family carers do, and what care workers check at each visit. Aids usually belong to the person or to the audiology, optician, speech and language therapy or equipment service that supplied them, which repairs or replaces them. When an aid is broken, lost or not working, the Care Coordinator contacts the audiology service, optician, speech and language therapy service or equipment provider, with the person's agreement, within 2 working days of the report.",
+                "Where the person's communication is getting worse, or the recorded approach is not working, the Care Coordinator asks the GP within 2 working days, with the person's agreement, to refer them to speech and language therapy, audiology or eye services.",
+                "Within 5 working days of recording a hearing or sight need, the Care Coordinator offers, with the person's agreement, a referral to the fire and rescue service for a home fire safety visit (such as a smoke alarm with a strobe light or vibrating pad), help to register for the emergency text service, and a telecare review under the Technology-Enabled Care and Telecare Policy.",
+                "A sudden change in speech, understanding, sight or hearing, a drooping face or a weak arm may be a stroke: the care worker calls 999 at once and then phones the office. New confusion may be sepsis and is also a 999 call, as the Infection Prevention and Control Policy sets out."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Step 6: reviewing needs",
+      "blocks": [
+        {
+          "p": "At every care plan review, including the 6-week review, scheduled reviews, triggered reviews and the review within 7 days of a hospital discharge under the Care Plan Review Procedure, the reviewer asks the person, and family carers involved, whether our information reaches them in a form they can use, whether their communication support and aids are working, and whether anything has changed. The reviewer checks a sample of what we have sent since the last review against the recorded format and contact method, and confirms that My care at a glance is accurate."
+        },
+        {
+          "p": "A person or their representative may ask for a different format, contact method or support at any time. The request follows the reasonable adjustment timescales in the Equality, Diversity and Human Rights in Care Policy: recorded the same working day, acknowledged by the end of the next working day and in place within 5 working days, with the Registered Manager deciding any request the Care Coordinator cannot agree. Individual documents in a format that takes longer to produce follow the timescales in the format table in Step 5."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Communication needs are recorded in the initial assessment and the care plan as Step 2 sets out, interpreters with the record of the conversation, interpreting contrary to this policy in the incident log, employees' languages and communication skills in the staff record, and training in the training and compliance records. Records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "The Care Certificate communication standard, this policy, deaf and sight loss awareness including guiding, dementia communication, and care of hearing aids and glasses",
+                "All care staff",
+                "During induction, before working without a shadowing colleague",
+                "Every 12 months, within the person-centred care and dignity refresher"
+              ],
+              [
+                "Checking needs before contact, producing large print and electronic documents, ordering other formats, booking interpreters and handling relay calls",
+                "Office staff, HR and staff allocation roles",
+                "In the first week, before sending letters or taking calls alone",
+                "Every 12 months, within the same refresher"
+              ],
+              [
+                "Asking, recording, flagging and sharing needs, and working with interpreters",
+                "Assessors and On-call Managers",
+                "Within the assessment and care planning training, before the first assessment or on-call shift",
+                "Every 12 months, in the annual assessor update"
+              ],
+              [
+                "The person's own methods, such as British Sign Language signs, deafblind manual, Makaton or a voice output device",
+                "That person's core care team",
+                "Before their first unshadowed visit to the person, taught by the person, family, speech and language therapist or an approved trainer",
+                "Whenever the method changes"
+              ],
+              [
+                "The Accessible Information Standard in depth, including the self-assessment framework",
+                "Registered Manager and Deputy Manager",
+                "Within 3 months of appointment",
+                "Every 3 years, and within 2 months of a new version of the standard"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Core care team members of a person who uses British Sign Language are offered a funded British Sign Language Level 1 course in paid time. At every spot check the Field Care Supervisor observes how the care worker communicates, uses the person's aids and checks understanding. A care worker whose practice falls short receives feedback the same day, is retrained and is observed again within 4 weeks."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Needs recorded as needs; My care at a glance complete, including 'No communication needs identified' with a date; contact method, format, support, consent to share and review at the last care plan review (target 100%)",
+                "Monthly, within the audit of 10 care plans",
+                "Deputy Manager",
+                "Registered Manager"
+              ],
+              [
+                "For each person in that sample with a recorded format or contact need, every document and contact that month used it (target 100%)",
+                "Monthly, within the same audit",
+                "Deputy Manager",
+                "Registered Manager"
+              ],
+              [
+                "Format and interpreter requests, time taken to meet them, and any interpreting contrary to this policy (target none)",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Communication at spot checks; people's views at spot checks and quality checks on whether staff understand them, and in quality checks and the annual satisfaction survey on whether our information is usable",
+                "Every spot check and quality check; survey annually",
+                "Field Care Supervisors, Care Coordinators, Deputy Manager",
+                "Quarterly quality report"
+              ],
+              [
+                "Self-assessment against the Accessible Information Standard using NHS England's self-assessment framework, including the views of at least 3 people we support with communication needs or their representatives, with its actions added to the service improvement plan",
+                "Every 12 months, completed in June; the first by 31 March 2027, as NHS England asks, then each June from 2028",
+                "Deputy Manager prepares; Registered Manager checks; Nominated Individual approves",
+                "Next Directors' governance meeting and the annual reports"
+              ],
+              [
+                "Training compliance (target 100% induction, 95% refreshers in date) and policy acknowledgements (by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version)",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is given an action, an owner and a deadline in the service improvement plan within 5 working days and tracked to completion."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, including a new version of the Accessible Information Standard or a change to its legal status, a serious incident, an inspection finding, or when monitoring or feedback shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

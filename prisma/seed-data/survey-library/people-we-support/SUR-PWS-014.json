@@ -1,0 +1,284 @@
+{
+  "reference": "SUR-PWS-014",
+  "revision": 1,
+  "title": "Respecting who you are",
+  "audience": "SERVICE_USER",
+  "respondents": "Everyone we support, once a year in September; anonymous, so a representative answers only where the person cannot give their views, even with help",
+  "summary": "An anonymous yearly survey asking whether people can be themselves when we visit: culture, faith, food rules, language, their name, the people who matter to them, being open about who they are and fair treatment. About 8 minutes.",
+  "purpose": "Asks whether people can be themselves in their own home when we visit: culture, religion and faith practices, food rules, language, the name they want, partners and the people who matter, being open about who they are, being accepted, and fair or unfair treatment. It deepens the two questions the Equality, Diversity and Human Rights in Care Policy makes mandatory in the annual survey, without lengthening that survey. It is anonymous because its value depends on people telling us what they may hide from us; the cost is no individual follow-up, so the introduction gives routes for anyone who wants a reply. Results go to the annual equality review and into equality and diversity refresher training.",
+  "timing": {
+    "when": "Once a year, opening on the first working day of September for 4 weeks",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": true,
+  "channels": ["PORTAL", "PAPER", "TELEPHONE"],
+  "estimatedMinutes": 8,
+  "cqc": {
+    "keyQuestions": ["CARING", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Treating people as individuals",
+      "Kindness, compassion and dignity",
+      "Equity in experiences and outcomes",
+      "Shared direction and culture"
+    ]
+  },
+  "introduction": "{{organisation}} wants everyone we support to be able to be themselves when we visit. This survey asks about your culture, beliefs, language, name and the people who matter to you. It takes about 8 minutes.\n\nIt is anonymous: we do not record your name, so we cannot reply to you. If you answer by phone, the person helping you will hear your answers but will not record who you are. If you want us to do something, phone the office and ask for the Registered Manager, or use our complaints procedure.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to check that everyone is treated fairly and with respect, and to improve our care. Our legal reason is our legitimate interest in running a good, fair service.\n\nThis survey is anonymous: no name or link to you is kept, so your answers cannot be traced to you and we cannot reply. Please do not write names in your answers. Only the managers who run the survey look at individual answers, and our reports show results only for groups of 10 or more people, and ethnic group by broad group unless 10 or more chose the same option. If a comment tells us someone may be at risk of harm, we will act on it as far as we can and may tell the council.\n\nWe keep the answers for 3 years after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care over the last few months. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your culture and beliefs",
+      "questions": [
+        {
+          "id": "q-culture",
+          "text": "Do your care workers respect your culture and beliefs?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, prayer times, fasting, religious items or how you wash. Choose \"Does not apply to me\" if this does not matter to your care.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What should we do differently? Please do not give names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-food-rules",
+          "text": "Do your care workers follow your food rules, such as for your religion, culture or health?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, halal, kosher, vegetarian, or keeping some pans separate. Choose \"Does not apply to me\" if you have no food rules or we do not help with food.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What should we do differently? Please do not give names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-language",
+          "text": "Can you talk with your care workers in the language you prefer?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if English is the language you prefer.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would help? Please do not give names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Equity in experiences and outcomes"
+        }
+      ]
+    },
+    {
+      "title": "Being yourself",
+      "questions": [
+        {
+          "id": "q-name",
+          "text": "Do your care workers call you by the name you want?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "This includes your title, such as Mrs or Mr, and words like he, she or they.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not give names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-people-matter",
+          "text": "Do your care workers treat the people who matter to you with respect?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, your husband, wife, partner, family or friends. Choose \"Does not apply to me\" if care workers do not meet them.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not give names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-open",
+          "text": "Can you be open about who you are when care workers are in your home?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "For example, about your religion, your sexuality, your relationships or your gender. You can skip this question.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "What would help you feel able to be yourself? Please do not give names.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        }
+      ]
+    },
+    {
+      "title": "Fair treatment",
+      "questions": [
+        {
+          "id": "q-accept",
+          "text": "Do your care workers accept you for who you are?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not give names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-fair",
+          "text": "Do you feel we treat you fairly?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Fairly means giving you care as good as anyone else gets, whatever your age, disability, race, religion, sex or sexuality.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Equity in experiences and outcomes"
+        },
+        {
+          "id": "q-unfair",
+          "text": "In the last 12 months, has anyone from {{organisation}} treated you unfairly because of who you are?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, because of your age, disability, race, religion, sex, sexuality or gender.",
+          "options": ["Yes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "comment": {
+            "prompt": "If you want to, tell us what happened. Please do not give names.",
+            "showWhen": ["Yes"]
+          },
+          "evidence": "Responsive: Equity in experiences and outcomes"
+        }
+      ]
+    },
+    {
+      "title": "About you",
+      "introduction": "These two questions help us see whether some groups have a different experience. You do not have to answer them.",
+      "questions": [
+        {
+          "id": "q-ethnic-group",
+          "text": "What is your ethnic group?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose one option that best describes your ethnic group or background.",
+          "optionsFrom": "ethnicity"
+        },
+        {
+          "id": "q-lgbtq",
+          "text": "Do you think of yourself as lesbian, gay, bisexual, trans or another identity (LGBTQ+)?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"]
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What else could we do so you feel respected for who you are?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not give names. We cannot reply to this survey because we do not know who you are: if you want us to do something, phone the office and ask for the Registered Manager. You can also contact your local Healthwatch."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Send it to everyone we support on the first working day of September with Send or schedule, Everyone in these branches, repeating yearly and kept open for 28 days. People with a portal account answer there. Everyone else gets a paper copy with a prepaid envelope and no reference number, or can answer by phone: office staff who are not the person's care workers read it out and enter the answers with Record response, recording nothing that identifies the person, and enter returned paper copies the same way. A quality check due within 4 weeks either side of the send is brought forward to the first working day of August: it cannot be combined with an anonymous survey.",
+      "CareFlow sends an anonymous survey only when it reaches at least 5 people. If fewer than 5 people in your branches have a portal account, the send is refused: use Open for responses instead and offer paper and phone only. Never send a separate copy to a branch with fewer than 30 people we support; run it organisation-wide.",
+      "By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can open a survey for responses: give both to the office staff who take phone answers and enter paper copies.",
+      "Offer large print, easy read and translated versions; use a professional interpreter, never a family member. A representative answers only where the person cannot give their views even with help. Do not send it within 4 weeks of another survey to the same person; the October feeling safe survey (SUR-PWS-018) goes no earlier than 4 weeks after this one.",
+      "The ethnic group question uses the Government Statistical Service harmonised standard wording (© Government Analysis Function, Open Government Licence v3.0), with its answers taken from the organisation's ethnicity list in Settings, the same list as the care record. CareFlow reports it by group heading, folds any group chosen by fewer than 10 people into \"Other groups\", and shows a detailed option only where 10 or more people chose it. The LGBTQ+ question is one combined question for the same reason. Religion is not asked.",
+      "CareFlow shows each anonymous response's answers together under Individual responses, with no name or time of day, including the LGBTQ+ question. Ethnic group is shown there only as its group heading, and only for a group that 10 or more people chose; otherwise it reads \"Not shown\". In a small service the remaining answers together could still point to one person. Who may open individual answers: the Registered Manager and Deputy Manager only. This is set in Who can see the answers: individual responses are limited to the Registered Manager and the Deputy Manager, and results to the same staff, showing from 10 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "Anonymous surveys have no individual alerts, but every comment is read the working day it is seen. A comment describing abuse, neglect, a hate incident or discrimination with enough detail to act goes to the safeguarding lead the same working day; the Registered Manager decides within 1 hour of reading it whether it is a safeguarding concern, under the Equality, Diversity and Human Rights in Care Policy and the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and acts as far as the information allows. No one tries to identify who wrote it.",
+      "How to count: for the frequency questions report the share answering Always or Usually, leaving out Does not apply to me; for unfair treatment the share answering Yes, leaving out Prefer not to say. Report only groups of 10 or more people, organisation-wide; never break results down by branch and ethnic group or LGBTQ+ together, and never show a group that could be worked out by comparing two reports.",
+      "Results needing action: any Yes to unfair treatment; being open, acceptance or fairness 10 or more percentage points below the organisation's result in a branch with 10 or more answers; or the same theme in comments from 3 or more people. The Registered Manager adds an action to the service improvement plan within 5 working days under the Governance and Quality Assurance Policy, such as targeted equality training or spot checks focused on identity at the next round.",
+      "The Deputy Manager prepares the results for the annual equality review, which the Registered Manager presents, and shares an accessible You said, we did summary with everyone asked. Keep the answers for 3 years after the survey closes under the Records Management and Retention Policy. For CQC, the results and actions show that people's identity, culture and relationships are respected and that experiences are compared across groups (Regulations 9, 10 and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Has anyone from {{organisation}} treated you unfairly because of who you are?\" answered Yes (anonymous: counts only).",
+        "action": "The Registered Manager adds an action to the service improvement plan within 5 working days, such as targeted equality training or identity-focused spot checks. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Unfair treatment reported (anonymous): plan action",
+          "if": [
+            {
+              "question": "q-unfair",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5,
+          "minimumAnswers": 10
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["REGISTERED_MANAGER", "DEPUTY_MANAGER"],
+    "results": ["REGISTERED_MANAGER", "DEPUTY_MANAGER"],
+    "reportingThreshold": 10
+  },
+  "relatedPolicies": [
+    "POL-CD-005",
+    "POL-CD-001",
+    "POL-CD-007",
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-GOV-013",
+    "POL-GOV-017",
+    "POL-SG-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Equality Act 2010, section 29: a service provider must not discriminate against, harass or victimise a person using the service",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/29"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 10: dignity and respect, including having regard to the protected characteristics",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/10"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Government Analysis Function, Ethnicity harmonised standard: England question and main ethnic groups",
+      "url": "https://analysisfunction.civilservice.gov.uk/policy-store/ethnicity-harmonised-standard/"
+    },
+    {
+      "source": "Government Analysis Function, Terms of use, section 6 (Copyright): most content is published under the Open Government Licence v3.0, apart from listed exemptions and images",
+      "url": "https://analysisfunction.civilservice.gov.uk/terms-of-use/"
+    }
+  ]
+}

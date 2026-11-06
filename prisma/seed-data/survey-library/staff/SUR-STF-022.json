@@ -1,0 +1,344 @@
+{
+  "reference": "SUR-STF-022",
+  "revision": 1,
+  "title": "Coming back to work",
+  "audience": "EMPLOYEE",
+  "respondents": "Employees about 4 weeks after returning from 4 weeks or more of sickness absence or family leave (maternity, adoption, shared parental, neonatal care or bereaved partner's paternity leave)",
+  "summary": "A short, private check in your fourth week back after 4 weeks or more away: whether we talked with you before you came back, brought your training up to date, kept your rota to the agreed plan, held your first-week supervision and made the changes you need, and how the return is going. It never asks about your health. About 5 minutes.",
+  "purpose": "Returners are a retention risk, and the Sickness Absence Policy and the Flexible Working and Family Leave Policy promise specific steps around a return: a return-to-work conversation, a written return plan built into the rota, training renewed before the visits it covers, first visits to people the worker knows, supervision in the first week, and a new risk assessment before visits for new mothers. This check in week 4 asks the returner whether those steps happened and whether the return is working, so the HR Manager can fix a plan while it still can be fixed. It is not the return-to-work conversation, which stays a private meeting, and it never asks about illness or medical details.",
+  "timing": {
+    "when": "About 20 working days after the first shift back following 4 weeks or more of sickness absence or family leave",
+    "recurrence": null,
+    "trigger": "First shift back after 4 weeks or more of sickness absence or family leave"
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "TELEPHONE", "PAPER"],
+  "estimatedMinutes": 5,
+  "cqc": {
+    "keyQuestions": ["CARING", "SAFE", "WELL_LED"],
+    "qualityStatements": [
+      "Workforce wellbeing and enablement",
+      "Safe and effective staffing",
+      "Workforce equality, diversity and inclusion"
+    ]
+  },
+  "introduction": "Welcome back. You have been back at work for about 4 weeks, and {{organisation}} wants to check that the plan for your return is working and that you have the support you need. We will not ask about your health. It takes about 5 minutes, in paid time. Taking part is your choice and will not affect your job or hours.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to put right anything about your return and to improve how we support people coming back. Our legal reason is our legitimate interest in supporting returns to work, and, for anything you tell us about your health, our duties as your employer.\n\nYour answers are linked to you so we can put things right. Only the HR Manager reads them; your supervisor and the rota team are told only what they need to change, unless you agree to more. Reports show combined results for 5 or more people only.\n\nWe keep your answers for 1 year after you answer, under our Records Management and Retention Policy; anything we act on is kept in your staff record, with health details only in its restricted section. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "closingMessage": "Thank you. The HR Manager reads your answers each working day. If something about your return needs to change before then, speak to the HR Manager.",
+  "sections": [
+    {
+      "title": "Getting ready to come back",
+      "introduction": "These questions are about your return to work in the last few weeks.",
+      "questions": [
+        {
+          "id": "q-pre-return-talk",
+          "text": "Before your first shift back, did we talk with you about how your return would work?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No", "I don't remember"],
+          "notCountedOptions": ["I don't remember"],
+          "comment": {
+            "prompt": "What would have helped before you came back?",
+            "showWhen": ["No"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-training",
+          "text": "Was your training brought up to date before your first visits back?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose None was due if none of your training ran out while you were away.",
+          "options": ["Yes", "Partly", "No", "None was due", "Don't know"],
+          "notCountedOptions": ["None was due", "Don't know"],
+          "comment": {
+            "prompt": "Which training is still out of date?",
+            "showWhen": ["Partly", "No"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Your first weeks back",
+      "questions": [
+        {
+          "id": "q-rota-plan",
+          "text": "Has your rota matched what we agreed with you for your return?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, fewer hours at first, no heavy tasks, or gaps in your run.",
+          "options": ["Yes", "Partly", "No", "We did not agree anything"],
+          "notCountedOptions": ["We did not agree anything"],
+          "comment": {
+            "prompt": "What has been different from what we agreed?",
+            "showWhen": ["Partly", "No"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-known-people",
+          "text": "Were your first visits back to people you already knew?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose Does not apply to me if you do not make visits.",
+          "options": ["Yes, all of them", "Some of them", "No", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-first-week-supervision",
+          "text": "Did you have a supervision in your first week back?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No", "I don't remember"],
+          "notCountedOptions": ["I don't remember"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-changes",
+          "text": "Do you have the changes to your work that you need, such as to your hours, tasks or breaks?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Partly", "No", "I do not need any changes"],
+          "notCountedOptions": ["I do not need any changes"],
+          "comment": {
+            "prompt": "What changes would help? You do not need to tell us about your health.",
+            "showWhen": ["Partly", "No"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-new-mother-check",
+          "text": "If you gave birth in the last 6 months or are breastfeeding, was a new safety check of your work done before your first visit?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "This is the risk assessment for new mothers. Choose Does not apply to me if this is not you.",
+          "options": ["Yes", "No", "Not sure", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "How it is going",
+      "questions": [
+        {
+          "id": "q-return",
+          "text": "How is your return to work going?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer.",
+            "showWhen": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-able-tasks",
+          "text": "Do you feel able to do all the tasks on your visits at the moment?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Prefer not to say if you would rather talk about this privately.",
+          "options": ["Yes", "Yes, with some help", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "comment": {
+            "prompt": "Which tasks? We can arrange support or training.",
+            "showWhen": ["Yes, with some help", "No"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What could we do to make coming back to work easier for other people?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include the names of people we support."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, the HR Manager or someone you choose will contact you within 5 working days. You can also ask the HR Manager about a flexible working request.",
+          "comment": {
+            "prompt": "Who would you like to talk to? For example, the HR Manager or your supervisor.",
+            "showWhen": ["Yes"]
+          }
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it. CareFlow cannot start a survey from the staff record and accepts only one answer from each person per survey, so keep one copy of this template for each month (for example \"Coming back to work, March 2027\") and add the worker with Send or schedule, chosen employee, about 20 working days after their first shift back following 4 weeks or more of sickness absence or family leave. The type of absence comes from the staff record and is never asked. Where the absence followed a pregnancy loss, the HR Manager phones to offer it rather than sending it.",
+      "Not sent to anyone who has left or is off again; while a formal attendance stage, ill-health capability meeting or disciplinary process is open; or to former staff rejoining, who are treated as new starters (SUR-STF-003). Event surveys come first under the named 4-week rule; if the difficult event survey (SUR-STF-017) is also due, send that first, and let CareFlow send this one on the worker's free day. Otherwise this survey's timing is set by policy, so if CareFlow holds the worker back because they had another survey in the last 4 weeks, send it to them now anyway (in the check before sending, or in the Held back list in Who gets it) with a reason such as \"coming back survey, due about 20 working days after the first shift back\". Online in the app; by phone only with the HR Manager, never the person's own supervisor, who delivered parts of the plan; paper on request, sealed to the HR Manager and entered with Record response. It is done in paid time.",
+      "Who may open individual answers: the HR Manager only; supervisors and Care Coordinators are told the action needed, never health details, unless the worker agrees (Staff Personal Data and HR Records Policy). This is set in Who can see the answers: individual responses are limited to the HR Manager, and results to the HR Manager and the Registered Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "The HR Manager reads each response the working day it arrives and acts under the alerts below. How to count: positive means Yes, Yes, all of them or Very good or Good, leaving out the not-counted answers (None was due, Don't know, I don't remember, Does not apply to me, I do not need any changes, Prefer not to say). Report We did not agree anything separately: it means no return plan was agreed.",
+      "Combined results go into the quarterly workforce section of the governance report only for 5 or more responses, never split by type of absence unless each group has 5 or more (maternity returners are few and identifiable). They also feed the Sickness Absence Policy's absence audit and the Flexible Working and Family Leave Policy's return and 12-month retention monitoring after maternity and adoption leave.",
+      "Keep answers for 1 year after the response under the Records Management and Retention Policy; anything acted on goes in the staff record, with health details only in its restricted section."
+    ],
+    "alerts": [
+      {
+        "when": "The new mothers' safety check answered No or Not sure.",
+        "action": "The same working day the HR Manager checks the record. If no new assessment was done, the Registered Manager makes sure every restricted task is off the rota before the next visit, the HR Manager and Registered Manager complete the assessment within 5 working days, and the missed assessment is recorded in the incident log the same day, with the Registered Manager finding out how it happened within 5 working days (New and Expectant Mothers at Work Procedure).",
+        "rule": {
+          "task": "New mother's risk assessment may be missing: check today",
+          "if": [
+            {
+              "question": "q-new-mother-check",
+              "answers": ["No", "Not sure"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 0,
+          "urgent": true
+        }
+      },
+      {
+        "when": "Training brought up to date answered Partly or No.",
+        "action": "The HR Manager tells the Care Coordinator the same working day to remove any visit or task whose training has expired before the next visit, and books the renewal within 5 working days in paid time (library timescale). Any visit or task already carried out with expired training is logged in the incident log the same day, and the Registered Manager decides by the end of the next working day whether anyone was put at risk (Training and Development Policy).",
+        "rule": {
+          "task": "Returner's training not renewed: remove tasks today",
+          "if": [
+            {
+              "question": "q-training",
+              "answers": ["Partly", "No"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 0,
+          "urgent": true
+        }
+      },
+      {
+        "when": "Rota matched the plan answered Partly or No, or changes needed answered Partly or No.",
+        "action": "The HR Manager contacts the worker within 1 working day (library timescale); the Care Coordinator corrects the rota before the next rota is published and never allocates excluded tasks, and the named supervisor checks weekly while the plan lasts (Sickness Absence Policy).",
+        "rule": {
+          "task": "Return plan not followed: contact and fix the rota",
+          "if": [
+            {
+              "question": "q-rota-plan",
+              "answers": ["Partly", "No"]
+            },
+            {
+              "question": "q-changes",
+              "answers": ["Partly", "No"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 1
+        }
+      },
+      {
+        "when": "Able to do all the tasks on visits answered No.",
+        "action": "The HR Manager contacts the worker within 1 working day and offers an occupational health referral, made within 5 working days of consent (Sickness Absence Policy); after stress-related absence, the individual stress risk assessment is reviewed (Work-Related Stress and Staff Wellbeing Policy).",
+        "rule": {
+          "task": "Returner not able to do all tasks: contact",
+          "if": [
+            {
+              "question": "q-able-tasks",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 1,
+          "urgent": true
+        }
+      },
+      {
+        "when": "\"How is your return to work going?\" answered Poor or Very poor.",
+        "action": "The HR Manager contacts the worker within 5 working days to agree what will change.",
+        "rule": {
+          "task": "Return to work going poorly: agree changes",
+          "if": [
+            {
+              "question": "q-return",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "No talk before the first shift back, or no supervision in the first week.",
+        "action": "The HR Manager books the supervision within 5 working days if it has not happened. A missed first-week supervision is a shortfall against the Sickness Absence Policy and the Flexible Working and Family Leave Policy: record it in the absence audit or the family leave audit, with an action in the service improvement plan within 5 working days (Governance and Quality Assurance Policy). No talk before the first shift back is not a policy shortfall on its own (the return-to-work conversation can be on return): report it as a theme in the return review.",
+        "rule": {
+          "task": "Return step missed: book supervision, record shortfall",
+          "if": [
+            {
+              "question": "q-pre-return-talk",
+              "answers": ["No"]
+            },
+            {
+              "question": "q-first-week-supervision",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment suggesting fewer hours, worse runs or lost training because of pregnancy, family leave or sickness.",
+        "action": "The HR Manager tells the Registered Manager the same working day; it is handled under the Grievance Policy and Procedure as the Flexible Working and Family Leave Policy sets out (Equality, Diversity and Inclusion Policy)."
+      },
+      {
+        "when": "A comment suggesting risk to a person we support, or wrongdoing.",
+        "action": "Risk goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure); wrongdoing is a speaking-up concern under the Whistleblowing (Speaking Up) Policy."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The person the worker names, or the HR Manager, contacts them within 5 working days.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "alertsNeverTo": ["FIELD_CARE_SUPERVISOR", "CARE_COORDINATOR"],
+  "access": {"responses": ["HR_MANAGER"], "results": ["HR_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-HR-011",
+    "POL-HR-015",
+    "POL-HR-004",
+    "POL-HS-016",
+    "POL-HR-006",
+    "POL-HR-019",
+    "POL-GOV-013",
+    "POL-HS-015",
+    "POL-GOV-002",
+    "POL-HR-012",
+    "POL-HR-009",
+    "POL-SG-002",
+    "POL-HR-018",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Acas, Returning to work after absence: talk with the worker as soon as possible after they return, agree any phased return, and review reasonable adjustments for a disabled worker",
+      "url": "https://www.acas.org.uk/absence-from-work/returning-to-work-after-absence"
+    },
+    {
+      "source": "Health and Safety Executive, Protecting pregnant workers and new mothers: once a worker has told you in writing that she has given birth in the last 6 months or is breastfeeding, you must complete an individual risk assessment (Management of Health and Safety at Work Regulations 1999, regulations 16 to 18)",
+      "url": "https://www.hse.gov.uk/mothers/employer/"
+    }
+  ]
+}

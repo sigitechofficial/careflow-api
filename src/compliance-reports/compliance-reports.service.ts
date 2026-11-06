@@ -21,6 +21,9 @@ import {
   requiresImmigrationRtwDocuments,
 } from '../employee-compliance/immigration-rtw-requirement.util';
 import { AllocationComplianceService } from '../employee-compliance/allocation-compliance.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { collectReviewDues, reviewKey } from '../employee-reviews/review-dues';
+import { deriveReviewStatus } from '../employee-reviews/employee-review-schedule.util';
 import { EmployeeComplianceReportQueryDto } from './dto/employee-compliance-report-query.dto';
 import {
   buildBoardEmployeeSummaries,
@@ -47,25 +50,38 @@ const complianceInclude = {
 
 type CompRow = Prisma.EmployeeComplianceGetPayload<{ include: typeof complianceInclude }>;
 
-/** Stable board columns for care workforce (short labels for the matrix header). */
+/**
+ * Stable board columns for care workforce (short labels for the matrix header). DOCUMENT columns
+ * come from compliance documents; REVIEW columns from the staff review schedule (supervision,
+ * appraisal, probation are reviews, not documents), keyed by ReviewType.code.
+ */
 const BOARD_COLUMN_DEFS: Array<{
   code: string;
   shortLabel: string;
   group: string;
+  source?: 'DOCUMENT' | 'REVIEW';
 }> = [
   { code: 'DBS', shortLabel: 'DBS', group: 'IDENTITY & RIGHT TO WORK' },
   { code: 'DBS_CODE', shortLabel: 'DBS CODE', group: 'IDENTITY & RIGHT TO WORK' },
   { code: 'BIOMETRIC_CARD', shortLabel: 'RTW', group: 'IDENTITY & RIGHT TO WORK' },
-  { code: 'ANNUAL_APPRAISAL', shortLabel: 'APPRSL', group: 'PERFORMANCE' },
-  { code: 'SUPERVISION', shortLabel: 'SUPVSN', group: 'PERFORMANCE' },
+  { code: 'ANNUAL_APPRAISAL', shortLabel: 'APPRSL', group: 'PERFORMANCE', source: 'REVIEW' },
+  { code: 'SUPERVISION', shortLabel: 'SUPVSN', group: 'PERFORMANCE', source: 'REVIEW' },
   { code: 'REFERENCE_1', shortLabel: 'REF 1', group: 'REFERENCES' },
   { code: 'REFERENCE_2', shortLabel: 'REF 2', group: 'REFERENCES' },
   { code: 'MEDICAL_QUESTIONNAIRE', shortLabel: 'MED', group: 'EMPLOYMENT' },
   { code: 'ID_PASSPORT', shortLabel: 'ID', group: 'EMPLOYMENT' },
   { code: 'INDUCTION_CHECKLIST', shortLabel: 'INDUCT', group: 'EMPLOYMENT' },
   { code: 'EMPLOYMENT_CONTRACT', shortLabel: 'CONTRACT', group: 'EMPLOYMENT' },
-  { code: 'PROBATION', shortLabel: 'PROB', group: 'EMPLOYMENT' },
+  { code: 'PROBATION_REVIEW', shortLabel: 'PROB', group: 'EMPLOYMENT', source: 'REVIEW' },
 ];
+
+/** Review due status → the board's document vocabulary (overdue reads as expired, and so on). */
+const REVIEW_TO_BOARD_STATUS = {
+  OVERDUE: EmployeeComplianceStatus.EXPIRED,
+  DUE_SOON: EmployeeComplianceStatus.EXPIRING_SOON,
+  SCHEDULED: EmployeeComplianceStatus.VALID,
+  COMPLETED: EmployeeComplianceStatus.VALID,
+} as const;
 
 const CRITICAL_BOARD_STATUSES = new Set<EmployeeComplianceStatus>([
   EmployeeComplianceStatus.MISSING,
@@ -87,6 +103,7 @@ export class ComplianceReportsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly allocation: AllocationComplianceService,
+    private readonly orgSettings: OrganisationGeneralSettingsService,
   ) {}
 
   private statusOf(row: CompRow): EmployeeComplianceStatus {
@@ -483,10 +500,31 @@ export class ComplianceReportsService {
    * Staff compliance board: employee × preferred compliance types, days remaining,
    * and allocation Blocked/Clear (reuses existing status + allocation engines).
    */
-  async board(query: EmployeeComplianceReportQueryDto, audit?: RequestAuditMeta & { actorUserId?: string }) {
+  /**
+   * Per-person compliance status for charts: the board's own Compliant / Attention / Blocked, so a
+   * chart and the board always agree. Not logged as a report view.
+   */
+  async statusCounts(employeeIds: string[]) {
+    const ids = new Set(employeeIds);
+    const { data } = await this.board({} as EmployeeComplianceReportQueryDto, undefined, { quiet: true });
+    const counts = { compliant: 0, attention: 0, blocked: 0 };
+    for (const row of data.rows) {
+      if (!ids.has(row.employeeId)) continue;
+      if (row.overallDisplayStatus === 'BLOCKED') counts.blocked += 1;
+      else if (row.overallDisplayStatus === 'ATTENTION') counts.attention += 1;
+      else counts.compliant += 1;
+    }
+    return counts;
+  }
+
+  async board(
+    query: EmployeeComplianceReportQueryDto,
+    audit?: RequestAuditMeta & { actorUserId?: string },
+    opts?: { quiet?: boolean },
+  ) {
     const today = new Date();
     const employees = await this.loadEmployeesForReports(query);
-    const [allReqs, types] = await Promise.all([
+    const [allReqs, types, reviewTypes, collected, supervisionSettings] = await Promise.all([
       this.prisma.complianceRequirement.findMany({
         where: { deletedAt: null, isActive: true, complianceType: { deletedAt: null, isActive: true } },
         include: { complianceType: true },
@@ -495,24 +533,41 @@ export class ComplianceReportsService {
         where: { deletedAt: null, isActive: true },
         select: { id: true, code: true, name: true },
       }),
+      this.prisma.reviewType.findMany({
+        where: { deletedAt: null, isActive: true, code: { not: null } },
+        select: { id: true, code: true, name: true, scheduleKind: true, audience: true },
+      }),
+      collectReviewDues(this.prisma, { id: { in: employees.map((e) => e.id) } }),
+      this.orgSettings.getSupervisionSettings(),
     ]);
+    const reviewTypeByCode = new Map(reviewTypes.map((t) => [t.code!.toUpperCase(), t]));
+    const dueByKey = new Map(collected.dues.map((d) => [reviewKey(d.employeeId, d.reviewTypeId), d]));
+    const staffById = new Map(collected.staff.map((p) => [p.id, p]));
 
     const typeByCode = new Map(
       types
         .filter((t) => Boolean(t.code?.trim()))
         .map((t) => [t.code!.toUpperCase(), t]),
     );
-    const columns = BOARD_COLUMN_DEFS.filter((def) => typeByCode.has(def.code)).map((def) => {
-      const t = typeByCode.get(def.code)!;
-      return {
-        code: def.code,
-        shortLabel: def.shortLabel,
-        name: t.name,
-        complianceTypeId: t.id,
-        group: def.group,
-      };
+    type BoardColumn = {
+      code: string;
+      shortLabel: string;
+      name: string;
+      /** The review type id for REVIEW columns. */
+      complianceTypeId: string;
+      group: string;
+      source: 'DOCUMENT' | 'REVIEW';
+    };
+    const columns = BOARD_COLUMN_DEFS.flatMap((def): BoardColumn[] => {
+      if (def.source === 'REVIEW') {
+        const rt = reviewTypeByCode.get(def.code);
+        return rt ? [{ code: def.code, shortLabel: def.shortLabel, name: rt.name, complianceTypeId: rt.id, group: def.group, source: 'REVIEW' }] : [];
+      }
+      const t = typeByCode.get(def.code);
+      return t ? [{ code: def.code, shortLabel: def.shortLabel, name: t.name, complianceTypeId: t.id, group: def.group, source: 'DOCUMENT' }] : [];
     });
-    const columnCodes = new Set(columns.map((c) => c.code));
+    const columnCodes = new Set(columns.filter((c) => c.source === 'DOCUMENT').map((c) => c.code));
+    const reviewColumns = columns.filter((c) => c.source === 'REVIEW');
 
     const allocationMap = await this.allocation.evaluateForEmployees(employees.map((e) => e.id), today);
     const allocationPolicy = await this.allocation.loadPolicy();
@@ -530,6 +585,8 @@ export class ComplianceReportsService {
       /** Requirement flags rostering when org policy mode is BLOCK. */
       blocksRostering: boolean;
       isMandatory: boolean;
+      /** REVIEW: from the staff review schedule (open Staff reviews, not a compliance document). */
+      source: 'DOCUMENT' | 'REVIEW';
     };
 
     type BoardAlert = {
@@ -583,7 +640,50 @@ export class ComplianceReportsService {
           critical: false,
           blocksRostering: false,
           isMandatory: false,
+          source: col.source,
         });
+      }
+
+      // Supervision, appraisal and probation: from the review schedule. They never block rostering.
+      for (const col of reviewColumns) {
+        const rt = reviewTypeByCode.get(col.code)!;
+        const person = staffById.get(emp.id);
+        const due = dueByKey.get(reviewKey(emp.id, rt.id));
+        const done = collected.latest.get(reviewKey(emp.id, rt.id))?.lastDone ?? null;
+        const applies = rt.audience === 'ALL_STAFF' || Boolean(person?.nmcPinNumber?.trim());
+        let status: EmployeeComplianceStatus | 'NOT_APPLICABLE' = 'NOT_APPLICABLE';
+        if (due) {
+          status = REVIEW_TO_BOARD_STATUS[deriveReviewStatus({ nextDue: due.nextDue }, today, supervisionSettings.dueSoonDays) ?? 'SCHEDULED'];
+        } else if (done) {
+          status = EmployeeComplianceStatus.VALID;
+        } else if (applies && rt.scheduleKind === 'REPEATING') {
+          // Never recorded and no start date to work a due date from.
+          status = EmployeeComplianceStatus.MISSING;
+        }
+        const critical = status === EmployeeComplianceStatus.EXPIRED || status === EmployeeComplianceStatus.MISSING;
+        cellsByCode.set(col.code, {
+          code: col.code,
+          typeName: rt.name,
+          complianceTypeId: rt.id,
+          applicable: status !== 'NOT_APPLICABLE',
+          effectiveStatus: status,
+          employeeComplianceId: null,
+          expiryDate: due ? due.nextDue.toISOString().slice(0, 10) : null,
+          daysRemaining: due ? daysRemaining(due.nextDue, today) : null,
+          critical,
+          blocksRostering: false,
+          isMandatory: status !== 'NOT_APPLICABLE',
+          source: 'REVIEW',
+        });
+        if (critical) {
+          alerts.push({
+            employeeId: emp.id,
+            employeeName: name,
+            message: `${name} — ${rt.name} ${status === EmployeeComplianceStatus.MISSING ? 'never recorded' : 'overdue'}`,
+            severity: 'warning',
+            complianceTypeCode: col.code,
+          });
+        }
       }
 
       if (emp.employment) {
@@ -629,6 +729,7 @@ export class ComplianceReportsService {
               critical: false,
               blocksRostering: false,
               isMandatory: false,
+              source: 'DOCUMENT',
             });
             continue;
           }
@@ -650,6 +751,7 @@ export class ComplianceReportsService {
               critical: isMandatory || blocksRostering,
               blocksRostering,
               isMandatory,
+              source: 'DOCUMENT',
             };
             cellsByCode.set(code, cell);
             if (isMandatory || blocksRostering) {
@@ -677,6 +779,7 @@ export class ComplianceReportsService {
               critical: false,
               blocksRostering,
               isMandatory,
+              source: 'DOCUMENT',
             });
             continue;
           }
@@ -697,6 +800,7 @@ export class ComplianceReportsService {
             critical,
             blocksRostering,
             isMandatory,
+            source: 'DOCUMENT',
           });
 
           if (critical) {
@@ -870,7 +974,7 @@ export class ComplianceReportsService {
     );
     const employeeSummaries = buildBoardEmployeeSummaries(filtered);
 
-    await this.logReportView(audit?.actorUserId, 'board', audit, filtered.length);
+    if (!opts?.quiet) await this.logReportView(audit?.actorUserId, 'board', audit, filtered.length);
     return {
       data: {
         columns,

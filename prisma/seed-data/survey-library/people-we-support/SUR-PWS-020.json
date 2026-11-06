@@ -1,0 +1,338 @@
+{
+  "reference": "SUR-PWS-020",
+  "revision": 1,
+  "title": "Your view of your care worker",
+  "audience": "SERVICE_USER",
+  "respondents": "A person we support, asked privately at a spot check or quality check about one named care worker; a representative only where the person cannot give their views, even with help",
+  "summary": "A short private conversation at a spot check or quality check about one care worker: dignity, care your way, being understood, staying the agreed time, money or favours asked for, and feeling safe. It feeds the worker's appraisal, never as a score. About 8 minutes.",
+  "purpose": "Meets two policy requirements with one short form. First, appraisal feedback: the Compliments, Feedback and Involvement Procedure and the Supervision, Spot Checks and Appraisal Policy need feedback from at least two people we support for each care worker's appraisal, collected by the Field Care Supervisor and never by the worker. Second, the private questions the Quality Audit and Monitoring Procedure's spot check asks: feeling safe, respected and understood, care given their way, visits as recorded, and any request for money, gifts or contact outside visits. The person's view is not scored against the worker: it sits beside observation and records. It is also a named-worker safeguarding check.",
+  "timing": {
+    "when": "At a care worker's unannounced spot check (at least every 3 months), or after the questions at a quality check, so each worker has at least two forms before their yearly appraisal",
+    "recurrence": null,
+    "trigger": "A spot check or quality check; the HR Manager's monthly list of appraisals due in the next 4 weeks",
+    "contactRule": {"holdBack": false, "countsAsContact": true, "reason": "Runs when policy sets it (spot check or quality check): exempt from the rule, but counts as a contact."}
+  },
+  "anonymous": false,
+  "channels": ["IN_PERSON", "TELEPHONE"],
+  "estimatedMinutes": 8,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING", "WELL_LED"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Safeguarding",
+      "Kindness, compassion and dignity",
+      "Treating people as individuals",
+      "Learning, improvement and innovation"
+    ]
+  },
+  "introduction": "{{organisation}} would like your view of one of your care workers (carers): \"this care worker\" in these questions means the one we name to you now. It takes about 8 minutes, and we ask privately, without the care worker in the room.\n\nThere are no right or wrong answers, and what you say will not affect your care. Your answers help us support and thank our care workers. We never give care workers a score.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to support our care workers and to improve our care. Our legal reason is our legitimate interest in running a good, safe service.\n\nYour answers are linked to your name and to the care worker, so we can follow up anything you tell us. They are seen only by our Registered Manager, Deputy Manager, HR Manager, safeguarding lead, Care Coordinators and Field Care Supervisors, never by care workers. The care worker sees only a summary without your name, and only if you agree; because few people are asked, they may guess who said what. If you tell us someone may be at risk of harm, we must act on it, whatever you choose.\n\nWe keep your answers for 3 years after this conversation, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This first question is about our service as a whole. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "This care worker",
+      "introduction": "These questions are about the one care worker we have named to you.",
+      "questions": [
+        {
+          "id": "q-worker",
+          "text": "Which care worker is this about?",
+          "type": "TEXT",
+          "required": true,
+          "helpText": "For the Field Care Supervisor: the care worker's full name, so the answers reach the right appraisal. Name the care worker to the person before the next questions."
+        },
+        {
+          "id": "q-w-dignity",
+          "text": "Does this care worker treat you with dignity and respect?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you cannot say.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell me what happens.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-w-yourway",
+          "text": "Does this care worker do things the way you want them done?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you cannot say.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell me more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-w-understand",
+          "text": "Does this care worker understand you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, what you say, and how you like to be helped. Choose \"Don't know\" if you cannot say.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell me more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-w-staytime",
+          "text": "Does this care worker stay for the time agreed for your visit?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you cannot say.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell me more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-w-money",
+          "text": "Has this care worker ever asked you for money, gifts or favours?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes asking to meet or contact you outside your visits. Ask privately; never discuss a Yes with the care worker.",
+          "options": ["Yes", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell me what happened.",
+            "showWhen": ["Yes"]
+          },
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-w-safe",
+          "text": "Do you feel safe with this care worker?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Ask only once the care worker has left the room and the person says it is all right to talk. If you ever feel unsafe, phone the office straight away. In an emergency, call 999.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What would help you feel safer?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safeguarding"
+        }
+      ]
+    },
+    {
+      "title": "Feedback for this care worker",
+      "questions": [
+        {
+          "text": "Is there anything this care worker does that you would like us to thank them for?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Write the person's own words."
+        },
+        {
+          "text": "Is there anything this care worker could do better?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Write the person's own words."
+        },
+        {
+          "id": "q-w-share",
+          "text": "Can we share what you have said with this care worker, without your name?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "The care worker will see a summary for their yearly review. Because only a few people are asked, they may be able to guess who said what. If you say no, we will still use your answers to help us support them, but we will not show them your words. If you tell us something about your safety, we must act on it.",
+          "options": ["Yes", "Only the good things", "No, please keep it between us"]
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not this care worker, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "This is a private conversation, not a send: never use Send or schedule for it. Keep one copy of this template open for responses all year (for example \"Care worker feedback 2027\"), and the Field Care Supervisor enters each conversation with Record response the same working day (channel In person, or Telephone at a phone quality check), before the end of their working day as the spot check method requires. CareFlow cannot yet link a response to the care worker it is about, so the care worker's full name goes in the first question after the overall one. The library exempts it from the 4-week rule, because the spot check and quality check schedule sets its timing, but each recorded conversation counts as a survey contact for the person.",
+      "When: at a care worker's unannounced spot check (at least every 3 months), ask the person whose visit was observed; at a quality check, ask about one core team member due an appraisal, after the quality check questions, saying this part is about one care worker. Use the HR Manager's monthly list of appraisals due in the next 4 weeks to make sure each care worker has at least two forms. The Field Care Supervisor chooses whom to ask, never the care worker; vary the people asked, and never ask one person about more than one care worker in a visit.",
+      "Privacy: the care worker leaves the room or waits outside, and family stay only if the person wants them. Ask about feeling safe only once the person confirms they can talk privately. For people living with dementia, picture cards may help; choose Don't know where the person cannot answer. A representative answers only where the person cannot give their views even with help, recorded in \"Who is answering\". Use a professional interpreter, never a family member.",
+      "Because it is a survey contact, check-ins and topic surveys skip the person for the next 4 weeks: CareFlow holds back its own sends to them, and staff check the person's survey history before any call. By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can open a survey for responses: give both to the Field Care Supervisors.",
+      "Who may open individual answers: the Field Care Supervisors, the Care Coordinators who follow up, the Deputy Manager, the Registered Manager and the HR Manager. This is set in Who can see the answers: individual responses are limited to Field Care Supervisors, the Deputy Manager, the Registered Manager, the HR Manager, Care Coordinators and the safeguarding lead, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "The person's view is not scored against the care worker: never make a score or a league table. Feedback the same day covers only what the Field Care Supervisor observed; the person's answers are raised at supervision without identifying them unless they agreed to share.",
+      "For the appraisal, the appraiser reads the forms for that care worker (in Results, Individual responses, where the care worker's name is the first answer after the overall question) beside observation and check-in and check-out records, and shows the care worker only what each person agreed to share: everything, only the good things, or nothing. Label it as a small sample; two people's views are never used alone for a capability decision. Nothing in an appraisal should come as a surprise, because concerns are raised when they arise.",
+      "Organisation-wide, report combined results for spot check quality only; never report a group of fewer than 5 people separately, and flag results resting on fewer than 10. Keep answers for 3 years after the conversation under the Records Management and Retention Policy. For CQC, these private conversations and what followed are evidence of safe staffing, dignity and named-worker safeguarding checks (Regulations 13, 18 and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe with this care worker?\" answered Sometimes, Rarely or Never; \"Has this care worker ever asked you for money, gifts or favours?\" answered Yes; or any allegation of harm, theft, rough handling, sexual behaviour or a boundary breach.",
+        "action": "The Field Care Supervisor phones the office (the On-call Manager out of hours) before leaving the home and does not discuss it with the care worker. The safeguarding lead is told the same working day and the risk assessed within 1 hour of the report under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure; the Managing Allegations Against Staff Procedure decides whether the care worker keeps visiting; gifts and boundaries follow the Gifts, Hospitality, Wills and Legacies Policy and the Professional Boundaries Policy. The sharing choice never stops this.",
+        "rule": {
+          "task": "Possible safeguarding concern about a care worker",
+          "if": [
+            {
+              "question": "q-w-safe",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            },
+            {
+              "question": "q-w-money",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "Dignity, care given your way or staying the agreed time answered Rarely or Never.",
+        "action": "Tell the Care Coordinator the same working day; they contact the person within 5 working days. Raise it with the care worker at supervision without identifying the person unless they agreed to share; where observed practice also fell short, retraining and observation again within 4 weeks under the Supervision, Spot Checks and Appraisal Policy. For staying the agreed time, also check the check-in and check-out records for the visit.",
+        "rule": {
+          "task": "Care worker feedback low: follow up with the person",
+          "if": [
+            {
+              "question": "q-w-dignity",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-w-yourway",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-w-staytime",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Does this care worker understand you?\" answered Rarely or Never.",
+        "action": "Discuss it at the care worker's next supervision and record any communication training need, under the Supervision, Spot Checks and Appraisal Policy.",
+        "rule": {
+          "task": "Discuss understanding at next supervision",
+          "if": [
+            {
+              "question": "q-w-understand",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "FIELD_CARE_SUPERVISOR",
+          "dueWorkingDays": 20
+        }
+      },
+      {
+        "when": "Dissatisfaction that needs a response, or the overall question Poor or Very poor.",
+        "action": "Record a complaint the same working day where the person wants a response: graded within 1 working day and acknowledged within 3 working days under the Complaints Policy and Procedure. A low rating with no particular concern goes to the Care Coordinator, who contacts the person within 5 working days.",
+        "rule": {
+          "task": "Poor experience: agree what we will do",
+          "if": [
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Thanks for the care worker.",
+        "action": "Record it as a compliment the same working day and pass it to the care worker within 5 working days."
+      },
+      {
+        "when": "\"Can we share what you have said with this care worker?\" answered No, please keep it between us.",
+        "action": "Mark the response not for sharing in the appraisal notes: it is left out of what the care worker sees, still counts in combined results, and never overrides safeguarding action.",
+        "rule": {
+          "task": "Mark feedback not for sharing",
+          "if": [
+            {
+              "question": "q-w-share",
+              "answers": ["No, please keep it between us"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff, not the care worker, contact the person within 5 working days and record what was agreed.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["FIELD_CARE_SUPERVISOR", "DEPUTY_MANAGER", "REGISTERED_MANAGER", "HR_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "results": ["FIELD_CARE_SUPERVISOR", "DEPUTY_MANAGER", "REGISTERED_MANAGER", "HR_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-HR-005",
+    "POL-GOV-003",
+    "POL-GOV-006",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-SG-008",
+    "POL-SG-009",
+    "POL-GOV-005",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18(2)(a): staff receive appropriate support, supervision and appraisal",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13: safeguarding service users from abuse and improper treatment",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

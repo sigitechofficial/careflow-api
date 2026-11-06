@@ -545,9 +545,11 @@ export class SetupChecklistService {
         orderBy: { occurredAt: 'desc' },
         take: MISSING_SAMPLE,
       }),
-      this.prisma.survey.count({ where: { deletedAt: null } }),
+      // Templates are starting points, not surveys — they are never sent or answered. Ready-made
+      // (catalogue) surveys belong to the survey library and are never counted either.
+      this.prisma.survey.count({ where: { deletedAt: null, isTemplate: false, isCatalogue: false } }),
       this.prisma.survey.count({
-        where: { deletedAt: null, status: 'ACTIVE' },
+        where: { deletedAt: null, isTemplate: false, isCatalogue: false, status: 'ACTIVE' },
       }),
       this.prisma.serviceUser.count({
         where: {
@@ -658,7 +660,7 @@ export class SetupChecklistService {
           },
           {
             key: 'surveys-active',
-            label: 'Active surveys',
+            label: 'Open surveys',
             description: 'Surveys currently open for responses.',
             link: '/surveys',
             value: activeSurveys,

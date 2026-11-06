@@ -1,0 +1,883 @@
+{
+  "reference": "POL-GOV-017",
+  "revision": 1,
+  "title": "Records Management and Retention Policy",
+  "documentType": "POLICY",
+  "summary": "How we create, correct, store, keep and securely destroy every record we hold about the people we support, our staff and the running of the service, in CareFlow, on paper and in people's homes. Contains our full retention schedule and the rules for holds, archiving, destruction, branch closure and transfer of the business. For all staff.",
+  "keyPoints": {
+    "intro": "Every record you write may later be read by the next care worker, a GP, a family, a coroner or the person themselves. This policy tells you how to write and correct records, what paper you may use and why nothing is ever deleted early.",
+    "points": [
+      "Record care in CareFlow on your work phone, under your own log-in, before you check out. Phone anything urgent to the office or On-call Manager before leaving; add anything else as a late entry before your shift ends, or phone it through afterwards.",
+      "Write facts: what you saw, heard, did and were told, and who told you. Label any opinion as your opinion and give the reason. Use respectful, plain words and the person's preferred name.",
+      "Never delete, overwrite or backdate an entry. Correct a mistake by adding a dated correcting entry that says what was wrong and why. Altering or hiding a record is a disciplinary matter.",
+      "Take body map photographs or video only as the Consent to Care Policy allows, and voice notes only of your own account, in the CareFlow app on your work phone. Never keep personal notes, photographs, recordings or copies of records on any phone.",
+      "The only paper you use is the paper another of our policies names, such as a back-up MAR sheet. Never keep notes or copies of records anywhere else.",
+      "Keep paper out of sight while travelling and never leave it in an unattended vehicle. Bring any you collect to the branch office by the end of your shift, in a sealed envelope through the letterbox if it is closed. Never bin it.",
+      "Keep the home copy of the care plan and other papers in the place the person chooses. Tell the office the same day if any are missing, because that may be a data breach.",
+      "If you hear of a complaint, claim, solicitor's letter, police inquiry, inquest or investigation, tell the office the same working day so that the records can be protected from destruction.",
+      "Records are kept for the periods in our retention schedule, then destroyed securely by managers with approval. Nobody destroys or deletes a record because care has ended, someone has died or a complaint has been made.",
+      "When a person's care ends, the Field Care Supervisor collects our papers from the home within 5 working days. Documents that belong to the person, such as their letters and prescriptions, stay with them.",
+      "On or before your last working day, return every paper record you hold. Your CareFlow access ends that day.",
+      "Complete information governance training, which includes record keeping, in your first week and every 12 months."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "MEDICATION",
+    "VISIT",
+    "EMPLOYEE",
+    "HR",
+    "TRAINING",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-GOV-013",
+    "POL-GOV-016",
+    "POL-GOV-014",
+    "POL-GOV-015",
+    "POL-GOV-018",
+    "POL-HR-019",
+    "POL-CD-018",
+    "POL-GOV-003"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 17(2)(c) and (d) (records about each service user, staff and the management of the regulated activity)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 5(1)(e) storage limitation, 5(1)(f) integrity and confidentiality, and 5(2) accountability",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/5"
+    },
+    {
+      "source": "Digital Care Hub: Records management abbreviated code of practice for adult social care providers, Appendix 1 retention schedule",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/records-management-abbreviated-code-of-practice-and-guidance-for-adult-social-care-providers/appendix-1-retention-schedule/"
+    },
+    {
+      "source": "Digital Care Hub: Records management abbreviated code of practice, Section 5 (management of records when the minimum retention period is reached: appraisal, destruction and legal holds)",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/records-management-abbreviated-code-of-practice-and-guidance-for-adult-social-care-providers/section-5-management-of-records-when-the-minimum-retention-period-is-reached/"
+    },
+    {
+      "source": "Digital Care Hub: Records management abbreviated code of practice, Appendix 2 (complaints, staff records, business transfer and pandemic records)",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/records-management-abbreviated-code-of-practice-and-guidance-for-adult-social-care-providers/appendix-2-how-to-deal-with-specific-types-of-records/"
+    },
+    {
+      "source": "Digital Care Hub: Records management abbreviated code of practice, Section 3 (format of records, including emails and instant messages)",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/records-management-abbreviated-code-of-practice-and-guidance-for-adult-social-care-providers/section-3-format-of-records/"
+    },
+    {
+      "source": "Limitation Act 1980, section 5 (actions founded on simple contract: 6 years)",
+      "url": "https://www.legislation.gov.uk/ukpga/1980/58/section/5"
+    },
+    {
+      "source": "Limitation Act 1980, section 8 (actions on a specialty, such as a deed: 12 years)",
+      "url": "https://www.legislation.gov.uk/ukpga/1980/58/section/8"
+    },
+    {
+      "source": "Limitation Act 1980, section 11 (personal injury: 3 years from the injury, knowledge or death)",
+      "url": "https://www.legislation.gov.uk/ukpga/1980/58/section/11"
+    },
+    {
+      "source": "Limitation Act 1980, section 28 (extension of the limitation period for a person under a disability)",
+      "url": "https://www.legislation.gov.uk/ukpga/1980/58/section/28"
+    },
+    {
+      "source": "Limitation Act 1980, section 38(2) (a person who lacks capacity under the Mental Capacity Act 2005 to conduct legal proceedings is under a disability)",
+      "url": "https://www.legislation.gov.uk/ukpga/1980/58/section/38"
+    },
+    {
+      "source": "Companies Act 2006, section 248 (minutes of directors' meetings kept for at least 10 years)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/248"
+    },
+    {
+      "source": "GOV.UK: Running a limited company, company and accounting records (records kept for 6 years from the end of the last company financial year they relate to)",
+      "url": "https://www.gov.uk/running-a-limited-company/company-and-accounting-records"
+    },
+    {
+      "source": "National Minimum Wage Regulations 2015, regulation 59 (pay records kept for 6 years)",
+      "url": "https://www.legislation.gov.uk/uksi/2015/621/regulation/59"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 9 (working time records kept for 2 years)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/9"
+    },
+    {
+      "source": "Income Tax (Pay As You Earn) Regulations 2003, regulation 97 (PAYE records kept for at least 3 years after the end of the tax year)",
+      "url": "https://www.legislation.gov.uk/uksi/2003/2682/regulation/97"
+    },
+    {
+      "source": "Employers' Duties (Registration and Compliance) Regulations 2010, regulations 6 and 8 (automatic enrolment records kept for 6 years from when each must first be kept; opt-out notices 4 years)",
+      "url": "https://www.legislation.gov.uk/uksi/2010/5/regulation/8"
+    },
+    {
+      "source": "GOV.UK: Holiday entitlement, holiday pay (annual leave and holiday pay records kept for at least 6 years from 6 April 2026)",
+      "url": "https://www.gov.uk/holiday-entitlement-rights/holiday-pay"
+    },
+    {
+      "source": "Control of Substances Hazardous to Health Regulations 2002, regulation 11(3) (health records kept for at least 40 years from the last entry)",
+      "url": "https://www.legislation.gov.uk/uksi/2002/2677/regulation/11"
+    },
+    {
+      "source": "GOV.UK: Information Commission succeeds the ICO as UK's data protection regulator (30 September 2026)",
+      "url": "https://www.gov.uk/government/news/information-commission-succeeds-the-ico-as-uks-data-protection-regulator"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} keeps records because people's safety depends on them. A care worker arriving alone at 7am relies on what the last care worker wrote; a GP, family, coroner or the person may later need to know what care was given and why. The law requires us to keep securely an accurate, complete and contemporaneous record of the care given and decisions taken for each person we support, and the records needed about our staff and the running of the service (Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 17(2)(c) and (d)). Data protection law requires us to keep personal information secure and for no longer than we need it (UK GDPR, Article 5)."
+        },
+        {
+          "p": "Nothing is destroyed early or while it may be needed for a complaint, claim, enquiry or investigation; nothing is kept without a reason; and no record is ever altered to hide what happened."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure every record is accurate, written at the time, attributable and held in CareFlow; kept for a set period and protected while needed; destroyed securely with evidence; and kept safe when care ends, a branch closes, the business transfers or we change systems."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every record we create or receive, in any format: CareFlow entries, photographs, video and audio recordings, scanned documents, emails and paper. It applies to the Directors and every employee, and through their agreements to agency workers, students, contractors and suppliers."
+        },
+        {
+          "p": "Owned elsewhere: daily visit note content (Daily Records and Visit Notes Procedure); eMAR recording (Medicines Administration Records (MAR and eMAR) Procedure); lawful bases (Data Protection Policy); sharing (Confidentiality and Information Sharing Policy); people's own requests (Subject Access and Individual Rights Procedure); breaches (Personal Data Breach Procedure); technical security and backups (Information and Cyber Security Policy); staff record content and access (Staff Personal Data and HR Records Policy); and policies (Policy Management and Document Control Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Care record",
+                "Everything we hold about one person we support: initial assessment with any recording and transcript, care plan and every previous version, risk assessments, daily visit notes, including voice notes, eMAR, body maps with any photographs and video, check-in/check-out records, including location, money records, consent and capacity records, correspondence, the service agreement and the person's documents scanned into CareFlow."
+              ],
+              [
+                "Care ends",
+                "The date of the last visit when a package ends for good, including when the person dies. A suspension, such as a hospital admission, is not an end of care."
+              ],
+              [
+                "Closed record",
+                "A care record after care ends, a staff record after employment ends, or a governance record after the matter it concerns is closed or the version is replaced."
+              ],
+              [
+                "Retention hold",
+                "A recorded instruction that named records must not be destroyed, whatever their retention period, while they may be needed for a complaint, claim, investigation or inquiry."
+              ],
+              [
+                "Information asset owner",
+                "The manager accountable for a group of records, as set out under Roles and responsibilities: the Registered Manager, the HR Manager or the Nominated Individual."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for our records. They approve this policy and its retention schedule and decide the records arrangements before any branch closure, transfer of the business or closure of {{organisation}}."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "As Senior Information Risk Owner, the Nominated Individual is the information asset owner for governance records. They decide extensions, lift holds and approve any early destruction, on the Data Protection Officer's advice where personal data is involved; sign off the destruction log each quarter; contract and check our destruction and storage providers; and keep the retention periods in the record of processing activities in line with this schedule."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy and is the information asset owner for care and branch records: they place holds on and approve the destruction of those records and check closed care records. The Deputy Manager covers these duties in their absence."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager and HR Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager prepares the quarterly retention review of care, branch and governance records, checks scanning and closed records, and carries out the records and data protection audit each December. The HR Manager, as information asset owner for staff, applicant and Director records, prepares and approves their quarterly review, places holds for tribunals and staff claims, and creates each staff record summary."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Care Coordinators close the care record when care ends, correct care plan errors and save emails that form part of a record into CareFlow. Field Care Supervisors keep the home copy of the care plan current, collect our papers when care ends and check record keeping at every spot check."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Managers and Office staff",
+          "blocks": [
+            {
+              "p": "Office staff scan and destroy paper, look after the confidential waste console and log retrieval of archived paper. On-call Managers record out-of-hours calls and decisions and keep the downtime log as set out below."
+            }
+          ]
+        },
+        {
+          "heading": "Everyone",
+          "blocks": [
+            {
+              "p": "Everyone who works for us follows the standards below, uses paper only where this policy allows and tells the office the same working day about anything that may need a retention hold. Deliberately altering, hiding or destroying a record is handled under the Disciplinary Policy and Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Standards for every record",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Writing a record",
+          "blocks": [
+            {
+              "bullets": [
+                "Own log-in: every entry is made under the author's own CareFlow log-in, which records their name, the date and the time. Nobody uses or shares another person's log-in.",
+                "At the time: care is recorded during the visit and before check-out, otherwise as a late entry (below), with anything that cannot wait phoned to the office (the On-call Manager out of hours) before leaving the home. Office staff record calls and advice the same working day; On-call Managers record before the 10am handover; managers record each decision, with its reasons, when they make it.",
+                "Factual: what the author saw, heard, did and was told, and who told them, with the person's own words quoted where they matter. An opinion is labelled as the author's opinion, with the reason.",
+                "Complete: every planned task is recorded as done, declined or not done, with the reason, and any change noticed is recorded with who was told.",
+                "Respectful and clear: plain English and the person's preferred name; behaviour described rather than labelled, for example 'shouted and pushed my hand away' rather than 'aggressive'; no abbreviations except those the Daily Records and Visit Notes Procedure allows.",
+                "In the right place: information about other people is recorded only where it affects the person's care or risk; safeguarding detail goes only in the safeguarding record, with the daily visit notes saying only that a concern was reported; complaints go in the complaint record, not the care record; key safe codes go only in CareFlow's key safe code field and the encrypted business continuity access file.",
+                "On paper, where paper is allowed: black ink, the date and time, the person's name and date of birth on each page, and the author's printed name and signature."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Correcting a record and late entries",
+          "blocks": [
+            {
+              "p": "Nobody deletes, overwrites or backdates an entry. A mistake is corrected by a new, dated entry that states what was wrong, the correct information and the reason, leaving the original visible. The author corrects their own entry; if they have left or cannot be reached, the Care Coordinator or manager who found the error does so and says so."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Error",
+                  "Corrected by"
+                ],
+                "rows": [
+                  [
+                    "Allergies, medicines, key safe information or resuscitation decisions",
+                    "The same working day, with the care team told"
+                  ],
+                  [
+                    "Any other error affecting safety",
+                    "Before the person's next visit"
+                  ],
+                  [
+                    "Other errors in a care record",
+                    "Within 7 days"
+                  ],
+                  [
+                    "Gaps or errors in a staff record",
+                    "Within 10 working days"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "An entry made after the event is marked as a late entry, with the time of the event and the reason it is late, and is made as soon as possible and always before the end of the author's shift. Anything remembered after the shift has ended is phoned to the office, or the On-call Manager out of hours, and recorded on the author's behalf, as the Daily Records and Visit Notes Procedure sets out. An entry made in the wrong person's record is the only entry that may be removed: the Registered Manager or Deputy Manager removes it the same working day, the author records it in the correct record as a late entry, a note in the wrong record records the removal with the incident log reference, and the error is handled under the Personal Data Breach Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Where records are kept",
+          "blocks": [
+            {
+              "p": "CareFlow is our record system for care records as defined above; staff records in the staff record, training and compliance records, supervision and appraisal records and policy acknowledgements; and events in the incident log and safeguarding records. Records of running the service are kept outside CareFlow, in the governance records and the branch health and safety file. No record is kept on a personal phone, personal email, memory stick, personal cloud storage, messaging app or notebook. Body map photographs and video (Consent to Care Policy), voice notes giving the author's own account (Daily Records and Visit Notes Procedure) and initial assessment recordings and transcripts are made only in the CareFlow app on a work device and kept only in CareFlow, never on the device."
+            },
+            {
+              "p": "Paper is used only for: the papers kept in people's homes listed in the next section; the downtime log kept by Office staff and On-call Managers while CareFlow is unavailable (an On-call Manager working from home keeps it locked away and brings it to the branch office the next working day), scanned and shredded once every entry is transferred (Daily Records and Visit Notes Procedure); the key register in the branch office (Key Holding, Key Safes and Access to People's Homes Procedure); and original contracts signed as deeds. Any other paper we receive, such as letters, forms and signed documents, is scanned and destroyed as follows."
+            },
+            {
+              "steps": [
+                "Care workers keep paper records out of sight while travelling, never leave them in an unattended vehicle, and bring them to the branch office by the end of their shift, in a sealed envelope through the office letterbox if it is closed. Post and paper handed in are date-stamped on the day they arrive.",
+                "Within 2 working days of arrival, Office staff (the HR Manager for staff and applicant documents) scan the paper into the correct CareFlow record, naming the document type and date.",
+                "The person scanning checks every page against the paper: all pages present, readable and in the right person's record. A failed check is rescanned the same day.",
+                "Once the check is passed, the paper is shredded or placed in the locked confidential waste console the same day, unless it is a document listed above or it belongs to the person; documents belonging to the person are returned to them by hand or recorded delivery within 5 working days."
+              ]
+            },
+            {
+              "p": "Email is not a record store. Managers, Care Coordinators, Field Care Supervisors and Office staff save any email, with attachments, that forms part of a person's care, an employee's employment or a decision about the service into the right CareFlow record within 1 working day. Our IT support provider deletes mailbox items automatically 2 years after they were sent or received, and deletes a leaver's mailbox 3 months after their last working day, once their line manager has saved anything that forms part of a record; mailboxes under a retention hold are excluded."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records in people's homes",
+      "blocks": [
+        {
+          "p": "The person's home is not our premises, so we keep as little paper there as their care allows. Papers are kept where the person chooses, and the person and anyone they allow may read them. Care workers put them back after each visit and phone the office the same day if any are missing, so that the Registered Manager can decide whether it is a personal data breach. Notes that district nurses or other agencies keep in the home are theirs; we never remove or copy them."
+        },
+        {
+          "table": {
+            "columns": [
+              "Paper kept in the home",
+              "Why",
+              "Kept current by"
+            ],
+            "rows": [
+              [
+                "Home copy of the care plan, unless the person chooses not to have one, with any end of life summary",
+                "So the person, their family and visiting professionals can see the plan",
+                "Field Care Supervisor, replaced within 5 working days of a change; the old copy returned to the office and shredded"
+              ],
+              [
+                "Money and shopping record and receipts wallet",
+                "Where the care plan says we handle cash or shopping (Handling Money, Property and Shopping Procedure)",
+                "Care workers at each transaction; scanned at each money check"
+              ],
+              [
+                "Between-visits record",
+                "Where someone other than us gives a when required medicine (When Required (PRN) Medicines Protocol)",
+                "Full sheet taken to the office and scanned within 2 working days"
+              ],
+              [
+                "Back-up MAR sheet",
+                "Only while CareFlow is unavailable",
+                "Brought to the office and scanned once the eMAR is updated"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Papers in the home never contain key safe codes, infection or blood-borne virus status, other people's risks, safeguarding information or staff contact details. Field Care Supervisors check at every spot check that the papers are current and that nothing else of ours is in the home. During a hospital admission the papers stay in the home, except the end of life summary, which goes with the person as the End of Life Care Policy sets out."
+        },
+        {
+          "p": "When care ends, the Field Care Supervisor collects our papers within 5 working days of the last visit, at the same visit as any final money count or return of keys. The person or their representative may keep their copy of the care plan, and we record that they did; documents that belong to the person, such as letters and prescriptions, stay with them. After a death, papers are collected with the agreement of the executor, administrator or next of kin, and never while the police or coroner have asked for the home to be left untouched. Where collection is delayed, the Care Coordinator records why and the date agreed; where papers cannot be recovered, the Registered Manager decides whether it is a personal data breach."
+        }
+      ]
+    },
+    {
+      "heading": "Retention schedule",
+      "blocks": [
+        {
+          "p": "The periods below are our policy, never shorter than any legal minimum and based on the Digital Care Hub's records management code of practice for adult social care providers, which is sector guidance, not law. For every row:"
+        },
+        {
+          "bullets": [
+            "Employment plus 6 years means 6 years from the last day of employment.",
+            "Where a record fits more than one row, or a commissioner's contract sets a longer period, the longest period applies. A care record linked to a serious incident, safeguarding record, complaint or claim is kept for as long as that linked record, if that is longer.",
+            "If a person returns to our care, or an employee rejoins, while their earlier record is still kept, the records are linked and the period runs from the end of the new episode.",
+            "A retention hold overrides every period. A record type not listed here is kept for the period its owning policy or procedure sets or, where none does, until the Nominated Individual sets one within 1 month of the owner asking; either is added at the next review of this policy."
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Care records",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Record",
+                  "Kept for"
+                ],
+                "rows": [
+                  [
+                    "Care record of a person we support",
+                    "8 years after care ends, including after the person's death"
+                  ],
+                  [
+                    "Care record where the person lacked capacity to make decisions about their care when our care ended, unless our care ended with their death",
+                    "20 years after care ends. Our policy, because under the Limitation Act 1980 (sections 11, 28 and 38) a person who lacks capacity to conduct legal proceedings when injured may bring a personal injury claim up to 3 years after regaining capacity or dying"
+                  ],
+                  [
+                    "Safeguarding records",
+                    "20 years from closure of the safeguarding record"
+                  ],
+                  [
+                    "Restrictive practice register and deprivation of liberty log entries",
+                    "As the care record of the person the entry is about"
+                  ],
+                  [
+                    "Referral, initial assessment with any recording and transcript, and decision for a person whose care did not start",
+                    "3 years from the decision"
+                  ],
+                  [
+                    "First-week calls, quality checks and survey responses",
+                    "3 years from the call, check or survey closing"
+                  ],
+                  [
+                    "Key register, receipts and key holding agreements",
+                    "6 years after care ends; key safe codes removed from CareFlow within 5 working days of the last visit"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Incidents, complaints, concerns and feedback",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Record",
+                  "Kept for"
+                ],
+                "rows": [
+                  [
+                    "Incident log entries and investigations, with the RIDDOR, candour and personal data breach records held in them",
+                    "10 years from closure; 20 years from closure for serious incidents and incidents involving a person who lacked capacity for the matter"
+                  ],
+                  [
+                    "Alarm recordings and location data held by our lone worker device supplier's alarm receiving centre",
+                    "The shortest period the supplier's BS 8484 certified service allows, then deleted, as stated in the register of processors. For an alarm in the incident log, the Registered Manager asks the centre for a copy the same working day and keeps it with that entry"
+                  ],
+                  [
+                    "Injury records about anyone under 18",
+                    "Until their 25th birthday or 6 years from the event, whichever is later, if longer than the incident period"
+                  ],
+                  [
+                    "Complaint records",
+                    "10 years after closure, longer while a claim, inquest, safeguarding enquiry or Ombudsman investigation is open or expected"
+                  ],
+                  [
+                    "Compliments, suggestions and the feedback log",
+                    "3 years from receipt or reply; testimonial consents while the item is used, then 6 years"
+                  ],
+                  [
+                    "Gifts and hospitality register; register of interests",
+                    "Gifts from people we support: 6 years after the worker's employment ends. Business entries: 6 years from the end of the financial year of the entry, or 6 years after the named worker's employment ends if later. Register of interests: 6 years after the declarer's employment or office ends"
+                  ],
+                  [
+                    "Fraud and bribery log entries and investigation files; speaking-up log entries",
+                    "10 years from closure"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Staff, applicant and Director records",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Record",
+                  "Kept for"
+                ],
+                "rows": [
+                  [
+                    "Staff record: recruitment and checks, contract, declarations, supervision, spot checks, appraisals, training, sickness, including infection-related absence entries, family leave, disciplinary, grievance and capability case files, and restricted health and vaccination information",
+                    "Employment plus 6 years"
+                  ],
+                  [
+                    "Fitness concern records",
+                    "Employment plus 6 years; 20 years from closure where the concern involved alleged harm or risk to an adult or child"
+                  ],
+                  [
+                    "DBS and regulator referral decisions, including decisions not to refer, with referrals, evidence and correspondence",
+                    "20 years from the referral decision"
+                  ],
+                  [
+                    "Staff record summary: dates of employment, roles and branches, training and qualifications with dates, work-related injuries and exposures with incident references, pension scheme membership, reason for leaving and the reference of any allegation record",
+                    "Until the former employee's 75th birthday"
+                  ],
+                  [
+                    "Allegations against staff, in the restricted section",
+                    "20 years from closure; an allegation found false or malicious is removed from the staff record by the HR Manager within 5 working days of the outcome, the finding kept in the safeguarding record and incident log entry"
+                  ],
+                  [
+                    "Equality monitoring answers",
+                    "Deleted when employment ends, after being counted in anonymised figures"
+                  ],
+                  [
+                    "DBS certificate copy",
+                    "Deleted when employment ends; its date, type, number, the role and the decision kept for employment plus 6 years"
+                  ],
+                  [
+                    "Right to work evidence",
+                    "Employment plus 2 years"
+                  ],
+                  [
+                    "Identity record of a candidate who did not start after DBS submission",
+                    "2 years from submission"
+                  ],
+                  [
+                    "Unsuccessful applicants",
+                    "6 months after they are told the outcome"
+                  ],
+                  [
+                    "Sponsored worker records; sponsor licence application documents; decisions that an engagement is outside right to work checks",
+                    "Throughout sponsorship plus 1 year, or longer where they are also staff, payroll or right to work records; while we hold the licence; engagement end plus 2 years"
+                  ],
+                  [
+                    "Health surveillance records and the COSHH exposure register",
+                    "40 years from the last entry"
+                  ],
+                  [
+                    "Payroll, payslips, pension and automatic enrolment records including opt-out notices, minimum wage checks, timesheets, mileage and expenses, rotas and check-in/check-out times used for pay",
+                    "6 years from the end of the tax year"
+                  ],
+                  [
+                    "Annual leave and holiday pay records",
+                    "6 years from the end of the leave year"
+                  ],
+                  [
+                    "Driving licence check results",
+                    "Employment plus 6 years; licence copies deleted within 1 working day of employment ending"
+                  ],
+                  [
+                    "Placement records for students and work experience",
+                    "6 years after the placement ends"
+                  ],
+                  [
+                    "Fit and proper person file for each Director",
+                    "Period in office plus 6 years; concerns alleging harm 20 years from closure"
+                  ],
+                  [
+                    "Individual responses to staff surveys (including new starter and leaver surveys) and job applicant surveys",
+                    "1 year after the survey closes"
+                  ],
+                  [
+                    "Agency agreements, statements and audits; training provider approvals and evaluations",
+                    "Life of the agreement plus 6 years; approvals and evaluations 6 years"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The HR Manager creates the summary before destroying the full staff record; the 75th birthday follows the Digital Care Hub schedule. Legal minimums: working time records 2 years; PAYE records 3 years after the tax year; minimum wage and holiday records 6 years; automatic enrolment records 6 years from when each must first be kept (opt-out notices 4 years)."
+            }
+          ]
+        },
+        {
+          "heading": "Governance, data protection and business records",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Record",
+                  "Kept for"
+                ],
+                "rows": [
+                  [
+                    "Directors' minutes and papers, annual accounts, governance reports, risk registers, Monthly Quality and Governance Meeting papers and minutes, dashboards, the service improvement plan and its evidence; survey reports, monthly feedback summaries and You said, we did summaries; thematic, trend and annual incident reports; quarterly IPC reports, annual IPC audits and statements; business continuity plan versions, exercise reports and annual business continuity reports; Data Protection Officer annual reports and the breach register",
+                    "Life of {{organisation}} plus 6 years (the law requires directors' minutes for at least 10 years)"
+                  ],
+                  [
+                    "Every version of our policies, with approvals and acknowledgements, and of the statement of purpose; the registration register, certificates, applications, notices, registration checks and closure plans; the notifications register; the CQC inspection log, requests and responses, draft and final reports, factual accuracy comments, action plans, representations, appeals and enforcement correspondence",
+                    "Life of {{organisation}} plus 6 years"
+                  ],
+                  [
+                    "Anonymised stress survey, discussion group and employee assistance programme results",
+                    "6 years"
+                  ],
+                  [
+                    "Work phone network usage reports; sign-in, administrator, device management and firewall logs held by our IT support provider",
+                    "Reports 12 months; logs at least 12 months"
+                  ],
+                  [
+                    "Completed audit tools and results, monthly document control reports, monthly boundary exceptions reports, equal pay checks and workforce equality reports, access reviews, IT support monthly reports, backup and restore test results",
+                    "6 years from the audit, report or test"
+                  ],
+                  [
+                    "Record of processing activities, information asset register, digital asset register, approved software list, appropriate policy document and privacy notices",
+                    "6 years after each version is replaced"
+                  ],
+                  [
+                    "DPIAs, legitimate interests assessments, processor register and contracts, supplier security checks, data sharing agreements",
+                    "6 years after the processing, contract or agreement ends"
+                  ],
+                  [
+                    "Data Security and Protection Toolkit submissions and evidence; Cyber Essentials certificates",
+                    "6 years after the toolkit year or certificate ends"
+                  ],
+                  [
+                    "Data Protection Officer contract; Caldicott decision log; data protection charge confirmations",
+                    "6 years after the contract ends; 6 years after each decision; 6 years"
+                  ],
+                  [
+                    "Rights request log and files; third-party request records",
+                    "6 years after the request is closed, longer while a complaint, claim, inquest, tribunal or investigation is open"
+                  ],
+                  [
+                    "Contracts with commissioners, suppliers and processors; supplier modern slavery register and due diligence records",
+                    "6 years after the contract ends, 12 years where signed as a deed (Limitation Act 1980, sections 5 and 8)"
+                  ],
+                  [
+                    "Invoices, accounting and financial transaction records",
+                    "6 years from the end of the financial year, as HMRC requires for company records"
+                  ],
+                  [
+                    "Employers' liability insurance certificates",
+                    "Permanently"
+                  ],
+                  [
+                    "General risk assessments and other branch health and safety file records",
+                    "6 years from replacement"
+                  ],
+                  [
+                    "COSHH assessments, safety data sheets and role vaccination risk assessments",
+                    "Superseded versions 40 years"
+                  ],
+                  [
+                    "Equipment register entries and examination evidence",
+                    "6 years after our staff last use the item or 11 years from the record's date, whichever is later"
+                  ],
+                  [
+                    "HSE inspector contacts and documents supplied",
+                    "6 years from the last contact"
+                  ],
+                  [
+                    "Office waste contract, carrier checks and waste transfer notes; hazardous waste consignment notes",
+                    "2 years; 3 years"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Retention holds and extensions",
+      "blocks": [
+        {
+          "p": "A record is never destroyed while it is, or may be, needed for a complaint, claim, solicitor's letter, tribunal, inquest, safeguarding enquiry or Safeguarding Adults Review, police investigation, investigation or enforcement by CQC, HSE or the Information Commission, open rights request or public inquiry. Anyone who learns of one tells the office the same working day."
+        },
+        {
+          "steps": [
+            "The information asset owner (the Nominated Individual where more than one owner is involved) places the hold the same working day in the retention hold register in the governance records: the records covered, by CareFlow reference number, the reason, the date and a review date.",
+            "The owner tells the manager who prepares the destruction list for those records (Deputy Manager or HR Manager) and, for mailboxes or alarm recordings, our IT support provider or lone worker device supplier the same working day, so that the records are left off every destruction list and excluded from automatic deletion.",
+            "The owner reviews each hold at least every 6 months and records the review.",
+            "Only the Nominated Individual lifts a hold, when the matter and any appeal have ended. The records then return to their normal period and, if it has passed, go on the next quarterly destruction list."
+          ]
+        },
+        {
+          "p": "Records created specifically in response to the COVID-19 pandemic, such as outbreak, testing, PPE supply and staff vaccination decision records, are under a standing hold until the UK Covid-19 Inquiry has ended or has confirmed which records it needs, as the Digital Care Hub code advises."
+        },
+        {
+          "p": "An information asset owner may apply to the Nominated Individual, with the reason, to keep records beyond their period, for example because a claim is likely. The Nominated Individual decides within 1 month on the Data Protection Officer's advice, and the records are kept while the decision is made. An approved extension is entered in the retention hold register with a review date no more than 2 years ahead, and never runs beyond 20 years from the last entry unless the law or this schedule sets longer."
+        }
+      ]
+    },
+    {
+      "heading": "Closed records, archiving and retrieval",
+      "blocks": [
+        {
+          "p": "When care ends, the Care Coordinator records the end date and reason in the care plan within 1 working day of the last visit and ends the person's future visits and allocations, so that care workers no longer see the record. Within 10 working days of the last visit, the Registered Manager or Deputy Manager checks that the record is complete: final daily visit notes, the eMAR closed with a note of what happened to the medicines, the final money reconciliation scanned, keys returned, the key safe code removed and our papers collected. They record in a closing note in the care plan which retention rule applies and the destruction date. When employment ends, the staff record is closed under the Staff Personal Data and HR Records Policy and the leaver returns any paper record they hold, and their CareFlow access ends, on their last working day."
+        },
+        {
+          "p": "Closed records stay in CareFlow, which is our archive; no separate copy is made. A closed record is opened only for a complaint, request, claim, investigation, enquiry, audit, invoice, reference or a returning person or employee. Anyone who opens a record more than 3 months after it was closed records the reason in the records access log in the governance records the same day."
+        },
+        {
+          "p": "Paper records from before we used CareFlow are kept in numbered, sealed archive boxes in a locked store in the branch office, or with an off-site storage company whose contract sets retrieval within 2 working days. The archive index in the governance records lists each box's record types, CareFlow reference numbers or names and dates of birth, date range and destruction date (the latest of its contents). Only the Registered Manager, Deputy Manager, HR Manager, Nominated Individual and Office staff named by the Registered Manager may open the index or a box. Every removal and return is logged in the index; nothing from the archive leaves the branch office, and an item removed is returned within 10 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Review and secure destruction",
+      "blocks": [
+        {
+          "p": "No record is destroyed automatically or without approval. Destruction follows a quarterly review:"
+        },
+        {
+          "steps": [
+            "By the end of the first month of each quarter, the Deputy Manager (care, branch and governance records) and the HR Manager (staff, applicant and Director records) list the records whose retention period ended in the previous quarter, from the closing dates in CareFlow and the archive index.",
+            "For each record they check the retention hold register; open complaints, incidents, safeguarding records, rights requests and claims; any later episode of care or employment; any linked record kept longer; and any reason to apply for an extension.",
+            "Within 10 working days the information asset owner approves the list, removing anything that must be kept.",
+            "Before destruction, the Nominated Individual checks 5 items from each list (all if fewer) against the schedule and the register. A wrong item stops that list until the preparer has rechecked it in full.",
+            "Within 1 month of approval, the records are destroyed by the methods below.",
+            "The preparer completes the destruction log for each record, without names: record type, CareFlow reference or archive box number, date range, rule applied, approver, date and method of destruction and any certificate reference. The Nominated Individual signs off the quarter's log."
+          ]
+        },
+        {
+          "bullets": [
+            "Deleting in CareFlow only hides a record, so CareFlow records are permanently deleted by the CareFlow supplier on the Nominated Individual's written instruction and confirms the deletion in writing. Deleted information is never restored from backups, which expire under the supplier's contract.",
+            "Paper is cross-cut shredded in the branch office to security level P-4 (DIN 66399) or higher, or placed in the locked confidential waste console, emptied by a contractor certified to BS EN 15713 that gives a certificate of destruction for each collection. Paper with personal information never goes in any household, office or public bin.",
+            "Off-site archive boxes are destroyed by the storage company, which gives a certificate listing each box.",
+            "Work phones, computers and storage media are wiped or physically destroyed by our IT support provider under the Information and Cyber Security Policy, with a certificate kept in the destruction log.",
+            "Destruction contractors and storage companies are entered in the register of processors before they receive any record, and the Nominated Individual checks their certification every year."
+          ]
+        },
+        {
+          "p": "A record is destroyed before its period ends only with the Nominated Individual's approval on the Data Protection Officer's advice, for example where the law requires us to erase it; the destruction is entered in the destruction log with the reason. Once a record is destroyed, anyone asking for it is told the date and the rule under which it was destroyed."
+        }
+      ]
+    },
+    {
+      "heading": "Branch closure, transfer of the business and closure of the organisation",
+      "blocks": [
+        {
+          "bullets": [
+            "Branch closure: no record is destroyed because a branch closes (Statement of Purpose and Registration Procedure). Before the office closes, the Nominated Individual changes the branch on each person's and staff member's CareFlow record to another branch, whose Registered Manager becomes their information asset owner and is given CareFlow access to the closed branch's other records, and moves the key register and any archive boxes to that office or to off-site storage, updating the archive index.",
+            "A person moving to another provider: the new provider receives only what the Confidentiality and Information Sharing Policy allows; the full care record stays with us for its retention period.",
+            "Transfer of the business to another legal entity: on legal and Data Protection Officer advice, the transfer agreement sets out which records move. Records of people whose care transfers and of employees who transfer move to the new provider on the transfer date, and those people are told in writing at least 2 weeks before. Closed records stay with {{organisation}} or pass to the new provider under a written agreement to keep them for the remaining periods in this schedule and answer requests for them.",
+            "Leaving CareFlow: before the contract ends, the Nominated Individual obtains from the CareFlow supplier an export of every record with its audit trail, checks within 1 month that the export is complete and readable, and only then instructs the supplier in writing to delete our data and confirm the deletion.",
+            "Closure of {{organisation}}: before the last visit, the Directors approve a records closure plan from the Nominated Individual, and every record is exported as above. On legal and Data Protection Officer advice the Directors either keep {{organisation}} in existence, paying the data protection charge, until the last retention period ends, or transfer the records under a written agreement to a successor that accepts this schedule. A named Director remains the contact for requests, and CQC, commissioners and the Information Commission are told where the records are held."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "Retention hold register: holds, reviews, extensions and decisions",
+                "Governance records",
+                "6 years after the hold or extension ends"
+              ],
+              [
+                "Destruction log and certificates of destruction",
+                "Governance records",
+                "20 years from destruction"
+              ],
+              [
+                "Archive index, with each removal and return",
+                "Governance records",
+                "Until the last box listed is destroyed, then as the destruction log"
+              ],
+              [
+                "Records access log for closed records",
+                "Governance records",
+                "6 years from the entry"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "Record keeping and this policy, as part of information governance training with its knowledge assessment",
+                "In the first week, before any access to care records; every 12 months"
+              ],
+              [
+                "Care Workers and Senior Care Workers",
+                "Daily visit notes, late entries and corrections, as the Daily Records and Visit Notes Procedure sets out",
+                "During induction; assessed before working without a shadowing colleague"
+              ],
+              [
+                "Office staff",
+                "Scanning, page checks, destruction of paper and archive retrieval",
+                "Before scanning alone; every 12 months"
+              ],
+              [
+                "Care Coordinators and Field Care Supervisors",
+                "Closing records, collecting papers from homes and checking records at spot checks",
+                "When starting the role"
+              ],
+              [
+                "Registered Managers, Deputy Manager and HR Manager; Nominated Individual",
+                "Retention review, holds, extensions and destruction, briefed by the Nominated Individual with the Data Protection Officer; the Nominated Individual by the Data Protection Officer",
+                "Before their first quarterly review; every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Training is recorded in the training and compliance records, and staff acknowledge this policy in CareFlow by the new-starter deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Who and how often",
+              "Reported to",
+              "Target"
+            ],
+            "rows": [
+              [
+                "Care record quality, including daily visit notes, body maps and corrections",
+                "Monthly care records audit under the Quality Audit and Monitoring Procedure",
+                "Quality dashboard and Monthly Quality and Governance Meeting",
+                "Green"
+              ],
+              [
+                "Scanning: 10 documents (all if fewer) checked for date received, date scanned, completeness and destruction",
+                "Deputy Manager, quarterly",
+                "Monthly Quality and Governance Meeting",
+                "100% within 2 working days"
+              ],
+              [
+                "Closed care records checked within 10 working days and papers collected within 5 working days",
+                "Deputy Manager, monthly",
+                "Quality dashboard",
+                "100%"
+              ],
+              [
+                "Quarterly retention review, destruction log, holds and extensions",
+                "Nominated Individual, quarterly",
+                "Data protection section of the quarterly governance report",
+                "No record kept past its period without a hold or extension; 100% destroyed within 1 month of approval"
+              ],
+              [
+                "Records and data protection audit: 10 care records and 10 staff records (all if fewer), plus 5 records past their period, the hold register, destruction log, archive index and access log",
+                "Deputy Manager, every December",
+                "Next Directors' governance meeting",
+                "Green under the Quality Audit and Monitoring Procedure"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan within 5 working days. A record destroyed in error or while under a hold is recorded in the incident log and, where personal data is lost, handled under the Personal Data Breach Procedure."
+        },
+        {
+          "p": "The Registered Manager reviews this policy every 12 months, and sooner after a change in law or guidance, a serious incident, a breach involving records, an inspection or audit finding, or when monitoring shows the arrangements are not working. A retention period changed in this policy is changed in every one of our policies and procedures that states it in the same approval round. The Directors approve the policy under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

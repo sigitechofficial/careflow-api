@@ -1,0 +1,245 @@
+{
+  "reference": "SUR-STF-018",
+  "revision": 1,
+  "title": "Feedback on your manager",
+  "audience": "EMPLOYEE",
+  "respondents": "Staff whose staff record has named the same line manager (Field Care Supervisor, Care Coordinator with supervisees, or Deputy Manager) for at least 3 months",
+  "summary": "Anonymous yearly feedback on your line manager: whether you can reach them, are treated with respect and fairly, are recognised, kept informed and asked how you are, and can raise a concern with them. Each manager is given combined results only, from 10 or more people, for their own development. About 6 minutes.",
+  "purpose": "Upward feedback on everyday leadership, the 180-degree step of the Health and Safety Executive's line manager competency approach to preventing work-related stress. The Bullying, Harassment and Sexual Harassment Policy says managers are appraised on how they treat their teams; this survey gives each manager with 10 or more responses their own results to discuss at their next appraisal and turn into development objectives, and gives the organisation a picture of leadership across branches. It is not about supervision sessions (SUR-STF-006) or the organisation as a whole (SUR-STF-001), and it is never used for discipline, capability or pay decisions about the manager.",
+  "timing": {
+    "when": "Once a year in June, opening on the first working day after the June pulse closes, for 3 weeks; each manager's results are used at their next appraisal, whenever it falls",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": true,
+  "perManager": true,
+  "perManagerExclude": ["REGISTERED_MANAGER"],
+  "perManagerMinTeam": 10,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 6,
+  "cqc": {
+    "keyQuestions": ["WELL_LED", "CARING"],
+    "qualityStatements": [
+      "Capable, compassionate and inclusive leaders",
+      "Freedom to speak up",
+      "Workforce equality, diversity and inclusion",
+      "Workforce wellbeing and enablement"
+    ]
+  },
+  "introduction": "{{organisation}} would like your feedback on {{manager}}, to help our managers improve. It takes about 6 minutes, in paid time. It is anonymous: we cannot see who answered. {{manager}} never sees your answers or your comments word for word. You can ask the Registered Manager for a different supervisor.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to help our managers develop. Our legal reason is our legitimate interest in developing our managers.\n\nThe survey is anonymous: we do not record your name, so we cannot trace or reply to you. CareFlow records only your branch. Please do not write anything that could identify you. Only the HR Manager looks at individual answers. Managers and their appraisers are given combined results for their own team only, from 10 or more people, with comments as themes only. Results are used for development, never for decisions about anyone's job or pay. If a comment tells us someone may be at risk of harm, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Day to day",
+      "questions": [
+        {
+          "id": "q-mgr-reach",
+          "text": "Can you get hold of {{manager}} when you need them?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about the last 6 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "q-mgr-respect",
+          "text": "Does {{manager}} treat you with respect?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "What happens? Please do not include names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-mgr-listen",
+          "text": "Does {{manager}} listen to your ideas?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "q-mgr-recognise",
+          "text": "Does {{manager}} tell you when you have done good work?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-mgr-changes",
+          "text": "Does {{manager}} tell you about changes that affect your work in good time?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "q-mgr-wellbeing",
+          "text": "Does {{manager}} ask how you are?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, about your health, workload or how things are outside work, if you want to share.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-mgr-acts",
+          "text": "When you raise a problem, does {{manager}} act on it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Does not apply to me if you have not raised a problem in the last 6 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What kind of problem was it? Please do not include names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Well-led: Freedom to speak up"
+        }
+      ]
+    },
+    {
+      "title": "Fairness and trust",
+      "questions": [
+        {
+          "id": "q-mgr-fair",
+          "text": "{{manager}} treats everyone in the team fairly.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, in how they share out work, hours, runs and praise.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "comment": {
+            "prompt": "What feels unfair? Please do not include names.",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-mgr-raise",
+          "text": "I would feel able to raise a concern with {{manager}}.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "comment": {
+            "prompt": "What makes it hard? Please do not include names.",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "q-mgr-confidential",
+          "text": "I trust {{manager}} to keep private things I tell them confidential.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Confidential means shared only with people who need to know, such as the HR Manager for health matters. Managers must still act if someone may be at risk.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "q-mgr-develop",
+          "text": "{{manager}} helps me to learn and develop.",
+          "type": "LIKERT",
+          "required": false,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-mgr-example",
+          "text": "{{manager}} sets a good example in how they treat the people we support.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not seen {{manager}} with the people we support.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        }
+      ]
+    },
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-mgr-overall",
+          "text": "Overall, how would you rate the support you get from {{manager}}?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer. Please do not include names.",
+            "showWhen": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"]
+          },
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What does {{manager}} do that helps you most?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or anything that could identify you."
+        },
+        {
+          "text": "What one thing could {{manager}} do differently?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or anything that could identify you."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it each June under the Compliments, Feedback and Involvement Procedure. Use Make a copy for each manager on this template: CareFlow makes one draft for each manager whose staff record names them as line manager of 10 or more staff, with the manager's name in the title and questions, addressed only to those staff, and leaves out anyone named under that manager for less than about 3 months. Check each draft, then send it, opening the first working day after the June pulse closes, for 21 days. Make new copies each year, because teams change.",
+      "Managers here are Field Care Supervisors, Care Coordinators who have supervisees, and the Deputy Manager; a Senior Care Worker who supervises without appraising is not. CareFlow leaves out the Registered Manager's team: it makes no copy for the Registered Manager and does not ask their direct reports (usually the Deputy Manager and HR Manager), because the HR Manager reads the answers, so it could not be anonymous. This is ticked under Teams not asked when you make the copies; leave it ticked. The Registered Manager's leadership is evidenced through SUR-STF-001 and the Nominated Individual's appraisal. Never add a question about role, branch, length of service or any personal characteristic: a team plus one fact identifies people.",
+      "Small teams: staff of managers with fewer than 10 such staff share one smaller teams copy, worded \"your line manager\" and reported only as a group, never per manager. CareFlow makes it only when it hides which manager an answer is about: at least 3 managers, 10 or more staff, and no one manager's staff more than half of it; otherwise those smaller teams are not sent a copy that year. CareFlow checks this after leaving out the Registered Manager's team.",
+      "It is done in paid working time, on the worker's own device or in the office, never in front of the manager. Paper on request, with the manager's name on the form, returned in a sealed envelope to the HR Manager, who enters it alone with Record response, recorded as anonymous, into that manager's copy and destroys the form within 5 working days; managers never handle forms. Set one reminder after 10 days in Reminders and follow-up. On this anonymous survey CareFlow sends it to everyone who has not answered at once, never to one person, with no personal link.",
+      "Who may open individual answers: the HR Manager only, who reads comments each working day while the survey is open. This is set in Who can see the answers: individual responses are limited to the HR Manager, and results to the HR Manager, the Registered Manager and the Nominated Individual, showing from 10 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Each copy never shows its answers or answer count to the manager it rates (for the smaller teams copy, every manager in it), even if they hold a role in Who can see the answers or made the survey, and this stays if the settings are changed later. Super Admin and Admin still see everything, and in a team this small the count rising could show who has answered, so a manager being rated must not be a Super Admin or Admin from the day their copy is sent until it closes: remove that role for the time and have another manager cover their survey work, or do not send their copy that year. CareFlow names any rated manager who is a Super Admin or Admin and asks you to confirm before it makes the copies. Tell every manager being rated never to ask staff whether they took part."
+    ],
+    "actingOnResults": [
+      "The HR Manager writes each manager's report within 6 weeks of closing. How to count: positive means Always or Usually, Strongly agree or Agree, or Very good or Good, leaving out Does not apply to me and Don't know. A copy with fewer than 10 responses gets no report: add its answers to the smaller teams group by hand, and if that group still has fewer than 10, leave all of them out of every branch and organisation total, so nobody can work out a small team's answers by subtracting one figure from another. Comments go to managers and appraisers only as themes written by the HR Manager, never word for word, and only from 10 or more responses. Branch results only for 10 or more, never crossed with anything else.",
+      "Who sees what: each manager sees their own report; their appraiser sees the reports of the managers they appraise; the HR Manager, Registered Manager and Nominated Individual see all reports and the organisation summary; the Directors see the organisation summary only, through the quarterly governance report's workforce section. Results stand for 12 months and are discussed at the manager's next appraisal, whenever it falls, as development, with the manager's own reflection first and objectives in their personal development plan under the Supervision, Spot Checks and Appraisal Policy. Never used for discipline, capability or pay decisions. Compare a manager year on year only where both years have 10 or more responses. \"You said, we did\" in November covers organisation-level actions only, never a named manager.",
+      "Library triggers: a manager with 10 or more responses and fewer than 60% positive on respect, fairness or feeling able to raise a concern: the appraiser agrees a development action with the manager within 1 month, recorded in their personal development plan. Feeling able to raise a concern below 60% in a team, or falling two years running: the Nominated Individual checks it against speaking-up records under the Whistleblowing (Speaking Up) Policy.",
+      "Nobody ever tries to find out who answered. A manager who questions staff about their answers, or treats anyone worse after the survey, is dealt with as victimisation under the Disciplinary Policy and Procedure (Whistleblowing (Speaking Up) Policy; Bullying, Harassment and Sexual Harassment Policy).",
+      "Keep individual answers for 1 year after the survey closes and reports for the life of the organisation plus 6 years, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Does {{manager}} treat you with respect?\" answered Never (anonymous: counts only).",
+        "action": "The Registered Manager, with the HR Manager, reviews within 5 working days what is known about that manager's team (speaking-up records, grievances, leavers' feedback) and what action is possible under the Bullying, Harassment and Sexual Harassment Policy. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {"task": "Manager never respectful (anonymous): review", "if": [{"question": "q-mgr-respect", "answers": ["Never"]}], "owner": "REGISTERED_MANAGER", "dueWorkingDays": 5, "minimumAnswers": 10}
+      },
+      {
+        "when": "A comment describing bullying, harassment or sexual harassment by the manager.",
+        "action": "The Nominated Individual records it in the incident log as an anonymous report and passes it to the Registered Manager within 1 working day, who decides and records within 5 working days what action is possible, under the Bullying, Harassment and Sexual Harassment Policy; if it concerns the Registered Manager, the Nominated Individual acts on it."
+      },
+      {
+        "when": "A comment describing wrongdoing.",
+        "action": "A speaking-up concern under the Compliments, Feedback and Involvement Procedure, with the Nominated Individual as case owner because it is anonymous (Whistleblowing (Speaking Up) Policy)."
+      },
+      {
+        "when": "A comment suggesting abuse or neglect of a person we support.",
+        "action": "The safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure)."
+      }
+    ]
+  },
+  "alertsNeverTo": ["FIELD_CARE_SUPERVISOR", "CARE_COORDINATOR", "DEPUTY_MANAGER"],
+  "access": {"responses": ["HR_MANAGER"], "results": ["HR_MANAGER", "REGISTERED_MANAGER", "NOMINATED_INDIVIDUAL"], "reportingThreshold": 10},
+  "relatedPolicies": ["POL-HR-005", "POL-HS-015", "POL-HR-013", "POL-HR-018", "POL-HR-008", "POL-GOV-006", "POL-SG-002", "POL-GOV-017"],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety Executive, Line Manager Competency Indicator Tool: manager behaviours that prevent and reduce work-related stress, with a 180-degree tool that takes input from the manager's staff",
+      "url": "https://www.hse.gov.uk/stress/mcit.htm"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 2, paragraph 16 (protection of the rights of others): no duty to disclose information identifying another person, so a manager's request for their own data does not reach respondents' identifiable comments",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/2/paragraph/16"
+    }
+  ]
+}

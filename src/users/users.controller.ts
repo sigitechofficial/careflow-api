@@ -32,7 +32,7 @@ export class UsersController {
   @Get(':id')
   @Permissions('users.read')
   async get(@Param('id') id: string) {
-    const user = await this.usersService.findById(id);
+    const user = await this.usersService.findPublicById(id);
     return { data: user };
   }
 

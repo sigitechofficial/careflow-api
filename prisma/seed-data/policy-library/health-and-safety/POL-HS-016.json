@@ -1,0 +1,272 @@
+{
+  "reference": "POL-HS-016",
+  "revision": 1,
+  "title": "New and Expectant Mothers at Work Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we protect workers who are pregnant, have given birth in the last 6 months or are breastfeeding: what happens on the day a worker tells us, the visits and tasks that stop at once, the individual risk assessment within 5 working days, changes to runs and hours, suitable alternative work and paid suspension, night work certificates, rest and breastfeeding arrangements, and review until the protection ends. For managers, the HR Manager, Care Coordinators and staff allocation roles.",
+  "keyPoints": {
+    "intro": "This procedure tells managers, the HR Manager and everyone who allocates visits what to do from the moment a worker says they are pregnant, have recently given birth or are breastfeeding.",
+    "points": [
+      "Act on the day you are told, even if the worker tells you in passing and not in writing. Tell the HR Manager the same working day; out of hours the On-call Manager hands over to the Care Coordinator by 10am the next working day.",
+      "Remove every day-one restricted visit and task from the worker's rota before their next visit: heavy moving and handling, hazardous medicine tasks, radioactive treatment, litter trays, known infections, recorded waste or pests, smoking homes, lone night visits and homes with Medium or higher aggression risk.",
+      "The HR Manager and Registered Manager complete the individual risk assessment with the worker within 5 working days (the same day during an infection outbreak), in paid time, using their midwife's or doctor's advice. The worker gets a copy within 2 working days of sign-off.",
+      "Follow the order the law sets: remove or control the risk, change conditions or hours, offer suitable alternative work on the same pay and terms, and only then suspend on full normal pay. Suspension is never a sanction.",
+      "Offer equivalent visits in the same rota week so the worker keeps their hours. Hours we cannot replace because of a restriction are paid at the hours already rostered or, if higher, normal pay.",
+      "When a worker gives you a doctor's or midwife's certificate saying they should not work at night, allocate no night work in that period from that moment and offer day work on the same terms within 2 working days.",
+      "Tell the Care Coordinator and Field Care Supervisor only the restrictions, never the reason, until the worker agrees. Nobody tells colleagues, the people we support or their families why visits have changed.",
+      "Build rest and expressing gaps into the run when asked and keep the private room at the branch office available. Breaks and expressing never take place in a person's home.",
+      "Keep the assessment current: a check every 4 weeks, full reviews at 20 and 28 weeks, a new assessment before visits after the birth, every 3 months while breastfeeding, and after any incident or new medical advice.",
+      "Never allocate a restricted visit, even to fill a gap. If it happens, take the worker off it at once and record it in the incident log the same day.",
+      "If a restricted task is still on a visit the worker must make before you can change the rota, tell them not to do that task and send another worker for it within the visit window or agree a safe time with the person."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["Manager", "HR", "Care Coordinator", "Staff Allocation"],
+  "moduleLinks": ["RISK_ASSESSMENT", "HR", "EMPLOYEE", "VISIT"],
+  "relatedReferences": ["POL-HS-001", "POL-HS-002", "POL-HS-005", "POL-HS-009", "POL-HS-003", "POL-HR-015", "POL-HR-012", "POL-IPC-008"],
+  "regulatoryBasis": [
+    { "source": "Management of Health and Safety at Work Regulations 1999, regulation 1 (definitions of new or expectant mother and given birth)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/1" },
+    { "source": "Management of Health and Safety at Work Regulations 1999, regulation 16 (risk assessment in respect of new or expectant mothers; altering conditions or hours; suspension)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/16" },
+    { "source": "Management of Health and Safety at Work Regulations 1999, regulation 16A (alteration of working conditions in respect of new or expectant mothers: agency workers)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/16A" },
+    { "source": "Management of Health and Safety at Work Regulations 1999, regulation 17 (certificate from registered medical practitioner or registered midwife: night work)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/17" },
+    { "source": "Management of Health and Safety at Work Regulations 1999, regulation 17A (night work certificate: agency workers)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/17A" },
+    { "source": "Management of Health and Safety at Work Regulations 1999, regulation 18 (notification in writing by new or expectant mothers)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/18" },
+    { "source": "Employment Rights Act 1996, section 67 (right to offer of suitable alternative work before suspension on maternity grounds)", "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/67" },
+    { "source": "Employment Rights Act 1996, section 68 (right to remuneration on suspension on maternity grounds)", "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/68" },
+    { "source": "Workplace (Health, Safety and Welfare) Regulations 1992, regulation 25(4) (rest facilities for pregnant women and nursing mothers) and regulation 2 (workplace excludes domestic premises)", "url": "https://www.legislation.gov.uk/uksi/1992/3004/regulation/25" },
+    { "source": "Equality Act 2010, section 18 (pregnancy and maternity discrimination: work cases, as amended from 1 January 2024)", "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/18" },
+    { "source": "Health and Safety Executive, Protecting pregnant workers and new mothers: employers (updated 7 May 2026)", "url": "https://www.hse.gov.uk/mothers/employer/index.htm" },
+    { "source": "Health and Safety Executive, Risk assessment for pregnant workers and new mothers", "url": "https://www.hse.gov.uk/mothers/employer/risk-assessment.htm" },
+    { "source": "Health and Safety Executive, Common risks to pregnant workers and new mothers", "url": "https://www.hse.gov.uk/mothers/employer/common-risks.htm" },
+    { "source": "Health and Safety Executive, Rest and breastfeeding at work", "url": "https://www.hse.gov.uk/mothers/employer/rest-breastfeeding-at-work.htm" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "{{organisation}} protects the health of every worker who is pregnant, has given birth in the last 6 months or is breastfeeding, and the health of their baby. Moving and handling, infections, medicines, lone and night working and long travel in home care all carry particular risks in pregnancy and after a birth, often before a pregnancy shows." },
+        { "p": "We act on the day a worker tells us, assess their work with them within 5 working days, and change their visits rather than their pay. Nobody loses hours, income, training or opportunities because they are pregnant or breastfeeding, and we keep what they tell us private." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "bullets": [
+          "Apply the law protecting new and expectant mothers at work to home care.",
+          "Make sure unsafe visits and tasks stop before the worker's next visit and the individual risk assessment is completed within 5 working days.",
+          "Set out how runs, hours, pay, night work, rest and breastfeeding are handled until the protection ends."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This procedure applies to every employee and worker of {{organisation}}, in every role and on every type of contract, including bank and zero hours, and, as set out below, to agency workers and students on placement. It covers anyone who is pregnant, has given birth in the last 6 months or is breastfeeding, whatever their gender identity; HSE guidance confirms that trans men, non-binary and intersex workers can be protected, and our policy protects them in the same way. It applies in people's homes, on the road and in our branch offices." },
+        { "p": "The law requires our general risk assessments to include the risks to new and expectant mothers and their babies, because we employ women of child-bearing age (regulation 16(1)). Ours mark the tasks unsuitable in pregnancy, so controls exist before anyone tells us." },
+        { "p": "Owned elsewhere: maternity leave and pay, antenatal appointments, keeping in touch days and returning from leave (Flexible Working and Family Leave Policy); pregnancy-related sickness (Sickness Absence Policy); reasonable adjustments and fair allocation (Equality, Diversity and Inclusion Policy); infection exclusions (Staff Infection-Related Illness and Exclusion Policy); vaccines in pregnancy (Staff Vaccination and Immunisation Policy); and the rating method (Risk Assessment and Home Environment Risk Assessment Procedure). A person we support who is pregnant is assessed through their care plan, not this procedure." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["New or expectant mother", "A worker who is pregnant, has given birth within the previous 6 months or is breastfeeding (Management of Health and Safety at Work Regulations 1999, regulation 1). Given birth means a live birth or a stillbirth after 24 weeks of pregnancy."],
+          ["Individual risk assessment", "The written assessment of one worker's work under this procedure, held in the restricted section of the staff record."],
+          ["Suitable alternative work", "Work that is suitable and appropriate for the worker and, where its terms differ from their own, not substantially less favourable (Employment Rights Act 1996, section 67). Our policy is that it is always at the same hourly rate."],
+          ["Suspension on maternity grounds", "Paid time off work for as long as needed when a risk cannot be avoided in any other way."],
+          ["Normal pay", "As defined in the Flexible Working and Family Leave Policy: contractual weekly pay or, for variable-hours staff, average weekly paid hours including travel time over the 12 complete weeks before the restriction began."],
+          ["Night work", "Any work between 11pm and 6am, including waking nights, sleep-ins and on-call periods, or any other period a doctor's or midwife's certificate names."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Directors and Nominated Individual", "blocks": [
+          { "p": "The Directors fund pay protection, suspension pay, maternity uniform and the branch office rest room. The Nominated Individual is told within 2 working days of every suspension on maternity grounds and every decision to withhold suspension pay, and challenges the quarterly figures." }
+        ] },
+        { "heading": "Registered Manager", "blocks": [
+          { "p": "The Registered Manager, as Health and Safety Lead, owns this procedure. They complete and sign off every individual risk assessment, decide controls, alternative work and suspension, tell agencies when an agency worker's supply must end, and make sure each branch office has a suitable rest room. The Deputy Manager covers every duty in their absence." }
+        ] },
+        { "heading": "HR Manager", "blocks": [
+          { "p": "The HR Manager receives notifications, starts and records each assessment, makes occupational health referrals, calculates pay protection and suspension pay, keeps in touch during suspension and sets every review date in the staff record." }
+        ] },
+        { "heading": "Care Coordinators, staff allocation roles and On-call Managers", "blocks": [
+          { "p": "They apply day-one restrictions and assessment outcomes to the rota, keep the worker's hours, build agreed gaps into runs and check every rota against the allocation restriction before it is published. The Care Coordinator gives the HR Manager the worker's runs and the moving and handling plans involved before the assessment meeting." }
+        ] },
+        { "heading": "Field Care Supervisors", "blocks": [
+          { "p": "Where the worker agrees that their Field Care Supervisor may know the reason for their restrictions, the Field Care Supervisor holds the 4-weekly check and passes any concern to the HR Manager the same day; otherwise the HR Manager holds it. Every Field Care Supervisor observes the worker at spot checks only on tasks the assessment allows." }
+        ] },
+        { "heading": "Workers", "blocks": [
+          { "p": "Workers tell their Field Care Supervisor, the Care Coordinator or the HR Manager, or the On-call Manager out of hours, as early as they feel able, confirm it in writing, follow their restrictions, never swap visits, and tell the HR Manager about new medical advice, complications, the birth, and when they stop breastfeeding." }
+        ] }
+      ]
+    },
+    {
+      "heading": "When a worker tells us",
+      "blocks": [
+        { "p": "The law requires us to alter a worker's conditions or hours, or suspend them, once they have told us in writing that they are pregnant, have given birth in the last 6 months or are breastfeeding (regulation 18), and HSE guidance says the individual risk assessment must be done from that point. Our policy is to act on the day a manager, Field Care Supervisor, Care Coordinator, On-call Manager or the HR Manager is told, in writing or not, because some risks are greatest in early pregnancy. We never ask for a medical certificate before acting or to keep protections in place; a MATB1 is needed only for maternity pay." },
+        { "steps": [
+          "The person told thanks the worker, asks the expected due date or birth date and whether they are breastfeeding, and asks who may be told. They tell the HR Manager by phone or secure email the same working day. Out of hours the On-call Manager acts on step 2 and hands over to the Care Coordinator by 10am the next working day.",
+          "Before the worker's next visit, the Care Coordinator (On-call Manager out of hours) removes every day-one restricted visit and task from the published rota, records the allocation restriction by adding the worker as a blocked carer for each restricted person and offers equivalent visits in the same rota week. Where a visit with a restricted task starts before it can be reallocated, the worker is told by phone not to do that task and to give the rest of the care that is safe, and another worker is sent for it within the visit window or a safe time is agreed with the person.",
+          "Within 2 working days the HR Manager writes to the worker confirming what we were told, the day-one restrictions, their pay protection, who knows, and the date of the risk assessment meeting, and asks them to confirm the pregnancy, birth or breastfeeding in writing. A reply by email or text message is enough.",
+          "Within 5 working days of being told, or the same day during an infection outbreak on the worker's runs, the HR Manager and Registered Manager complete the individual risk assessment with the worker."
+        ] },
+        { "p": "A worker planning a pregnancy may tell the HR Manager in confidence and ask not to be allocated hazardous medicine tasks, which we agree without asking for reasons." },
+        { "p": "The day-one restrictions below are our policy. Each stays in place until the individual risk assessment lifts it, and the last column shows where it cannot be lifted." },
+        { "table": { "columns": ["Day-one restriction", "Applies to", "Can the individual risk assessment lift it?"], "rows": [
+          ["Heavy moving and handling, alone or as one of two workers on a double-handed visit: bariatric handling, repositioning a person who cannot help, handling a person whose movement is unpredictable (Moving and Handling of People Policy)", "Pregnant, or within 6 months of the birth", "Not during pregnancy (our policy). After the birth, yes, with occupational health advice where the birth was by caesarean section or had complications"],
+          ["Giving a hazardous medicine, handling body fluids, laundry or waste in its precaution period, or clearing a hazardous medicine spill (Hazardous Substances (COSHH) Procedure)", "Pregnant, within 6 months of the birth, or breastfeeding", "Only on written advice from the pharmacist, prescribing team or occupational health about that medicine and task"],
+          ["Care for a person whose hospital team has given radiation protection advice after radioactive treatment, for the period that advice sets", "Pregnant or breastfeeding", "No"],
+          ["Emptying litter trays or cleaning up animal waste (Animals and Pets in People's Homes Guideline)", "Pregnant", "No"],
+          ["Homes where human or animal waste or pests are recorded (Self-Neglect and Hoarding Procedure)", "Pregnant, within 6 months of the birth, or breastfeeding", "Yes"],
+          ["People with a known infection or under transmission-based precautions (Infection Prevention and Control Policy)", "Pregnant", "Yes, with occupational health advice where needed, except rash and airborne precautions, which stay restricted throughout pregnancy"],
+          ["Homes where people smoke during visits (Risk Assessment and Home Environment Risk Assessment Procedure)", "Pregnant", "Yes"],
+          ["Lone visits between 10pm and 7am, and lone visits to homes with a Medium or higher residual risk to staff from violence or aggression (Lone Working and Staff Personal Safety Policy)", "Pregnant, or within 6 months of the birth", "Yes"]
+        ] } }
+      ]
+    },
+    {
+      "heading": "The individual risk assessment",
+      "blocks": [
+        { "p": "The HR Manager meets the worker in paid time at the branch office, by video or by phone, as the worker prefers, never in a person's home. The worker may bring a colleague, a representative of employee safety or a trade union representative, and we consult their safety representative where they have one. The Registered Manager reviews the findings, decides the controls and signs the assessment off." },
+        { "p": "We take account of advice from the worker's midwife, GP or hospital team and of any condition or complication the worker chooses to tell us about. The HR Manager refers the worker to our occupational health provider within 5 working days of their consent where there is a complication or health condition, the medical advice is unclear, the worker asks, or a restriction after the birth needs advice." },
+        { "table": { "columns": ["Hazard", "What the assessment checks"], "rows": [
+          ["Moving and handling and posture", "Every moving and handling plan on the runs; bending, kneeling, reaching and twisting in personal care, bed-making and repositioning; prolonged standing; carrying shopping, laundry, commode pans and water bowls; balance as the pregnancy progresses."],
+          ["Infections and body fluids", "Known infections on the runs, delegated sharps tasks (Sharps Safety and Needlestick Injury Procedure), recorded immunity to chickenpox, measles and rubella, and occupational health advice before any vaccine."],
+          ["Medicines and substances", "Hazardous medicines, radioactive treatments and the cleaning products named in care plans."],
+          ["Violence, aggression and lone working", "Behaviour and aggression risk assessments of the people on the runs, homes with no signal, late and night visits, and whether a lone worker device is needed."],
+          ["Hours, travel and fatigue", "Run length, split shifts, early starts, waking nights and sleep-ins, driving time and distance (Driving at Work Policy), walking routes, breaks and toilet access."],
+          ["Environment", "The home environment risk assessments of the homes on the runs: second-hand smoke, heat and cold (Severe Weather and Extreme Temperatures Procedure), stairs, clutter, parking and access, and animals."],
+          ["Stress and wellbeing", "Workload and support, with an individual stress risk assessment offered where needed (Work-Related Stress and Staff Wellbeing Policy)."],
+          ["Uniform, PPE and office work", "Fit of uniform, aprons and gloves as the pregnancy progresses; display screen work and prolonged sitting for Office staff."]
+        ] } },
+        { "p": "Each hazard is rated with our standard method. The assessment records the controls, the visits and tasks the worker may and may not do, the rest arrangements and the review dates. The HR Manager gives the worker a copy within 2 working days of sign-off and explains it, shares it with their safety representative if the worker agrees, and the Care Coordinator applies it from the next published rota. If the worker disagrees with a decision, the Registered Manager discusses it with them within 2 working days; the worker may also use the Grievance Policy and Procedure." }
+      ]
+    },
+    {
+      "heading": "Acting on the findings",
+      "blocks": [
+        { "p": "Where a risk remains after our general controls, we act in this order, as the law and HSE guidance require:" },
+        { "steps": [
+          "Remove or control the risk: give the task to another worker, ask the occupational therapist or community equipment service for equipment that removes the strain, or change how the task is done in the care plan.",
+          "Change working conditions or hours where that avoids the risk: shorter or local runs, later starts, no split shifts, rest gaps, a walking round instead of long drives, or day visits instead of nights.",
+          "If that is not reasonable or would not avoid the risk, offer suitable alternative work at the same hourly rate and normal pay: visits to people whose care does not involve the risk, shadowing support, welfare calls, training, or office duties the worker is trained for.",
+          "Only if none of these is possible, the Registered Manager suspends the worker on maternity grounds on full pay for as long as necessary."
+        ] },
+        { "p": "Pay protection (our policy): where a restriction reduces a worker's hours and equivalent visits cannot be found in the same rota week, the hours lost are paid as suspension on maternity grounds, so the worker receives the hours already rostered when the restriction began or, if higher, normal pay. Suspension pay is calculated on the same basis. The runs and hours the worker had are offered back when the protection ends." },
+        { "p": "Suspension: the Registered Manager confirms the suspension, its reason, pay and first review date in writing within 2 working days. The HR Manager phones the worker at least weekly, and the Registered Manager reviews the suspension at least every 4 weeks and as soon as suitable work becomes available. Suspension is never disciplinary, and annual leave and continuous service carry on as normal." },
+        { "p": "The law allows suspension pay to be withheld only where a worker unreasonably refuses suitable alternative work (Employment Rights Act 1996, section 68). Our policy is that only the Registered Manager may decide this, after meeting the worker to hear their reasons and taking the employment law adviser's advice, with written reasons within 2 working days. The worker may appeal under the Grievance Policy and Procedure." }
+      ]
+    },
+    {
+      "heading": "Night work",
+      "blocks": [
+        { "p": "Where a new or expectant mother who works at night gives us a certificate from a registered medical practitioner or registered midwife saying they should not work at night for a stated period, the law requires us to offer suitable alternative work and, if there is none, to suspend them for as long as necessary (regulation 17 and section 67)." },
+        { "steps": [
+          "Whoever receives the certificate gives it to the HR Manager the same working day; the HR Manager tells the Care Coordinator at once.",
+          "From that moment no night work in the certified period is allocated, and any already rostered is reallocated. Out of hours the On-call Manager does this.",
+          "Within 2 working days the Care Coordinator offers day work on the same terms to replace the night hours.",
+          "Night hours that cannot be replaced are paid as suspension on maternity grounds, on the pay protection basis above, until the certified period ends."
+        ] },
+        { "p": "Without a certificate, night work continues only as the individual risk assessment allows, and lone visits between 10pm and 7am remain a day-one restriction." }
+      ]
+    },
+    {
+      "heading": "Rest, breastfeeding and welfare",
+      "blocks": [
+        { "p": "The law requires suitable rest facilities for pregnant workers and nursing mothers at our workplaces (Workplace (Health, Safety and Welfare) Regulations 1992, regulation 25(4)). People's homes are not our workplaces under those regulations, and breaks are never taken in a person's home. Our arrangements are:" },
+        { "bullets": [
+          "Each branch office has a private, lockable room that is not a toilet, with a reclining chair or couch to lie down on, a power socket, a nearby hand basin and a fridge for expressed milk labelled with the worker's name and date. Office staff keep it clean and free on request, and the Deputy Manager checks it at the quarterly office inspection.",
+          "On request, the Care Coordinator builds rest gaps into the run and, for breastfeeding workers, expressing gaps of at least 30 minutes at the times the worker asks, planned near the branch office, the worker's home or another place they choose, with toilet access between visits. Gaps under 60 minutes are paid under the Working Time, Rest Breaks and Travel Time Policy.",
+          "The HR Manager provides maternity uniform free within 5 working days of a request, and an insulated cool bag with ice packs to any breastfeeding worker who asks.",
+          "A worker who needs to sit down or use the toilet during a visit asks the person's permission. Where tasks take the worker longer, the Care Coordinator lengthens the visit or adds travel time rather than shortening care.",
+          "Breastfeeding has no time limit in law. The protection and these arrangements last for as long as the worker breastfeeds."
+        ] }
+      ]
+    },
+    {
+      "heading": "During visits",
+      "blocks": [
+        { "p": "A worker who finds a restricted task or condition at a visit that the care plan does not show, such as a new infection, smoking during the visit or animal waste to clear, does not do that task, gives the rest of the care that is safe and phones the office (On-call Manager out of hours) before leaving. The office sends another worker for the restricted task within the visit window or agrees a safe time with the person, and the Field Care Supervisor updates the home environment risk assessment." },
+        { "p": "A worker who feels unwell during a visit makes the person safe, stops any task that could cause harm and phones the office, which reallocates the rest of the run." },
+        { "bullets": [
+          "Heavy bleeding, bleeding with severe tummy pain, shoulder pain or feeling faint, collapse or a fit: 999 (NHS advice). For any other bleeding, pain, fluid loss, severe headache, blurred vision or the baby moving less than usual, the worker contacts their midwife or maternity unit straight away (an early pregnancy unit before 20 weeks; NHS 111 if neither can be reached).",
+          "Where the worker is unsafe to drive, the office books a taxi home at our cost. Hours worked are paid and the rest of the day is pregnancy-related sickness under the Sickness Absence Policy.",
+          "A fall, a blow to the abdomen, an assault, a needlestick or splash, a hazardous medicine or chemical exposure, or contact with chickenpox, shingles, measles, rubella or slapped cheek syndrome is phoned to the office before the worker leaves the home and recorded in the incident log before the end of the shift. The worker contacts their midwife, GP or maternity unit the same day.",
+          "The HR Manager tells the IPC lead the same working day about any infection contact, and the IPC lead takes occupational health advice the same working day.",
+          "Where an incident shows a control failed, the Registered Manager reviews the individual risk assessment before the worker's next shift; otherwise within 5 working days.",
+          "A restricted visit allocated by mistake is stopped as soon as it is found and recorded in the incident log the same day, and the Registered Manager finds out how it happened within 5 working days."
+        ] }
+      ]
+    },
+    {
+      "heading": "Keeping the assessment up to date",
+      "blocks": [
+        { "p": "HSE guidance says the individual risk assessment must be reviewed regularly as the pregnancy progresses and whenever the worker's activity or workplace changes significantly. Our review points below are our policy." },
+        { "table": { "columns": ["When", "What happens", "By whom"], "rows": [
+          ["Every 4 weeks during pregnancy", "Check, by phone or in person, on how the worker is coping and whether the controls work, recorded in the restricted section of the staff record; concerns acted on the same day", "Field Care Supervisor where the worker agrees, otherwise the HR Manager"],
+          ["At 20 weeks and 28 weeks of pregnancy", "Full review of the assessment against every run", "HR Manager and Registered Manager"],
+          ["New medical advice, a complication, an incident, a change of runs, people supported or role, the start of an infection outbreak on the worker's runs, or the worker's request", "Review within 5 working days, the same day where the worker may be unsafe or an outbreak has started", "HR Manager and Registered Manager"],
+          ["Before any visit within 6 months of the birth or while breastfeeding, including keeping in touch days", "New assessment covering recovery from the birth, breastfeeding and any complications, arranged at the HR Manager's 6-week pre-return check under the Flexible Working and Family Leave Policy", "HR Manager and Registered Manager"],
+          ["Every 3 months while breastfeeding", "Review of the assessment", "HR Manager"],
+          ["6 months after the birth and when breastfeeding stops", "Restrictions ended in writing once neither applies, and the allocation restriction removed", "HR Manager"]
+        ] } },
+        { "p": "After a pregnancy loss before 24 weeks, the protection under these regulations ends. The HR Manager phones the worker within 1 working day of hearing and explains the paid leave in the Flexible Working and Family Leave Policy. Nobody returns to restricted tasks until they are ready, and their return is planned through a return-to-work conversation and an individual risk assessment of any health effects." }
+      ]
+    },
+    {
+      "heading": "Agency workers and students",
+      "blocks": [
+        { "p": "Agency workers tell their agency and the Care Coordinator. As the hirer, we apply the day-one restrictions at once and complete the individual risk assessment within 5 working days, sharing it with the agency. Where altering the worker's conditions or hours is not reasonable or would not avoid the risk, the Registered Manager tells the agency in writing the same working day, and the law then requires the agency to end the supply to us (regulation 16A); the agency's own duties on alternative work and pay then apply. The same applies when an agency worker who works nights for us gives us a night work certificate: the Registered Manager tells the agency in writing the same working day, and no night work is allocated from the moment we receive it (regulation 17A). Students on placement are assessed in the same way and, with their agreement, their college is told the same working day." }
+      ]
+    },
+    {
+      "heading": "Confidentiality and fair treatment",
+      "blocks": [
+        { "p": "Pregnancy and breastfeeding information is kept in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions). Until the worker agrees otherwise, the HR Manager tells the Care Coordinator and Field Care Supervisor only the restrictions, never the reason. Anyone else who knows the reason keeps it to themselves, and nobody tells colleagues, the people we support or their families. The worker decides what to tell the people they support. When a person's regular worker changes, the Care Coordinator tells the person, or the family member who manages their visits, who is coming instead, without giving the reason." },
+        { "p": "The law forbids unfavourable treatment because of pregnancy or pregnancy-related illness (Equality Act 2010, section 18). We never offer a pregnant worker fewer hours to keep them safe, count pregnancy-related sickness towards absence review points, hold restricted duties against them in supervision or appraisal, or mention pregnancy in a reference. A worker who thinks this has happened tells the HR Manager, who tells the Registered Manager the same working day." }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "table": { "columns": ["Record", "Where it is kept", "Retention"], "rows": [
+          ["Notification, the HR Manager's letter, individual risk assessments, reviews and 4-weekly checks, certificates and occupational health advice", "Restricted section of the staff record", "Employment plus 6 years"],
+          ["Allocation restriction", "Blocked carer entries on each restricted person's record, which CareFlow shows at allocation without the reason", "Removed when the protection ends; history kept for employment plus 6 years"],
+          ["Pay protection and suspension decisions and payments", "Staff record and payroll records", "Employment plus 6 years; payroll 6 years from the end of the tax year"],
+          ["Incidents and exposures", "Incident log, with any exposure health record under the Hazardous Substances (COSHH) Procedure", "As the Records Management and Retention Policy sets; health surveillance records 40 years from the last entry"]
+        ] } },
+        { "p": "Records are handled under the Staff Personal Data and HR Records Policy." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "table": { "columns": ["Who", "Training", "When", "Refresher"], "rows": [
+          ["Managers, HR Manager, Care Coordinators and staff allocation roles", "This procedure, acknowledged in CareFlow", "New starters by the end of week 4; staff moving into the role within 14 days of starting it", "Within 14 days of each new major version; a minor version does not need acknowledging again"],
+          ["HR Manager, Registered Manager and Deputy Manager", "New and expectant mothers risk assessment: HSE guidance, the hazard checklist, alternative work, suspension and pay", "Before their first assessment", "Every 3 years, and within 2 months of a change in the law or HSE guidance"],
+          ["Care Coordinators, staff allocation roles and On-call Managers", "Applying day-one restrictions, allocation restrictions and night work certificates", "Before first allocating visits or the first on-call shift", "Every 12 months, with the rota working time training"],
+          ["Field Care Supervisors", "Restrictions at spot checks, 4-weekly checks and what to pass on", "Before their first supervision", "Every 3 years, with the equality in employment management training"],
+          ["All staff", "Telling us early and the protection available, within health and safety awareness", "Induction", "Every 3 years"]
+        ] } },
+        { "p": "The Registered Manager reads the first two assessments completed by each new HR Manager or Deputy Manager within 5 working days of each." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["What is checked", "How and how often", "By whom", "Reported to"], "rows": [
+          ["Day-one restrictions applied before the next visit and no restricted visit allocated, target 100%", "Monthly check of every rota against each allocation restriction", "Deputy Manager", "Monthly Quality and Governance Meeting"],
+          ["Assessments within 5 working days, copies within 2 working days, reviews on time, target 100%", "Monthly report", "HR Manager", "Registered Manager"],
+          ["Quality of assessments, pay protection and suspension pay", "Quarterly audit of every open case", "Deputy Manager", "Health and Safety Meeting, anonymised; Nominated Individual"],
+          ["Hours offered before and after notification, pay protection and suspensions, by branch", "Annually, in the workforce equality report", "HR Manager", "Directors"],
+          ["Compliance with this procedure", "Annual independent health and safety audit", "External health and safety adviser", "Directors"]
+        ] } },
+        { "p": "Every shortfall is recorded with an action, an owner and a deadline and checked at the next audit. This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or HSE guidance, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working." }
+      ]
+    }
+  ]
+}

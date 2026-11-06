@@ -1,0 +1,425 @@
+{
+  "reference": "POL-IPC-011",
+  "revision": 1,
+  "title": "Infections of Concern Guideline",
+  "documentType": "GUIDELINE",
+  "summary": "How all staff recognise, record and care for people at home with diarrhoea and vomiting, C. difficile, MRSA and other resistant organisms, blood-borne viruses or scabies, and how we support antimicrobial stewardship.",
+  "keyPoints": {
+    "intro": "This guideline tells you what to do on a visit when the person has diarrhoea or vomiting, C. difficile or a resistant organism such as MRSA, and how you help keep antibiotics working.",
+    "points": [
+      "Treat any new diarrhoea or vomiting as infectious: wear gloves and an apron for all personal care, a mask and eye protection while the person is vomiting, and wash your hands with soap and water, never hand rub alone.",
+      "Phone the office before you leave if the person has diarrhoea (three or more loose stools in 24 hours) or vomiting. Call 999 first if they vomit blood, have sudden severe tummy pain, or are newly confused or seriously unwell.",
+      "Tell the office the same day about even one or two loose stools that are new for the person. Start precautions and phone before leaving if they are taking an antibiotic, finished one in the last 3 months, or have had C. difficile before.",
+      "At every visit while they are unwell, record in the daily visit notes each episode since your last visit: the time, the stool type on the Bristol Stool Form Scale, vomiting, drinks taken and urine passed.",
+      "Offer a drink at every visit and leave drinks within reach. Phone the office before leaving if the person has dark or little urine, a dry mouth or dizziness, or cannot keep fluids down.",
+      "Clean the toilet or commode with the chlorine product after the person uses it during your visit, treat their linen and waste as infectious, and give the household our infection advice sheet.",
+      "Never give, prompt or buy medicine to stop diarrhoea, or give a laxative, unless the GP or pharmacist has advised it for this illness. Never repeat a vomited dose without advice; record it and phone the office.",
+      "A person who carries MRSA or another resistant organism gets the same care and visit times as anyone else. Wear gloves and an apron for contact with body fluids, broken skin, wounds or devices, keep wounds covered, and disinfect equipment that moves between homes.",
+      "Never use a urine dipstick, take a swab for the laboratory, or suggest antibiotics or leftover tablets. Report what you see and the person's own words early and accurately; the GP decides whether an antibiotic is needed.",
+      "Support every antibiotic dose exactly as the eMAR says until the course ends. Phone the office before leaving about diarrhoea, a new rash or a dose not taken; call 999 for swelling of the face, lips or throat or breathing difficulty.",
+      "Keep a person's infection and blood-borne virus status confidential, never ask whether they have a blood-borne virus, and use only the person's own razor, toothbrush and nail clippers for them."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "CARE_PLAN",
+    "MEDICATION",
+    "VISIT",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-002",
+    "POL-IPC-003",
+    "POL-IPC-006",
+    "POL-IPC-008",
+    "POL-IPC-010",
+    "POL-MED-001",
+    "POL-CD-007"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, 12(2)(g) proper and safe management of medicines, 12(2)(h) preventing, detecting and controlling the spread of infections and 12(2)(i) working with others when care is shared or transferred",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Department of Health and Social Care, The Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance (updated 13 December 2022), criterion 3 antimicrobial stewardship, criterion 8 and Appendix A (antimicrobial records in social care; the GP arranges testing and leads stewardship)",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Infections of concern in adult social care settings: A to Z (28 October 2026): C. difficile, norovirus, multidrug-resistant organisms, blood-borne viruses and scabies",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/infections-of-concern-in-adult-social-care-settings-a-z"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Managing suspected infectious diarrhoea and/or vomiting in adult social care (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/managing-suspected-infectious-diarrhoea-andor-vomiting-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency, Infection prevention and control for multidrug-resistant organisms in adult social care settings (5 January 2026)",
+      "url": "https://www.gov.uk/guidance/infection-prevention-and-control-for-multidrug-resistant-organisms-in-adult-social-care-settings"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Fundamentals of care which help prevent infections in adult social care settings (28 October 2026): hydration, urinary tract infections and no dipsticks over 65",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/fundamentals-of-care-which-help-prevent-infections-in-adult-social-care-settings"
+    },
+    {
+      "source": "UK Health Security Agency, Diagnosis of urinary tract infections: quick reference tools for primary care (updated 7 July 2025): no urine dipsticks for people over 65 or with a urinary catheter",
+      "url": "https://www.gov.uk/government/publications/urinary-tract-infection-diagnosis/diagnosis-of-urinary-tract-infections-quick-reference-tools-for-primary-care"
+    },
+    {
+      "source": "HM Government, Confronting antimicrobial resistance 2024 to 2029: the UK 5-year action plan for antimicrobial resistance (8 May 2024), target 4a reduce total antibiotic use in human populations by 5% from the 2019 baseline",
+      "url": "https://www.gov.uk/government/publications/uk-5-year-action-plan-for-antimicrobial-resistance-2024-to-2029/confronting-antimicrobial-resistance-2024-to-2029"
+    },
+    {
+      "source": "NHS, C. diff (Clostridioides difficile) (reviewed 24 July 2025)",
+      "url": "https://www.nhs.uk/conditions/c-difficile/"
+    },
+    {
+      "source": "NHS, Norovirus (vomiting bug) (reviewed 31 December 2024)",
+      "url": "https://www.nhs.uk/conditions/norovirus/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "For frail people, diarrhoea and vomiting, Clostridioides difficile (C. difficile) or a resistant organism can quickly lead to dehydration, hospital admission or death, and care workers can carry these infections between homes on a care run."
+        },
+        {
+          "p": "{{organisation}} will recognise these infections early, keep essential care going with the precautions UKHSA advises, never refuse or reduce care because a person carries a resistant organism, and support antimicrobial stewardship. This guideline adds detail to the Infection Prevention and Control Policy and carries the same authority."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "To make sure these infections are recognised and reported consistently, unwell people stay safe from dehydration and medicines problems, precautions are right and end at a recorded point, and staff help prescribers use antibiotics well."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This guideline applies to everyone who works for us, including agency workers and students. Owned elsewhere: precautions in general and outbreaks (Transmission-Based Precautions and Outbreak Management Procedure); unwell staff (Staff Infection-Related Illness and Exclusion Policy); catheters and stomas (Catheter Care and Continence Hygiene Protocol); medicines (Medicines Management Policy); and drinks (Nutrition and Hydration Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Diarrhoea",
+                "Three or more loose or watery stools in 24 hours (UKHSA). Our policy counts types 5 to 7 on the Bristol Stool Form Scale, the range UKHSA uses for samples, and episodes the person or family report as well as those staff see."
+              ],
+              [
+                "D&V record",
+                "The care worker's entry in the daily visit notes at every visit while a person has diarrhoea or vomiting: each episode since the last visit with its time and stool type, vomiting, drinks taken and urine passed."
+              ],
+              [
+                "Resistant organism",
+                "A bacterium or fungus that common treatments no longer work against, such as MRSA, VRE, CPE and Candidozyma auris (UKHSA). Carriage means it lives on the skin or in the gut without causing illness."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Registered Manager (IPC lead) and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The IPC lead owns this guideline and leads antimicrobial stewardship. The IPC lead or Deputy Manager reviews each infection report by the end of the next working day and records the confirmed precautions and end point. The Registered Manager (Deputy Manager in their absence) reviews every death linked to these infections at once, and every related hospital admission or sepsis the same working day (by 12 noon the next working day if reported out of hours), deciding on safeguarding, CQC notification (Statutory Notifications to CQC Procedure) and duty of candour (Duty of Candour Policy)."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, and the On-call Manager out of hours",
+          "blocks": [
+            {
+              "p": "Make the GP and pharmacist contacts in this guideline, update the care plan and brief allocated care workers before the next visit, plan visits around antibiotic doses and share infection status on transfer."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers, Field Care Supervisors and Office staff",
+          "blocks": [
+            {
+              "p": "Care workers report the signs in this guideline and start precautions at once. Field Care Supervisors observe practice at visits under precautions. Office staff supply the chlorine product, specimen bags and extra PPE before the next visit that needs them."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Diarrhoea and vomiting: recognising and reporting",
+      "blocks": [
+        {
+          "p": "UKHSA advises treating new diarrhoea or vomiting as infectious until confirmed otherwise. From the first episode the care worker uses the precautions in the Transmission-Based Precautions and Outbreak Management Procedure, including soap and water, because hand rub does not reliably kill norovirus or C. difficile. Where the care plan records that loose stools are usual for the person, for example with bowel disease, the care worker reports any change from that pattern; stoma output follows the Catheter Care and Continence Hygiene Protocol."
+        },
+        {
+          "table": {
+            "columns": [
+              "What the care worker sees",
+              "Care worker",
+              "Office (On-call Manager out of hours)"
+            ],
+            "rows": [
+              [
+                "Vomiting blood, green vomit or what looks like coffee grounds, sudden severe tummy pain, new confusion or drowsiness, or signs of sepsis",
+                "Call 999, stay, then phone the office",
+                "Covers the next visits; tells the family or representative the same day"
+              ],
+              [
+                "Diarrhoea, or any vomiting",
+                "Start precautions and the D&V record; phone before leaving",
+                "GP the same day (NHS 111 out of hours); infection report in the incident log; care plan updated and care workers briefed before the next visit"
+              ],
+              [
+                "One or two loose stools new for the person",
+                "Record; tell the office the same day. If the person is taking an antibiotic, finished one in the last 3 months or has had C. difficile, start precautions and phone before leaving",
+                "GP the same day for the antibiotic or C. difficile group; otherwise checks the next visit's record"
+              ],
+              [
+                "Blood in the stools or black stools",
+                "Phone before leaving",
+                "Urgent GP or NHS 111 at once with diarrhoea, pain, vomiting or feeling unwell; otherwise GP the same day"
+              ],
+              [
+                "Dark or little urine, dry mouth, dizziness, or cannot keep fluids down",
+                "Offer sips; phone before leaving",
+                "GP the same day; urgent GP or NHS 111 at once if no fluids stay down"
+              ],
+              [
+                "No improvement after 48 hours, diarrhoea for over 7 days or vomiting for over 2 days",
+                "Phone before leaving",
+                "GP again the same day"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where advice is needed at once, the care worker waits for the office's call back for up to 30 minutes after the planned end of the visit; the office then arranges an extra visit. The Care Coordinator tells the GP the onset date, stools and vomiting, drinks, recent antibiotics, hospital stays or C. difficile, and whether others on the care run are unwell, because GPs must specifically request norovirus and C. difficile tests."
+        }
+      ]
+    },
+    {
+      "heading": "Caring for a person with diarrhoea or vomiting at home",
+      "blocks": [
+        {
+          "bullets": [
+            "The D&V record continues at every visit until 48 hours after the last episode. The Care Coordinator reviews it each working day, and the On-call Manager at weekends and bank holidays.",
+            "Care workers help the person wash their hands after the toilet and before eating, and keep the route to the toilet clear and, with agreement, the commode within reach. If the person cannot reach the toilet in time, the Care Coordinator asks the community equipment service or occupational therapist for a commode the same working day.",
+            "The toilet or commode is cleaned with detergent and then the chlorine product after the person uses it during the visit, with the surfaces touched during care. Linen and waste are treated as infectious.",
+            "Skin around the bottom is checked at every continence visit; new soreness is told to the office the same day (Pressure Ulcer Prevention and Skin Integrity Procedure).",
+            "The household, including family carers who share the care, receives our infection advice sheet, including cleaning the toilet after each use, recorded in the daily visit notes.",
+            "Care workers offer a drink at every visit and leave drinks within reach. For a person who lives alone, relies on us for drinks or shows dehydration signs, the Care Coordinator starts the food and drink record at the first report until 48 hours after the last episode, and the Nutrition and Hydration Policy thresholds apply. Oral rehydration products are used only on pharmacist or GP advice, added to the eMAR first.",
+            "For a person who lives alone or has a High missed-visit risk level, the Care Coordinator decides the same day whether a welfare call or extra visit is needed. Extra time or visits needed for safety go ahead before funding is agreed, and the commissioner, or a self-funding person or their representative, is told within 2 working days.",
+            "UKHSA advises the person to avoid others and not prepare food for others, and visitors with symptoms to stay away, until 48 hours after the last episode; in their own home this is their choice, and we explain and record the advice. With consent, the Care Coordinator tells any day centre they attend the same working day."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Medicines during diarrhoea and vomiting",
+      "blocks": [
+        {
+          "bullets": [
+            "A dose vomited soon after it was taken is recorded on the eMAR as Partially given, and one not given because of vomiting as Nausea / Vomiting; neither is repeated without advice. The office is phoned before leaving and asks the pharmacist the same day, or at once for a time-sensitive medicine (Time-Sensitive Medicines Protocol).",
+            "When contacting the GP, the Care Coordinator asks whether any medicine, such as a diabetes medicine or water tablet, should be paused while the person is unwell. Changes follow the verbal prescriber change rules in the Medicines Management Policy.",
+            "No laxative is given until a pharmacist or the GP has advised.",
+            "Staff never give, prompt or buy a medicine to stop diarrhoea, such as loperamide, unless the GP or a pharmacist has advised it for this illness and it is on the eMAR, because it can stop the body clearing C. difficile. If the person takes their own, the care worker phones the office and the Care Coordinator tells the GP the same day."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Norovirus",
+      "blocks": [
+        {
+          "p": "Norovirus spreads easily through hands, surfaces and droplets from vomit. Similar symptoms in two or more people or colleagues within 7 days are phoned to the office at once as possible linked cases; the IPC lead decides the same day whether they are a suspected outbreak (Transmission-Based Precautions and Outbreak Management Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Samples",
+      "blocks": [
+        {
+          "p": "The GP decides on testing. A care worker trained in IPC induction collects a stool sample only when the GP asks, in the GP's pot with the GP's form, within 24 hours of symptoms starting where possible, and only once the office has confirmed it can reach the surgery before closing that day. The pot is labelled with the person's name, date of birth and time collected, sealed in a specimen bag with the form and recorded in the daily visit notes. The family takes it to the surgery where they can; otherwise the Field Care Supervisor or Office staff collect it from the home. A care worker never carries a sample on a care run. Urine samples follow the same rules and are never taken from a catheter or drainage bag. Our staff never take swabs for laboratory testing."
+        }
+      ]
+    },
+    {
+      "heading": "Clostridioides difficile",
+      "blocks": [
+        {
+          "p": "C. difficile causes diarrhoea that can be life-threatening. It often follows antibiotics and is more likely over 65, after a hospital stay, with acid-reducing medicines and after a previous episode. Its spores survive for a long time on surfaces, where chlorine kills them."
+        },
+        {
+          "bullets": [
+            "While symptoms last, the diarrhoea precautions and medicines rules above apply, with the chlorine product as the sporicidal cleaner. Towels, flannels, linen and commodes are not shared with household members.",
+            "If the person is no better after 48 hours of treatment, or worse, the Care Coordinator contacts the GP the same day.",
+            "Precautions end when the person has had no diarrhoea for 48 hours and their bowel habit is back to normal for them, such as formed stools of types 1 to 4 (UKHSA). The IPC lead or Deputy Manager records the end date in the infection report.",
+            "Previous C. difficile stays in the care plan infection section while we support the person, because it often returns (our policy). New diarrhoea restarts precautions at once, with a GP call the same day.",
+            "When someone other than the person's GP, such as a hospital, dentist or out-of-hours service, prescribes a new antibiotic for a person with previous C. difficile, the Care Coordinator makes sure that prescriber knows the history the same working day, through the GP practice if they cannot be reached."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "MRSA and other resistant organisms",
+      "blocks": [
+        {
+          "p": "Resistant organisms spread through hands, surfaces and equipment. Carriers with a wound, a device or weakened immunity are more likely to develop a hard-to-treat infection, so standard precautions are the main protection."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What we do"
+            ],
+            "rows": [
+              [
+                "Carriage, no signs of infection",
+                "Standard precautions, with gloves and an apron for any contact with body fluids, broken skin, wounds or devices and for changing bed linen; wounds kept covered; equipment that moves between homes cleaned and disinfected after use. As UKHSA advises, the care plan, visit order, laundry and waste are otherwise unchanged, with no restriction on visitors, going out or family contact."
+              ],
+              [
+                "Infection, such as an infected wound or a urine or chest infection",
+                "Contact precautions (Transmission-Based Precautions and Outbreak Management Procedure), with GP or community nurse advice in the care plan."
+              ],
+              [
+                "CPE or Candidozyma auris",
+                "The carriage or infection row as applies, and the IPC lead takes community IPC team advice the same working day and records it in the care plan."
+              ],
+              [
+                "Treatment to clear carriage",
+                "Supported as a medicine on the eMAR exactly as prescribed."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A package or restart after hospital is never refused, delayed or changed because of carriage. Where discharge information names an organism without advice, the Care Coordinator asks the hospital or GP the same working day. Carriage alone is not a known infection for allocation: a worker at higher risk may visit unless their individual risk assessment says otherwise."
+        }
+      ]
+    },
+    {
+      "heading": "Blood-borne viruses and scabies",
+      "blocks": [
+        {
+          "p": "Hepatitis B, hepatitis C and HIV are not spread by everyday contact, and standard precautions protect everyone, so staff never ask about a person's status. If the person tells us, it is recorded only in the infection section of the care plan with their agreement, never in daily visit notes or papers in the home, and shared only as the Confidentiality and Information Sharing Policy allows. Care workers use only the person's own razor, toothbrush, nail clippers and blood glucose equipment. Exposures follow the Sharps Safety and Needlestick Injury Procedure."
+        },
+        {
+          "p": "Scabies causes intense itching and a rash and spreads through close skin-to-skin contact. The care worker phones the office before leaving and the Care Coordinator contacts the GP the same day. Precautions and the end point are in the Transmission-Based Precautions and Outbreak Management Procedure; prescribed treatment is applied as a medicine on the eMAR, wearing gloves and a long-sleeved gown."
+        }
+      ]
+    },
+    {
+      "heading": "Antimicrobial resistance and stewardship",
+      "blocks": [
+        {
+          "p": "Antibiotics do not work against viruses, and every course raises the risk of resistance and of C. difficile. The UK action plan aims to cut human antibiotic use by 5% from the 2019 level by 2029. The Code of Practice places stewardship with the GP; our part is accurate antibiotic records, including allergies, and accurate observations."
+        },
+        {
+          "bullets": [
+            "Staff never use urine dipsticks (UKHSA advises against them over 65 or with a catheter). Cloudy or smelly urine alone is recorded and told to the office the same day; the GP is contacted only if another sign appears, and new confusion means 999.",
+            "Staff never suggest antibiotics or use leftover or anyone else's. If the person or family press for them, staff explain that the GP decides.",
+            "Each antibiotic we support is on the eMAR with its reason, dose, start date, duration and allergies (Medicines Management Policy). If the reason or duration is missing, the Care Coordinator asks the prescriber or pharmacist the same working day.",
+            "The Care Coordinator checks that visit times allow doses at the labelled interval, such as every 8 hours; if not, they ask the pharmacist or prescriber the same working day for a schedule that fits or arrange extra visits. An antibiotic the prescriber or pharmacist confirms as time-sensitive follows the Time-Sensitive Medicines Protocol.",
+            "The course is completed unless the prescriber stops it; a dose not taken is phoned to the office before leaving. Diarrhoea or a new rash during or after a course is phoned before leaving and the GP contacted the same day; swelling of the face, lips or throat, breathing difficulty or collapse means 999.",
+            "Leftover antibiotics are returned to the pharmacy with the person's agreement (Ordering, Collecting, Storing and Disposing of Medicines Procedure).",
+            "At every care plan review of a person on a long-term antibiotic, the Care Coordinator asks the GP in writing within 2 working days whether it should continue (our policy)."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Care plan infection section: current infection, precautions and end date; previous C. difficile and resistant organism carriage (organism, date, source), never removed while we support the person.",
+            "Daily visit notes: D&V records, household advice and samples. eMAR: antibiotics and treatments. Incident log: infection reports and end points.",
+            "The care worker tells a 999 ambulance crew of any known infection or carriage. On any other admission or transfer, the Care Coordinator (On-call Manager out of hours) shares infection and carriage status with the ambulance crew or receiving service (Hospital Admission and Discharge Procedure). Records are kept as the Records Management and Retention Policy sets out."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "p": "Care staff learn this guideline, including the Bristol Stool Form Scale, the D&V record and collecting a stool sample, in IPC induction and the 12-monthly IPC refresher. Care Coordinators, Field Care Supervisors, the Deputy Manager and On-call Managers receive the IPC lead's briefing on this guideline before first taking infection reports or an on-call shift, then every 12 months."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Diarrhoea, vomiting and C. difficile reports: GP the same day, D&V records, end point (target 100%)",
+                "Every report in the month",
+                "Deputy Manager",
+                "IPC lead, monthly surveillance review"
+              ],
+              [
+                "Antibiotic courses: reason, duration and allergies recorded, doses on time, course completed (target 100%)",
+                "Monthly eMAR audit",
+                "Care Coordinator or Field Care Supervisor",
+                "Deputy Manager"
+              ],
+              [
+                "A care plan of a person with previous C. difficile, a resistant organism or an antibiotic course, where we support any",
+                "Monthly 5 care plan infection audit",
+                "Deputy Manager",
+                "IPC lead"
+              ],
+              [
+                "Soap and water and chlorine cleaning, as critical items",
+                "Every spot check at a visit under these precautions",
+                "Field Care Supervisors",
+                "Deputy Manager"
+              ],
+              [
+                "Cases, recurrences, antibiotic courses by reason, dipstick use, admissions",
+                "Monthly",
+                "IPC lead",
+                "Directors, quarterly IPC report"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "This guideline is part of the annual IPC audit in March. It is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or UKHSA guidance, a serious incident, an inspection finding, or when monitoring shows it is not working."
+        }
+      ]
+    }
+  ]
+}

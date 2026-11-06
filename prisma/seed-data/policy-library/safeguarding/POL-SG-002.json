@@ -1,0 +1,679 @@
+{
+  "reference": "POL-SG-002",
+  "revision": 1,
+  "title": "Safeguarding Concerns: Reporting, Referral and Enquiry Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How staff report a concern that a person we support is being abused or neglected, and how managers assess the risk, refer, involve the police, notify others, take part in section 42 enquiries, keep the person safe and close the concern, with the timescale for each step.",
+  "keyPoints": {
+    "intro": "This is what you must do whenever you are worried that a person we support is being abused or neglected, or someone tells you so. You do not need proof, and you must never decide for yourself that a concern is too small to report.",
+    "points": [
+      "If anyone is in immediate danger, seriously hurt or unwell, or a crime is happening, call 999 first; if you feel threatened, leave and phone from somewhere safe.",
+      "If the person tells you something, listen calmly, ask only open questions, never ask leading questions or for details, and never promise to keep a secret: tell them you must tell your manager so that they can help.",
+      "Never confront or warn the person who may be responsible, and never discuss the concern with the person's family; the safeguarding lead decides who is told.",
+      "Preserve evidence: do not wash the person, change clothing or bedding, or tidy up unless their health or dignity requires it. Record injuries on a CareFlow body map, but never photograph or film an injury or the scene as evidence.",
+      "Before you leave the visit, phone the office (the On-call Manager out of hours) and speak to a person; texts and voicemails are not reports. Phone from outside the home if the person who may be responsible is there or you feel unsafe.",
+      "If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly; if you still cannot reach a manager and the person is at risk, contact the local authority or police yourself using your Local Safeguarding Contacts sheet.",
+      "If anyone other than the person stops you getting in or seeing them, do not argue or push in: leave calmly and phone the office from where you cannot be overheard. It is always reported as a safeguarding concern.",
+      "Report the concern in the CareFlow app as a Safeguarding Concern incident before the end of your shift: the facts, the person's exact words, times, who was present and any injury on a body map.",
+      "In the daily visit notes, write only that a concern has been reported to the office, never the details or who may be responsible.",
+      "At later visits, follow the interim safety plan you are briefed on; the safeguarding lead will tell you within 2 working days what has been done, as far as confidentiality allows.",
+      "Report a concern about a colleague in exactly the same way, and a concern about a manager to the next manager up (the Nominated Individual for the Registered Manager). You can also go outside the management chain under the Whistleblowing (Speaking Up) Policy."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "SAFEGUARDING",
+    "INCIDENT",
+    "VISIT",
+    "AUDIT"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-007",
+    "POL-HR-018",
+    "POL-GOV-009",
+    "POL-SG-004",
+    "POL-GOV-016",
+    "POL-GOV-007",
+    "POL-HS-003"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Care Act 2014, section 42 (enquiry by local authority)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/42"
+    },
+    {
+      "source": "Care Act 2014, section 44 (safeguarding adults reviews)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/44"
+    },
+    {
+      "source": "Care Act 2014, section 45 (supply of information to Safeguarding Adults Boards)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/45"
+    },
+    {
+      "source": "Care Act 2014, section 68 (safeguarding enquiries and reviews: independent advocacy)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/68"
+    },
+    {
+      "source": "Department of Health and Social Care, Care and support statutory guidance, chapter 14 Safeguarding, paragraphs 14.68 to 14.132 (regulated settings, enquiries, criminal offences, safeguarding plans, allegations) and 14.180 to 14.191 (record-keeping and confidentiality), updated 30 October 2026",
+      "url": "https://www.gov.uk/government/publications/care-act-2014-supporting-implementation/care-and-support-statutory-guidance"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 (safeguarding service users from abuse and improper treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18(1) and (2)(e) and (f) (notification of abuse, allegations of abuse and police incidents)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 2, paragraph 18 (safeguarding of children and of individuals at risk)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/18"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 2, paragraph 5 (requirement for an appropriate policy document)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/5"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 1, paragraph 2 (health or social care purposes), with section 11(1)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/2"
+    },
+    {
+      "source": "UK GDPR, Article 6(1)(ea) (recognised legitimate interest), inserted by the Data (Use and Access) Act 2025 and fully in force from 5 February 2026",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/6"
+    },
+    {
+      "source": "UK GDPR, Annex 1, paragraphs 6 to 8 (recognised legitimate interest: safeguarding vulnerable individuals), in force from 5 February 2026",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/annex/1"
+    },
+    {
+      "source": "Social Care Institute for Excellence, Adult safeguarding practice questions",
+      "url": "https://www.scie.org.uk/safeguarding/adults/practice/adult-safeguarding-practice-questions/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} acts on every safeguarding concern the same day, in the same way, whoever raises it and whoever may be responsible. Where the local Safeguarding Adults Board's procedures set a shorter timescale or an extra step, we meet that as well."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure puts the Safeguarding Adults Policy into practice, so that every concern is acted on safely and on time, with the person's views central."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who works for us. It covers any concern that an adult we support, or another adult we meet through our work, is experiencing or at risk of abuse or neglect, however it reaches us: something staff see or hear, a disclosure, a caller, a complaint, an incident, a missed visit or a pattern in check-in and check-out records, or a request from the local authority or police."
+        },
+        {
+          "p": "A child at risk is reported in the same way and referred under the Safeguarding Children and Young People Policy. The staff side of a concern about our staff is covered by the Managing Allegations Against Staff Procedure, and speaking up outside the management chain by the Whistleblowing (Speaking Up) Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [
+        {
+          "p": "In this procedure, \"the lead\" means the Registered Manager or, when they are absent or conflicted, the Deputy Manager; if both are unavailable, the Nominated Individual."
+        },
+        {
+          "table": {
+            "columns": [
+              "Role",
+              "Duties under this procedure"
+            ],
+            "rows": [
+              [
+                "Care Workers and Senior Care Workers",
+                "Take the immediate actions, phone and record every concern, and follow the interim safety plan; never investigate or filter out a concern."
+              ],
+              [
+                "Office staff",
+                "Record and pass on concerns phoned in, as set out under Phoning the concern through; rearrange the reporting care worker's round."
+              ],
+              [
+                "Care Coordinators and Field Care Supervisors",
+                "Change the rota, care plan and risk assessments as the lead directs, brief care workers before their next visit, and gather requested records. Field Care Supervisors hold the follow-up conversations with the person."
+              ],
+              [
+                "Registered Manager and Deputy Manager",
+                "Everything from the risk assessment to closure and the learning review, including confirming or changing On-call Manager decisions at handover."
+              ],
+              [
+                "On-call Manager",
+                "Out of hours: the lead's immediate duties, opening the safeguarding record and handing over by 10am on the next working day."
+              ],
+              [
+                "HR Manager",
+                "The staff side under the Managing Allegations Against Staff Procedure."
+              ],
+              [
+                "Nominated Individual and Directors",
+                "The Nominated Individual receives serious concerns and escalations; the Directors commission external investigators."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Immediate action at the visit",
+      "blocks": [
+        {
+          "p": "Call 999 if anyone is in immediate danger, seriously hurt or unwell, or a crime is happening, and stay with the person until help arrives or the office says you may leave. If you feel threatened, leave and phone from somewhere safe, following the Lone Working and Staff Personal Safety Policy."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Handling a disclosure",
+          "blocks": [
+            {
+              "p": "Listen, reassure and pass it on; do not investigate, because questioning can damage a police investigation."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Do",
+                  "Do not"
+                ],
+                "rows": [
+                  [
+                    "Let the person talk at their own pace. To check whether they are safe now, ask only open questions: \"Tell me what happened\", \"Are you hurt?\"",
+                    "Ask leading questions such as \"Did your son hit you?\", or ask for details, dates or descriptions."
+                  ],
+                  [
+                    "Reassure: \"Thank you for telling me. You have done the right thing. This is not your fault.\"",
+                    "Show shock or disbelief, or ask the person to repeat their account, write it down or sign anything."
+                  ],
+                  [
+                    "Be honest: \"I have to tell my manager so that we can help keep you safe. They will talk to you about what you want to happen.\"",
+                    "Promise to keep a secret, or promise an outcome such as an arrest."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Note the person's exact words as soon as you can. Never use a relative, friend or neighbour to interpret; the lead arranges a professional interpreter for later conversations."
+            }
+          ]
+        },
+        {
+          "heading": "Preserving evidence",
+          "blocks": [
+            {
+              "p": "Do not wash the person, change their clothes or bedding, or tidy up unless their immediate health, comfort or dignity requires it. Where sexual abuse or a recent assault is suspected, the office asks the police whether the person should avoid eating, drinking or using the toilet, and you follow that advice unless the person's health requires otherwise. If the person insists on washing or changing, put removed items in a clean bag without further handling and record what was done. Never photograph or film an injury or the scene as evidence of suspected abuse; the police and local authority gather evidence. A body map photograph already taken for skin or wound monitoring under the Consent to Care Policy is not evidence gathering."
+            }
+          ]
+        },
+        {
+          "heading": "If the person who may be responsible is present or blocks access",
+          "blocks": [
+            {
+              "p": "Never confront or warn them, and never discuss the concern with family members. Finish the visit calmly if it is safe and phone once outside, but call 999 before you leave if you believe the person will be harmed after you go. If it is your colleague on a double-up visit, phone as soon as you are apart from them and before you start your next visit."
+            },
+            {
+              "p": "If anyone other than the person refuses you entry or stops you seeing them, do not argue or push in: leave calmly, phone from where you cannot be overheard and follow the No Reply, No Access and Missing Person Procedure. It is also a safeguarding concern, as is misuse of a key or key safe code."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting and recording",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Phoning the concern through",
+          "blocks": [
+            {
+              "p": "Phone the office, or the On-call Manager out of hours, before you leave the visit, and speak to a person: a text, email or voicemail is not a report. Phone from inside the home only if nobody who may be responsible can overhear you; otherwise phone from outside. If you have no signal, go only as far as the nearest place with a signal and phone before travelling on to your next visit."
+            },
+            {
+              "p": "Tell them whether anyone is in danger, what you saw, heard or were told, any injury, who may be responsible and their access to the person, and who else may be at risk, including children. Office staff record this in the person's safeguarding record during the call, pass it straight to the lead or On-call Manager, tell you whether to stay with the person or go on to your next visit, and tell your next person if you will be late."
+            },
+            {
+              "p": "If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. If you still cannot reach a manager and the person remains at risk, contact the local authority or police yourself using your Local Safeguarding Contacts sheet, then keep trying the office. You will never be criticised for reporting directly."
+            },
+            {
+              "p": "When anyone else raises a concern, office staff record it in the caller's words, take contact details unless the caller wishes to stay anonymous, promise no outcome, and pass it straight to the lead or On-call Manager. A complaint alleging abuse or neglect is handled under this procedure first, and the complaint response is agreed with the local authority and police."
+            }
+          ]
+        },
+        {
+          "heading": "Recording in CareFlow",
+          "blocks": [
+            {
+              "p": "The care worker reports the concern in the CareFlow app as a Safeguarding Concern incident before the end of the shift, and the lead, or the On-call Manager out of hours, opens the person's safeguarding record from it; if CareFlow is unavailable, the office records the care worker's account from the call and reads it back before the call ends. The entry gives the date and time, what was seen and heard, the person's exact words in quotation marks and your reply, who was present, and what you did. Write facts: \"a purple bruise about 4cm across on her left upper arm; she said 'He grabbed me when I wouldn't get up'\", not \"she has been abused by her son\". Never alter or delete an entry; add a dated correction."
+            },
+            {
+              "p": "Complete a body map for every injury, mark, bruise, burn, skin tear or pressure damage you see, with position, approximate size in centimetres, colour and the person's explanation. Never undress or examine the person to look for injuries. While an injury is monitored, add a body map entry at every visit until a health professional or the lead says otherwise."
+            },
+            {
+              "p": "If the concern arises from an event such as a fall or medicines error, also report the event as its own incident before the end of the shift, keeping the allegation in the Safeguarding Concern incident. In daily visit notes, which the person and family may read, write only that a concern has been reported to the office."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Risk assessment and decision-making",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Initial risk assessment",
+          "blocks": [
+            {
+              "p": "Within 1 hour of the report, the lead or On-call Manager speaks to the person who raised the concern, checks the safeguarding record, incident log and eMAR for earlier concerns, declined doses or unexplained discrepancies, and records whether the person is safe, who may be responsible and their access, who else may be at risk, whether a crime may have been committed, and what the person wants. The risk is graded:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Risk level",
+                  "When",
+                  "Response"
+                ],
+                "rows": [
+                  [
+                    "Immediate",
+                    "Danger now, urgent medical need, or a crime in progress or just committed.",
+                    "999; protective actions now; phone referral as soon as the emergency services are involved."
+                  ],
+                  [
+                    "High",
+                    "Serious harm has happened or is likely before the next working day, the person who may be responsible has continuing access, a crime is suspected, or our staff are implicated.",
+                    "Protective actions and police the same day; phone referral, confirmed in writing; out of hours, to the out-of-hours service unless the person can safely wait."
+                  ],
+                  [
+                    "Standard",
+                    "Any other concern.",
+                    "Written referral."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Protective actions",
+          "blocks": [
+            {
+              "p": "The lead records the least restrictive actions that will keep the person safe until the local authority responds, agreed with the person wherever possible: extra or double-staffed visits; a change of care worker or removing a staff member, with the rota changed in CareFlow the same day; a GP, district nurse or hospital assessment; and, with the person's agreement, a stay with a trusted relative, securing cash and cards, or changing the key safe code where the person who may be responsible knows it, under the Key Holding, Key Safes and Access to People's Homes Procedure. Where that person gives part of the care, such as medicines, meals or money, the lead agrees the same working day with the person and any commissioner who takes it over; medicines we take on are set up under the Assessing Medicines Support Needs Procedure, and the Care Coordinator updates the care plan. We never restrict the person's liberty, stop family contact or remove them from home ourselves."
+            }
+          ]
+        },
+        {
+          "heading": "The referral decision",
+          "blocks": [
+            {
+              "p": "The lead refers whenever there is reasonable cause to suspect that the person has needs for care and support, is experiencing or at risk of abuse or neglect, and as a result of those needs cannot protect themselves (the conditions in Care Act 2014, section 42(1)). Proof is not needed. If unsure, the lead refers or takes the local authority's advice, recording the advice, the adviser's name and the decision. Medicines-related abuse, as defined in the Safeguarding Adults Policy, is always referred."
+            },
+            {
+              "p": "Where the section 42 conditions are clearly not met, the lead still acts: a crime against an adult who can protect themselves goes to the police, and scams and doorstep crime go to the police and Trading Standards. Where the local Safeguarding Adults Board's threshold guidance lets a provider report a single no-harm matter, such as one medicines error, in a periodic return, the lead follows it under the Incident Reporting, Investigation and Learning Policy; this never applies to a deliberate act, a pattern or any harm."
+            },
+            {
+              "p": "Every decision, including not to refer or not to involve the police, is recorded with reasons."
+            }
+          ]
+        },
+        {
+          "heading": "The person's views, consent and capacity",
+          "blocks": [
+            {
+              "p": "Unless it would increase the risk or the police ask us not to, the lead, or a Field Care Supervisor they brief, talks privately with the person before referring about what they want to happen (recorded as their desired outcomes, in their own words), what we will share, and who they want to support them. Where their capacity to decide about the referral is in doubt, an authorised assessor assesses it under the Mental Capacity Act and Best Interests Policy. If the person would have substantial difficulty taking part and has no appropriate unpaid family member or friend to support them, the referral says so, because the local authority must then arrange an independent advocate (Care Act 2014, section 68)."
+            },
+            {
+              "p": "We refer without consent, or respect a capable person's refusal, as the Safeguarding Adults Policy sets out. While a refusal keeps the record open, the Field Care Supervisor talks privately with the person every 4 weeks about whether they feel safe and whether their wishes have changed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Making the referral",
+      "blocks": [
+        {
+          "p": "The lead or On-call Manager, or a Care Coordinator acting on the lead's recorded decision, refers to the adult safeguarding team of the local authority for the area where the abuse or neglect happened or is happening, using the route on that area's Local Safeguarding Contacts sheet or its out-of-hours service. Section 42 covers any adult in the authority's area, whether or not ordinarily resident there, so a concern arising during a respite stay or at a day centre elsewhere goes to that area. If the person is now in another area, or another local authority funds their care, the lead tells that authority the same working day, following the host Safeguarding Adults Board's procedures."
+        },
+        {
+          "p": "The referral gives the person's details, NHS number, communication needs and funder; the concern in factual terms with the person's words; who may be responsible and who else is at risk; the risk level, protective actions and any health or police involvement; and the person's views, desired outcomes, and consent or the reason for referring without it. The lead records the reference number and the officer's name."
+        },
+        {
+          "p": "We share only what is relevant and necessary, by secure means, under the Confidentiality and Information Sharing Policy, recording what was shared, with whom and why. Our lawful basis is the recognised legitimate interest of safeguarding a vulnerable individual (UK GDPR, Article 6(1)(ea) and Annex 1). Health and other special category information is shared under the health or social care purposes condition (Data Protection Act 2018, Schedule 1, paragraph 2) where the person has agreed; otherwise under paragraph 18 of that Schedule, where the person cannot consent, we cannot reasonably be expected to obtain consent, or seeking it would prejudice their protection, with the appropriate policy document kept under the Data Protection Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Police involvement",
+      "blocks": [
+        {
+          "p": "The lead calls 999 in an emergency, and otherwise uses the police non-emergency route on the Local Safeguarding Contacts sheet, whenever a crime may have been committed, including assault, sexual offences, theft, fraud, coercive control, hate crime and ill-treatment or wilful neglect, without waiting for the local authority. A person's wish not to involve the police is followed only where they have capacity, nobody else is at risk and no member of staff is implicated."
+        },
+        {
+          "p": "The police lead any criminal investigation, and our policy is that it always takes priority over other enquiries. We record the crime reference number and officer's name, tell the local authority, and do not interview anyone or start any internal or disciplinary investigation until the police agree. If the police take no further action, we record why and continue the safeguarding process."
+        }
+      ]
+    },
+    {
+      "heading": "Notifying and informing others",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "By whom",
+              "What we do"
+            ],
+            "rows": [
+              [
+                "CQC",
+                "Registered Manager, or Deputy Manager when absent",
+                "The law requires notification without delay of any abuse or allegation of abuse in relation to a person we support, and any incident reported to or investigated by the police, occurring while we provide care or as a consequence of it (Care Quality Commission (Registration) Regulations 2009, regulation 18). Our policy also covers every other allegation of abuse concerning a person we support, even if unproven, not involving our staff or without a section 42 enquiry. We notify under the Statutory Notifications to CQC Procedure and send CQC the outcome at closure."
+              ],
+              [
+                "Nominated Individual",
+                "Registered Manager",
+                "Concerns involving our staff, the police, serious injury or death, possible organisational abuse or likely media interest."
+              ],
+              [
+                "Directors",
+                "Registered Manager",
+                "Medicines-related abuse, and any medicines incident referred to safeguarding, as the Medicines Management Policy requires."
+              ],
+              [
+                "Commissioner",
+                "Registered Manager",
+                "The local authority or integrated care board that commissions our care; a self-funder or direct payment holder has none."
+              ],
+              [
+                "GP or other health professionals",
+                "Lead",
+                "Whenever health is involved, such as injury, pressure damage, weight loss or medicines."
+              ],
+              [
+                "Family or representative",
+                "Lead",
+                "With the person's agreement, or in their best interests if they lack capacity; never anyone who may be responsible or where it would increase risk; timing agreed with the police when they are involved."
+              ],
+              [
+                "Office of the Public Guardian or Department for Work and Pensions",
+                "Lead, after discussion with the local authority",
+                "Where an attorney, deputy or benefits appointee may be responsible."
+              ],
+              [
+                "Another organisation whose worker is involved",
+                "Lead",
+                "Only when agreed with the local authority."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Each notification and its reference is recorded in the safeguarding record. Where our care caused harm that is a notifiable safety incident, the Registered Manager also follows the Duty of Candour Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Section 42 enquiries",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Cooperating with the local authority",
+          "blocks": [
+            {
+              "p": "The local authority decides whether a section 42 enquiry is needed and who carries it out, and keeps responsibility for it. The Care Coordinator gathers the records it asks for and the lead sends them securely. The Registered Manager or Deputy Manager attends every strategy discussion and safeguarding planning meeting we are invited to, with a written chronology. Each action given to us is recorded in the safeguarding record with its owner and deadline."
+            }
+          ]
+        },
+        {
+          "heading": "When we are asked to carry out the enquiry",
+          "blocks": [
+            {
+              "p": "The statutory guidance expects us to look into a concern about our own service unless a compelling reason, such as a serious conflict of interest or a police matter, makes that inappropriate or unsafe. The Registered Manager confirms in writing that we will carry out the enquiry, or why we should not; agrees in writing the questions, who will speak to the person, the deadline and the report format; and appoints an enquiry officer trained to safeguarding lead level who was not involved in the events and neither line manages nor is close to anyone involved. Where no manager qualifies, or a Director, the Nominated Individual or the Registered Manager is implicated, the Directors commission an external investigator. The enquiry officer:"
+            },
+            {
+              "steps": [
+                "checks with the police that the enquiry will not interfere with a criminal investigation;",
+                "speaks first with the person, with their supporter or advocate, unless a social worker has already done so;",
+                "reviews records, including visit check-in and check-out data, eMAR, rotas, complaints and training records;",
+                "takes a signed statement from each witness in fact-finding interviews, which are not disciplinary hearings;",
+                "reaches a finding on each question on the balance of probabilities (substantiated, partly substantiated, not substantiated or inconclusive), and records whether the risk has been removed, reduced or remains;",
+                "reports the person's views and whether their outcomes were met, the evidence, findings, and actions taken and recommended, with owners and dates."
+              ]
+            },
+            {
+              "p": "If the deadline cannot be met, the Registered Manager asks the local authority in writing for more time before it passes. The local authority decides whether the outcome is satisfactory, and we carry out any further work it asks for. Possible staff misconduct passes to the Managing Allegations Against Staff Procedure, and a different manager leads any disciplinary investigation."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Keeping the person safe while the concern is open",
+      "blocks": [
+        {
+          "p": "Until the local authority agrees a safeguarding plan or closes the concern, the interim safety plan states who visits and when, what to check and record at each visit, what to do if the person who may be responsible is present, the signs that risk is rising, and the review date. The Care Coordinator or Field Care Supervisor briefs each care worker on what to do, not on the details of the allegation. The Registered Manager reviews every interim plan weekly, and the lead reviews it the same day after any new incident or disclosure."
+        },
+        {
+          "p": "When the local authority agrees a safeguarding plan, our actions from it replace the interim plan and the team is briefed. If we cannot deliver an action, or the plan is not working, the Registered Manager tells the local authority within 1 working day."
+        }
+      ]
+    },
+    {
+      "heading": "Escalation and disagreement",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "When",
+              "Action",
+              "Who"
+            ],
+            "rows": [
+              [
+                "Referral not acknowledged by the end of the next working day",
+                "Phone to confirm receipt and get the reference",
+                "Lead"
+              ],
+              [
+                "No decision on how the concern will proceed within 5 working days of referral",
+                "Write asking for a decision within 2 working days",
+                "Lead"
+              ],
+              [
+                "Still no decision 2 working days later",
+                "Escalate in writing to the team manager, then the head of adult safeguarding, using the Safeguarding Adults Board's escalation procedure; inform the Nominated Individual and commissioner",
+                "Registered Manager"
+              ],
+              [
+                "We disagree with a decision that we believe leaves the person at risk",
+                "Use the professional disagreement process in the local multi-agency procedures",
+                "Registered Manager"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Concerns about staff",
+      "blocks": [
+        {
+          "p": "Every step above applies. The lead also decides the same day whether the worker is removed from the person's visits or from all care work, and tells the agency the same day if the worker is agency-supplied. Until the local authority and police agree what can be said, the worker is told nothing about the allegation itself."
+        },
+        {
+          "p": "A concern about a manager goes to the next manager up: about the Registered Manager, to the Nominated Individual, who leads it; about the Nominated Individual or a Director, to the chair of the Directors (the deputy chair if it concerns the chair) and the local authority directly."
+        }
+      ]
+    },
+    {
+      "heading": "Closing a concern and learning",
+      "blocks": [
+        {
+          "p": "Only the Registered Manager or Deputy Manager closes a safeguarding record, and only when:"
+        },
+        {
+          "bullets": [
+            "the local authority has confirmed its outcome or decision to take no further action, in writing or in a recorded call;",
+            "the person or their representative has been asked whether their desired outcomes were met fully, partly or not at all, and the answer is recorded;",
+            "our actions are complete or built into the reviewed care plan and risk assessments, and the status of any police or staff process is recorded;",
+            "those notified at the start have been told the outcome, and feedback has been given to the person and to the staff member who raised the concern."
+          ]
+        },
+        {
+          "p": "A concern where a capable person declined referral closes no sooner than three months after that decision, and only if the last follow-up raised no new concern. The learning review required by the Safeguarding Adults Policy also checks whether each timescale here was met. When a Safeguarding Adults Board carrying out a Safeguarding Adults Review (Care Act 2014, section 44) asks us for information, the law requires us to supply it (section 45); the Registered Manager sends it, with a chronology, by the date requested."
+        }
+      ]
+    },
+    {
+      "heading": "Timescales at a glance",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Step",
+              "Who",
+              "Timescale"
+            ],
+            "rows": [
+              [
+                "Phone the concern through",
+                "Care worker",
+                "Before leaving the visit; the Registered Manager or Deputy Manager directly if unanswered after 15 minutes"
+              ],
+              [
+                "Record the concern, body map and any incident",
+                "Care worker",
+                "Before the end of the shift"
+              ],
+              [
+                "Risk assessment and protective actions",
+                "Lead or On-call Manager",
+                "Within 1 hour of the report"
+              ],
+              [
+                "Police, where a crime may have been committed",
+                "Lead or On-call Manager",
+                "Immediately in an emergency; otherwise the same day"
+              ],
+              [
+                "Referral to the local authority",
+                "Lead or On-call Manager",
+                "Immediately if risk is immediate; otherwise the same working day. Out of hours: the out-of-hours service if the person cannot safely wait, otherwise by 12 noon next working day"
+              ],
+              [
+                "Written confirmation of a phone referral",
+                "Lead",
+                "Same working day; by 12 noon next working day for out-of-hours calls"
+              ],
+              [
+                "Health professionals; family or representative",
+                "Lead",
+                "The same day"
+              ],
+              [
+                "Commissioner",
+                "Registered Manager",
+                "The same working day"
+              ],
+              [
+                "CQC",
+                "Registered Manager",
+                "Without delay; under our policy, within 24 hours of the referral, or of the report if an allegation of abuse is not referred"
+              ],
+              [
+                "Nominated Individual; Directors for medicines-related concerns",
+                "Registered Manager",
+                "Within 24 hours"
+              ],
+              [
+                "Office of the Public Guardian or Department for Work and Pensions",
+                "Lead",
+                "Within 2 working days"
+              ],
+              [
+                "Care plan, risk assessments and team briefing",
+                "Care Coordinator or Field Care Supervisor",
+                "Before the next visit"
+              ],
+              [
+                "Feedback to the staff member who raised it",
+                "Lead",
+                "Within 2 working days"
+              ],
+              [
+                "Records requested by the local authority or police",
+                "Care Coordinator and lead",
+                "By the date set, or within 2 working days"
+              ],
+              [
+                "Accept or decline a provider enquiry",
+                "Registered Manager",
+                "Within 2 working days"
+              ],
+              [
+                "Provider enquiry report",
+                "Enquiry officer",
+                "By the deadline set, or within 20 working days"
+              ],
+              [
+                "Safeguarding plan action we cannot deliver",
+                "Registered Manager",
+                "Tell the local authority within 1 working day"
+              ],
+              [
+                "Follow-up after a capable person declines referral",
+                "Field Care Supervisor",
+                "Every 4 weeks while the record is open"
+              ],
+              [
+                "Staff debrief; learning review",
+                "Registered Manager",
+                "Within 3 working days; within 28 days of closure"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Each concern has one safeguarding record in CareFlow holding every entry, decision, referral, notification, reference number, outcome and learning review, with body maps on the linked Safeguarding Concern incident and staff matters in the staff record. The record cannot hold attachments, so copies of minutes, enquiry reports and letters are kept in the restricted governance folder (Governance and Quality Assurance Policy). Access and retention follow the Safeguarding Adults Policy and the Records Management and Retention Policy. While an enquiry or investigation is open, the Registered Manager checks with the local authority and police before releasing records under a subject access request."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "p": "Staff are trained in this procedure at induction and in each annual safeguarding refresher, using home care scenarios. New starters acknowledge it in CareFlow by the deadline in the Induction and Care Certificate Procedure, and everyone within 14 days of each new major version. Before their first on-call shift, each On-call Manager walks through it with the Registered Manager or Deputy Manager, recorded in training and compliance records. Field Care Supervisors check at spot checks and supervision that care workers know how to report a concern; anyone who does not is retrained before their next unsupervised visit."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "p": "Compliance is checked through the safeguarding audits in the Safeguarding Adults Policy, including the Deputy Manager's monthly audit of every timescale here for each record opened, matching CQC notifications against referrals and police incidents. Each shortfall gets an action, an owner and a deadline, and missed timescales and poor records are addressed in supervision."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law, guidance or local procedures, a serious incident, a Safeguarding Adults Review involving us, an inspection finding, or when monitoring shows it is not working."
+        }
+      ]
+    }
+  ]
+}

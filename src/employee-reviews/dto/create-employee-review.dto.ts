@@ -28,16 +28,17 @@ export class CreateEmployeeReviewDto {
   lastDone?: Date;
 
   @ApiPropertyOptional({
-    description: 'Leave out to use last done + the review type interval (e.g. 90 days for supervision).',
+    description: "Leave out to use the review type's schedule (e.g. last done + 90 days for supervision, the next probation milestone).",
   })
   @IsOptional()
   @Type(() => Date)
   @IsDate()
   nextDue?: Date;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ maxLength: 2000, description: 'Short note; the detail belongs in the document or a supervision session.' })
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   notes?: string;
 
   @ApiPropertyOptional({
@@ -54,3 +55,15 @@ export class CreateEmployeeReviewDto {
   reviewedById?: string;
 }
 
+/** Preview of the next due date a review would get (Staff reviews → Record a review). */
+export class NextDuePreviewQueryDto {
+  @ApiProperty()
+  @IsUUID()
+  reviewTypeId!: string;
+
+  @ApiPropertyOptional({ description: 'Date the review was done; left out = the first one from the start date.' })
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate()
+  lastDone?: Date;
+}

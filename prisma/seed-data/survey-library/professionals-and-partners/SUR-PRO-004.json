@@ -1,0 +1,480 @@
+{
+  "reference": "SUR-PRO-004",
+  "revision": 1,
+  "title": "Feedback from GP practices and community pharmacies on medicines",
+  "audience": "PUBLIC",
+  "audienceGroup": "PROFESSIONALS",
+  "respondents": "GP practice staff (GPs and other prescribers, practice and primary care network pharmacists, prescription clerks, practice managers) and community pharmacy staff (pharmacists, technicians, dispensers) who worked with us on medicines in the last 12 months",
+  "summary": "A short yearly survey for GP practices and community pharmacies: how well we communicate, follow advice, share information and work in partnership, and how we handle medicines support with you: telling you when support starts or changes, problems, repeat orders, review requests, supply problems, collections, hospital discharges and our requests. About 7 minutes.",
+  "purpose": "Medicines support is the shared work where a failure between us, the GP practice and the pharmacy most often harms someone: a change not passed on, a repeat ordered too late, a discrepancy left unresolved. This survey gives the partner view of whether we keep our side of the arrangements in the Medicines Management Policy and the Ordering, Collecting, Storing and Disposing of Medicines Procedure. It replaces the professionals' survey (SUR-PRO-001) for these recipients, so it asks the same four themes (communicate, follow advice, share information, work in partnership) and the shared overall rating, which join the yearly professionals' result. The Registered Manager, our medicines lead, reads the results for the quarterly medicines governance report.",
+  "timing": {
+    "when": "Once a year, on the first working day of February with the professionals' survey, open 4 weeks; sent instead of SUR-PRO-001 to GP practices and community pharmacies",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": false,
+  "channels": ["ONLINE"],
+  "estimatedMinutes": 7,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Medicines optimisation",
+      "Safe systems, pathways and transitions",
+      "How staff, teams and services work together",
+      "Partnerships and communities"
+    ]
+  },
+  "introduction": "{{organisation}} would like your view of how we work with you on the medicines of people we both support. It takes about 7 minutes and works on a phone. Taking part is up to you. Please do not name anyone we support. If you write the reference number from our email, we know which practice or pharmacy answered and can follow up; if you leave it blank, we will still act on what you tell us.\n\nThis survey is not for urgent concerns. If you are worried about someone's medicines or safety now, phone our office (out of hours, our on-call number). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to make medicines support safer and to improve how we work with practices and pharmacies. Our legal reason is our legitimate interest in running a good, safe service.\n\nThis survey is not anonymous. We ask where you work, and if you write the reference number or give your details, your answers are linked to your organisation or to you so we can follow them up. In a small area, a setting and an organisation may identify you. Only our Registered Manager and Deputy Manager look at individual answers. Reports show combined results only, for groups of 5 or more. If you tell us someone may be at risk of harm, we will tell our safeguarding lead and may tell the council.\n\nWe keep your answers for 3 years after the survey closes, under our Records Management and Retention Policy. You can ask to see, correct or delete your information, or object to our using it, by contacting our office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "q-setting",
+          "text": "Where do you work?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["GP practice", "Dispensing GP practice", "Primary care network pharmacy team", "Community pharmacy"],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us where you work",
+            "textRequired": true
+          }
+        }
+      ]
+    },
+    {
+      "title": "How we work with you",
+      "questions": [
+        {
+          "id": "pro-communicate",
+          "text": "How well do we communicate with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, how easy we are to reach about someone's medicines, and how quickly we reply. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        },
+        {
+          "id": "pro-follow-advice",
+          "text": "How well do we follow the advice you give us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, a change to how or when a medicine is given, or advice about swallowing or crushing. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "pro-share-info",
+          "text": "How well do we share information with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, when we contact you, giving the person's details, the medicine and what our care worker saw. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "pro-partnership",
+          "text": "How well do we work in partnership with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, sorting out medicines after a hospital stay, or making someone's medicines simpler. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        }
+      ]
+    },
+    {
+      "title": "Working with us on medicines",
+      "questions": [
+        {
+          "id": "q-tell-support-change",
+          "text": "Do we tell you when we start, change or stop helping someone with their medicines?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "We should tell you in writing within 2 working days, with a named contact. Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what usually happens. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-tell-med-problems",
+          "text": "Do we tell you promptly about medicines problems, such as refused or missed doses or possible side effects?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what usually happens. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-discharge-meds",
+          "text": "When someone comes home from hospital, do we work with you to sort out differences in their medicines?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose Does not apply to me if you have not been involved in this with us, or Don't know if you are not sure.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me", "Don't know"],
+          "notCountedOptions": ["Does not apply to me", "Don't know"],
+          "comment": {
+            "prompt": "What would help? Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "q-requests-appropriate",
+          "text": "Are the requests we make of you about medicines appropriate?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, requests for compliance aids, weekly prescriptions or printed charts. Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Which requests are not appropriate? Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        }
+      ]
+    },
+    {
+      "title": "GP practices",
+      "introduction": "These questions are for GP practices and primary care network pharmacy teams.",
+      "questions": [
+        {
+          "id": "q-repeats-in-time",
+          "text": "Do our requests for repeat medicines reach you in good time?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "We aim to order at least 7 days, and at least 5 working days, before medicines run out, by the route your practice has agreed. Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-setting",
+            "answers": ["GP practice", "Dispensing GP practice", "Primary care network pharmacy team"]
+          },
+          "comment": {
+            "prompt": "What goes wrong?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-review-requests",
+          "text": "Do we ask for a medicines review when someone may need one?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, after falls or new confusion, or when someone often refuses a medicine. Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-setting",
+            "answers": ["GP practice", "Dispensing GP practice", "Primary care network pharmacy team"]
+          },
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        }
+      ]
+    },
+    {
+      "title": "Community pharmacies",
+      "introduction": "These questions are for community pharmacies and dispensing GP practices.",
+      "questions": [
+        {
+          "id": "q-supply-problems",
+          "text": "Do we tell you promptly about a problem with a supply, such as a wrong or missing item?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "We aim to tell you the same day. Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-setting",
+            "answers": ["Community pharmacy", "Dispensing GP practice"]
+          },
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-collections",
+          "text": "Do we arrange collections and deliveries of medicines in a way that works for you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, being in for deliveries and our staff bringing what they need to collect. Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-setting",
+            "answers": ["Community pharmacy", "Dispensing GP practice"]
+          },
+          "comment": {
+            "prompt": "What would work better?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        }
+      ]
+    },
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "pro-overall",
+          "text": "Overall, how would you rate us as a care provider to work with?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What is the main reason for your rating?",
+            "showWhen": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one thing would make working with us on medicines safer or easier?",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "Please do not name anyone we support. If you are worried about someone now, please phone us instead."
+        },
+        {
+          "id": "q-reference",
+          "text": "Please write the reference number from our email, so we know which practice or pharmacy answered.",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "If you leave it blank, we will still act on what you tell us, but we cannot reply to you."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, our Registered Manager or Deputy Manager will contact you within 5 working days, through your organisation's main number. We can only do this if you give your details below."
+        },
+        {
+          "id": "q-contact-details",
+          "text": "Your name, organisation and a work phone number or email.",
+          "type": "TEXT",
+          "required": false,
+          "showIf": {
+            "question": "q-contact",
+            "answers": ["Yes"]
+          }
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Deputy Manager runs it under the Compliments, Feedback and Involvement Procedure, alongside the professionals' survey. CareFlow cannot yet send a survey to named people outside the organisation, so this is a public form: each year publish a new copy of this template on the first working day of February with an end date 4 weeks later.",
+      "In January, build the list from the GP practice and supplying pharmacy recorded for everyone who had medicines support in the last 12 months, and take these practices and pharmacies off the professionals' survey list (SUR-PRO-001): never both in a year. Send one email per organisation, with a reference number, to the practice manager or prescription team inbox and the pharmacy's shared NHS mailbox, asking them to forward it to the prescribers, practice pharmacists and pharmacists who deal with us; several answers from one organisation are welcome. Keep the list of reference numbers with the invitations, because a public form cannot tell us who answered. Do not send the discharge teams' survey (SUR-PRO-003) to a practice pharmacist within 4 weeks.",
+      "CareFlow cannot send reminders for a public form: email one reminder after 2 weeks to organisations that have not given their reference number in an answer. Where you work is required; name and organisation are asked only from those who want to be contacted.",
+      "Who may open individual answers: the Deputy Manager and the Registered Manager. This is set in Who can see the answers: individual responses are limited to the Deputy Manager and the Registered Manager, and results to the Deputy Manager, the Registered Manager and the medicines lead, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "Read each response the working day it arrives and act under the alerts below. Phone back only through the organisation's main number, found independently, and raise any issue about one person by phone or secure email, never through the survey (Confidentiality and Information Sharing Policy). With no reference number or contact details, act on the information given and record it; never try to identify who answered.",
+      "How to count: positive means Very good or Good, or Always or Usually, leaving out Don't know and Does not apply to me, with numbers shown. Report GP practice and pharmacy results separately only where each has 5 or more; otherwise combine them as medicines partners. The four shared items and the overall rating are also pooled with the other professionals' surveys (SUR-PRO-001, 002 and 005) as the yearly professionals' result. Compare year on year, and alongside medicines incidents and overdue medicines reviews.",
+      "The Deputy Manager writes the report within 6 weeks of closing, with actions in the service improvement plan within 5 working days. It goes into the next quarterly medicines governance report and to the Directors within 3 months (Governance and Quality Assurance Policy). Results and actions go to everyone asked within 3 months of closing, and the May You said, we did summary goes to everyone on the list. Keep answers for 3 years after the survey closes, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "A comment describing possible abuse, neglect or a person at risk, including medicines withheld, misused or diverted.",
+        "action": "Tell the safeguarding lead the same working day; the lead decides within 1 hour and refers the same working day where needed (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure). Phone back through the organisation's main number where it is known."
+      },
+      {
+        "when": "A comment describing a medicines error, near miss, missed time-sensitive dose or dispensing problem.",
+        "action": "Record it in the incident log the same working day and get clinical advice at once if a person may still be affected (Medication Errors, Near Misses and Incidents Procedure); raise a dispensing error with the pharmacy the same day (Ordering, Collecting, Storing and Disposing of Medicines Procedure)."
+      },
+      {
+        "when": "A comment expressing dissatisfaction that needs a response.",
+        "action": "Record it as a complaint the same day and acknowledge it within 3 working days where the professional can be contacted (Complaints Policy and Procedure)."
+      },
+      {
+        "when": "\"Do we tell you when we start, change or stop helping someone with their medicines?\" answered Rarely or Never.",
+        "action": "The Registered Manager (as medicines lead, or the Deputy Manager on their behalf) has the last 3 months' notifications to that practice or pharmacy checked within 5 working days, where it can be identified, and any missing ones sent (Medicines Management Policy); otherwise a sample across practices and pharmacies is checked. An action goes into the service improvement plan within 5 working days.",
+        "rule": {
+          "task": "Medicines support changes not notified: check",
+          "if": [
+            {
+              "question": "q-tell-support-change",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Repeat requests not reaching the practice in good time: Rarely or Never.",
+        "action": "The Deputy Manager checks order and receipt records against run-out dates within 5 working days, agrees the ordering route with the practice where it can be identified, and asks to align repeats onto one cycle (Ordering, Collecting, Storing and Disposing of Medicines Procedure). Care Coordinators place the orders, so they are told only what to change, never the answer.",
+        "rule": {
+          "task": "Late repeat requests: check orders against run-out dates",
+          "if": [
+            {
+              "question": "q-repeats-in-time",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Supply problems not told promptly, or collections and deliveries not working: Rarely or Never.",
+        "action": "The Deputy Manager agrees supply, collection and delivery arrangements with the pharmacy within 5 working days, where it can be identified, and tells the Care Coordinators only what to change, never the answer (Ordering, Collecting, Storing and Disposing of Medicines Procedure).",
+        "rule": {
+          "task": "Pharmacy supply or collection problems: agree arrangements",
+          "if": [
+            {
+              "question": "q-supply-problems",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-collections",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Communicate, follow advice, share information, partnership or overall answered Poor or Very poor; or medicines problems, review requests, hospital discharge differences or appropriate requests answered Rarely or Never.",
+        "action": "The Registered Manager contacts the practice or pharmacy lead within 5 working days through its main number, where it can be identified, and adds an action to the service improvement plan within 5 working days (Compliments, Feedback and Involvement Procedure).",
+        "rule": {
+          "task": "Medicines partner concern: contact and add action",
+          "if": [
+            {
+              "question": "pro-communicate",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-follow-advice",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-share-info",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-partnership",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-overall",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "q-tell-med-problems",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-review-requests",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-discharge-meds",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-requests-appropriate",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A compliment about a team or care worker.",
+        "action": "Record it the same working day and pass it on within 5 working days (Compliments, Feedback and Involvement Procedure)."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Deputy Manager or Registered Manager contacts them within 5 working days, through their organisation's main number.",
+        "rule": {
+          "task": "Medicines partner asked to be contacted",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "alertsNeverTo": ["CARE_COORDINATOR"],
+  "access": {"responses": ["DEPUTY_MANAGER", "REGISTERED_MANAGER"], "results": ["DEPUTY_MANAGER", "REGISTERED_MANAGER", "MEDICINES_LEAD"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-MED-001",
+    "POL-MED-012",
+    "POL-MED-013",
+    "POL-MED-005",
+    "POL-MED-014",
+    "POL-GOV-006",
+    "POL-GOV-016",
+    "POL-GOV-013",
+    "POL-GOV-005",
+    "POL-GOV-002",
+    "POL-SG-002",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(g): the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from relevant persons and other persons on the services provided",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Community Pharmacy England, Discharge Medicines Service: an essential service in which pharmacies resolve medicines discrepancies after a hospital discharge",
+      "url": "https://cpe.org.uk/national-pharmacy-services/essential-services/discharge-medicines-service/"
+    }
+  ]
+}

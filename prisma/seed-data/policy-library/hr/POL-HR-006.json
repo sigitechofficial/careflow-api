@@ -1,0 +1,312 @@
+{
+  "reference": "POL-HR-006",
+  "revision": 1,
+  "title": "Training and Development Policy",
+  "documentType": "POLICY",
+  "summary": "Sets the training every employee must complete for their role and how often it is refreshed, including the statutory Oliver McGowan learning disability and autism training, emergency first aid and person-specific training. It covers how needs are identified, how training is delivered, assessed, paid and recorded, what happens when training expires, and how we fund qualifications and career development. For all staff, managers and HR.",
+  "keyPoints": {
+    "intro": "Training is how we make sure you are safe and confident on every visit. This is what the policy means for you.",
+    "points": [
+      "Never do a task you are not trained and signed off for, such as a new hoist or a delegated healthcare task. Phone the office, or the On-call Manager out of hours, from the visit and follow their instructions.",
+      "Complete every training course required for your role before its due date. The HR Manager tells you 30 days before a refresher is due, and the Care Coordinator gives you paid time to do it.",
+      "If your safeguarding, infection control, hand hygiene and PPE check, basic life support or emergency first aid, fire safety, health and safety or lone working training expires, you will not be given visits until it is renewed.",
+      "If your medicines, moving and handling, breakaway or other task training expires, you will not be given visits that involve that task until it is renewed.",
+      "All training we require is paid working time, including e-learning (the time set for each module, or longer if the log shows it took longer) and travel to sessions. We never charge you for training or ask you to repay its costs.",
+      "Complete the Oliver McGowan e-learning during induction and your Tier 1 or Tier 2 session within 6 months of starting. Tier 2 is for everyone who has contact with the people we support or their families. It is refreshed at least every 3 years.",
+      "Do your own e-learning with your own log-in. Never complete training or assessments for someone else or share answers; this is misconduct.",
+      "If you cannot attend a booked session, tell the office at least 48 hours before, unless you are ill or there is an emergency. Missing two sessions in a row without good reason means a meeting with the Registered Manager.",
+      "Tell your supervisor about any training you need, or any adjustment that would help you learn, such as more time or a different format. We will arrange it.",
+      "We pay in full for qualifications such as the Level 2 Adult Social Care Certificate and the Level 3 Diploma in Adult Care, with paid study time. Ask your supervisor; you will have a written decision within 20 working days.",
+      "Care Coordinators: check the training and compliance records before allocating, and never allocate a visit or task to anyone whose required training is missing or expired."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["ALL_EMPLOYEES"],
+  "moduleLinks": ["TRAINING", "HR", "EMPLOYEE"],
+  "relatedReferences": ["POL-HR-004", "POL-HR-005", "POL-HR-014", "POL-MED-016", "POL-HS-001", "POL-CD-001", "POL-GOV-003", "POL-HR-010"],
+  "regulatoryBasis": [
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18 (staffing), including 18(2)(a) training and professional development and 18(2)(b) further qualifications", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18" },
+    { "source": "Health and Care Act 2022, section 181 (training on learning disability and autism, inserting section 20(5ZA) and section 21A into the Health and Social Care Act 2008; in force 1 July 2022)", "url": "https://www.legislation.gov.uk/ukpga/2022/31/section/181" },
+    { "source": "Department of Health and Social Care, The Oliver McGowan code of practice on statutory learning disability and autism training (final from 6 September 2025)", "url": "https://www.gov.uk/government/publications/oliver-mcgowan-code-of-practice" },
+    { "source": "Management of Health and Safety at Work Regulations 1999, Regulation 13 (capabilities and training: on recruitment and when risks change, repeated periodically where appropriate, in working hours)", "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/13" },
+    { "source": "National Minimum Wage Regulations 2015, Regulation 33 (training treated as hours of time work)", "url": "https://www.legislation.gov.uk/uksi/2015/621/regulation/33" },
+    { "source": "HMRC National Minimum Wage Manual, NMWM08290 Working time: time work: training time", "url": "https://www.gov.uk/hmrc-internal-manuals/national-minimum-wage-manual/nmwm08290" },
+    { "source": "Equality Act 2010, section 20 (duty to make reasonable adjustments)", "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20" },
+    { "source": "Department of Health and Social Care, Learning and Development Support Scheme for the adult social care workforce: a guide for employers (updated 1 September 2026)", "url": "https://www.gov.uk/government/publications/adult-social-care-learning-and-development-support-scheme/learning-and-development-support-scheme-for-the-adult-social-care-workforce-a-guide-for-employers" },
+    { "source": "Department of Health and Social Care, Care workforce pathway for adult social care: overview (updated 16 July 2026)", "url": "https://www.gov.uk/government/publications/care-workforce-pathway-for-adult-social-care/care-workforce-pathway-for-adult-social-care-overview" },
+    { "source": "Department of Health and Social Care, Care workforce pathway for adult social care: registered manager role category (updated 16 July 2026)", "url": "https://www.gov.uk/government/publications/care-workforce-pathway-for-adult-social-care/registered-manager-role-category" },
+    { "source": "Health and Safety Executive, Selecting a first-aid training provider: a guide for employers (GEIS3 rev2, 2024): provider due diligence, emergency first aid at work of at least 6 contact hours, certificates valid for 3 years", "url": "https://www.hse.gov.uk/pubns/geis3.htm" },
+    { "source": "Care Quality Commission, response of 26 March 2024 to the coroner's prevention of future deaths report 2024-0048 (Michael Waite): risk where lone support workers lack certificated first aid training including basic life support", "url": "https://www.judiciary.uk/wp-content/uploads/2024/02/2024-0048-Response-from-Care-Quality-Comission.pdf" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "{{organisation}} makes sure that everyone who works for us has the knowledge, skills and confidence to do their job safely before they do it, keeps that competence up to date, and is supported to grow through recognised qualifications. Our care workers usually work alone in people's homes, so training, and checking that it has worked, is one of the main ways we keep people safe." },
+        { "p": "Regulation 18 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires the people we employ to receive the training and professional development they need for their role and to be enabled to obtain further qualifications appropriate to their work. Since 1 July 2022 the law has also required every registered provider to make sure that each person working for it receives learning disability and autism training appropriate to their role (Health and Care Act 2022, section 181); the Oliver McGowan code of practice, final from 6 September 2025, sets out how this is met, and CQC takes it into account. Health and safety training must be given on recruitment and when risks change, repeated periodically where appropriate and held in working hours (Management of Health and Safety at Work Regulations 1999, regulation 13)." },
+        { "p": "The law does not set a list of courses or refresher periods. The training, timescales and funding in this policy are our policy, decided by the Directors to meet these duties and the needs of the people we support. All required training is paid, and we never charge staff for it." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "p": "This policy sets one training standard for the whole organisation, so that every role has a defined list of required training and refresher periods; nobody does a task, or visits a person, without the training it needs; training is assessed, delivered by competent trainers and recorded so that we can evidence it to the Care Quality Commission (CQC) and commissioners; and staff are paid for training time and supported fairly to gain qualifications and progress." }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This policy applies to every employee of {{organisation}} in every role and branch, including bank staff, managers and Directors, and sets the training we require of agency workers and students on placement. It covers required training after a person starts, refreshers, person-specific training, qualifications and career development." },
+        { "p": "Other documents cover: induction, the Care Certificate and probation (Induction and Care Certificate Procedure); medicines training and competency (Medicines Training and Competency Assessment Procedure); supervision, spot checks and personal development plans (Supervision, Spot Checks and Appraisal Policy); scoring of observations (Quality Audit and Monitoring Procedure); pay and travel time (Working Time, Rest Breaks and Travel Time Policy); and formal action on performance (Capability and Performance Procedure). Where another document sets training for a task it owns, that document sets the content and this policy adds it to the role's training matrix." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Required training", "All training a person must hold for their role: the core training in this policy, the role-specific training set by other library documents, and any person-specific or task-specific training for the people they visit."],
+          ["Care staff", "Care Workers, Senior Care Workers, and any Field Care Supervisor, Care Coordinator, On-call Manager or manager who gives care."],
+          ["Training matrix", "The list of required training for each role, with first-completion and refresher timescales, held by the HR Manager in the training and compliance records."],
+          ["In date", "Completed, passed and not past its refresher date."],
+          ["Competency assessment", "An observation of the person doing the task in real work by an authorised assessor, recorded as met or not met."],
+          ["Person-specific training", "Training in a particular person's needs, equipment or communication method, needed before working with that person without a colleague who already has it."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Directors and Nominated Individual", "blocks": [
+          { "p": "The Directors approve the annual training plan and budget by 31 March each year, fund paid training time and qualifications, and scrutinise training compliance in the quarterly governance report. The Nominated Individual receives escalations when any required course falls below 90% in date and decides on reviews of refused qualification requests." }
+        ] },
+        { "heading": "Registered Manager", "blocks": [
+          { "p": "The Registered Manager owns this policy and is accountable for staff competence. They approve each role's training matrix, training providers and internal trainers; confirm the person-specific training each new package needs; decide qualification requests; and act on expired training and non-attendance. The Deputy Manager covers these duties in the Registered Manager's absence and audits training records quarterly." }
+        ] },
+        { "heading": "HR Manager", "blocks": [
+          { "p": "The HR Manager keeps the training matrix and training and compliance records up to date, books training, runs the expiry warnings and reports in this policy, drafts the annual training plan, keeps the approved provider list, updates the Adult Social Care Workforce Data Set (ASC-WDS) monthly and makes Learning and Development Support Scheme claims." }
+        ] },
+        { "heading": "Field Care Supervisors and Senior Care Workers", "blocks": [
+          { "p": "Field Care Supervisors and authorised Senior Care Workers identify training needs at supervision, spot checks and appraisal, and check at spot checks that learning is applied. Anyone who trains or assesses also tells the learner's Field Care Supervisor the same day when a learner has not met the standard." }
+        ] },
+        { "heading": "Care Coordinators", "blocks": [
+          { "p": "Care Coordinators roster training as paid working time and check the training and compliance records before every allocation. They never allocate a visit or task to anyone whose required training for it is missing or expired, or whose person-specific training for that person is not recorded." }
+        ] },
+        { "heading": "Every employee", "blocks": [
+          { "p": "Every employee completes their required training by its due date, attends booked sessions, completes their own e-learning honestly, gives the HR Manager copies of certificates gained elsewhere, applies what they learn, and never carries out a task they have not been trained and signed off for." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Core training for every role",
+      "blocks": [
+        { "p": "The table sets the core training and refresher periods, using the same timings as the documents that own each subject. How induction training is sequenced for new starters is set in the Induction and Care Certificate Procedure. Certificated emergency first aid for everyone who works alone is our policy, not a legal requirement: a 2024 coroner's prevention of future deaths report identified a risk of death where lone support workers had not had it." },
+        { "table": { "columns": ["Training", "Who", "First completed", "Refresher"], "rows": [
+          ["Safeguarding adults and children, including mental capacity and consent basics, sexual harassment and a Prevent update; for care staff also sexual safety in intimate care and what to do when there is no reply or no access at a visit", "All employees, including Directors", "Care staff before working without a shadowing colleague, with sexual harassment in the first week; others in the first week and before taking calls alone", "Every 12 months"],
+          ["Prevent awareness (GOV.UK course)", "All employees, including Directors", "Care staff during induction, before lone working sign-off; others in the first week and before taking calls alone", "GOV.UK refresher awareness course every 3 years"],
+          ["Person-centred care, dignity, communication, equality, diversity and human rights, and responding to complaints; for care staff also checking in and out, running late and staying the planned visit time", "All employees", "Care staff before working without a shadowing colleague; others in the first week", "Every 12 months, as one combined refresher"],
+          ["Infection prevention and control, including sharps, waste, laundry and spillages; observed hand hygiene and PPE competency for care staff", "Care staff and students who give care; awareness for office, HR and staff allocation roles", "Care staff before working without a shadowing colleague (competency before working alone); others in the first week", "Every 12 months"],
+          ["Fire safety", "All employees", "Care staff before working alone; others in the first week", "Every 12 months"],
+          ["Health and safety awareness (Care Certificate Standard 13), including key safes and access to people's homes for care staff, and driving at work for anyone who drives for work", "All employees", "Care staff before working alone (key safes before the first shadow visit; driving before the first driving visit); others within 4 weeks", "Every 3 years"],
+          ["Moving and handling of people: at least 6 hours face to face with a practical assessment", "Care staff", "Before any moving and handling without a shadowing colleague", "Practical refresher of at least 3 hours face to face every 12 months"],
+          ["Emergency first aid, including basic life support: at least 6 hours face to face with a practical assessment", "Care staff, Field Care Supervisors and On-call Managers", "Before working alone or the first on-call shift", "Basic life support practical every 12 months; full emergency first aid every 3 years"],
+          ["Lone working and personal safety", "Care staff, On-call Managers, and Field Care Supervisors and Care Coordinators who make visits", "Before the first lone visit", "Every 3 years, and after any violent incident involving the worker"],
+          ["Information governance: data protection, confidentiality, record keeping and cyber security", "All employees", "First week, before access to care records", "Every 12 months"],
+          ["Anti-bribery and fraud awareness, with a knowledge check", "All employees", "During induction, before working without a shadowing colleague", "Every 2 years"],
+          ["Medicines awareness", "All employees", "By the end of week 1 of induction", "Every 3 years for staff who do not give medicines support"],
+          ["Full medicines training (pass mark 80%, with all five critical safety questions correct) and observed medicines competency", "Care Workers, Senior Care Workers, Field Care Supervisors, Care Coordinators, and any manager or On-call Manager who covers visits", "Before any medicines support, even supervised; for new care staff, in week 1 of induction", "Every 12 months, under the Medicines Training and Competency Assessment Procedure"],
+          ["Learning disability and autism: Oliver McGowan e-learning, then Tier 2 or Tier 1 as set in the learning disability and autism section", "All employees and Directors", "E-learning during induction; Tier 1 or Tier 2 within 6 months of starting", "At least every 3 years, and sooner on moving to a Tier 2 role"],
+          ["Dementia awareness (Tier 1 of the Dementia Training Standards Framework) and mental health awareness", "All employees", "During induction", "Every 3 years"],
+          ["Dementia skills and knowledge (Tier 2)", "Care staff and On-call Managers", "Within 6 months of starting", "Every 3 years"],
+          ["Fluids, nutrition and food hygiene (Care Certificate Standard 8): an accredited Level 2 food safety and hygiene course plus our session on the Food Hygiene Guideline, with a knowledge assessment", "Care staff", "Before preparing food or drinks without a shadowing colleague", "Every 3 years"],
+          ["Personal care, intimate care, continence care and mouth and denture care, with observed practice; recognising and reporting changes, including signs of deterioration, falls prevention and response, and pressure ulcer prevention", "Care staff", "During induction, signed off before working without a shadowing colleague", "Every 2 years as one combined refresher, and recognising and reporting changes again on appointment as a Senior Care Worker"],
+          ["End of life care", "Care staff", "Within 6 months of starting", "Every 3 years"]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Role-specific and person-specific training",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Role-specific training", "blocks": [
+          { "p": "Each role also completes the training set by the documents that own its duties, before taking on the duty and at the refresher period that document sets. The table is a summary; the full list for each role is its training matrix, which the HR Manager updates within 5 working days of any library document being published or changed." },
+          { "table": { "columns": ["Role", "Additional required training"], "rows": [
+            ["Senior Care Workers", "Supervisor-level safeguarding with the children's module; the Prevent referrals course before supervisory duties (every 3 years); shadow lead briefing; and, where authorised, Care Certificate and medicines competency assessor training and supervision skills."],
+            ["Field Care Supervisors", "Supervisor-level safeguarding with the children's module; the Prevent referrals course (every 3 years); responding to sexual safety incidents within 3 months of appointment (every 3 years); advance care planning before their first conversation (every 3 years); assessment and care planning; capacity assessment; risk assessment; moving and handling assessor; spot checking and auditing; Care Certificate and medicines competency assessor; supervision and appraisal; skin health checks; positive behaviour support; found sharps and spill kits."],
+            ["Care Coordinators", "Supervisor-level safeguarding with the children's module; the Prevent referrals course (every 3 years); responding to sexual safety incidents within 3 months of appointment (every 3 years); advance care planning before their first conversation (every 3 years); the Nominated Individual's controls briefing within 1 month (every 12 months); allocation rules; matching and continuity; monitoring check-ins and responding to late, missed and no-reply visits; infection reports and outbreaks; right to work hour limits; lone worker monitoring; exposure call handling; complaints investigation before a first investigation; and, where they assess, care planning, capacity, medicines, moving and handling and risk assessment."],
+            ["On-call Managers", "Before the first on-call shift: safeguarding walk-through and supervisor-level safeguarding, the Prevent referrals course and responding to sexual safety incidents (both every 3 years), the escalation table, outbreak and exposure calls, lone worker monitoring and late, missed and no-reply visit calls, assessment and care planning, medicines and moving and handling assessment, capacity assessment, right to work document checking, found sharps and spill kits, and managing incidents; then at least two on-call shifts shadowed with an experienced On-call Manager and sign-off by the Registered Manager."],
+            ["Registered Manager and Deputy Manager", "Adult and child safeguarding lead training; the Prevent referrals and Channel courses within 3 months of appointment (every 2 years); responding to sexual safety incidents within 3 months (every 3 years); lead-level Mental Capacity Act; IOSH Managing Safely or equivalent; infection prevention and control lead course; managing incidents; complaints investigation; advance care planning before their first conversation, and leading end of life care within 6 months of appointment (both every 3 years); dementia leadership (Tier 3) within 12 months of appointment, every 3 years; the Nominated Individual's controls briefing (every 12 months); and, for the Registered Manager, sexual harassment risk assessment before their first review (every 3 years)."],
+            ["HR Manager and Office staff", "Safer recruitment; document and right to work checking; DBS decisions (HR Manager); sponsor duties where held; sexual harassment risk assessment (HR Manager, before their first review, every 3 years); the Nominated Individual's controls briefing for the HR Manager and Office staff who prepare invoices, payroll or payments (every 12 months); and, for Office staff before taking calls alone, complaints and exposure call handling, then abusive calls and visitors within 4 weeks."],
+            ["Directors and Nominated Individual", "Governance and risk briefings; the controls briefing (Directors, every 12 months); complaint Stage 2 reviews; and for the Nominated Individual, their role and safeguarding lead training, the Prevent referrals and Channel courses within 3 months of appointment (every 2 years), sexual harassment risk assessment before their first approval (every 3 years) and external bribery and fraud prevention training within 3 months of appointment (every 3 years)."]
+          ] } }
+        ] },
+        { "heading": "Person-specific and task-specific training", "blocks": [
+          { "p": "The assessor records in the person's care plan any training their care needs beyond the core training, such as a particular hoist or sling, a communication method, a health condition such as epilepsy, diabetes or Parkinson's, positive behaviour support, or a delegated healthcare activity. Before the first visit, the Registered Manager confirms who will deliver it and the Care Coordinator names the core team." },
+          { "bullets": [
+            "It is completed before the worker's first visit to that person without a colleague who already holds it, and recorded in the training and compliance records.",
+            "Person-specific training, other than for delegated healthcare activities, is usually given in the person's home, with their consent, on a visit shared with a Field Care Supervisor or a core team member the Registered Manager has named to deliver it. Family members and informal carers may show how the person likes things done, but never sign off a worker's competence.",
+            "Delegated healthcare activities are taught, signed off and renewed as the delegating health professional specifies, and at least every 12 months, under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy; equipment familiarisation follows the Hoists, Slings and Lifting Equipment Procedure; breakaway and positive behaviour support training follow the Violence and Aggression Towards Staff Policy.",
+            "For a person with a learning disability or an autistic person whose needs are complex, the Registered Manager agrees with the person, their family and their community learning disability team, before the first visit, what training the core team needs beyond Tier 2.",
+            "A care worker who finds at a visit that a task needs training they do not hold, such as equipment newly delivered by the community equipment service or a new delegated task, does not do it. They phone the office, or the On-call Manager out of hours, from the visit, follow their instructions and complete the rest of the visit. The Care Coordinator or On-call Manager decides during the call who will do the task safely, such as a trained worker, the district nurse or the family where the care plan allows, and arranges the training before the next visit that needs it. The care worker records what was not done, and why, in the daily visit notes."
+          ] }
+        ] }
+      ]
+    },
+    {
+      "heading": "Learning disability and autism training",
+      "blocks": [
+        { "p": "We meet the statutory duty by using the Oliver McGowan Mandatory Training on Learning Disability and Autism, the package the government prefers and recommends, delivered as the code of practice requires. We do not use alternative packages." },
+        { "bullets": [
+          "Every employee and Director completes the 90-minute Oliver McGowan e-learning module during induction; with our knowledge assessment it also meets Care Certificate Standard 16 for care staff.",
+          "Tier 2, a one-day face-to-face session co-delivered in person by a facilitator and trainers with lived experience of learning disability or autism, is completed by everyone who has contact with the people we support or their families, in person or by phone, or who makes decisions about their care: care staff, Office staff, staff allocation roles, Care Coordinators, On-call Managers, managers and Directors. This follows the code's domiciliary care example, under which all staff who have contact with the public are likely to need Tier 2.",
+          "Tier 1, a one-hour live online interactive session co-delivered by people with lived experience, is completed by the HR Manager and any other employee who has no such contact and makes no such decisions.",
+          "The Registered Manager and Deputy Manager also build the Tier 3 leadership capabilities through learning agreed in their personal development plan.",
+          "The tier is completed within 6 months of starting (our policy) and refreshed at least every 3 years, as the code expects, or sooner on moving to a role needing Tier 2 or when a learning need is identified.",
+          "Oliver McGowan Mandatory Training at the same or a higher tier completed with a previous employer is accepted until its 3-year refresher date.",
+          "The HR Manager books sessions only with providers authorised to deliver the Oliver McGowan Mandatory Training, records the e-learning certificate and the live session separately, and can give CQC, the local authority or the integrated care board compliance figures within 2 working days of a request."
+        ] }
+      ]
+    },
+    {
+      "heading": "How training is delivered and assessed",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Methods", "blocks": [
+          { "bullets": [
+            "Practical skills, including moving and handling, emergency first aid and basic life support, hand hygiene and PPE, breakaway techniques, medicines administration and delegated tasks, are taught face to face and end in a practical assessment. E-learning never replaces practical training.",
+            "E-learning is used for knowledge topics only, from an approved provider, and always ends with an assessment. Each worker uses their own log-in. Completing training or an assessment for someone else, or sharing answers, is misconduct under the Disciplinary Policy and Procedure.",
+            "Knowledge assessments have a pass mark of 80% unless another document sets a higher standard: every Care Certificate knowledge question must be answered correctly, and the medicines assessment also needs its five critical safety questions correct. After two failed attempts the worker has a one-to-one session with a trainer or their Field Care Supervisor and a third attempt within 10 working days; a third failure goes to the Registered Manager, who agrees a support plan under the Supervision, Spot Checks and Appraisal Policy."
+          ] }
+        ] },
+        { "heading": "Fair access and adjustments", "blocks": [
+          { "p": "Part-time, bank, night and weekend staff have the same access to training and qualifications as full-time staff. For a disabled worker we make reasonable adjustments, as the Equality Act 2010 requires, such as extra time, another format, a reader or a face-to-face alternative to e-learning, agreed with the HR Manager before the session and recorded in the staff record. Where a worker needs support with English, we pay for an English for speakers of other languages course with 2 hours of paid study time a month." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Identifying needs and planning training",
+      "blocks": [
+        { "p": "New starters, returners and staff changing role follow the Induction and Care Certificate Procedure. Other training needs are met as follows." },
+        { "table": { "columns": ["Trigger", "What happens", "Timescale"], "rows": [
+          ["New package or a change in a person's needs", "Person-specific training identified in the care plan and delivered", "Before the worker's first visit to that person without a trained colleague"],
+          ["Critical item not met at a spot check or competency observation", "Retraining and re-observation under the Quality Audit and Monitoring Procedure", "Retraining before the worker next does the task; re-observation within 4 weeks"],
+          ["Need identified at supervision, appraisal or after an incident or complaint", "Training booked and added to the personal development plan", "Booked within 5 working days of the record"],
+          ["Change in law, national guidance or one of our policies", "Briefing or training under the Policy Management and Document Control Policy", "Before the change takes effect where staff must act differently"]
+        ] } },
+        { "p": "Each year the HR Manager drafts a training plan by 28 February, using appraisal personal development plans, the year's audits, incidents, complaints and spot check results, the needs of the people we support and expected new packages, staff survey results, the January training needs survey, feedback from people we support and families, and changes in law or guidance. The Registered Manager agrees it and the Directors approve it, with its budget, by 31 March for the year from 1 April. Progress and spending are reviewed in the quarterly governance report." }
+      ]
+    },
+    {
+      "heading": "Booking, attendance and expired training",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Booking and attendance", "blocks": [
+          { "bullets": [
+            "The HR Manager books each refresher to be completed before it expires, tells the worker and their Care Coordinator 30 days before expiry, and every Monday sends Care Coordinators the list of training expiring in the next 30 days or already expired.",
+            "Care Coordinators roster face-to-face training at least 2 weeks ahead and never cancel it to cover visits unless the Business Continuity and Emergency Planning Policy is activated or the Registered Manager agrees.",
+            "A worker who cannot attend tells the office at least 48 hours before, unless they are ill or there is an emergency. A missed or cancelled session is rebooked within 10 working days, and before the expiry date where possible.",
+            "After two sessions in a row missed without good reason, the Registered Manager meets the worker within 10 working days and records the meeting. Continued refusal to complete required training is dealt with under the Disciplinary Policy and Procedure."
+          ] }
+        ] },
+        { "heading": "When training expires", "blocks": [
+          { "table": { "columns": ["Training expired or not completed", "What happens"], "rows": [
+            ["Safeguarding, infection prevention and control, hand hygiene and PPE competency, basic life support or emergency first aid, fire safety, health and safety awareness, or lone working and personal safety (care staff)", "No visits are allocated from the day it expires until it is renewed. The Care Coordinator reallocates the worker's visits before that day."],
+            ["Medicines training or competency, moving and handling, bariatric handling, breakaway, a delegated task or person-specific training", "No visits involving that task or that person until it is renewed or reassessed."],
+            ["On-call training (On-call Managers) or safeguarding training (Office staff)", "The On-call Manager is taken off the on-call rota, and Office staff do not take safeguarding or on-call calls alone, until it is renewed."],
+            ["Any other required training, including Oliver McGowan training not completed within 6 months of starting", "The worker completes it within 14 days of the due date in paid time. If it is still not done, the HR Manager tells the Registered Manager, who meets the worker within 5 working days and sets a final date no more than 14 days later."]
+          ] } },
+          { "p": "A worker found to have carried out a visit or task while the training for it was missing or expired is logged in the incident log the same day by the person who finds it, and the Registered Manager decides by the end of the next working day whether anyone was put at risk." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Trainers, training providers and evaluation",
+      "blocks": [
+        { "bullets": [
+          "Internal trainers hold a recognised teaching qualification, at least the Level 3 Award in Education and Training or equivalent, and a current qualification or competence in the subject. Moving and handling trainers meet the Moving and Handling of People Policy. The Registered Manager approves each internal trainer in writing and the Registered Manager or Deputy Manager observes each one delivering a session every 12 months.",
+          "External providers are approved by the Registered Manager before first use, on evidence that their trainers are qualified and experienced in adult social care, that content is current and mapped to the Care Certificate standards or the relevant national framework, and that the training is independently quality assured, for example by an awarding body or Skills for Care endorsement. First aid providers are also checked against the Health and Safety Executive's due diligence criteria: trainer and assessor qualifications, quality assurance, teaching to currently accepted first-aid practice, syllabus and contact hours, and certification. The HR Manager rechecks every provider's evidence every 12 months.",
+          "Every learner scores each course out of 5 at the end. Any provider or trainer averaging below 4 in a quarter, or found to teach inaccurate content, is reviewed by the Registered Manager within 1 month and replaced or improved."
+        ] }
+      ]
+    },
+    {
+      "heading": "Prior learning, bank and agency workers, and students",
+      "blocks": [
+        { "bullets": [
+          "Knowledge training completed elsewhere is accepted when the worker shows the original certificate, the HR Manager confirms the provider and content, and it is within our refresher period, which runs from the original completion date. It never replaces our organisational induction.",
+          "Certificates from elsewhere never replace our practical sessions. Moving and handling, emergency first aid and basic life support, and breakaway are completed in sessions we arrange with our own trainers or an approved provider, and hand hygiene and PPE and medicines competency are observed by our own assessors, before the worker does the task, as the Induction and Care Certificate Procedure requires.",
+          "Bank staff complete the same required training as employees, in paid time. Students on placement complete the training in the Induction and Care Certificate Procedure and never work alone.",
+          "Before an agency worker's first shift, the agency confirms in writing that the core training for care staff in this policy is in date, including practical moving and handling with hoisting, emergency first aid with basic life support, safeguarding and infection prevention and control, and the HR Manager (the On-call Manager out of hours) checks it against this policy. We give agency workers any person-specific training before they visit that person."
+        ] }
+      ]
+    },
+    {
+      "heading": "Qualifications and career development",
+      "blocks": [
+        { "p": "We use the government's care workforce pathway for adult social care to show staff how they can progress, from new to care through care or support worker, supervisor or leader and practice leader to deputy and registered manager, and to plan development within each role. Career aspirations are discussed at every appraisal and recorded in the personal development plan." },
+        { "p": "The law does not require any particular qualification for these roles; the requirements below are our policy. We pay the full fees for every qualification below and any other we agree, assessment visits take place in working time, and we never recover training or qualification costs from any employee, including when they leave." },
+        { "table": { "columns": ["Qualification", "Who", "Our arrangements"], "rows": [
+          ["Level 2 Adult Social Care Certificate", "Care Workers and Senior Care Workers who hold the Care Certificate and no Level 2 or higher adult care qualification", "Offered at the final probation meeting, as the Induction and Care Certificate Procedure sets out; 2 hours of paid study time a month."],
+          ["Level 3 Diploma in Adult Care", "Offered to Care Workers who have passed probation and hold a Level 2 adult care qualification or have 12 months in care. Required for Senior Care Workers, Field Care Supervisors and Care Coordinators", "Those in required roles hold it or enrol within 3 months of appointment and complete within 18 months; 2 hours of paid study time a month."],
+          ["Level 4 Diploma in Adult Care, or a specialist qualification such as dementia or end of life care", "Field Care Supervisors, Care Coordinators and Senior Care Workers holding Level 3, after 12 months in role", "Agreed through the personal development plan; 4 hours of paid study time a month."],
+          ["Level 5 Diploma in Leading and Managing an Adult Care Service, which replaced the Level 5 Diploma in Leadership and Management for Adult Care (England); the earlier diploma, or an equivalent, is accepted", "Registered Manager and Deputy Manager", "Hold it or enrol within 3 months of appointment and complete within 24 months; 4 hours of paid study time a month. This meets the care workforce pathway's expectation that registered managers have or are working towards a Level 5 diploma in leadership and management."]
+        ] } },
+        { "bullets": [
+          "A worker may take the same qualification as an apprenticeship. The HR Manager arranges it with an approved apprenticeship provider, the off-the-job training the apprenticeship requires is paid working time, and we meet any cost not covered by apprenticeship funding.",
+          "The HR Manager claims Learning and Development Support Scheme reimbursement within the scheme's deadlines: for courses, within 3 months of completion; for qualifications, 60% within 3 months of the qualification being paid for or started, whichever is later, and 40% within 3 months of completion. The scheme does not fund apprenticeships. An agreed qualification goes ahead whether or not it is reimbursed.",
+          "Any employee may ask their supervisor or the HR Manager in writing for a qualification, course or study time; naming a qualification in the annual training needs survey counts as a written request. The Registered Manager decides within 20 working days and gives reasons in writing. A request is refused only when the learning is not relevant to the worker's role or a role they could progress to with us; if the year's budget is spent, the worker is enrolled within 6 months. The worker may ask the Nominated Individual to review a refusal within 10 working days and has the answer within 10 working days of asking.",
+          "Registered professionals receive support for continuing professional development and revalidation under the Supervision, Spot Checks and Appraisal Policy."
+        ] }
+      ]
+    },
+    {
+      "heading": "Training time and pay",
+      "blocks": [
+        { "p": "For National Minimum Wage purposes the law treats training time as working time, and HMRC treats training an employer requires as working time even outside normal hours. Health and safety training must take place in working hours. Our policy is:" },
+        { "bullets": [
+          "All required training, competency assessments, Care Certificate work and the study time in this policy are paid at the worker's normal hourly rate. Salaried staff train within their contracted hours, or receive time off in lieu taken within 4 weeks.",
+          "Each e-learning module is paid for the time the HR Manager sets for it, based on the provider's stated duration, whether done in rostered time or, by the worker's choice, at home. A worker who takes longer tells the HR Manager, who checks the e-learning log and pays the actual time. Time outside rostered hours is paid in the next payroll.",
+          "Travel between a visit and training is working time. Care staff's travel from home to a training venue, including the branch office, and back is also paid, with mileage as for travel between visits under the Working Time, Rest Breaks and Travel Time Policy.",
+          "We never charge for required training, materials or certificates, and never deduct training costs from pay."
+        ] }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "table": { "columns": ["Record", "Where in CareFlow"], "rows": [
+          ["Training matrix for each role; each worker's required training, completion and due dates, assessment results, certificates, competency assessments, person-specific training, and qualifications with enrolment and completion dates", "Training and compliance records"],
+          ["Training needs and personal development plans", "Supervision and appraisal records"],
+          ["Agreed learning adjustments, qualification requests and decisions", "Staff record"],
+          ["Visits or tasks carried out with missing or expired training", "Incident log"],
+          ["Acknowledgement of this policy", "Policy acknowledgements"]
+        ] } },
+        { "p": "Trainers record attendance and results within 2 working days of each session, and the HR Manager adds external certificates within 5 working days of receipt. Training records are kept for employment plus 6 years under the Records Management and Retention Policy. A worker, or former worker, receives a copy of their training record within 10 working days of asking. The HR Manager keeps provider and trainer approvals, training plans and evaluation summaries for 6 years." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "p": "All employees are taken through this policy at induction and acknowledge it in CareFlow by the deadline in the Induction and Care Certificate Procedure (care staff before lone working sign-off, other staff by the end of week 4), then acknowledge each new major version within 14 days; a minor version does not need acknowledging again. Care Coordinators and On-call Managers are trained to read the training and compliance records and apply the expiry and person-specific allocation rules before first allocating visits or their first on-call shift, then every 12 months with the allocation rules training. The HR Manager is trained in running the training matrix, ASC-WDS and scheme claims within 1 month of appointment. Internal trainers meet the requirements in the trainers section." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["What is checked", "Target", "How often and by whom", "Reported to"], "rows": [
+          ["Required training in date, by course, role and branch", "95% for each course; induction training 100%; any course below 90% escalated to the Nominated Individual", "Monthly, HR Manager", "Monthly Quality and Governance Meeting"],
+          ["Visits or tasks carried out with missing or expired training", "None", "Weekly expiry list, HR Manager; incident log review monthly, Registered Manager", "Monthly Quality and Governance Meeting"],
+          ["Oliver McGowan tier completed within 6 months of starting and in date", "100%", "Monthly, HR Manager", "Monthly Quality and Governance Meeting"],
+          ["Training records checked against certificates, attendance and e-learning logs", "100% accurate", "Quarterly, Deputy Manager, within the staff file audit under the Safer Recruitment Policy", "Quarterly governance report to the Directors"],
+          ["Course evaluations and provider and trainer performance", "Average at least 4 out of 5", "Quarterly, HR Manager", "Registered Manager; quarterly governance report"],
+          ["Qualifications held or in progress", "At least 60% of Care Workers and Senior Care Workers with 12 months' service hold or are enrolled on a Level 2 or higher adult care qualification; 100% of required roles hold or are enrolled on their qualification", "Quarterly, HR Manager", "Quarterly governance report"],
+          ["Annual training plan delivered and spend against budget", "At least 90% of planned training delivered", "Quarterly, HR Manager; annual training report", "Directors"],
+          ["Staff views in the annual staff survey", "At least 80% say their training equips them for their role", "Every 12 months, HR Manager", "Directors"]
+        ] } },
+        { "p": "Any result below target is recorded with an action in the service improvement plan under the Governance and Quality Assurance Policy." },
+        { "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance (including the Oliver McGowan code of practice, the Care Certificate standards or the Learning and Development Support Scheme), a serious incident in which training was a factor, an inspection finding, or when monitoring shows the arrangements are not working." }
+      ]
+    }
+  ]
+}

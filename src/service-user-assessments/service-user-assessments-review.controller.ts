@@ -16,6 +16,16 @@ import { ServiceUserAssessmentsService } from './service-user-assessments.servic
 export class ServiceUserAssessmentsReviewController {
   constructor(private readonly service: ServiceUserAssessmentsService) {}
 
+  @Get('review-schedules')
+  @AnyPermission('service_users.assessments.read', 'service_users.read', 'settings.general.read')
+  @ApiOperation({
+    summary:
+      'Assessment review schedules in force (built-in CQC/NICE intervals with the organisation overrides from Settings → Reviews & reminders)',
+  })
+  reviewSchedules() {
+    return this.service.reviewSchedules();
+  }
+
   @Get('review-queue')
   @AnyPermission('service_users.assessments.read', 'service_users.read')
   @ApiOperation({

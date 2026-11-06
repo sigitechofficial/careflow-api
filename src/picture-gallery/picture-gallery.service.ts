@@ -4,7 +4,6 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CarePictureType, DataAccessType, Prisma } from '@prisma/client';
-import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -15,6 +14,7 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { PictureGalleryQueryDto } from './dto/picture-gallery-query.dto';
 import { UploadCarePictureDto } from './dto/upload-care-picture.dto';
 import { UpdateCarePictureDto } from './dto/update-care-picture.dto';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 const PICTURE_SEGMENTS = ['care-pathway', 'pictures'] as const;
 
@@ -72,8 +72,7 @@ export class PictureGalleryService {
   ) {}
 
   uploadRoot(): string {
-    const base = process.env.UPLOAD_BASE_PATH ?? 'uploads';
-    return join(process.cwd(), base, ...PICTURE_SEGMENTS);
+        return uploadPath(...PICTURE_SEGMENTS);
   }
 
   maxFileSize(): number {

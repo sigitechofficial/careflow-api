@@ -1,0 +1,276 @@
+{
+  "reference": "POL-GOV-012",
+  "revision": 1,
+  "title": "Statement of Purpose and Registration Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we keep our CQC registration and statement of purpose accurate: what our registration and its conditions allow, what the statement of purpose contains, when it is reviewed and revised and how revisions reach CQC, which changes need a CQC application or notice before they happen, and how branches are opened, moved or closed. For the Directors, Nominated Individual, Registered Managers, Deputy Managers, and the Care Coordinators, Office staff and On-call Managers who take referrals.",
+  "keyPoints": {
+    "intro": "This procedure tells the Directors and managers how we stay within our CQC registration and keep our statement of purpose true. Carrying on a regulated activity we are not registered for is a criminal offence for {{organisation}}; breaching a condition of our registration is an offence for {{organisation}} and for the Registered Manager.",
+    "points": [
+      "Never start a new kind of service, a new group of people, a new branch office or a new regulated activity until the registration check is complete and any CQC approval or statement of purpose revision is in place.",
+      "No care is managed from a new or moved branch office until CQC has granted the change.",
+      "We provide personal care to adults only: decline any referral for a child. Pass other referrals outside our statement of purpose to the Registered Manager the same working day; they are declined unless the Directors approve a revision before the first visit.",
+      "On-call Managers: never accept an out-of-hours referral outside the statement of purpose; pass it to the Registered Manager by 10am the next working day.",
+      "Registered Managers: tell the Nominated Individual the same working day of any change the statement of purpose describes, and draft the revision within 5 working days, before the change where it is planned, or within 2 working days where it has already happened.",
+      "The Directors approve every revision. The Nominated Individual sends it to CQC within 10 working days of approval, and always within 28 days of a change that has already happened.",
+      "Changes of Director, company secretary, Nominated Individual, our name or our address are notified to CQC before they take effect where planned, otherwise within 2 working days.",
+      "Apply to CQC at least 6 months before a new branch opens and at least 3 months before a branch office moves. Changing the legal entity that provides care needs a new registration first.",
+      "We act on a condition CQC imposes, such as stopping new packages, from the day we receive CQC's notice of it. The Registered Manager tells Office staff, Care Coordinators and the On-call Managers the same day; the Nominated Individual tells commissioners the same day.",
+      "The Nominated Individual checks every new certificate within 2 working days of receipt and tells CQC at once of any error.",
+      "Every version of the statement of purpose, every certificate, application and notice, and CQC's replies are kept in the governance records."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": false,
+  "audience": ["Admin", "Manager"],
+  "moduleLinks": ["BRANCH"],
+  "relatedReferences": ["POL-GOV-009", "POL-GOV-010", "POL-GOV-011", "POL-GOV-002", "POL-GOV-004", "POL-GOV-023", "POL-SG-003", "POL-HR-003"],
+  "regulatoryBasis": [
+    { "source": "Care Quality Commission (Registration) Regulations 2009, regulation 12 (Statement of purpose)", "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/12" },
+    { "source": "Care Quality Commission (Registration) Regulations 2009, Schedule 3 (Information to be included in the statement of purpose)", "url": "https://www.legislation.gov.uk/uksi/2009/3112/schedule/3" },
+    { "source": "Care Quality Commission (Registration) Regulations 2009, regulation 15 (Notification of changes)", "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/15" },
+    { "source": "Care Quality Commission (Registration) Regulations 2009, regulation 25 (Offences)", "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/25" },
+    { "source": "Care Quality Commission (Registration) Regulations 2009, regulation 5 (Registered manager condition)", "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/5" },
+    { "source": "Health and Social Care Act 2008, section 10 (Requirement to register as a service provider)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/10" },
+    { "source": "Health and Social Care Act 2008, section 11 (Applications for registration as a service provider)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/11" },
+    { "source": "Health and Social Care Act 2008, section 12 (Grant or refusal of registration as a service provider)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/12" },
+    { "source": "Health and Social Care Act 2008, section 13 (Condition requiring registered manager)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/13" },
+    { "source": "Health and Social Care Act 2008, section 19 (Applications by registered persons)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/19" },
+    { "source": "Health and Social Care Act 2008, section 28 (Notice of decisions)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/28" },
+    { "source": "Health and Social Care Act 2008, section 31 (Urgent procedure for suspension, variation etc.)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/31" },
+    { "source": "Health and Social Care Act 2008, section 33 (Failure to comply with conditions)", "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/33" },
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 1 (Regulated activities), paragraphs 1 (personal care), 4 (treatment of disease, disorder or injury) and 13 (nursing care)", "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/1" },
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 5 (Fixed penalty offences)", "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/5" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "{{organisation}} is registered with the Care Quality Commission (CQC) to carry on the regulated activity personal care, managed from each of its registered branch offices. We provide care only within that registration and its conditions, and only of the kinds our statement of purpose describes. The statement of purpose is the public account of what we do, for whom and from where; people choosing a service, commissioners and CQC rely on it being true." },
+        { "p": "The Directors are accountable for our registration. Nothing that could take us outside it goes ahead until the registration check in this procedure is complete and any CQC approval is in place, and every revision and notice reaches CQC within deadlines shorter than the law allows." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "bullets": [
+          "We know at all times exactly what our registration and its conditions allow, branch by branch.",
+          "Our statement of purpose contains everything the law requires, matches the care we deliver and is revised before, not after, the services it describes change.",
+          "Applications and notices reach CQC in time, so no care is delivered or managed outside our registration.",
+          "People we support, commissioners and staff hear about registration changes that affect them, and no branch change leaves a person without care."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This procedure applies to {{organisation}} as the registered provider, to every branch registered as a location, and to the Directors, Nominated Individual, Registered Managers, Deputy Managers, HR Manager, Care Coordinators, Office staff and On-call Managers. It covers our registration and its conditions, the statement of purpose, applications to CQC to register, vary, remove or cancel, notices of changes to the provider, and opening, moving and closing a branch." },
+        { "p": "It does not cover: notifications about events in people's care, or the deadlines for notices of absence (Statutory Notifications to CQC Procedure); the Registered Manager's role, absence cover and recruitment (Registered Manager Role and Absence Cover Policy); the fitness of Directors and the Nominated Individual (Fit and Proper Persons (Directors) Policy); CQC assessments and enforcement responses (Inspection Readiness and Working with Regulators Guideline); displaying ratings (Governance and Quality Assurance Policy); or the risk that we cannot continue trading (Risk Management Policy)." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Personal care", "The regulated activity we are registered for: personal care for people who, because of old age, illness or disability, cannot provide it for themselves, given in the place where they live (Schedule 1, paragraph 1, to the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014)."],
+          ["Location", "A branch office named in our registration as the place from which personal care is managed. Care is delivered in people's homes; the location is the office."],
+          ["Conditions", "The terms of our registration shown on our certificate, including the regulated activity, the locations, the registered manager condition and any further condition CQC imposes."],
+          ["Statement of purpose", "The document regulation 12 of the Care Quality Commission (Registration) Regulations 2009 requires. We keep one for {{organisation}}, with a part for each location."],
+          ["Revision", "Any change to the content of the statement of purpose, however small. The revision date is the date the Directors approve it."],
+          ["Registration register", "The record in the governance records of our current certificate, every condition and location, each Registered Manager's registration, and every application, notice and CQC decision, with dates."],
+          ["Working day", "Monday to Friday, excluding bank holidays in England."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            { "p": "The Directors are accountable for {{organisation}} being registered for everything it does. They approve every revision of the statement of purpose, every application {{organisation}} makes to CQC and every decision to open, move or close a branch, at a minuted meeting or by a Director's written approval kept in the governance records and reported to the next Directors' meeting. They never agree a sale, restructure, contract or package that would take us outside our registration before the Nominated Individual has confirmed in writing what registration it needs." }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            { "p": "The Nominated Individual owns our registration. They keep the registration register, confirm every registration check, submit every provider application and revision, give every notice of change, check every new certificate, tell commissioners of registration changes and report registration matters to the Monthly Quality and Governance Meeting. Where the Nominated Individual is the subject of a change, the chair of the Directors gives the notice." }
+          ]
+        },
+        {
+          "heading": "Registered Managers",
+          "blocks": [
+            { "p": "Each Registered Manager keeps their branch's part of the statement of purpose accurate, drafts revisions, completes the registration check for branch-level changes and applies to CQC for their own registration. The Registered Manager the Directors name as owner of the statement of purpose compiles the whole document. Registered Managers share legal responsibility for meeting the conditions of our registration." }
+          ]
+        },
+        {
+          "heading": "Deputy Managers",
+          "blocks": [
+            { "p": "The Deputy Manager carries out the Registered Manager's duties under this procedure during any absence and checks registration matters at each quarterly branch office inspection. Deputy Managers never submit provider applications or notices." }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            { "p": "The HR Manager collects the documents and checks CQC asks for with a manager's registration application, and updates our sponsor licence records under the Right to Work and Sponsored Workers Policy when our name, address, ownership or registration changes." }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Office staff",
+          "blocks": [
+            { "p": "Office staff and Care Coordinators check each referral against the statement of purpose when they record it in the initial assessment, and pass any referral outside it to the Registered Manager the same working day. They pass every letter or email from CQC about registration to the Registered Manager and the Nominated Individual the same working day." }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Our registration and its conditions",
+      "blocks": [
+        { "p": "The law makes carrying on a regulated activity without being registered for it an offence, punishable by a fine or imprisonment (section 10 of the Health and Social Care Act 2008). CQC may register a provider subject to conditions and may vary, remove or add conditions at any time (section 12). Failing, without reasonable excuse, to comply with a condition is an offence for the provider and the registered manager, punishable by a fine (section 33). Instead of prosecuting, CQC may issue a fixed penalty notice: 4,000 pounds for carrying on an activity without registration, and 4,000 pounds for the provider and 2,000 pounds for the registered manager for breaching a condition (Schedule 5 to the 2014 Regulations). Our arrangements are:" },
+        { "bullets": [
+          "We are registered for one regulated activity, personal care. We do not provide nursing care, and no health care professional we employ provides or supervises treatment for a disease, disorder or injury. Before we agree to do either, the Nominated Individual asks CQC in writing whether we must register for nursing care or for treatment of disease, disorder or injury, and the service does not start until any registration CQC requires is granted.",
+          "We provide personal care only to adults aged 18 and over, starting no earlier than their 18th birthday, and carry on no regulated activity for children, as the Safeguarding Children and Young People Policy sets out.",
+          "Each branch office from which personal care is managed is a registered location with its own Registered Manager. Because {{organisation}} is a company, the law makes our registration subject to a registered manager condition (section 13 and regulation 5 of the Care Quality Commission (Registration) Regulations 2009). Rotas, care planning, care records and supervision of care are managed only from registered locations. Before staff work regularly from any other office, the Nominated Individual asks CQC in writing whether it must be registered and follows CQC's answer."
+        ] },
+        { "p": "The Nominated Individual updates the registration register within 2 working days of any certificate, condition, decision or letter from CQC. They check each new certificate against what we applied for within 2 working days of receipt, tell CQC in writing at once of any error, and replace the copy displayed in each branch office alongside our rating within 5 working days." },
+        { "p": "A new or varied condition CQC decides to impose takes legal effect when CQC's notice is given where CQC uses its urgent procedure (section 31), and otherwise when the 28-day appeal period ends or any appeal is decided (section 28). Our policy is to act on it from the day we receive CQC's notice of the decision, whichever applies. The Registered Manager tells Office staff, Care Coordinators and the On-call Managers the same day and no referral is accepted against it; the Nominated Individual tells the commissioners concerned the same day and the Directors within 1 working day. While CQC has given notice of a proposal or decision to change a condition or cancel our registration, the law does not allow us to apply to change that condition or to cancel (section 19); our response follows the Inspection Readiness and Working with Regulators Guideline." }
+      ]
+    },
+    {
+      "heading": "The statement of purpose",
+      "blocks": [
+        { "p": "The law requires us to give CQC a statement of purpose containing the information in Schedule 3, to keep it under review and revise it where appropriate, and to give CQC written details of any revision within 28 days (regulation 12). Failure is an offence punishable by a fine (regulation 25), for which CQC may instead issue a fixed penalty notice of 1,250 pounds to the provider or 625 pounds to the registered manager (Schedule 5 to the 2014 Regulations). Ours contains:" },
+        { "table": { "columns": ["Content", "Schedule 3", "What ours states"], "rows": [
+          ["Aims and objectives", "Paragraph 1", "What we intend to achieve for the people we support, consistent with the Person-Centred Care, Dignity and Respect Policy."],
+          ["Kinds of services and the range of needs they meet", "Paragraph 2", "Personal care in people's own homes; the kinds of visit we offer, such as short scheduled visits, double-handed visits, night visits, waking nights, sleep-ins and end of life care; support given alongside personal care, such as medicines support; the groups of adults we support, such as older people and people living with dementia, physical or sensory disabilities, learning disabilities, autism or mental health needs; and what we do not provide: care for children, live-in care, nursing care and treatment by health care professionals."],
+          ["Contact details of the provider and each Registered Manager", "Paragraph 3", "Full name, business address, telephone number and email address of {{organisation}} and each Registered Manager, the address CQC may use to serve documents and notices, and the email address we consent to CQC using for them. We also give the Nominated Individual's name and business contact details."],
+          ["Legal status", "Paragraph 4", "Our legal form, such as a private limited company, with our company number and registered office address."],
+          ["Locations", "Paragraph 5", "For each branch: its address, its Registered Manager, the local authority areas it serves and its office opening hours."]
+        ] } },
+        { "p": "The statement of purpose contains no personal details other than the business contact details above. A copy is given to any person we support, family member, commissioner or employee who asks, within 10 working days and in the format they need." }
+      ]
+    },
+    {
+      "heading": "Reviewing and revising the statement of purpose",
+      "blocks": [
+        { "p": "The statement of purpose is reviewed in full every 12 months. Each Registered Manager checks their branch's part against the services delivered in the year ending 31 March, the owning Registered Manager compiles the review, and the Directors approve it at their governance meeting held by mid-May, even where nothing changes. A review with no change is not a revision and is not sent to CQC." },
+        { "p": "It is revised whenever anything it describes changes, including: a branch opening, moving, closing or changing the areas it serves; a Registered Manager leaving or a new one being registered; a change of Nominated Individual, our name, legal status, registered office or any address, telephone number or email address it gives; starting or stopping a kind of service or a group of adults we support; a change to our regulated activities or conditions; or a review or audit finding that it no longer matches what we do." },
+        { "steps": [
+          "The Registered Manager tells the Nominated Individual the same working day they learn of a change and drafts the revision within 5 working days, so that a planned change can be approved before it happens. The Nominated Individual drafts revisions about the provider or a Registered Manager joining or leaving.",
+          "The Nominated Individual checks the draft against Schedule 3 and the registration register within 5 working days. A Director checks any draft written by the Nominated Individual.",
+          "The Directors approve the revision within 5 working days of the check. A new kind of service, group of adults or local authority area does not start until approval.",
+          "The Nominated Individual sends CQC the revised statement of purpose with a note of what changed within 10 working days of approval, by the route CQC currently specifies, and records the date and CQC's acknowledgement in the registration register and the notifications register. A revision that accompanies an application, such as a new location, goes with the application, and the services it adds start only when CQC grants it.",
+          "The Registered Manager briefs Office staff and Care Coordinators within 5 working days of approval on any change to the services or people we accept. The superseded version is kept."
+        ] },
+        { "p": "Where the change has already happened, such as a sudden change of telephone number or a Registered Manager leaving without notice, the draft, the check and the Directors' approval each take no more than 2 working days, and the revision always reaches CQC within 28 days of the change." },
+        { "p": "A referral outside the statement of purpose is declined, unless the Registered Manager judges that we can meet the need safely within our registration and the Directors approve a revision before the first visit; the referrer is answered within the timescales in the Needs Assessment and Care Planning Policy. Out of hours, the On-call Manager makes the same check, never accepts a referral outside the statement of purpose and passes it to the Registered Manager by 10am the next working day. A request made to a care worker during a visit to care for anyone else in the household, including a child, or to take on a nursing task is never agreed in the home: the care worker phones the office (On-call Manager out of hours) before leaving, and it is handled as a new referral. A revision sent to CQC late is handled as a late notification under the Statutory Notifications to CQC Procedure." }
+      ]
+    },
+    {
+      "heading": "Checking a change before it happens",
+      "blocks": [
+        { "p": "Before any change that could affect our registration or statement of purpose, the Registered Manager (for a branch change) or the Nominated Individual (for any other change) completes a registration check in the registration register: what is changing and when; whether it is within our regulated activity, conditions and locations; which application, notice or revision it needs; who else must be told; and the date each step is due. The Nominated Individual confirms the check in writing before the Directors are asked to approve the change." },
+        { "table": { "columns": ["Change", "What the law requires", "Our arrangements"], "rows": [
+          ["Opening a branch, or moving a branch office", "Application to add or change the location, granted before care is managed from it (sections 12 and 19), with a manager registered for it (section 13)", "Application at least 6 months before an opening and 3 months before a move, with the revised statement of purpose"],
+          ["Closing a branch or ceasing to provide care", "The location stays in our registration until CQC grants our application to remove it, or to cancel our registration where none remains (section 19); ceasing to carry on the regulated activity also needs notice as soon as reasonably practicable (regulation 15)", "Application within 5 working days after the last visit managed from the branch; where we stop providing care altogether, notice given within 2 working days of the Directors' decision"],
+          ["Adding a regulated activity", "Registration for it before it is carried on (sections 10 and 11)", "Application at least 6 months before the planned start"],
+          ["Changing the legal entity that provides care, such as a merger or transfer of the business to another company", "The new entity must be registered before it carries on the regulated activity (section 10)", "Legal advice before terms are agreed; the new entity applies at least 6 months before the transfer date; no care transfers before its registration is granted"],
+          ["New kind of service, group of adults or local authority area within personal care", "Written details of the revision to CQC within 28 days (regulation 12)", "Revision approved before the first visit and sent within 10 working days of approval"],
+          ["Change of Director, company secretary or Nominated Individual, our name or address, a Registered Manager leaving or someone else managing a branch", "Notice as soon as reasonably practicable (regulation 15)", "Notice before the change takes effect where planned, otherwise within 2 working days; new Directors and Nominated Individuals are first found fit under the Fit and Proper Persons (Directors) Policy"],
+          ["Proposed or actual appointment of a receiver, manager, liquidator or provisional liquidator", "Notice as soon as reasonably practicable (regulation 15)", "Notice as soon as one is proposed and within 1 working day of an appointment"],
+          ["Removing or varying a condition no longer needed", "Application in the form CQC requires (section 19); we cannot apply to vary or remove the registered manager condition", "Application with supporting evidence after the Directors approve it"]
+        ] } },
+        { "p": "A sale of shares in {{organisation}} does not change the registered provider, but each resulting change of Director or Nominated Individual follows the notice and fitness rules above. Each Registered Manager applies for their own registration within 10 working days of starting, as the Registered Manager Role and Absence Cover Policy requires, and, when they stop managing a location, applies to cancel it before their last day unless they will manage another of our locations. Applications and notices go through the CQC provider portal where CQC accepts them there, otherwise on CQC's current form from the branch's secure email account; an emailed item unacknowledged after 5 working days is chased and its receipt recorded. The Nominated Individual and the Registered Manager concerned attend any registration interview or visit CQC arranges." }
+      ]
+    },
+    {
+      "heading": "Opening, moving or closing a branch",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Opening a branch",
+          "blocks": [
+            { "steps": [
+              "The Directors decide at least 9 months before the planned first visit, on a business case from the Nominated Individual covering demand and commissioners, premises, the Registered Manager and Deputy Manager, recruitment and the registration timetable, which is entered in the service improvement plan.",
+              "The new Registered Manager is recruited under the Registered Manager Role and Absence Cover Policy and is in post before the applications are made.",
+              "Within 10 working days of the new Registered Manager starting, and at least 6 months before the first visit, the Nominated Individual applies to add the location, with the approved revision of the statement of purpose, and the new Registered Manager applies for registration for it.",
+              "No contract or package is accepted for the new branch, and no care is managed from it, until CQC has added the location. Meanwhile, care in the new area may be managed only from an existing branch, within its statement of purpose.",
+              "Within 5 working days of CQC's decision, the Nominated Individual tells the commissioners in the area in writing."
+            ] }
+          ]
+        },
+        {
+          "heading": "Moving a branch office",
+          "blocks": [
+            { "steps": [
+              "Once the Directors approve the move, the Nominated Individual applies to change the location at least 3 months before the planned move date, with the revised statement of purpose.",
+              "Management of care moves to the new office only after CQC has granted the change. If CQC has not decided by the planned date, we stay in the existing office or, where that is impossible, the Nominated Individual agrees interim arrangements with CQC in writing before the move.",
+              "At least 4 weeks before the move, and again on the day, the Registered Manager tells people we support, their representatives, staff and commissioners the new address in writing, in the formats people need. Branch telephone numbers stay the same wherever possible; where a contact detail in the welcome pack kept in each person's home changes, a Field Care Supervisor or Senior Care Worker replaces that page at a visit before the move.",
+              "Before the old office closes, the Registered Manager confirms that keys held for people's homes have moved to the new office and been signed in under the Key Holding, Key Safes and Access to People's Homes Procedure, and that CareFlow access, telephones and on-call arrangements work from the new office.",
+              "Within 5 working days of the move, the Nominated Individual updates the website, the branch displays and every other record listed in Telling others about registration changes."
+            ] }
+          ]
+        },
+        {
+          "heading": "Closing a branch",
+          "blocks": [
+            { "steps": [
+              "The Directors decide to close a branch only with a closure plan from the Nominated Individual setting out how each person's care will continue, identified by CareFlow reference number. Where another of our branches can take over a person's care within its statement of purpose and staffing, that is offered first.",
+              "Within 2 working days of the decision, the Nominated Individual tells the commissioners concerned and the adult social care department of each local authority affected in writing, as the Risk Management Policy requires.",
+              "Within 5 working days of the decision, the Registered Manager writes to every employee in the branch and to each person we support, and their representative, giving each person at least 3 months' notice of the date their care with us ends, or the longer notice their contract requires, and phones each of them within 5 working days of the letter.",
+              "No package is handed back until the commissioner, or for a self-funder the person or their representative, has confirmed the new provider's start date. With the person's consent or a best interests decision, the new provider receives the care plan, risk assessments, medicines list and eMAR details before their first visit, and our visits continue until theirs start. Where we support medicines, the Care Coordinator tells the GP practice and supplying pharmacy within 2 working days of that support ending (Medicines Management Policy). Within 5 working days of our last visit, keys we hold are returned to the person or their representative against a signature and the key safe code is removed from CareFlow.",
+              "Within 5 working days after the last visit managed from the branch, the Nominated Individual applies to remove the location, or to cancel our registration if it is our only location.",
+              "The branch's records are transferred to another branch or archived under the Records Management and Retention Policy; none is destroyed because a branch closes."
+            ] },
+            { "p": "An unplanned closure, such as loss of the office or business failure, follows the Business Continuity and Emergency Planning Policy and the Risk Management Policy, and this procedure's applications and notices are made as soon as care is safe." }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Telling others about registration changes",
+      "blocks": [
+        { "p": "Within 5 working days of a new certificate, a new or changed condition, a new or moved location or a newly registered manager, the Nominated Individual tells every commissioner and integrated care board we hold a contract with in writing, and sends a revised statement of purpose to any commissioner whose contract asks for it, within the contract's timescale." },
+        { "p": "A change of name, address, legal entity or registration may also need Companies House filings (Fit and Proper Persons (Directors) Policy), sponsor licence changes (Right to Work and Sponsored Workers Policy), an update to our data protection fee registration with the Information Commission (Data Protection Policy), and updates to our insurers, website and branch displays. The Nominated Individual lists each in the registration check and records when it was done." }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "table": { "columns": ["Record", "Where", "Kept"], "rows": [
+          ["Every version of the statement of purpose, with its approval and change note", "Governance records", "Life of the organisation plus 6 years"],
+          ["Registration register, certificates, registration checks, closure plans, applications, notices and CQC's replies and decisions", "Governance records, with notices also in the notifications register", "Life of the organisation plus 6 years"],
+          ["Directors' approvals", "Directors' minutes, or the Director's written approval in the governance records", "Life of the organisation plus 6 years"],
+          ["Referrals outside the statement of purpose and the decision on each", "The person's initial assessment", "As the Records Management and Retention Policy sets out"]
+        ] } },
+        { "p": "Registration records refer to people we support only by CareFlow reference number." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "table": { "columns": ["Training", "Who", "When", "Refresher"], "rows": [
+          ["Registration, conditions, the statement of purpose, applications, notices and this procedure", "Nominated Individual, Registered Managers and Deputy Managers", "Within 3 months of appointment and before first drafting a revision or completing a registration check", "Every 24 months and after any major change to this procedure"],
+          ["Checking referrals against the statement of purpose and acting on a restrictive condition", "Care Coordinators, Office staff and On-call Managers who take referrals", "Before taking referrals alone", "Within 5 working days of any revision changing the services or people we accept"],
+          ["The Directors' accountability for registration and approvals", "Directors", "Within 1 month of appointment", "At the annual governance update"]
+        ] } },
+        { "p": "Until a new Registered Manager has completed this training, the Nominated Individual checks each of their registration checks and draft revisions before it goes further." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["What is checked", "How often", "By whom", "Reported to"], "rows": [
+          ["Every new package started is within the statement of purpose", "Weekly", "Registered Manager", "Weekly management meeting"],
+          ["Revisions, applications and notices due or awaiting CQC's decision", "Monthly", "Nominated Individual", "Monthly Quality and Governance Meeting"],
+          ["Displayed certificate is current and matches the registration register; statement of purpose is the approved version with correct contact details; 5 packages started in the quarter (all if fewer) match the services and groups it describes", "Every 3 months, at the branch office inspection", "Deputy Manager", "Registered Manager and the Monthly Quality and Governance Meeting"],
+          ["Full review of the statement of purpose", "Every 12 months, approved by mid-May", "Owning Registered Manager and Nominated Individual", "Directors"],
+          ["Statement of purpose against services delivered, and timeliness of every revision, application and notice in the year", "Every 12 months", "Independent quality reviewer", "Directors"]
+        ] } },
+        { "p": "Our targets are 100% of revisions sent to CQC within 10 working days of approval, no service started before its registration check and any approval or CQC decision it needs, and a statement of purpose that matches our services at every check. Each shortfall becomes an action in the service improvement plan within 5 working days. Any care delivered or managed outside our registration or its conditions is reported to the Nominated Individual the same day and to the Directors within 1 working day." },
+        { "p": "This procedure is reviewed every 24 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in the law or CQC's registration requirements, a late revision or notice, care delivered outside our registration, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working." }
+      ]
+    }
+  ]
+}

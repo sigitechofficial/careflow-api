@@ -1,0 +1,584 @@
+{
+  "reference": "POL-MED-010",
+  "revision": 1,
+  "title": "Controlled Drugs in the Community Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we support people with controlled drugs prescribed for them in their own homes: what the law allows, planning and approval, ordering, collecting and storing, the running balance we keep for each counted controlled drug, opioid patches, discrepancies and suspected diversion, returns to a pharmacy and what happens after a death. For care staff, Care Coordinators and managers.",
+  "keyPoints": {
+    "intro": "Controlled drugs such as morphine, oxycodone, fentanyl and buprenorphine patches, tramadol and pregabalin can cause serious harm and are sometimes stolen or misused. Follow these rules at every visit where one is due; out of hours, 'the office' means the On-call Manager.",
+    "points": [
+      "Where the eMAR entry's instructions say 'Count stock', count the stock before the dose. If it does not match the eMAR balance, give nothing unless the office passes on advice to give it, and phone the office at once from the home.",
+      "After the dose, count again and record the balance in the dose's eMAR note; count tablets, capsules and patches exactly and check a liquid's level. Give a rescue medicine such as buccal midazolam without delay; count it once the person is safe, before leaving.",
+      "Call 999, then the office, if the person is very hard to wake, suddenly confused or breathing slowly or with difficulty, or anyone may have overdosed or swallowed a patch or someone else's controlled drug. Wear gloves to remove a patch stuck to anyone else.",
+      "If you think anyone is taking, swapping or selling the person's medicines, phone the office before you leave, from outside if you feel unsafe. Never challenge or search anyone.",
+      "Enter every count that does not match, missing patch or dropped controlled drug dose in the incident log before the end of your shift.",
+      "At your first visit after a new supply arrives, count it and record the quantity received. Phone the office before you leave if it differs from the label.",
+      "Fold a used opioid patch sticky sides together and put it in the lidded used-patch container. Never put a patch, tablet or liquid in the bin, sink or toilet, and never put a heat pad, hot water bottle or electric blanket against a patch.",
+      "Never give, open, move, count, return or sign for anticipatory (just in case) medicines and never touch a syringe driver's controls. If anticipatory medicines are missing or look opened or disturbed, phone the office before you leave.",
+      "Give controlled drugs only as the label and eMAR direct, at the level the care plan sets, and never give one prescribed for someone else.",
+      "Collect or return controlled drugs only when the care plan says so. Wear your ID badge, go straight between pharmacy and home (back to the pharmacy if the visit cannot go ahead) and never leave them in a car, your home or the office.",
+      "Never destroy a controlled drug. Returns go only to a community pharmacy, with the person's agreement, on the controlled drug return record signed by the pharmacy.",
+      "After a death, leave every medicine where it is and never take any away, even if the family ask."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Carer/Domestic",
+    "Senior Carer/Nurse",
+    "Care Coordinator",
+    "Manager"
+  ],
+  "moduleLinks": [
+    "MEDICATION",
+    "INCIDENT",
+    "SAFEGUARDING",
+    "CARE_PLAN"
+  ],
+  "relatedReferences": [
+    "POL-MED-001",
+    "POL-MED-005",
+    "POL-MED-006",
+    "POL-MED-007",
+    "POL-MED-012",
+    "POL-MED-014",
+    "POL-SG-002",
+    "POL-CD-011"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "The Misuse of Drugs Regulations 2001, regulation 7 Administration of drugs in Schedules 2, 3, 4 and 5",
+      "url": "https://www.legislation.gov.uk/uksi/2001/3998/regulation/7"
+    },
+    {
+      "source": "The Misuse of Drugs Regulations 2001, regulation 6 General authority to supply and possess (including 6(2), supply to a doctor, dentist or pharmacist for destruction)",
+      "url": "https://www.legislation.gov.uk/uksi/2001/3998/regulation/6"
+    },
+    {
+      "source": "The Misuse of Drugs Regulations 2001, regulation 16 Provisions as to supply on prescription (28-day validity and identity of the person collecting a Schedule 2 drug)",
+      "url": "https://www.legislation.gov.uk/uksi/2001/3998/regulation/16"
+    },
+    {
+      "source": "Misuse of Drugs Act 1971, section 5 Restriction of possession of controlled drugs, including 5(4)(b)",
+      "url": "https://www.legislation.gov.uk/ukpga/1971/38/section/5"
+    },
+    {
+      "source": "The Human Medicines (Authorisation by Pharmacists and Supervision by Pharmacy Technicians) Order 2025, article 10(3), adding pharmacy technicians to regulation 6(2) of the Misuse of Drugs Regulations 2001 (in force 10 December 2026 under S.I. 2026/110)",
+      "url": "https://www.legislation.gov.uk/uksi/2025/1249/article/10"
+    },
+    {
+      "source": "The Misuse of Drugs (Safe Custody) Regulations 1973, regulation 3 (premises to which the safe custody requirements apply)",
+      "url": "https://www.legislation.gov.uk/uksi/1973/798/regulation/3"
+    },
+    {
+      "source": "The Controlled Drugs (Supervision of Management and Use) Regulations 2013, regulation 5 Meaning of 'relevant persons'",
+      "url": "https://www.legislation.gov.uk/uksi/2013/373/regulation/5"
+    },
+    {
+      "source": "The Controlled Drugs (Supervision of Management and Use) Regulations 2013, regulation 8 Nomination or appointment of accountable officers (NHS England appoints for each local intelligence network area)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/373/regulation/8"
+    },
+    {
+      "source": "Home Office, List of most commonly encountered drugs currently controlled under the misuse of drugs legislation (updated 1 April 2025)",
+      "url": "https://www.gov.uk/government/publications/controlled-drugs-list--2/list-of-most-commonly-encountered-drugs-currently-controlled-under-the-misuse-of-drugs-legislation"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(g) the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18 Notification of other incidents, including 18(2)(e) abuse or allegation of abuse and 18(2)(f) incidents reported to or investigated by the police",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024): records of receipt and disposal of medicines, and returns of controlled drugs signed by the receiving pharmacist",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    },
+    {
+      "source": "NHS, Fentanyl: how and when to use it (heat, used patches, a patch stuck to someone else and signs of too much fentanyl)",
+      "url": "https://www.nhs.uk/medicines/fentanyl/how-and-when-to-use-fentanyl/"
+    },
+    {
+      "source": "MHRA Drug Safety Update, Opioids: risk of dependence and addiction (23 September 2020)",
+      "url": "https://www.gov.uk/drug-safety-update/opioids-risk-of-dependence-and-addiction"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Many of the people we support take strong painkillers and other controlled drugs, often in the last months of life; overdose, accidental exposure, misuse or theft can cause serious harm. {{organisation}} is committed to supporting people with their controlled drugs safely and lawfully in their own homes, accounting for every dose we handle and acting at once when stock cannot be accounted for."
+        },
+        {
+          "p": "Controlled drugs prescribed for a person belong to that person. {{organisation}} holds no stock of controlled drugs, never keeps any at the branch office and never destroys them. This procedure adds to the Medicines Management Policy, whose rules still apply."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every controlled drug we support is planned, approved and correctly flagged on the eMAR before the first dose.",
+            "Every dose of a counted controlled drug is traceable through a running balance, from supply to use or return.",
+            "Discrepancies, loss and suspected diversion are reported at once, investigated and passed to the right agencies on time."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to every employee, including bank and agency workers placed with us, who plans, gives, counts, records, collects, returns or audits controlled drugs, and to every person we support who has a controlled drug prescribed for them."
+        },
+        {
+          "p": "Owned elsewhere: giving each formulation (Administering and Supporting People with Medicines Procedure); eMAR outcomes and corrections (Medicines Administration Records (MAR and eMAR) Procedure); medicines supply and disposal in general (Ordering, Collecting, Storing and Disposing of Medicines Procedure); buccal midazolam and other delegated tasks (Delegated Healthcare Activities and Specialised Medicines Tasks Policy). Illegal drugs or drug equipment found in a home are never touched (Hazardous Substances (COSHH) Procedure), and staff's own medicines follow the Staff Code of Conduct."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Controlled drug",
+                "A medicine listed in Schedules 2 to 5 of the Misuse of Drugs Regulations 2001."
+              ],
+              [
+                "Counted controlled drug",
+                "A controlled drug flagged on the eMAR for a stock count under Planning and approving support."
+              ],
+              [
+                "Running balance",
+                "The quantity that should be in the home: the last recorded balance, plus any supply received, less every dose recorded since from any source and any dose sealed for return."
+              ],
+              [
+                "Discrepancy",
+                "A count that does not match the running balance, a supply that does not match its label, or a counted controlled drug or patch that cannot be found."
+              ],
+              [
+                "Diversion",
+                "A controlled drug being taken, used, sold or given away by anyone other than the person it was prescribed for."
+              ],
+              [
+                "Controlled drug return record",
+                "The paper record of each return of controlled drugs to a pharmacy, signed by the pharmacy and then scanned into the person's documents in CareFlow."
+              ],
+              [
+                "The office",
+                "The branch office (Office staff and the Care Coordinator) in office hours; the On-call Manager out of hours."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Registered Manager tells the Directors within 24 hours of any controlled drug incident that causes serious harm, is referred to safeguarding, is notified to CQC or involves the police, and tells the Nominated Individual within 24 hours of any such concern involving staff or the police. The Nominated Individual challenges the controlled drug figures in the quarterly medicines governance report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, or the Deputy Manager in their absence, approves support with a Schedule 2 or 3 controlled drug and any count set by risk, and decides on safeguarding referrals, police reports, CQC notifications and reports to the local NHS controlled drugs accountable officer."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator",
+          "blocks": [
+            {
+              "p": "Provides the lidded used-patch container before the first opioid patch visit; arranges ordering, collection, lockable storage and returns where they are our task; checks every discrepancy reported; and keeps the GP practice, pharmacy, community nursing team and family informed."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisor and Senior Care Worker",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors, and Senior Care Workers authorised for in-home medicines checks, make the monthly independent count of every counted controlled drug; Field Care Supervisors also observe counting at spot checks."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers",
+          "blocks": [
+            {
+              "p": "Count, give, record and store controlled drugs exactly as this procedure sets out, and phone the office before leaving about any discrepancy or concern."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Act at once on discrepancy calls and eMAR balances that do not follow from the last count, and obtain clinical advice for the due dose. Out of hours, the On-call Manager makes the discrepancy checks and phones the escalation manager on the management escalation rota about any possible diversion."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Controlled drugs and the law",
+      "blocks": [
+        {
+          "p": "The Misuse of Drugs Regulations 2001 place controlled drugs in Schedules, listed in the Home Office controlled drugs list (updated 1 April 2025). Where the Schedule is unclear, the assessor asks the pharmacist."
+        },
+        {
+          "table": {
+            "columns": [
+              "Schedule",
+              "Examples prescribed to people we support",
+              "Our arrangements"
+            ],
+            "rows": [
+              [
+                "Schedule 2",
+                "Morphine (most strengths), oxycodone, fentanyl, diamorphine, methadone, tapentadol, methylphenidate, lisdexamfetamine.",
+                "Counted whenever we support it at Level 1, 2 or 3. Registered Manager or Deputy Manager approval before support starts."
+              ],
+              [
+                "Schedule 3",
+                "Buprenorphine, tramadol, pregabalin, gabapentin, midazolam, temazepam, phenobarbital.",
+                "As Schedule 2."
+              ],
+              [
+                "Schedule 4",
+                "Diazepam, lorazepam, zopiclone, zolpidem.",
+                "Counted only where the risk assessment sets a count."
+              ],
+              [
+                "Schedule 5",
+                "Low-strength preparations, such as co-codamol, dihydrocodeine tablets and oral morphine solution 10 mg in 5 ml.",
+                "Oral morphine solution is counted whenever we support it. Others are counted only where the risk assessment sets a count."
+              ]
+            ]
+          }
+        },
+        {
+          "bullets": [
+            "Anyone may administer a Schedule 2, 3 or 4 controlled drug to a patient in accordance with the prescriber's directions, and any Schedule 5 drug (regulation 7); the regulation sets no witness requirement. Our policy is that only trained, competent care workers give them.",
+            "A controlled drug prescribed for a person may be supplied by them, or someone representing them, to a doctor, dentist or pharmacist for destruction, and from 10 December 2026 also to a pharmacy technician (regulation 6(2), as amended); taking possession only to deliver it promptly to someone lawfully entitled to hold it is a defence to possession (Misuse of Drugs Act 1971, section 5(4)(b)). We return controlled drugs only to a community pharmacy.",
+            "A prescription for a Schedule 2, 3 or 4 controlled drug cannot be dispensed more than 28 days after its date. For a Schedule 2 drug, the pharmacy may ask a representative collecting it for evidence of identity and refuse to supply if not satisfied (regulation 16).",
+            "The Misuse of Drugs (Safe Custody) Regulations 1973 do not apply to a person's own home; our storage rules are our policy.",
+            "Regulation 5 of the Controlled Drugs (Supervision of Management and Use) Regulations 2013 does not name home care providers among the 'relevant persons' it covers. NHS England appoints a controlled drugs accountable officer for each local area (regulation 8); reporting to them is our policy."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Planning and approving support",
+      "blocks": [
+        {
+          "p": "At the medicines assessment, the authorised assessor identifies every controlled drug in the home, including Level 0 and family-managed ones, records the GP's or pharmacist's advice before setting its level, and records in the medicines section of the care plan: its level and whether it is counted; who orders, collects and returns it; where it is stored and who has authorised access; and what family or community nurses give and how they record it."
+        },
+        {
+          "p": "The assessor completes an individual risk assessment in CareFlow for each controlled drug, covering overdose or self-harm, confusion about doses, alcohol or drug use, others in or visiting the home who could take it (children included), any previous loss, accidental exposure to patches, and sedation from combining opioids with other sedating medicines or alcohol. Where any of these risks is found, lockable storage is considered and the Care Coordinator asks the GP or pharmacist the same day about smaller, more frequent supplies."
+        },
+        {
+          "p": "An authorised eMAR user marks the entry Controlled and adds 'Count stock' to its instructions, second-checked with the entry, for:"
+        },
+        {
+          "bullets": [
+            "every Schedule 2 or 3 controlled drug we support at Level 1, 2 or 3;",
+            "every oral morphine solution, whatever its strength; and",
+            "any other controlled drug where the risk assessment finds a risk of misuse, diversion or overdose, approved by the Registered Manager or Deputy Manager."
+          ]
+        },
+        {
+          "p": "A person with capacity who declines counts of a medicine they take at Level 1 is respected; the Registered Manager reviews the risk the same working day and records the decision in the risk assessment. Level 0 controlled drugs are not counted; any check is set under the Self-Administration of Medicines Procedure. Where a counted controlled drug is in a monitored dosage system, the Care Coordinator asks the pharmacy the same working day to supply it in its original pack; until then the balance is the number of sealed compartments containing it."
+        },
+        {
+          "p": "Support with a Schedule 2 or 3 controlled drug never starts until the Registered Manager or Deputy Manager has approved it (out of hours, by phone through the On-call Manager, recording who approved it and when). The notification to the GP practice and pharmacy names each counted controlled drug."
+        }
+      ]
+    },
+    {
+      "heading": "Ordering, collecting and receiving supplies",
+      "blocks": [
+        {
+          "p": "Where the care plan gives us ordering, the Care Coordinator orders each counted controlled drug, confirms the supply is ready and chases any missing prescription within the timescales of the Ordering, Collecting, Storing and Disposing of Medicines Procedure, working out the run-out date from the running balance. We never order extra to build up stock in the home."
+        },
+        {
+          "p": "Where the care plan gives us collection, the Care Coordinator schedules it immediately before that person's visit or, where we pay a prescription charge with the person's cash, as a trip starting and ending at their home (Handling Money, Property and Shopping Procedure). The care worker wears their ID badge, says they are the person's care worker and shows identification if asked. If the pharmacy cannot supply, they phone the office before leaving and the office contacts the GP practice the same day. They take the medicines straight to the home, never leave them unattended in a vehicle, and record the collection in the daily visit notes. If they cannot get in, they keep the medicines on them under the No Reply, No Access and Missing Person Procedure and, if the visit cannot go ahead, return them straight to the pharmacy to hold until the office arranges delivery."
+        },
+        {
+          "p": "At the first visit after a new supply arrives, whoever brought it, the care worker counts it, checks the quantity against the label and records on the eMAR the quantity received and the new balance. A quantity that differs from the label is phoned to the office before the care worker leaves; the office tells the pharmacy the same day and records it in the incident log. Care workers sign a pharmacy delivery note only to confirm a delivery has arrived, never for a quantity they have not counted."
+        }
+      ]
+    },
+    {
+      "heading": "Storage and access in the home",
+      "blocks": [
+        {
+          "bullets": [
+            "Controlled drugs stay in their pharmacy packs where the care plan records, out of sight of visitors, out of reach of children and apart from other household members' medicines.",
+            "Lockable storage is agreed, supplied and approved under the Self-Administration of Medicines Procedure whenever the risk assessment finds a risk of misuse, diversion, overdose or access by others. Box codes are recorded only in the person's home access details in CareFlow and handled like key safe codes: never written down or shared except with the people the care plan names as having authorised access. A rescue medicine is kept where its emergency plan says, never locked away.",
+            "A lost key, or a box code that may be known to someone without authorised access, is phoned to the office the same day. The Care Coordinator has the code changed or the box replaced within 1 working day and agrees an interim arrangement with the person meanwhile.",
+            "Doses sealed for return, stopped controlled drugs and used opioid patches are kept in the same storage, in their own sealed return bag (a lidded container for a liquid) or the used-patch container, labelled with the person's name, the medicine, the quantity and the date, and are recorded on the eMAR.",
+            "No person's controlled drugs are ever kept at the branch office, in a vehicle or at an employee's home, even overnight."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Giving controlled drugs and keeping the running balance",
+      "blocks": [
+        {
+          "p": "For every dose of a counted controlled drug, the care worker follows the Administering and Supporting People with Medicines Procedure and these steps:"
+        },
+        {
+          "steps": [
+            "Check the eMAR for the dose due, the last balance and the last dose, and check the daily visit notes, the between-visits record and any nurse's record in the home for doses given since.",
+            "Count the stock before the dose. Count tablets and capsules exactly in opened packs, sealed manufacturer packs by the quantity printed on them, and patches by unopened sachets. For a liquid, check that the level looks right for the calculated balance. The only exception is a rescue medicine such as buccal midazolam given in an emergency under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy: it is given without delay and counted once the person is safe, before you leave.",
+            "If the count does not match the running balance, do not give the dose. Phone the office at once and wait for the call back for up to 30 minutes after the planned end of the visit, while the office rearranges your next visit if needed; give the dose only if the office passes on clinical advice to do so. Later advice means the office arranges an extra visit.",
+            "Give the dose after the six rights checks.",
+            "Count again and record the remaining balance in the eMAR note for that dose straight away. Where CareFlow asks about a witness, record the second care worker if one is allocated to the visit, otherwise that none was present; we do not require a witness and never delay a dose to find one.",
+            "Return the medicine to its storage, lock it where lockable storage is in use, and check the storage is closed before you leave."
+          ]
+        },
+        {
+          "p": "Liquid balances are kept in millilitres. A bottle that runs out while the calculated balance is still more than 10% of its starting volume, or a level clearly lower than the calculated balance, is a discrepancy. Liquid left when the balance reaches zero is recorded on the eMAR with an estimate, and the Care Coordinator corrects the balance after checking with the pharmacist."
+        },
+        {
+          "p": "For opioid patches, the care worker folds the old patch sticky sides together into the used-patch container, as the Administering and Supporting People with Medicines Procedure sets out. They record the removal, both sites and the unopened patch balance. An old patch that cannot be found is phoned to the office before leaving, no new patch is applied without advice, and the office checks that nobody else in the home, especially a child, may have been exposed. Heat increases the dose absorbed: care workers never place a hot water bottle, heat pad or electric blanket against a patch, and phone the office the same day if the person has a high temperature."
+        },
+        {
+          "p": "A dose taken out of its packaging and not given (declined, dropped or spat out) is never put back: it is sealed, labelled and kept for pharmacy return, and the eMAR note records it with the stock balance. A dropped controlled drug dose is phoned to the office at once. When required controlled drugs also follow the When Required (PRN) Medicines Protocol."
+        },
+        {
+          "p": "The care worker calls 999 if the person is very hard to wake, suddenly confused or breathing slowly or with difficulty, or if anyone may have taken more than prescribed, swallowed a patch or taken someone else's controlled drug. A patch stuck to someone else is removed at once with gloves; 999 is called if they are drowsy or breathing shallowly, otherwise the office obtains NHS 111 advice straight away. They tell the call handler which medicines are in the home, including any naloxone supplied to the person, follow their instructions and then phone the office. New drowsiness, falls or constipation are phoned to the office before leaving, and the Care Coordinator contacts the GP or pharmacist the same day."
+        }
+      ]
+    },
+    {
+      "heading": "Discrepancies, loss and suspected diversion",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What the care worker finds",
+              "What the care worker does",
+              "What the office and managers do"
+            ],
+            "rows": [
+              [
+                "A count that does not match, or a counted controlled drug or patch that cannot be found",
+                "Gives nothing from that supply, checks the person is safe and phones the office at once.",
+                "Obtain pharmacist, GP or NHS 111 advice on the due dose straight away and start the checks below."
+              ],
+              [
+                "A new supply that differs from its label",
+                "Phones the office before leaving.",
+                "Tell the pharmacy the same day; unexplained if the pharmacy cannot account for it."
+              ],
+              [
+                "Signs that someone else takes, swaps or sells the person's medicines, or pressure on staff to hand them over",
+                "Phones before leaving, from outside if the person who may be responsible is present or they feel unsafe; never challenges or searches anyone.",
+                "Tell the safeguarding lead (On-call Manager out of hours) at once."
+              ],
+              [
+                "The person asks for doses early or shows signs of misuse or dependence",
+                "Phones the office before leaving.",
+                "Contact the GP the same day; act on any overdose or self-harm risk under the Assessing Medicines Support Needs Procedure."
+              ],
+              [
+                "Anticipatory medicines that are missing, or look opened or disturbed outside a nurse's visit",
+                "Touches nothing; phones the office before leaving.",
+                "Tell the community nursing team the same day and ask them to account for them."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every discrepancy is checked as follows:"
+        },
+        {
+          "steps": [
+            "The care worker enters the discrepancy in the incident log before the end of their shift. Within 2 hours of the call, the Care Coordinator (On-call Manager out of hours) checks the eMAR history, between-visits record, daily visit notes, deliveries, returns, sealed doses and any hospital stay, asks the person, their named contact and the community nursing team, and records the result in that entry.",
+            "An explained discrepancy, such as a counting error or an unrecorded supply, is corrected under the Medicines Administration Records (MAR and eMAR) Procedure and discussed with the care worker at their next supervision or spot check.",
+            "An unexplained discrepancy, or any sign of theft or misuse by anyone, is treated as possible diversion. The safeguarding lead (On-call Manager out of hours) is told at once, assesses the risk within 1 hour and refers to the local authority the same working day under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+            "The Registered Manager or Deputy Manager reports a theft, suspected theft or unexplained loss of a counted controlled drug to the police the same working day, or by 999 if anyone is in immediate danger. A person's wish not to involve the police is followed only where they have capacity, nobody else is at risk and no member of staff is implicated.",
+            "The Registered Manager or Deputy Manager notifies CQC under the Statutory Notifications to CQC Procedure. The law requires notification without delay of a police matter (regulation 18(2)(f)) and of abuse or alleged abuse (regulation 18(2)(e)); our deadlines are 24 hours from becoming aware of the police matter and from the safeguarding referral.",
+            "The Registered Manager reports every unexplained loss, suspected diversion and controlled drug incident causing harm to the local NHS controlled drugs accountable officer within 2 working days (our policy), using the route on the Local Safeguarding Contacts sheet.",
+            "The Care Coordinator tells the prescriber and pharmacy the same day, and the commissioner the same working day where a safeguarding concern is raised.",
+            "Where a member of staff may be involved, the Managing Allegations Against Staff Procedure applies: the safeguarding lead decides the same day whether they continue to visit the person or to handle controlled drugs, and nobody interviews them or investigates internally until the police agree."
+          ]
+        },
+        {
+          "p": "Until a possible diversion is closed, a Field Care Supervisor or authorised Senior Care Worker makes an independent count at least weekly and the Care Coordinator reviews the risk assessment and storage within 7 days. Every discrepancy is graded and investigated under the Medication Errors, Near Misses and Incidents Procedure, pausing if the police or local authority ask. Two discrepancies for the same person within 4 weeks lead to a focused care plan and risk assessment review within 7 days and a safeguarding lead decision on possible neglect."
+        }
+      ]
+    },
+    {
+      "heading": "Anticipatory medicines and syringe drivers",
+      "blocks": [
+        {
+          "p": "Anticipatory medicines and syringe drivers, which often contain controlled drugs, are the community nursing team's responsibility and are not on our eMAR. As the End of Life Care Policy sets out, our staff never give, open, move, count, return or sign for them, or touch a syringe driver's controls or disconnect it. A syringe driver that alarms, leaks or comes apart is phoned to the office at once, and the office contacts the community nursing team straight away."
+        }
+      ]
+    },
+    {
+      "heading": "Hospital stays, absences and the end of support",
+      "blocks": [
+        {
+          "bullets": [
+            "When a person goes into hospital or away on a planned absence, the care worker or Office staff record in the daily visit notes which counted controlled drugs left the home, how many (counted first) and with whom. At the first visit afterwards the care worker counts before any dose, allowing for what left and any new supply; after a hospital stay nothing is given until the discharge medicines check under the Medicines Changes, Transfers of Care and Hospital Discharge Procedure is done.",
+            "When support ends for any reason other than death, the Care Coordinator records the last balance of each counted controlled drug in the care plan and agrees with the person or named contact who returns any no longer needed."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Returning controlled drugs to a pharmacy",
+      "blocks": [
+        {
+          "p": "Stopped, out-of-date or unneeded controlled drugs, sealed doses and used opioid patches are returned to a community pharmacy with the person's agreement, or under a best interests decision. Where family make returns, the Care Coordinator reminds them and the care worker records on the eMAR when the medicines have gone. Where returns are our task, items go back within 7 days of no longer being needed, and the used-patch container and sealed doses at least every 4 weeks."
+        },
+        {
+          "steps": [
+            "The Care Coordinator schedules the return straight from the person's home to the pharmacy, with no visit in between.",
+            "With the person or their named contact where possible, count each item and complete the controlled drug return record: the person's name, each medicine with its strength, form and quantity, the number of used patches, the date, the pharmacy and your name.",
+            "Ask the pharmacist (from 10 December 2026, or a pharmacy technician) who receives the medicines to check the quantities and sign the record. If the pharmacy is closed or will not accept them, take them back to the person's home, store them and phone the office.",
+            "On the eMAR, end the balance with the note 'Returned to pharmacy', and bring the record to the office by the end of your shift, in a sealed envelope through its letterbox if closed.",
+            "Office staff scan it into the person's CareFlow documents within 2 working days, then shred it."
+          ]
+        },
+        {
+          "p": "Controlled drugs are never destroyed in the home: never put in the bin, sink or toilet, and never mixed with a denaturing kit."
+        }
+      ]
+    },
+    {
+      "heading": "Action after a death",
+      "blocks": [
+        {
+          "p": "After a death, staff leave every medicine as it is, as the End of Life Care Policy requires, and never take any medicines away, even if the family ask. Where the police or a coroner's officer attend, staff follow their instructions."
+        },
+        {
+          "p": "The same working day, or by 12 noon the next working day after an out-of-hours death, the Care Coordinator records the last balance of each counted controlled drug in the care plan and explains to the family or representative that the medicines must be returned to a pharmacy and never used by anyone else. Where nobody can return them, the Care Coordinator asks the GP practice or community nursing team the same working day how they will be removed, and records the answer."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Arrangements are recorded in the care plan and risk assessments; doses, balances, supplies, sealed doses, independent counts and returns on the eMAR; collections and medicines leaving the home in the daily visit notes; discrepancies in the incident log and, where diversion is suspected, the safeguarding records; and signed return records in the person's documents. Retention follows the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training or check",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Controlled drugs within full medicines training: Schedules, counting and running balances, opioid patches, overdose signs, discrepancies, returns and anticipatory medicines",
+                "Everyone who gives medicines support",
+                "Before giving medicines support, then every 12 months"
+              ],
+              [
+                "Counting and recording a balance, observed in a person's home within observed medicines competency",
+                "Everyone who gives medicines support",
+                "Before giving a counted controlled drug unsupervised, then every 12 months"
+              ],
+              [
+                "Responding to discrepancy calls and balances that do not follow from the last count, within eMAR monitoring training",
+                "Office staff and On-call Managers",
+                "Before monitoring alone or the first on-call shift, then every 12 months"
+              ],
+              [
+                "Checking discrepancies and reporting to the police, CQC and the accountable officer",
+                "Registered Manager, Deputy Manager, Care Coordinators and On-call Managers",
+                "Before checking a first discrepancy or the first on-call shift, then every 3 years"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Balances that do not follow from the last count, and counted doses without a balance",
+                "At the four daily eMAR checks and as alerts arrive",
+                "Office staff; On-call Manager out of hours",
+                "Registered Manager where action is needed"
+              ],
+              [
+                "Independent count of every counted controlled drug, sealed doses and the used-patch container against the eMAR",
+                "Monthly; weekly while a possible diversion is open",
+                "Field Care Supervisor or authorised Senior Care Worker",
+                "Deputy Manager"
+              ],
+              [
+                "Every discrepancy and return record: timeliness, checks, referrals and reports",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager and the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Counting, recording and patch practice",
+                "At least every 6 months per care worker, within spot checks",
+                "Field Care Supervisor",
+                "Supervision and appraisal records"
+              ],
+              [
+                "Controlled drug discrepancies, losses, police and accountable officer reports and trends",
+                "Quarterly",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ],
+              [
+                "Controlled drug arrangements against this procedure",
+                "Every 12 months, in the annual medicines audit",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of counted doses with a balance recorded, discrepancies phoned in before the care worker leaves, unexplained discrepancies referred and reported on time, and return records signed and scanned within 2 working days; and no controlled drug destroyed in a home or kept at the office."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in the law or national guidance, a serious controlled drug incident, an inspection finding, or when monitoring shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

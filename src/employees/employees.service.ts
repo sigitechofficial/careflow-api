@@ -1,6 +1,10 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { DataAccessType, Prisma, EmployeeComplianceStatus } from '@prisma/client';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { DataAccessType, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ComplianceReportsService } from '../compliance-reports/compliance-reports.service';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { collectReviewDues, currentStaffWhere, reviewKey } from '../employee-reviews/review-dues';
+import { deriveReviewStatus, REVIEW_DUE_SOON_DAYS } from '../employee-reviews/employee-review-schedule.util';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -37,6 +41,8 @@ export class EmployeesService {
     private readonly audit: AuditLogsService,
     private readonly scheduleImpact: ScheduleLifecycleImpactService,
     private readonly orgScope: OrgScopeService,
+    @Optional() private readonly complianceReports?: ComplianceReportsService,
+    @Optional() private readonly orgSettings?: OrganisationGeneralSettingsService,
   ) {}
 
   async list(query: EmployeeQueryDto, actor?: RequestUser) {
@@ -489,9 +495,9 @@ export class EmployeesService {
       return {
         data: {
           staff: { total: 0, active: 0, inactive: 0 },
-          compliance: { upToDate: 0, needsAttention: 0 },
+          compliance: { compliant: 0, attention: 0, blocked: 0 },
           skills: [],
-          reviews: { reviewed: 0, outstanding: 0 },
+          reviews: { upToDate: 0, dueSoon: 0, overdue: 0 },
           meta: { cohortTotal: 0, scope: 'filtered' as const },
         },
       };
@@ -504,9 +510,9 @@ export class EmployeesService {
 
     const emptySummary = {
       staff: { total: 0, active: 0, inactive: 0 },
-      compliance: { upToDate: 0, needsAttention: 0 },
+      compliance: { compliant: 0, attention: 0, blocked: 0 },
       skills: [] as { name: string; value: number; color: string }[],
-      reviews: { reviewed: 0, outstanding: 0 },
+      reviews: { upToDate: 0, dueSoon: 0, overdue: 0 },
       meta: {
         cohortTotal: 0,
         scope: cohortFiltered ? 'filtered' as const : 'organisation' as const,
@@ -546,25 +552,12 @@ export class EmployeesService {
         : Promise.resolve(0),
     ]);
 
-    const horizon = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-    // Classify by the record's status (as the compliance report does): a missing, rejected or
-    // unreviewed document is never "up to date" just because it has no expiry date.
-    const requiredRecord = {
-      deletedAt: null,
-      isNoLongerRequired: false,
-      status: { notIn: [EmployeeComplianceStatus.NOT_REQUIRED, EmployeeComplianceStatus.NO_LONGER_REQUIRED] },
-      employee: listWhere,
-    };
-    const complianceUpToDate = await this.prisma.employeeCompliance.count({
-      where: {
-        ...requiredRecord,
-        status: EmployeeComplianceStatus.VALID,
-        OR: [{ expiryDate: null }, { expiryDate: { gt: horizon } }],
-      },
-    });
-    const complianceRequired = await this.prisma.employeeCompliance.count({ where: requiredRecord });
-    const complianceNeedsAttention = Math.max(0, complianceRequired - complianceUpToDate);
+    // Compliance per person, with the compliance board's own rule (Compliant / Attention / Blocked),
+    // so this chart and the board always agree.
+    const cohortIds = (await this.prisma.employee.findMany({ where: listWhere, select: { id: true } })).map((e) => e.id);
+    const compliance = this.complianceReports
+      ? await this.complianceReports.statusCounts(cohortIds)
+      : { compliant: 0, attention: 0, blocked: 0 };
 
     type SkillAggRow = { skillTypeId: string | null; cnt: number };
     const skillGroups = await this.prisma.employeeSkill.groupBy({
@@ -597,21 +590,20 @@ export class EmployeesService {
         color: `hsl(${(i * 29) % 360}, 58%, 48%)`,
       }));
 
-    const reviewStatusRows = await this.prisma.employeeReview.findMany({
-      where: { deletedAt: null, employee: listWhere },
-      select: { status: true },
-    });
-    let reviewsReviewed = 0;
-    let reviewsOutstanding = 0;
-    const doneTokens = ['published', 'complete', 'completed', 'reviewed', 'signed'];
-    for (const r of reviewStatusRows) {
-      const s = (r.status ?? '').toLowerCase();
-      if (doneTokens.some((t) => s.includes(t))) {
-        reviewsReviewed += 1;
-      } else {
-        reviewsOutstanding += 1;
-      }
+    // Staff reviews from each review type's schedule: due ones by status, plus records with nothing
+    // more due (one-offs, finished probation) as up to date. Current staff only.
+    const now = new Date();
+    const dueSoonDays = (await this.orgSettings?.getSupervisionSettings())?.dueSoonDays ?? REVIEW_DUE_SOON_DAYS;
+    const { dues, latest } = await collectReviewDues(this.prisma, { AND: [listWhere, currentStaffWhere(now)] });
+    const reviews = { upToDate: 0, dueSoon: 0, overdue: 0 };
+    const dueKeys = new Set(dues.map((d) => reviewKey(d.employeeId, d.reviewTypeId)));
+    for (const due of dues) {
+      const status = deriveReviewStatus({ nextDue: due.nextDue }, now, dueSoonDays);
+      if (status === 'OVERDUE') reviews.overdue += 1;
+      else if (status === 'DUE_SOON') reviews.dueSoon += 1;
+      else reviews.upToDate += 1;
     }
+    for (const [key, t] of latest) if (!dueKeys.has(key) && t.lastDone) reviews.upToDate += 1;
 
     return {
       data: {
@@ -620,15 +612,9 @@ export class EmployeesService {
           active: activeCount,
           inactive: inactiveCount,
         },
-        compliance: {
-          upToDate: complianceUpToDate,
-          needsAttention: complianceNeedsAttention,
-        },
+        compliance,
         skills: skillsPie,
-        reviews: {
-          reviewed: reviewsReviewed,
-          outstanding: reviewsOutstanding,
-        },
+        reviews,
         meta: {
           cohortTotal: total,
           scope: cohortFiltered ? 'filtered' : 'organisation',

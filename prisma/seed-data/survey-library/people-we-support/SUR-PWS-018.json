@@ -1,0 +1,329 @@
+{
+  "reference": "SUR-PWS-018",
+  "revision": 1,
+  "title": "Feeling safe at home",
+  "audience": "SERVICE_USER",
+  "respondents": "People we support: a yearly sample each October, and people 4 weeks after a fall, a key safe change or lost key, or a closed safeguarding enquiry; a representative may answer where the person cannot give their views, even with help",
+  "summary": "Asks whether people feel safe at home: involved in decisions about risk and free to make their own choices, the home left secure, equipment used safely, money handled openly, knowing who to tell about scams, and getting help after a fall. About 10 minutes.",
+  "purpose": "Covers the Safe quality statements with little person-facing evidence: involving people in managing risks and respecting their choices (the Positive Risk-Taking Policy's yearly measure, the feeling safe at home survey), a secure home and safe equipment, money and shopping handled openly, scams, and falls. Asking about both safety and freedom shows when a high feeling of safety comes from over-restriction. Results go to the Registered Manager and the quarterly health and safety and safeguarding reports, and each answer that needs action is followed up the same working day.",
+  "timing": {
+    "when": "A yearly sample on the first working day of October, so each person is asked at most once a year; and 4 weeks after a fall, a key safe change or lost key, or a safeguarding enquiry closing",
+    "recurrence": null,
+    "trigger": "The October sample; a fall recorded as an incident (not one that led to a hospital stay already followed by the after-hospital survey); a key safe change or lost key; a closed safeguarding enquiry, with the safeguarding lead's agreement"
+  },
+  "anonymous": false,
+  "channels": ["TELEPHONE", "IN_PERSON"],
+  "estimatedMinutes": 10,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING"],
+    "qualityStatements": ["Safeguarding", "Involving people to manage risks", "Safe environments", "Independence, choice and control"]
+  },
+  "introduction": "{{organisation}} would like to know whether you feel safe at home and how we help you stay safe in the way you choose. It takes about 10 minutes. You can skip any question.\n\nTaking part is up to you, and what you say will not affect your care. Your answers are linked to your name so we can help if something is wrong. Your care workers (carers) will not see them.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to help keep you safe at home and to improve our care. Our legal reason is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name so we can put things right. They are seen only by our Registered Manager, safeguarding lead, Care Coordinators and the office staff who follow them up, never by your care workers (carers), and reports show combined results only. If you tell us someone may be at risk of harm, we will tell the safeguarding lead and may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this survey, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care over the last few months. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Feeling safe",
+      "questions": [
+        {
+          "id": "q-safe-home",
+          "text": "Do you feel safe in your home?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "You can skip this question. If you do not feel safe, please do not wait for this survey: phone the office now. In an emergency, call 999.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "What makes you feel unsafe?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safeguarding"
+        }
+      ]
+    },
+    {
+      "title": "Your choices and risks",
+      "questions": [
+        {
+          "id": "q-risk-talk",
+          "text": "Do we talk with you about risks in a way that helps you decide?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, about going out alone, cooking, or managing stairs. Choose \"Does not apply to me\" if we have not needed to talk about risks.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        },
+        {
+          "id": "q-choices",
+          "text": "Do we respect the choices you make, even when there is some risk?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if this has not come up.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would you like to do that you feel you cannot?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Independence, choice and control"
+        }
+      ]
+    },
+    {
+      "title": "Your home",
+      "questions": [
+        {
+          "id": "q-secure",
+          "text": "When care workers leave, is your home left secure?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, doors locked the way you want and the key safe closed.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us what happens.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-say-who",
+          "text": "Do care workers say who they are when they come in?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-equipment",
+          "text": "Do you feel safe when care workers use equipment with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, a hoist, a frame or a shower chair. Choose \"Does not apply to me\" if care workers do not use equipment with you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us what happens.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe environments"
+        }
+      ]
+    },
+    {
+      "title": "Money and shopping",
+      "questions": [
+        {
+          "id": "q-money",
+          "text": "When care workers handle your money, do they show you what they spent?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, the receipt and your change. Choose \"Does not apply to me\" if care workers do not handle money or shopping for you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-scam",
+          "text": "Do you know who to tell if someone tries to get money from you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This could be a stranger at the door, a phone call, a letter or someone you know.",
+          "options": ["Yes", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Has anything like this happened? Please tell us if you want to.",
+            "showWhen": ["Yes", "No", "Don't know"]
+          },
+          "evidence": "Safe: Safeguarding"
+        }
+      ]
+    },
+    {
+      "title": "If you fall",
+      "questions": [
+        {
+          "id": "q-fall-help-know",
+          "text": "Do you know how to get help if you fall when no one is with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Safe: Involving people to manage risks"
+        },
+        {
+          "id": "q-fall",
+          "text": "In the last 12 months, how good was our care workers' help after a fall?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not fallen, or our care workers did not help you after a fall.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What would help you feel safer at home?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, better lighting, the key safe moved, a pendant alarm, or a neighbour who checks on you."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Each October, choose a sample so that each person is asked at most once a year (more often those at higher risk), start a copy from this template (for example \"Feeling safe, October 2027\") and use Open for responses, never Send: this survey is asked by phone or a private visit only. Someone else in the home can see a portal, an email or a posted form, and the Domestic Abuse Policy says we ask about safety only when the person is alone and never write about it where an abuser could see. Enter every answer with Record response. Never ask within 4 weeks of the person's September survey (SUR-PWS-014); the technology survey (SUR-PWS-015) follows in November. A quality check due in October is combined with this call.",
+      "Event calls, 4 weeks later, from an office list (CareFlow has no event triggers yet): after a fall recorded as an incident, unless it led to a hospital stay already followed by the after-hospital survey (SUR-PWS-007); after a key safe change or lost key. Use the running copy and Record response. After a safeguarding enquiry closes, ask only with the safeguarding lead's agreement, never while an enquiry is open, and never where the person alleged to have caused harm lives with them.",
+      "By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can open a survey for responses: give these to the staff who make the calls; Care Coordinators can only view surveys unless given them. CareFlow applies the 4-week rule only when it sends, and this survey is never sent, so before choosing someone check their survey history in CareFlow: only if they have had no other survey in the last 4 weeks. Answers entered here count as a survey contact, so CareFlow holds back its sends to the person for the next 4 weeks. Event calls take priority over the yearly sample.",
+      "Office staff phone, never a member of the person's core care team; for people at higher risk, or living with dementia or another cognitive impairment, a Field Care Supervisor outside the core team visits, using pictures where they help. Before the first question ask: \"Is it a good time, and can you talk privately?\" If not, arrange another time; ask the feeling safe question only once the person confirms they are alone, otherwise leave it unanswered and note \"not asked: not private\". Read every answer choice aloud; that is why it takes about 10 minutes. A large print card of the answers may be shown at a visit and taken away again. Use a professional interpreter, never a family member; a representative answers only where the person cannot give their views even with help, recorded in \"Who is answering\" and reported separately.",
+      "Who may open individual answers: the office staff who make the calls, the Care Coordinator, the safeguarding lead and the Registered Manager. This is set in Who can see the answers: individual responses are limited to Care Coordinators, the safeguarding lead and the Registered Manager, and results to Care Coordinators, the safeguarding lead, the Registered Manager and the Deputy Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who make the calls."
+    ],
+    "actingOnResults": [
+      "Act on every answer that needs it the same working day, under the alerts below. Read every comment for words about money, scams, being hit, being afraid or a named person, even where the answer looks fine.",
+      "How to count: report the share answering Always or Usually (Very good or Good for help after a fall, Yes for knowing who to tell and how to get help), leaving out Does not apply to me and Don't know. Read feeling safe together with choices respected: high safety with low choice can mean over-restriction. Report yearly-sample and event answers separately; never report a group of fewer than 5 people separately, and flag results resting on fewer than 10.",
+      "Results go to the Registered Manager and the quarterly health and safety and safeguarding reports; the choices result is the Positive Risk-Taking Policy's yearly measure. Actions go into the service improvement plan within 5 working days, and each person whose answers need action is told within 5 working days what we will do, under the Governance and Quality Assurance Policy.",
+      "Keep answers for 3 years after the survey closes under the Records Management and Retention Policy. For CQC, the answers and actions show people feel safe at home and are involved in managing their own risks (Regulations 12, 13 and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe in your home?\" answered Rarely or Never; Sometimes with a comment naming a person; or any disclosure of abuse, coercion or exploitation.",
+        "action": "Tell the safeguarding lead the same working day; call 999 first if anyone is in immediate danger. The risk is assessed within 1 hour of the report and referred to the local authority immediately if the risk is immediate, otherwise the same working day, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure; domestic abuse also follows the Domestic Abuse Policy. Never contact the person in a way the person alleged to cause harm could see.",
+        "rule": {"task": "Possible safeguarding concern: does not feel safe at home", "if": [{"question": "q-safe-home", "answers": ["Rarely", "Never"]}], "owner": "SAFEGUARDING_LEAD", "dueWorkingDays": 0, "urgent": true, "record": "SAFEGUARDING"}
+      },
+      {
+        "when": "\"Do you feel safe in your home?\" answered Sometimes for reasons about the home, such as stairs, the dark or the street.",
+        "action": "Tell the Care Coordinator the same working day; they contact the person within 5 working days and the home environment risk assessment is updated under the Risk Assessment and Home Environment Risk Assessment Procedure.",
+        "rule": {"task": "Sometimes feels unsafe at home: read the comment", "if": [{"question": "q-safe-home", "answers": ["Sometimes"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0}
+      },
+      {
+        "when": "\"When care workers handle your money, do they show you what they spent?\" answered Sometimes, Rarely or Never, or missing change or receipts described.",
+        "action": "The Care Coordinator checks receipts and entries within 1 working day; anything not fully explained goes to the safeguarding lead that day. Missing money or property is a safeguarding concern, assessed within 1 hour, under the Handling Money, Property and Shopping Procedure.",
+        "rule": {"task": "Check money receipts and records", "if": [{"question": "q-money", "answers": ["Sometimes", "Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 1}
+      },
+      {
+        "when": "\"Do you know who to tell if someone tries to get money from you?\" answered No or Don't know, or a comment describing a scam.",
+        "action": "The Care Coordinator contacts the person within 5 working days and gives scam advice in their format. Where a scam is described, the safeguarding lead assesses it within 1 hour, and within 5 working days the Care Coordinator, with the person's agreement, offers a call blocker, Telephone Preference Service registration, a no cold callers door notice and involvement of family they trust.",
+        "rule": {"task": "Give scam advice in their format", "if": [{"question": "q-scam", "answers": ["No", "Don't know"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "\"Do you know how to get help if you fall when no one is with you?\" answered No or Don't know.",
+        "action": "The Care Coordinator contacts the person within 5 working days; the falls plan and how to get help are explained under the Falls Prevention and Response Procedure, and a pendant or fall detector discussed as the person wishes under the Technology-Enabled Care and Telecare Policy.",
+        "rule": {"task": "Explain the falls plan and how to get help", "if": [{"question": "q-fall-help-know", "answers": ["No", "Don't know"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "\"How good was our care workers' help after a fall?\" answered Poor or Very poor.",
+        "action": "Log it in the incident log the same working day if the fall was not already recorded, under the Incident Reporting, Investigation and Learning Policy; the Registered Manager or Deputy Manager reviews it, and the Field Care Supervisor checks falls practice at the next spot check.",
+        "rule": {"task": "Poor help after a fall: check incident log", "if": [{"question": "q-fall", "answers": ["Poor", "Very poor"]}], "owner": "REGISTERED_MANAGER", "dueWorkingDays": 0, "record": "INCIDENT"}
+      },
+      {
+        "when": "Home left secure or care workers saying who they are answered Rarely or Never.",
+        "action": "Tell the Care Coordinator the same working day; they contact the person within 5 working days and it is observed at the care workers' next spot check. If the key safe code may be known to anyone it should not be, the code is changed the same day under the Key Holding, Key Safes and Access to People's Homes Procedure.",
+        "rule": {"task": "Home not secure or ID not given: follow up", "if": [{"question": "q-secure", "answers": ["Rarely", "Never"]}, {"question": "q-say-who", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0}
+      },
+      {
+        "when": "\"Do you feel safe when care workers use equipment with you?\" answered Sometimes, Rarely or Never.",
+        "action": "The moving and handling plan is reviewed before the next visit if it is unsafe, otherwise within 7 days, under the Moving and Handling of People Policy and the Hoists, Slings and Lifting Equipment Procedure.",
+        "rule": {"task": "Unsafe with equipment: review moving and handling plan", "if": [{"question": "q-equipment", "answers": ["Sometimes", "Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0}
+      },
+      {
+        "when": "Talking about risks or respecting choices answered Rarely or Never.",
+        "action": "The Care Coordinator contacts the person within 5 working days and agrees a plan under the Positive Risk-Taking Policy; any restriction is checked under the Restraint and Restrictive Practice Policy.",
+        "rule": {"task": "Risks or choices not respected: agree a plan", "if": [{"question": "q-risk-talk", "answers": ["Rarely", "Never"]}, {"question": "q-choices", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "Dissatisfaction that needs a response, or the overall question Poor or Very poor.",
+        "action": "Record a complaint the same working day where the person wants a response: graded within 1 working day and acknowledged within 3 working days under the Complaints Policy and Procedure. A low rating with no particular concern goes to the Care Coordinator, who contacts the person within 5 working days.",
+        "rule": {"task": "Poor experience: agree what we will do", "if": [{"question": "q-overall", "answers": ["Poor", "Very poor"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff contact the person within 5 working days and record what was agreed.",
+        "rule": {"task": "Asked to be contacted about their answers", "if": [{"question": "q-contact", "answers": ["Yes"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5, "contactRequest": true}
+      }
+    ]
+  },
+  "access": {"responses": ["CARE_COORDINATOR", "SAFEGUARDING_LEAD", "REGISTERED_MANAGER"], "results": ["CARE_COORDINATOR", "SAFEGUARDING_LEAD", "REGISTERED_MANAGER", "DEPUTY_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-CD-016",
+    "POL-CD-017",
+    "POL-HS-013",
+    "POL-CD-009",
+    "POL-HS-005",
+    "POL-HS-006",
+    "POL-HS-002",
+    "POL-SG-002",
+    "POL-SG-011",
+    "POL-SG-006",
+    "POL-CD-019",
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-GOV-007",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12: safe care and treatment, including assessing and mitigating risks",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13: safeguarding service users from abuse and improper treatment",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1(4): a person is not to be treated as unable to make a decision merely because they make an unwise decision",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Health and Safety Executive, Moving and handling in health and social care: take action to prevent or minimise the risk of injury",
+      "url": "https://www.hse.gov.uk/healthservices/moving-handling/index.htm"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

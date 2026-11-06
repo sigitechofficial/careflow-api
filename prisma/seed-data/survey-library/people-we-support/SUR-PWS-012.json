@@ -1,0 +1,407 @@
+{
+  "reference": "SUR-PWS-012",
+  "revision": 1,
+  "title": "Help with meals and drinks",
+  "audience": "SERVICE_USER",
+  "respondents": "People whose care plan includes any help with food or drink: making meals, prompting, or help to eat and drink; a representative may answer where the person cannot give their views, even with help",
+  "summary": "Checks that help with meals and drinks works as people experience it: choice, food rules, never being rushed, a drink left in reach, hand washing, eating less and having enough food in. About 9 minutes.",
+  "purpose": "Checks that meal and drink support meets the Nutrition and Hydration Policy as people experience it: real choice, food that follows the person's food rules, never rushing, support to eat and drink for themselves, a drink left within reach, hand washing before preparing food, falling appetite noticed and acted on, and enough food in the house. Individual answers get follow-up the same working day where someone may go without food or is eating less; results feed visit-length decisions for meal visits and the nutrition and hydration results the Nominated Individual reviews in the quarterly quality report.",
+  "timing": {
+    "when": "About 4 weeks after meal or drink support starts or changes in an existing package; for a new package, in the new-package order after the first quality check; then once a year, never in February, September or the person's October or November survey month",
+    "recurrence": null,
+    "trigger": "Meal or drink support added to or changed in the person's care plan; and the yearly repeat"
+  },
+  "anonymous": false,
+  "channels": ["PORTAL", "TELEPHONE", "IN_PERSON", "PAPER"],
+  "estimatedMinutes": 9,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "RESPONSIVE"],
+    "qualityStatements": [
+      "Involving people to manage risks",
+      "Supporting people to live healthier lives",
+      "Assessing needs",
+      "Independence, choice and control",
+      "Treating people as individuals",
+      "Person-centred care"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how our help with your meals and drinks is going. It takes about 9 minutes.\n\nTaking part is up to you, and what you say will not affect your care. Your answers are linked to your name so we can help if your answers show a problem, such as not having enough food in. Your care workers (carers) will not see them.\n\nThis survey is not for urgent concerns. If you have no food today, are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to make sure you get the food and drink you need and to improve our care. Our legal reason is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name so we can put things right. They are seen only by our Registered Manager, Deputy Manager, Care Coordinators and the office staff who follow them up, never by your care workers (carers), and reports show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this survey, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care over the last few months. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your meals",
+      "questions": [
+        {
+          "id": "q-meal-choice",
+          "text": "Do your care workers give you a choice of what to eat?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if our care workers do not make or serve food for you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Independence, choice and control"
+        },
+        {
+          "id": "q-meal-way",
+          "text": "Do your care workers make your food the way you like it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, how hot it is, how much is on the plate, or how it is cut up. If your food or drinks are made a special way to keep you safe, and this is a problem for you, please tell us in the comment box. Choose \"Does not apply to me\" if our care workers do not make or serve food for you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "id": "q-food-rules",
+          "text": "Do your care workers follow your food rules, such as for your religion, culture or health?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, halal, kosher, vegetarian, food for diabetes, or separate utensils. Choose \"Does not apply to me\" if you have no food rules.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What should we do differently?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-meal-rushed",
+          "text": "Do your care workers give you time to eat without rushing?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you eat after your care worker has gone.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Which meals feel rushed?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-meal-yourself",
+          "text": "Do your care workers help you do as much as you can for yourself with eating and drinking?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, letting you pour your own drink, choose from the fridge or feed yourself with the right cup or cutlery. Choose \"Does not apply to me\" if you do not want or are not able to do these things.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Independence, choice and control"
+        }
+      ]
+    },
+    {
+      "title": "Drinks",
+      "questions": [
+        {
+          "id": "q-drink-left",
+          "text": "Before your care worker leaves, is a drink left where you can reach it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have been told drinks should not be left for you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Effective: Supporting people to live healthier lives"
+        }
+      ]
+    },
+    {
+      "title": "Keeping well",
+      "questions": [
+        {
+          "id": "q-handwash",
+          "text": "Do your care workers wash their hands before making food?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if our care workers do not make or serve food for you, and \"Don't know\" if you cannot see them in the kitchen.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me", "Don't know"],
+          "notCountedOptions": ["Does not apply to me", "Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        },
+        {
+          "id": "q-eating-less",
+          "text": "In the last few months, have you been eating less than usual?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, because you do not feel hungry, or your clothes feel looser.",
+          "options": ["Yes", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Effective: Assessing needs"
+        },
+        {
+          "id": "q-eating-less-talked",
+          "text": "Have we talked with you about eating less?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-eating-less",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "Please tell us more so we can help.",
+            "showWhen": ["No"]
+          },
+          "evidence": "Effective: Assessing needs"
+        },
+        {
+          "id": "q-enough-food",
+          "text": "Do you have enough food in the house that you can eat?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "What makes it hard to have enough food in?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What would make your meals and drinks better?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, foods you would like, the time you eat, or a different cup."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Ask it about 4 weeks after meal or drink support starts or changes in an existing package. For a new package, ask it in the new-package order after the first quality check: night care (SUR-PWS-019), personal care (SUR-PWS-013), then this survey, each at least 4 weeks after the person's last survey. Then ask it once a year, spread across the year (for example in the month the support started), never in February (annual survey), September or the person's October or November survey month.",
+      "CareFlow cannot yet choose people by their care plan tasks. Keep a list of the people with meal or drink support and when this survey is due, and send it to each person with Send or schedule, Chosen people, in a running copy of this template (for example \"Meals and drinks, spring\"); you can schedule it for the date it is due. People with a portal account answer there; for the rest, phone or visit, or post a copy in their recorded format, and enter the answers with Record response on the day (channel Telephone, In person or Paper). When you send, CareFlow holds back anyone who had a survey contact in the last 4 weeks (a send, or answers entered with Record response, including a quality check) and sends them this survey on their free day if the copy is still open with 3 or more days left; phone, visit or post only to people it has sent it to. CareFlow cannot see care plan reviews, so leave out anyone who had one in the last 4 weeks.",
+      "By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can send or open a survey: give both permissions to the office staff and Field Care Supervisors who make these calls; Care Coordinators can only view surveys unless given them.",
+      "The call or visit is made by office staff or a Field Care Supervisor outside the person's core care team, never a care worker who visits the person. Read each question, its help text and every answer choice exactly as written; reading every choice aloud is why it takes about 9 minutes. For people living with dementia or another cognitive impairment, ask face to face with the Field Care Supervisor, using pictures of food and a drink where helpful, and the easy read answers (Always or usually; Sometimes; Rarely or never) plus Don't know.",
+      "A representative answers only where the person cannot give their views even with help: record them in CareFlow's \"Who is answering\" field and report their answers separately. A family carer who does the shopping or cooking gives their own view in the family survey (SUR-FAM-001). Use a professional interpreter, never a family member.",
+      "Who may open individual answers: the Care Coordinators and office staff who make or follow up the calls, and the managers. This is set in Who can see the answers: individual responses are limited to Care Coordinators, the Registered Manager and the Deputy Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who make or follow up the calls."
+    ],
+    "actingOnResults": [
+      "Act on every answer that needs it the same working day, under the alerts below. Read the comments for coughing, choking, \"no food\", \"no money\" and weight loss even where the answer itself looks fine.",
+      "How to count: for the frequency questions report the share answering Always or Usually, leaving out Does not apply to me and Don't know; report \"eating less\" as the share answering Yes, and \"talked with you\" as the share of those answering Yes. Always show how many people answered, and report representatives' answers separately. Never report a group of fewer than 5 people separately, and flag results resting on fewer than 10.",
+      "The Registered Manager, who leads on nutrition and hydration, reviews the results with visit records: rushed meals and overruns feed visit-length decisions for meal visits, and the results go into the quarterly quality report that the Nominated Individual reviews, under the Nutrition and Hydration Policy. Actions go into the service improvement plan within 5 working days, and each person whose answers need action is told within 5 working days what we will do, under the Governance and Quality Assurance Policy.",
+      "The food rules results also go to the annual equality review under the Equality, Diversity and Human Rights in Care Policy. Keep answers for 3 years after the survey closes under the Records Management and Retention Policy. For CQC, the answers and actions evidence people's experience of nutrition and hydration support, choice and risk management (Regulation 14 and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you have enough food in the house that you can eat?\" answered Rarely or Never, or any comment that there is no food or no money for food.",
+        "action": "Tell the Care Coordinator the same working day. They contact the person and, with the person's agreement, the family or representative the same working day, make sure food reaches the person that day where they would otherwise go without, and record whether there is a safeguarding or self-neglect concern, under the Nutrition and Hydration Policy. Possible financial abuse or someone withholding food goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure); self-neglect follows the Self-Neglect and Hoarding Procedure.",
+        "rule": {
+          "task": "Not enough food in the house: make sure food reaches them today",
+          "if": [
+            {
+              "question": "q-enough-food",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0,
+          "urgent": true
+        }
+      },
+      {
+        "when": "\"In the last few months, have you been eating less than usual?\" answered Yes.",
+        "action": "Tell the Care Coordinator the same working day; they ask the Field Care Supervisor, passing on only that need, to repeat the MUST screening within 7 days (the task is due in 7 days). A move to a higher MUST category is a change in health, with a focused review within 7 days under the Care Plan Review Procedure.",
+        "rule": {
+          "task": "Eating less: repeat MUST screening",
+          "if": [
+            {
+              "question": "q-eating-less",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueCalendarDays": 7
+        }
+      },
+      {
+        "when": "\"Have we talked with you about eating less?\" answered No.",
+        "action": "As for eating less, and the Care Coordinator checks why care workers did not report it, since staff report these signs the same day under the Nutrition and Hydration Policy.",
+        "rule": {
+          "task": "Eating less not talked about: check why it was not reported",
+          "if": [
+            {
+              "question": "q-eating-less-talked",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "Any comment about coughing, choking or difficulty swallowing.",
+        "action": "Tell the Care Coordinator the same working day: they contact the GP the same day to ask for a speech and language therapy referral and advice in the meantime, and tell every rostered care worker before their next visit. After a choking episode a focused review is held within 7 days under the Care Plan Review Procedure, and an unreported episode goes in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy."
+      },
+      {
+        "when": "\"Do your care workers give you time to eat without rushing?\" answered Rarely or Never.",
+        "action": "The Care Coordinator contacts the person within 5 working days and checks visit durations and overruns; where meals make visits run more than 15 minutes over at 3 or more visits in 2 weeks, visit length is reviewed under the Needs Assessment and Care Planning Policy.",
+        "rule": {
+          "task": "Rushed at mealtimes: check visit durations",
+          "if": [
+            {
+              "question": "q-meal-rushed",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Choice, the way food is made, doing things for yourself, a drink left within reach or hand washing answered Rarely or Never.",
+        "action": "Tell the Care Coordinator the same working day; they contact the person within 5 working days to agree what we will do, and the Field Care Supervisor observes mealtime practice at the next spot check.",
+        "rule": {
+          "task": "Mealtime care not right: contact and observe",
+          "if": [
+            {
+              "question": "q-meal-choice",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-meal-way",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-meal-yourself",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-drink-left",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-handwash",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment on food rules describing discrimination by our staff.",
+        "action": "Tell the Registered Manager the same working day; they decide within 1 hour of being told whether it is a safeguarding concern, under the Equality, Diversity and Human Rights in Care Policy, and it is a complaint graded High under the Complaints Policy and Procedure."
+      },
+      {
+        "when": "Dissatisfaction that needs a response, or the overall question answered Poor or Very poor.",
+        "action": "Record a complaint the same working day where the person is dissatisfied and wants a response: graded within 1 working day and acknowledged within 3 working days under the Complaints Policy and Procedure. A low rating with no particular concern goes to the Care Coordinator the same working day, who contacts the person within 5 working days.",
+        "rule": {
+          "task": "Poor experience: contact the person",
+          "if": [
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "Praise for our service or a named care worker.",
+        "action": "Record it as a compliment the same working day and pass it to each employee named within 5 working days."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff contact the person within 5 working days and record what was agreed.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["CARE_COORDINATOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER"],
+    "results": ["CARE_COORDINATOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-CD-007",
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-CD-002",
+    "POL-CD-003",
+    "POL-CD-005",
+    "POL-CD-017",
+    "POL-IPC-007",
+    "POL-SG-002",
+    "POL-SG-012",
+    "POL-GOV-007",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 14: meeting nutritional and hydration needs, including food that meets the person's preferences and their religious or cultural background",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/14"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Public Health England, Helping older people maintain a healthy diet: a review of what works (2017): most people at risk of malnutrition live in the community; isolation, packaging and arthritis are barriers to eating well",
+      "url": "https://www.gov.uk/government/publications/helping-older-people-maintain-a-healthy-diet-a-review-of-what-works/helping-older-people-maintain-a-healthy-diet-a-review-of-what-works"
+    }
+  ]
+}

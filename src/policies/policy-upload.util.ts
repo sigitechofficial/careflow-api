@@ -8,8 +8,9 @@ import {
   unlinkSync,
   writeFileSync,
 } from 'fs';
-import { dirname, extname, join, posix, relative, resolve, sep } from 'path';
+import { dirname, extname, posix, relative, resolve, sep } from 'path';
 import { BadRequestException } from '@nestjs/common';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 export const POLICY_UPLOAD_MAX_BYTES = 25 * 1024 * 1024;
 
@@ -35,11 +36,7 @@ export type PolicyUploadKind = {
 };
 
 export function policyUploadRoot(): string {
-  return join(
-    process.cwd(),
-    process.env.UPLOAD_BASE_PATH ?? 'uploads',
-    'policies',
-  );
+  return uploadPath('policies');
 }
 
 export function policyUploadMulterOptions() {

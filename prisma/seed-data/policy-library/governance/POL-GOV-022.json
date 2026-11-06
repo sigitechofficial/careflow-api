@@ -1,0 +1,648 @@
+{
+  "reference": "POL-GOV-022",
+  "revision": 1,
+  "title": "Conflicts of Interest Policy",
+  "documentType": "POLICY",
+  "summary": "How everyone who works for or directs us recognises, declares and manages actual, potential and perceived conflicts of interest: relationships with people we support and colleagues, other work, private work, suppliers, competitors and commissioners, Directors' conflicts under company law, the register of interests, and what happens when an interest is not declared. For all employees, managers and Directors.",
+  "keyPoints": {
+    "intro": "Our care, rotas, recruitment, spending and contracts must be decided fairly, and must be seen to be. This is what you must declare, when, and to whom, so that a connection or interest never affects how the people we support are treated.",
+    "points": [
+      "Declare any relationship or interest that could affect, or look as if it affects, how you do your job. If you are unsure, declare it: declaring is never a disciplinary matter, but hiding an interest is.",
+      "If you know someone on your rota, such as a relative, friend, neighbour or former partner, tell the Care Coordinator before any visit.",
+      "If you only realise at the door, phone the office (On-call Manager out of hours) and do not start care until they decide. If you realise during a visit, finish the care safely and phone before you leave.",
+      "Tell the HR Manager in writing before you start any other paid work, and declare any other interest to the HR Manager within 5 working days of it arising or changing.",
+      "Never ask for, encourage or arrange private work with anyone you support or supported in the last 12 months, or their household, and never recommend a business you or someone close to you has an interest in. If asked, tell the office the same day.",
+      "Never supervise, spot check, assess, audit, interview, investigate or approve the timesheets, mileage or pay of a close relative, partner, close friend or someone you live with. Tell your manager so that someone else does it.",
+      "Never use what you learn at work, such as people's details, rotas, prices or tender information, for yourself, another employer or a business, and never encourage a person we support or a colleague to move to another provider.",
+      "At the start of any meeting, interview panel or decision, say if you have an interest in an item. You then leave for that item and take no part in the decision.",
+      "Follow any arrangement the Registered Manager agrees with you in writing, and tell the HR Manager straight away if your circumstances change.",
+      "If you hold a decision-making role (Directors, managers, Care Coordinators, Field Care Supervisors, On-call Managers, and Office staff who order, pay or run payroll), make a declaration or nil return by 15 April every year. Everyone else confirms their interests at appraisal.",
+      "Not declaring an interest may lead to action under the Disciplinary Policy and Procedure, and every decision you took part in while it was undeclared will be reviewed."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "RECRUITMENT"
+  ],
+  "relatedReferences": [
+    "POL-GOV-011",
+    "POL-GOV-021",
+    "POL-HR-007",
+    "POL-SG-009",
+    "POL-SG-008",
+    "POL-HR-001",
+    "POL-HR-005",
+    "POL-HR-008"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Companies Act 2006, section 175 (duty to avoid conflicts of interest), including authorisation by the directors and the quorum and voting conditions in subsections (5) and (6)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/175"
+    },
+    {
+      "source": "Companies Act 2006 (Commencement No. 5, Transitional Provisions and Savings) Order 2007, Schedule 4, paragraph 47(3) (directors' authorisation in private companies incorporated before 1 October 2008)",
+      "url": "https://www.legislation.gov.uk/uksi/2007/3495/schedule/4/paragraph/47"
+    },
+    {
+      "source": "Companies Act 2006, section 176 (duty not to accept benefits from third parties)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/176"
+    },
+    {
+      "source": "Companies Act 2006, section 177 (duty to declare interest in proposed transaction or arrangement)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/177"
+    },
+    {
+      "source": "Companies Act 2006, section 180(4)(a) (authorisation by the company of anything that would otherwise be a breach of duty)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/180"
+    },
+    {
+      "source": "Companies Act 2006, section 182 (declaration of interest in existing transaction or arrangement) and section 183 (offence of failure to declare)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/182"
+    },
+    {
+      "source": "Companies Act 2006, section 184 (declaration made by notice in writing to the other directors)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/184"
+    },
+    {
+      "source": "Companies (Model Articles) Regulations 2008, Schedule 1 (model articles for private companies limited by shares), article 14 (conflicts of interest)",
+      "url": "https://www.legislation.gov.uk/uksi/2008/3229/schedule/1"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 (good governance)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Procurement Act 2023, section 81 (conflicts of interest: duty to identify), in force 24 February 2025",
+      "url": "https://www.legislation.gov.uk/ukpga/2023/54/section/81"
+    },
+    {
+      "source": "Procurement Act 2023, section 82 (conflicts of interest: duty to mitigate, including requiring a supplier to take steps and excluding a supplier with an unfair advantage)",
+      "url": "https://www.legislation.gov.uk/ukpga/2023/54/section/82"
+    },
+    {
+      "source": "Health Care Services (Provider Selection Regime) Regulations 2023, regulation 21 (conflicts of interest)",
+      "url": "https://www.legislation.gov.uk/uksi/2023/1348/regulation/21"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 27A (exclusivity terms unenforceable in zero hours contracts)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/27A"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} is trusted by the people we support, their families, commissioners and our staff to decide fairly who visits whom, who is recruited, supervised and paid for what, which suppliers we use and how we compete for contracts. In home care that trust is easily strained: our staff often live in the communities they serve and many know the people they visit. A hidden interest that shapes a decision can harm a person, cost public money or undermine confidence in our service."
+        },
+        {
+          "p": "{{organisation}} does not expect anyone to have no outside interests. Every relevant interest is declared promptly, recorded and managed so that no one makes, influences or checks a decision in which they have an interest. This helps us meet Regulation 17 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 (effective governance and accurate records about staff and the management of the service), and sets out how our Directors meet their Companies Act 2006 duties to avoid conflicts and declare interests."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that everyone knows what to declare, when and to whom; that every declaration is recorded in one register of interests and decided by an unconnected manager; that Directors' conflicts are authorised and minuted as company law requires; that arrangements are written down, followed and reviewed; and that undeclared interests are found and the decisions they affected put right."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee of {{organisation}}, including bank staff and apprentices, and to every Director, the Nominated Individual and anyone covered by the Fit and Proper Persons (Directors) Policy. It covers their own interests and those of their close relatives, partner, close friends and anyone they live with, where they know of them. Agency workers, students on placement and contractors declare connections with people they may visit, and any interest in a decision they take part in, to the Care Coordinator; the HR Manager makes sure our agreements with agencies, colleges and contractors require this."
+        },
+        {
+          "p": "This policy owns declaring and managing interests. It does not repeat: relationships with the people we support, connected persons and the doorstep decision (Professional Boundaries Policy); gifts, hospitality, wills and legacies offered by people we support (Gifts, Hospitality, Wills and Legacies Policy); bribery, fraud and business gifts and hospitality (Anti-Bribery and Fraud Prevention Policy); the headline rules on other paid work and private work (Staff Code of Conduct); and the fitness of Directors (Fit and Proper Persons (Directors) Policy). Gifts and hospitality that the Gifts, Hospitality, Wills and Legacies Policy or the Anti-Bribery and Fraud Prevention Policy require to be declared, including those offered to Directors, are recorded only in the single gifts and hospitality register in the CareFlow governance records, never in the register of interests."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Interest",
+                "Anything that could give a person a reason to act other than solely in the interests of the people we support and {{organisation}}: a financial interest (pay, shares, ownership, a contract, a debt or a benefit), a professional interest (another job, office or role) or a personal interest (a relationship or loyalty). An interest held by a close relative, partner, close friend or someone the person lives with is an indirect interest and is treated in the same way."
+              ],
+              [
+                "Actual conflict",
+                "An interest that already affects, or would affect, a decision or task the person is responsible for, such as a Care Coordinator allocating extra hours to their partner."
+              ],
+              [
+                "Potential conflict",
+                "An interest that could become an actual conflict if circumstances change, such as a worker whose brother runs a cleaning firm that a person we support might ask about."
+              ],
+              [
+                "Perceived conflict",
+                "An interest that a reasonable person could think affects a decision, even if it does not. Perceived conflicts are declared and managed in the same way."
+              ],
+              [
+                "Close relative",
+                "Partner, parent, child, brother or sister, grandparent or grandchild, including step, half and in-law relationships, as in the Professional Boundaries Policy."
+              ],
+              [
+                "Decision-making role",
+                "A Director, the Nominated Individual, a Registered Manager, the Deputy Manager, the HR Manager, a Care Coordinator, a Field Care Supervisor, an On-call Manager, and Office staff who order goods or services, process payroll or approve invoices or payments."
+              ],
+              [
+                "Connected supplier",
+                "A business or organisation that supplies us, or bids to, in which a person covered by this policy or their close relative, partner or someone they live with has a financial or professional interest."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and the chair of the Directors",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and authorise or refuse each Director's conflict, as Directors' conflicts sets out; no Director takes part in a decision about their own interest. The chair receives Directors' declarations and rules on whether a Director with an interest may take part in an item; the deputy chair appointed under the Fit and Proper Persons (Directors) Policy does this for the chair."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual decides on the Registered Manager's declarations, checks the register before every tender, reviews each connected supplier contract every 12 months, completes the conflict declarations commissioners require and presents the annual register report to the Directors."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy and decides on declarations by staff below the Registered Manager, as Deciding on a declaration sets out."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager keeps the register of interests, runs the declaration process and the April round, and tracks review dates, but never decides on a declaration. The Deputy Manager does all of this while the HR Manager is absent, and for the HR Manager's own declarations."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Managers",
+          "blocks": [
+            {
+              "p": "Care Coordinators check the staff record for connected persons and allocation restrictions before allocating any visit, never allocate against a recorded restriction, and record connected-person declarations under the Professional Boundaries Policy. On-call Managers make the out-of-hours doorstep decisions that policy sets and check the same restrictions in the staff record before moving or covering any visit out of hours."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors ask about other work and interests at every appraisal, raise any undeclared connection they notice at a spot check or supervision with the Registered Manager the same working day, and never supervise, spot check or assess someone they are connected to."
+            }
+          ]
+        },
+        {
+          "heading": "All staff and Directors",
+          "blocks": [
+            {
+              "p": "Everyone declares interests as this policy requires, follows any agreed arrangement and speaks up about an undeclared conflict."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Recognising a conflict in home care",
+      "blocks": [
+        {
+          "p": "Before any decision or task, ask: would I or someone close to me gain or lose from this, and would I be comfortable if the person, their family, my colleagues and CQC knew of the connection? If in doubt, declare it. These are the conflicts that arise most often in our work, and our rule for each."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "Our rule"
+            ],
+            "rows": [
+              [
+                "You know a person on your rota, or someone in their household, as a relative, friend, neighbour, former partner or from private work",
+                "A connected person. Tell the Care Coordinator before any visit; at the door, phone the office (On-call Manager out of hours) and do not start care until they decide. The Professional Boundaries Policy decides whether and on what conditions you support them."
+              ],
+              [
+                "You begin a personal relationship with a relative or representative of a person you support who does not live in their home",
+                "Declare it to the HR Manager within 5 working days of it starting. You are not allocated to that person from the next rota, as the Professional Boundaries Policy sets out."
+              ],
+              [
+                "A person we support, someone you supported in the last 12 months, or their family asks you to work for them privately, including as a personal assistant paid through a direct payment",
+                "Never ask for, encourage or arrange it. Refer them to the office and tell the office the same day. If you accept anyway, tell the HR Manager in writing before you start: you are not allocated to that person from the next rota and the Registered Manager decides the same working day whether it raises a safeguarding concern, as the Staff Code of Conduct sets out."
+              ],
+              [
+                "You work for, or plan to work for, another care provider, agency or care home, or you or someone close to you own or hold a role in one that competes with us",
+                "Declare it to the HR Manager in writing before you start any work there. You are never rostered by us for hours you have declared elsewhere, never support the same person for both employers without the Registered Manager's agreement, and never pass information between employers about people, staff, rotas or prices. Directors need the other Directors' authorisation; managers take no part in tenders, pricing or commissioner meetings where the competitor is involved."
+              ],
+              [
+                "A close relative, partner, close friend or someone you live with works here",
+                "Not a problem in itself. Declare it within 5 working days if either of you has any say over the other's work, hours or pay; the rules in Fair allocation, supervision and pay apply."
+              ],
+              [
+                "You are asked to recruit, interview or take up references for someone you know",
+                "Declare the relationship to the HR Manager, who notes it on the candidate's record in CareFlow, and take no further part in that recruitment, as the Safer Recruitment Policy requires."
+              ],
+              [
+                "You, or someone close to you, own, work for or have shares in a business that supplies us or wants to, such as a training provider, uniform or PPE supplier, recruitment agency, IT provider or the landlord of a branch office",
+                "Declare it before any discussion of that supplier. You take no part in choosing, managing or paying it, and the rules in Suppliers and contracts apply."
+              ],
+              [
+                "Someone close to you works in commissioning, brokerage, contract monitoring, safeguarding or continuing healthcare at a local authority or NHS body we work with, or you are a councillor of a local authority we contract with",
+                "Declare it. You take no part in tenders, contract negotiations or monitoring meetings with that team, and never ask for or use information about packages, tenders or other providers through that connection."
+              ],
+              [
+                "A person or family asks you to recommend a tradesperson, solicitor, care home, equipment supplier or other service",
+                "Never recommend your own, a relative's or a friend's business, and never pay or accept a referral fee, commission or reward. Pass the request to the office, as the Anti-Bribery and Fraud Prevention Policy sets out."
+              ],
+              [
+                "You are asked to investigate, audit, hear or decide a complaint, incident, safeguarding concern, disciplinary case or audit involving someone you are connected to",
+                "Say so before you start and pass the matter back to the manager who allocated it, who appoints someone unconnected under the policy that owns the process."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Staff need not declare membership of a trade union, political party or faith group, or their personal beliefs. An office held in such a body is declared only where that body deals with us, with a commissioner on matters affecting us, or with the people we support. Investments held through a pension, unit trust or other fund the person does not direct, and shares worth less than £5,000 in a company listed on a stock exchange, need not be declared."
+        }
+      ]
+    },
+    {
+      "heading": "Declaring interests",
+      "blocks": [
+        {
+          "p": "Declarations are made in writing to the HR Manager, by email or on paper handed in at the branch office or to the worker's Field Care Supervisor, and state the interest, who holds it, the decisions or tasks it could affect and the date it arose; for other paid work, they also give the employer, the type of work and the average weekly hours, which Care Coordinators add when planning rotas under the Working Time, Rest Breaks and Travel Time Policy. A care worker out on visits may instead phone the office between visits, never while driving: Office staff write the declaration down, read it back to the worker and pass it to the HR Manager the same working day, and that note is the written declaration. A nil return states that the person has no interest to declare. A connection with a person we support is also told to the Care Coordinator, as below."
+        },
+        {
+          "table": {
+            "columns": [
+              "When",
+              "Who declares",
+              "To whom and by when"
+            ],
+            "rows": [
+              [
+                "On appointment",
+                "Every new employee and Director",
+                "Declaration or nil return to the HR Manager before the HR Manager completes the pre-employment checklist; for a Director, before the fitness decision under the Fit and Proper Persons (Directors) Policy"
+              ],
+              [
+                "A connection with a person you may visit",
+                "Anyone",
+                "The Care Coordinator, before any visit (at the door: the office or On-call Manager before care starts)"
+              ],
+              [
+                "Other paid work",
+                "Anyone",
+                "The HR Manager in writing, before starting it; a worker whose visa we sponsor checks with the HR Manager before accepting any other work, as the Staff Code of Conduct sets out"
+              ],
+              [
+                "Any other new or changed interest",
+                "Anyone",
+                "The HR Manager within 5 working days of it arising or changing; a Director tells the chair, as Directors' conflicts sets out"
+              ],
+              [
+                "An item at a meeting, panel or decision",
+                "Every member present",
+                "The chair of the meeting or panel at the start, or as soon as the interest becomes clear"
+              ],
+              [
+                "Every April",
+                "Everyone in a decision-making role",
+                "Full declaration or nil return by 15 April; Directors and the Nominated Individual complete it with their fit and proper person declaration"
+              ],
+              [
+                "At each appraisal",
+                "Every other employee",
+                "The appraiser, who confirms with the worker that their declarations are current or records a nil return"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The HR Manager reminds every person in a decision-making role by 1 April, tells the Registered Manager of any declaration not received by 15 April, and tells the Nominated Individual of any still missing on 30 April. Nobody in a decision-making role takes part in a recruitment, supplier or tender decision while their April declaration is overdue."
+        }
+      ]
+    },
+    {
+      "heading": "Deciding on a declaration",
+      "blocks": [
+        {
+          "steps": [
+            "The person receiving a declaration passes it to the HR Manager the same working day; the Care Coordinator records connected-person declarations in the staff record the same working day under the Professional Boundaries Policy.",
+            "The HR Manager records it in the staff record the day it is received, enters it in the register of interests by the end of the next working day and sends it to the decision-maker in the table below.",
+            "Until the decision is made, the declarer takes no part in any decision or task the interest could affect. The decision-maker puts an interim arrangement in place the same working day where a decision or visit is due before the full decision.",
+            "The decision-maker decides within 5 working days of the declaration being recorded (a connected person: the Registered Manager within 2 working days, under the Professional Boundaries Policy) whether there is an actual, potential or perceived conflict and how it is managed, speaking with the declarer where needed, and records the decision and reasons in the register.",
+            "The HR Manager tells the declarer the decision and any arrangement in writing within 2 working days of the decision, and records it in the staff record. Where the arrangement restricts allocation, supervision or approvals, the HR Manager tells the Care Coordinator or manager concerned the same day, giving the restriction but not the reason.",
+            "The declarer may ask for a review within 5 working days of receiving the decision. The reviewer in the table below decides within 5 working days, and that decision is final."
+          ]
+        },
+        {
+          "table": {
+            "columns": [
+              "Declarer",
+              "Decision-maker",
+              "Reviewer"
+            ],
+            "rows": [
+              [
+                "Care Worker, Senior Care Worker, Field Care Supervisor, Care Coordinator, On-call Manager, Office staff, staff allocation roles",
+                "Registered Manager (Deputy Manager if the Registered Manager is absent or connected)",
+                "Nominated Individual"
+              ],
+              [
+                "Deputy Manager, HR Manager",
+                "Registered Manager (Nominated Individual if the Registered Manager is absent or connected)",
+                "Nominated Individual (chair of the Directors where the Nominated Individual decided)"
+              ],
+              [
+                "Registered Manager",
+                "Nominated Individual",
+                "Chair of the Directors"
+              ],
+              [
+                "Nominated Individual, any Director",
+                "The other Directors, as Directors' conflicts sets out",
+                "None: the Directors' decision is final"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where every possible decision-maker is connected to the matter, the Nominated Individual (the chair of the Directors where the Nominated Individual is connected) asks the independent reviewer appointed under the Fit and Proper Persons (Directors) Policy to decide."
+        }
+      ]
+    },
+    {
+      "heading": "Managing a declared conflict",
+      "blocks": [
+        {
+          "p": "The decision-maker chooses the least restrictive arrangement that removes the risk and records it with a review date no more than 12 months ahead; it is also reviewed whenever the interest changes."
+        },
+        {
+          "table": {
+            "columns": [
+              "Arrangement",
+              "What it means in practice"
+            ],
+            "rows": [
+              [
+                "No conflict",
+                "The interest is recorded and no action is needed; the decision-maker records why."
+              ],
+              [
+                "Removal from the decision",
+                "The person takes no part in the decision, receives no papers about it and does not try to influence anyone who does, such as a manager left out of a tender in which a relative's business is bidding."
+              ],
+              [
+                "Changed duties or rota",
+                "The worker is not allocated to a named person; a different Field Care Supervisor supervises, spot checks and appraises them; a different manager audits, investigates or interviews. A change of supervisor is recorded in the staff record within 5 working days, as the Supervision, Spot Checks and Appraisal Policy requires. Nobody loses hours or pay because of a changed rota."
+              ],
+              [
+                "Additional oversight",
+                "A second, unconnected person checks or approves the work, such as the Deputy Manager's monthly review of a relative's rota described in Fair allocation, supervision and pay."
+              ],
+              [
+                "Restricted information",
+                "The person does not receive information about the matter, such as tender pricing withheld from a manager whose partner works for a competing provider."
+              ],
+              [
+                "Not going ahead",
+                "Where nothing else removes the risk, the activity does not go ahead, for example a Director-connected supplier is not used. Other paid work is never banned or made subject to our consent (the Employment Rights Act 1996, section 27A, makes such terms unenforceable in zero hours contracts, and we apply the same approach to everyone); we manage the conflict through duties instead."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Specific arrangements",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Fair allocation, supervision and pay",
+          "blocks": [
+            {
+              "p": "Care Coordinators allocate visits by the person's needs, continuity, the worker's skills and availability and travel, never to favour or disadvantage a relative, partner or friend in hours, runs or premium shifts. Nobody supervises, spot checks, assesses competency in, appraises, audits, investigates, interviews or hears a case about a close relative, partner, close friend or someone they live with. Nobody approves a timesheet correction, mileage or expense claim, overtime or pay change for themselves or for such a person. Where the approver named in the Anti-Bribery and Fraud Prevention Policy is connected, the Deputy Manager approves a care or Office staff item instead (the Registered Manager where the Deputy Manager is connected), and a Director other than the Nominated Individual approves a manager's item where the Nominated Individual is connected. Where a Care Coordinator has to allocate visits to a close relative, partner or someone they live with, the Deputy Manager reviews that worker's rota, hours, mileage and timesheets every month and approves any extra hours or premium-rate shifts offered to them."
+            },
+            {
+              "p": "Close relatives and partners are not appointed to a post where one would line manage or supervise the other. A close relative or partner of a Director, the Nominated Individual or a Registered Manager is appointed to a management or office post only with the agreement of the Directors, with an unconnected interview panel. Where the Registered Manager is a close relative or partner of the Nominated Individual, the Directors appoint an unconnected Director, or where there is none an independent adult social care professional with no other role in {{organisation}}, to supervise and appraise the Registered Manager and decide on their declarations."
+            }
+          ]
+        },
+        {
+          "heading": "Suppliers and contracts",
+          "blocks": [
+            {
+              "p": "We use a connected supplier only when all of these are met:"
+            },
+            {
+              "bullets": [
+                "the interest is declared before the supplier is first discussed and the connected person takes no part in choosing, managing or paying it;",
+                "someone unconnected obtains at least two comparable quotes, or records why that is not possible, and recommends the supplier on value and quality;",
+                "the Directors approve the contract, whatever its value, and the minutes record the interest, the comparison and the decision;",
+                "invoices are approved and payments released by people with no interest in the supplier, under the payment controls in the Anti-Bribery and Fraud Prevention Policy; and",
+                "the Nominated Individual reviews the contract every 12 months and reports the review to the Directors."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Tenders and commissioners",
+          "blocks": [
+            {
+              "p": "Since 24 February 2025 the Procurement Act 2023 has required a contracting authority, such as a local authority, to identify conflicts of interest in a covered procurement and stop them giving a supplier an unfair advantage; it may require the supplier to take steps, and must exclude a supplier whose unfair advantage cannot be avoided or who will not take the steps required (sections 81 and 82). An NHS body selecting providers of health care services under the Provider Selection Regime must likewise prevent, identify and remedy conflicts of interest, and anyone with such an interest steps back from the decision (Health Care Services (Provider Selection Regime) Regulations 2023, regulation 21)."
+            },
+            {
+              "p": "Before every tender or contract bid, the Nominated Individual (the chair of the Directors where the Nominated Individual is connected) checks the register for any interest connected with the contracting authority, its staff or competing bidders, takes the connected person out of the bid, and declares the interest to the authority in the form it asks for. A conflict arising after submission is declared to the authority in writing within 2 working days of it being known. We take the same steps whenever an NHS body, such as an integrated care board arranging continuing healthcare, asks for conflict declarations. Nobody uses a personal connection with commissioning, brokerage or contract staff to seek packages or information."
+            }
+          ]
+        },
+        {
+          "heading": "Using information and opportunities",
+          "blocks": [
+            {
+              "p": "Information gained through work, such as the names and addresses of people we support, packages starting or ending, staff contact details, rotas, prices and tenders, is used only for our work. Using it for another employer, a business or personal gain, or to encourage a person we support or a colleague to move to another provider, is misconduct and, for personal data, a data breach handled under the Personal Data Breach Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Directors' conflicts",
+      "blocks": [
+        {
+          "p": "The law requires each Director to avoid a situation in which they have, or could have, a direct or indirect interest that conflicts, or may conflict, with the interests of {{organisation}}, including exploiting its property, information or opportunities (Companies Act 2006, section 175). In a private company the other Directors may authorise such a situation where nothing in the company's constitution invalidates it; for a company incorporated before 1 October 2008 this applies only once the shareholders have resolved that the Directors may give such authorisation (Companies Act 2006 (Commencement No. 5, Transitional Provisions and Savings) Order 2007, Schedule 4, paragraph 47(3)). The authorisation is effective only if the quorum is met and the decision passed without counting the conflicted Director or any other interested Director (section 175(5) and (6)). A Director must not accept a benefit from a third party because of being a Director, unless it cannot reasonably be regarded as likely to give rise to a conflict (section 176)."
+        },
+        {
+          "p": "A Director must also declare to the other Directors the nature and extent of any direct or indirect interest in a proposed transaction or arrangement with {{organisation}} before we enter into it, unless the other Directors already know of it or it cannot reasonably be regarded as likely to give rise to a conflict (section 177), and in an existing one as soon as reasonably practicable (section 182); failing to declare an interest in an existing one is an offence punishable by a fine (section 183). A declaration may be made at a Directors' meeting or by notice in writing sent to every other Director (section 184). Our arrangements are:"
+        },
+        {
+          "steps": [
+            "A Director declares the interest by notice in writing to every other Director, sent through the chair (the deputy chair if they are the chair), as soon as they become aware of it, within 5 working days at the latest and always before the matter is discussed or the transaction is entered into. The chair passes it to the HR Manager for the register the same working day, and it is recorded in the minutes of the next Directors' meeting.",
+            "Until the interest is authorised, the Director takes no part in the matter and receives no papers about it.",
+            "The other Directors decide whether to authorise it, and on what conditions, at the next Directors' meeting or, where a decision is needed sooner, by a decision in writing of all the other Directors within 10 working days. The decision, conditions and reasons are minuted and entered in the register.",
+            "At every Directors' meeting, declarations of interest are the first item. A Director with an interest in an item that could reasonably be regarded as likely to give rise to a conflict leaves the meeting for that item, does not count in the quorum and does not vote. This is our rule even where the articles would allow the Director to take part. The chair rules on whether a Director must leave; the other Directors rule on the chair. The minutes record each declaration, who left and the decision.",
+            "Where leaving makes the meeting inquorate, or every Director is conflicted, or there is only one Director, the independent reviewer appointed under the Fit and Proper Persons (Directors) Policy first gives written advice on whether and how the conflict can be managed, and the matter is then put to the shareholders for authorisation by ordinary resolution, which company law allows (section 180(4)(a)), with the advice recorded alongside the resolution.",
+            "Authorisations are reviewed every April with the annual declaration and whenever the interest changes; an authorisation lapses if its conditions are broken."
+          ]
+        },
+        {
+          "p": "If {{organisation}} was incorporated before 1 October 2008, the Nominated Individual checks at adoption of this policy whether the shareholders have resolved to allow Directors' authorisation, either by a resolution to that effect or by adopting articles that provide for it. If they have not, it is put to the shareholders within 3 months, and until it is passed every Director's conflict is authorised by the shareholders by ordinary resolution."
+        },
+        {
+          "p": "Each Director confirms in their April fit and proper person declaration that their interests are declared under this policy. A Director's failure to declare is also a fitness concern handled under the Fit and Proper Persons (Directors) Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Declarations at meetings and panels",
+      "blocks": [
+        {
+          "p": "Declarations of interest are a standing first item at the Monthly Quality and Governance Meeting, each branch's weekly management meeting, and every recruitment shortlisting and interview, supplier selection, tender evaluation and disciplinary, grievance or appeal hearing. Anyone with an interest in an item says so, leaves for that item and takes no part in the decision. The chair records the declaration and who left in the minutes or the CareFlow record of the panel, and the HR Manager adds any new interest to the register by the end of the next working day. If the Monthly Quality and Governance Meeting is no longer quorate under the Governance and Quality Assurance Policy, or nobody unconnected is left to decide an item at a branch meeting or panel, the item is deferred to the next meeting that can decide it or, where the decision cannot wait, made by the next manager up: the Registered Manager for a branch meeting or panel (the Deputy Manager where the Registered Manager is connected) and the Nominated Individual for the Monthly Quality and Governance Meeting (a Director other than the Nominated Individual where the Nominated Individual is connected)."
+        }
+      ]
+    },
+    {
+      "heading": "Failure to declare",
+      "blocks": [
+        {
+          "p": "Anyone who finds an undeclared interest tells the Registered Manager, or the Nominated Individual where it concerns the Registered Manager, Deputy Manager or HR Manager, or the chair where it concerns a Director or the Nominated Individual (the deputy chair where it concerns the chair), the same working day. Concerns may also be raised under the Whistleblowing (Speaking Up) Policy."
+        },
+        {
+          "steps": [
+            "The manager receiving the concern decides within 2 working days of it being raised whether an interest was undeclared, records the interest in the register and puts an arrangement in place at once.",
+            "Where a person we support may have been affected, for example by an undeclared connected-person allocation or private work, the safeguarding lead decides the same day how it is handled under the Professional Boundaries Policy.",
+            "The same manager decides the route: a late declaration made by the person themselves before it was found, with no benefit gained and no effect on a decision or a person, is handled as a minor lapse at supervision under the Staff Code of Conduct; anything else goes to the Disciplinary Policy and Procedure. Deliberately hiding an interest to gain a benefit may be gross misconduct, and suspected fraud is handled under the Anti-Bribery and Fraud Prevention Policy, including referral to the police.",
+            "The manager receiving the concern, or a manager or Director they name who is at least as senior as the person, reviews every decision the person made or influenced while the interest was undeclared, and at least those of the previous 12 months, within 20 working days. The reviewer has no connection to the person or the interest. Each decision is confirmed, re-made or reversed, for example re-allocating visits, re-running a recruitment or re-tendering a contract, and any financial loss to us or a commissioner is reported to the Directors with the review.",
+            "The Nominated Individual tells any commissioner or contracting authority whose contract or procurement was affected within 2 working days of the review finding it. Where a person we support was harmed, the Registered Manager decides the same day whether a notification is due under the Statutory Notifications to CQC Procedure and whether the Duty of Candour Policy applies."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Register of interests: each declaration and nil return, date, interest, the decisions it could affect, the decision-maker's decision, reasons, arrangement and review date, people we support by CareFlow reference number only",
+                "Governance records, open only to the Directors, the Nominated Individual, the Registered Manager, the Deputy Manager and the HR Manager",
+                "6 years after the declarer's employment or office ends"
+              ],
+              [
+                "Declarations, decisions, arrangements and review outcomes for each employee",
+                "Staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Directors' declarations, authorisations and conditions",
+                "Directors' minutes and the register; the fit and proper person file for April declarations",
+                "Minutes for the life of the organisation plus 6 years; the file for the period in office plus 6 years"
+              ],
+              [
+                "Declarations at meetings and panels; reviews of decisions after a failure to declare",
+                "Meeting minutes, the candidate's CareFlow record or the case file; reviews in the governance records",
+                "The same period as the minutes or record that holds them; reviews 6 years after they close"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The register holds personal data about staff and their families and is handled under the Data Protection Policy and the staff privacy notice. Only the interest and its effect on work are recorded, never more detail than the decision needs."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "Every new starter is taken through this policy during organisational induction under the Induction and Care Certificate Procedure, completes their declaration before clearance to work and acknowledges the policy in CareFlow by that procedure's deadline. Everyone acknowledges each new major version in CareFlow within 14 days of its publication; a minor version does not need acknowledging again.",
+            "Every new Director and Nominated Individual is briefed by the chair on this policy and the Companies Act duties before their first declaration.",
+            "The Registered Manager, Deputy Manager and HR Manager are briefed by the Nominated Individual on deciding declarations and keeping the register before their first decision or register entry, and every 3 years.",
+            "Care Coordinators and On-call Managers are briefed by the Registered Manager or Deputy Manager on allocation restrictions and connected persons before their first rota or on-call shift, alongside the Professional Boundaries Policy briefing, and every 3 years with the Staff Code of Conduct briefing.",
+            "The HR Manager's April reminder to decision-making roles includes the examples in Recognising a conflict in home care."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every declaration entered by the end of the next working day, decided within 5 working days and confirmed in writing within 2 working days, and arrangements reviewed by their date: target 100%",
+                "Quarterly check of every register entry",
+                "HR Manager (Registered Manager for entries the HR Manager made as declarer)",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Arrangements followed: allocation restrictions against the rota and check-in/check-out, supervisor allocations, and monthly reviews of relatives' rotas and timesheets",
+                "Quarterly sample of 10 arrangements (all if fewer)",
+                "Deputy Manager (Registered Manager for arrangements the Deputy Manager decided or is part of)",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Supplier and payee list checked against the interests of Directors and decision-making roles",
+                "Every 12 months, in April",
+                "Nominated Individual",
+                "Directors, in the annual register report"
+              ],
+              [
+                "April declarations and nil returns complete by 30 April: target 100%; declarations by type, breaches found and decisions reviewed",
+                "Annual register report",
+                "Nominated Individual",
+                "Directors' governance meeting held by mid-May"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan with an owner and a deadline. The independent quality review checks 5 register entries each year."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in company, procurement or employment law or national guidance, an undeclared conflict that affected a person or a contract, an inspection or commissioner finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

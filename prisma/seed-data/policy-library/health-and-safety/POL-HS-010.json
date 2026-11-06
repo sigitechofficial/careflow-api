@@ -1,0 +1,718 @@
+{
+  "reference": "POL-HS-010",
+  "revision": 1,
+  "title": "Fire Safety in People's Homes Policy",
+  "documentType": "POLICY",
+  "summary": "How we find and reduce fire risks in the homes of the people we support, including smoking, emollient skin products, home oxygen, airflow mattresses, cooking, heating, clutter and missing smoke alarms; when we refer people to the fire and rescue service; what staff do if a fire breaks out or an alarm sounds; and how we keep our branch offices safe from fire. For all staff.",
+  "keyPoints": {
+    "intro": "Many of the people we support could not get out of a fire on their own. These are the rules that keep them, you and others safe from fire on every visit.",
+    "points": [
+      "If there is a fire, get out, stay out and call 999. Help the person out only if you safely can; otherwise shut their room door as you leave. Never use a hoist or go back in, and tell 999 where the person is.",
+      "If you arrive and see or smell smoke, or hear a smoke or carbon monoxide alarm and get no answer, do not go in. Move away, call 999, then phone the office or On-call Manager.",
+      "If a carbon monoxide alarm sounds, open doors and windows, help the person out if safe, call 999 if anyone is unwell, phone the office, and stay out until the Registered Manager, Deputy Manager or On-call Manager says it is safe.",
+      "Read the person's fire risk assessment and do every fire check in their visit plan. Never smoke or vape at a visit or anywhere on the person's property.",
+      "If anyone smokes, vapes or uses a flame while oxygen is in use, ask them to stop. If they carry on, leave the room, and the home if the danger continues, and phone the office before you leave the visit.",
+      "Clothing, bedding and dressings with any skin cream on them catch fire easily, even paraffin-free creams. Remind the person not to smoke or go near flames or heaters in them, and change them as the care plan says.",
+      "Never leave cooking unattended, never deep-fry in a pan of oil, never dry clothes on a heater, and never light or refuel an open fire, stove, or gas or paraffin heater.",
+      "Before you leave every visit, check the cooker is off, cigarettes and candles are out, heaters are clear of fabric, exits are clear, and the person's phone, pendant and walking aid are within reach.",
+      "Never climb to reach a smoke alarm and never disconnect one. If an alarm is missing, beeping or fails its test, record it and phone the office that day, before you leave if the home has no working smoke alarm.",
+      "Report burn or scorch marks, cigarette burns, blocked exits and hot or swollen chargers or batteries: phone the office before you leave if the person or the next visit is at risk, and record them in the incident log before your shift ends.",
+      "Only give a key safe code to fire or ambulance crews in an emergency, and tell the office straight afterwards.",
+      "Complete fire safety training before you work alone and renew it every 12 months. You will not be given visits once it has expired."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "RISK_ASSESSMENT",
+    "CARE_PLAN",
+    "MEDICATION",
+    "TRAINING",
+    "INCIDENT",
+    "BRANCH"
+  ],
+  "relatedReferences": [
+    "POL-HS-001",
+    "POL-HS-002",
+    "POL-HS-008",
+    "POL-HS-013",
+    "POL-CD-008",
+    "POL-CD-016",
+    "POL-SG-012",
+    "POL-GOV-007"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 3 (general duties of employers to persons other than their employees)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/3"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 8 (procedures for serious and imminent danger)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/8"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 (safe care and treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Regulatory Reform (Fire Safety) Order 2005, article 6 (the Order does not apply to domestic premises, except the structure, external walls, common parts and flat entrance doors of buildings with two or more homes)",
+      "url": "https://www.legislation.gov.uk/uksi/2005/1541/article/6"
+    },
+    {
+      "source": "Regulatory Reform (Fire Safety) Order 2005, article 9 (fire risk assessment and its written record, as amended by the Building Safety Act 2022 from 1 October 2023)",
+      "url": "https://www.legislation.gov.uk/uksi/2005/1541/article/9"
+    },
+    {
+      "source": "Regulatory Reform (Fire Safety) Order 2005, article 21 (training of employees)",
+      "url": "https://www.legislation.gov.uk/uksi/2005/1541/article/21"
+    },
+    {
+      "source": "Regulatory Reform (Fire Safety) Order 2005, article 22 (co-operation and co-ordination between responsible persons)",
+      "url": "https://www.legislation.gov.uk/uksi/2005/1541/article/22"
+    },
+    {
+      "source": "Fire and Rescue Services Act 2004, section 6 (fire safety promotion and advice)",
+      "url": "https://www.legislation.gov.uk/ukpga/2004/21/section/6"
+    },
+    {
+      "source": "Smoke and Carbon Monoxide Alarm (England) Regulations 2015, regulation 4 and the Schedule (landlords' duties and excluded tenancies, as amended from 1 October 2022)",
+      "url": "https://www.legislation.gov.uk/uksi/2015/1693/regulation/4"
+    },
+    {
+      "source": "Fire Safety (Residential Evacuation Plans) (England) Regulations 2025, regulations 3 to 11 (in force 6 April 2026)",
+      "url": "https://www.legislation.gov.uk/uksi/2025/797/made"
+    },
+    {
+      "source": "Smoke-free (Exemptions and Vehicles) Regulations 2007, regulation 3 (private dwellings)",
+      "url": "https://www.legislation.gov.uk/uksi/2007/765/regulation/3"
+    },
+    {
+      "source": "Medicines and Healthcare products Regulatory Agency, Drug Safety Update: Emollients: new information about risk of severe and fatal burns with paraffin-containing and paraffin-free emollients (December 2018)",
+      "url": "https://www.gov.uk/drug-safety-update/emollients-new-information-about-risk-of-severe-and-fatal-burns-with-paraffin-containing-and-paraffin-free-emollients"
+    },
+    {
+      "source": "Medicines and Healthcare products Regulatory Agency, Safe use of emollient skin creams to treat dry skin conditions (updated 26 May 2021)",
+      "url": "https://www.gov.uk/guidance/safe-use-of-emollient-skin-creams-to-treat-dry-skin-conditions"
+    },
+    {
+      "source": "NHS, Home oxygen therapy (safety distances from open flames, electrical appliances and heat sources)",
+      "url": "https://www.nhs.uk/conditions/home-oxygen-treatment/"
+    },
+    {
+      "source": "Home Office, Fire safety in the home (updated 25 May 2022)",
+      "url": "https://www.gov.uk/government/publications/make-your-home-safe-from-fire/fire-safety-in-the-home-accessible-version"
+    },
+    {
+      "source": "London Fire Brigade, Specialist health equipment: advice for carers and support workers",
+      "url": "https://www.london-fire.gov.uk/safety/carers-and-support-workers/specialist-health-equipment/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Many of the people {{organisation}} supports are at higher risk from fire than most people. They may move only with help, may not hear an alarm or smell smoke, may smoke, and often use emollients, home oxygen or airflow mattresses, which help fire start or spread. Our care workers, often their only daily visitors, are well placed to spot fire risks."
+        },
+        {
+          "p": "{{organisation}} will find the fire risks in every home we work in, agree practical controls with the person, involve the fire and rescue service, make sure our staff never add to the risk and train every member of staff to act safely in a fire. We respect people's right to live as they choose, including to smoke, explain the risks plainly and never ask staff to work in serious danger."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets how we reduce fire risks in people's homes, involve the fire and rescue service and act in a fire, and how {{organisation}} meets the Regulatory Reform (Fire Safety) Order 2005 at its branch offices."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to everyone who works for us, including bank and agency workers, students and volunteers, in people's homes, in sheltered and extra care housing schemes where we provide care, and in our branch offices. It forms part of the Health and Safety Policy."
+        },
+        {
+          "p": "The Fire Safety Order does not apply inside a person's own home. In a building with two or more homes it covers the structure, external walls, common parts and flat entrance doors, which are the duty of the building's responsible person, usually the landlord or managing agent. Inside the home, our duty under section 3 of the Health and Safety at Work etc. Act 1974 and Regulation 12 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 is to assess and reduce the fire risks of our work and the care we give. The Order applies in full to our branch offices."
+        },
+        {
+          "p": "Gas leaks, electrical faults and other serious and imminent danger are covered by the Health and Safety Policy, self-neglect and hoarding by the Self-Neglect and Hoarding Procedure, and loss of a branch office by the Business Continuity and Emergency Planning Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Fire risk indicator",
+                "A circumstance in the table in this policy that makes fire more likely or escape harder."
+              ],
+              [
+                "Individual fire risk assessment",
+                "The individual risk assessment for the person, kept with their other risk assessments in CareFlow, recording their fire risks, escape plan and agreed controls."
+              ],
+              [
+                "Home fire safety visit",
+                "A free visit by the fire and rescue service, sometimes called a Safe and Well visit, to advise on fire risk and, where needed, fit smoke or specialist alarms and supply fire-retardant bedding."
+              ],
+              [
+                "Emollient",
+                "Any moisturising or barrier cream, ointment, lotion, gel, spray or bath product for the skin, with or without paraffin, prescribed or bought."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for fire safety, act for {{organisation}} as the responsible person for our branch offices, and fund fire risk assessors, servicing and training. The Nominated Individual receives the monthly fire indicators and is told of fires as the Incident Reporting, Investigation and Learning Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as Health and Safety Lead, leads fire safety, with the Deputy Manager covering in their absence: approving High residual fire risks; deciding how care continues where a fire risk to staff cannot be controlled, and whether to share fire risk information without consent; reviewing every fire and making the external reports; keeping each fire and rescue service's referral route in the branch health and safety file, checked every 12 months; and running each branch office's fire arrangements."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Assessors (Field Care Supervisors and Care Coordinators) complete the fire section of every home environment risk assessment and the individual fire risk assessments, and write controls into the visit plans. Care Coordinators make and chase referrals, brief care workers on fire controls before their first visit and whenever controls change, and allocate only workers whose fire safety training is in date. Field Care Supervisors check fire safety practice at spot checks."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours the On-call Manager answers or returns care workers' calls within 15 minutes, receives fire calls and hazard reports, makes sure 999 has been called, arranges safe care, phones the escalation manager at once about any fire that causes death or possible serious injury, involves the police or that our work may have caused, and hands over every other fire and any interim decision by 10am the next working day for the Registered Manager or Deputy Manager to confirm or change."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Care workers follow the fire controls in each visit plan, carry out the end-of-visit checks, report fire hazards and act as this policy sets out in a fire. Senior Care Workers show new staff each person's fire risks on shadowing visits and tell the Field Care Supervisor the same day when a control is not followed or no longer works."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing fire risk in the home",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Fire checks for every person",
+          "blocks": [
+            {
+              "p": "The fire section of the home environment risk assessment, completed when the Risk Assessment and Home Environment Risk Assessment Procedure requires, records the smoke, heat and carbon monoxide alarms and any telecare link; how the person would know about a fire and get out by day and night, by two routes where possible; for a flat or housing scheme, the evacuation strategy on the fire action notice; others in the home who smoke or cook; who supplies any oxygen or powered equipment; and these fire risk indicators:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Fire risk indicator",
+                  "Examples"
+                ],
+                "rows": [
+                  [
+                    "Smoking",
+                    "The person or anyone in the household smokes or vapes indoors, especially in bed, in the chair they sleep in or when drowsy."
+                  ],
+                  [
+                    "Emollients",
+                    "Any emollient used by a person who smokes or uses naked flames, a gas hob, an open fire or a heater."
+                  ],
+                  [
+                    "Oxygen or airflow mattress",
+                    "Home oxygen equipment or an airflow mattress or overlay in the home."
+                  ],
+                  [
+                    "Escape and warning",
+                    "The person could not get out unaided, or could not hear an alarm or recognise danger, for example because of dementia, sight or hearing loss, or alcohol or drug use."
+                  ],
+                  [
+                    "Heat, flames and cooking",
+                    "Open fires, stoves, portable heaters near fabric, candles or oil burners; forgotten or burnt pans; a chip pan."
+                  ],
+                  [
+                    "Electrical and charging",
+                    "Overloaded sockets, damaged leads, electric blankets, or mobility scooters or e-bikes charged indoors."
+                  ],
+                  [
+                    "Clutter",
+                    "Clutter at level 4 or above on the Clutter Image Rating in any room, or an escape route blocked."
+                  ],
+                  [
+                    "Signs of fire",
+                    "Scorch marks, cigarette burns, burns on the person, a recent fire or near miss, or deliberate fire setting."
+                  ],
+                  [
+                    "Alarms and exit",
+                    "No working smoke alarm on a storey the person uses, or the person cannot open their front door from inside."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Individual fire risk assessment",
+          "blocks": [
+            {
+              "p": "Where any indicator is present, the assessor completes an individual fire risk assessment with the person, and their family or representative where the person wishes: before the first visit for a planned package, or within 7 days of a short-notice start or of an indicator first being found. It uses the rating in the Risk Assessment and Home Environment Risk Assessment Procedure. Because fire can kill, severity is scored at least 4, and 5 wherever the person could not get out unaided or uses home oxygen or an airflow mattress."
+            },
+            {
+              "p": "The assessment records each agreed control and who carries it out (the person, family, our care workers, the fire and rescue service, a landlord or a supplier), and an escape plan: how the person would be warned, who would help, whether the fire and rescue service knows about them and how firefighters would get in. A High or Very high residual risk is approved, shown in My care at a glance and reviewed as that procedure requires. The assessment is also reviewed at every care plan review and within 7 days of a fire, near miss, burn, new indicator, home fire safety visit or change in the person's mobility or home, or before the next visit where the change creates an immediate risk."
+            },
+            {
+              "p": "A person with capacity may choose to keep doing something risky, such as smoking in their armchair. We explain the risk in a way they understand, agree the safest arrangement they will accept and record it under the Positive Risk-Taking Policy; because fire can cause serious harm, the Registered Manager or Deputy Manager approves the plan. Where capacity is in doubt, we follow the Mental Capacity Act and Best Interests Policy. Where a choice puts staff in serious danger, the Health and Safety Policy steps for a declined control measure apply."
+            },
+            {
+              "p": "A fire control that restricts the person, whatever their capacity, such as keeping their cigarettes or lighter out of reach or a device that stops them using their cooker, is a restriction under the Restraint and Restrictive Practice Policy. The Care Coordinator updates the deprivation of liberty screen the same working day under the Deprivation of Liberty in the Community Procedure. Before use, the person gives signed consent if they have capacity and the Registered Manager or Deputy Manager approves it; the commissioner is told in writing within 2 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Smoke and carbon monoxide alarms",
+          "blocks": [
+            {
+              "p": "The law requires the landlord of most rented homes (including council and housing association homes, but not long leases or shared ownership) to provide a smoke alarm on each storey with living accommodation and a carbon monoxide alarm in any room used as living accommodation that has a fixed combustion appliance other than a gas cooker, and to repair or replace a faulty alarm as soon as reasonably practicable once told. Owner-occupiers are responsible for their own. We do not fit or repair alarms. Our policy is:"
+            },
+            {
+              "bullets": [
+                "with the person's agreement, the assessor checks at assessment and every care plan review that each alarm is present, uncovered and sounds when tested from the floor with a broom handle or similar; where the individual fire risk assessment is Medium or higher, the visit plan adds a monthly test done the same way, recorded in the daily visit notes;",
+                "staff never stand on chairs, steps or furniture to reach an alarm, and never remove its battery or disconnect it;",
+                "a care worker who finds an alarm missing, covered, beeping or failing its test records it in the daily visit notes and phones the office the same day, and before leaving where the home has no working smoke alarm;",
+                "the Care Coordinator tells the person and, with their agreement, the landlord or family the same working day, and makes a same-day fire and rescue service referral where a storey the person uses has no working smoke alarm;",
+                "where a person cannot hear or respond to an alarm, or lives alone and could not get out unaided, the Care Coordinator asks within 5 working days for a telecare assessment for linked smoke or heat detectors under the Technology-Enabled Care and Telecare Policy."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Flats and housing schemes",
+          "blocks": [
+            {
+              "p": "With the person's agreement, the Care Coordinator tells the scheme manager or the building's responsible person that the person would need help to evacuate. Since 6 April 2026 the Fire Safety (Residential Evacuation Plans) (England) Regulations 2025 have required the responsible person for a block of flats at least 18 metres or seven storeys high, or over 11 metres high where everyone leaves at once in a fire, to use reasonable endeavours to identify residents who could not evacuate unaided because of an impairment or condition, offer each a person-centred fire risk assessment, try to agree an emergency evacuation statement, review it at least every 12 months and, with the resident's explicit consent, tell the fire and rescue service their flat, floor and the help they need. For a person we support in such a building who could not get out unaided, the Care Coordinator checks within 5 working days of the need being recorded whether they have had an assessment and, with their agreement, helps them or their attorney or deputy to ask for one. Any evacuation statement is recorded in the escape plan in their individual fire risk assessment."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Specific fire risks and how we control them",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Emollients",
+          "blocks": [
+            {
+              "p": "The MHRA warns that clothing, bedding and dressings in contact with emollients catch fire quickly, that the risk cannot be excluded for paraffin-free products, and that washing at high temperatures may reduce the build-up but does not remove it completely. People should keep using their emollients. Where a person who uses one smokes or uses a naked flame, gas hob, open fire or heater, our controls are:"
+            },
+            {
+              "bullets": [
+                "the individual fire risk assessment, the care plan and, where we support with the product, its eMAR entry record the fire risk;",
+                "the assessor gives the person and family the MHRA advice in their preferred format (no smoking, naked flames or going near anything that may cause a fire in clothing or dressings with the product on them; frequent changes of clothes and bedding), and our advice to use an e-cigarette rather than lit cigarettes where no oxygen is used and to wear no loose sleeves at a gas hob;",
+                "where we help with dressing or bed-making, and with the person's agreement, clothing in contact with the product is changed daily and bedding at least twice a week, washed at the highest temperature the care label allows; where family does the laundry, the care plan says so;",
+                "with the person's agreement, their chair is covered with a washable cover changed at least daily;",
+                "a care worker who sees the person smoking, or near a flame or heater, in treated clothing tells the office the same day, and the Care Coordinator reviews the controls with them within 7 days."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Home oxygen",
+          "blocks": [
+            {
+              "p": "Oxygen makes materials catch fire more easily and burn far more fiercely. Before the first visit, or at the first visit for a short-notice start, the assessor records in the care plan the equipment, where it is kept, the supplier's 24-hour contact, the prescribing team and what, if anything, our staff do with it. The controls are:"
+            },
+            {
+              "bullets": [
+                "no smoking, vaping, e-cigarette charging or naked flames, including candles, gas cookers and gas or open fires, near the equipment; the NHS advises keeping it at least 3 metres from appliances with an open flame and 1.5 metres from other electrical appliances and heat sources such as radiators;",
+                "care workers never adjust the flow rate or settings, as the Medicines Management Policy sets out, and switch the supply on or off only where the care plan says;",
+                "no oil-based products such as petroleum jelly on the face while oxygen is in use; the Care Coordinator asks the prescriber or pharmacist for a water-based alternative within 2 working days;",
+                "alcohol hand rub is dry before touching the equipment, as the Hazardous Substances (COSHH) Procedure requires, and no aerosols or flammable liquids are used near it; the person is advised to keep the room ventilated and turn the oxygen off when not in use;",
+                "cylinders are stored as the supplier advises, away from heat and never covered, with tubing kept away from heaters and walkways;",
+                "a fault or alarm on the equipment is reported to the supplier on its 24-hour number and to the office before the care worker leaves."
+              ]
+            },
+            {
+              "p": "If anyone smokes, vapes or uses a naked flame while oxygen is in use, the care worker asks them to put out the cigarette or flame, or to turn the oxygen off. If they carry on, this is serious and imminent danger: the care worker leaves the room, and the home if the danger continues, and phones the office or On-call Manager before leaving the visit, phoning the Registered Manager or Deputy Manager directly if nobody answers within 15 minutes. The Registered Manager or Deputy Manager (out of hours the On-call Manager until handover) decides before the next visit how care continues safely. The Care Coordinator tells the supplier and prescribing team and refers to the fire and rescue service the same working day, and the assessment is reviewed within 7 days. If it happens again, the Registered Manager decides whether to raise a self-neglect safeguarding concern."
+            }
+          ]
+        },
+        {
+          "heading": "Airflow mattresses and incontinence products",
+          "blocks": [
+            {
+              "p": "Our rules are:"
+            },
+            {
+              "bullets": [
+                "No smoking in or near the bed, and no candles or oil burners near it.",
+                "No electric blanket on an airflow mattress, nothing charged on it and no hot items such as hair straighteners put on it.",
+                "Heaters and fires kept at least 1 metre from the bed, and the pump plugged directly into a wall socket unless the supplier says otherwise.",
+                "Incontinence products stored away from heaters, chargers and hot appliances, and not all kept beside the bed or chair.",
+                "Staff switch off an airflow mattress only where the care plan or a nurse says so, or when the pump sparks, smokes or smells of burning: they then switch it off at the socket if safe and phone the office, which gets community nursing advice the same day, as the Pressure Ulcer Prevention and Skin Integrity Procedure sets out."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Smoking",
+          "blocks": [
+            {
+              "p": "A person may smoke in their own home: smoke-free law does not cover a private home where the only work done is personal care or help with housework. Our staff never smoke or vape at a visit or on the person's property, and their exposure to second-hand smoke is controlled as the Risk Assessment and Home Environment Risk Assessment Procedure sets out. Where anyone in the household smokes, the care plan records a safer smoking plan agreed with them, which may include smoking sitting upright in a chair, never in bed or when drowsy; deep, heavy ashtrays, never a wastepaper bin; fire-retardant throws, bedding or a smoking apron through a home fire safety visit; keeping cigarettes and lighters in an agreed place; and an offer of NHS stop smoking support. Smoking materials are never withheld as a punishment or reward."
+            },
+            {
+              "p": "Care workers empty ashtrays only where the care plan says, when the contents are cold, wetting them first. They light a cigarette for a person only where the individual fire risk assessment records that the person cannot do so safely, the Registered Manager or Deputy Manager has approved it and no oxygen is in use. They never hold a lit cigarette for the person."
+            }
+          ]
+        },
+        {
+          "heading": "Cooking, heating, candles and electrical items",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Hazard",
+                  "Our rule for care workers"
+                ],
+                "rows": [
+                  [
+                    "Cooking",
+                    "Never leave a pan, grill or oven unattended and never deep-fry in a pan of oil. Keep cloths and loose sleeves away from the hob. If a pan catches fire, turn off the heat only if safe, never use water or move the pan, get out, close the door and call 999."
+                  ],
+                  [
+                    "Heaters and fires",
+                    "Keep heaters clear of bedding, curtains, clothes and furniture; never dry clothes on them or move one while it is on. Never light, refuel or tend an open fire, stove or gas, paraffin or bottled gas heater."
+                  ],
+                  [
+                    "Candles and oil burners",
+                    "Light only where the care plan records the person's wish, including for religious or cultural observance, in a stable holder away from fabric, and put out before leaving unless the care plan records the person can safely do so."
+                  ],
+                  [
+                    "Electric blankets",
+                    "Use only as the care plan and instructions say, never if damaged, scorched or wet, and switch off and unplug before the person gets into bed unless designed for all-night use."
+                  ],
+                  [
+                    "Chargers and batteries",
+                    "Never leave anything charging on a bed or soft furnishing. If a charger or battery is hot, swollen, smoking or smells of burning, unplug it only if safe, keep away and phone the office."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Where memory loss makes a person's own cooking unsafe, the Care Coordinator asks the occupational therapist or telecare service within 5 working days about a cooker safety device, heat detector or automatic gas shut-off, and the care plan records who prepares hot food meanwhile. Where a person relies on a fire or heater they cannot light safely, the Care Coordinator agrees another way to keep them warm with the person, family or landlord the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Clutter",
+          "blocks": [
+            {
+              "p": "Clutter feeds a fire and blocks escape. Care workers never move or dispose of a person's belongings without their agreement, keep their own route clear with the person's agreement and phone the office before leaving if an exit is blocked. Clutter at level 7 or above in any room counts as blocking escape unless the assessor records why not. Referral follows the table below and the Self-Neglect and Hoarding Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Referral to the fire and rescue service",
+      "blocks": [
+        {
+          "p": "Fire and rescue authorities must promote fire safety and give advice on request about preventing fires and escaping from buildings (section 6 of the Fire and Rescue Services Act 2004). The Care Coordinator refers:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "Referral made"
+            ],
+            "rows": [
+              [
+                "No working smoke alarm on a storey the person uses; smoking with oxygen; a fire, burn, scorch marks or cigarette burns; an exit blocked or clutter near a heat source or smoking materials; a person locked in alone by others; an individual fire risk assessment rated High or Very high",
+                "The same working day"
+              ],
+              [
+                "Any other indicator, including clutter at level 4 or above, a hearing or sight need, a move of home, or home oxygen or an airflow mattress without a home fire safety visit in the last 12 months",
+                "Within 5 working days of it being recorded"
+              ]
+            ]
+          }
+        },
+        {
+          "steps": [
+            "The assessor or Care Coordinator explains the visit and asks the person's agreement. For a person who lacks capacity to decide, the Care Coordinator consults their attorney, deputy or family and refers where it is in their best interests, recording the decision.",
+            "The Care Coordinator refers by the route in the branch health and safety file, sharing only the person's name, address, contact details, access arrangements, fire risk indicators and communication needs. Key safe codes are never included.",
+            "The referral date and reference are recorded in the individual fire risk assessment. If no visit date is offered within 10 working days, the Care Coordinator chases it every 10 working days until the visit happens.",
+            "The Care Coordinator records the advice given and anything fitted for the assessor's review."
+          ]
+        },
+        {
+          "p": "Where a person with capacity declines, we record their reasons, give them fire safety advice in their preferred format and offer again at every care plan review. Where their fire risk also puts others at serious risk, such as neighbours in flats or children in the household, the Registered Manager decides the same working day whether to share information without consent under the Confidentiality and Information Sharing Policy and records why. Where neglect or self-neglect is a factor, the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure is followed."
+        }
+      ]
+    },
+    {
+      "heading": "Fire safety at every visit",
+      "blocks": [
+        {
+          "p": "Care workers look for fire hazards as part of the dynamic risk assessment on every visit. Before leaving every visit they check, and for anyone with an individual fire risk assessment the visit plan lists the checks that apply:"
+        },
+        {
+          "bullets": [
+            "the cooker, hob and any appliance we used are off, and cigarettes and candles are out;",
+            "heaters are clear of fabric and furniture, the electric blanket is off where the care plan says, and nothing is charging on a bed or soft furnishing;",
+            "exits and the person's route to them are clear, and their phone, telecare pendant and walking aid are within reach;",
+            "the door is left so the person can open it from inside, and the key safe is closed and its code scrambled, as the Key Holding, Key Safes and Access to People's Homes Procedure sets out. Under the Restraint and Restrictive Practice Policy, a person is locked alone in their home only where a Court of Protection order expressly authorises it and the Registered Manager has approved the fire safety arrangements after a home fire safety visit."
+          ]
+        },
+        {
+          "p": "At a bedtime visit the care worker also closes inside doors where the person agrees. A care worker who finds that others lock the person in alone phones the office before leaving; the safeguarding lead assesses the risk within 1 hour, and the fire risk is reported to the local authority the same day, as the Deprivation of Liberty in the Community Procedure sets out, and to the fire and rescue service the same working day."
+        },
+        {
+          "p": "Burn or scorch marks, cigarette burns, smoking near oxygen, a faulty alarm, a blocked exit, a hot or swollen battery and any small fire that went out are recorded in the incident log as hazards or near misses before the end of the shift, and phoned to the office or On-call Manager before leaving where they put the person or the next visit at risk, as the Health and Safety Policy sets out. Deliberate fire setting, or a threat to start a fire, is always phoned in before leaving, and the Registered Manager or Deputy Manager decides the same day on police involvement and a safeguarding referral."
+        }
+      ]
+    },
+    {
+      "heading": "If there is a fire",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the care worker does",
+          "blocks": [
+            {
+              "steps": [
+                "Shout \"Fire\" to warn everyone in the home. On a double-handed visit, both workers follow these steps and leave together.",
+                "Help the person out straight away only if they can move with your help without danger to you, for example walking with you or in their wheelchair. Never use a hoist, carry the person or collect belongings. Close doors behind you.",
+                "If the person cannot get out with you straight away, close the door of the room they are in and get out yourself. If you are trapped, go into a room away from the fire, shut the door, call 999 and follow the fire control operator's advice.",
+                "Once out, stay out and call 999. Tell the operator exactly where the person is, how they move, and about any oxygen or cylinders. You may give the key safe code to the fire or ambulance crew, and then tell the office you have done so.",
+                "Never go back in. Meet the crew and tell them what you know.",
+                "Phone the office or On-call Manager once safe, check out on CareFlow when you can, and stay until the fire and rescue service or a manager agrees you can leave, however long past the planned end of the visit.",
+                "Record the fire in the incident log before the end of your shift, or ask the office to record it if you cannot."
+              ]
+            },
+            {
+              "p": "If the person's clothing catches fire, stop them moving, help them lie down if they can, smother the flames with a heavy coat or blanket, call 999 and cool the burn as the First Aid Procedure sets out. Care workers do not try to put out fires in people's homes or use extinguishers or fire blankets there, because the equipment is not ours and its condition is unknown."
+            }
+          ]
+        },
+        {
+          "heading": "Arriving to smoke or an alarm",
+          "blocks": [
+            {
+              "p": "If you see or smell smoke or fire, or hear a smoke or carbon monoxide alarm and get no answer, do not go in: move away, call 999, then the office or On-call Manager. This replaces the usual steps of the No Reply, No Access and Missing Person Procedure. If a smoke alarm is sounding but the person answers and there is no smoke, go in, touching any inside door with the back of your hand first and not opening it if it is warm. If it is a false alarm, such as burnt toast, open a window and let it reset. A carbon monoxide alarm sounding at any time is serious and imminent danger: open doors and windows, help the person out if safe, phone the National Gas Emergency Service once outside where there is a gas appliance, 999 if anyone is unwell, and the office; nobody goes back in until the Registered Manager, Deputy Manager or On-call Manager confirms it is safe."
+            }
+          ]
+        },
+        {
+          "heading": "What the office and managers do",
+          "blocks": [
+            {
+              "bullets": [
+                "The office or On-call Manager confirms the worker is safe and 999 has been called, and tells the Registered Manager or Deputy Manager at once (out of hours, as set out under Roles and responsibilities). They arrange care and somewhere safe for the person with family, the local authority or commissioner, reallocate the worker's later visits and tell the person's named contact the same day.",
+                "Nobody works in the home again until the fire and rescue service has left it safe and the Registered Manager, Deputy Manager or On-call Manager has confirmed the danger has passed. The worker is offered a debrief within 3 working days.",
+                "The fire is graded, investigated and reported to the commissioner under the Incident Reporting, Investigation and Learning Policy; where care cannot continue at the home, the commissioner is told the same working day.",
+                "The Registered Manager (out of hours the escalation manager) decides on reporting under the RIDDOR Reporting Procedure (an unintentional fire connected with our work that stops our visits to the home for more than 24 hours is a dangerous occurrence), notifying under the Statutory Notifications to CQC Procedure, referring under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure and the duty of candour under the Duty of Candour Policy.",
+                "The Registered Manager reports any fire involving an emollient, oxygen equipment, an airflow mattress or another medical device to the MHRA Yellow Card scheme within 2 working days, and the Care Coordinator tells the equipment supplier the same working day.",
+                "Where a key safe code was given to the emergency services, the Care Coordinator arranges with the person or key holder for it to be changed by the end of the next working day.",
+                "The assessor reviews the home environment and individual fire risk assessments before the next visit, or before care starts at any new address."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Fire safety at our branch offices",
+      "blocks": [
+        {
+          "p": "{{organisation}} is the responsible person for its branch offices under the Fire Safety Order, and the Registered Manager runs each branch's arrangements:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Arrangement",
+              "Our standard"
+            ],
+            "rows": [
+              [
+                "Fire risk assessment",
+                "Written, recording its findings, measures and anyone especially at risk, as article 9 requires. Carried out by an external fire risk assessor certificated under a third-party scheme or on a professional body's register at least every 3 years and after any material change, and reviewed by the Registered Manager every 12 months. High-priority actions completed within 4 weeks."
+              ],
+              [
+                "Shared buildings",
+                "Fire risk information and evacuation arrangements agreed with the landlord and other occupiers, as article 22 requires, and checked every 12 months."
+              ],
+              [
+                "Alarm, escape routes and lighting",
+                "Alarm tested weekly from each call point in turn, with escape routes and fire doors checked at the same time; alarm serviced every 6 months by a competent engineer; emergency lighting, where fitted, tested monthly with a full-duration test every 12 months."
+              ],
+              [
+                "Extinguishers, marshals and drills",
+                "Extinguishers checked monthly by a fire marshal and serviced every 12 months; a trained fire marshal on site whenever the office is open; a timed drill every 12 months."
+              ],
+              [
+                "People who need help",
+                "A personal emergency evacuation plan agreed with any member of staff who needs one within 5 working days of the need becoming known. Visitors sign in and are escorted out by the person they are visiting."
+              ],
+              [
+                "Housekeeping",
+                "No smoking or vaping in the building or at its entrance; no e-bikes, e-scooters or mobility scooters charged inside; waste removed daily; escape routes never used for storage."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "When the alarm sounds, everyone leaves by the nearest safe exit to the assembly point and nobody re-enters until the fire and rescue service says it is safe. The fire marshal calls 999 unless it is a confirmed test, takes the roll call from the office rota and visitors' book, and diverts the office phone to the On-call Manager. Where the office cannot be used, the Business Continuity and Emergency Planning Policy applies. A fire alarm failure lasting more than 24 hours, or fire damage that affects care, is notified to CQC under the Statutory Notifications to CQC Procedure. Tests, checks, drills and actions are recorded in the fire log book in the branch health and safety file."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Fire assessments, escape plans, approvals and referrals are kept in the person's risk assessments in CareFlow; fire controls in the visit plans; alarm tests and findings in the daily visit notes; fires, near misses, hazards and decisions on external reports in the incident log; branch fire records in the branch health and safety file. Records are kept as the Records Management and Retention Policy sets out and never contain key safe codes."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "p": "The Fire Safety Order requires staff at our offices to be trained when they start and when their risks change, repeated periodically and in working hours; we apply the same standard to people's homes."
+        },
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Fire safety: this policy, including emollient, oxygen and airflow mattress risks, end-of-visit checks and what to do in a fire",
+                "All staff",
+                "Care staff before working alone; others in their first week",
+                "Every 12 months"
+              ],
+              [
+                "Individual fire risk assessment and fire and rescue service referral",
+                "Assessors",
+                "Within risk assessment training, before their first assessment",
+                "Annual assessor update"
+              ],
+              [
+                "Handling fire emergency calls: 999, arranging care, escalation and notifications",
+                "Office staff, Care Coordinators, On-call Managers",
+                "Within the emergency calls briefing in the First Aid Procedure, before taking calls alone or the first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "Fire marshal",
+                "Appointed office staff",
+                "Before appointment",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A care worker whose fire safety training has expired is given no visits until it is renewed, as the Training and Development Policy sets out. At spot checks the Field Care Supervisor observes the end-of-visit checks and asks the worker to describe the person's fire risks and what they would do in a fire. A worker who cannot is briefed before their next visit to that person. Skipping an end-of-visit fire check or a fire control in the visit plan is a critical item at spot checks and is managed as the Quality Audit and Monitoring Procedure sets out for a shortfall. All staff acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Fire sections and individual fire risk assessments complete (target 100%) in the audit of 5 home environment risk assessments, and for everyone with home oxygen or an airflow mattress",
+                "Monthly",
+                "Deputy Manager",
+                "Nominated Individual (monthly indicators)"
+              ],
+              [
+                "Fire and rescue service referrals made and chased on time (target 100%)",
+                "Weekly",
+                "Care Coordinator",
+                "Registered Manager by exception"
+              ],
+              [
+                "Every High and Very high fire risk, with approval and review date",
+                "Monthly",
+                "Registered Manager",
+                "Nominated Individual"
+              ],
+              [
+                "Fires, burns, near misses, smoking with oxygen and alarm faults, with trends by cause and equipment",
+                "Monthly; trends quarterly",
+                "Registered Manager",
+                "Nominated Individual monthly; Health and Safety Meeting and Directors quarterly"
+              ],
+              [
+                "Branch fire log book and fire risk assessment actions",
+                "Quarterly office inspection",
+                "Deputy Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Fire safety training in date (100% at induction, 95% refreshers)",
+                "Monthly",
+                "HR Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Compliance with this policy, including branch offices",
+                "Every 12 months",
+                "External health and safety adviser",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall has an action, owner and deadline tracked at the Health and Safety Meeting, and learning from every fire is shared with all staff within 10 working days of the investigation closing."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or guidance, a fire or serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

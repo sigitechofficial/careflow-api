@@ -18,7 +18,7 @@ import {
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import type { Request, Response } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -30,9 +30,10 @@ import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ServiceUserDocumentStoreService } from './service-user-document-store.service';
 import { CreateServiceUserDocumentRecordDto } from './dto/create-service-user-document-record.dto';
 import { UpdateServiceUserDocumentRecordDto } from './dto/update-service-user-document-record.dto';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 function storeUploadRoot() {
-  return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'service-users', 'documents', 'store');
+  return uploadPath('service-users', 'documents', 'store');
 }
 
 function docMaxBytes() {

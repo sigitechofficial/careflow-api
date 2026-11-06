@@ -1,0 +1,582 @@
+{
+  "reference": "POL-CD-014",
+  "revision": 1,
+  "title": "Visit Cancellations and Refusals of Care Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we receive, check, record and charge for visits a person cancels, manage planned breaks in care, respond when a person turns a care worker away or declines a task, follow up repeated cancellations and refusals, and end a service when the person ends it or we hand a package back. For all staff, especially care workers, Office staff, Care Coordinators and On-call Managers.",
+  "keyPoints": {
+    "intro": "People we support can say no to a visit or any part of their care. Here is what to do, so their choice is respected and nobody is left at risk without us knowing.",
+    "points": [
+      "A person can decline any visit or task. Never force, pressure, trick or bargain. Explain any risk honestly, offer another way or time, and offer once more later in the visit.",
+      "Before you leave, phone the office (On-call Manager out of hours) if an essential task was not done, the visit was declined, the person may be at risk or may not understand. No answer in 15 minutes: phone the Registered Manager or Deputy Manager.",
+      "If you are turned away at the door, never try to go in. Offer just the essential tasks or a later time, check the person seems safe, and phone the office before you leave; if harm is likely, wait nearby for its decision.",
+      "Record every declined task in the daily visit notes: what you offered, what the person said or showed, the risks you explained and who you told. Record a declined medicine, including every dose due when you are turned away, on the eMAR as Refused.",
+      "In a life-threatening emergency, call 999 even if the person refuses help, tell the call handler they are refusing, stay with them and phone the office.",
+      "Never accept, agree or arrange a cancellation yourself. If anyone asks you to cancel a visit, record the request in the daily visit notes and phone the office before you leave.",
+      "If a visit is cancelled less than 24 hours ahead, including for a hospital admission, you are paid the planned visit and travel time unless you are given other paid work in that time.",
+      "A relative, friend or neighbour cannot decline care for the person. Ask the person yourself, follow their wishes, and phone the office before you leave if a relative insists or tells them to refuse.",
+      "If you cannot see or hear the person or cannot get in, follow the No Reply, No Access and Missing Person Procedure. That is never a declined visit.",
+      "Office staff and On-call Managers: accept a cancellation only from the person, someone the care plan names to act for them, or, if the person lacks capacity, a verified health and welfare attorney or deputy. Record who will do each essential task first.",
+      "A visit we cannot staff is never recorded as a cancellation, even when the person agrees to go without it.",
+      "Tell the office about any change that might explain a refusal, such as pain, low mood, worsening memory or someone else's influence. Repeated refusals or cancellations lead to a care review within 7 days."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "VISIT",
+    "CARE_PLAN",
+    "INCIDENT",
+    "SAFEGUARDING"
+  ],
+  "relatedReferences": [
+    "POL-CD-013",
+    "POL-CD-004",
+    "POL-SG-013",
+    "POL-MED-003",
+    "POL-SG-012",
+    "POL-CD-016",
+    "POL-CD-003",
+    "POL-CD-015"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 (need for consent)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9(1) and (3)(a) to (d) (person-centred care: care that meets needs and reflects preferences, with the person involved in decisions)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(1) and (2)(a) and (b) (safe care and treatment: assessing and mitigating risks)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1 (the principles, including unwise decisions, best interests and the less restrictive option)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 11(7)(a) (a personal welfare attorney may decide only where the person lacks, or the attorney reasonably believes they lack, capacity)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/11"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 19 (fees: written statement of terms, conditions and fees for people who pay for their care)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/19"
+    },
+    {
+      "source": "Consumer Rights Act 2015, section 62 (requirement for contract terms to be fair)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/15/section/62"
+    },
+    {
+      "source": "Consumer Rights Act 2015, Schedule 2, Part 1, paragraphs 5 and 6 (terms requiring a disproportionately high sum in compensation, including for services not supplied)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/15/schedule/2"
+    },
+    {
+      "source": "Department of Health and Social Care, Care and support statutory guidance, paragraph 14.17 (self-neglect may not prompt a section 42 enquiry; assessed case by case) and glossary definition of self-neglect (includes refusing assistance or services)",
+      "url": "https://www.gov.uk/government/publications/care-act-2014-supporting-implementation/care-and-support-statutory-guidance"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "People we support decide whether, when and how they receive care. A cancelled or declined visit can mean going without medicines, food, drink, continence care or a safety check, and repeated cancellations or refusals can be the first sign of illness, self-neglect, pressure from someone else or unhappiness with our care."
+        },
+        {
+          "p": "{{organisation}} will respect every decision a person makes with capacity, check that each cancellation comes from the person or someone entitled to act for them, make sure essential needs will still be met, act the same day when declined care leaves a person at risk, and follow up patterns. We never force care on anyone, never record a visit we failed to staff as a cancellation, and charge for cancelled visits only as this procedure and the person's service agreement allow."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure sets how every cancellation, refusal and ending of care is handled safely, lawfully and fairly."
+        },
+        {
+          "p": "The law requires consent, or authority under the Mental Capacity Act 2005, for care (Regulation 11); care that meets needs and preferences (Regulation 9) and is safe (Regulation 12); written terms and fees for people who pay for their care, as far as reasonably practicable before it starts (Care Quality Commission (Registration) Regulations 2009, regulation 19); and fair consumer contract terms (Consumer Rights Act 2015). The notice periods, response times and charging rules below are our policy."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who takes calls, plans rotas or gives care, including bank and agency workers, and to every person we support, however their care is funded."
+        },
+        {
+          "p": "Owned elsewhere: no reply or no access when a care worker arrives, including a relative refusing to let us in, and a missing person (No Reply, No Access and Missing Person Procedure); visits we move, shorten or cannot staff (Missed, Late and Short Visits Procedure); the package during a hospital stay and discharge (Hospital Admission and Discharge Procedure); suspending or ending a service because of abuse of staff (Violence and Aggression Towards Staff Policy); visits after a death (End of Life Care Policy); and requests to move a visit or change a care worker (Person-Centred Care, Dignity and Respect Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Cancellation",
+                "A request, made before the care worker arrives, that a planned visit does not take place. A request to move a visit to another time is a change request, not a cancellation."
+              ],
+              [
+                "Short-notice cancellation",
+                "A cancellation we receive less than 24 hours before the planned start."
+              ],
+              [
+                "Planned break",
+                "Cancellation of every visit for one full day or longer for a known reason, such as a holiday, a respite stay or staying with family."
+              ],
+              [
+                "Declined visit",
+                "The person turns the care worker away at the door, or declines all the care at a visit after the care worker has arrived. It is recorded as declined, never as a missed visit."
+              ],
+              [
+                "Essential task",
+                "A task the visit plan marks to be done first at every visit, such as medicines support, food and drink, continence care, repositioning and safety checks."
+              ],
+              [
+                "Authorised requester",
+                "The person; someone the care plan records the person has asked to act for them in arranging visits; or, where the person lacks capacity for the decision, a health and welfare attorney or deputy whose authority we have verified under the Consent to Care Policy."
+              ],
+              [
+                "Pattern of declined care",
+                "All or most of the care at a visit declined at two consecutive visits or three times in seven days, as the Care Plan Review Procedure sets out."
+              ],
+              [
+                "Repeated cancellations",
+                "Three or more visits cancelled in seven days for reasons other than a planned break, a hospital admission or a health appointment, or every visit on one day cancelled for a person with a High missed-visit risk level."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve the cancellation terms in the service agreement and make sure they are fair. The Nominated Individual decides in writing whether we hand a package back."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on this procedure, and the Deputy Manager covers in their absence. They make the decisions this procedure reserves to them: whether the rest of the care can be given safely, safeguarding and self-neglect routes, hand-back recommendations and other charge waivers."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators handle cancellations for people with a High missed-visit risk level, decide the office's response to declined essential care, and manage planned breaks, restarts, the weekly pattern check, focused reviews and commissioner contacts."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Office staff take, check and record cancellations as set out below, and record every phoned report of declined care in the daily visit notes during the call, passing it to the Care Coordinator. Out of hours the On-call Manager does the office and Care Coordinator tasks in this procedure and hands each decision over to the Registered Manager or Deputy Manager by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors check responses to refusals at spot checks and visit people whose declines or cancellations form a pattern when the Care Coordinator asks them to."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "They respect each person's decisions, offer care as the care plan and this procedure set out, never accept or arrange a cancellation themselves, and record and report declined care."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Cancellations by the person",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "How people cancel",
+          "blocks": [
+            {
+              "p": "The welcome pack and service agreement explain that visits are cancelled by phoning the branch office in office hours, or the On-call Manager out of hours, at least 24 hours before the visit wherever possible, and what a short-notice cancellation may cost. An email to the branch office is a cancellation only once Office staff have replied to confirm it. A message to a care worker or a note left in the home is never a cancellation."
+            },
+            {
+              "p": "If a person or relative asks a care worker at a visit to cancel a later visit, the care worker does not agree or change anything, records the request in the daily visit notes and phones the office before leaving the home, so that Office staff can confirm the cancellation with the person."
+            }
+          ]
+        },
+        {
+          "heading": "Taking and checking a cancellation",
+          "blocks": [
+            {
+              "steps": [
+                "Record who is calling, their relationship to the person, which visits they want cancelled and why.",
+                "Check the caller is an authorised requester. If they are not, phone the person to confirm before cancelling; if the person cannot be reached or cannot confirm, the visit goes ahead. Where the risk assessment records a domestic abuse concern, a request from anyone other than the person goes to the Care Coordinator (On-call Manager out of hours), who tells any commissioner the same working day; visits continue until the person confirms privately or, where they lack capacity, the commissioner agrees, as the Domestic Abuse Policy sets out.",
+                "Ask who will do each essential task of the cancelled visit, and record their name. For a time-critical visit, the Care Coordinator (On-call Manager out of hours) confirms before the dose time who will give the dose; if nobody will, it is handled as a declined dose of a flagged medicine under the Consent, Mental Capacity and Declined Medicines Policy.",
+                "For a person with a High missed-visit risk level, pass the call to the Care Coordinator (On-call Manager out of hours), who speaks to the person, or to the named adult who will give the care, before the cancellation is accepted.",
+                "Where nobody will meet an essential need, explain the risk in plain words and offer alternatives: a shorter visit for the essential tasks only, another time the same day, or a welfare phone call. A person with capacity may still cancel. The Care Coordinator records the risks explained and tells the Registered Manager the same working day where the person may come to harm before the next visit.",
+                "Where the person lacks capacity to decide about the visit, it is cancelled only where a named adult confirms they will be with the person at the visit time and will give the essential care. Otherwise the visit goes ahead and the caller is told why.",
+                "Where the reason suggests unhappiness with our care, offer to take it as a complaint under the Complaints Policy and Procedure. Where it suggests illness, a fall or a change in needs, tell the Care Coordinator the same working day.",
+                "Before the planned start, mark the visit cancelled on the CareFlow rota with the reason, who asked, how and when, who will give the essential care and who accepted it; add a note to the daily visit notes; record Absent on the eMAR for each dose due, noting who is responsible for it; and phone the care worker. For a short-notice cancellation by a person who pays for their care, tell the caller whether a charge applies."
+              ]
+            },
+            {
+              "p": "Visits are cancelled for a hospital admission under the Hospital Admission and Discharge Procedure; where the caller is not named in the care plan, the admission is first confirmed with the ward."
+            }
+          ]
+        },
+        {
+          "heading": "Planned breaks",
+          "blocks": [
+            {
+              "p": "For a planned break the Care Coordinator agrees with the person the dates, the last visit before and the first visit after, and confirms the same day who looks after the home, keys and any pets, as the Key Holding, Key Safes and Access to People's Homes Procedure sets out. Office staff record Absent against each eMAR dose with who is responsible for the medicines during the break, and at the last visit before it the care worker records in the daily visit notes which medicines leave the home. For a commissioned package the Care Coordinator tells the commissioner in writing by the end of the next working day, or sooner where the contract requires."
+            },
+            {
+              "p": "Before care restarts the Care Coordinator re-confirms access details. Care restarts as the Needs Assessment and Care Planning Policy sets out: a phone check after a break of up to 28 days, a full reassessment before restarting after a longer one. A care plan review that fell due during the break is held within 7 days of the restart."
+            }
+          ]
+        },
+        {
+          "heading": "Charges for cancelled and declined visits",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "Person who pays for their care, including through a direct payment",
+                  "Care funded by a local authority or the NHS"
+                ],
+                "rows": [
+                  [
+                    "Cancelled with at least 24 hours' notice, including a planned break",
+                    "No charge",
+                    "Not invoiced"
+                  ],
+                  [
+                    "Short-notice cancellation, or a visit declined or ended early by the person after the care worker arrived",
+                    "Charged at the visit's planned price, unless a waiver below applies",
+                    "Invoiced only where the contract pays for short-notice cancellations"
+                  ],
+                  [
+                    "No reply because the person was out without telling us",
+                    "Charged as a short-notice cancellation, unless a waiver below applies",
+                    "Invoiced only as the contract sets"
+                  ],
+                  [
+                    "Waiver applies: unplanned hospital admission; death; sudden illness or injury for which the person needed a GP, NHS 111 or 999; the person lacked capacity to make the decision to cancel or decline; or we changed the visit time or care worker without their agreement in the previous 24 hours",
+                    "No charge",
+                    "Invoiced only as the contract sets"
+                  ],
+                  [
+                    "A visit we cancelled, could not staff or did not deliver as agreed, or could not complete for a reason within our control, such as a key our staff did not return",
+                    "Never charged",
+                    "Never invoiced"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A charge is made only where the person's signed service agreement sets it out, and is never more than the price of the visit, because the care worker is still paid for that time. Office staff check every charge against the waivers before invoicing and show each one separately with its date and reason. The Registered Manager may waive any other charge, for example for financial hardship, recording why on the visit record. A care worker whose visit is cancelled less than 24 hours before it, including because the person is admitted to hospital or the package is suspended, is paid the planned visit and travel time unless the Care Coordinator gives them other paid work in that time, as the Working Time, Rest Breaks and Travel Time Policy sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When a person declines care at a visit",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Turned away at the door",
+          "blocks": [
+            {
+              "steps": [
+                "Do not insist or try to go in. Show your ID, say who you are and why you have come. If you feel unsafe, leave and phone from somewhere safe.",
+                "Ask gently what is wrong, and offer just the essential tasks, a different way of doing them, or to come back later.",
+                "Look and listen for signs that the person is unwell, injured, newly confused, frightened or not alone. Call 999 in an emergency. If you cannot see or hear the person, follow the No Reply, No Access and Missing Person Procedure.",
+                "If the person still declines, phone the office (On-call Manager out of hours) from the doorstep or your car before you leave and follow their decision; if nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. Where harm is likely before the next visit, wait nearby for the decision. Record each dose due as Refused on the eMAR. The office records your arrival and departure as manual check-in/check-out times and your account in the daily visit notes."
+              ]
+            },
+            {
+              "p": "Where the person turns away a particular care worker, the office sends another worker for the essential tasks and handles the request under the Person-Centred Care, Dignity and Respect Policy; a refusal because of a care worker's protected characteristic follows the Equality, Diversity and Human Rights in Care Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Declining a task during the visit",
+          "blocks": [
+            {
+              "p": "The care worker stops at once and responds as the Consent to Care Policy sets out: asks why, offers an alternative, explains any risk honestly and may offer once more later in the visit, never pressuring or bargaining. If the person asks them to leave, they first do the essential tasks the person agrees to and the end-of-visit checks, leaving the home secure as the Key Holding, Key Safes and Access to People's Homes Procedure sets out."
+            },
+            {
+              "p": "The care worker records in the daily visit notes every declined task, what was offered, what the person said or showed, the risks explained and who was told. Declined medicines are recorded on the eMAR as Refused under the Consent, Mental Capacity and Declined Medicines Policy, and declined meals and drinks follow the Nutrition and Hydration Policy thresholds. The care worker phones the office before leaving when an essential task was not done, the whole visit was declined, the person may be at risk, there is a doubt about capacity, or a relative insists on care the person declines; if nobody answers within 15 minutes, they phone the Registered Manager or Deputy Manager directly."
+            }
+          ]
+        },
+        {
+          "heading": "What the office does",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "Action",
+                  "Who and when"
+                ],
+                "rows": [
+                  [
+                    "Essential task or visit declined and harm is likely before the next visit: High missed-visit risk level, time-sensitive medicine, food with insulin or another diabetes medicine, or continence care or repositioning for a person at High skin risk",
+                    "Agree with the care worker what happens next: another approach, a return visit later the same day at a time the person accepts, a call to the chosen contact with the person's agreement, or health advice. Brief the next care worker.",
+                    "Care Coordinator (On-call Manager out of hours), during the call and before the care worker leaves"
+                  ],
+                  [
+                    "Any other essential task or visit declined",
+                    "Decide whether a return visit, an earlier next visit, a phone call or health advice is needed, and brief the next care worker.",
+                    "Care Coordinator the same working day; On-call Manager out of hours"
+                  ],
+                  [
+                    "Refusal that may have a health cause, such as pain, breathlessness, low mood or worsening memory",
+                    "Ask the GP for advice (NHS 111 when the practice is closed); 999 for sudden confusion or another emergency.",
+                    "Care Coordinator or On-call Manager, the same day"
+                  ],
+                  [
+                    "Doubt about the person's capacity to make the decision",
+                    "Follow the capacity doubt steps in the Consent to Care Policy, including phone approval of a best interests decision where an essential task is needed at that visit.",
+                    "As that policy sets out"
+                  ],
+                  [
+                    "Person seems frightened or pressured, or someone else tells them to refuse",
+                    "Tell the safeguarding lead at once under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+                    "Office staff or On-call Manager, during the call"
+                  ],
+                  [
+                    "Non-essential task declined",
+                    "Recorded in the daily visit notes only; picked up in the weekly pattern check.",
+                    "Care Coordinator, weekly"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A visit cut short because the person declined care is never counted against the care worker, as the Missed, Late and Short Visits Procedure sets out. Family or the chosen contact are told about declined care only where the person agrees or, where they lack capacity for that decision, it is in their best interests."
+            }
+          ]
+        },
+        {
+          "heading": "Emergencies and people who cannot decide",
+          "blocks": [
+            {
+              "p": "Respecting a refusal never means leaving a person in danger. In a life-threatening emergency the care worker calls 999 even where a person with capacity refuses help, tells the call handler the person is refusing, respects their refusal of treatment, stays and phones the office; the Care Coordinator tells the GP the same day, as the First Aid Procedure sets out. Where a person declines help after a fall, the care worker stays while the office gets NHS 111 advice, as the Falls Prevention and Response Procedure sets out."
+            },
+            {
+              "p": "Where the care plan contains a best interests plan for a task, the care worker follows it exactly. If the person resists, the care worker stops, tries the other approaches it gives and never holds, restrains or forces them. Care given against a refusal is reported under the Safeguarding Adults Policy."
+            }
+          ]
+        },
+        {
+          "heading": "When others refuse for the person",
+          "blocks": [
+            {
+              "p": "A relative, friend, neighbour or another agency cannot decline care for an adult. The care worker asks the person directly and follows the person's decision. A health and welfare attorney or deputy is followed only within authority verified under the Consent to Care Policy. A relative or anyone else who stops the care worker seeing the person is handled under the No Reply, No Access and Missing Person Procedure, and the safeguarding lead is told."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Repeated cancellations and refusals",
+      "blocks": [
+        {
+          "p": "Each week the Care Coordinator checks the cancelled visits on the CareFlow rota and the declined care in daily visit notes for every person, and acts on any trigger below. A refusal today is not a refusal for ever: care workers keep offering care at each visit as the care plan says."
+        },
+        {
+          "table": {
+            "columns": [
+              "Trigger",
+              "Action",
+              "Who and when"
+            ],
+            "rows": [
+              [
+                "Pattern of declined care, or repeated cancellations",
+                "Speak with the person, and with their agreement their representative, about why and what would help; arrange a focused review under the Care Plan Review Procedure; tell any commissioner in writing.",
+                "Care Coordinator: conversation within 2 working days; review within 7 days; commissioner within 2 working days"
+              ],
+              [
+                "The same essential task declined at 3 or more visits in 7 days (medicines and food and drink follow their own thresholds; repositioning or skin checks for a person at High skin risk follow the Pressure Ulcer Prevention and Skin Integrity Procedure)",
+                "As above, and ask the relevant health professional, such as the district nurse, for advice.",
+                "Care Coordinator: health professional within 2 working days, the same day for skin damage or another sign of harm"
+              ],
+              [
+                "A person with capacity continues to decline care that leaves them at serious risk",
+                "Decide whether the rest of the care can be given safely and tell the commissioner in writing; record the risks, advice and interim controls in the risk assessments, and approve the plan within 7 days, under the Positive Risk-Taking Policy.",
+                "Registered Manager within 1 working day; risk assessments within 2 working days"
+              ],
+              [
+                "Declines or cancellations with signs of self-neglect",
+                "Follow the Self-Neglect and Hoarding Procedure, including the safeguarding lead's route decision.",
+                "As that procedure sets out"
+              ],
+              [
+                "Declines or cancellations linked to one care worker, or that began after a change of care worker",
+                "Ask the person privately what has changed; pass any conduct concern to the Registered Manager.",
+                "Care Coordinator within 2 working days; conduct concerns the same day"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "We never reduce visits, change charges or end a package because a person declines care, without the decision steps in this procedure and, for commissioned care, the commissioner's agreement."
+        }
+      ]
+    },
+    {
+      "heading": "Ending the service",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "When the person ends their care",
+          "blocks": [
+            {
+              "p": "A person may end their care at any time by telling the office. The Care Coordinator speaks with them within 1 working day to confirm the decision, ask why, offer to take any concern as a complaint, and check how essential needs will be met. Where the person may be left at risk, the Registered Manager decides the same working day whether to raise a safeguarding or self-neglect concern. For a commissioned package, visits the person no longer wants are cancelled as they ask, the Care Coordinator tells the commissioner the same working day so it can review their needs, and the package ends on the date the commissioner confirms. A person who pays for their own care has no notice period to pay for beyond the short-notice cancellation rule."
+            },
+            {
+              "p": "Where the person lacks capacity to decide, a request from someone else to end their care is accepted only from a health and welfare attorney or deputy acting within verified authority. Otherwise visits continue and the Care Coordinator writes to the commissioner (for a person who pays for their own care, the local authority) within 2 working days."
+            },
+            {
+              "p": "When care ends, the Care Coordinator confirms the end date in writing, advising the person to change any key safe code; tells the GP practice and pharmacy within 2 working days where we gave medicines support; and has keys returned and the code removed from CareFlow within 5 working days of the last visit, as the Key Holding, Key Safes and Access to People's Homes Procedure sets out."
+            }
+          ]
+        },
+        {
+          "heading": "When we hand a package back",
+          "blocks": [
+            {
+              "p": "We hand a package back only when we can no longer meet the person's needs safely, for example because their needs have grown beyond what we can staff or a hazard in the home cannot be controlled. We never hand a package back because a person declines care, cancels visits or complains. Ending a service because of abuse or violence towards staff follows the Violence and Aggression Towards Staff Policy."
+            },
+            {
+              "steps": [
+                "The Registered Manager writes a recommendation setting out the reasons and what has been tried, and consults the commissioner, or for a person who pays for their own care the person and their representative, in writing. Where the person complained in the previous 6 months, it records why the decision is unconnected to the complaint. For a person with an open self-neglect record, a referral decision and a multi-agency meeting held or requested come first, as the Self-Neglect and Hoarding Procedure sets out.",
+                "The Nominated Individual decides in writing within 5 working days of receiving the recommendation, records the decision in the governance records and tells the Directors at their next meeting.",
+                "The Registered Manager writes to the person, in their accessible format, with the reasons, the end date and how to complain, and offers a meeting. Notice is at least 28 days, or longer where the contract or service agreement requires; for commissioned care the end date is agreed with the commissioner.",
+                "Care continues as planned through the notice period and until the commissioner, or for a person who pays for their own care the person, has confirmed who will provide care and from when, unless the Nominated Individual decides that continuing would put the person or staff at serious risk. Where the person may be left without care, the Registered Manager tells the local authority in writing the same day and the safeguarding lead decides on a referral.",
+                "The Care Coordinator sends the new provider the information it needs before its first visit, as the Confidentiality and Information Sharing Policy allows."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Cancellations, charges and waivers are recorded on the visit on the CareFlow rota, with the daily visit notes and eMAR entries; declined care, calls to the office and decisions in the daily visit notes and on the check-in/check-out record; patterns, reviews and positive risk-taking plans in the care plan and risk assessments; harm after declined care, care given against a refusal or a failure to follow this procedure in the incident log before the end of the shift; and hand-back decisions in the governance records. A declined task is not an incident in itself. Records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Responding to declined care and cancellation requests at visits, recording and reporting",
+                "Care Workers and Senior Care Workers",
+                "At induction, within the consent and Mental Capacity Act training, before working without a shadowing colleague; every 12 months with that refresher"
+              ],
+              [
+                "Taking cancellations, authorised requesters, recording, charges and waivers, and the office response to declined care",
+                "Office staff and On-call Managers",
+                "Before taking calls alone or the first on-call shift; every 12 months"
+              ],
+              [
+                "Pattern triggers, planned breaks and restarts, commissioner notice and ending a service",
+                "Care Coordinators",
+                "Before first allocating visits, with the rota training; every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At every spot check the Field Care Supervisor asks the care worker what they would do if the person declined an essential task or asked them to cancel the next visit; a worker who cannot say is briefed before their next visit. Staff acknowledge this procedure in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Cancellations by reason, short-notice charges and waivers, declined visits, and people meeting a pattern trigger, per branch",
+                "Monthly quality dashboard",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Audit of 10 cancellations, including every one for a High missed-visit risk level or time-critical visit, and 10 declined-care records against this procedure, including charges (target 100%)",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Weekly pattern check completed and each trigger acted on",
+                "Weekly",
+                "Care Coordinator",
+                "Registered Manager at the weekly management meeting"
+              ],
+              [
+                "Every service ended by the person or handed back: reasons, notice, safe handover; trends in cancellations requested by people other than the person",
+                "Quarterly",
+                "Registered Manager",
+                "Nominated Individual and Directors in the quarterly quality report"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls become actions with an owner and deadline in the service improvement plan. This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law, national guidance or a commissioner's contract terms, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

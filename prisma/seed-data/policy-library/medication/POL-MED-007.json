@@ -1,0 +1,563 @@
+{
+  "reference": "POL-MED-007",
+  "revision": 1,
+  "title": "When Required (PRN) Medicines Protocol",
+  "documentType": "PROTOCOL",
+  "summary": "How we plan, give, record and review 'when required' (PRN) medicines in people's homes: the written guidance each one needs, unclear directions and variable doses, checks before each dose, doses between visits, recording reason and effect, and prescriber review. For care staff, Care Coordinators and managers.",
+  "keyPoints": {
+    "intro": "When required medicines are given when the person needs them, not at set times. These rules keep each dose safe and recorded.",
+    "points": [
+      "Give a when required medicine as its care plan guidance says: what it is for, the signs of need, the dose and the limits. If there is none, it is unclear or you are not signed off for it, phone the office.",
+      "If a person who can decide for themselves asks for a dose within the limits, give it. Never decide for them that they do not need it, and never give a medicine to make someone quieter or easier to care for.",
+      "Before every dose, find out when it was last taken: check the eMAR, the between-visits record and any nurse's record, and ask the person and anyone present. Always leave at least 4 hours between doses of anything containing paracetamol.",
+      "Never give a dose before the minimum gap, above the most at one time, or once the 24-hour maximum is reached, even if a relative asks. If a limit applies and nobody knows the last dose time, do not give it; phone the office.",
+      "If the person may have had more than a limit allows, whoever gave it, call 999 first and give no more, then phone the office.",
+      "Never choose a variable dose, such as 'one or two tablets', yourself. Give the amount the person, or the adult relative or friend named in the care plan, asks for within the range, or the amount the guidance sets.",
+      "Write each new entry on the between-visits record in the daily visit notes, not on the eMAR. Record every dose you give straight away as Given: the exact dose, the time, the reason and its effect, or 'effect not yet known'.",
+      "If the person needs the medicine but declines it, record Refused and phone the office. If you offered it as the guidance says and they do not need it, write that in the daily visit notes, not on the eMAR.",
+      "Phone the office before you leave if a needed dose cannot be given, a dose has not worked or you gave a medicine for distress or agitation. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager.",
+      "Call 999 for chest pain that the person's GTN does not ease as their guidance says, collapse, breathing that does not improve after their reliever, or a person who cannot be roused. Stay with them and tell the office.",
+      "Tell the office the same day if a medicine seems needed at most visits, works less well or is running low. Phone before you leave if the person seems drowsy or unsteady after a dose."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Carer/Domestic",
+    "Senior Carer/Nurse",
+    "Care Coordinator",
+    "Manager"
+  ],
+  "moduleLinks": [
+    "MEDICATION",
+    "CARE_PLAN",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-MED-001",
+    "POL-MED-003",
+    "POL-MED-004",
+    "POL-MED-005",
+    "POL-MED-006",
+    "POL-MED-010",
+    "POL-MED-014",
+    "POL-SG-006"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(a), (b), (c) and (g) the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 Good governance, including 17(2)(c) an accurate, complete and contemporaneous record of the care provided and decisions taken",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), summarising NICE guideline NG67 on written directions for 'when required' medicines (purpose, dose avoiding variable doses unless the person or family can direct the care worker, minimum time between doses and maximum in a set period)",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    },
+    {
+      "source": "Rotherham Metropolitan Borough Council, Contracted Home Care and Support Medication Support Guidance (June 2023), section 8.5.2 Medicines with a 'when required' dose (PRN) and section 20.3 Written directions",
+      "url": "https://rotherham.gov.uk/downloads/file/3478/rotherham-contracted-home-care-and-support-medication-support-guidance-june-2023"
+    },
+    {
+      "source": "The Misuse of Drugs Regulations 2001, regulation 7(3) Administration of drugs in Schedules 2, 3 and 4 by any person acting in accordance with the directions of a doctor or dentist",
+      "url": "https://www.legislation.gov.uk/uksi/2001/3998/regulation/7"
+    },
+    {
+      "source": "NHS, Paracetamol for adults (dose, maximum in 24 hours, at least 4 hours between doses, and avoiding other medicines containing paracetamol)",
+      "url": "https://www.nhs.uk/medicines/paracetamol-for-adults/"
+    },
+    {
+      "source": "NHS, Angina: treatment (using GTN during an angina attack and when to call 999)",
+      "url": "https://www.nhs.uk/conditions/angina/treatment/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Some medicines are prescribed only for when needed, such as pain, constipation or anxiety. The risks are a person left in pain because nobody recognised the signs, or harmed because a dose taken between visits, or paracetamol in another product, was not counted. {{organisation}} makes sure every person we support gets their when required medicines when needed, at the dose and within the limits their prescriber intended."
+        },
+        {
+          "p": "The law requires the proper and safe management of medicines and an accurate, complete and contemporaneous record of care (Regulations 12(2)(g) and 17(2)(c) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). NICE guideline NG67 recommends written directions for each when required medicine, avoiding variable doses unless the person or a family member or carer can direct the care worker."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every when required medicine we support has written guidance, agreed with the prescriber or pharmacist, that any care worker can follow.",
+            "Every dose is checked against the last dose from any source and the limits, and its reason and effect are recorded.",
+            "Frequent use, no use or poor effect reaches the prescriber quickly."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This protocol applies to every employee, including bank and agency workers, who plans, gives, records or audits when required medicines. It covers every when required medicine we support at Level 1 or 2, including creams and inhalers prescribed 'when required' and bought medicines agreed under the Over-the-Counter Medicines and Homely Remedies Guideline, and Level 0 when required medicines on the eMAR because they affect one we support."
+        },
+        {
+          "p": "Level 3 when required doses, such as buccal midazolam, follow the delegating professional's instructions under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy, with our recording and review rules. Anticipatory injections at the end of life are given only by community nurses (End of Life Care Policy). Covert administration follows the Covert Administration of Medicines Policy, and controlled drug supply and storage the Controlled Drugs in the Community Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "PRN guidance",
+                "The written guidance for one person's when required medicine, in the medicines section of the care plan."
+              ],
+              [
+                "24-hour maximum",
+                "The most doses, or largest total amount, allowed in any 24 hours counted back from the dose being considered (not the calendar day), including doses from every source."
+              ],
+              [
+                "Between-visits record",
+                "The paper sheet, kept with the medicine, on which a relative, friend or the person writes each dose taken between our visits; full sheets are scanned into the person's CareFlow documents."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as medicines lead, is accountable for this protocol and reviews every dose given over a limit the day it is reported (the Deputy Manager in their absence). The Deputy Manager makes sure review actions are completed on time."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator and Field Care Supervisor",
+          "blocks": [
+            {
+              "p": "Those authorised as medicines assessors and eMAR users write PRN guidance with the prescriber's or pharmacist's agreement, set up eMAR limits with a second check, supply the between-visits record, brief care workers, review use weekly and contact prescribers."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers, Care Workers, Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Care workers follow the guidance and the steps in this protocol, and never exceed a limit. Office staff, and the On-call Manager out of hours, act on calls and CareFlow alerts as What the office does sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "PRN guidance for each medicine",
+      "blocks": [
+        {
+          "p": "No when required medicine is given until its PRN guidance is in the care plan. An authorised medicines assessor writes it at the medicines assessment, or when the medicine is first prescribed, from the dispensing label, an authoritative source and the prescriber's or pharmacist's advice agreed under the Assessing Medicines Support Needs Procedure. It is written with the person, and with family where the person agrees or lacks capacity, in plain words."
+        },
+        {
+          "table": {
+            "columns": [
+              "Item",
+              "What the guidance records"
+            ],
+            "rows": [
+              [
+                "What it is for",
+                "The condition and symptom, for example 'pain in my left knee from arthritis', never just 'pain'."
+              ],
+              [
+                "Signs it is needed",
+                "What the person says or does. For a person who cannot say, the signs family and health professionals describe, such as grimacing, calling out, restlessness or a change in usual behaviour, and any pain assessment tool the GP or community nurse recommends."
+              ],
+              [
+                "How need is identified",
+                "Whether the person asks, the care worker asks at named visits, or the care worker watches for the signs, and any communication aid used."
+              ],
+              [
+                "What to try first",
+                "Other approaches, such as repositioning, a drink or the toilet; and where more than one medicine treats the same symptom, the order the prescriber directs."
+              ],
+              [
+                "Dose and limits",
+                "The exact dose, or how a variable dose is decided; the minimum gap, most at one time and 24-hour maximum; and any number of days after which the prescriber must be told."
+              ],
+              [
+                "Same ingredient",
+                "Other medicines the person has with the same ingredient, especially paracetamol in co-codamol, co-dydramol or cold and flu remedies, and how they count towards the limits."
+              ],
+              [
+                "Expected effect",
+                "What the dose should do and how soon, for example 'pain eases within an hour'."
+              ],
+              [
+                "Between visits",
+                "Who, if anyone, may give it between our visits and how they record it."
+              ],
+              [
+                "When to get help",
+                "When to phone the office, and when to call 999."
+              ],
+              [
+                "Source and review",
+                "Who advised, the date, and the next review date."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The eMAR entry carries the purpose, dose, minimum gap, 24-hour maximum and most at one time, set up and second-checked under the Medicines Administration Records (MAR and eMAR) Procedure. The second checker also checks the guidance against the same sources, and the care plan is approved before the first dose. When a new when required medicine is prescribed during a package, the Care Coordinator (On-call Manager out of hours) puts the second-checked entry and guidance in place before the first dose is needed; until then, step 3 of Unclear directions applies."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Unclear directions",
+          "blocks": [
+            {
+              "p": "Directions are unclear when the label says 'as directed' or gives no dose, gives no minimum gap or 24-hour maximum where the prescriber or pharmacist has not confirmed in writing that none applies (as for many emollients), gives a variable dose that nobody can direct, or differs from the authoritative source."
+            },
+            {
+              "steps": [
+                "The medicine is not given on those directions; the care worker phones the office before leaving.",
+                "The Care Coordinator asks the prescriber or pharmacist the same working day for clear directions in writing. A verbal direction is taken only as the Medicines Management Policy sets out.",
+                "Meanwhile, if the person needs the medicine, the office obtains advice for that dose from the prescriber, pharmacist or NHS 111, records it in the daily visit notes and tells the care worker, who gives only what was advised."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Variable doses",
+          "blocks": [
+            {
+              "p": "The care worker never chooses a variable dose (a range, such as 'one or two tablets'). It is decided, in this order, by the person, where they can say how much they want; an adult relative or friend named in the care plan for this purpose who is present; or criteria the prescriber has set in writing, for example 'one tablet; two only when the person says the pain is severe'. Otherwise the directions are unclear. The care worker records the exact dose and who chose it, and never gives more than the range."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Giving a when required dose",
+      "blocks": [
+        {
+          "p": "Only a care worker allocated to give medicines at that visit and signed off for the formulation gives a when required dose; anyone else who finds it is needed phones the office, which obtains advice and sends a competent worker. They follow the Administering and Supporting People with Medicines Procedure and these steps."
+        },
+        {
+          "steps": [
+            "Recognise the need: the person asks, you see the signs in the guidance, or the guidance tells you to ask at this visit. A person with capacity who asks for a dose within the limits is given it, whether or not you think they need it.",
+            "Try any approaches the guidance lists first.",
+            "Find out when this medicine, and any other with the same ingredient, was last taken: read the eMAR, the between-visits record and any community nurse's record in the home, and ask the person and anyone present.",
+            "Check the limits. The eMAR shows when this medicine was last recorded and how many doses were recorded in the last 24 hours, and warns when a limit is reached. It does not include the between-visits record, a community nurse's record or other medicines with the same ingredient: add these yourself. Paracetamol-containing doses are always at least 4 hours apart.",
+            "If the minimum gap has not passed, the 24-hour maximum is reached or, where a limit applies, the time of the last dose cannot be established, do not give it, whatever CareFlow shows or anyone asks. Record Not Given / Missed with the reason and phone the office before leaving.",
+            "Offer the dose and respect the answer, as the Consent, Mental Capacity and Declined Medicines Policy sets out.",
+            "For any controlled drug flagged for a count, count the stock before the dose; if it does not match the running balance under the Controlled Drugs in the Community Procedure, phone the office immediately and give nothing without advice. Record the balance after the dose.",
+            "Give the dose and record it straight away.",
+            "Before you leave, ask the person or watch for the effect and record it. If the dose has not worked and the symptom continues, phone the office."
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Medicines for distress or agitation",
+          "blocks": [
+            {
+              "p": "A when required medicine prescribed wholly or partly to calm a person or manage distress is a restriction under the Restraint and Restrictive Practice Policy. Care workers give it only as its guidance says, after the approaches it lists, never for staff convenience; record on the eMAR what was tried and why; and always phone the office before leaving. Drowsiness, unsteadiness, a fall or difficulty swallowing afterwards is phoned before leaving; a person who cannot be roused is a 999 call. Each such medicine goes on the restrictive practice register and deprivation of liberty screen under that policy, and at every scheduled care plan review the Care Coordinator asks the prescriber in writing whether it is still needed."
+            }
+          ]
+        },
+        {
+          "heading": "Medicines for emergencies",
+          "blocks": [
+            {
+              "p": "For a GTN spray, a reliever inhaler or similar, the guidance follows the person's emergency plan under the First Aid Procedure. Until a professional plan is in place, the care worker gives the medicine as the label directs and calls 999 for any emergency linked to that condition. NHS advice for GTN is a second dose after 5 minutes if the first has not helped, and 999 if symptoms continue 5 minutes after the second. Collapse, or breathing that does not improve as the plan expects, is always a 999 call. The care worker stays until the person recovers or the crew arrive, and tells the office, which reallocates later visits."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Doses between visits",
+      "blocks": [
+        {
+          "p": "The care plan records, for each when required medicine, who may give it between our visits: nobody; a named adult relative or friend, never a child; community nurses; or the person, only where the medicine is Level 0 under the Self-Administration of Medicines Procedure."
+        },
+        {
+          "bullets": [
+            "Where anyone other than us gives it, the Care Coordinator supplies the between-visits record before support starts, with the purpose, dose and limits printed at the top, explains it to the person and family, and leaves a spare sheet. Each dose is written with date, time, amount, reason and who gave it.",
+            "At every medicines visit the care worker reads the record before giving any medicine and copies each new entry in full into the daily visit notes. They never go on the eMAR, which keeps one when required outcome per medicine per visit. A Level 0 medicine that has its own eMAR entry is recorded as Self Medicated, noting when it was taken. Where nobody can say whether a dose was taken, the last dose time is unknown.",
+            "If anyone may have taken or given more than a limit allows, the care worker calls 999 first (possible overdose, First Aid Procedure), gives no more, then phones the office. Missing controlled drug doses are phoned to the office at once.",
+            "A person who says they took a Level 1 or 2 medicine themselves between visits: write the time they give in the daily visit notes, count it as the last dose and phone the office before giving any; the Care Coordinator reviews the level within 7 days.",
+            "Community nurses' doses are never recorded on our eMAR; the care worker notes in the daily visit notes that their record was checked.",
+            "The care worker starting a new sheet takes the full one to the branch office by the end of their shift, in a sealed envelope through the letterbox if it is closed; Office staff scan it into the person's CareFlow documents within 2 working days and shred it."
+          ]
+        },
+        {
+          "p": "Where family repeatedly leave doses unrecorded, the Care Coordinator discusses it with them within 2 working days and reviews the arrangement. A sign that the person is being sedated or controlled with medicines, or that they are being misused, is reported to the safeguarding lead (On-call Manager out of hours) at once under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Recording",
+      "blocks": [
+        {
+          "p": "Every when required dose is recorded under the care worker's own log-in at the time, following the Medicines Administration Records (MAR and eMAR) Procedure."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What you record",
+              "Phone before leaving?"
+            ],
+            "rows": [
+              [
+                "Dose given",
+                "Given, with exact dose, time, reason for giving (what the person said or the signs seen) and effect, or 'effect not yet known' and when it is expected",
+                "Yes for a medicine for distress or an emergency, or a controlled drug count that does not match; otherwise where the guidance says"
+              ],
+              [
+                "Effect of an earlier dose not yet known",
+                "The next care worker asks the person and records it in the daily visit notes, naming the dose and its time",
+                "Yes, if it did not work"
+              ],
+              [
+                "Offered as the guidance says, not needed",
+                "Daily visit notes; never on the eMAR, never Refused",
+                "No"
+              ],
+              [
+                "Needed, but declined",
+                "Refused, with a note",
+                "Yes"
+              ],
+              [
+                "Needed, but a limit is reached, the last dose is unknown or directions are unclear",
+                "Not Given / Missed, with the reason",
+                "Yes"
+              ],
+              [
+                "Needed, but none in the home",
+                "Unavailable",
+                "Yes"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "What the office does",
+      "blocks": [
+        {
+          "p": "Care workers must speak to Office staff or the On-call Manager; if nobody answers within 15 minutes, they phone the Registered Manager or Deputy Manager. Office staff, or the On-call Manager out of hours, act as follows, record calls and advice in the daily visit notes, and mark each exception reviewed on the eMAR's missed and refused doses list the same working day."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "Action",
+              "When"
+            ],
+            "rows": [
+              [
+                "A needed dose cannot be given, or a dose has not worked and the symptom continues",
+                "Advice from the GP or pharmacist, or NHS 111 out of hours; care worker or next care worker told what to do; 999 in an emergency",
+                "Straight away"
+              ],
+              [
+                "Medicine unavailable",
+                "Advice as above, and a supply requested from the GP or pharmacy",
+                "Advice straight away; supply the same day"
+              ],
+              [
+                "A CareFlow over-limit alert, or a call reporting a dose over a limit",
+                "Check with the care worker; if a limit may have been exceeded, make sure 999 is called (by the office if nobody is with the person); obtain advice before the next dose; log it in the incident log under the Medication Errors, Near Misses and Incidents Procedure",
+                "At once; manager review the same day"
+              ],
+              [
+                "A medicine for distress was given",
+                "Tell the Care Coordinator for the review trigger",
+                "Same working day"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "While advice is awaited, the care worker stays with the person and carries on with other planned tasks, up to 30 minutes after the planned end of the visit, to give any advised dose; the office tells the next visit of the delay, and the time is paid. If advice comes later, the office arranges an extra visit. Any worsening is a 999 call."
+        },
+        {
+          "p": "A dose given by our staff over a limit, or without guidance or advice, is a medicines incident, and the care worker is reassessed under the Medicines Management Policy before further unsupervised medicines support. A relative's dose over a limit is not our error, but the same 999 rule applies and the Registered Manager considers whether it is a safeguarding concern."
+        }
+      ]
+    },
+    {
+      "heading": "Reviewing use and guidance",
+      "blocks": [
+        {
+          "p": "Care workers tell the office the same day when a when required medicine seems needed at most visits, works less well or is running low, and phone before leaving about suspected side effects such as drowsiness or unsteadiness. On the first working day of each week the Care Coordinator reviews the last 7 days of when required doses, on the eMAR and in the daily visit notes, for each person on their caseload. Each request to the prescriber and the answer is recorded in the care plan, and the person, or the named contact where the person agrees or lacks capacity, is told."
+        },
+        {
+          "table": {
+            "columns": [
+              "Trigger",
+              "Action by the Care Coordinator",
+              "When"
+            ],
+            "rows": [
+              [
+                "Given on 5 or more of the last 7 days",
+                "Ask the prescriber whether it should be regular or the treatment reviewed",
+                "Within 2 working days"
+              ],
+              [
+                "24-hour maximum reached, or a needed dose not given because of a limit, on 2 or more days in 7",
+                "Ask the prescriber to review",
+                "Same working day"
+              ],
+              [
+                "Not effective at 2 or more doses in 7 days, or working less well",
+                "Contact the GP",
+                "Same working day"
+              ],
+              [
+                "Medicine for distress given at 3 or more visits in 7 days, or signs of over-sedation",
+                "Ask the prescriber to review",
+                "Same working day it is reported"
+              ],
+              [
+                "Doses likely to be needed between visits, with nobody to give them",
+                "Ask the prescriber whether a regular dose would suit, and the commissioner, or a self-funder, whether visit times should change",
+                "Within 2 working days"
+              ],
+              [
+                "Not used for 3 months",
+                "Ask the prescriber in writing whether it is still needed; if stopped, end the eMAR entry and return the stock to a pharmacy with the person's agreement",
+                "Within 5 working days"
+              ],
+              [
+                "Directions change, a supply carries different directions, or the person returns from hospital",
+                "Update the guidance and eMAR entry, second-checked, and brief care workers",
+                "Before the next dose"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Guidance is also reviewed at every medicines review, including within 7 days of a medicines incident. Where we order when required medicines, quantities follow stock in the home and recent use, never an automatic repeat (Ordering, Collecting, Storing and Disposing of Medicines Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "PRN guidance and prescribers' answers are kept in the care plan and completed between-visits records in the person's documents in CareFlow, all retained under the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training or check",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "When required medicines in full medicines training (pass mark 80%): recognising need, checking every source, paracetamol, limits, recording reason and effect",
+                "Everyone who gives medicines support",
+                "Before giving medicines support, then every 12 months"
+              ],
+              [
+                "A when required dose, given or talked through, in the observed competency assessment",
+                "Everyone who gives medicines support",
+                "Before unsupervised support, then every 12 months"
+              ],
+              [
+                "Writing PRN guidance and setting eMAR limits",
+                "Medicines assessors and authorised eMAR users",
+                "Within assessor and eMAR set-up training, then every 12 months"
+              ],
+              [
+                "Responding to when required calls and over-limit alerts",
+                "Office staff and On-call Managers",
+                "Within eMAR monitoring training, then every 12 months"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Use against the review triggers",
+                "Weekly",
+                "Care Coordinator",
+                "Deputy Manager by exception"
+              ],
+              [
+                "In the full eMAR audit: current guidance matching the eMAR limits; every dose with reason, effect and within limits; between-visits entries in the daily visit notes",
+                "Monthly",
+                "Care Coordinator or Field Care Supervisor, outside their own caseload",
+                "Deputy Manager"
+              ],
+              [
+                "In the in-home medicines check: stock, expiry and opened dates, use of the between-visits record",
+                "At least every 3 months",
+                "Field Care Supervisor or authorised Senior Care Worker",
+                "Deputy Manager"
+              ],
+              [
+                "Doses over a limit and other when required incidents",
+                "Quarterly trend review",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ],
+              [
+                "This protocol against NICE NG67",
+                "Annual medicines audit",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of when required medicines with approved guidance before the first dose, 100% of doses with reason and effect recorded, 100% of review triggers acted on in time, and no dose given by our staff over a limit."
+        },
+        {
+          "p": "This protocol is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law, guidance or how CareFlow records when required medicines, a serious incident, an inspection finding, or when monitoring shows it is not working."
+        }
+      ]
+    }
+  ]
+}

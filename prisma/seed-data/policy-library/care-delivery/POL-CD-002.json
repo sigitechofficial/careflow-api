@@ -1,0 +1,762 @@
+{
+  "reference": "POL-CD-002",
+  "revision": 1,
+  "title": "Needs Assessment and Care Planning Policy",
+  "documentType": "POLICY",
+  "summary": "How we decide whether to accept a referral, assess each person's needs, wishes and risks face to face in their home, and write, agree, approve and share a person-centred care plan and risk assessments before care starts, including short-notice starts, hospital discharges and restarts. It is for managers, Care Coordinators, Field Care Supervisors, On-call Managers and Senior Care Workers.",
+  "keyPoints": {
+    "intro": "This policy sets how you assess people and write their care plans, so that every care worker arrives knowing exactly what the person needs and how they want it done.",
+    "points": [
+      "Never start care, or a new task, until the person has been assessed face to face in their home and an approved care plan is in CareFlow. For a short-notice start, the assessor records an initial care plan before leaving the first visit.",
+      "Assess with the person, not about them: ask what matters to them, what they can do themselves and how they want each thing done, and write the care plan in plain words, in their own words wherever possible.",
+      "Only the Registered Manager or Deputy Manager (out of hours, the On-call Manager for urgent starts) accepts a package, only if we can staff it safely. Answer referrers by the end of the next working day; hospital discharge and urgent referrals the same day.",
+      "After a short-notice start, the Registered Manager or Deputy Manager checks the initial care plan by the end of the next working day, and the full assessment, care plan and home environment risk assessment are completed within 7 days.",
+      "Every person has My care at a glance (their medical alerts and summary in the CareFlow app), and every visit plan gives the time, length, number of care workers, the tasks in order and which tasks are essential.",
+      "Agree each risk plan with the person, choose the least restrictive way of reducing the risk, and record what the risk means for the person and for the care worker.",
+      "Record the person's agreement to their care plan. If you doubt they can decide, follow the Mental Capacity Act and Best Interests Policy, and verify an attorney's or deputy's authority as the Consent to Care Policy sets out before relying on it.",
+      "Never approve a care plan you wrote. Changes are approved before use, except initial care plans and urgent out-of-hours safety changes, which the Registered Manager or Deputy Manager checks by the end of the next working day. Tell care workers before their next visit.",
+      "Never write a key safe code in a care plan or risk assessment.",
+      "Read the care plan in CareFlow before your first visit and check it at every visit. If it is unclear or does not match what you find, phone a Senior Care Worker or the Care Coordinator (On-call Manager out of hours) before acting.",
+      "Tell the office the same day if anything in the care plan is wrong or out of date, or if a family carer can no longer do their part; phone before you leave if it puts someone at risk."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Senior Carer/Nurse"
+  ],
+  "moduleLinks": [
+    "INITIAL_ASSESSMENT",
+    "CARE_PLAN",
+    "RISK_ASSESSMENT",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-CD-001",
+    "POL-CD-003",
+    "POL-CD-004",
+    "POL-CD-006",
+    "POL-CD-016",
+    "POL-HS-002",
+    "POL-MED-002",
+    "POL-SG-004"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9 (person-centred care), paragraph (3)(a), (b), (g) and (h)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 (need for consent)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 (safe care and treatment), paragraph (2)(a), (b), (c) and (i)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(c) (accurate, complete and contemporaneous records)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Care Act 2014, section 9 (assessment of an adult's needs for care and support)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/9"
+    },
+    {
+      "source": "Care Act 2014, section 10 (assessment of a carer's needs for support)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/10"
+    },
+    {
+      "source": "Care Act 2014, section 25 (care and support plan)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/25"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1 (the principles)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Health and Social Care Act 2012, section 250(6) as in force on 6 July 2025 (providers of publicly arranged adult social care must have regard to information standards)",
+      "url": "https://www.legislation.gov.uk/ukpga/2012/7/section/250/2025-07-06"
+    },
+    {
+      "source": "The Health and Care Act 2022 (Commencement No. 10 and Transitional and Saving Provision) Regulations 2025 (S.I. 2025/807), regulation 3 (information standards already in effect on 7 July 2025)",
+      "url": "https://www.legislation.gov.uk/uksi/2025/807/regulation/3/made"
+    },
+    {
+      "source": "NHS England, Accessible Information Standard DAPB1605 (Amd 30/2025, version 1.1.0, published 3 July 2025)",
+      "url": "https://standards.nhs.uk/published-standards/accessible-information"
+    },
+    {
+      "source": "Health and Social Care Act 2012, section 251A (consistent identifiers), applied to providers under arrangements with a public body by section 251C",
+      "url": "https://www.legislation.gov.uk/ukpga/2012/7/section/251A"
+    },
+    {
+      "source": "Health and Social Care Act 2012 (Consistent Identifier) Regulations 2015, regulation 2 (the NHS Number)",
+      "url": "https://www.legislation.gov.uk/uksi/2015/1439/regulation/2/made"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} does not start care until we have assessed, with the person, what they need and want, and written with them a care plan that tells every care worker how to support them safely and in the way they choose."
+        },
+        {
+          "p": "{{organisation}} will accept a package only when we can meet the person's needs safely at times that suit them, plan for risks with the person rather than for them, and make sure every care worker reads the current care plan before giving care. This policy puts into practice the assessment, care plan content and visit length standards of the Person-Centred Care, Dignity and Respect Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets who decides whether we accept a referral, who assesses and when, what every assessment and care plan contains, how risks are planned with the person, how agreement is recorded, and how care plans are approved, shared and kept current."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every person referred to us, however their care is funded, and covers planned packages, short-notice starts including hospital discharges, restarting care after a hospital stay or a break, and moving home. It applies to all staff who accept referrals, assess, or write, approve or use care plans."
+        },
+        {
+          "p": "Related detail sits in the Care Plan Review Procedure, the Assessing Medicines Support Needs Procedure, the Risk Assessment and Home Environment Risk Assessment Procedure, the Consent to Care Policy, the Mental Capacity Act and Best Interests Policy, and the Hospital Admission and Discharge Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Commissioner",
+                "The local authority or integrated care board that funds the person's care or, for a person who pays for their own care, the person or representative who signs our service agreement."
+              ],
+              [
+                "Short-notice start",
+                "A package that starts within 48 hours of the referral being accepted, including every start on the day of hospital discharge. Any other new package is a planned package."
+              ],
+              [
+                "Initial care plan",
+                "The care plan recorded at the first visit of a short-notice start, covering the essential care at each visit and the immediate risks, until the full care plan is completed."
+              ],
+              [
+                "Assessor",
+                "A Care Coordinator, Field Care Supervisor, Deputy Manager or Registered Manager authorised by the Registered Manager after the training in this policy. An authorised On-call Manager assesses only for short-notice starts out of hours."
+              ],
+              [
+                "Approver",
+                "The Registered Manager, the Deputy Manager, or a Care Coordinator or Field Care Supervisor authorised by the Registered Manager, who checks and approves a care plan for use. Nobody approves a care plan they wrote."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors give assessors the time and training to assess people at home before care starts, and never agree contract terms that would require care to start without an assessment or visits shorter than the Person-Centred Care, Dignity and Respect Policy allows. The Nominated Individual reviews and challenges the assessment and care planning results in the quarterly governance report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on assessment and care planning: authorises assessors and approvers, decides whether to accept each referral and declines in writing what we cannot deliver safely, approves the care plans reserved to managers, decides on care plans a person has only partly agreed, and reviews the indicators monthly. The Deputy Manager carries out these duties in the Registered Manager's absence and checks initial care plans."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Both carry out assessments and risk assessments and write care plans. Care Coordinators also screen referrals, prepare people for assessment, plan visits and core care teams, brief care workers on changes and run the weekly check. Field Care Supervisors also make short-notice first visits in office hours, keep the copy of the care plan in the person's home up to date, and check at every spot check that care matches the care plan."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours, the On-call Manager receives urgent referrals, makes acceptance decisions for short-notice starts that cannot wait, carries out the first visit where they are an authorised assessor or arranges for a Field Care Supervisor to do so, makes urgent care plan changes needed for safety before the next visit, and hands over to the Registered Manager or Deputy Manager by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "They read the care plan and risk assessments in CareFlow on their mobile device before a first visit, check them at the start of every visit, follow them, and report anything wrong or out of date as set out in Approving and sharing the care plan. A care worker who finds the care plan unclear, or not matching the home, phones a Senior Care Worker or the Care Coordinator (the On-call Manager out of hours) before doing anything they are unsure of; only an assessor or manager changes the care plan. Senior Care Workers also check on shadowing shifts that new care workers understand each care plan, and tell the assessor what they notice about people's needs."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law requires",
+      "blocks": [
+        {
+          "bullets": [
+            "Regulation 9 requires us to assess each person's needs and preferences collaboratively with them, design care to meet them, give people the information they need to take part in decisions, and make reasonable adjustments.",
+            "Regulation 12 requires us to assess the risks of the care we give, do all that is reasonably practicable to reduce them, use competent staff, and work with others, such as a hospital, who share or hand over care so that timely care planning takes place.",
+            "Regulation 11 requires consent to care; where a person aged 16 or over lacks capacity to consent, we act under the Mental Capacity Act 2005. Regulation 17(2)(c) requires an accurate, complete and contemporaneous record of care and decisions.",
+            "Under section 9 of the Care Act 2014 the local authority must assess any adult who appears to need care and support, whatever their finances or level of need, and under section 10 any carer who appears to need support. Under section 25, where it will meet the person's needs, it prepares a care and support plan. Our care plan sets out how we deliver our part of it.",
+            "Providers of adult social care arranged by a public body must have regard to the Accessible Information Standard (DAPB1605, version 1.1.0, published 3 July 2025) under section 250(6) of the Health and Social Care Act 2012 as it stood before 7 July 2025, which regulation 3 of S.I. 2025/807 keeps for this standard.",
+            "Where a public body arranges a person's care, section 251A of the same Act, with the Consistent Identifier Regulations 2015, requires us to include the person's NHS number in information we process about them where likely to help their care and in their best interests, unless they object or it cannot reasonably be found."
+          ]
+        },
+        {
+          "p": "Our policy is to apply all of these standards to everyone we support, including people who pay for their own care."
+        }
+      ]
+    },
+    {
+      "heading": "Referrals and accepting a package",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Receiving a referral",
+          "blocks": [
+            {
+              "steps": [
+                "Office staff, or the On-call Manager out of hours, record every referral as an enquiry in CareFlow's CRM on the day it arrives.",
+                "The Care Coordinator obtains and reads what is available: the commissioner's needs assessment and care and support plan, the hospital discharge summary and medicines list, existing risk assessments and moving and handling plans, advice from health professionals, any advance care plan, DNACPR decision or ReSPECT form and, with consent, the previous provider's care plan.",
+                "The Care Coordinator asks the referrer about risks to staff, such as any history of violence or aggression at the address, animals, smoking, infection, access and the neighbourhood, and records them so the assessor knows before arriving. Where this information is missing or suggests aggression, nobody makes the assessment visit or first care visit alone, as the Lone Working and Staff Personal Safety Policy sets out.",
+                "Where a person or family contacts us directly, the Care Coordinator also tells them that the local authority must assess anyone who may need care and support, whatever their finances, and that a family carer can ask for a carer's assessment.",
+                "The Registered Manager or Deputy Manager, or the On-call Manager for a short-notice start that cannot wait until the next working day, decides whether to accept against the conditions below, and records the decision and reasons.",
+                "The Care Coordinator answers the referrer by the end of the next working day, or the same working day for a hospital discharge or urgent referral."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Acceptance conditions",
+          "blocks": [
+            {
+              "p": "We accept a package only when it is within our statement of purpose, or a revision the Directors approve before the first visit (Statement of Purpose and Registration Procedure), and, from the start:"
+            },
+            {
+              "bullets": [
+                "care workers with the competence the care needs, such as hoist use or a delegated healthcare task, are available as a core care team within the limits in the Person-Centred Care, Dignity and Respect Policy, with two care workers for every task that needs them;",
+                "each visit can be planned within 30 minutes of the time the person wants, or the person has agreed another time, with a visit length that meets that policy;",
+                "equipment the care needs is in the home, or its delivery is confirmed before the first visit that needs it;",
+                "medicines support can be given safely under the Medicines Management Policy;",
+                "nothing known about the home makes it unsafe for staff without controls we can put in place before the first visit."
+              ]
+            },
+            {
+              "p": "Otherwise the Registered Manager or Deputy Manager declines the package, or offers what we can safely provide, in writing to the referrer by the end of the next working day, with reasons. We never accept terms we cannot meet in the hope of solving the problem later. A self-funder we cannot support is given the contact details of the local authority's adult social care team."
+            }
+          ]
+        },
+        {
+          "heading": "Preparing the person",
+          "blocks": [
+            {
+              "p": "When booking the assessment, the Care Coordinator tells the person who is coming, that the visit usually takes 60 to 90 minutes, that they can have anyone they wish present, that we will plan their care with them and review it within 6 weeks and then at least every 6 months, and to have ready their medicines, health letters and any lasting power of attorney, deputyship order, advance decision or ReSPECT form. For a planned package this is confirmed in writing, in the person's preferred format, at least 2 working days before the visit."
+            },
+            {
+              "p": "Where the person needs an interpreter, including British Sign Language, we book a professional interpreter at no cost to them. A family member interprets only where the person chooses this after being offered a professional, and a child never does. The assessor's private conversation with the person about whether they feel safe always uses a professional interpreter, never a family member."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Carrying out the assessment",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Who assesses and when",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "Who assesses",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "Planned package",
+                    "Care Coordinator or Field Care Supervisor (or Registered Manager or Deputy Manager)",
+                    "At a home visit no more than 14 days before the first care visit. If the start is delayed beyond that, or the person goes into hospital, the assessor checks by phone that nothing has changed, and visits again if it has, before care starts."
+                  ],
+                  [
+                    "Short-notice start",
+                    "Field Care Supervisor or, out of hours, an authorised On-call Manager",
+                    "At the first visit, as set out in Short-notice starts and restarts."
+                  ],
+                  [
+                    "New package starting on the day of discharge from hospital",
+                    "Field Care Supervisor or, out of hours, an authorised On-call Manager at the first visit; Care Coordinator or Field Care Supervisor before discharge",
+                    "Always a short-notice start. Where the referral is accepted before the discharge day, an assessor also meets the person on the ward, or by phone or video call where the ward cannot arrange a visit, and, with the person's agreement and a key holder's help, completes the home environment risk assessment before discharge."
+                  ],
+                  [
+                    "Restart after a break in care without a hospital stay",
+                    "Care Coordinator",
+                    "Up to 28 days: checks with the person by phone before the first visit that nothing has changed; if anything has, an assessor visits before care restarts. More than 28 days: an assessor carries out a full assessment before care restarts."
+                  ],
+                  [
+                    "Person moves home",
+                    "Care Coordinator or Field Care Supervisor",
+                    "Home environment risk assessment before the first visit there; care plan review within 7 days of the move."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "How the assessment is carried out",
+          "blocks": [
+            {
+              "p": "The assessment is a conversation with the person, not a form read at them. The assessor starts with what the person wants to say, uses their communication aids and goes at their pace; if the person tires, it is finished at a second visit before care starts. Family members take part as the person wishes, and the assessor spends time with the person alone, if they agree, to ask what they want and whether they feel safe. Where safe, the person shows how they manage tasks such as transfers or making a drink. The assessor records the assessment in the initial assessment in CareFlow, under their own log-in, on the day of the visit."
+            },
+            {
+              "p": "An assessor who is the Registered Manager, Deputy Manager, Care Coordinator or Field Care Supervisor may record the assessment conversation in the initial assessment in CareFlow to help write it up. Before recording starts, they explain why and that it is optional, and record in CareFlow the explicit consent of the person and of everyone else present. If the person cannot consent or anyone declines, nothing is recorded. The private conversation about whether the person feels safe is never recorded, and recording stops at once if anyone asks. The recording and transcript are stored only in CareFlow, never on the device, and do not replace the written assessment. Care workers never record conversations, calls or visits."
+            },
+            {
+              "p": "Where the assessment shows the person needs more or different support than was commissioned, the Care Coordinator tells the commissioner in writing within 2 working days, and for a planned package the Registered Manager decides before care starts whether it can start safely on the commissioned support while the commissioner decides; for a short-notice start, step 4 of Short-notice starts applies. Changes to medicines support are agreed with the commissioner as the Medicines Management Policy requires. The person is told what we have asked for and why."
+            }
+          ]
+        },
+        {
+          "heading": "What the assessment covers",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Area",
+                  "What the assessor finds out"
+                ],
+                "rows": [
+                  [
+                    "The person",
+                    "Life history, routines, goals and aspirations in their own words; what makes them feel safe or unsafe; the people, pets and activities that matter to them."
+                  ],
+                  [
+                    "Daily living",
+                    "What the person does themselves and what help they need with personal care, continence, oral care, moving, meals and drinks, shopping, household tasks, money where we will help with it, getting out and social contact."
+                  ],
+                  [
+                    "Communication",
+                    "Language, sight, hearing, literacy, cognition, communication aids and the information format they need, under the Communication and Accessible Information Policy. These needs are flagged in My care at a glance and reviewed at every care plan review."
+                  ],
+                  [
+                    "Capacity and legal authority",
+                    "Any reason to doubt capacity for decisions about care; any attorney, deputy, advance decision or advocate."
+                  ],
+                  [
+                    "Health",
+                    "Conditions and their effect on daily life; GP practice, NHS number and professionals involved; allergies; pain; memory and mood; skin; nutrition, hydration and swallowing; continence; falls in the last 12 months; infection risks, as the Infection Prevention and Control Policy sets out."
+                  ],
+                  [
+                    "Medicines",
+                    "A face-to-face medicines assessment with the medicines present, under the Assessing Medicines Support Needs Procedure."
+                  ],
+                  [
+                    "Identity and beliefs",
+                    "Cultural, religious, dietary and other preferences linked to the person's identity, and any preference about the sex of care workers for personal care."
+                  ],
+                  [
+                    "Home and equipment",
+                    "The home environment risk assessment; each item of equipment, its owner and next examination date; how care workers get in."
+                  ],
+                  [
+                    "Family and other carers",
+                    "What they and other services do, whether they can keep doing it, and how they are coping."
+                  ],
+                  [
+                    "Safeguarding",
+                    "Isolation, cognitive impairment, family stress, others' access to money or keys, past abuse and signs of self-neglect. Whether the person is at higher risk of unmet needs (living alone, cognitive impairment, communication difficulties, or no family or representative involved), which is recorded in the care plan as the Person-Centred Care, Dignity and Respect Policy requires."
+                  ],
+                  [
+                    "Future wishes",
+                    "The CPR status and any advance care plan, advance decision, DNACPR decision or ReSPECT form, and where it is kept."
+                  ],
+                  [
+                    "Technology",
+                    "Telecare the person uses, and whether it could add to their safety or independence, under the Technology-Enabled Care and Telecare Policy."
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Short-notice starts and restarts",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Short-notice starts",
+          "blocks": [
+            {
+              "steps": [
+                "Before the first visit, the Care Coordinator or On-call Manager obtains any discharge summary, medicines list and moving and handling information, confirms the equipment needed is in place, and records known needs and risks in CareFlow for the first visitor.",
+                "A Field Care Supervisor or, out of hours, the On-call Manager makes the first visit, with a second worker where moving and handling needs are unknown or two workers are needed.",
+                "The assessor assesses the person's essential needs, carries out the home environment risk assessment before any other care worker visits, carries out the medicines assessment, and records an initial care plan before leaving: My care at a glance and, for each visit, the essential care, moving and handling method, medicines support and immediate risks with their controls.",
+                "If any care cannot be given safely, the assessor phones the Registered Manager or Deputy Manager, or the On-call Manager out of hours, before leaving; they decide the same day what extra support, equipment or advice is needed and tell the commissioner.",
+                "The Registered Manager or Deputy Manager checks the initial care plan by the end of the next working day.",
+                "Until the full care plan is approved, the Care Coordinator allocates only care workers who have read the initial care plan and briefs each by phone before their first visit.",
+                "Within 7 days of the start, a Care Coordinator or Field Care Supervisor completes the full assessment, the home environment risk assessment in full and the care plan with the person at a home visit, and the care plan is approved."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Restarting care after a hospital stay",
+          "blocks": [
+            {
+              "p": "Before the first visit, the Care Coordinator obtains the discharge information and asks the ward and the person or family what has changed (Hospital Admission and Discharge Procedure). Where the person's needs, moving and handling, equipment, medicines or capacity have changed, care restarts as a short-notice start. Otherwise it restarts on the existing care plan, updated and approved before the first visit, and a Care Coordinator or Field Care Supervisor reviews it with the person at home within 7 days of discharge. In both cases no medicine is given until the discharge medicines check in the Medicines Changes, Transfers of Care and Hospital Discharge Procedure is done."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Writing the care plan",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "How care plans are written",
+          "blocks": [
+            {
+              "p": "The assessor writes the care plan with the person, in their words wherever possible and in the first person where they prefer, in plain English without unexplained abbreviations, and in the respectful language the Person-Centred Care, Dignity and Respect Policy requires. Instructions are specific enough for a care worker who has never met the person: not 'assist with personal care' but, for example, 'Help me into the shower using my shower chair. I wash my face and front; please wash my back and legs and check my heels for redness.' For a planned package the care plan is drafted within 2 working days of the assessment visit (the medicines section on the day of the visit), and in every case approved before the first visit. It contains everything that policy requires every care plan to record, in these parts of CareFlow:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Part",
+                  "What it contains"
+                ],
+                "rows": [
+                  [
+                    "My care at a glance",
+                    "A summary a care worker can read in a few minutes, kept as CareFlow medical alerts with the action to take, shown on the person's app profile: preferred name; visit times, lengths and number of care workers; essential tasks; the main risks and what to do; allergies; communication needs; the CPR status, never left blank, and where any DNACPR, ReSPECT or advance decision form is kept (DNACPR and ReSPECT Protocol); the missed-visit risk level and any higher weather risk marker; emergency contacts; GP practice and NHS number; how to get in. A key safe code is never written in the care plan or risk assessments; it is managed under the Key Holding, Key Safes and Access to People's Homes Procedure."
+                  ],
+                  [
+                    "What matters to me",
+                    "In About Me: life history, routines, important people and goals. Each goal says how we will know it is met, for example 'making my own breakfast three days a week by my 6-week review'."
+                  ],
+                  [
+                    "My needs and support",
+                    "For each area of need, in its own CareFlow care plan: what the person does, what the care worker does and how, equipment, what to watch for and what to report."
+                  ],
+                  [
+                    "Visit plans",
+                    "In the Visit Plan, for each visit: time, length, number of care workers, tasks in the person's preferred order, which tasks are essential and always done first, and what to record."
+                  ],
+                  [
+                    "Medicines",
+                    "The Medication care plan completed under the Assessing Medicines Support Needs Procedure."
+                  ],
+                  [
+                    "Risks",
+                    "Risk assessments in CareFlow, linked to the care plans, with the controls agreed."
+                  ],
+                  [
+                    "People involved",
+                    "In Contacts and Family: what family carers do, such as giving medicines or preparing meals, and what any other agency visiting the person provides; who may be told what; anyone with legal authority and how it was verified; any advocate. If a family carer can no longer do their part, care workers tell the office the same day, and the Care Coordinator updates the missed-visit contingency and reconsiders the missed-visit risk level that day, and reviews the care plan with the person within 7 days."
+                  ],
+                  [
+                    "Consent and decisions",
+                    "The care plan consent records: the person's agreement, capacity assessments, best interests decisions and any restriction approved under the Restraint and Restrictive Practice Policy."
+                  ],
+                  [
+                    "Reviews",
+                    "Care plan review dates and review form: the 6-week review date, the next planned review, and what triggers an earlier one."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Missed-visit risk level",
+          "blocks": [
+            {
+              "p": "The assessor sets a missed-visit risk level with the person and records the missed-visit contingency in the Risks part of the care plan: who they want us to phone if a care worker will be late or cannot come, and how; who can safely help if we are delayed, and with what (never a child under 18); and anything that must happen by a set time. Both are checked at every care plan review. The level sets how quickly the office acts under the Missed, Late and Short Visits Procedure, and which visits are protected first under the Business Continuity and Emergency Planning Policy."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Level",
+                  "When it applies",
+                  "What the office or On-call Manager does"
+                ],
+                "rows": [
+                  [
+                    "High",
+                    "A late or missed visit could cause harm within hours: for example time-sensitive medicines, the person cannot get up, eat, drink or use the toilet without help, needs food with insulin, is at High skin risk and cannot change position without our help, lives alone and cannot summon help, or is in the last days of life.",
+                    "Acts at once if there is no check-in within 15 minutes of the planned start: contacts the care worker, sends another and tells the person or their chosen contact."
+                  ],
+                  [
+                    "Standard",
+                    "Anyone else, including where a family member can safely cover a late visit.",
+                    "Phones the person or chosen contact before the care worker will be more than 30 minutes late, with a new arrival time, asks whether the delay is safe for them, and sends another worker where it is not or where the care worker cannot arrive within 60 minutes of the planned start."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Visit times, length and travel",
+          "blocks": [
+            {
+              "bullets": [
+                "The assessor times each visit by going through the tasks with the person at their pace, adding time for cognitive impairment, communication difficulties, sensory loss, help to eat and drink, and the person doing parts of tasks themselves.",
+                "Visit lengths follow the Person-Centred Care, Dignity and Respect Policy, and a visit of less than 30 minutes is allocated only to a member of the person's core care team.",
+                "Visits are planned within 30 minutes of the time the person wants. Where we cannot do this, the Care Coordinator agrees an alternative before the start and offers the preferred time when it becomes available.",
+                "Rotas include realistic travel time for the care worker's means of travel and the time of day; visits are never planned back to back without it, nor visit time cut to make up for travel.",
+                "Where check-in and check-out records show a visit taking 10 minutes or more longer or shorter than planned at 3 or more visits in 2 weeks, the Care Coordinator reviews the visit length with the person within 7 days, asking the commissioner within 2 working days where they must agree a change."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Risk assessment and risk plans",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Which risk assessments are completed",
+          "blocks": [
+            {
+              "p": "Risk assessments are completed with the person using the method in the Risk Assessment and Home Environment Risk Assessment Procedure, and recorded in the person's risk assessments in CareFlow, linked to the care plan."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Risk assessment",
+                  "Completed for"
+                ],
+                "rows": [
+                  [
+                    "Home environment, including fire, lone working and staff safety; medicines; infection; safeguarding and self-neglect",
+                    "Everyone"
+                  ],
+                  [
+                    "Moving and handling, under the Moving and Handling of People Policy",
+                    "Anyone who needs help or equipment to move, transfer or reposition"
+                  ],
+                  [
+                    "Falls, under the Falls Prevention and Response Procedure",
+                    "Anyone who has fallen in the last 12 months, is afraid of falling, or has walking or balance problems"
+                  ],
+                  [
+                    "Pressure ulcers and skin, under the Pressure Ulcer Prevention and Skin Integrity Procedure",
+                    "Anyone who needs help with personal care, continence or moving"
+                  ],
+                  [
+                    "Nutrition, hydration and choking, under the Nutrition and Hydration Policy",
+                    "Anyone who needs help with food or drink, has lost weight without trying or has difficulty swallowing"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Agreeing risk plans with the person",
+          "blocks": [
+            {
+              "steps": [
+                "Talk with the person about each risk: what they want to do, why it matters to them, and the likely benefits and harms.",
+                "Agree the least restrictive controls that will work, such as equipment, adaptations, verbal prompts, a change in how or when a task is done, help from family or other services, or telecare.",
+                "Record in the risk assessment what the risk means for the person and for the care worker, the controls, who does what, and the signs that mean care workers must phone the office.",
+                "Write the controls into the visit plans, so care workers see them at every visit.",
+                "Where a person with capacity chooses to take a risk against our advice, record the discussion and, where the residual risk is Medium or higher or serious harm is possible, agree a positive risk-taking plan under the Positive Risk-Taking Policy.",
+                "Where a significant risk to staff remains because the person declines a control, follow the Health and Safety Policy steps for a declined control measure. A person's choice never requires staff to work at serious risk."
+              ]
+            },
+            {
+              "p": "Risk assessments are reviewed at every care plan review (within 6 weeks of care starting, then at least every 6 months), within 7 days after an incident or a change in the person's needs or home, and before the next visit where the change creates an immediate risk. A High residual risk is also reviewed at least every 3 months while it stays High, as the Risk Assessment and Home Environment Risk Assessment Procedure sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Consent and agreement to the care plan",
+      "blocks": [
+        {
+          "p": "The assessor goes through the care plan with the person in the format they need and records their agreement in the care plan, with the date, how it was given and who was present. For a planned package this happens before the first visit; if the person wants more time, care starts on the plan as discussed, consent is sought for each task at each visit, and the Care Coordinator records their agreement or changes at the first-week check call. For a short-notice start, agreement to the initial care plan is recorded at the first visit and to the full care plan within 7 days."
+        },
+        {
+          "p": "Where a person with capacity declines part of the care plan we recommend, the assessor records what was declined and the risks explained, and the Registered Manager decides within 1 working day whether the rest of the care can be given safely and tells the commissioner in writing."
+        },
+        {
+          "p": "Where there is a reason to doubt the person can decide about their care, the assessor records it, and a capacity assessment and any best interests decision are completed under the Mental Capacity Act and Best Interests Policy. An attorney or deputy decides only within their authority, which the assessor verifies as the Consent to Care Policy sets out (an access code on the View an LPA service for a lasting power of attorney registered from 1 January 2016; otherwise the original registered document, a certified copy or the sealed court order). Until then, the holder is consulted but is not the decision-maker. The assessor also completes the deprivation of liberty screen in the Consent and decisions part on the day of the assessment. Where it shows a possible deprivation of liberty, or the Registered Manager is in doubt, the Registered Manager follows the Deprivation of Liberty in the Community Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Approving and sharing the care plan",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Approval before use",
+          "blocks": [
+            {
+              "p": "No care plan, and no change to one, is used until an approver has checked that it is complete, specific, consistent with the risk assessments and eMAR, respectfully worded and agreed, and has recorded the approval in CareFlow. There are two exceptions, each used straight away and checked by the Registered Manager or Deputy Manager by the end of the next working day: an initial care plan for a short-notice start, and an urgent change the On-call Manager makes out of hours because the person would be at risk at the next visit without it. Only the Registered Manager, or an acting manager given that authority in their appointment letter under the Registered Manager Role and Absence Cover Policy, approves a care plan that includes covert administration of medicines, a Level 3 medicines task or any other delegated healthcare activity. Only the Registered Manager or Deputy Manager approves a care plan that includes a restrictive practice, a best interests decision about care, or a positive risk-taking plan where serious harm (severity 4 or 5 under the Risk Assessment and Home Environment Risk Assessment Procedure) is possible or the residual risk is High; where the residual risk is Very high, the Registered Manager approves it (the Deputy Manager only in their absence), as the Positive Risk-Taking Policy sets out. The Registered Manager authorises a Care Coordinator or Field Care Supervisor as an approver after at least 6 months as an assessor with no significant audit error in the last 3 months."
+            }
+          ]
+        },
+        {
+          "heading": "Keeping care workers on the current version",
+          "blocks": [
+            {
+              "p": "When a care plan changes, the Care Coordinator tells every care worker on the person's rota what has changed, by phone or message, before their next visit. Previous versions stay in CareFlow and are never deleted. When a care worker reports something wrong or out of date, the Care Coordinator corrects anything affecting safety before the next visit and anything else within 7 days, arranging a review under the Care Plan Review Procedure where needs have changed."
+            }
+          ]
+        },
+        {
+          "heading": "Copies and sharing",
+          "blocks": [
+            {
+              "bullets": [
+                "The person is offered their care plan in the format they need, such as large print, easy read, another language or audio. A dated copy is kept in the person's home unless they choose otherwise. It leaves out infection status (including blood-borne virus status) and anything else the person does not want visitors to see, which care workers read in CareFlow. The Field Care Supervisor replaces it within 5 working days of a change and returns the old copy to the office for secure destruction. The Care Coordinator tells the person about any change affecting their safety the same day.",
+                "Family, carers and advocates receive a copy only with the person's permission, or where they hold legal authority for the decisions it covers.",
+                "The commissioner receives the care plan, or the parts they need, within 5 working days of asking or when the contract requires.",
+                "Health professionals involved receive the relevant parts with the person's consent, or as the Confidentiality and Information Sharing Policy allows, identified by the person's NHS number."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "The referral, acceptance decision, reasons and any letter declining a package are kept in the CRM enquiry; information gathered, the assessment and any recording, transcript and consent to record in the initial assessment. The care plan holds the plan itself, the person's agreement, capacity and best interests decisions, approvals and who was given a copy. Risks are in the person's risk assessments, medicines in the eMAR, and assessor and approver authorisations in the training and compliance records. Records are kept as the Records Management and Retention Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Using care plans and risk assessments, recording care and reporting changes",
+                "All care staff",
+                "During induction, before working without a shadowing colleague"
+              ],
+              [
+                "Assessment and care planning: this policy, person-centred assessment, the Accessible Information Standard, consent and the Mental Capacity Act 2005, writing care plans and risk plans",
+                "Care Coordinators, Field Care Supervisors, On-call Managers, Deputy Manager and Registered Manager",
+                "Before any assessment and before joining the on-call rota; the first three assessments carried out jointly with, or checked by, the Registered Manager or Deputy Manager (before care starts for a planned package)"
+              ],
+              [
+                "Assessor update on changes in law and guidance and learning from audits, incidents and complaints",
+                "Every assessor and approver",
+                "Every 12 months, with the annual medicines assessor update"
+              ],
+              [
+                "Risk assessment; medicines assessment",
+                "Assessors",
+                "As the Health and Safety Policy and the Assessing Medicines Support Needs Procedure set out"
+              ],
+              [
+                "Read and acknowledge this policy in CareFlow",
+                "Managers, Care Coordinators, Field Care Supervisors, On-call Managers and Senior Care Workers",
+                "During induction and within 14 days of each new major version"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager or Deputy Manager observes each assessor assessing at least once every 12 months and records the result in the supervision and appraisal records. An assessor whose work an audit finds has a significant error, such as a missed risk or care started without an approved care plan or agreement, completes two further supervised assessments before assessing alone again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Care plans against this policy, within the care plan quality audit of 10 care plans (all if fewer), including every package started that month up to that number",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager"
+              ],
+              [
+                "Everyone receiving care has an approved, current care plan and risk assessments; short-notice full care plans due",
+                "Weekly",
+                "Care Coordinator",
+                "Registered Manager by exception"
+              ],
+              [
+                "Planned packages with an approved care plan before the first visit, and short-notice full care plans within 7 days (target 100% each); initial care plans checked on time; referrals answered on time; packages declined and why",
+                "Monthly",
+                "Registered Manager",
+                "Nominated Individual and Directors in the quarterly governance report"
+              ],
+              [
+                "Observed assessment for each assessor",
+                "Every 12 months",
+                "Registered Manager or Deputy Manager",
+                "Registered Manager"
+              ],
+              [
+                "Incidents, complaints and safeguarding concerns where an assessment or care plan contributed",
+                "Quarterly",
+                "Registered Manager",
+                "Directors"
+              ],
+              [
+                "The whole process against this policy and Regulations 9 and 12",
+                "Every 12 months",
+                "Registered Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is recorded with an action, an owner and a deadline, and tracked to completion."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious incident, an inspection finding, or when monitoring shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

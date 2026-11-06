@@ -1,0 +1,359 @@
+{
+  "reference": "SUR-STF-003",
+  "revision": 1,
+  "title": "Your first weeks with us",
+  "audience": "EMPLOYEE",
+  "audienceGroup": "NEW_STARTERS",
+  "respondents": "New care workers and senior care workers, including bank staff and returners on a full induction, within 5 working days of being signed off to work alone",
+  "summary": "A confidential check soon after a new care worker is signed off to work alone: was the job as described, did induction and shadowing get them ready, and do they feel sure about safety. Gaps are followed up with support, never blame. About 8 minutes.",
+  "purpose": "The new starters' questionnaire the Compliments, Feedback and Involvement Procedure and the Induction and Care Certificate Procedure require, asked within 5 working days of lone working sign-off while it is fresh. It checks whether induction and shadowing made the worker ready to visit people alone, whether the job matches what they were told, and whether any lone visit happened before sign-off (target none). It finds gaps a new worker will not raise with the person assessing them, gives early retention warnings, and is reported quarterly to the governance report.",
+  "timing": {
+    "when": "Within 5 working days of lone working sign-off being recorded; open 14 days",
+    "recurrence": null,
+    "trigger": "Lone working sign-off recorded for a new care worker",
+    "sentWith": ["SUR-STF-013"]
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 8,
+  "cqc": {
+    "keyQuestions": ["SAFE", "WELL_LED"],
+    "qualityStatements": ["Safe and effective staffing", "Learning culture", "Capable, compassionate and inclusive leaders"]
+  },
+  "introduction": "Welcome to {{organisation}}. Now that you are working on your own, we would like to know how your first weeks have gone. It takes about 8 minutes, in paid time. There are no wrong answers: if something is not right, we will help you, never blame you.\n\nYour answers are linked to your name so the HR Manager can arrange support if you need it. They are not shared with the person who assesses you.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve our induction and to support you. Our legal reason is our legitimate interest in being a good employer and keeping people safe.\n\nYour answers are linked to your name. They are seen by the HR Manager and the Registered Manager, not by the person who assesses you or leads your shadow shifts. If you need support, the HR Manager passes on only what is needed to arrange it, for example \"needs more medicines practice\". Reports show combined results for 5 or more people only. If you tell us someone may be at risk of harm, we must act on it.\n\nWe keep your answers for 1 year after the survey closes, under our Records Management and Retention Policy. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-first-weeks",
+          "text": "Overall, how would you rate your first weeks with us?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          },
+          "evidence": "Safe: Learning culture"
+        }
+      ]
+    },
+    {
+      "title": "The job",
+      "questions": [
+        {
+          "id": "q-described",
+          "text": "Is the job as it was described to you when you applied?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Mostly", "No"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-different",
+          "text": "What is different from what you expected? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "The hours I am offered",
+            "My pay",
+            "The amount of travel",
+            "The times I work, such as early, late or weekend work",
+            "The kind of care I give",
+            "The support I get"
+          ],
+          "otherOption": {
+            "label": "Something else (please tell us)",
+            "textPrompt": "Please tell us what is different",
+            "textRequired": true
+          },
+          "showIf": {
+            "question": "q-described",
+            "answers": ["Mostly", "No"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Your induction and shadowing",
+      "questions": [
+        {
+          "id": "q-welcome",
+          "text": "I felt welcome when I started.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "q-training-prepared",
+          "text": "My training prepared me for the visits I now do on my own.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "comment": {
+            "prompt": "What did your training not prepare you for?",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-shadow-number",
+          "text": "How was the number of shadow shifts you had before working alone?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["About right", "Too few", "More than I needed"],
+          "comment": {
+            "prompt": "What would you have liked more practice with?",
+            "showWhen": ["Too few"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-met-before",
+          "text": "Before your first visit alone to someone, had you met them on a shadow shift?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not yet visited anyone on your own.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-before-signoff",
+          "text": "Did you make any visit on your own before you were told you were signed off to work alone?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "You will not be blamed. We ask so we can check our records are right.",
+          "options": ["No", "Yes", "Not sure"],
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Feeling ready",
+      "questions": [
+        {
+          "id": "q-confident-moving",
+          "text": "I feel confident moving and handling people safely.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if your visits do not include moving and handling.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-confident-medicines",
+          "text": "I feel confident supporting people with their medicines.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you are not yet signed off for medicines support.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-sure-about",
+          "text": "Which of these do you feel sure about? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Who to phone for help during a visit, in and out of office hours",
+            "What to do if I am worried someone is being abused or neglected",
+            "What to do if I feel unsafe at a visit",
+            "How to check in and out",
+            "What to do if the app or my phone stops working",
+            "What to do if a visit needs a task I am not signed off for",
+            "None of these"
+          ],
+          "exclusiveOptions": ["None of these"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-app-ready",
+          "text": "Was the CareFlow app set up and working on your phone before your first visit alone?",
+          "type": "YES_NO",
+          "required": false,
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything you do not yet feel ready to do on your own?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "We will help you, not blame you."
+        },
+        {
+          "text": "What would have made your first weeks better?",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, the HR Manager, not the person assessing you, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it. CareFlow cannot start a survey from an HR event, so keep a running copy of this template and, when lone working sign-off is recorded, use Send or schedule with that employee chosen, within 5 working days; the worker gets it in the CareFlow app and by email. Give it an end date 14 days later per copy, or close each running copy quarterly. Set one reminder after 7 days (5 working days) in Reminders and follow-up; it goes only if the worker has not answered. Offer a tablet in the office if the worker's phone is not set up, and paper on request, entered by the HR Manager with Record response.",
+      "It is done in paid time, as induction is paid. Keep wording plain; for staff with English as a second language, offer a translated version or help from office staff who are not their assessor. For a new sponsored worker whose first sponsored worker welfare check (SUR-STF-013) falls within 4 weeks, send both together as one contact: the two are linked in the library, so sent within 7 days of each other, neither holds the other back. This survey's timing is set by policy, so if CareFlow holds the worker back because they had another survey in the last 4 weeks, send it to them now anyway (in the check before sending, or in the Held back list in Who gets it) with a reason such as \"first weeks survey, due within 5 working days of lone working sign-off\". New starters join the pulse only from the month after this survey.",
+      "Who may open individual answers: the HR Manager, and the Registered Manager where an alert needs it; never the worker's assessor, Field Care Supervisor or shadow lead. This is set in Who can see the answers: individual responses are limited to the HR Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. By default only managers can send a survey (\"Surveys\", act) and only managers and admins can record answers (\"Record survey responses\"): give both to the HR Manager."
+    ],
+    "actingOnResults": [
+      "The HR Manager reads each response the working day it arrives and acts under the alerts below, passing on only the need (for example \"needs more medicines practice\"), never the worker's other answers. Readiness gaps are support needs, never a disciplinary matter.",
+      "How to count: positive means Very good or Good, or Strongly agree or Agree, or Always or Usually, leaving out Does not apply to me; for the sure-about list, report each option as its own share. Report quarterly to the governance report under the Induction and Care Certificate Procedure, never for fewer than 5 responses and flagged under 10; with few starters, combine quarters. Never report by named shadow lead or assessor, which would identify the starter.",
+      "Results about the job not matching its description go to the HR Manager's quarterly review of recruitment information. Keep individual answers for 1 year after the survey closes under the Records Management and Retention Policy; alert actions are recorded where the relevant policy requires."
+    ],
+    "alerts": [
+      {
+        "when": "\"Did you make any visit on your own before you were told you were signed off to work alone?\" answered Yes or Not sure.",
+        "action": "The HR Manager tells the Registered Manager the same working day; the Registered Manager checks the sign-off and visit records. Any lone visit or task before sign-off is logged in the incident log the same day and the Registered Manager decides by the end of the next working day whether anyone was put at risk, under the Induction and Care Certificate Procedure. The worker is not blamed.",
+        "rule": {
+          "task": "Lone visit before sign-off: check records",
+          "if": [
+            {
+              "question": "q-before-signoff",
+              "answers": ["Yes", "Not sure"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "INCIDENT"
+        }
+      },
+      {
+        "when": "\"I feel confident moving and handling people safely\" answered Disagree or Strongly disagree.",
+        "action": "The HR Manager asks the Field Care Supervisor the same working day to arrange extra practice, passing on only that need, never the survey answers. The Field Care Supervisor contacts the worker within 2 working days, and the worker does no moving and handling alone until they and the assessor agree they are ready (library timescale and decision).",
+        "rule": {
+          "task": "New worker not confident moving people: arrange practice",
+          "if": [
+            {
+              "question": "q-confident-moving",
+              "answers": ["Disagree", "Strongly disagree"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "\"I feel confident supporting people with their medicines\" answered Disagree or Strongly disagree.",
+        "action": "The HR Manager asks the Field Care Supervisor the same working day to arrange medicines support, passing on only that need, never the survey answers. The Field Care Supervisor contacts the worker within 2 working days, and the Care Coordinator removes medicines tasks until support and any re-observation are done (library decision, in line with the Medicines Training and Competency Assessment Procedure: supported, never blamed).",
+        "rule": {
+          "task": "New worker not confident with medicines: arrange support",
+          "if": [
+            {
+              "question": "q-confident-medicines",
+              "answers": ["Disagree", "Strongly disagree"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "\"Which of these do you feel sure about?\" answered None of these, or the abuse, feeling unsafe or check-in option not chosen.",
+        "action": "The HR Manager asks the Field Care Supervisor to brief the worker again before their next lone visit, passing on only that need, never the survey answers, under the Lone Working and Staff Personal Safety Policy.",
+        "rule": {
+          "task": "New worker unsure of safety basics: brief again",
+          "if": [
+            {
+              "question": "q-sure-about",
+              "answers": ["None of these"]
+            },
+            {
+              "question": "q-sure-about",
+              "answers": ["What to do if I am worried someone is being abused or neglected"],
+              "not": true
+            },
+            {
+              "question": "q-sure-about",
+              "answers": ["What to do if I feel unsafe at a visit"],
+              "not": true
+            },
+            {
+              "question": "q-sure-about",
+              "answers": ["How to check in and out"],
+              "not": true
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 1
+        }
+      },
+      {
+        "when": "A comment describing abuse or neglect of a person we support.",
+        "action": "Tell the safeguarding lead the same working day under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+      },
+      {
+        "when": "A comment describing harassment by a colleague or shadow lead.",
+        "action": "Tell the Registered Manager the same working day, as a report under the Bullying, Harassment and Sexual Harassment Policy."
+      },
+      {
+        "when": "A comment describing unsafe practice or wrongdoing.",
+        "action": "The Registered Manager handles it as a speaking-up concern under the Whistleblowing (Speaking Up) Policy; the Nominated Individual is case owner if it concerns the Registered Manager, Deputy Manager or HR Manager."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The HR Manager contacts the worker within 5 working days.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "alertsNeverTo": ["FIELD_CARE_SUPERVISOR"],
+  "access": {
+    "responses": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-HR-004",
+    "POL-GOV-006",
+    "POL-MED-016",
+    "POL-HS-003",
+    "POL-HS-005",
+    "POL-SG-002",
+    "POL-HR-013",
+    "POL-HR-018",
+    "POL-GOV-007",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Skills for Care, Care Certificate standards: 16 standards that can inform what induction covers for people new to care",
+      "url": "https://www.skillsforcare.org.uk/Developing-your-workforce/Care-Certificate/Care-Certificate-standards.aspx"
+    },
+    {
+      "source": "Health and Safety Executive, Lone working: training, supervision and monitoring: supervise new workers at first, and make sure workers whose first language is not English have understood their training",
+      "url": "https://www.hse.gov.uk/lone-working/employer/training-supervision-monitoring.htm"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18(2)(a): staff receive appropriate induction, training and supervision",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    }
+  ]
+}

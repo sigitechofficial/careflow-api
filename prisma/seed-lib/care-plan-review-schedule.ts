@@ -9,13 +9,17 @@ export const CARE_PLAN_REVIEW_FREQUENCY_MONTHS = [1, 2, 3, 6, 12] as const;
 export type CarePlanReviewFrequencyMonths = (typeof CARE_PLAN_REVIEW_FREQUENCY_MONTHS)[number];
 
 export const DEFAULT_CARE_PLAN_REVIEW_FREQUENCY_MONTHS: CarePlanReviewFrequencyMonths = 6;
+/**
+ * Defaults for Settings → Reviews & reminders (`carePlanDueSoonDays`, `carePlanListDueWithinDays`).
+ * App code passes the organisation's values; seeds and scripts use these.
+ */
 export const CARE_PLAN_REVIEW_DUE_SOON_DAYS = 30;
-/** Service User Management list icon only — does not change per-plan due_soon (30 days). */
+/** Service User Management list icon only — does not change per-plan due_soon. */
 export const CARE_PLAN_LIST_DUE_WITHIN_DAYS = 7;
 export const DRAFT_NEXT_REVIEW_DATE_KEY = '__meta.nextReviewDate';
 
 export type CarePlanReviewStatus = 'none' | 'ok' | 'due_soon' | 'overdue';
-/** Derived list-row icon status. Not stored. Uses a 7-day amber window. */
+/** Derived list-row icon status. Not stored. Amber within `carePlanListDueWithinDays` (default 7). */
 export type CarePlanListStatus = 'none' | 'ok' | 'due_within_week' | 'overdue';
 
 export type CarePlanReviewState = {
@@ -177,6 +181,8 @@ export function computeCarePlanReviewState(params: {
   intervalMonths?: number | null;
   guidanceSummary?: string | null;
   now?: Date;
+  /** Settings → Reviews & reminders `carePlanDueSoonDays`. */
+  dueSoonDays?: number;
 }): CarePlanReviewState {
   const now = params.now ?? new Date();
   const nextRaw = params.nextReviewDueAt;
@@ -209,7 +215,7 @@ export function computeCarePlanReviewState(params: {
   if (todayMs > dueMs) status = 'overdue';
   else {
     const daysUntil = Math.round((dueMs - todayMs) / 86_400_000);
-    if (daysUntil <= CARE_PLAN_REVIEW_DUE_SOON_DAYS) status = 'due_soon';
+    if (daysUntil <= (params.dueSoonDays ?? CARE_PLAN_REVIEW_DUE_SOON_DAYS)) status = 'due_soon';
   }
 
   return {
@@ -248,12 +254,13 @@ export function aggregatePublishedCarePlanReview(
 }
 
 /**
- * Service User Management list icon. Priority: overdue > due within 7 days > ok > none.
+ * Service User Management list icon. Priority: overdue > due within `withinDays` > ok > none.
  * Empty input means no published plans (grey). Published plans with a null date count as ok.
  */
 export function aggregateCarePlanListStatus(
   nextReviewDueAts: Array<Date | string | null | undefined>,
   now?: Date,
+  withinDays: number = CARE_PLAN_LIST_DUE_WITHIN_DAYS,
 ): CarePlanListStatus {
   if (nextReviewDueAts.length === 0) return 'none';
 
@@ -270,7 +277,7 @@ export function aggregateCarePlanListStatus(
       continue;
     }
     const daysUntil = Math.round((dueMs - todayMs) / 86_400_000);
-    if (daysUntil <= CARE_PLAN_LIST_DUE_WITHIN_DAYS) dueWithinWeek = true;
+    if (daysUntil <= withinDays) dueWithinWeek = true;
   }
 
   if (overdue) return 'overdue';
@@ -282,6 +289,7 @@ export function carePlanListStatusByServiceUser(
   pageServiceUserIds: string[],
   published: Array<{ serviceUserId: string; nextReviewDueAt: Date | string | null }>,
   now?: Date,
+  withinDays?: number,
 ): Map<string, CarePlanListStatus> {
   const datesByUser = new Map<string, Array<Date | string | null>>();
   for (const row of published) {
@@ -291,7 +299,7 @@ export function carePlanListStatusByServiceUser(
   }
   const result = new Map<string, CarePlanListStatus>();
   for (const id of pageServiceUserIds) {
-    result.set(id, aggregateCarePlanListStatus(datesByUser.get(id) ?? [], now));
+    result.set(id, aggregateCarePlanListStatus(datesByUser.get(id) ?? [], now, withinDays));
   }
   return result;
 }

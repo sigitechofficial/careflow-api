@@ -1,0 +1,580 @@
+{
+  "reference": "POL-IPC-006",
+  "revision": 1,
+  "title": "Laundry, Soiled Linen and Spillages Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How our staff handle, bag, wash and dry used, soiled and infectious linen and clothing in people's homes using the household's own machines, and how they clean up spillages of blood, urine, faeces, vomit and sputum safely. It covers agreeing arrangements in the care plan, laundry bags and spill kits, carpets and furnishings, problems at visits, training and audit. For all staff.",
+  "keyPoints": {
+    "intro": "Linen and spills easily spread infection around a home. This procedure tells you how to handle washing and clean up blood and body fluids safely on every visit.",
+    "points": [
+      "Never shake linen, put it on the floor or carry it loose against your uniform. Put it into a basket or bag where you remove it, and clean your hands afterwards.",
+      "For anything soiled with urine, faeces, vomit or blood, wear gloves and an apron, lift solid matter into the toilet with toilet tissue or paper towels, and put the item straight into a water-soluble bag. Never rinse or hand wash soiled items.",
+      "Wash soiled items on their own, using the pre-wash if the machine has one, at the hottest temperature the care label allows and at least 60°C where it permits. Wash again if still soiled.",
+      "While infection precautions apply, everything the person uses is infectious linen. Seal it in a water-soluble bag inside a clear outer bag before leaving the room, and put the inner bag into the machine unopened.",
+      "Clean a blood or body fluid spill as soon as safe: gloves and apron, a mask and goggles if it could splash, and goggles whenever you use chlorine. Soak it up, wash with detergent, then use our chlorine product on hard surfaces where supplied.",
+      "Never put a chlorine product on urine, carpet or fabric, or mix it with anything. For blood, use the spill kit's chlorine granules where there is a kit, left for the time in its instructions, or 3 minutes if none is given.",
+      "If blood or body fluid gets into your eyes, nose, mouth or broken skin, rinse or wash it, cover any wound, phone the office and go to the emergency department. Change a soiled uniform top for your spare.",
+      "If you suspect abuse or a recent assault, do not wash anything. Change bedding or clothing only if the person's health, comfort or dignity needs it, and bag what you remove without further handling.",
+      "Start a wash only where it will be unloaded the same day, by you or by whoever the care plan names. Never leave a tumble dryer running after you go unless another adult at home agrees to switch it off.",
+      "Use only our products or household products the care plan names. Ask the person before using anything that could mark or damage their belongings, and never throw any belongings away without their agreement.",
+      "Phone the office, or the On-call Manager out of hours, before you leave if there is no working washing machine, a spill kit has been used or a spill could not be cleaned, and record laundry and spills in the daily visit notes."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "VISIT",
+    "CARE_PLAN"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-002",
+    "POL-IPC-003",
+    "POL-IPC-004",
+    "POL-IPC-005",
+    "POL-IPC-011",
+    "POL-HS-009",
+    "POL-HS-006"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(1) and 12(2)(h) assessing the risk of, and preventing, detecting and controlling the spread of, infections",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Control of Substances Hazardous to Health Regulations 2002, regulation 7 (prevention or control of exposure, including to biological agents, with suitable personal protective equipment in addition to other measures)",
+      "url": "https://www.legislation.gov.uk/uksi/2002/2677/regulation/7"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Standard infection control precautions in adult social care (28 October 2026): laundry, linen and clothing, domiciliary laundry, and blood and body fluid spillages",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/standard-infection-control-precautions-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Managing suspected infectious diarrhoea and/or vomiting in adult social care (28 October 2026): linen, cleaning cloths and spillages",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/managing-suspected-infectious-diarrhoea-andor-vomiting-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Infections of concern in adult social care settings: A to Z (28 October 2026): norovirus and C. difficile",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/infections-of-concern-in-adult-social-care-settings-a-z"
+    },
+    {
+      "source": "NHS England, National infection prevention and control manual for England, Chapter 1 Standard infection control precautions: safe management of linen and of blood and body fluid spillages",
+      "url": "https://www.england.nhs.uk/national-infection-prevention-and-control-manual-nipcm-for-england/"
+    },
+    {
+      "source": "Department of Health and Social Care, The Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance (updated 13 December 2022), criterion 2 (laundry arrangements), criterion 9 item (p) (spillages) and Appendix A",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "source": "NHS Improvement, Patient Safety Alert NHS/PSA/W/2017/003, Risk of death and severe harm from ingestion of superabsorbent polymer gel granules (5 July 2017): secure storage away from confused people",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2019/12/Patient_Safety_Alert_-_polymer_gel_granules_FINAL_v4.pdf"
+    },
+    {
+      "source": "NHS, Scabies: treatment, including washing bedding and clothing on the first day of treatment",
+      "url": "https://www.nhs.uk/conditions/scabies/"
+    },
+    {
+      "source": "NHS, Norovirus: washing clothes and bedding soiled with faeces or vomit",
+      "url": "https://www.nhs.uk/conditions/norovirus/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Used bedding, clothing and towels, and spills of blood or body fluids, carry organisms that cause infection. Handled carelessly, they spread infection within a household and, through our care workers, to the next home."
+        },
+        {
+          "p": "{{organisation}} will make sure that our staff deal with laundry and spills the same safe way in every home: linen bagged where it is removed, soiled and infectious items washed hot and separately, and spills cleaned promptly with the right protection and products. We supply the water-soluble bags, spill kits and disinfectant this needs, free of charge. This procedure applies the Infection Prevention and Control Policy and carries the same authority."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure makes sure that each person's laundry and spillage arrangements are agreed and recorded, that staff wash linen in the household's own machines and clean spills safely, that belongings are respected, and that problems are reported and put right."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who works for us or on our behalf, including bank and agency workers and students, on every visit to a person's home, including extra care, sheltered and supported living schemes. It covers laundry the care plan gives us, linen soiled during care even where the household does its own laundry, cleaning cloths, and blood and body fluid spills that happen during our visit or that staff find where they give care. Other laundry and cleaning remain the household's responsibility unless the care plan gives a task to us."
+        },
+        {
+          "p": "Owned elsewhere: hand hygiene, PPE and uniform (Standard Infection Control Precautions Procedure; Uniform, ID Badges and Dress Code Policy); extra precautions and outbreaks (Transmission-Based Precautions and Outbreak Management Procedure); care waste (Waste Management in People's Homes Procedure); needles and exposures (Sharps Safety and Needlestick Injury Procedure); cleaning products we supply, and spills of a hazardous medicine, and laundry and body fluid spills during its precaution period (Hazardous Substances (COSHH) Procedure); and organism detail (Infections of Concern Guideline)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Linen",
+                "Washable fabric items: bedding, clothing, towels, flannels, washable bed pads, reusable continence products and hoist slings."
+              ],
+              [
+                "Used linen",
+                "Linen that has been used but is not visibly soiled with blood or body fluids."
+              ],
+              [
+                "Soiled linen",
+                "Linen visibly soiled or contaminated with blood, urine, faeces, vomit, sputum or another body fluid."
+              ],
+              [
+                "Infectious linen",
+                "Linen used by a person known or suspected to have an infection. In our service, all linen the person uses while transmission-based precautions apply."
+              ],
+              [
+                "Water-soluble bag",
+                "A laundry bag that dissolves in the wash, so linen goes into the machine without being handled again. We supply bags that dissolve at low wash temperatures, with clear plastic outer bags."
+              ],
+              [
+                "Body fluid spill kit",
+                "Our single-use pack: gloves, an apron, absorbent granules that solidify a liquid spill, chlorine-releasing granules for blood, a scoop and scraper, paper towels, a waste bag and instructions."
+              ],
+              [
+                "Chlorine product",
+                "A disinfectant measured in parts per million (ppm) of available chlorine: our ready-to-use 1,000 ppm product, spill kit granules, or household bleach."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "Approve this procedure and fund the bags, spill kits, chlorine product and training it requires."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (IPC lead)",
+          "blocks": [
+            {
+              "p": "Approves the bags, spill kits and chlorine products we buy and makes sure each chlorine product has a COSHH assessment; decides arrangements for infectious linen where a home has no working washing machine; approves any laundry disinfectant for a named person; and reviews laundry and spillage incidents in the monthly infection surveillance review."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator",
+          "blocks": [
+            {
+              "p": "Records each person's arrangements in the care plan, allows time for laundry tasks in the visit plan, arranges bag supplies and spill kits before the first visit that needs them, briefs allocated care workers on changes before their next visit, and acts on reported problems within this procedure's timescales."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Assess laundry facilities at the initial assessment and in the home environment risk assessment, observe laundry and spill handling at spot checks, check the home's bags and spill kit, and carry a spill kit with their sharps pick-up kit."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Follow this procedure and the care plan, use only approved products, phone the office before leaving about any problem, and record what they did. Senior Care Workers show the practice on shadowing shifts."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Office staff issue and deliver bags and spill kits and include them in the weekly stock count. Out of hours the On-call Manager instructs care workers, carries a spill kit, and hands any unresolved problem to the Care Coordinator, or for infectious linen to the IPC lead, by 10am on the next working day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law and national guidance say",
+      "blocks": [
+        {
+          "bullets": [
+            "The law: Regulation 12(2)(h) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires us to assess the risk of, and prevent, detect and control the spread of, infections. Under regulation 7 of the Control of Substances Hazardous to Health Regulations 2002 we must prevent or adequately control staff exposure to biological agents in body fluids and to chlorine products, with suitable PPE in addition to other controls.",
+            "The Code of Practice on the prevention and control of infections expects clear procedures for spillages. Its Appendix A does not expect domiciliary providers to meet criterion 2, which includes laundry arrangements, in people's homes; we apply its principles to the laundry we do.",
+            "UKHSA's adult social care guidance of 28 October 2026 (guidance, not law): infectious linen sealed in a water-soluble bag inside a waterproof bag; disinfection washes of 65°C for at least 10 minutes or 71°C for at least 3 minutes, or in a domestic machine the hottest the item withstands; no hand washing of linen; body fluid spills soaked up, then 1,000 ppm chlorine where the surface tolerates it and a detergent wash; in home care, detergent where chlorine is not available."
+          ]
+        },
+        {
+          "p": "Our policy goes further than the guidance in two respects: soiled linen, not only infectious linen, goes into a water-soluble bag, and soiled linen is washed at 60°C or more wherever the care label permits. For body fluid spills we wash with detergent before disinfecting, as UKHSA advises for bleach in home care, because dirt stops chlorine working."
+        }
+      ]
+    },
+    {
+      "heading": "Agreeing each person's arrangements",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the care plan records",
+          "blocks": [
+            {
+              "p": "At the initial assessment and every care plan review, the Field Care Supervisor or Care Coordinator agrees with the person, and their family where appropriate, and records in the care plan:"
+            },
+            {
+              "bullets": [
+                "which laundry we do: which items and how often bedding is changed, or, where the household does its own laundry, where we leave linen soiled during care;",
+                "the washing machine and any tumble dryer, or a shared laundry room in an extra care or sheltered housing scheme, whether they work, and how laundry is dried;",
+                "at which visit we start washes, and who unloads each wash the same day: the care worker before leaving, a later visit that day, or a named member of the household;",
+                "the person's detergent, the cycles they want, and their agreement to hot washes for soiled and infectious items;",
+                "where the laundry basket and clean linen are kept;",
+                "the person's agreement to the products we would use on a spill, any household disinfectant or bleach we may use, and where the chlorine product and spill kit are kept;",
+                "whether a home supply of water-soluble bags and a spill kit is needed."
+              ]
+            },
+            {
+              "p": "For a short-notice start, the Field Care Supervisor, or out of hours the On-call Manager, who makes the first visit records whether there is a working washing machine and where supplies are kept; the full arrangements are completed within 7 days."
+            }
+          ]
+        },
+        {
+          "heading": "Supplies",
+          "blocks": [
+            {
+              "p": "Every care worker carries two water-soluble bags and two outer bags in their kit for unexpected soiling. Where the care plan gives us soiled or infectious laundry, the office delivers a home supply of at least one week's bags before the first visit that needs them or, when precautions start, before the next visit. While precautions apply and the household does its own laundry, we offer the household water-soluble bags free of charge."
+            },
+            {
+              "p": "A spill kit is kept in the home where the care plan records a foreseeable risk of blood or large body fluid spills, for example a person who bleeds easily, has a bleeding or heavily discharging wound, has a sharps task, or vomits often. We never supply laundry detergent; staff use the person's own. When a package ends, the chlorine product and any spill kit we supplied come back to the office from the last visit or are collected by a Field Care Supervisor within 2 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Consent and the person's belongings",
+          "blocks": [
+            {
+              "p": "Staff ask the person before using any product or wash that could mark, shrink or damage their belongings and, where agreement is not already in the care plan, record the answer in the daily visit notes. If the person declines, staff use the hottest wash or the cleaning the person accepts, record it and phone the office; the consent route in the Infection Prevention and Control Policy then applies. We never throw away a person's belongings without their agreement; where the person cannot decide, a best interests decision is approved by the Registered Manager or Deputy Manager under the Mental Capacity Act and Best Interests Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Laundry outside the home",
+          "blocks": [
+            {
+              "p": "Staff never take soiled or infectious linen out of the home. Used linen goes to a launderette or laundry service only where the care plan gives us that task, in the person's own closed laundry bag, carried apart from the kit box. Linen from a person with a suspected rare or high-consequence infection stays bagged and unwashed where the office directs until the health protection team advises."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Handling and washing linen",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Rules for all linen",
+          "blocks": [
+            {
+              "bullets": [
+                "Change wet or soiled bedding and clothing at the visit you find it; never leave the person in or on soiled linen.",
+                "Where abuse or a recent assault is suspected, follow the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure instead: change bedding or clothing only where the person's health, comfort or dignity requires it, put anything removed in a clean bag without further handling, and never wash it.",
+                "Clean your hands before handling clean linen and after handling used linen. Take into the room only the clean linen you need.",
+                "Remove used items one at a time, rolling them inwards and holding them away from your uniform. Never shake linen, put it on the floor or furniture, or sort it once bagged.",
+                "Before bagging, look for pads, wipes, dentures, hearing aids and sharps without putting your hand into folds. A sharp is handled under the Sharps Safety and Needlestick Injury Procedure.",
+                "Never carry linen loose in your hands or arms: use a basket or bag, carried part-filled and never over 10 kg (Moving and Handling of People Policy).",
+                "Keep the person's towels and flannels for their use only, and never dry your own hands on them."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "By type of linen",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Type",
+                  "Protection and bag",
+                  "Washing",
+                  "Drying"
+                ],
+                "rows": [
+                  [
+                    "Used",
+                    "Apron. The person's laundry basket or bag, filled where items are removed.",
+                    "As the care label and the person's wishes allow. Shorter cycles are acceptable.",
+                    "Tumble dryer, or the person's usual way of drying."
+                  ],
+                  [
+                    "Soiled, including washable bed pads",
+                    "Gloves and apron; mask and eye protection where splashing is possible. Water-soluble bag.",
+                    "On its own. Pre-wash or rinse cycle if the machine has one, then the hottest temperature the care label and machine allow, at least 60°C where the label permits. Washed again if still soiled.",
+                    "Tumble dryer at the highest safe setting for the fabric, otherwise the person's usual way."
+                  ],
+                  [
+                    "Infectious",
+                    "At least gloves and apron, plus any precautions in the care plan. Water-soluble bag sealed inside a clear outer bag before leaving the room.",
+                    "On its own, never with other household laundry. A cycle of 65°C or more where the machine has one and the label allows; otherwise the hottest the item withstands. Laundry disinfectant for delicate items only where the care plan names it.",
+                    "As for soiled linen."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Scabies: on the first day of treatment, bedding and clothing are washed at 60°C or higher and tumble dried hot where possible, and items that cannot be washed are sealed in a bag for at least 3 days, as NHS advice sets out. Care workers do this where the care plan gives us the laundry; otherwise they give the household this advice and record it in the daily visit notes. Crusted scabies follows the IPC lead's instructions under the Transmission-Based Precautions and Outbreak Management Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Soiled and infectious linen",
+          "blocks": [
+            {
+              "steps": [
+                "Put on gloves and an apron, with a mask and eye protection where splashing is possible and any extra PPE the care plan sets.",
+                "Lift any solid matter into the toilet with toilet tissue or paper towels and flush with the lid down; paper towels go in your waste bag, never down the toilet. Never rinse soiled items under a tap or in a sink, bath or shower, and never hand wash them.",
+                "Roll the item with the soiled part inwards and put it straight into a water-soluble bag where you removed it, and tie it. For infectious linen, put it in a clear outer bag and tie that before leaving the room.",
+                "Carry the bag in a basket to the machine. Where the care plan says the wash can be unloaded the same day, put the water-soluble bag into the drum unopened, put any outer bag in your waste bag, and start the wash the table sets.",
+                "Otherwise, leave the tied bag inside an outer bag where the care plan says, away from food and clean linen, for the visit or household member who will wash it, and record where in the daily visit notes.",
+                "Take off your PPE as the Standard Infection Control Precautions Procedure sets out and wash your hands with soap and water."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Drying, clean linen and machines",
+          "blocks": [
+            {
+              "bullets": [
+                "Unload a finished wash before you leave. A wash still running is left only where the care plan names who will unload it the same day; damp laundry is never left in the machine overnight or in plastic bags. In a shared laundry room, soiled and infectious linen is washed on its own and only where the care plan names who unloads it as soon as the cycle ends; while precautions apply, the Care Coordinator agrees its use with the scheme manager before the next visit. If the scheme manager refuses, the Problems at visits arrangements for no working or safe washing machine apply.",
+                "Clean the tumble dryer's lint filter after each use, and never leave a dryer running after you leave unless another adult at home agrees to switch it off.",
+                "Store clean linen above floor level in a clean, dry place, apart from used linen. Linen returned from a laundry service is taken out of its plastic wrapping before it is put away.",
+                "Do not use a washing machine or dryer that leaks, trips the electrics, smells of burning or has a damaged cable or plug; tell the person and phone the office before leaving.",
+                "Reusable continence products are washed and dried as the manufacturer directs. Slings follow the Hoists, Slings and Lifting Equipment Procedure: laundered only as the label states and only where the care plan gives us the task. A single-patient-use sling is never laundered and is replaced by its owner when soiled or damaged. A soiled or damp sling is never used: bag a soiled washable sling as soiled linen and a soiled single-patient-use sling in a closed bag apart from the laundry, give only the care that remains safe without it and phone the office, and the Care Coordinator asks the owner for a replacement the same working day."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Cleaning cloths and mops",
+          "blocks": [
+            {
+              "p": "For spills, toilets, commodes and all cleaning while precautions apply, staff use paper towels and detergent wipes from their kit. The household's reusable cloths are used only for routine cleaning the care plan gives us, kept separate for the kitchen and for the toilet and bathroom, never used on body fluids, and washed apart from personal linen at the hottest temperature the cloth allows. The household mop is never used on a body fluid spill. While the person has diarrhoea or vomiting, staff advise the household, using our infection advice sheet, to use disposable cloths or wash cloths on the hottest cycle."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Blood and body fluid spillages",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Before you start",
+          "blocks": [
+            {
+              "p": "Staff clean a spill as soon as it is safe to do so. Only staff who have completed IPC induction clean a spill; a care worker still shadowing leaves it to their colleague. If cleaning a spill will make the visit run more than 15 minutes past its planned length, the care worker phones the office before the expected finish so that it can cover their next visit (Missed, Late and Short Visits Procedure)."
+            },
+            {
+              "steps": [
+                "Make the person safe first. Give first aid for any bleeding, and call 999 if they are bleeding heavily or seem seriously unwell.",
+                "Keep other people and pets away. Open a window if a chlorine product will be used and the person agrees.",
+                "Clean your hands and put on gloves and an apron, adding a Type IIR mask and eye protection where the spill is large or could splash; eye protection is always worn with a chlorine product.",
+                "If an apron will not protect your clothing, cover the spill with paper towels, keep people away and phone the office at once. Stay until help arrives only where someone could touch or slip on the spill and cannot be kept away from it."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Urine, faeces, vomit and sputum",
+          "blocks": [
+            {
+              "steps": [
+                "Soak up the spill with paper towels, or the absorbent granules from a spill kit, working from the edges inwards. Lift solid matter into the toilet; soaked towels and granules go in your waste bag.",
+                "Wash the area with detergent and warm water, then dry it.",
+                "Then disinfect a hard surface that tolerates it with our 1,000 ppm chlorine product, left for the contact time on its label, wherever the product is in the home; it always is while the person is under precautions for diarrhoea, vomiting or C. difficile, or where the IPC lead directs. Where it is not, use a household disinfectant or bleach only where the care plan names it; otherwise the detergent wash is the clean.",
+                "Never mix a chlorine product with any other product, or put one on urine that has not been soaked up and washed away.",
+                "Put towels and PPE in the waste bag under the Waste Management in People's Homes Procedure and wash your hands with soap and water."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Blood",
+          "blocks": [
+            {
+              "steps": [
+                "With a spill kit, on a surface that tolerates chlorine: cover the whole spill with the chlorine-releasing granules, leave them for the contact time in the kit's instructions (at least 3 minutes if none is given, as UKHSA advises), then lift them with the scoop and scraper into the waste bag.",
+                "Without a spill kit, or where chlorine would damage the surface: soak up the blood with paper towels into the waste bag.",
+                "Never pick up broken glass with your fingers: lift it with the scoop, wrap it in several layers of paper towel inside a rigid container such as an empty box, and put that in the waste bag; if you cannot, leave it covered and phone the office.",
+                "Wash the area with detergent and warm water and dry it. Put towels and PPE in the waste bag and wash your hands with soap and water."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Carpets, soft furnishings and mattresses",
+          "blocks": [
+            {
+              "p": "Chlorine is never used on carpet, upholstery or fabric. Staff blot up the spill and wash the area with detergent and warm water; removable covers are treated as soiled linen. Staff tell the person, or their family where appropriate, that steam or professional cleaning may be needed, which is the household's responsibility, and record the advice in the daily visit notes. An item too contaminated to clean is thrown away only with the agreement set out under Consent and the person's belongings. Where fluid has passed through a damaged mattress cover, the care worker phones the office and the Care Coordinator asks the mattress's owner, such as the community equipment service, for a replacement the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Spills on you",
+          "blocks": [
+            {
+              "p": "Wash splashes on intact skin straight away with soap and water. A splash to the eyes, nose or mouth, or onto broken skin, is an exposure: rinse or wash it, cover any wound, phone the office and go to the nearest emergency department under the Sharps Safety and Needlestick Injury Procedure. Change a soiled uniform top for the spare in your kit and seal the soiled one in a bag, and wipe soiled shoes with a detergent wipe before you leave."
+            }
+          ]
+        },
+        {
+          "heading": "Spill kits",
+          "blocks": [
+            {
+              "p": "A kit kept in a home is stored where the care plan says, out of sight and reach of anyone who might swallow its contents, such as a person living with dementia. Absorbent gel granules swell in the mouth and can block the airway, as an NHS patient safety alert warns. A used, opened or expired kit is replaced as set out under Problems at visits."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Problems at visits",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Problem",
+              "Care worker",
+              "Office"
+            ],
+            "rows": [
+              [
+                "No working or safe washing machine",
+                "Do not hand wash. Bag soiled or infectious items in a water-soluble bag inside an outer bag, store them away from food and clean linen, and phone the office before leaving.",
+                "Care Coordinator contacts the person or family the same working day and agrees an arrangement within 2 working days, such as family laundering, a laundry service or disposable bed protection, asking the commissioner within 2 working days where they must agree a change. For infectious linen the IPC lead decides the same working day on community IPC team advice."
+              ],
+              [
+                "Spill too large to clean safely",
+                "Cover it, keep people away and phone the office at once.",
+                "Field Care Supervisor, or On-call Manager out of hours, attends within 2 hours with a spill kit and gowns, or agrees with the person and family how it is cleaned. The office covers the care worker's next visits if they must stay."
+              ],
+              [
+                "Blood spill in a home without a spill kit",
+                "Clean it as set out under Blood and phone the office before leaving.",
+                "Care Coordinator decides by the end of the next working day whether a kit is needed and records it in the care plan."
+              ],
+              [
+                "Spill kit used, opened or out of date; bags running short",
+                "Phone the office before leaving, or before your next visit to that person for bags.",
+                "Office staff replace the kit by the end of the next working day and get bags to the home before the next visit."
+              ],
+              [
+                "An item marked, shrunk or damaged by washing or a cleaning product",
+                "Tell the person and phone the office before leaving.",
+                "Care Coordinator apologises to the person or family the same working day and reports damaged equipment to its owner. Within 5 working days the Registered Manager decides on repair, replacement or payment, through our insurer where needed, and writes to the person, under the Handling Money, Property and Shopping Procedure. Staff never pay personally. Any dissatisfaction is handled under the Complaints Policy and Procedure."
+              ],
+              [
+                "Soiled linen building up, or bedding not changed between visits",
+                "Record what you saw without judgement and phone the office before leaving.",
+                "Care Coordinator reviews with the Registered Manager within 7 days whether the Self-Neglect and Hoarding Procedure or the Safeguarding Adults Policy applies; at once where the person is at risk of harm now."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "An exposure, a slip or injury from a spill, a spill that could not be cleaned, damage to belongings, or a leaking linen or waste bag is recorded in the incident log before the end of the shift."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Laundry tasks, machines, products and consent, bag supplies and the spill kit's location: the person's care plan and risk assessments; unsafe machines: the home environment risk assessment.",
+            "Laundry done, how soiled and infectious items were washed, where bagged linen was left, spills cleaned and products used, and advice given to the household: daily visit notes.",
+            "Exposures, spill injuries, spills not cleaned, damage to belongings and leaking bags: the incident log.",
+            "Training: training and compliance records; spot check observations: supervision and appraisal records; acknowledgement of this procedure: policy acknowledgements."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "p": "Laundry and spillages are part of IPC induction, completed before working without a shadowing colleague, and of the IPC refresher every 12 months, under the Infection Prevention and Control Policy. Induction includes a practical spill kit demonstration. The Care Coordinator briefs agency workers on these rules, and where the person's spill kit is kept, before their first visit."
+        },
+        {
+          "p": "Field Care Supervisors and On-call Managers practise with a spill kit before first carrying one, alongside their found sharps pick-up training, and every 12 months. The IPC lead briefs Care Coordinators and Field Care Supervisors on agreeing laundry and spillage arrangements, with the waste management briefing, before they first assess a person and every 12 months."
+        },
+        {
+          "p": "Laundry and spill handling are observed at spot checks where the visit includes them. A shortfall is managed under the Quality Audit and Monitoring Procedure: retraining before the worker next does the task, and observation again within 4 weeks. Staff acknowledge this procedure in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Laundry and spill handling, bags and spill kit in the home",
+                "Every spot check where they apply",
+                "Field Care Supervisors",
+                "Deputy Manager monthly"
+              ],
+              [
+                "Laundry and spillage arrangements in care plans",
+                "Within the monthly audit of 5 care plans for infection risk",
+                "Deputy Manager",
+                "IPC lead"
+              ],
+              [
+                "Water-soluble bags, outer bags and spill kits in the office store",
+                "Weekly stock count with PPE",
+                "Office staff",
+                "Care Coordinator, then the IPC lead"
+              ],
+              [
+                "Exposures from spills, spill injuries, damage to belongings and homes without a working machine",
+                "Monthly infection surveillance review",
+                "IPC lead",
+                "Directors in the quarterly IPC report"
+              ],
+              [
+                "This procedure in practice",
+                "Every 12 months, in the March IPC audit",
+                "IPC lead with the Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall becomes an action with a named owner and deadline in the service improvement plan. This procedure is reviewed every 12 months by the Registered Manager as IPC lead and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious infection-related incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

@@ -9,7 +9,12 @@
  * - NWCSP / NICE CG179 — pressure risk review at least monthly in community; weekly if high risk
  * - CQC / InspectReady — falls, nutrition, pressure linked; review after significant change
  */
-import { getCarePathwayFormReviewSchedule } from './care-pathway-assessment-registry';
+import {
+  CARE_PATHWAY_ASSESSMENT_CATALOG,
+  resolveCarePathwayAssessmentCatalogEntry,
+} from './care-pathway-assessment-registry';
+import { IA_ASSESSMENT_TOOL_CATALOGUE } from './assessment-tool-registry';
+import type { AssessmentIntervalOverride } from '../organisation-general-settings/review-settings.util';
 import {
   isPainElevatedReview,
   type PainAssessmentMetadataLike,
@@ -24,6 +29,12 @@ export type AssessmentReviewSchedule = {
   elevatedRiskIntervalDays?: number;
   /** Show "due soon" this many days before the due date. */
   dueSoonLeadDays: number;
+  /**
+   * Score-based tools: a completion scoring at least this uses `elevatedRiskIntervalDays`
+   * (Waterlow 15+ = high risk, MUST 1+ = medium/high risk). The admin uses it to pre-fill the
+   * next review date on the initial assessment, so the rule lives only here.
+   */
+  elevatedRiskScoreFrom?: number;
   guidanceSource: string;
   guidanceSummary: string;
 };
@@ -72,6 +83,7 @@ export const ASSESSMENT_REVIEW_SCHEDULES: Record<string, AssessmentReviewSchedul
     defaultIntervalDays: 30,
     elevatedRiskIntervalDays: 7,
     dueSoonLeadDays: 7,
+    elevatedRiskScoreFrom: 15,
     guidanceSource: 'NWCSP clinical recommendations',
     guidanceSummary:
       'Minimum monthly review in community care; weekly when Waterlow score indicates high risk. Reassess after falls, illness, or hospital discharge.',
@@ -81,6 +93,7 @@ export const ASSESSMENT_REVIEW_SCHEDULES: Record<string, AssessmentReviewSchedul
     defaultIntervalDays: 30,
     elevatedRiskIntervalDays: 7,
     dueSoonLeadDays: 7,
+    elevatedRiskScoreFrom: 1,
     guidanceSource: 'NICE CG32 / QS24',
     guidanceSummary:
       'Screen on admission and at least monthly in care settings; weekly or sooner if medium/high MUST score or clinical concern.',
@@ -174,15 +187,91 @@ export const ASSESSMENT_REVIEW_SCHEDULES: Record<string, AssessmentReviewSchedul
   },
 };
 
+/** Organisation overrides (Settings → Reviews & reminders), keyed by schedule key. */
+export type AssessmentScheduleOverrides = Record<string, AssessmentIntervalOverride>;
+
+function withOverride(
+  schedule: AssessmentReviewSchedule,
+  override: AssessmentIntervalOverride | undefined,
+): AssessmentReviewSchedule {
+  if (!override || schedule.kind !== 'interval') return schedule;
+  return {
+    ...schedule,
+    ...(override.defaultIntervalDays !== undefined ? { defaultIntervalDays: override.defaultIntervalDays } : {}),
+    ...(override.elevatedRiskIntervalDays !== undefined && schedule.elevatedRiskIntervalDays !== undefined
+      ? { elevatedRiskIntervalDays: override.elevatedRiskIntervalDays }
+      : {}),
+    ...(override.dueSoonLeadDays !== undefined ? { dueSoonLeadDays: override.dueSoonLeadDays } : {}),
+  };
+}
+
+/**
+ * Key an organisation override is stored under: the tool's assessment key, or the catalogue slug
+ * for a Care Pathway assessment form (whose assessment key is the form id).
+ */
+export function assessmentScheduleKey(
+  assessmentKey: string,
+  carePathwayFormName?: string | null,
+): string | null {
+  if (ASSESSMENT_REVIEW_SCHEDULES[assessmentKey]) return assessmentKey;
+  return resolveCarePathwayAssessmentCatalogEntry(carePathwayFormName)?.nameSlug ?? null;
+}
+
 export function getAssessmentReviewSchedule(
   assessmentKey: string,
   carePathwayFormName?: string | null,
+  overrides?: AssessmentScheduleOverrides,
 ): AssessmentReviewSchedule | null {
-  return (
-    ASSESSMENT_REVIEW_SCHEDULES[assessmentKey] ??
-    getCarePathwayFormReviewSchedule(carePathwayFormName) ??
-    null
+  const tool = ASSESSMENT_REVIEW_SCHEDULES[assessmentKey];
+  if (tool) return withOverride(tool, overrides?.[assessmentKey]);
+  const entry = resolveCarePathwayAssessmentCatalogEntry(carePathwayFormName);
+  return entry ? withOverride(entry.reviewSchedule, overrides?.[entry.nameSlug]) : null;
+}
+
+export type AssessmentReviewScheduleRow = {
+  /** Key overrides are stored under (tool key or Care Pathway form slug). */
+  key: string;
+  title: string;
+  source: 'assessment_tool' | 'care_pathway_form';
+  /** Schedule in force (built-in values with the organisation's overrides applied). */
+  schedule: AssessmentReviewSchedule;
+  /** Built-in values, shown as the default and used by "reset". */
+  builtIn: Pick<AssessmentReviewSchedule, 'defaultIntervalDays' | 'elevatedRiskIntervalDays' | 'dueSoonLeadDays'>;
+  overridden: boolean;
+};
+
+/** Every assessment review schedule, as the admin shows and edits them. */
+export function listAssessmentReviewSchedules(
+  overrides: AssessmentScheduleOverrides = {},
+): AssessmentReviewScheduleRow[] {
+  const titleByKey = new Map<string, string>(
+    IA_ASSESSMENT_TOOL_CATALOGUE.map((t) => [t.assessmentKey, t.title] as [string, string]),
   );
+  const row = (
+    key: string,
+    title: string,
+    source: AssessmentReviewScheduleRow['source'],
+    base: AssessmentReviewSchedule,
+  ): AssessmentReviewScheduleRow => ({
+    key,
+    title,
+    source,
+    schedule: withOverride(base, overrides[key]),
+    builtIn: {
+      defaultIntervalDays: base.defaultIntervalDays,
+      elevatedRiskIntervalDays: base.elevatedRiskIntervalDays,
+      dueSoonLeadDays: base.dueSoonLeadDays,
+    },
+    overridden: base.kind === 'interval' && Boolean(overrides[key]),
+  });
+  return [
+    ...Object.entries(ASSESSMENT_REVIEW_SCHEDULES).map(([key, base]) =>
+      row(key, titleByKey.get(key) ?? key, 'assessment_tool', base),
+    ),
+    ...CARE_PATHWAY_ASSESSMENT_CATALOG.map((entry) =>
+      row(entry.nameSlug, entry.formName, 'care_pathway_form', entry.reviewSchedule),
+    ),
+  ];
 }
 
 function numField(obj: Record<string, unknown>, key: string): number | undefined {
@@ -195,8 +284,9 @@ export function resolveEffectiveReviewIntervalDays(
   assessmentKey: string,
   snapshot?: Record<string, unknown> | null,
   carePathwayFormName?: string | null,
+  overrides?: AssessmentScheduleOverrides,
 ): number | null {
-  const schedule = getAssessmentReviewSchedule(assessmentKey, carePathwayFormName);
+  const schedule = getAssessmentReviewSchedule(assessmentKey, carePathwayFormName, overrides);
   if (!schedule || schedule.kind !== 'interval') return null;
   const defaultDays = schedule.defaultIntervalDays ?? null;
   const elevatedDays = schedule.elevatedRiskIntervalDays;
@@ -206,7 +296,7 @@ export function resolveEffectiveReviewIntervalDays(
     const raw = snapshot.waterlow;
     if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
       const score = numField(raw as Record<string, unknown>, 'score');
-      if (score != null && score >= 15) return elevatedDays;
+      if (score != null && score >= (schedule.elevatedRiskScoreFrom ?? 15)) return elevatedDays;
     }
   }
 
@@ -216,7 +306,7 @@ export function resolveEffectiveReviewIntervalDays(
       const row = raw as Record<string, unknown>;
       const score = numField(row, 'score');
       const level = row.riskLevel;
-      if (score != null && score >= 1) return elevatedDays;
+      if (score != null && score >= (schedule.elevatedRiskScoreFrom ?? 1)) return elevatedDays;
       if (level === 'medium' || level === 'high') return elevatedDays;
     }
   }
@@ -252,8 +342,10 @@ export function computeAssessmentReviewState(params: {
   lastCompletedAt?: string | Date | null;
   snapshot?: Record<string, unknown> | null;
   now?: Date;
+  /** Settings → Reviews & reminders `assessmentIntervals`. */
+  overrides?: AssessmentScheduleOverrides;
 }): AssessmentReviewState {
-  const schedule = getAssessmentReviewSchedule(params.assessmentKey, params.carePathwayFormName);
+  const schedule = getAssessmentReviewSchedule(params.assessmentKey, params.carePathwayFormName, params.overrides);
   const now = params.now ?? new Date();
   const lastAt = params.lastCompletedAt
     ? params.lastCompletedAt instanceof Date
@@ -304,6 +396,7 @@ export function computeAssessmentReviewState(params: {
     params.assessmentKey,
     params.snapshot,
     params.carePathwayFormName,
+    params.overrides,
   );
   if (intervalDays == null) {
     return {

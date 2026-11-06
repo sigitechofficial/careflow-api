@@ -25,6 +25,9 @@ export function mapEmployeeListRow(
     fullName: pd ? `${pd.firstName} ${pd.lastName}` : null,
     firstName: pd?.firstName ?? null,
     lastName: pd?.lastName ?? null,
+    /** Tell staff with the same name apart in pickers and lists. */
+    username: pd?.username ?? null,
+    employeeNumber: emp?.employeeNumber ?? null,
     photoUrl: pd?.photoUrl ?? null,
     status: pd?.status ?? null,
     jobTitle: emp?.jobTitle ?? null,

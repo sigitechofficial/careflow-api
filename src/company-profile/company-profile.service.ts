@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { unlink } from 'fs/promises';
-import { join } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   COMPANY_ACTIVE_MODULES,
@@ -13,11 +12,12 @@ import {
   optionalText,
   parseDateOnly,
 } from '../common/utils/date-only.util';
+import { safeUploadPath, uploadPath } from '../common/utils/upload-path.util';
 
 const DEFAULT_PROFILE_ID = '00000000-0000-4000-8000-000000000001';
 
 function uploadRoot() {
-  return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'company');
+  return uploadPath('company');
 }
 
 function mapRow(row: {
@@ -247,8 +247,8 @@ export class CompanyProfileService {
 
   private filePathFromUrl(url: string | null | undefined): string | null {
     if (!url?.startsWith('/uploads/')) return null;
-    const rel = url.replace(/^\/uploads\//, '');
-    return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', rel);
+    // A stored URL that would land outside the uploads folder is never touched.
+    return safeUploadPath(url);
   }
 
   private async removeFile(url: string | null | undefined) {

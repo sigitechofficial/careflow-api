@@ -1,0 +1,445 @@
+{
+  "reference": "POL-IPC-010",
+  "revision": 1,
+  "title": "Catheter Care and Continence Hygiene Protocol",
+  "documentType": "PROTOCOL",
+  "summary": "How our care workers prevent infection when caring for a person's urinary catheter, catheter valve, sheath catheter or stoma, during continence care, and when carrying out delegated wound care or tube feeding in the person's home. It sets the planning, hygiene steps, escalation of warning signs, records and competency checks. For care staff, Care Coordinators and managers.",
+  "keyPoints": {
+    "intro": "A catheter or stoma is a direct route for infection into the body. These are the rules for every visit where you give catheter, stoma or continence care.",
+    "points": [
+      "Only care for a catheter, valve, sheath catheter or stoma if you are signed off for that device type and it is in the person's care plan. Never insert, remove, change or flush a catheter, deflate its balloon or take a urine sample from one.",
+      "Clean your hands and put on a new apron and gloves before you touch the catheter, bag or stoma, and clean your hands when you take them off.",
+      "Never disconnect the catheter from its bag except to fit a new leg bag. Attach the night bag to the leg bag outlet or valve so the system stays closed.",
+      "Keep the bag below the bladder and off the floor, tubing free of kinks. Empty it at every visit unless the person does it themselves, and before it is two-thirds full, into their catheter jug without the tap touching it, then dry the tap.",
+      "Wash where the catheter enters the body once a day with unperfumed soap and water. Wipe front to back, change pads straight away if soiled with faeces, and never use scented products.",
+      "Never use a urine dipstick. If urine is cloudy or smelly but there is no other sign, offer drinks, record it and tell the office the same day.",
+      "Call 999 if the person seems seriously unwell, is newly or more confused, or is bleeding heavily from a stoma. Phone the office before you leave if they have a high temperature, shivering, new pain, blood in the urine or urine leaking around the catheter.",
+      "Phone the office at once if the catheter stops draining, falls out or causes severe bladder pain or spasms; never put it back. Stay until the office calls back, up to 30 minutes after the visit should end.",
+      "If neither the office nor the On-call Manager answers within 15 minutes, phone the Registered Manager or Deputy Manager directly.",
+      "Phone the office at once if a stoma turns dark, black or very pale, or there is a lot of blood in the bag, no output for much longer than usual (12 hours from an ileostomy), high temperature, feeling or being sick, or dehydration.",
+      "Wound care, tube feeding and anything needing aseptic technique are delegated tasks: do them only if you are named and signed off, never in the bathroom, and check that sterile items are in date and undamaged.",
+      "Record the care you gave, any bag change and anything unusual in the daily visit notes before you check out, and tell the office the same day when supplies run low."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Senior Carer/Nurse",
+    "Carer/Domestic",
+    "Care Coordinator",
+    "Manager"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "CARE_PLAN",
+    "RISK_ASSESSMENT",
+    "TRAINING",
+    "VISIT",
+    "EQUIPMENT"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-002",
+    "POL-IPC-005",
+    "POL-IPC-011",
+    "POL-CD-010",
+    "POL-MED-015",
+    "POL-CD-008",
+    "POL-IPC-012"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, 12(2)(c) competence of staff, 12(2)(e) safe use of equipment and 12(2)(h) preventing, detecting and controlling the spread of infections",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Department of Health and Social Care, Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance, criterion 9 (b) aseptic technique and (s) insertion, use and care of invasive devices, including urinary catheters",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "source": "UKHSA and DHSC, Infection prevention and control in adult social care: essential IPC considerations for clinical interventions and procedures (28 October 2026): urinary catheters, enteral feeding, aseptic technique and wound care",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/essential-ipc-considerations-for-clinical-interventions-and-procedures-in-adult-social-care"
+    },
+    {
+      "source": "UKHSA and DHSC, Infection prevention and control in adult social care: fundamentals of care which help prevent infections (28 October 2026): continence care, hydration and not using dipsticks in people over 65",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/fundamentals-of-care-which-help-prevent-infections-in-adult-social-care-settings"
+    },
+    {
+      "source": "UKHSA and NHS England, Diagnosis of urinary tract infections: quick reference tools for primary care (updated 7 July 2025): no urine dipsticks for people over 65 or with a urinary catheter, and signs of catheter-associated urinary tract infection",
+      "url": "https://www.gov.uk/government/publications/urinary-tract-infection-diagnosis/diagnosis-of-urinary-tract-infections-quick-reference-tools-for-primary-care"
+    },
+    {
+      "source": "NHS, Living with a urinary catheter (leg bags and valves changed every 7 days, single-use night bags, and when to contact the community nurse immediately)",
+      "url": "https://www.nhs.uk/tests-and-treatments/urinary-catheters/living-with/"
+    },
+    {
+      "source": "NHS, Complications of a colostomy (urgent advice and when to contact the stoma nurse or GP)",
+      "url": "https://www.nhs.uk/tests-and-treatments/colostomy/complications-of-a-colostomy/"
+    },
+    {
+      "source": "NHS, Ileostomy: complications (urgent GP or NHS 111 when the stoma is not active for more than 12 hours, for a high temperature, a lot of blood or dehydration; stoma nurse for mild cramps, nausea or swelling)",
+      "url": "https://www.nhs.uk/tests-and-treatments/ileostomy/complications/"
+    },
+    {
+      "source": "Skills for Care, Delegated healthcare activities: the guiding principles (updated November 2024)",
+      "url": "https://www.skillsforcare.org.uk/Support-for-leaders-and-managers/Managing-a-service/Delegated-healthcare-activities/The-guiding-principles.aspx"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} supports people with a urinary catheter, a stoma or continence needs, and some who receive delegated wound care or tube feeding. Catheter-associated urinary tract infection is a common, largely avoidable cause of hospital admission and sepsis; a closed drainage system, clean hands, daily hygiene and early reporting prevent most of it."
+        },
+        {
+          "p": "We carry out these tasks only where the care plan sets them out from a health professional's instructions, through care workers observed as competent. Clinical decisions, including any test or antibiotic, stay with the GP, community nursing team and stoma or continence service."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This protocol applies the Infection Prevention and Control Policy to device, continence and delegated clinical care at home: the hygiene steps, who may do them, and how warning signs reach a health professional in time."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This protocol applies to all staff, including bank and agency workers; students observe device and delegated tasks but never carry them out. It covers established indwelling urethral and suprapubic catheters, catheter valves, sheath catheters and their drainage bags; continence hygiene; established colostomies, ileostomies and urostomies; and the hygiene rules for delegated wound care, feeding through an established gastrostomy or jejunostomy tube and other aseptic tasks."
+        },
+        {
+          "p": "Routine care of an established catheter, valve, sheath catheter or stoma is a device task under this protocol, not a Level 3 delegated task, unless the health professional or the local NHS arrangement treats it as delegated; it then also follows the Delegated Healthcare Activities and Specialised Medicines Tasks Policy, which always governs wound care, tube feeding and aseptic tasks."
+        },
+        {
+          "p": "Our staff never insert, remove, change or reposition any catheter or feeding tube, deflate a catheter balloon, carry out intermittent catheterisation, flush a catheter, give a bladder washout or catheter maintenance solution, clamp catheter tubing, take a urine sample from a catheter or drainage bag, irrigate a stoma, or use a nasogastric tube. These stay with the community nursing team and are never accepted as delegated tasks."
+        },
+        {
+          "p": "Owned elsewhere: dignity, toileting and continence products (Personal Care, Continence and Oral Care Procedure); skin and moisture damage (Pressure Ulcer Prevention and Skin Integrity Procedure); drinks plans (Nutrition and Hydration Policy); PPE and equipment cleaning (Standard Infection Control Precautions Procedure); waste (Waste Management in People's Homes Procedure); antibiotics (Infections of Concern Guideline)."
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as IPC lead, owns this protocol, decides with the health professional whether a task is a device task or a Level 3 delegated task, and alone approves Level 3 tasks. The Registered Manager reviews every suspected catheter-associated infection that leads to hospital admission or sepsis the same working day (by 12 noon the next working day if reported out of hours), and any resulting death at once, deciding on safeguarding, CQC notification and duty of candour. The Deputy Manager covers these duties in the Registered Manager's absence, except Level 3 approval, and carries out the monthly checks."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator and Field Care Supervisor",
+          "blocks": [
+            {
+              "p": "The Care Coordinator sets up and allocates device tasks, makes the escalation contacts and checks catheter dates weekly. Field Care Supervisors sign off competency and carry out spot checks."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Care workers do only the device tasks they are signed off for, as the care plan sets out, and phone the office before acting if anything differs from it."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Office staff pass device calls at once to the Care Coordinator. Out of hours the On-call Manager makes the escalation contacts, using the community nursing team's out-of-hours service or NHS 111, and hands over to the Care Coordinator by 10am the next working day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Before care starts",
+      "blocks": [
+        {
+          "p": "For a planned package, the assessor records the device section of the care plan before the first visit. At a short-notice start, including a hospital discharge, the assessor records it in the initial care plan before leaving the first visit, from the discharge information and any catheter passport, and the Care Coordinator obtains anything missing from the ward or community nursing team the same working day. Until it is complete, care workers give hygiene and emptying care only and fit a new bag only if the old one is damaged or leaking. For a person we already support, the Care Coordinator updates the device section before the next visit whenever a device is fitted, changed or removed. The device section records:"
+        },
+        {
+          "bullets": [
+            "device type and size, date inserted, reason for it, next change date and the date the need for it was last reviewed;",
+            "drainage arrangement (leg bag, valve, night bag), the day of the week bags are changed and any securing device;",
+            "the person's consent to the device care, or the best interests decision, under the Consent to Care Policy; who does what between the person, family, community nurse and us;",
+            "the health professional's written instructions, the community nursing, stoma or continence team contact and the person's usual urine or stoma output;",
+            "where supplies are kept and who orders them."
+          ]
+        },
+        {
+          "p": "My care at a glance shows the device and its next change date. Before the first visit the Care Coordinator supplies free of charge, where the person has none, a lidded box for clinical supplies and a measuring jug labelled for catheter use only, and checks there is a stand for the night bag. If there is no stand, the Care Coordinator asks the GP or community nurse to prescribe one within 2 working days; meanwhile the bag hangs from the bed frame, clear of the floor."
+        },
+        {
+          "p": "Device care is planned only into visits of 30 minutes or more; where the commissioned visits are shorter, the Care Coordinator asks the commissioner in writing within 2 working days to lengthen them. At a shorter visit the care worker still checks that the catheter is draining and empties a leg bag that holds urine. A person who cannot empty their bag or open their valve without our help has a High missed-visit risk level (Needs Assessment and Care Planning Policy); after a late or missed visit the care worker checks drainage and empties the bag first. Where family empty or change bags between our visits, the care worker still checks drainage and the bag date at each visit. Only signed-off care workers are allocated to a person whose care plan includes a device task; before each worker's first visit to that person, the Care Coordinator confirms their sign-off and briefs them by phone on the device section."
+        }
+      ]
+    },
+    {
+      "heading": "Urinary catheter care",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "At every catheter visit",
+          "blocks": [
+            {
+              "bullets": [
+                "Clean your hands and put on an apron and gloves before touching the catheter, tubing or bag; take them off and clean your hands afterwards.",
+                "Check the bag is below bladder level and off the floor, the tubing is not kinked, looped or pulling, the securing strap or device is in place and urine is draining.",
+                "Once a day, at the visit the care plan names, wash where the catheter enters the body with unperfumed soap and water, washing away from the entry point along the tube, then dry. Never use talc, and use creams only as the eMAR directs.",
+                "Keep the drainage system closed: never disconnect the catheter from its bag or valve except to fit a new one, and never pull on the catheter."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Emptying the drainage bag",
+          "blocks": [
+            {
+              "p": "Empty the leg bag at every visit where it holds urine, unless the care plan says the person empties it themselves, and always before it is two-thirds full."
+            },
+            {
+              "steps": [
+                "Hold the person's catheter jug under the tap without the tap touching it, open the tap, drain the bag, close the tap and dry the tap end with clean toilet tissue.",
+                "Note the amount and appearance where the care plan asks, empty the jug into the toilet and flush with the lid down.",
+                "Clean and disinfect the jug as medium-risk equipment under the Standard Infection Control Precautions Procedure and leave it to air dry.",
+                "Take off your PPE and clean your hands."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Changing bags and night drainage",
+          "blocks": [
+            {
+              "p": "Leg bags and valves are changed every 7 days on the day the care plan names, and sooner if damaged, leaking or accidentally disconnected. Check the new bag is in date with its pack intact, empty the old bag, disconnect it and connect the new one without touching the connector, then write the date on the bag's label panel. A disconnected bag is never reconnected: fit a new one and tell the office the same day."
+            },
+            {
+              "p": "At the evening visit, connect a single-use night bag to the leg bag outlet or open valve, open the leg bag tap and hang the night bag on its stand. In the morning close the tap, disconnect the night bag, empty it into the toilet and bag it as care waste. Reusable night bags, used only where the prescriber supplies them, are drained, capped, stored as the manufacturer directs and replaced with each leg bag change."
+            }
+          ]
+        },
+        {
+          "heading": "Catheter valves and sheath catheters",
+          "blocks": [
+            {
+              "p": "Open a catheter valve at each visit and at the times the care plan sets, draining into the toilet or the catheter jug. At night the valve stays open into a night bag."
+            },
+            {
+              "p": "Change a sheath catheter every 24 hours, or as the manufacturer or continence nurse directs, at the visit the care plan names. Wash and dry the penis, check the skin, and apply only the size and type the continence nurse measured, with no other tape or adhesive. If the skin is red or broken, leave the sheath off, use a pad and phone the office before leaving."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Continence hygiene",
+      "blocks": [
+        {
+          "p": "The infection prevention rules for all continence care (toileting, products and dignity: Personal Care, Continence and Oral Care Procedure) are:"
+        },
+        {
+          "bullets": [
+            "Clean your hands and wear gloves and an apron; after cleaning soiled skin, change gloves and clean your hands before touching clean pads or clothes.",
+            "Change a pad soiled with faeces straight away, and a wet pad when the wetness indicator or the person shows it is wet.",
+            "Wipe, or help the person to wipe, from front to back. Wash with water and a pH-balanced cleanser or the person's own unperfumed product, never scented soaps or gels, and pat dry, including skin folds.",
+            "Offer the person hand hygiene after toileting, and clean and disinfect the commode pan, urinal or bedpan after every use.",
+            "Offer drinks as the drinks plan sets out. If the person is limiting drinks to avoid incontinence, tell the office the same day; the Care Coordinator raises it with the person and, with agreement, the continence service or GP within 2 working days."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Stoma care",
+      "blocks": [
+        {
+          "p": "Stoma care starts only once the stoma or community nurse's written instructions (appliance, size, change frequency, skin care) are in the care plan. Clean your hands and wear gloves and an apron. Empty a drainable pouch into the toilet, clean the outlet with toilet tissue and close it. When changing the appliance, clean the skin with warm water and dry it, using soap, wipes, creams or adhesive remover only where the instructions say, and cut the flange to the size recorded. Put the used pouch in the person's disposal bag and then in a care waste bag."
+        }
+      ]
+    },
+    {
+      "heading": "Hygiene for delegated clinical tasks",
+      "blocks": [
+        {
+          "p": "Only named care workers signed off for the task carry out wound care, tube feeding and aseptic tasks, following the health professional's written plan. Whatever the task:"
+        },
+        {
+          "bullets": [
+            "Use aseptic non-touch technique as the health professional taught. Wear sterile gloves only where you must touch equipment or a part that has to stay sterile; otherwise clean nitrile gloves.",
+            "Carry out the task in the person's bedroom or living room, never in the bathroom. Clean the work surface first with a detergent wipe and, with the person's agreement, ask for pets to be kept out of the room.",
+            "Use sterile items only if in date with the pack intact. Never reuse a single-use item. Keep supplies in the lidded box, clean and dry."
+          ]
+        },
+        {
+          "p": "For feeding through an established gastrostomy or jejunostomy tube: clean your hands before preparing a feed or touching equipment; hang a ready-to-hang feed no longer than the manufacturer allows and never over 24 hours; use a decanted or home-made feed within 4 hours, writing the start time on it; flush the tube before and after each feed or medicine with fresh cold-tap water, or cooled freshly boiled or sterile water where the care plan records weakened immunity; clean and dry the tube site daily as the care plan says; and clean reusable equipment after each use. Unused feed, used feed bags and giving sets are sealed as care waste, never poured down a sink. A tube that comes out is handled under the Nutrition and Hydration Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Recognising and escalating problems",
+      "blocks": [
+        {
+          "p": "Staff never use urine dipsticks: UKHSA advises against them for people over 65 and people with a catheter, as many have bacteria in their urine without infection. If the office or On-call Manager does not answer within 15 minutes, the care worker phones the Registered Manager or Deputy Manager directly. While waiting for the office to call back, the care worker stays with the person up to 30 minutes after the planned end of the visit; after that the office arranges an extra visit. The office records each call and the advice in the daily visit notes and updates the care plan before the next visit."
+        },
+        {
+          "table": {
+            "columns": [
+              "What you notice",
+              "What you do",
+              "What the office does"
+            ],
+            "rows": [
+              [
+                "Very unwell, new or worse confusion, hard to wake, fast breathing, mottled or bluish skin, or heavy bleeding from a stoma",
+                "Call 999, stay with the person, then phone the office.",
+                "Tells the named contact and the GP the same day; covers the care worker's next visits; infection report in the incident log."
+              ],
+              [
+                "High temperature (above 37.8°C), temperature of 36°C or below, or shivering; new pain low in the tummy, side or back; pain passing urine; new urgency or incontinence; loss of diabetes control; going off food or drink",
+                "Offer drinks and phone the office before leaving.",
+                "Care Coordinator (On-call Manager via NHS 111) contacts the GP the same day, and for a catheter user also the community nursing team; infection report in the incident log."
+              ],
+              [
+                "Catheter not draining after checking kinks, bag position, a full bag and the valve; severe or ongoing bladder pain or spasms; catheter fallen out; bright red blood or clots",
+                "Phone the office at once. Never reinsert a catheter; cover the site with a clean pad and keep the catheter in a clean bag for the nurse.",
+                "Community nursing team contacted at once for an urgent visit; NHS 111 if the team cannot confirm a visit within 1 hour; 999 if severe pain or very unwell."
+              ],
+              [
+                "Urine leaking around a catheter that is still draining; bloodstained urine or specks of blood",
+                "Phone the office before leaving.",
+                "Community nursing team contacted at once for advice; NHS 111 if the team cannot be reached."
+              ],
+              [
+                "Sore or red skin at the catheter entry site; change date passed",
+                "Tell the office the same day.",
+                "Community nursing team contacted the same working day."
+              ],
+              [
+                "Cloudy or smelly urine with no other sign",
+                "Offer drinks, record it and tell the office the same day.",
+                "Care Coordinator checks the drinks record; GP contacted only if another sign appears."
+              ],
+              [
+                "Catheter or stoma user's bowels not opened for longer than the usual pattern in the care plan (3 days where none is recorded), or hard stools or straining",
+                "Tell the office the same day.",
+                "Care Coordinator asks the GP, community nurse or pharmacist for advice the same working day."
+              ],
+              [
+                "Stoma turning dark, black or very pale; a lot of blood in the bag; no output for much longer than usual (more than 12 hours from an ileostomy); high temperature or shivering; severe tummy pain; feeling or being sick; signs of dehydration",
+                "Phone the office at once.",
+                "Urgent GP or NHS 111 at once; 999 if very unwell; stoma nurse told the same day."
+              ],
+              [
+                "Mild cramps or swelling around a stoma; sore or broken skin around it, repeated leaks or an appliance not fitting",
+                "Tell the office the same day.",
+                "Stoma nurse contacted the same day for cramps or swelling, otherwise within 2 working days."
+              ],
+              [
+                "Wound or tube site red, hot, swollen, smelly, leaking pus or more painful; dressing loose or soiled",
+                "Phone the office before leaving.",
+                "Community nursing or enteral team contacted the same day."
+              ],
+              [
+                "Fewer than 3 leg bags or valves, or about 2 weeks' supply of night bags, sheaths, stoma appliances or feeding equipment, left",
+                "Tell the office the same day.",
+                "Order placed with the person, family, GP or appliance supplier within 2 working days; if supplies run out, the office arranges a supply that day."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Catheter dates and review of need",
+      "blocks": [
+        {
+          "p": "Each week the Care Coordinator checks the dates for every person with a catheter and contacts the community nursing team the next working day about any change date passed without a recorded change. A catheter should be removed as soon as it is no longer needed: at every care plan review, and whenever no review of need is recorded in the last 3 months, the Care Coordinator asks the GP or community nursing team in writing, within 2 working days, to review whether it is still needed, and records the answer."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Care plan: the device section.",
+            "Daily visit notes, before check-out: care given, bags emptied or changed with the date, output and appearance where the care plan asks, the condition of the skin or site, and any concern with who was told.",
+            "Incident log, before the end of the shift: infection reports, injury or damage during device care, and any device task done by a worker not signed off for it, each reviewed under the Incident Reporting, Investigation and Learning Policy.",
+            "Training and compliance records: each worker's sign-off by device type and delegated task."
+          ]
+        },
+        {
+          "p": "Any catheter passport or stoma chart from the nurse stays with the person; our records stay in CareFlow under the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "All care staff",
+                "Continence hygiene, catheter awareness and warning signs, within IPC training",
+                "Induction, then every 12 months"
+              ],
+              [
+                "Care workers allocated to device tasks",
+                "Face-to-face catheter and stoma course (at least 3 hours, pass mark 80%), then observed competency at a real visit for each device type by a Field Care Supervisor (or, for a stoma, the person's stoma nurse)",
+                "Before the first unshadowed device task, then every 12 months"
+              ],
+              [
+                "Named workers for delegated tasks",
+                "The health professional's task training plus the hygiene rules in this protocol",
+                "Before the task, then as the professional specifies and at least every 12 months"
+              ],
+              [
+                "Field Care Supervisors who sign off competency",
+                "The device course, then observed assessing by the IPC lead or an external clinical trainer",
+                "Before the first sign-off, then every 2 years"
+              ],
+              [
+                "Assessors, Care Coordinators and On-call Managers",
+                "IPC lead briefing on recording devices and the escalation table",
+                "Before the first assessment, allocation or on-call shift, then every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A worker is re-observed before a device task alone after 3 months or more without doing it, or after a practice shortfall or incident in their device care. Expired device training or competency means no device tasks until renewed. Agency workers do device tasks only after the agency confirms their device training in writing and a Field Care Supervisor has observed and signed them off."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "bullets": [
+            "Field Care Supervisors observe device and continence hygiene at every spot check of a visit that includes it. Missing hand hygiene before touching a catheter or stoma, opening the closed system without need, or leaving a bag on the floor or above bladder level is a critical item under the Quality Audit and Monitoring Procedure.",
+            "The Deputy Manager's monthly 5-care-plan IPC audit includes at least one person with a catheter and one with a stoma or delegated task where we support any, checking the device section, dates and 4 weeks of daily visit notes.",
+            "The IPC lead's monthly infection surveillance review under the Infection Control Audit and Annual Statement Procedure counts suspected catheter infections, related admissions and device incidents.",
+            "Targets: 100% of device tasks done by signed-off workers; 100% of catheter users with current change and review dates; 100% of escalations within the times in this protocol."
+          ]
+        },
+        {
+          "p": "The Registered Manager reviews this protocol every 12 months, for approval by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or guidance, a serious incident, an inspection finding or monitoring showing the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

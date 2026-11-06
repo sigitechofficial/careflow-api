@@ -1,0 +1,673 @@
+{
+  "reference": "POL-HR-010",
+  "revision": 1,
+  "title": "Capability and Performance Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we support employees whose skill, knowledge or competence falls below the standard their role needs, and what happens if it does not improve. It covers finding the cause, informal support, health and reasonable adjustments, protecting the people we support, performance improvement plans, formal capability meetings, warnings, redeployment, dismissal as a last resort and appeals. For all employees and the managers who run cases.",
+  "keyPoints": {
+    "intro": "What happens if your work is not reaching the standard your role needs. Support is always offered, nothing formal happens without a meeting at which you are heard, and most concerns are put right through training and coaching.",
+    "points": [
+      "If you are unsure how to do a task safely, stop and phone the office, or the On-call Manager out of hours, before you carry on. Asking for help is never a capability issue.",
+      "If your supervisor raises a concern about your practice, you will agree an informal support plan with training, coaching or observed visits and a review date no more than 8 weeks ahead.",
+      "If a shortfall in a task you were trained and signed off for caused, or could have caused, serious harm, the formal procedure may start at Stage 2, a final written capability warning.",
+      "Tell your supervisor or the HR Manager if health, disability, pregnancy, medicines, dyslexia, language or anything at home is affecting your work. You do not have to give a diagnosis, and we will look at adjustments and offer occupational health.",
+      "If you are restricted from a task, such as medicines support or hoisting, never do it until you are told in writing, after reassessment, that the restriction has ended. If a visit needs it, stay with the person and phone the office or On-call Manager.",
+      "While you are restricted, the Care Coordinator offers you other visits to keep your usual hours. If that is not possible, you are paid for the rostered visits removed.",
+      "A formal capability meeting is arranged with at least 5 working days' written notice and all the evidence. You may bring a colleague or trade union representative to every formal meeting and appeal.",
+      "A performance improvement plan sets out the standard you must reach, the support you will get, how progress is checked and the review period, normally 8 weeks. You receive a written copy.",
+      "A first written capability warning stays live for 6 months and a final written capability warning for 12 months. Capability warnings are never added to disciplinary warnings.",
+      "Dismissal is a last resort, decided only by the Registered Manager, the Nominated Individual, a Director or an independent manager they appoint, never the Deputy Manager, and only after support, a final warning, a fair review period and a search for another suitable role.",
+      "You can appeal any formal outcome by writing to the HR Manager within 5 working days of receiving the outcome letter. A manager not involved hears it within 10 working days."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-HR-005",
+    "POL-HR-006",
+    "POL-HR-008",
+    "POL-HR-011",
+    "POL-HR-004",
+    "POL-HR-020",
+    "POL-GOV-007",
+    "POL-HR-009"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Acas Code of Practice on disciplinary and grievance procedures (2015), paragraphs 1 (disciplinary situations include poor performance), 9 to 22 and 25 to 30",
+      "url": "https://www.acas.org.uk/acas-code-of-practice-on-disciplinary-and-grievance-procedures/html"
+    },
+    {
+      "source": "Acas, Problems with an employee's performance",
+      "url": "https://www.acas.org.uk/performance-management/problems-with-an-employees-performance"
+    },
+    {
+      "source": "Acas, Dismissals for capability or conduct",
+      "url": "https://www.acas.org.uk/performance-management/dismissals-for-capability-or-conduct"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 98(2)(a), (3)(a) and (4) (capability as a potentially fair reason for dismissal, assessed by reference to skill, aptitude, health or any other physical or mental quality; fairness depends on whether the employer acted reasonably)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/98"
+    },
+    {
+      "source": "Employment Relations Act 1999, section 10 (right to be accompanied)",
+      "url": "https://www.legislation.gov.uk/ukpga/1999/26/section/10"
+    },
+    {
+      "source": "Employment Relations Act 1999, section 13(4) (a disciplinary hearing includes any hearing that could result in a formal warning or other action)",
+      "url": "https://www.legislation.gov.uk/ukpga/1999/26/section/13"
+    },
+    {
+      "source": "Trade Union and Labour Relations (Consolidation) Act 1992, section 207A (adjustment of awards for failure to follow the Acas Code)",
+      "url": "https://www.legislation.gov.uk/ukpga/1992/52/section/207A"
+    },
+    {
+      "source": "Equality Act 2010, section 15 (discrimination arising from disability)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/15"
+    },
+    {
+      "source": "Equality Act 2010, section 20 (duty to make reasonable adjustments)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18 (staffing), paragraphs (1) and (2)(a)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 19 (fit and proper persons employed), paragraphs (1) and (5)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/19"
+    },
+    {
+      "source": "Employment Rights Act 2025, section 25 (unfair dismissal: qualifying period reduced to 6 months and compensatory award limit removed)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/36/section/25"
+    },
+    {
+      "source": "Employment Rights Act 2025 (Commencement No. 4 and Transitional and Saving Provisions) Regulations 2026 (S.I. 2026/559), regulations 3 and 4 (section 25 in force 1 January 2027; changes apply by effective date of termination)",
+      "url": "https://www.legislation.gov.uk/uksi/2026/559/regulation/4/made"
+    },
+    {
+      "source": "Safeguarding Vulnerable Groups Act 2006, section 35 (regulated activity provider: duty to refer to the DBS)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/35"
+    },
+    {
+      "source": "Acas, Employment Rights Act 2025: changes and dates",
+      "url": "https://www.acas.org.uk/employment-rights-act-2025"
+    },
+    {
+      "source": "Disclosure and Barring Service, Making barring referrals to the DBS",
+      "url": "https://www.gov.uk/guidance/making-barring-referrals-to-the-dbs"
+    },
+    {
+      "source": "GOV.UK, Access to Work: get support if you have a disability or health condition",
+      "url": "https://www.gov.uk/access-to-work"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} expects everyone who works for us to have the skills, knowledge and competence to do their job safely and well. Our care workers usually work alone in people's homes, where a gap in skill, such as an unsafe hoist transfer or a medicines error, can harm a person before anyone else sees it. We therefore act early and supportively: most shortfalls are put right through training, coaching and closer supervision, every employee is heard before anything is decided, and dismissal is a last resort."
+        },
+        {
+          "p": "This procedure deals with capability, an employee's ability to do their job to the required standard, not conduct. It follows the Acas Code of Practice on disciplinary and grievance procedures, which covers poor performance. The law requires competent, skilled and supported staff, and proportionate action when an employee no longer has the competence their work needs (Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulations 18 and 19(5))."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "To find and put right shortfalls in competence early and on evidence, keep the people we support safe while an employee improves, and make any formal action fair, recorded and open to appeal."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to every employee of {{organisation}} who has completed probation, in every role and branch, including bank, apprentice, part-time, zero hours and management staff. It covers shortfalls in skill, knowledge, aptitude or competence. A Director or the Nominated Individual we employ is covered as Who acts sets out; their fitness is also assessed under the Fit and Proper Persons (Directors) Policy."
+        },
+        {
+          "p": "It does not cover: performance during probation (Induction and Care Certificate Procedure); misconduct (Disciplinary Policy and Procedure); sickness absence, or ill-health capability where a health condition prevents the employee attending or doing their job even after adjustments (Sickness Absence Policy); allegations that an employee harmed someone (Managing Allegations Against Staff Procedure); or missed training (Training and Development Policy). Shortfalls by agency workers, students and contractors go to their agency, college or employer as the Supervision, Spot Checks and Appraisal Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Required standard",
+                "The standard set by the employee's job description, the Staff Code of Conduct, our procedures, people's care plans and the training and competency sign-offs the employee has received."
+              ],
+              [
+                "Review period",
+                "The time given under a performance improvement plan to reach the standard: normally 8 weeks, never less than 4 or more than 12."
+              ],
+              [
+                "Case lead",
+                "The manager who gathers the evidence, supports the employee through the plan and presents the case. They never decide the outcome."
+              ],
+              [
+                "Meeting manager",
+                "The manager who chairs a formal capability meeting and decides the outcome."
+              ],
+              [
+                "Working day",
+                "Monday to Friday, excluding bank holidays in England."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this procedure and fund trained managers, an occupational health provider and our retained employment law adviser. The Nominated Individual acts as Who acts sets out and audits capability cases every year."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this procedure, decides whether a concern is handled informally, as capability or as misconduct, appoints the case lead and meeting manager, decides interim restrictions and adjustments, and decides on DBS and regulator referrals. Who acts sets out the meetings they hold and their cover."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager advises managers, sends every letter, tracks every timescale, makes occupational health referrals, arranges adjustments and interpreters, attends every formal meeting and appeal as adviser and note-taker, and keeps the case file. Where the HR Manager is the employee concerned, the employment law adviser advises and uninvolved Office staff take notes."
+            }
+          ]
+        },
+        {
+          "heading": "Supervisors and Care Coordinators",
+          "blocks": [
+            {
+              "p": "The employee's supervisor under the Supervision, Spot Checks and Appraisal Policy raises concerns early and agrees informal support plans. Care Coordinators apply restrictions to the rota, schedule training, mentoring and observed visits as paid work, and tell the people we support only that a different worker will visit."
+            }
+          ]
+        },
+        {
+          "heading": "Every employee",
+          "blocks": [
+            {
+              "p": "Every employee who is unsure how to do a task safely stops and phones the office, or the On-call Manager out of hours, before carrying on, tells their supervisor or the HR Manager about anything affecting their work, and takes part in the support offered."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Capability or conduct",
+      "blocks": [
+        {
+          "p": "Capability is about whether the employee can meet the standard; conduct is about whether they choose to."
+        },
+        {
+          "table": {
+            "columns": [
+              "Capability: this procedure",
+              "Conduct: Disciplinary Policy and Procedure"
+            ],
+            "rows": [
+              [
+                "Medicines errors that continue after retraining and reassessment",
+                "Signing the eMAR for a dose not given, or hiding an error"
+              ],
+              [
+                "Being unable to use a hoist safely after training",
+                "Choosing to move a person single-handed when the plan requires two workers"
+              ],
+              [
+                "Still missing care plan tasks after coaching",
+                "Refusing, without good reason, the training or observed visits in a support plan"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where a concern comes from an incident, the Registered Manager first records the four questions in the Incident Reporting, Investigation and Learning Policy. If a capability case reveals deliberate or reckless behaviour, the Registered Manager moves it to the Disciplinary Policy and Procedure; if a disciplinary investigation finds a skills gap, it moves here. The employee is told in writing within 2 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Identifying a concern and finding its cause",
+      "blocks": [
+        {
+          "p": "Concerns are identified from evidence: spot checks and competency assessments in people's homes; eMAR, daily visit note and care record audits; the incident log; visit check-in and check-out, used only after ruling out causes outside the worker's control such as no phone signal or too little travel time; complaints and feedback from people we support, families and partners such as district nurses; and, for office roles, rota accuracy and record timeliness."
+        },
+        {
+          "p": "A single mistake is dealt with through learning under the Incident Reporting, Investigation and Learning Policy, and asking for help or reporting a mistake is never itself a capability concern; this procedure is for a pattern, or a shortfall that continues after retraining. Before any plan is agreed, the supervisor meets the employee privately, at the branch office or by video, never in a person's home or a car, and checks whether they were trained and signed off for the task, whether the standard and care plan were clear, whether visit and travel times and equipment were adequate, and whether health, disability, pregnancy, language, caring pressures, stress or working relationships play a part. Where the cause lies in the rota, a care plan, equipment or our training, the Care Coordinator or Registered Manager puts it right and no action is taken against the employee."
+        }
+      ]
+    },
+    {
+      "heading": "Informal support",
+      "blocks": [
+        {
+          "p": "Every case starts informally, unless the serious-shortfall rule in Formal stages and outcomes applies. The supervisor agrees an informal support plan in supervision, or at an appraisal recorded as concerns, under the Supervision, Spot Checks and Appraisal Policy, with a review date no more than 8 weeks ahead, recorded in the supervision record within 2 working days and copied to the employee within 5 working days. Support matches the cause and may include:"
+        },
+        {
+          "bullets": [
+            "retraining, booked within 5 working days, face to face for practical skills;",
+            "working alongside a Senior Care Worker or Field Care Supervisor on agreed visits, additional to planned staffing and paid as working time, including travel;",
+            "extra observed visits, supervision every 2 weeks, a mentor or step-by-step guidance;",
+            "occupational health, the employee assistance programme, or a paid English for speakers of other languages course."
+          ]
+        },
+        {
+          "p": "If the standard is met at the review, the plan closes and normal supervision checks that the improvement lasts. If not, the Registered Manager decides within 5 working days of the review whether to extend the plan once, by up to 8 weeks, or start the formal procedure, recording the reasons in the staff record. An informal plan is not a warning, cannot be appealed and is never mentioned in a reference."
+        }
+      ]
+    },
+    {
+      "heading": "Health, disability and reasonable adjustments",
+      "blocks": [
+        {
+          "p": "The law requires reasonable adjustments for a disabled employee (Equality Act 2010, section 20) and forbids unfavourable treatment because of something arising from disability unless it is justified as a proportionate means of achieving a legitimate aim (section 15). At every stage the manager asks whether health, disability, pregnancy, medicines or a condition such as dyslexia may be affecting performance, whether or not a disability has been disclosed."
+        },
+        {
+          "steps": [
+            "The HR Manager offers an occupational health referral and makes it within 5 working days of written consent. The employee does not have to give a diagnosis.",
+            "No formal meeting is held and no review period ends until the advice arrives. If it has not arrived within 20 working days, the HR Manager chases it and the Registered Manager decides whether to proceed, recording why. If the employee declines a referral, we proceed on the information we have and say so in writing.",
+            "Within 5 working days of the advice, the Registered Manager and HR Manager agree adjustments with the employee, such as training in a different format, pictorial guides, a lighter run or a change of tasks. Health information goes only in the restricted section of the staff record; the Care Coordinator and Field Care Supervisor are told the adjustment, never the condition.",
+            "The HR Manager tells the employee about Access to Work, which can fund support beyond the adjustments we must make. Targets are measured with adjustments in place."
+          ]
+        },
+        {
+          "p": "Where the shortfall is wholly or mainly caused by a health condition that no reasonable adjustment can overcome, no capability warning is given and the case moves to the ill-health route in the Sickness Absence Policy. Signs of stress lead to an individual stress risk assessment within 5 working days under the Work-Related Stress and Staff Wellbeing Policy. A pregnant employee's targets reflect duties restricted under the New and Expectant Mothers at Work Procedure, and pregnancy-related shortfalls are never counted against her."
+        }
+      ]
+    },
+    {
+      "heading": "Protecting the people we support",
+      "blocks": [
+        {
+          "p": "Where an employee's practice has harmed a person or may amount to neglect, the concern is reported under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and any allegation is handled under the Managing Allegations Against Staff Procedure first. No capability meeting about those events is held until the local authority and, where involved, the police agree."
+        },
+        {
+          "p": "Where a shortfall has put a person at risk, the Registered Manager or Deputy Manager decides the same day on the least restrictive interim measure; out of hours the On-call Manager decides, confirmed or changed by 10am the next working day. Measures include extra observed visits, working alongside a colleague for a task, removing a task such as medicines support, hoisting or a delegated healthcare task until the employee is reassessed as competent, or not allocating them to people whose needs require that skill. The employee is told the measure and reason by phone or in person before their next visit, never in front of the person we support, and in writing within 1 working day. Removal from all work is never a capability measure."
+        },
+        {
+          "p": "The Care Coordinator applies the measure before the employee's next visit, checks their next 14 days of visits, and never counts a restricted worker as a trained worker for that task on a two-worker visit. They offer other visits to keep the employee's usual hours; otherwise the employee is paid for the rostered visits removed. A restricted worker who finds at a visit that the task is needed does not do it, stays with the person and phones the office (the On-call Manager out of hours), who sends a competent worker or arranges the task another safe way within the time the care plan allows. The manager who decided a measure reviews it at least every 5 working days while a related incident investigation is open, and otherwise at least every 2 weeks. It ends when the employee is reassessed as competent: a Field Care Supervisor or other authorised assessor reassesses within 5 working days of the retraining being completed, and the HR Manager records the result in the staff record and tells the employee and the Care Coordinator in writing that day."
+        }
+      ]
+    },
+    {
+      "heading": "The formal procedure",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Who acts",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Employee concerned",
+                  "Case lead",
+                  "Stage 1 meeting",
+                  "Stage 2 and 3 meetings",
+                  "Appeal"
+                ],
+                "rows": [
+                  [
+                    "Care Worker or Senior Care Worker",
+                    "Field Care Supervisor",
+                    "Deputy Manager",
+                    "Registered Manager",
+                    "Registered Manager where the Deputy Manager decided; otherwise Nominated Individual"
+                  ],
+                  [
+                    "Field Care Supervisor, Care Coordinator, Office staff or staff allocation role",
+                    "Deputy Manager",
+                    "Registered Manager",
+                    "Registered Manager",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "HR Manager or Deputy Manager",
+                    "Registered Manager",
+                    "Nominated Individual",
+                    "Nominated Individual",
+                    "A Director other than the Nominated Individual"
+                  ],
+                  [
+                    "Registered Manager",
+                    "Nominated Individual",
+                    "A Director other than the Nominated Individual",
+                    "The same Director",
+                    "Another uninvolved Director or an external HR professional"
+                  ],
+                  [
+                    "Nominated Individual or a Director we employ",
+                    "A Director chosen by the other Directors",
+                    "Another Director they choose",
+                    "The same Director",
+                    "Another uninvolved Director or an external HR professional"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "When the Registered Manager is absent or involved, the Deputy Manager takes their place in this table, except that the Nominated Individual holds any Stage 2 or 3 meeting (which could end in a final warning or dismissal), any appeal and any meeting in a case the Deputy Manager leads."
+            },
+            {
+              "p": "Nobody acts who is related or close to the employee or has a declared conflict of interest, and nobody hears an appeal against a stage they chaired. Where nobody can act independently, the Nominated Individual (the Directors where the Nominated Individual is involved) appoints an external manager through our employment law adviser within 5 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Starting the formal procedure",
+          "blocks": [
+            {
+              "steps": [
+                "The Registered Manager records the decision, the stage and the reasons in the staff record, within 5 working days of the informal review or end-of-review meeting, or within 2 working days of a route decision under the Disciplinary Policy and Procedure.",
+                "Within 5 working days, the case lead writes a performance summary: the required standard, each shortfall with dates and CareFlow references, the support given and its results, the employee's explanations, and any health or adjustment matters. People we support are identified only by CareFlow reference.",
+                "The meeting is held within 10 working days of the decision. The HR Manager sends the invitation at least 5 working days beforehand, with the summary and all the evidence, the possible outcomes (stating plainly at Stage 3 that dismissal is possible), the right to be accompanied, and how to ask for an adjustment or interpreter."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Fair meetings",
+          "blocks": [
+            {
+              "p": "The law gives the right to be accompanied by a fellow worker or trade union official or representative at any meeting that could result in a formal warning or other action, which includes every formal capability meeting and appeal (Employment Relations Act 1999, sections 10 and 13(4)). If the companion cannot attend, the meeting moves to a reasonable time the employee proposes, no more than 5 working days after the original date. Companions who are colleagues have paid time off, and the Registered Manager may agree a disability supporter."
+            },
+            {
+              "p": "Meetings are held in paid time, including travel, in a private room at the branch office, never in a person's home, or by video with the employee's agreement, with a professional interpreter at our cost where needed. A meeting the employee cannot attend for a reason outside their control is rearranged once; after that the HR Manager seeks occupational health advice and offers alternatives such as written submissions, and the meeting manager may then decide on the evidence available."
+            }
+          ]
+        },
+        {
+          "heading": "At the meeting",
+          "blocks": [
+            {
+              "steps": [
+                "The case lead presents the performance summary and answers questions.",
+                "The employee responds, explains what they think has caused the shortfall and what support would help; the companion may speak for them.",
+                "The meeting manager considers health, disability and adjustments, whether the support and time given were enough and whether the standard is reasonable for the role, then adjourns to decide.",
+                "The HR Manager sends the outcome letter within 5 working days with the notes, the reasons, any warning and its live period, the performance improvement plan, the consequences of not improving, and how to appeal."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Performance improvement plans",
+          "blocks": [
+            {
+              "p": "Every Stage 1 or Stage 2 warning comes with a performance improvement plan, agreed with the employee at the meeting where possible. It states each objective and what achieving it looks like, the support, training and adjustments with dates, how progress is measured (such as observed visits or eMAR and daily visit note audits), the dates of progress meetings and the end-of-review meeting, and what happens if the standard is not reached or sustained."
+            },
+            {
+              "p": "The case lead holds a progress meeting at least every 2 weeks, recorded in the staff record within 2 working days and copied to the employee within 5 working days. For care staff, a Field Care Supervisor, the Deputy Manager or the Registered Manager carries out at least two observed practice visits in each review period, the last in its final 2 weeks, with the agreement of the person we support. Training in the plan is completed in the first half of the review period. Absence pauses a review period. A review period is extended at most once, by up to 4 weeks, by the meeting manager before it ends or as the outcome of the next stage meeting, for lack of opportunity to show the skill or where real improvement falls just short."
+            }
+          ]
+        },
+        {
+          "heading": "Formal stages and outcomes",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Stage",
+                  "When it is used",
+                  "Possible outcomes",
+                  "Live period"
+                ],
+                "rows": [
+                  [
+                    "Stage 1",
+                    "The informal plan has not achieved the standard",
+                    "No further action; return to informal support; first written capability warning with a performance improvement plan",
+                    "6 months"
+                  ],
+                  [
+                    "Stage 2",
+                    "The standard is not reached by the end of the Stage 1 review period, or falls again while the first warning is live, or the serious-shortfall rule applies",
+                    "Final written capability warning with a performance improvement plan; extension of the Stage 1 review period; no further action",
+                    "12 months"
+                  ],
+                  [
+                    "Stage 3",
+                    "The standard is not reached by the end of the Stage 2 review period, or falls again while the final warning is live",
+                    "Redeployment to a suitable role; dismissal with notice; extension of the Stage 2 review period; no further action",
+                    "Not applicable"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The case lead holds an end-of-review meeting with the employee within 5 working days of a review period ending. Where the standard is met, the HR Manager confirms this in writing within 5 working days and the warning stays live for its period. Where it is not, the Registered Manager decides on the next stage as Starting the formal procedure sets out; the end-of-review meeting never itself decides an outcome."
+            },
+            {
+              "p": "Serious-shortfall rule: where a shortfall caused, or could credibly have caused, harm graded High or Critical under the Incident Reporting, Investigation and Learning Policy, in a task the employee was trained and signed off for, the Registered Manager may start at Stage 2 after advice from the employment law adviser, recording why. No case starts at Stage 3."
+            },
+            {
+              "p": "Capability and disciplinary warnings are separate and never added together. The HR Manager marks a warning expired in the staff record on its expiry date, after which it is disregarded. We never use fines, pay deductions, unpaid time off or reduced hours as an outcome."
+            }
+          ]
+        },
+        {
+          "heading": "Before deciding to dismiss",
+          "blocks": [
+            {
+              "steps": [
+                "Before a Stage 3 invitation is sent, the HR Manager takes advice from our employment law adviser.",
+                "With the invitation, the HR Manager sends a list of vacancies in any branch the employee could do with reasonable training, including roles without the task they cannot perform. For a sponsored worker, the HR Manager first checks that a change of role is allowed under their sponsorship.",
+                "The meeting manager considers redeployment and further adjustments before dismissal. A move to a role with lower pay or different terms happens only with the employee's written agreement, after a 4-week trial at their current pay; if the trial does not succeed, the meeting manager decides the Stage 3 outcome within 5 working days. Declining such a move is never a reason for dismissal; any dismissal rests on capability alone.",
+                "Dismissal is always with notice, the longer of contractual and statutory, worked or paid in lieu; during worked notice the employee does only tasks they are competent to do. The letter gives the reasons, termination date, final pay, the return of the ID badge, equipment and any keys held for people we support, and the right of appeal. The HR Manager removes CareFlow access on the termination date. Keys are returned to the branch office by the last working day; if any is not, the Care Coordinator offers a key safe code change that day to each person whose code the employee knew, under the Key Holding, Key Safes and Access to People's Homes Procedure."
+              ]
+            },
+            {
+              "p": "The law treats capability as a potentially fair reason for dismissal where the employer acts reasonably (Employment Rights Act 1996, section 98). The unfair dismissal qualifying period is 2 years where the effective date of termination is before 1 January 2027, and 6 months on or after that date, when the compensatory award limit is also removed (Employment Rights Act 2025, section 25; S.I. 2026/559). Our policy is that every employee within scope receives this whole procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Appeals",
+          "blocks": [
+            {
+              "steps": [
+                "The employee appeals in writing to the HR Manager within 5 working days of receiving the outcome letter, giving the grounds. The HR Manager acknowledges it within 2 working days; a later appeal is accepted where there was good reason for the delay.",
+                "The appeal manager in Who acts hears it within 10 working days of receipt, with at least 5 working days' written notice. The right to be accompanied applies.",
+                "The HR Manager sends the outcome within 5 working days of the appeal meeting. The appeal manager may confirm, reduce or overturn the outcome, never increase it, and the decision is final."
+              ]
+            },
+            {
+              "p": "The performance improvement plan continues during an appeal. A dismissal takes effect on the original date; if overturned, the employee is reinstated with full back pay and unbroken continuous service. An overturned warning is removed from the staff record, with only the appeal outcome kept."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Particular situations",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What we do"
+            ],
+            "rows": [
+              [
+                "A grievance about the process or the people running it",
+                "The Registered Manager (the Nominated Individual if the Registered Manager is involved) decides within 2 working days whether to pause briefly, replace a manager or deal with both together, under the Grievance Policy and Procedure."
+              ],
+              [
+                "Absence of 4 weeks or more during a review period",
+                "Supervision in the first week back, any reassessments the Supervision, Spot Checks and Appraisal Policy requires, and the rest of the review period confirmed in writing with new dates."
+              ],
+              [
+                "Practice harmed or put a person at risk, and the employee is dismissed, redeployed out of regulated activity or resigns",
+                "The Registered Manager records the DBS referral decision within 5 working days of the outcome or resignation; any referral is made, without waiting for an appeal, under the Staff Fitness Concerns and DBS Referrals Procedure, which sets out the legal duty (Safeguarding Vulnerable Groups Act 2006, section 35)."
+              ],
+              [
+                "A registered professional, such as a nurse, no longer meets Regulation 19",
+                "The Registered Manager decides on informing their regulator within 5 working days of the finding, under the Staff Fitness Concerns and DBS Referrals Procedure."
+              ],
+              [
+                "The employee is sponsored by us",
+                "The HR Manager reports a dismissal or change of role through the sponsor management system within 5 working days and signposts the employee to an Immigration Advice Authority-regulated adviser."
+              ],
+              [
+                "Formal action check, for any employee",
+                "Before every formal meeting and appeal, the HR Manager asks for the formal action check of the speaking-up log in the Whistleblowing (Speaking Up) Policy, by the Nominated Individual or, where that policy says, the chair of the Directors. Where the employee has spoken up, the meeting goes ahead only once the checker records in the case file that the case is unconnected; otherwise it pauses for the employment law adviser's advice."
+              ],
+              [
+                "The employee is a trade union representative",
+                "With their agreement, the HR Manager tells a full-time union official before any formal stage."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Informal support plans and reviews",
+                "Supervision records",
+                "Employment plus 6 years"
+              ],
+              [
+                "All formal case documents, including letters, notes, plans, progress and observed visit records",
+                "Capability case file in the staff record, open only to the HR Manager, Registered Manager, Deputy Manager, Nominated Individual and managers appointed to the case",
+                "Employment plus 6 years"
+              ],
+              [
+                "Occupational health advice and health information",
+                "Restricted section of the staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Interim restrictions, reviews and reassessments",
+                "Staff record; training and compliance records",
+                "Employment plus 6 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Nothing is destroyed while a tribunal claim, safeguarding enquiry, police investigation or DBS case is open or expected."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "This procedure, acknowledged in CareFlow",
+                "Organisational induction",
+                "Within 14 days of each new major version"
+              ],
+              [
+                "Field Care Supervisors, authorised Senior Care Workers, Deputy Manager and Registered Manager",
+                "Managing performance briefing by the HR Manager: finding causes, fair evidence, health and adjustments, writing and reviewing plans",
+                "Before first agreeing an informal support plan or acting as case lead",
+                "Every 3 years"
+              ],
+              [
+                "Managers, Nominated Individual and Directors who chair meetings or hear appeals",
+                "Hearings and appeals training under the Disciplinary Policy and Procedure",
+                "Before their first formal meeting",
+                "Every 3 years"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Overdue informal plans, formal cases by stage, restrictions, occupational health referrals and timescales",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager; workforce figures to the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Cases by role, branch, stage, theme and outcome, appeals upheld and referrals",
+                "Quarterly, anonymised",
+                "Registered Manager",
+                "Nominated Individual; quarterly governance report; themes into the annual training plan"
+              ],
+              [
+                "Formal cases and outcomes by protected characteristic and branch",
+                "Annually, with the disciplinary analysis",
+                "HR Manager",
+                "Directors"
+              ],
+              [
+                "Every capability dismissal or redeployment and 3 other formal cases (all if fewer), against each step of this procedure",
+                "Annually, in November",
+                "Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Targets: 100% of formal cases preceded by an informal support plan or a recorded serious-shortfall decision; 100% of occupational health referrals within 5 working days of consent; 100% of outcome letters within 5 working days; 100% of appeals heard within 10 working days; at least 90% of progress meetings held on their planned date. Shortfalls against targets, and wider issues a case reveals such as a training gap or rota pressure, go into the service improvement plan with an owner and deadline within 5 working days."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager, with the HR Manager, and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in employment or equality law or the Acas Code, a tribunal finding, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

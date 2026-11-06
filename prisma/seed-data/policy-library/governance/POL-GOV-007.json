@@ -1,0 +1,778 @@
+{
+  "reference": "POL-GOV-007",
+  "revision": 1,
+  "title": "Incident Reporting, Investigation and Learning Policy",
+  "documentType": "POLICY",
+  "summary": "How we respond to, report, record, grade, review and investigate every incident, accident, near miss and hazard connected with our care or work; which external reports and escalations are checked for each one; how staff are treated fairly and supported; how people affected are kept informed; and how actions, learning and trends are tracked through governance. For all staff, with the review and investigation detail for managers.",
+  "keyPoints": {
+    "intro": "Every incident, accident, near miss and hazard connected with our work must be reported, however small. Reporting keeps people safe and helps us improve; it is never used to blame you for an honest mistake.",
+    "points": [
+      "Make everyone safe first: give first aid within your training and call 999 in an emergency. Then phone the office, or the On-call Manager out of hours, and speak to a person before you leave the home.",
+      "Stay with the person until they are safe or someone takes over, beyond your planned visit time if needed. The office or On-call Manager tells the person at your next visit that you are delayed and covers that visit if needed.",
+      "Record every incident in the incident log before the end of your shift, including near misses, your own injuries and events that caused no harm. A hazard that does not affect the next visit needs recording but no phone call.",
+      "Write only facts: what you saw, heard and did, in order, with times, and the person's own words. Do not guess, blame or use labels, and never alter a record. Tell the office if something needs correcting.",
+      "Record injuries on the CareFlow body map, repeated at each visit while monitored. Photograph skin or a wound only to monitor it, in the CareFlow app on a work device, when CareFlow shows consent or a best interests decision; never photograph to evidence abuse.",
+      "If equipment fails or is involved, tag it DO NOT USE and leave it unrepaired. After a death or serious injury, leave the scene as it is until the Registered Manager, Deputy Manager, On-call Manager or police say otherwise.",
+      "If it might be abuse or neglect, the safeguarding procedure applies as well. In the daily visit notes write only that you reported an incident or concern to the office.",
+      "If you are asked for a written account, give it within 3 working days, in paid time. You may bring a colleague or representative to any interview.",
+      "Honest mistakes are treated as chances to learn, and we never fine you or cut your pay because of an incident. Failing to report, discouraging reporting or hiding or altering records is a disciplinary matter.",
+      "If an incident distresses you, you may stop for the rest of that day with your visits covered and your rostered hours paid. Your Field Care Supervisor contacts you within 1 working day and offers a debrief within 3 working days.",
+      "We tell you what happened as a result of your report within 5 working days of the incident being closed. Apply the changes you are briefed on from your next visit."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INCIDENT",
+    "SAFEGUARDING",
+    "MEDICATION",
+    "RISK_ASSESSMENT",
+    "AUDIT",
+    "EQUIPMENT"
+  ],
+  "relatedReferences": [
+    "POL-GOV-002",
+    "POL-GOV-004",
+    "POL-GOV-008",
+    "POL-GOV-009",
+    "POL-SG-002",
+    "POL-HS-007",
+    "POL-MED-014",
+    "POL-GOV-015"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 12 (Safe care and treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 17 (Good governance)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 20 (Duty of candour, including the definition of a notifiable safety incident in paragraph (9))",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/20"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 16 (Notification of death of service user)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/16"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 18 (Notification of other incidents)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 5 (Health and safety arrangements: monitoring and review)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/5"
+    },
+    {
+      "source": "Compensation Act 2006, section 2 (Apologies, offers of treatment or other redress)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/29/section/2"
+    },
+    {
+      "source": "Health and Safety Executive, HSG245 Investigating accidents and incidents: a workbook for employers, unions, safety representatives and safety professionals",
+      "url": "https://www.hse.gov.uk/pubns/books/hsg245.htm"
+    },
+    {
+      "source": "GOV.UK, Report a problem with a medicine or medical device (MHRA Yellow Card scheme)",
+      "url": "https://www.gov.uk/report-problem-medicine-medical-device"
+    },
+    {
+      "source": "NHS England LeDeR programme, Learning from lives and deaths: people with a learning disability and autistic people (reporting a death)",
+      "url": "https://leder.nhs.uk/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} reports, reviews and learns from every incident, accident, near miss and hazard connected with the care we provide or the work our staff do. Incidents show us where our systems, and not only individuals, can fail. We respond first to the safety of the person, record what happened promptly and factually, tell the people affected openly, and make the changes that stop it happening again."
+        },
+        {
+          "p": "We run a fair and just culture. Staff are thanked for reporting, honest mistakes are treated as chances to improve our systems, and nobody is penalised for raising an incident. Staff remain accountable for deliberate harm, recklessness and dishonesty."
+        },
+        {
+          "p": "This policy helps us meet regulations 12, 17 and 20 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 and regulation 5 of the Management of Health and Safety at Work Regulations 1999."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every incident is made safe, reported and recorded on the day it happens.",
+            "Every incident is graded the same way and reviewed by a manager within set timescales.",
+            "Every external report the law or our contracts require is considered, decided and made on time.",
+            "Investigations are proportionate, fair, focused on systems and involve the people affected.",
+            "Actions are completed, learning reaches staff and partners, and trends reach the Directors."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to all employees, bank workers, agency workers, students on placement and Directors in every branch. It covers incidents affecting the people we support, staff, family members, visitors and the public wherever our work is involved: in people's homes, in the community, on the road and at the branch office. Harm we discover that arose under another provider's care is recorded, passed to that provider and referred under safeguarding where needed."
+        },
+        {
+          "p": "This policy owns how every incident is reported, graded, reviewed, investigated, closed and learned from. Specialist steps that run alongside it belong to the RIDDOR Reporting Procedure, the Statutory Notifications to CQC Procedure, the Duty of Candour Policy, the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, the Medication Errors, Near Misses and Incidents Procedure, the Falls Prevention and Response Procedure, the Missed, Late and Short Visits Procedure, the No Reply, No Access and Missing Person Procedure, the Key Holding, Key Safes and Access to People's Homes Procedure (lost keys and compromised key safe codes), the Sharps Safety and Needlestick Injury Procedure, the Hoists, Slings and Lifting Equipment Procedure, the Personal Data Breach Procedure and the Transmission-Based Precautions and Outbreak Management Procedure."
+        },
+        {
+          "p": "Complaints follow the Complaints Policy and Procedure, concerns about wrongdoing the Whistleblowing (Speaking Up) Policy, and allegations that a worker harmed someone the Managing Allegations Against Staff Procedure. Such an event is still logged and reviewed under this policy, and one investigation serves both where the owning procedure allows."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Incident",
+                "Any unintended or unexpected event connected with our care or work that caused, or could have caused, harm, loss or damage, or disrupted care, such as a fall, medicines error, missed visit, injury, equipment failure, abuse of staff, infection exposure, lost key or a key safe code reaching someone not entitled to it."
+              ],
+              [
+                "Accident",
+                "An incident in which someone is physically injured."
+              ],
+              [
+                "Near miss",
+                "An event that could have caused harm but did not, because it was noticed in time or by chance, such as a wrong medicine selected and spotted before it was given."
+              ],
+              [
+                "Hazard",
+                "A condition that could cause harm if not dealt with, such as a frayed sling or a broken step, reported before anything has happened."
+              ],
+              [
+                "Serious incident",
+                "An incident graded High or Critical."
+              ],
+              [
+                "Notifiable safety incident",
+                "An unintended or unexpected incident in our care that, in a health care professional's reasonable opinion, appears to have caused death (not from the natural course of the person's illness), an impairment of sensory, motor or intellectual functions or pain or psychological harm lasting or likely to last 28 days or more, a change to the structure of the body or shortened life expectancy, or needs treatment by a health care professional to prevent death or such harm, as regulation 20(9) defines and the Duty of Candour Policy explains."
+              ],
+              [
+                "Contributory factor",
+                "Anything that made the incident more likely or its outcome worse, such as the care plan, the rota and travel time, training, communication, the person's home, equipment or a change in the person's health."
+              ],
+              [
+                "Incident owner",
+                "The manager named in the incident log as responsible for the incident from review to closure."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for an open reporting culture and scrutinise the quarterly and annual incident reports. The Nominated Individual receives the escalations, agrees terms of reference, approves and closes every Comprehensive investigation, and challenges overdue investigations and actions at the Monthly Quality and Governance Meeting."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy and the incident log in their branch, reviews and grades incidents, makes the external reporting decisions, leads Comprehensive investigations, decides interim measures affecting staff and makes sure actions are completed and learning is shared. The Deputy Manager covers these duties in the Registered Manager's absence, also reviews and grades incidents and leads Enhanced investigations, and produces the monthly incident figures and incident log audit."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours the On-call Manager receives reports, decides the immediate safety action, makes the escalations in this policy and in the Governance and Quality Assurance Policy's immediate escalation table, makes sure an incident log entry exists, and hands over by 10am on the next working day. The On-call Manager never closes an incident or decides that an external report is not needed."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors, Office staff and HR Manager",
+          "blocks": [
+            {
+              "p": "Care Coordinators and Field Care Supervisors put safety actions into the rota and care plan, obtain missing facts within 1 working day, carry out the Standard investigations allocated to them and brief care workers on changes before their next visit. Office staff pass every phoned report at once to the Registered Manager or Deputy Manager and check by the next working day that it has an incident log entry. The HR Manager records staff measures and outcomes in the staff record and books training needs from investigations within 5 working days."
+            }
+          ]
+        },
+        {
+          "heading": "All staff",
+          "blocks": [
+            {
+              "p": "Care Workers, Senior Care Workers and every other member of staff make the situation safe, report and record every incident on time, preserve evidence, give accurate accounts when asked and apply the changes they are briefed on from their next visit."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Responding to an incident",
+      "blocks": [
+        {
+          "steps": [
+            "Make the person, yourself and others safe. Give first aid within your training and call 999 in an emergency; where there is no emergency, the office, or the On-call Manager out of hours, arranges advice from NHS 111 or the GP.",
+            "If anyone may have died or been seriously injured, do only what is needed for safety, care and dignity, and leave the scene, equipment and medicines as they are until the Registered Manager, Deputy Manager, On-call Manager or police say otherwise.",
+            "Take any equipment involved out of use with a DO NOT USE tag, leave it unrepaired, tell the person and anyone else in the home not to use it, and keep any product, packaging or medicine involved.",
+            "Phone the office, or the On-call Manager out of hours, before you leave the home and speak to a person. Phone from outside the home if someone who may be responsible is present or you feel unsafe. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. If the incident happened elsewhere, phone as soon as it is safe.",
+            "Stay with the person, beyond the planned visit time if needed, until they are safe or someone has taken over; the office or On-call Manager tells the person at your next visit of the delay and covers that visit if needed. Follow the manager's instructions about further care and who to contact.",
+            "Record the incident in the incident log before the end of your shift, and the care given and the person's condition in the daily visit notes."
+          ]
+        },
+        {
+          "p": "Every incident is phoned in before the worker leaves, except a hazard that does not put the next visit at risk, which is recorded in the incident log only. Where abuse or neglect may be involved, including neglect by our own staff, the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure applies at the same time."
+        },
+        {
+          "p": "For any incident that caused harm or leaves a risk, the manager who takes the call (the On-call Manager out of hours) decides within 1 hour what keeps people safe until the next visit, such as medical help, a safeguarding referral, an extra or double-up visit, equipment out of use, a changed visit plan or a worker stopped from a task, and records it in the incident log entry. The manager also checks that the care worker is safe and fit to go on to their next visit."
+        }
+      ]
+    },
+    {
+      "heading": "Recording in the incident log",
+      "blocks": [
+        {
+          "p": "Every incident has one incident log entry in CareFlow, whose reference number is used in every related record, report and governance paper. Every death of a person we support that we learn of, expected or not, also has an entry, the single source for the monthly reconciliation in the Statutory Notifications to CQC Procedure; an expected death with no concern about our care is reviewed as the End of Life Care Policy sets but needs no investigation."
+        },
+        {
+          "table": {
+            "columns": [
+              "Who records",
+              "Deadline"
+            ],
+            "rows": [
+              [
+                "The staff member at the visit, in CareFlow",
+                "Before the end of their shift"
+              ],
+              [
+                "Office staff, for agency workers and anyone who cannot record in CareFlow, recording the worker's account during the phone call and reading it back",
+                "During the call"
+              ],
+              [
+                "Whoever receives a report from the person, family, a professional or another provider",
+                "The same working day"
+              ],
+              [
+                "The auditor or checker, for an incident found at an audit, spot check or record review",
+                "The same day"
+              ],
+              [
+                "The On-call Manager, for any phoned report out of hours with no entry yet",
+                "Before the 10am handover"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The entry records:"
+        },
+        {
+          "bullets": [
+            "what happened, in time order, with the date, time and place, and the person's own words where they describe it;",
+            "who was involved, affected or present, and any witnesses;",
+            "any injury on the CareFlow body map, with its location and size;",
+            "what was done, who was told and when, and whether emergency services attended or anyone went to hospital or was admitted;",
+            "equipment make, model and serial number from its label, and any medicine involved as shown on the eMAR;",
+            "whether the reporter thinks abuse or neglect may be involved."
+          ]
+        },
+        {
+          "p": "Entries state what was seen, heard and done, with no opinion on blame and no labels such as aggressive or difficult. Incident details are typed, never left as a voice note. The body map is repeated at every visit while an injury is being monitored. A body map photograph is added only to monitor skin, a wound or a pressure area, in the CareFlow app on a work device, with consent or a best interests decision recorded in CareFlow (Consent to Care Policy); nobody photographs an injury or scene as evidence of suspected abuse. Nobody edits a reporter's account: a manager corrects a factual detail only through a recorded correction with a reason and adds clarifications as separate notes, so the original stays visible. Daily visit notes, which the person and family may read, say only that an incident was reported to the office. Incidents involving an allegation against staff, a staff member's health, a police investigation, or sexual harassment or assault of staff (with related near misses and anonymous reports, under the Sexual Safety Policy) are set as Highly confidential in CareFlow, which opens them only to the roles we give that permission: the Registered Manager, Deputy Manager and Nominated Individual. Another investigation lead works from copies they provide."
+        }
+      ]
+    },
+    {
+      "heading": "Initial review and grading",
+      "blocks": [
+        {
+          "p": "The Registered Manager or Deputy Manager (the reviewing manager) reviews every incident log entry, becomes or names the incident owner, and records the confirmed severity, whether anyone is still at risk and the protective action taken, whether abuse or neglect may be involved, each external reporting decision and the investigation level, with reasons."
+        },
+        {
+          "table": {
+            "columns": [
+              "Severity",
+              "Meaning",
+              "Examples",
+              "Initial review"
+            ],
+            "rows": [
+              [
+                "Low",
+                "Near miss, hazard, or no harm or minor harm needing no more than first aid or extra observation",
+                "Wrong dose spotted before it was given; slip without injury; frayed sling reported",
+                "By the end of the next working day"
+              ],
+              [
+                "Medium",
+                "Harm needing advice or treatment from a GP, NHS 111, pharmacist, nurse, ambulance crew or emergency department without admission; a worker off work for up to 7 days; or an error or missed visit reaching the person without lasting harm",
+                "Skin tear dressed by the district nurse; missed visit; extra dose of a regular medicine, checked by the ambulance crew after a 999 call without admission",
+                "The same working day"
+              ],
+              [
+                "High",
+                "Serious harm: fracture, hospital admission, harm lasting or likely to last 28 days or more, a worker off for more than 7 days or with a specified injury, possible abuse or neglect by our staff, or any incident reported to or investigated by the police",
+                "Fracture after a fall during a hoist transfer; deep pressure ulcer after missed repositioning; assault on a worker",
+                "The same working day; Nominated Individual told the same day"
+              ],
+              [
+                "Critical",
+                "Death or permanent harm that the incident caused or may have contributed to, or serious harm to more than one person from the same cause",
+                "Death after a fall from a hoist; two people scalded after a water valve failed",
+                "At once by phone; Nominated Individual told at once; Directors within 24 hours"
+              ]
+            ]
+          }
+        },
+        {
+          "bullets": [
+            "Severity reflects the worst harm actually caused to anyone affected, staff included. Where the outcome is uncertain, the higher grade applies until the facts are known.",
+            "The incident owner regrades when the outcome becomes clear, such as after a hospital diagnosis, recording the reason; CareFlow keeps the history.",
+            "A no-reply, no-access or missing person event reported to the police only for a welfare check, entry or search is High until the person is accounted for. If there is then no serious harm, no sign that our care contributed (such as a missed or late visit) and no suspected abuse, neglect or crime, the incident owner regrades it on the harm caused, at least Medium. CQC is still notified of the police incident.",
+            "Out of hours the On-call Manager phones the Registered Manager or Deputy Manager on the management escalation rota at once about a Critical incident, any serious injury to a person we support that our care may have contributed to, any event in the RIDDOR Reporting Procedure's immediate escalation list and any event the Statutory Notifications to CQC Procedure lists for an immediate call; other Medium and High incidents reported out of hours are reviewed by 12 noon on the next working day.",
+            "Every medicines incident is reviewed on the day it is reported, whatever its grade, as the Medicines Management Policy requires."
+          ]
+        },
+        {
+          "p": "Severity sets the minimum investigation level; the reviewing manager may set a higher level, never a lower one, recording why. While a health care professional's opinion is awaited or the notifiable decision is unclear, the candour steps begin but the investigation stays at its graded level. It moves to Comprehensive on the day the Registered Manager records the incident notifiable under the Duty of Candour Policy, or, if no opinion has arrived when the investigation report is due, on what we know that day (unclear counts as notifiable). A Comprehensive investigation is never stepped down, even if a later opinion says the incident was not notifiable; the only exception is a no-reply, no-access or missing person event regraded as above. Timescales run from the day the incident was reported, and a shorter timescale set by another library document for its type of incident applies instead."
+        },
+        {
+          "table": {
+            "columns": [
+              "Level",
+              "Used for",
+              "Led by",
+              "Completed within"
+            ],
+            "rows": [
+              [
+                "Standard",
+                "Low incidents: facts and records checked, those involved spoken to, cause and actions recorded",
+                "The reviewing manager, or a trained Care Coordinator or Field Care Supervisor they allocate",
+                "5 working days"
+              ],
+              [
+                "Enhanced",
+                "Medium incidents; Low incidents that could credibly have caused High or Critical harm; incidents meeting a pattern trigger; any incident where a worker's practice is in question",
+                "Deputy Manager or Registered Manager",
+                "10 working days"
+              ],
+              [
+                "Comprehensive",
+                "High and Critical incidents, every notifiable safety incident (Duty of Candour Policy), and any incident the Nominated Individual directs",
+                "Registered Manager, or an investigator the Nominated Individual appoints (external where no manager is independent); our external health and safety adviser joins for a work-related death, specified injury or dangerous occurrence",
+                "Terms of reference within 2 working days; report within 20 working days, or 10 working days for a medicines incident"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "External reporting and escalation",
+      "blocks": [
+        {
+          "p": "At the initial review the reviewing manager considers every check below and records each decision, including a decision that a report is not needed, with the reason, the date and any external reference number. One incident may need several reports."
+        },
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Decided by",
+              "How and when"
+            ],
+            "rows": [
+              [
+                "Safeguarding referral to the local authority, and police where a crime may have been committed",
+                "Safeguarding lead, within 1 hour of the report",
+                "Referral the same working day, at once if the person is at immediate risk, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure"
+              ],
+              [
+                "CQC notification: deaths during our care or that may have resulted from it (regulation 16); serious injuries in a health care professional's opinion, abuse or allegations of abuse, police incidents and events threatening safe care (regulation 18)",
+                "Registered Manager, at the initial review",
+                "Without delay, under the Statutory Notifications to CQC Procedure"
+              ],
+              [
+                "Duty of candour",
+                "Registered Manager, at the initial review, recording the health care professional's opinion relied on; while it is unclear or awaited, treated as notifiable for the candour steps, but investigated as Comprehensive only once recorded notifiable",
+                "Under the Duty of Candour Policy"
+              ],
+              [
+                "RIDDOR",
+                "Registered Manager, or the Deputy Manager in their absence; never the On-call Manager",
+                "Under the RIDDOR Reporting Procedure"
+              ],
+              [
+                "Commissioner, or integrated care board for NHS-funded care",
+                "Registered Manager",
+                "By the end of the next working day for any High or Critical incident or RIDDOR-reportable event involving a person they fund; the same working day for a safeguarding concern; sooner, and through any NHS patient safety incident response arrangements, where the contract requires"
+              ],
+              [
+                "Personal data breach",
+                "Nominated Individual, told by the breach lead the same day of a breach that may be reportable, and at once for an urgent breach",
+                "Under the Personal Data Breach Procedure"
+              ],
+              [
+                "MHRA Yellow Card",
+                "Registered Manager",
+                "Within 2 working days for any incident or near miss involving a medical device, including hoists, slings, faulty gloves and masks; suspected side effects of medicines under the Medication Errors, Near Misses and Incidents Procedure"
+              ],
+              [
+                "LeDeR notification of the death of an adult with a learning disability or an autistic adult",
+                "Registered Manager",
+                "Online within 5 working days of our learning of the death"
+              ],
+              [
+                "Equipment owner (usually the community equipment service or the person), pharmacy or other provider whose actions or equipment were involved",
+                "Care Coordinator",
+                "The same working day"
+              ],
+              [
+                "Insurers, where injury, loss or damage may lead to a claim",
+                "Nominated Individual",
+                "Within 5 working days, or sooner where the policy requires"
+              ],
+              [
+                "DBS or a professional regulator",
+                "Registered Manager",
+                "Under the Staff Fitness Concerns and DBS Referrals Procedure"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager tells the Nominated Individual at once of every Critical incident and the same day of every High incident. The Nominated Individual tells the Directors within 24 hours of every Critical incident and of any serious injury to a person we support that our care may have contributed to. These add to the escalations other policies set. The immediate escalation table in the Governance and Quality Assurance Policy lists further serious-event escalations, such as medicines and safeguarding incidents; the shortest timescale applies. Out of hours the On-call Manager escalates, and if the Nominated Individual cannot be reached within 1 hour, the Director named to act for them is told. Who was told and when is recorded in the incident log entry."
+        }
+      ]
+    },
+    {
+      "heading": "Investigation",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Independence and set-up",
+          "blocks": [
+            {
+              "p": "The investigation lead was not involved in the events, and CareFlow records this. Where the Registered Manager was involved, the Nominated Individual appoints another manager or an external investigator. The terms of reference for a Comprehensive investigation set out the questions, scope, people to be involved, evidence and deadline, and are agreed by the Nominated Individual."
+            }
+          ]
+        },
+        {
+          "heading": "Gathering evidence",
+          "blocks": [
+            {
+              "bullets": [
+                "Records: care plan, risk assessments, eMAR, daily visit notes, visit check-in/check-out, rota, training and compliance records, supervision and appraisal records, equipment records, and earlier incidents and complaints about the same person or task.",
+                "Staff accounts: written within 3 working days of being asked, in paid time. Staff may bring a colleague or representative to any interview.",
+                "The person and their family or representative: offered a conversation within 5 working days of an Enhanced or Comprehensive investigation starting, in their preferred format, with a professional interpreter where needed.",
+                "Other professionals and providers: asked in writing for their account and records.",
+                "The person's home: visited, with the person's agreement, where the environment or equipment may have contributed."
+              ]
+            },
+            {
+              "p": "Where the police or the local authority are involved, we agree with them before interviewing anyone or telling a worker about an allegation. Where the police, the local authority, the Health and Safety Executive or a coroner asks us to pause, the Registered Manager records the request, pauses the investigation in CareFlow with a review date no more than 4 weeks ahead, checks with that body at each review date and tells the person and staff involved. Protective actions never pause. Records requested by the police, a coroner, the local authority or CQC are sent by their deadline, or within 2 working days where none is set, and logged in the incident log entry."
+            }
+          ]
+        },
+        {
+          "heading": "Finding out why",
+          "blocks": [
+            {
+              "p": "Investigators ask why the incident happened, not who is to blame. They compare what happened with what the care plan, risk assessment and procedures required, then test each contributory factor. Human error or a procedure not followed is never the final finding: the investigation asks what made it likely, such as workload, rota pressure, unclear instructions, missing equipment or gaps in training. Comprehensive investigations follow the four stages in HSE's HSG245 (gather information, analyse it, identify risk controls, agree and carry out an action plan) and identify the root cause. Medicines incidents also use the contributory factors framework in the Medication Errors, Near Misses and Incidents Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Findings and timescales",
+          "blocks": [
+            {
+              "p": "Each investigation records what happened, why, the contributory factors, whether it was preventable, the conclusion and the actions, each linked to the finding it addresses; a Comprehensive report also records the root cause. The Registered Manager may agree one extension of up to 10 working days for a Standard or Enhanced investigation; the Nominated Individual agrees any extension of a Comprehensive one. The reason is recorded and the person or their representative is told before the deadline. The Nominated Individual approves each Comprehensive report within 5 working days of receiving it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Treating staff fairly",
+      "blocks": [
+        {
+          "p": "We treat incidents as failures of systems first. Before any action concerning an individual, the Registered Manager records the answers to four questions. Did the worker intend harm? Could their health, alcohol or drugs have affected them? Did they depart from an agreed, workable procedure they had been trained in? Would another worker with the same training in the same situation probably have done the same?"
+        },
+        {
+          "p": "Where another worker would probably have done the same, the cause is the system and the action is a change to the system. Where the worker's own practice fell short, support comes first: coaching, retraining, a competency check and closer supervision. The Disciplinary Policy and Procedure is used only for deliberate harm, reckless conduct, dishonesty including altering or hiding records, impairment through alcohol or drugs, or repeated failure after support; and the Capability and Performance Procedure for continued shortfalls in competence despite retraining."
+        },
+        {
+          "p": "We never fine staff or make deductions from pay because of an incident. Failing to report an incident, discouraging anyone from reporting, or altering or hiding records is a disciplinary matter."
+        },
+        {
+          "p": "Where a worker's continued practice could put people at risk, the Registered Manager or Deputy Manager (the On-call Manager out of hours, confirmed or changed by 10am on the next working day) decides the same day on the least restrictive measure: working alongside a colleague, stopping one task, removal from one person's visits, or temporary office or training duties with no contact with people we support. Removal from all work happens only under the Disciplinary Policy and Procedure, the Managing Allegations Against Staff Procedure or, for suspected impairment through alcohol or drugs, the Staff Code of Conduct. The Care Coordinator, or the On-call Manager out of hours, changes the rota the same day so that none of the worker's visits is missed or late. The worker is told why in person and in writing within 1 working day, except that, where the police or local authority are involved, the worker is told only what they agree (Managing Allegations Against Staff Procedure). The worker is paid for visits taken off their rota; the measure is recorded in the incident log and staff record and reviewed at least every 5 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Supporting people and staff",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The person affected and their family",
+          "blocks": [
+            {
+              "p": "The incident owner or Care Coordinator tells the person affected, or their representative where the person lacks capacity for the matter, what happened within 1 working day of the initial review of any Medium, High or Critical incident, and at the next visit or call for a Low incident that affected them, with an apology where we got something wrong. Family members are told with the person's agreement. Under section 2 of the Compensation Act 2006 an apology is not of itself an admission of negligence or breach of statutory duty. Notifiable safety incidents follow the Duty of Candour Policy."
+            },
+            {
+              "p": "The person is offered help to get medical care, an advocate and to make a complaint, and is given the findings of an Enhanced or Comprehensive investigation within 10 working days of its completion, in their preferred format."
+            }
+          ]
+        },
+        {
+          "heading": "Staff",
+          "blocks": [
+            {
+              "p": "After a serious incident, a death, violence or any incident a worker found distressing, their Field Care Supervisor contacts them within 1 working day and offers a debrief within 3 working days, also offered to colleagues who witnessed it. A worker distressed by an incident during their run may stop for the rest of that day: the office, or the On-call Manager out of hours, covers their visits, the rest of that day's rostered hours are paid, a taxi home is provided at our cost if they should not drive, and a manager phones them before their next shift (Work-Related Stress and Staff Wellbeing Policy). All staff have free confidential counselling through the employee assistance programme, and the HR Manager refers a worker injured at work to occupational health when the injury causes more than 7 days' absence or their fitness is in doubt. A worker whose practice may have contributed has additional supervision within 7 days of the Registered Manager's decision on safeguarding and investigation; while the investigation is open, supervision covers their wellbeing and support, never the facts under investigation (Supervision, Spot Checks and Appraisal Policy). Staff involved hear the findings from their Field Care Supervisor before learning is shared more widely, and the reporter is told what was done within 5 working days of closure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Actions, closure and learning",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Actions",
+          "blocks": [
+            {
+              "p": "Every action is recorded in the incident log with one owner, a due date and the finding it addresses. Actions that protect a person are completed before their next visit. Care plans and risk assessments are reviewed within 7 days after an incident causing harm or a near miss showing the plan is wrong, and before the next visit where the method is no longer safe (Care Plan Review Procedure). Other actions are due within 1 month for a safety risk and 3 months otherwise."
+            },
+            {
+              "p": "Any action that changes practice beyond one person's care, such as a policy, training, equipment or rota change, is added to the service improvement plan within 5 working days of the investigation's completion, linked to the incident. The risk owner reviews any related risk on the risk register within 5 working days of the incident, or the same day if it may now be Very high (Risk Management Policy)."
+            }
+          ]
+        },
+        {
+          "heading": "Closure and reopening",
+          "blocks": [
+            {
+              "p": "An incident is closed when the investigation is complete, every action is done or transferred to the service improvement plan, every external report is made, every duty of candour step is complete or the candour record shows why it could not be, and the person and staff have been told the outcome. Nobody closes an incident they investigated: the Registered Manager or Deputy Manager closes Standard and Enhanced investigations and the Nominated Individual closes Comprehensive ones. Actions from a serious incident close only after a re-audit within 3 months shows the change worked. An incident stays open while a related safeguarding enquiry, police or HSE investigation or inquest is open, unless the Nominated Individual records why it may close. The incident owner reopens and regrades an incident within 2 working days of new information, such as a later death or an enquiry outcome."
+            }
+          ]
+        },
+        {
+          "heading": "Sharing learning",
+          "blocks": [
+            {
+              "bullets": [
+                "The care team for the person: briefed by the Care Coordinator on every change before their next visit.",
+                "All staff: anonymised learning from every Comprehensive investigation within 2 weeks of closure, by email or text and at the next staff team meeting; and a learning-from-incidents item at every quarterly staff team meeting, with notes sent to those who missed it.",
+                "Other branches: learning that applies elsewhere is shared by the Registered Manager at the Monthly Quality and Governance Meeting.",
+                "Partners: where another organisation's systems contributed, the Registered Manager writes to it with the finding within 5 working days of completion.",
+                "Policies and training: where a document is shown to be wrong or unclear, the Registered Manager decides within 10 working days whether a change is needed and whether it is urgent, recording it in the document control report (Policy Management and Document Control Policy)."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Patterns, trends and governance",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Trigger",
+              "Action",
+              "By"
+            ],
+            "rows": [
+              [
+                "Two incidents of the same type for one person in 4 weeks, or three incidents of any type in 90 days",
+                "Incidents linked in the incident log; focused care plan and risk assessment review within 7 days; safeguarding lead decides whether the pattern suggests neglect",
+                "Care Coordinator; Registered Manager"
+              ],
+              [
+                "A worker whose practice contributed to three incidents in 3 months",
+                "Supportive discussion at supervision within 2 weeks to identify training, workload or health needs",
+                "Field Care Supervisor"
+              ],
+              [
+                "The same incident type affecting 3 or more people in a branch in a month, or incidents rising 50% or more on the previous 3-month average",
+                "Nominated Individual told within 2 working days; thematic review within 1 month, reported to the Monthly Quality and Governance Meeting",
+                "Registered Manager; Deputy Manager"
+              ],
+              [
+                "No near misses reported in a branch in a calendar month",
+                "Treated as possible under-reporting and discussed at the next staff team meeting",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Falls and moving and handling incidents also follow the pattern triggers in the Falls Prevention and Response Procedure and the Moving and Handling of People Policy."
+        },
+        {
+          "p": "The weekly management meeting reviews open serious incidents and overdue investigations and actions. The Deputy Manager's monthly quality dashboard shows incidents and near misses by severity, type and branch, timeliness and overdue actions. The Registered Manager's quarterly governance report gives trends, themes, each serious incident and the learning shared; staff incidents also go to the quarterly Health and Safety Meeting. The annual incident report for 1 April to 31 March goes to the Directors' governance meeting held by mid-May. Governance papers use CareFlow reference numbers, never names."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where",
+              "Kept"
+            ],
+            "rows": [
+              [
+                "Report, review, grading, decisions with reasons, investigation, accounts, evidence, actions, outcome and candour record",
+                "The incident log entry",
+                "10 years from closure; 20 years from closure for serious incidents and incidents involving a person who lacked capacity for the matter"
+              ],
+              [
+                "Injuries and any body map photographs",
+                "CareFlow body map, linked to the incident log entry",
+                "With the person's care record"
+              ],
+              [
+                "Interim measures and outcomes for staff",
+                "The staff record",
+                "As the Staff Personal Data and HR Records Policy sets"
+              ],
+              [
+                "Thematic reviews, trend reports and annual incident reports",
+                "Governance records",
+                "Life of the organisation plus 6 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "These periods are our policy. RIDDOR decisions and reports held in an incident log entry are kept with the entry, so the RIDDOR Reporting Procedure's 6 years is a minimum. No incident record is destroyed while an investigation, safeguarding enquiry, inquest, enforcement action or claim is open or expected; the Records Management and Retention Policy uses the same periods."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Responding to, reporting and recording incidents, body maps, preserving evidence and our fair culture",
+                "All staff; agency workers at local induction",
+                "Induction, before working alone",
+                "With the health and safety awareness refresher every 3 years; checked at supervision"
+              ],
+              [
+                "Taking phoned reports, immediate safety decisions, escalation and recording",
+                "Office staff and On-call Managers",
+                "Before taking calls alone or the first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "Initial review, grading, external reporting checks and the four fair culture questions",
+                "Registered Manager and Deputy Manager",
+                "Within 3 months of appointment",
+                "Every 3 years"
+              ],
+              [
+                "Standard investigations",
+                "Care Coordinators and Field Care Supervisors who investigate",
+                "Before their first investigation",
+                "Every 3 years"
+              ],
+              [
+                "Systems-based incident investigation, an external course of at least one day",
+                "Registered Manager, Deputy Manager and Nominated Individual",
+                "Within 6 months of appointment",
+                "Every 3 years"
+              ],
+              [
+                "This policy and the Directors' oversight role",
+                "Directors",
+                "Within 1 month of appointment",
+                "At the annual governance update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Until trained, a new reviewer's gradings are checked the same working day by the Registered Manager, or by the Nominated Individual for a new Registered Manager. Each investigator's first two investigations are checked before closure by the Registered Manager, or by the Nominated Individual for the Registered Manager's own. Each April the Registered Manager and Deputy Manager grade 5 anonymised scenarios; anyone who grades more than one wrongly is briefed again within 1 month. Staff acknowledge this policy in CareFlow as the Policy Management and Document Control Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Incident log audit of 10 entries, including every incident causing harm, under the Quality Audit and Monitoring Procedure",
+                "Monthly",
+                "Deputy Manager (Registered Manager for incidents the Deputy Manager investigated)",
+                "Quality dashboard"
+              ],
+              [
+                "Targets: 100% recorded before the end of the shift; 100% of initial reviews and external reports on time; 95% of investigations on time; at least 90% of actions on time",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Trends, themes and serious incidents",
+                "Quarterly",
+                "Registered Manager",
+                "Directors' governance meeting"
+              ],
+              [
+                "Quality of 5 closed Enhanced or Comprehensive investigations: systems focus, involvement of the person and staff, actions that worked",
+                "Every 12 months",
+                "Independent quality reviewer",
+                "Directors"
+              ],
+              [
+                "At least 90% of staff say in the annual staff survey that they feel safe to report incidents and mistakes",
+                "Every 12 months",
+                "HR Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall becomes an action in the service improvement plan with an owner and a deadline. This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or guidance, including any change to the duty of candour, a serious incident our arrangements failed to prevent or detect, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

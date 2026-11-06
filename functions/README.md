@@ -20,6 +20,10 @@ Docker build (`.dockerignore`) and the API TypeScript build (`tsconfig*.json`).
 | `ecm-missing-checkout` | `0 */15 * * * *` | every 15 minutes |
 | `platform-costs-sync` | `0 5 * * * *` | hourly at :05 |
 | `employee-payout-auto` | `0 0 * * * *` | hourly at :00 |
+| `supervision-reminders` | `0 10 * * * *` | hourly at :10 (sends from the reminder time in Settings → Supervision) |
+| `compliance-expiry-reminders` | `0 20 * * * *` | hourly at :20 (sends from the reminder time in Settings → Reviews & reminders) |
+| `assessment-review-reminders` | `0 25 * * * *` | hourly at :25 (sends from the reminder time in Settings → Reviews & reminders) |
+| `policy-acknowledgement-reminders` | `0 35 * * * *` | hourly at :35 (sends from the reminder time in Settings → Reviews & reminders) |
 
 All use `runOnStartup: false` and `useMonitor: true`. The 4 daily jobs (rolling rota, plan end,
 learning maintenance, care-plan review reminders) are **not** here. They run as Container Apps Jobs
@@ -101,5 +105,5 @@ curl -sS -X POST http://localhost:3993/internal/jobs/survey-distribution \
 
 `.github/workflows/deploy-azure-functions.yml` runs on every push to `azure` that touches `functions/**`,
 or when started manually. It tests and builds the package, deploys it to the Flex Consumption app
-`func-careflow-jobs-prod` (`Azure/functions-action` with OIDC), and checks that all 7 functions are
+`func-careflow-jobs-prod` (`Azure/functions-action` with OIDC), and checks that all 11 functions are
 registered.

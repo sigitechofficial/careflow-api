@@ -1,0 +1,328 @@
+{
+  "reference": "SUR-STF-012",
+  "revision": 1,
+  "title": "Work pressures and wellbeing check",
+  "audience": "EMPLOYEE",
+  "respondents": "Every employee, as Part 2 of the September staff survey",
+  "summary": "Part 2 of the anonymous September staff survey: stress, and the six areas of work that cause it (workload, say, support, working with others, role and change), written for home care. Results go to the October discussion groups and the stress risk assessment. About 10 minutes.",
+  "purpose": "Gives staff views on each of the six HSE Management Standards areas, written for lone, time-bound home care work, as the Work-Related Stress and Staff Wellbeing Policy requires in the September survey (target at least 80% positive in each area). Results feed the October discussion groups, the branch stress risk assessment due by 30 November and the action plan. It also carries the travel time measure for the Driving at Work Policy and the rest half of the Working Time, Rest Breaks and Travel Time Policy's target. It is a risk assessment of working conditions, not a test of anyone's mental health. The questions are original, never the HSE Indicator Tool's.",
+  "timing": {
+    "when": "Once a year, opening on the first working day of September for 3 weeks, as Part 2 of the September staff survey (SUR-STF-001)",
+    "recurrence": "YEARLY",
+    "trigger": null,
+    "sentWith": ["SUR-STF-001"]
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 10,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING", "WELL_LED"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Workforce wellbeing and enablement",
+      "Governance, management and sustainability"
+    ]
+  },
+  "introduction": "This is Part 2 of {{organisation}}'s yearly staff survey. It asks how work is organised, not about anyone's health, and the results go to staff discussion groups in October. Please think about the last 3 months. It takes about 10 minutes, in paid working time, and it is anonymous. For support now: the employee assistance programme (number on the office noticeboard), your mental health first aider, or NHS 111.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to find and reduce pressures at work. Our legal reason is our legitimate interest in keeping our staff well.\n\nThe survey is anonymous: we do not record your name, so your answers cannot be traced to you. CareFlow records only which branch an answer came from. Please do not write names or addresses. Only the HR Manager looks at individual answers. Our reports show results only for groups of 5 or more, and comments and role results only for groups of 10 or more. If a comment tells us someone may be at risk of harm, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after the survey closes, and anonymised results with the stress risk assessment for 6 years, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "closingMessage": "Thank you. The results go to the staff discussion groups in October. For support now: the employee assistance programme (number on the office noticeboard), your mental health first aider, or NHS 111.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "stf-stress",
+          "text": "In the last 3 months, have you felt stressed because of work?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, often", "Yes, sometimes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "comment": { "prompt": "What is causing it most? Please do not include names.", "showWhen": ["Yes, often"] },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Your workload",
+      "questions": [
+        {
+          "id": "stf-demands",
+          "text": "Is the amount of work you are given manageable?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "stf-visit-time",
+          "text": "Do you have enough time at visits to give the care people need without rushing?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not make visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": { "prompt": "Which kinds of visit are too short? Please do not include names or addresses.", "showWhen": ["Rarely", "Never"] },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-travel-time",
+          "text": "Is there enough time to travel between your visits?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not travel between visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-rest",
+          "text": "Do you get enough rest between one working day and the next?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Your say",
+      "questions": [
+        {
+          "id": "stf-control",
+          "text": "Do you have a say in how your work is planned, such as your runs and hours?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-availability-kept",
+          "text": "Do we stick to the times you have said you are available?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you work fixed hours.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-say-no-extra",
+          "text": "Can you say no to extra visits without worrying about it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Extra visits are ones outside your contracted or agreed hours. Choose \"Does not apply to me\" if you are never asked to do extra visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Support",
+      "questions": [
+        {
+          "id": "stf-support-manager",
+          "text": "When you need help from the office or your manager, do you get it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not needed help in this time.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-asked-coping",
+          "text": "Does your supervisor or manager ask how you are coping?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-support-after",
+          "text": "After a difficult or upsetting visit, are you offered support?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not had a difficult or upsetting visit.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "stf-support-peer",
+          "text": "Can you get help or advice from colleagues when you need it?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-colleague-contact",
+          "text": "Do you get enough contact with colleagues, such as team meetings or shared visits?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Working with others",
+      "questions": [
+        {
+          "id": "stf-respect",
+          "text": "Do people at work treat you with respect?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-problems-fair",
+          "text": "When there is a problem between colleagues, is it dealt with fairly?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if there has been no problem between colleagues that you know of.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-abuse-dealt",
+          "text": "When a person you visit, or their family, is abusive to you, do we deal with it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if this has not happened to you in the last 3 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Your role",
+      "questions": [
+        {
+          "id": "stf-role",
+          "text": "Do you know what is expected of you at each visit or shift?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-outside-plan",
+          "text": "When someone asks for help that is not in the care plan, are you clear what to do?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if this has not happened to you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Changes at work",
+      "questions": [
+        {
+          "id": "stf-change",
+          "text": "When changes happen at work, are you told in good time?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-views-before-change",
+          "text": "Are you asked for your views before changes that affect you?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "stf-role-group",
+          "text": "Which best describes your main job?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            "Care worker, senior care worker or field care supervisor",
+            "Office, care coordination, on-call or management role",
+            "Prefer not to say"
+          ],
+          "notCountedOptions": ["Prefer not to say"]
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one change would most reduce pressure at work for you?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or addresses."
+        },
+        {
+          "text": "Is there anything else about your wellbeing at work you would like us to know?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names. If you need support now, see the contacts at the start of this survey."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it as Part 2 of the September staff survey: use Send or schedule with everyone in your branches, repeating yearly, at the same moment as the annual staff survey (SUR-STF-001), kept open 21 days, and tell staff in one message that it is Part 1 and Part 2 of one survey. CareFlow records the branch of each anonymous answer, never the person. Set two reminders in Reminders and follow-up, one after 1 week and one after 2 weeks: on an anonymous survey CareFlow sends them to everyone who has not answered, with no personal link, and never to one person. Like every anonymous staff survey, neither part holds anyone back under the 4-week rule or counts as a survey contact; the two are also linked in the library, so they never hold each other back. Aim for 60% or more; below 50%, report results as indicative only, and check care staff have answered in proportion.",
+      "It is done in paid time: Care Coordinators allow 20 minutes on the rota for both parts for those who ask. Paper on request in a sealed envelope to the HR Manager, who enters it alone with Record response, recorded as anonymous. No telephone completion.",
+      "Agencies may use HSE's free Management Standards Indicator Tool and Analysis Tool instead (hse.gov.uk/stress/standards/downloads.htm); if they do, use it unchanged as HSE asks, analyse it with HSE's tool, and do not mix it with this survey in the same year, because year-on-year comparison needs the same instrument.",
+      "Who may open individual answers: the HR Manager only. This is set in Who can see the answers: individual responses are limited to the HR Manager, and results to the HR Manager and the Registered Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "Comments are read each working day while the survey is open. A comment describing self-harm, suicidal thoughts or someone in crisis cannot be traced: the HR Manager tells the Registered Manager the same day, who repeats the support routes to all staff within 2 working days (employee assistance programme, mental health first aider, GP, NHS 111 mental health option, Samaritans, 999; the routes are the Work-Related Stress and Staff Wellbeing Policy's, the timescale a library decision). Possible abuse or neglect goes to the safeguarding lead the same working day; wrongdoing to the Registered Manager, with the Nominated Individual as case owner for an anonymous concern. Nobody tries to identify the writer.",
+      "How to count: positive means Always or Usually, leaving out Does not apply to me; each area's score is the average of its items' share positive (workload: manageable, visit time, travel time, rest; say: say in planning, availability kept, saying no; support: manager help, asked how coping, support after a difficult visit, colleague help, colleague contact; working with others: respect, problems dealt with fairly, abuse dealt with; role: know what is expected, help outside the care plan; change: told in good time, views asked). For feeling stressed, No is the good answer: report the share answering Yes, often separately as an outcome, not part of an area score. Never show a result for fewer than 5; flag 5 to 9; role-group results and comments only for 10 or more.",
+      "Share the six-area results with the October discussion groups within 2 weeks of closing; the HR Manager themes comments into the six areas. Any area below 80% positive, or 10 percentage points below last year, gets an action in the service improvement plan and the branch stress risk assessment by 30 November, under the Work-Related Stress and Staff Wellbeing Policy; a residual risk above 6 gets further actions, and High or Very high goes on the risk register. Library trigger: Yes, often to feeling stressed above 20% in a group of 10 or more means the Registered Manager raises it at the Health and Safety Meeting and checks stress-related absence. Abuse not dealt with (Rarely or Never) means the Registered Manager reviews the Violence and Aggression Towards Staff Policy arrangements and the harassment risk assessment.",
+      "Keep individual answers for 1 year after the survey closes and anonymised results with the stress risk assessment for 6 years, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"When a person you visit, or their family, is abusive to you, do we deal with it?\" answered Rarely or Never (anonymous: counts only).",
+        "action": "The Registered Manager reviews the Violence and Aggression Towards Staff Policy arrangements and the harassment risk assessment within 1 month. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {"task": "Abuse from people we visit not dealt with (anonymous)", "if": [{"question": "q-abuse-dealt", "answers": ["Rarely", "Never"]}], "owner": "REGISTERED_MANAGER", "dueCalendarDays": 28, "minimumAnswers": 10}
+      }
+    ]
+  },
+  "access": {"responses": ["HR_MANAGER"], "results": ["HR_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-HS-015",
+    "POL-HR-014",
+    "POL-HS-011",
+    "POL-HS-004",
+    "POL-GOV-004",
+    "POL-GOV-006",
+    "POL-HR-018",
+    "POL-SG-002",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety Executive, Management Standards overview: the six areas of work (demands, control, support, relationships, role and change) that can lead to stress",
+      "url": "https://www.hse.gov.uk/stress/standards/overview.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Management Standards Indicator Tool and Analysis Tool (free alternative, used unchanged)",
+      "url": "https://www.hse.gov.uk/stress/standards/downloads.htm"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 3: a suitable and sufficient assessment of risks, including work-related stress",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3"
+    }
+  ]
+}

@@ -1,0 +1,420 @@
+{
+  "reference": "SUR-PWS-005",
+  "revision": 1,
+  "title": "Help with your medicines",
+  "audience": "SERVICE_USER",
+  "respondents": "People we help with their medicines (prompting, assisting or giving them); a representative may answer where the family manages the medicines or the person cannot give their views, even with help",
+  "summary": "Checks medicines support from the person's side: the right times, anything that went wrong, running out, changes after the GP or hospital, being asked first, the right to say no, independence and knowing who to call. Named, about 8 minutes.",
+  "purpose": "A check of the safety and experience of medicines support from the person's side, under the Medicines Management Policy. It asks whether help comes at the right times, whether anything has gone wrong or the person has run out of a medicine, whether care workers knew about the last change to their medicines, whether care workers ask before each dose and respect a decision not to take a medicine, whether the amount of help is right for the person's independence, whether care workers explain what they are doing, and whether the person knows who to contact if worried. Each answer is followed up individually, because a medicines problem can be urgent. Combined results go to the Registered Manager as medicines lead for the quarterly medicines governance report and the annual medicines audit. It evidences Regulation 12(2)(g) (proper and safe management of medicines), Regulation 11 (consent) and Regulation 17(2)(e) (seeking and acting on feedback), and NICE's quality standard for medicines support in the community.",
+  "timing": {
+    "when": "3 to 4 weeks after a change to the person's medicines support or a hospital stay that changed their medicines (not when the after-hospital survey was sent), and once a year with the care plan review nearest the anniversary, never in February. Not sent separately for a new package: its questions are asked at the 6-week review",
+    "recurrence": null,
+    "trigger": "A change to the person's medicines support, or a hospital discharge that changed their medicines; and the yearly care plan review",
+    "contactRule": {"holdBack": true, "countsAsContact": true, "whenHeld": "skip", "reason": "Medicines-change survey, below the after-hospital survey (SUR-PWS-007) in priority: anyone surveyed in the last 4 weeks is skipped, not sent later, so it is never sent after a PWS-007 send and never arrives long after the change"}
+  },
+  "anonymous": false,
+  "channels": ["PORTAL", "TELEPHONE", "IN_PERSON", "PAPER"],
+  "estimatedMinutes": 8,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "RESPONSIVE"],
+    "qualityStatements": [
+      "Medicines optimisation",
+      "Consent to care and treatment",
+      "Independence, choice and control",
+      "Providing information"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how our help with your medicines is going. It takes about 8 minutes.\n\nTaking part is up to you, and what you say will not affect your care. Your answers are linked to your name so we can contact you if your answers show a problem with your medicines. Your care workers (carers) will not see them.\n\nThis survey is not for urgent concerns. If you are worried about a medicine today, about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to keep your medicines support safe and to improve our care. The law expects us to ask for feedback; our legal reason for using your answers is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name so we can put things right. They are seen only by our Registered Manager, Deputy Manager, safeguarding lead, Care Coordinators and the office staff who follow them up, never by your care workers (carers). Reports show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this survey, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them. To do this, or to complain about how we use your information, contact the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about all the help you get from us, including with your medicines. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Getting your medicines right",
+      "questions": [
+        {
+          "id": "q-med-times",
+          "text": "Do you get help with your medicines at the right times?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, before food, or at the times your doctor or pharmacist said. Choose \"Don't know\" if you are not sure what times your medicines should be taken.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Safe: Medicines optimisation",
+          "comment": {
+            "prompt": "Please tell us which medicines or times.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-med-wrong",
+          "text": "In the last 3 months, has anything gone wrong when care workers helped with your medicines?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, a medicine was missed, given at the wrong time, or the wrong one was given. If you are worried about a medicine today, please phone the office now.",
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Safe: Medicines optimisation",
+          "comment": {
+            "prompt": "Please tell us what happened and when.",
+            "showWhen": ["Yes", "Not sure"]
+          }
+        },
+        {
+          "id": "q-med-run-out",
+          "text": "In the last 3 months, have you run out of any of your medicines?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, a medicine was not delivered or collected in time.",
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Safe: Medicines optimisation",
+          "comment": {
+            "prompt": "Which medicine, and what happened?",
+            "showWhen": ["Yes"]
+          }
+        },
+        {
+          "id": "q-med-change",
+          "text": "When your medicines last changed, did your care workers know about the change?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, after you saw your doctor or came home from hospital. Choose \"My medicines have not changed\" if nothing has changed since we started helping you.",
+          "options": ["Yes, straight away", "Yes, but it took too long", "No", "My medicines have not changed", "Don't know"],
+          "notCountedOptions": ["My medicines have not changed", "Don't know"],
+          "evidence": "Safe: Medicines optimisation",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Yes, but it took too long", "No"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your choices",
+      "questions": [
+        {
+          "id": "q-med-ask",
+          "text": "Do your care workers ask you before they help you with your medicines?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Effective: Consent to care and treatment",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-med-refuse",
+          "text": "If you decide not to take a medicine, do your care workers respect that?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if this has not happened.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Effective: Consent to care and treatment",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-med-amount",
+          "text": "Is the amount of help you get with your medicines right for you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, it is about right", "I would like to do more myself", "I would like more help", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Caring: Independence, choice and control",
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["I would like to do more myself", "I would like more help"]
+          }
+        },
+        {
+          "id": "q-med-explain",
+          "text": "Do your care workers explain what they are doing with your medicines?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose \"Does not apply to me\" if you do not want this explained.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Responsive: Providing information"
+        }
+      ]
+    },
+    {
+      "title": "If you are worried",
+      "questions": [
+        {
+          "id": "q-med-who",
+          "text": "Do you know who to contact if you are worried about your medicines?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This could be our office, your pharmacist or your doctor.",
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Responsive: Providing information"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything that would make your help with medicines better or safer?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Tell us anything, however small. You can also name care workers you would like us to thank.",
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Send this survey 3 to 4 weeks after a change to a person's medicines support or a hospital stay that changed their medicines, and once a year with the care plan review nearest the anniversary of their medicines support starting, never in February. Do not send it for a medicines change in the 4 weeks after the after-hospital survey (SUR-PWS-007), which asks about medicines problems itself. For a new package, do not send it at all: its questions are asked in the six-week review (SUR-PWS-002).",
+      "Ask it only of people we help with their medicines at Level 1 (prompting and assisting) or above. Before sending, check the person's survey history in CareFlow: only if they have had no other survey, quality check or review in the last 4 weeks. When you send, CareFlow skips anyone who had a survey contact in the last 4 weeks (for example the after-hospital survey): they are not sent it later. For a medicines change that is the end of it; for the yearly send, send it to them again once 4 weeks have passed since their last survey. Answers entered with Record response count as a survey contact, as a send does. CareFlow does not know about care plan reviews, and does not check before you phone someone you have not sent it to, so this check is still needed.",
+      "Send it to the person with Send or schedule, Chosen people, in a running copy of this template (you can schedule it for the date it is due). A person with a portal account can answer there, but a phone call is better for medicines, because answers often need a follow-up question: office staff or a Care Coordinator who is not in the person's core care team phone and enter the answers with Record response. A face-to-face visit or a printed copy in the person's recorded format are the alternatives; enter paper answers with Record response on the day they arrive. Read each question, its help text and every answer choice exactly as written; reading every choice aloud is why it takes about 8 minutes. Many people cannot name their medicines: accept descriptions such as \"the water tablet\" or \"the morning one\", and never ask the person to read their packs on the call. By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can send or open a survey: give these to the staff who make these calls; Care Coordinators can only view surveys unless given them.",
+      "Where the family manages the medicines, or the person cannot give their views even with support, the representative answers; record them in CareFlow's \"Who is answering\" field and report their answers separately. Where an interpreter is needed, use a professional interpreter, never a family member. The easy read version uses pictures of a clock (right times), a hand holding a tablet (asking first) and a phone (who to contact), with three answers for the frequency questions (Always or usually; Sometimes; Rarely or never) plus Don't know.",
+      "Who may open individual answers: the Registered Manager, who leads on medicines, office staff and Care Coordinators who make or follow up the calls, and the Deputy Manager. This is set in Who can see the answers: individual responses are limited to the Registered Manager, the medicines lead, Care Coordinators, the Deputy Manager and the safeguarding lead, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who make or follow up the calls."
+    ],
+    "actingOnResults": [
+      "The Registered Manager, as medicines lead, reads every answer that suggests a medicines problem the day it arrives and acts under the alerts below.",
+      "How to count: report the share answering Always or Usually, leaving out Does not apply to me and Don't know; for \"anything gone wrong\" and \"run out\", the share answering Yes or Not sure, with the number of people who answered. Report representatives' answers separately.",
+      "Combined results, comment themes and the incidents logged from them go into the quarterly medicines governance report and the annual medicines audit under the Medicines Management Policy, and into the service improvement plan where action is needed, under the Governance and Quality Assurance Policy. Never report a group of fewer than 5 people separately.",
+      "Keep individual answers for 3 years after the survey under the Records Management and Retention Policy. For CQC, the results and the incidents and reviews that followed evidence safe medicines support and acting on people's feedback (Regulation 12(2)(g) and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"In the last 3 months, has anything gone wrong when care workers helped with your medicines?\" answered Yes or Not sure, or any comment describing a missed, wrong, late or extra dose.",
+        "action": "The Deputy Manager checks the eMAR and enters it in the incident log the same working day under the Medication Errors, Near Misses and Incidents Procedure; the Registered Manager reviews it the same day. The Registered Manager or Deputy Manager decides within 1 hour what keeps the person safe until the next visit; where the medicine is time-sensitive, harm is possible or a dose is due today, phone the person at once and get advice from their GP or pharmacist. The safeguarding lead decides within 1 hour whether an incident that caused harm, or a pattern, may be neglect, and refers the same working day, or at once if the person is at immediate risk.",
+        "rule": {
+          "task": "Possible medicines error: check the eMAR and log it",
+          "if": [
+            {
+              "question": "q-med-wrong",
+              "answers": ["Yes", "Not sure"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "INCIDENT"
+        }
+      },
+      {
+        "when": "\"In the last 3 months, have you run out of any of your medicines?\" answered Yes.",
+        "action": "The Care Coordinator checks the same working day that the person has the medicine now and, where we order or collect it, why it ran out, under the Ordering, Collecting, Storing and Disposing of Medicines Procedure. A dose missed because a medicine ran out is a medicines incident and is logged the same working day.",
+        "rule": {
+          "task": "Ran out of medicines: check they have them now",
+          "if": [
+            {
+              "question": "q-med-run-out",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0,
+          "record": "INCIDENT"
+        }
+      },
+      {
+        "when": "\"When your medicines last changed, did your care workers know about the change?\" answered No or \"Yes, but it took too long\".",
+        "action": "The same working day, the Care Coordinator checks the eMAR against the current prescription with the pharmacy or GP practice under the Medicines Changes, Transfers of Care and Hospital Discharge Procedure. Any difference is a medicines incident and is logged the same working day.",
+        "rule": {
+          "task": "Medicines change not known: check eMAR against prescription",
+          "if": [
+            {
+              "question": "q-med-change",
+              "answers": ["No", "Yes, but it took too long"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0,
+          "record": "INCIDENT"
+        }
+      },
+      {
+        "when": "\"If you decide not to take a medicine, do your care workers respect that?\" answered Sometimes, Rarely or Never, or a comment suggesting medicines were given against the person's wishes or hidden in food or drink.",
+        "action": "Check against any approved covert administration plan under the Covert Administration of Medicines Policy. A medicine given against a refusal, or covertly without an approved plan, goes to the safeguarding lead the same working day under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and the Registered Manager decides the same day whether the care worker continues medicines visits, under the Consent, Mental Capacity and Declined Medicines Policy.",
+        "rule": {
+          "task": "Medicine refusals not respected: check for safeguarding",
+          "if": [
+            {
+              "question": "q-med-refuse",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"Do you get help with your medicines at the right times?\" answered Rarely or Never.",
+        "action": "The Care Coordinator checks the eMAR timings the same working day for time-sensitive medicines, under the Time-Sensitive Medicines Protocol, and otherwise within 5 working days, and agrees visit times that fit the medicines with the person.",
+        "rule": {
+          "task": "Medicines help not at the right times: check eMAR timings",
+          "if": [
+            {
+              "question": "q-med-times",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "\"Do your care workers ask you before they help you with your medicines?\" answered Rarely or Never.",
+        "action": "The Care Coordinator passes on only the need, never the answer. A Field Care Supervisor observes consent at the next observed medicines practice spot check; a shortfall means feedback the same day, retraining and observation again within 4 weeks, under the Consent, Mental Capacity and Declined Medicines Policy.",
+        "rule": {
+          "task": "Observe medicines consent at the next spot check",
+          "if": [
+            {
+              "question": "q-med-ask",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 10
+        }
+      },
+      {
+        "when": "\"Is the amount of help you get with your medicines right for you?\" answered \"I would like more help\" or \"I would like to do more myself\".",
+        "action": "Review the medicines support within 7 days, including the self-administration risk assessment, under the Assessing Medicines Support Needs Procedure and the Self-Administration of Medicines Procedure, and record the agreed level in the care plan.",
+        "rule": {
+          "task": "Review the level of medicines support",
+          "if": [
+            {
+              "question": "q-med-amount",
+              "answers": ["I would like more help", "I would like to do more myself"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueCalendarDays": 7
+        }
+      },
+      {
+        "when": "\"Do you know who to contact if you are worried about your medicines?\" answered No or Not sure.",
+        "action": "The Care Coordinator sends the office, out-of-hours and pharmacy contact details and how to raise a medicines problem, in the person's recorded format, within 5 working days.",
+        "rule": {
+          "task": "Send medicines contact details",
+          "if": [
+            {
+              "question": "q-med-who",
+              "answers": ["No", "Not sure"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Overall experience answered Poor or Very poor with no particular concern described, or a comment expressing dissatisfaction that needs a response.",
+        "action": "The Care Coordinator contacts the person within 5 working days. Dissatisfaction that needs a response is a complaint: record it the same working day, grade it within 1 working day and acknowledge it within 3 working days under the Complaints Policy and Procedure. If unsure, treat it as a complaint.",
+        "rule": {
+          "task": "Poor experience: contact the person",
+          "if": [
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "Any comment suggesting abuse or neglect, including taking or withholding medicines.",
+        "action": "Treat as a possible safeguarding concern. Call 999 first if anyone is in immediate danger. Pass it to the safeguarding lead the same working day; the lead assesses the risk within 1 hour and refers to the local authority where needed, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff or the Care Coordinator, never a member of the person's core care team, contact the person within 5 working days in the way they prefer and record what was agreed.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      },
+      {
+        "when": "A comment praising our service or a named member of staff.",
+        "action": "Record it as a compliment in CareFlow the same working day; the Field Care Supervisor or line manager passes it to each employee named within 5 working days, under the Compliments, Feedback and Involvement Procedure."
+      }
+    ]
+  },
+  "access": {
+    "responses": ["REGISTERED_MANAGER", "MEDICINES_LEAD", "CARE_COORDINATOR", "DEPUTY_MANAGER", "SAFEGUARDING_LEAD"],
+    "results": ["REGISTERED_MANAGER", "MEDICINES_LEAD", "CARE_COORDINATOR", "DEPUTY_MANAGER", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-MED-001",
+    "POL-MED-002",
+    "POL-MED-003",
+    "POL-MED-004",
+    "POL-MED-008",
+    "POL-MED-009",
+    "POL-MED-012",
+    "POL-MED-013",
+    "POL-MED-014",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-GOV-006",
+    "POL-GOV-017",
+    "POL-SG-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(g): the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11: care only with the consent of the relevant person",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "NICE QS171 Medicines management for people receiving social care in the community: medicines support recorded in the care plan, and people given information on how to raise medicines-related problems",
+      "url": "https://www.nice.org.uk/guidance/qs171"
+    },
+    {
+      "source": "NICE NG67 Managing medicines for adults receiving social care in the community: supporting people to manage their own medicines and respecting their decisions",
+      "url": "https://www.nice.org.uk/guidance/ng67"
+    }
+  ]
+}

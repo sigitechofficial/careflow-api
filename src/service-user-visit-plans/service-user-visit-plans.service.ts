@@ -2632,7 +2632,7 @@ export class ServiceUserVisitPlansService {
     try {
       suspensionReviewDueAt = dto.reviewDueAt?.trim()
         ? parseVisitPlanDateOnly(dto.reviewDueAt, 'reviewDueAt')
-        : defaultSuspensionReviewDueAt(today);
+        : defaultSuspensionReviewDueAt(today, (await this.orgSettings.getReviewSettings()).visitPlanSuspensionReviewDays);
     } catch (e) {
       throw new BadRequestException(e instanceof Error ? e.message : 'Invalid reviewDueAt');
     }
@@ -2952,8 +2952,9 @@ export class ServiceUserVisitPlansService {
       rounds,
     );
 
+    // First review of a plan drafted from the assessment (Settings → Reviews & reminders).
     const reviewDueAt = new Date();
-    reviewDueAt.setDate(reviewDueAt.getDate() + 42);
+    reviewDueAt.setDate(reviewDueAt.getDate() + (await this.orgSettings.getReviewSettings()).visitPlanFirstReviewDays);
 
     return this.create(
       userId,

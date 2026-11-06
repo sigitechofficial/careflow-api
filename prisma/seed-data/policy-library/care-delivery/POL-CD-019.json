@@ -1,0 +1,785 @@
+{
+  "reference": "POL-CD-019",
+  "revision": 1,
+  "title": "Technology-Enabled Care and Telecare Policy",
+  "documentType": "POLICY",
+  "summary": "How we discuss, plan, check and review telecare and other care technology in people's homes, such as pendant alarms, sensors, cameras, medicines dispensers and video calling, so that it adds to personal contact rather than replacing it and respects each person's privacy, choice and rights. It sets out our role alongside telecare services, consent and restriction rules, checks at visits, faults and alarm calls, and applies to everyone who plans or gives care.",
+  "keyPoints": {
+    "intro": "Many people we support rely on alarms and other technology between our visits. This policy tells you what to check, what you must never touch and who to tell when something is wrong.",
+    "points": [
+      "In an emergency during a visit, call 999 yourself rather than relying on the pendant alarm. If the alarm unit speaks while you are there, answer it, say who you are and whether the person needs help.",
+      "If nobody answers and you hear an alarm unit sounding or a call for help, call 999 at once, then the office. If you see or smell smoke, or hear a smoke or carbon monoxide alarm with no answer, stay out and call 999.",
+      "Before you leave every visit, check the person's pendant or wrist alarm is worn or within their reach and the alarm unit is plugged in with its normal light showing, as the visit plan says.",
+      "Never remove, unplug, silence, move, reset or change the settings of any alarm, sensor, camera, dispenser or other device, even if a relative asks. The only exception is unplugging a unit that is sparking or smoking.",
+      "If a device is faulty or has no power, record it and phone the office before leaving; if the person lives alone and cannot summon help, put their phone within reach and wait up to 30 minutes past the planned end for a decision.",
+      "We are never a person's alarm responder. The person or their family, never you, gives a telecare service any key safe code.",
+      "If the person chooses not to wear their alarm or keep it within reach, respect their choice, explain the risk, record it in the daily visit notes and phone the office before you leave.",
+      "The office tells you before your first visit about any camera, video doorbell or audio monitor in the home. Never switch it off, cover or move it; tell the office if it covers personal care or worries you.",
+      "Never fill, load, programme or take doses out of a medicines dispenser. If a dose is left in it or it is alarming, do not prompt, give or touch the dose: record it and phone the office before you leave.",
+      "Never ask for, write down or use a person's passwords or PINs, never log in to their accounts, and never lend your phone to them or their family.",
+      "Phone the office before you leave if a device seems to track the person, shut them in, or watch them when they object, are distressed or may not understand it. Tell the office the same day about any new device, phone line or power cut."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Senior Carer/Nurse",
+    "Carer/Domestic"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "RISK_ASSESSMENT",
+    "EQUIPMENT",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-CD-002",
+    "POL-CD-004",
+    "POL-CD-009",
+    "POL-SG-006",
+    "POL-SG-005",
+    "POL-SG-013",
+    "POL-HS-010",
+    "POL-GOV-013"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 10 (dignity and respect, including privacy and autonomy)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/10"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 (need for consent)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(a), (b) and (i) (safe care and treatment: assessing and reducing risk, and working with others who share care)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Human Rights Act 1998, Schedule 1, Article 8 (right to respect for private and family life, home and correspondence)",
+      "url": "https://www.legislation.gov.uk/ukpga/1998/42/schedule/1"
+    },
+    {
+      "source": "Care Act 2014, section 73 (registered care providers carrying out a function of a public nature for the Human Rights Act 1998 where a local authority arranges or pays for care)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/73"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1 (the principles, including the less restrictive option in section 1(6))",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Care Act 2014, section 2 (preventing needs for care and support)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/2"
+    },
+    {
+      "source": "UK GDPR, Article 35 (data protection impact assessment for high-risk processing using new technologies)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/35"
+    },
+    {
+      "source": "Department of Health and Social Care, Digital working in adult social care: What Good Looks Like for local authorities and care providers (updated 17 May 2023)",
+      "url": "https://www.gov.uk/government/publications/digital-working-in-adult-social-care-what-good-looks-like/digital-working-in-adult-social-care-what-good-looks-like-for-local-authorities-and-care-providers"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} supports people to use technology that helps them stay safe, independent and in touch between our visits, such as pendant alarms, sensors linked to a monitoring centre, medicines reminders and video calls. We discuss it with every person we support, help them get it where they want it, and make sure our care workers know how it fits with their visits."
+        },
+        {
+          "p": "Technology adds to personal contact; it never replaces it. {{organisation}} will not use technology to cut a visit or a task unless the person chooses this and a revised care plan is approved, will not use any device to watch or track a person without their agreement or a lawful best interests decision, and will always choose the least intrusive option that meets the need. The home and its devices belong to the person; our role is to plan, check, report and respond as this policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets out how we offer, agree, record, check and review technology in each person's care, and how we work with telecare services on alarms and faults."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to all our staff, including bank and agency workers, and to every person we support who uses or could benefit from technology-enabled care, whoever supplies or pays for it."
+        },
+        {
+          "p": "{{organisation}} does not sell, supply, install, programme, repair or monitor care technology. The person, their family, the local authority (often through its community alarm or community equipment service), a housing provider, the NHS or a company the person chooses supplies and maintains it. Related matters are covered elsewhere:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Matter",
+              "Document"
+            ],
+            "rows": [
+              [
+                "Approving and reviewing devices that watch or track a person; the restrictive practice register",
+                "Restraint and Restrictive Practice Policy"
+              ],
+              [
+                "Screening for a possible deprivation of liberty",
+                "Deprivation of Liberty in the Community Procedure"
+              ],
+              [
+                "Signed consent and checking an attorney's or deputy's authority",
+                "Consent to Care Policy"
+              ],
+              [
+                "Pendant alarms in falls prevention and after a fall",
+                "Falls Prevention and Response Procedure"
+              ],
+              [
+                "Smoke, heat and carbon monoxide alarms and cooker safety devices",
+                "Fire Safety in People's Homes Policy"
+              ],
+              [
+                "Arriving to an alarm sounding with no answer; missing people",
+                "No Reply, No Access and Missing Person Procedure"
+              ],
+              [
+                "Key safe codes",
+                "Key Holding, Key Safes and Access to People's Homes Procedure"
+              ],
+              [
+                "Electronic call monitoring of our visits; staff lone worker devices and work phones",
+                "Missed, Late and Short Visits Procedure; Lone Working and Staff Personal Safety Policy; Acceptable Use of IT and Devices Policy"
+              ],
+              [
+                "Data protection impact assessments",
+                "Data Protection Policy"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Technology-enabled care",
+                "Any device or digital service that helps a person stay safe, independent or connected at home, including telecare, monitoring devices, medicines reminders and dispensers, video calling and remote health monitoring."
+              ],
+              [
+                "Telecare service",
+                "The organisation that supplies, installs, maintains and monitors a person's telecare, usually the local authority's or a housing provider's community alarm service, or a company the person chooses. Its monitoring centre answers alarm calls 24 hours a day and contacts responders or 999."
+              ],
+              [
+                "Responder",
+                "Someone the monitoring centre contacts to go to the home: a family member, friend, neighbour, scheme manager or the telecare service's mobile response team."
+              ],
+              [
+                "Response plan",
+                "The telecare service's record of who the monitoring centre contacts, in what order, and what each responder does."
+              ],
+              [
+                "Safety alarm",
+                "A device that raises an alarm only when the person presses it or it detects a possible emergency, without reporting the person's ordinary movements: pendant or wrist alarm, pull cord, worn fall detector, seizure alarm, or linked smoke, heat, carbon monoxide, flood or temperature detector. It is not a restriction."
+              ],
+              [
+                "Monitoring device",
+                "A device used in the person's care that alerts others to their movements, location or activity, or watches or listens to them: door, bed, chair and room sensors, activity monitoring, location trackers, cameras and audio monitors, and any alarm set to alert others when the person gets up, leaves a room or goes out. Every monitoring device is a restriction under the Restraint and Restrictive Practice Policy. A camera or video doorbell used only for the security of the home is not a monitoring device."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and make sure we have no commercial arrangement with any technology supplier: we receive no commission, fee or gift for recommending or referring to one (Conflicts of Interest Policy). The Nominated Individual approves a data protection impact assessment under the Data Protection Policy before we receive any routine data from a telecare service or device, and reviews the technology indicators in the quarterly quality report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "bullets": [
+                "leads on technology-enabled care, approves monitoring devices as restrictions (the Deputy Manager may also approve them) and acts on safety alarms not repaired within 2 working days;",
+                "keeps a Local Technology-Enabled Care Contacts sheet for each local authority area (referral routes, mobile response services and fault lines) in the branch health and safety file, with an electronic copy the On-call Manager can open, checked every 12 months; policies never print phone numbers;",
+                "replies in writing within 5 working days when a commissioner proposes replacing a visit or task with technology, giving the person's views and our assessment of the risks."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager covers the Registered Manager's duties in their absence and carries out the monthly audit described under Monitoring and review."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators make and chase referrals, record devices and response plans in the care plan, brief care workers before their first visit, tell the telecare service what it needs to know on time, follow up every fault the same working day, and check open referrals and faults weekly."
+            }
+          ]
+        },
+        {
+          "heading": "Assessors and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Authorised assessors discuss technology at every assessment and full care plan review, assess capacity and screen for restrictions where a monitoring device is proposed, and record what is agreed. Field Care Supervisors show care workers any device they must check or operate before their first lone visit that includes it, and check practice with technology at every spot check."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Senior Care Workers and Care Workers make the checks in the visit plan, never interfere with a device, record what they find in the daily visit notes, and phone the office before leaving about any fault, refusal, objection or concern."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            {
+              "p": "Office staff, and the On-call Manager out of hours, handle calls from people, families and monitoring centres about alarms and faults as this policy sets out, record them the same day and pass them to the Care Coordinator."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law requires",
+      "blocks": [
+        {
+          "bullets": [
+            "Regulation 10 requires us to treat people with dignity and respect, including ensuring their privacy and supporting their autonomy and independence. Any device that watches or listens to a person affects their privacy.",
+            "Regulation 11 requires care to be given only with consent and, where a person aged 16 or over lacks capacity to consent, that we act under the Mental Capacity Act 2005. Section 1(6) of that Act requires us to consider whether the purpose can be achieved in a way less restrictive of the person's rights and freedom of action.",
+            "Regulation 12 requires us to assess and reduce risks and to work with others who share a person's care so that care planning is timely. Telecare services and responders share responsibility for the person's safety between our visits.",
+            "Article 8 in Schedule 1 to the Human Rights Act 1998 protects private and family life and the home. Under section 73 of the Care Act 2014, where a local authority arranges or pays for a person's personal care, in whole or in part, we must act compatibly with it; our policy is to apply the same standard to everyone we support.",
+            "Section 2 of the Care Act 2014 requires local authorities to provide or arrange services that prevent, delay or reduce needs for care and support; many people receive telecare this way. Any charge is set by the service that provides it; we never charge for technology.",
+            "Article 35 of the UK GDPR requires a data protection impact assessment before processing, particularly using new technologies, that is likely to result in a high risk to people."
+          ]
+        },
+        {
+          "p": "The Department of Health and Social Care's guidance, Digital working in adult social care: What Good Looks Like, asks local authorities and care providers to acknowledge and respect each person's choice about whether to use technology as part of their care, and local authorities to offer alternatives where it is not the person's preference. It also asks local authorities to check telecare users' equipment for compatibility as telephone networks move from analogue to digital lines. A unit on a digital line depends on the broadband router, which needs mains power, so a line change or power cut can stop an alarm getting through; our checks for this are set out under Technology at every visit."
+        }
+      ]
+    },
+    {
+      "heading": "Types of technology and our approach",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Type",
+              "Examples",
+              "Our approach"
+            ],
+            "rows": [
+              [
+                "Safety alarms",
+                "Pendant or wrist alarm, pull cord, fall detector, seizure alarm, linked detectors",
+                "Offered wherever a person may be unable to summon help. Recorded consent, or a best interests decision, before it enters the care plan. Not a restriction."
+              ],
+              [
+                "Monitoring devices",
+                "Door, bed and chair sensors, activity monitoring, location trackers, cameras and audio monitors used to check on the person",
+                "Only where a less intrusive option will not meet the need, with signed consent or a best interests decision and approval as a restriction before use, as set out under Approving a monitoring device."
+              ],
+              [
+                "Medicines reminders and dispensers",
+                "Reminder alarms, automated dispensers releasing doses at set times",
+                "Only for a person who self-administers. Our staff never fill, load, programme or take doses from a dispenser."
+              ],
+              [
+                "Cameras chosen by the person or family",
+                "Security cameras, video doorbells, indoor cameras",
+                "The person's choice in their own home, handled as set out under Cameras and recording in people's homes."
+              ],
+              [
+                "Communication technology",
+                "Tablets and video calling, voice assistants, call blockers, picture phones",
+                "Care workers help the person use their own device where the visit plan says so."
+              ],
+              [
+                "Remote health monitoring",
+                "Blood pressure, oxygen or weight readings for an NHS team, glucose sensors, virtual ward equipment",
+                "Our staff take or read measurements only as a delegated healthcare activity approved under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy and never insert or apply a sensor; otherwise they remind the person and report concerns."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Discussing technology with the person",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "When we discuss it",
+          "blocks": [
+            {
+              "p": "The assessor asks about technology at the assessment visit under the Needs Assessment and Care Planning Policy and at every full care plan review: what the person has, whether it works and is used, and whether anything could add to their safety, independence or contact with others. The Care Coordinator also offers a referral or review, within 5 working days of the trigger being recorded, when:"
+            },
+            {
+              "bullets": [
+                "the person lives alone or is alone for long periods and cannot reliably summon help, or has had a fall or a long lie (Falls Prevention and Response Procedure);",
+                "a hearing or sight need is recorded (Communication and Accessible Information Policy);",
+                "the person cannot hear or respond to a smoke alarm, could not get out unaided, or cooks unsafely because of memory loss (Fire Safety in People's Homes Policy);",
+                "the person forgets doses of medicines they manage themselves (Self-Administration of Medicines Procedure);",
+                "the person receives scam or nuisance calls (Handling Money, Property and Shopping Procedure)."
+              ]
+            },
+            {
+              "p": "Whenever a restriction is reviewed, the reviewer also considers whether a less restrictive device or way of working could replace it."
+            }
+          ]
+        },
+        {
+          "heading": "How we discuss it",
+          "blocks": [
+            {
+              "p": "The assessor explains, in the format the person needs, what each option does and does not do, who would respond and how quickly, who charges for it, what information it collects and who sees it, and that the person can say no or stop at any time without it affecting their care. Their views, including how they feel about wearing a pendant or being watched, go in the care plan. Family members are involved only as the person wishes."
+            },
+            {
+              "p": "Technology is never a condition of receiving care, and we never recommend a particular company. Where the local authority arranges the person's care, the Care Coordinator refers to its telecare service or asks the commissioner to. People who pay for their own care are told about the local authority service first and that they can ask the local authority for an assessment."
+            }
+          ]
+        },
+        {
+          "heading": "Referrals",
+          "blocks": [
+            {
+              "p": "When the person agrees, the Care Coordinator makes the referral within 5 working days, sharing only what the person agrees to, and records it in the care plan. A referral not acknowledged within 10 working days, or with no installation date 10 working days after acknowledgement, is chased, then chased every 10 working days until resolved. Where a person declines, the assessor records the discussion and offers again at each full care plan review; where declining leaves a risk of serious harm, the Care Coordinator agrees a plan under the Positive Risk-Taking Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Consent, capacity and privacy",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "A person who can decide",
+          "blocks": [
+            {
+              "p": "A person with capacity decides whether to have a device, where it goes, how it is set and who is alerted. Their agreement is recorded consent in the Consent and decisions part of the care plan (Consent to Care Policy). For a monitoring device the assessor first speaks with the person alone and obtains their signed consent, and the device is then approved as set out under Approving a monitoring device. A relative's wish for a device never overrides the person's decision."
+            }
+          ]
+        },
+        {
+          "heading": "A person who may lack capacity",
+          "blocks": [
+            {
+              "p": "Where there is reason to doubt capacity, an authorised assessor assesses it under the Mental Capacity Act and Best Interests Policy. If the person lacks capacity, a verified health and welfare attorney or deputy with authority decides; otherwise whoever proposes and installs the device, often the local authority or telecare service, makes a best interests decision, and the assessor gives them our views and records their decision. Separately, our part in any device (what our staff check, respond to or record) is a best interests decision approved by the Registered Manager or Deputy Manager before use, recording the less restrictive options considered and why they would not work. Where it involves a monitoring device, the Care Coordinator arranges a best interests meeting within 10 working days under the Consent to Care Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Approving a monitoring device",
+          "blocks": [
+            {
+              "p": "Whoever proposes a monitoring device, and whatever the person's capacity, the Care Coordinator (On-call Manager out of hours) records the proposal in the care plan and updates the deprivation of liberty screen the same working day under the Deprivation of Liberty in the Community Procedure. The Registered Manager or Deputy Manager approves the device as a restriction before use and enters it in the restrictive practice register within 2 working days under the Restraint and Restrictive Practice Policy. The Care Coordinator tells the commissioner in writing within 2 working days of each new or changed monitoring device for a person they fund; while a deprivation of liberty referral is pending, the body it went to is told in the same way, including for a self-funder. Alerts must summon someone to check on and support the person, never to stop them."
+            },
+            {
+              "p": "A device used to keep the person in, to stop or bring them back when they leave, or to monitor them for all or most of the day and night is a significant restriction. Where a person who lacks or may lack capacity has a significant restriction, or objects to or is distressed by any monitoring device, the Registered Manager sends a referral letter under that procedure within 2 working days of the screen reaching them. We never decide that a person who lacks capacity consents to a significant restriction."
+            }
+          ]
+        },
+        {
+          "heading": "Protecting privacy",
+          "blocks": [
+            {
+              "bullets": [
+                "We choose the least intrusive option: a safety alarm before a sensor, a sensor before a camera, and alerts limited to when and where the risk arises, such as a door sensor active only at night.",
+                "We never agree to a camera or audio monitor in a bathroom, toilet or bedroom as part of a person's care unless a person with capacity chooses it.",
+                "Our staff never install a device, never view a camera feed, location or activity app, and never receive routine data from a device or telecare service unless an impact assessment has been approved under the Data Protection Policy.",
+                "Information about a person's devices is shared only as the Confidentiality and Information Sharing Policy allows."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Devices put in place by family or others",
+          "blocks": [
+            {
+              "p": "A care worker who finds a device or camera not in the care plan records it in the daily visit notes and tells the office the same day; the Care Coordinator updates the care plan or home environment risk assessment, tells other allocated care workers before their next visit, and asks the person about it within 2 working days. A monitoring device put in place by others is a restriction by others: the Care Coordinator (On-call Manager out of hours) updates the deprivation of liberty screen the same working day, and the Registered Manager decides the screen outcome, and sends any referral letter, within 2 working days under the Deprivation of Liberty in the Community Procedure. Where a device seems to track the person or shut them in, to watch a person who may lack capacity or who objects or is distressed, or to be used to control or frighten them, the care worker phones the office before leaving and the safeguarding lead assesses the risk within 1 hour under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. Where a device locks the person in, the Registered Manager or Deputy Manager also phones the commissioner the same day (the On-call Manager phones the local authority emergency duty team out of hours) under the Deprivation of Liberty in the Community Procedure; where the person is locked in alone, the Care Coordinator also refers them to the fire and rescue service the same working day under the Fire Safety in People's Homes Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Planning and recording",
+      "blocks": [
+        {
+          "p": "The assessor records each device in the care plan before the first visit of a planned package. For a short-notice start, the initial care plan includes any safety alarm check and the full record follows within 7 days. When a device is installed or changed, the Care Coordinator updates the care plan and briefs every allocated care worker before the next visit at which it applies (Care Plan Review Procedure)."
+        },
+        {
+          "table": {
+            "columns": [
+              "Care plan part",
+              "What it records"
+            ],
+            "rows": [
+              [
+                "My care at a glance",
+                "Any pendant alarm, fall detector or monitoring device."
+              ],
+              [
+                "What matters to me",
+                "What the person wants the technology to help with and how they feel about it."
+              ],
+              [
+                "My needs and support",
+                "Each device, its owner, what it does, what the person does with it, and the fault line."
+              ],
+              [
+                "Visit plans",
+                "The checks care workers make, any monthly test call, charging or help with video calls, and what care workers must not do."
+              ],
+              [
+                "Risks",
+                "How each device reduces a risk, and what happens if it fails or is not used."
+              ],
+              [
+                "People involved",
+                "The telecare service, the responders in order and how far away they are."
+              ],
+              [
+                "Consent and decisions",
+                "Recorded or signed consent, or the best interests decision and restriction approval, with the review date."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Technology replaces a planned visit, or a task in one, only where the person chooses this (or it is decided in their best interests), the commissioner agrees where they fund the visit, and the revised care plan is approved. A phone or video call never replaces a visit that includes personal care, medicines support, meals or drinks, or moving and handling."
+        }
+      ]
+    },
+    {
+      "heading": "Response arrangements",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The response plan and our role",
+          "blocks": [
+            {
+              "p": "The telecare service and the person agree the response plan, and the Care Coordinator records a summary in the care plan. Where it has fewer than two responders, or none who can reach the home within 30 minutes at any time of day or night, the Care Coordinator asks the telecare service within 5 working days about its mobile response team or another local responder, and records any remaining gap in the Risks part. The monitoring centre calls 999 whenever the person needs emergency help."
+            },
+            {
+              "p": "{{organisation}} is never a named responder, because we cannot guarantee that staff can reach the home within a set time. With the person's agreement the telecare service may hold the office number as an information contact, so the monitoring centre can tell us about an activation or ask when the next visit is due. The person or their representative gives the telecare service any key safe code. Care workers never do; the Care Coordinator does so only where the person has agreed in writing that the telecare service's response team may have it, by the named-team route in the Key Holding, Key Safes and Access to People's Homes Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "When a monitoring centre or family member calls us about an alarm",
+          "blocks": [
+            {
+              "steps": [
+                "Office staff or the On-call Manager check whether 999 has been called and call 999 at once if the person may need emergency help and nobody has.",
+                "Within 15 minutes they decide whether a care worker nearby can safely call in before the next planned visit, and tell the caller. An extra call never delays 999 or replaces a responder.",
+                "They tell the care worker due next what has happened before that visit.",
+                "They record the call in the daily visit notes the same day and, where it involved a fall, injury, 999 call or a missed or late visit, start an incident log entry under the procedure that applies."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Telling the telecare service",
+          "blocks": [
+            {
+              "p": "With the person's agreement, or where the Confidentiality and Information Sharing Policy allows, the Care Coordinator (On-call Manager out of hours) tells the telecare service, on the number recorded in People involved:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Event",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "Our care starting, a planned break or our care ending",
+                    "By the end of the next working day"
+                  ],
+                  [
+                    "Our care restarting after a hospital stay or other break",
+                    "Before the first visit (Hospital Admission and Discharge Procedure)"
+                  ],
+                  [
+                    "Hospital admission; a fall; a fault, device not working or change of phone line or broadband",
+                    "The same working day"
+                  ],
+                  [
+                    "Death",
+                    "The same working day, or by 12 noon the next working day after an out-of-hours death"
+                  ],
+                  [
+                    "A new or changed DNACPR decision or ReSPECT form",
+                    "Within 2 working days"
+                  ],
+                  [
+                    "A change of key safe code where the telecare service's response team holds it",
+                    "The same working day: the Care Coordinator asks the person or their representative to tell the service, or gives the new code by the named-team route where the person has agreed in writing"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "When a person does not answer the door, the office contacts the monitoring centre during its first checks under the No Reply, No Access and Missing Person Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Technology at every visit",
+      "blocks": [
+        {
+          "p": "In this policy, phoning the office means phoning the Care Coordinator in office hours or the On-call Manager out of hours, who answers or returns the call within 15 minutes. If nobody does, the care worker phones the Registered Manager or Deputy Manager directly."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Checks",
+          "blocks": [
+            {
+              "bullets": [
+                "Before leaving, make sure the pendant or wrist alarm is worn or within the person's reach and the alarm unit is plugged in, switched on and showing its normal light. This is a critical item at every spot check.",
+                "Charge a fall detector, location device or tablet only where the visit plan says so, with its own charger, never on a bed or soft furnishing.",
+                "Where the visit plan includes a monthly test call because the person cannot make one, support them to press the alarm on the set day, tell the monitoring centre it is a test and record the result in the daily visit notes.",
+                "Record in the daily visit notes if a device was not worn or used as planned."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "What care workers never do",
+          "blocks": [
+            {
+              "p": "Care workers never remove a device, put it out of reach, unplug it, silence or switch it off, move a sensor, change settings, reset an alarm or connect a device to their own phone, whoever asks. The only exception is unplugging a unit that is sparking or smoking, after which they phone the office at once. They never ask for, hold, write down or use a person's passwords, PINs or account log-ins, never log in to the person's accounts, and never lend any phone to the person or a relative (Mobile Phones and Social Media Policy)."
+            }
+          ]
+        },
+        {
+          "heading": "Alarms during a visit and at the door",
+          "blocks": [
+            {
+              "bullets": [
+                "In an emergency during a visit, call 999 yourself, then phone the office. Do not rely on the person's alarm.",
+                "If the alarm unit speaks while you are there, answer it, give your name and say you are a care worker from {{organisation}}, and tell the monitoring centre whether the person needs help.",
+                "If you arrive and hear an alarm unit sounding or the person calling for help and nobody answers, call 999 at once, then phone the office, under the No Reply, No Access and Missing Person Procedure. Smoke or fire, or a smoke or carbon monoxide alarm with no answer, means do not enter: move away and call 999 (Fire Safety in People's Homes Policy)."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Faults, power cuts and phone line changes",
+          "blocks": [
+            {
+              "steps": [
+                "Tell the person and, if they want, help them phone the telecare service's fault line recorded in the care plan.",
+                "Record the fault in the daily visit notes and phone the office before you leave. Where the person lives alone and cannot summon help another way, put their phone within reach and wait for the office's decision on an interim arrangement, up to 30 minutes after the planned end of the visit; the office tells the next person you visit if you will be late.",
+                "The Care Coordinator (On-call Manager out of hours) confirms with the telecare service the same working day that the fault is logged and when it will be repaired, and tells the person and the care worker due next.",
+                "Where the person lives alone and cannot summon help another way, or has a High missed-visit risk level, the Care Coordinator (On-call Manager out of hours) agrees an interim arrangement, before the care worker leaves where possible and always the same working day, such as a relative checking in, a phone within reach or a welfare call, and records it in the care plan.",
+                "A safety alarm not repaired within 2 working days goes to the Registered Manager, who writes to the telecare service and, for funded care, the commissioner."
+              ]
+            },
+            {
+              "p": "A power cut, a new phone line, broadband service or router, or an alarm unit moved to another socket can stop telecare working. Care workers who notice any of these tell the office the same day, and the Care Coordinator asks the telecare service to test the system. At assessment and every full care plan review, the assessor asks whether the telecare has been tested since any change to the person's phone or broadband service, and asks for a test where it has not."
+            }
+          ]
+        },
+        {
+          "heading": "A person who chooses not to use a device",
+          "blocks": [
+            {
+              "p": "A person with capacity can take off their pendant, switch off a device or ask for it to be removed. The care worker respects this, explains the risk, records it in the daily visit notes and phones the office before leaving. Where this is recorded at 3 or more visits in 7 days, or the person asks for removal, the Care Coordinator speaks with them within 2 working days and holds a focused review within 7 days, with a plan under the Positive Risk-Taking Policy where serious harm is possible. For a person who lacks capacity, a device is never put back on or hidden against their objection; the objection is reported the same day and the best interests decision, and any restriction, reviewed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Medicines reminders and dispensers",
+      "blocks": [
+        {
+          "p": "Medicines taken from a reminder or automated dispenser stay at Level 0 self-administration under the Medicines Management Policy. Where the care plan records it, a care worker's reminder is recorded in the daily visit notes; where the self-administration risk assessment sets a self-administration check, the outcome is recorded on the eMAR as the Self-Administration of Medicines Procedure sets out. A dispenser that locks doses away from the person is lockable storage and needs the consent or approval that procedure requires before the care plan includes it."
+        },
+        {
+          "p": "Care workers never fill, load, programme, unlock or override a dispenser and never handle a dose from it. If a dose has been left in it or it is alarming, the care worker does not prompt, give or touch the dose, records it (on the eMAR as Not Given / Missed where a self-administration check is set, otherwise in the daily visit notes) and phones the office before leaving. The office gets pharmacist, GP or NHS 111 advice straight away and tells the person, and the Care Coordinator tells whoever fills the dispenser, whether the pharmacy (including a dispensing GP practice) or family, the same working day. If the person can no longer use the dispenser reliably, their medicines support is reviewed within 7 days under the Assessing Medicines Support Needs Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Cameras and recording in people's homes",
+      "blocks": [
+        {
+          "p": "People and their families may choose to use cameras, video doorbells or audio monitors in their own homes, sometimes hidden, and our staff may be recorded. The assessor asks about them at assessment and every full review and records them in the home environment risk assessment, and the Care Coordinator tells care workers before their first visit. With the person's agreement, we ask that a camera is not pointed where personal care is given, or is switched off during it; the person decides."
+        },
+        {
+          "p": "Care workers work as they would if recorded, because they may be, and never switch off, cover or move a camera. A care worker uncomfortable about being recorded raises it with the Care Coordinator, who speaks with the person or family within 5 working days and records what is agreed in the care plan; a camera alone is never a reason to stop care. Where a person or family shows us a recording of poor care or possible abuse, the office asks them to keep it and the matter is handled under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure or the Complaints Policy and Procedure. A camera used to check on the person, rather than only for home security, is a monitoring device and follows the consent and restriction rules above."
+        }
+      ]
+    },
+    {
+      "heading": "Reviewing technology with the person",
+      "blocks": [
+        {
+          "p": "At every full care plan review the reviewer asks whether each device is used and still helps, whether it causes false alarms, distress or a feeling of being watched, whether responders have attended when needed, and whether new options would help. With the person's agreement, the Care Coordinator asks the telecare service and responders for their views beforehand. A device that no longer helps is removed through the telecare service at the person's request, and monitoring devices are reviewed by their set dates under the Restraint and Restrictive Practice Policy."
+        },
+        {
+          "p": "A focused review within 7 days under the Care Plan Review Procedure follows an alarm activation that led to a 999 call, a fall or a long lie; a device failing twice in 3 months; 3 or more false alarms in 7 days reported to us; the person objecting to or being distressed by a device; or a change in their capacity."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where"
+            ],
+            "rows": [
+              [
+                "Discussions, referrals, chasing and outcomes; devices, response plan, checks and contacts",
+                "The person's care plan, in the parts listed under Planning and recording"
+              ],
+              [
+                "Consent, best interests decisions and restriction approvals",
+                "Consent and decisions part of the care plan; restrictive practice register for monitoring devices"
+              ],
+              [
+                "Checks, faults, refusals and calls from monitoring centres",
+                "Daily visit notes"
+              ],
+              [
+                "Alarm calls involving a fall, injury, 999 call or a missed or late visit",
+                "Incident log"
+              ],
+              [
+                "Device familiarisation",
+                "Training and compliance records"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are kept for the periods in the Records Management and Retention Policy. An entry in the restrictive practice register is kept for as long as the person's care record it relates to."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "This policy: checks at visits, never interfering with devices, faults, alarms, cameras and dispensers",
+                "All care staff",
+                "At induction, before working without a shadowing colleague; every 12 months within the person-centred care and dignity refresher"
+              ],
+              [
+                "Familiarisation with a person's safety alarm",
+                "Each allocated care worker",
+                "Phone briefing by the Care Coordinator before their first visit"
+              ],
+              [
+                "Familiarisation with a monitoring device, dispenser or any device the visit plan says staff check or operate",
+                "Each allocated care worker",
+                "Shown in the home by a Field Care Supervisor, or a Senior Care Worker the Field Care Supervisor has shown it to, before their first lone visit that includes it, and again when the device changes"
+              ],
+              [
+                "Technology options, local referral routes, response plans, consent and restriction rules",
+                "Assessors, Care Coordinators, Deputy Manager and Registered Manager",
+                "Before their first assessment, then within the annual assessor update"
+              ],
+              [
+                "Calls about alarms, faults and telling the telecare service",
+                "Office staff and On-call Managers",
+                "Before taking calls alone or their first on-call shift, then every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Familiarisation is recorded in training and compliance records. At every spot check in the home of a person with a safety alarm or monitoring device, the Field Care Supervisor observes the end-of-visit check and asks what the care worker would do if the unit showed a fault or the person had taken off their pendant. A care worker who cannot explain is briefed before their next visit to that person and observed again within 4 weeks. Staff acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Open referrals and unrepaired faults against their timescales",
+                "Weekly",
+                "Care Coordinator",
+                "Weekly management meeting"
+              ],
+              [
+                "Technology, response plan, checks and consent recorded in care plans (target 100%)",
+                "Monthly: at least 3 of the 10 care plans in the monthly care plan audit are of people with technology-enabled care (all if fewer); monitoring devices approved that month are audited in the monthly restrictive practice audit under the Restraint and Restrictive Practice Policy",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Referrals and time to installation, faults and repair times, activations involving our care, long lies where the person had no alarm, technology replacing any visit, and complaints",
+                "Quarterly",
+                "Registered Manager",
+                "Nominated Individual and Directors, in the quarterly quality report"
+              ],
+              [
+                "Whether people feel technology helps them and respects their privacy",
+                "Asked at every full care plan review and in the annual technology survey; collated annually",
+                "Deputy Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is recorded with an action, an owner and a deadline, and tracked to completion."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, a change to telephone networks or local telecare services affecting people we support, a serious incident involving technology, an inspection finding, or when monitoring shows that our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}
