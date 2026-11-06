@@ -147,6 +147,7 @@ export enum AuditAction {
   SERVICE_USER_VISIT_PLAN_REACTIVATED = 'service_user_visit_plan_reactivated',
   SERVICE_USER_VISIT_PLAN_ENDED = 'service_user_visit_plan_ended',
   SERVICE_USER_VISIT_PLAN_SCHEDULE_GENERATED = 'service_user_visit_plan_schedule_generated',
+  SERVICE_USER_VISIT_PLANS_AND_ROTA_CLEARED = 'service_user_visit_plans_and_rota_cleared',
   SERVICE_USER_INITIAL_ASSESSMENT_UPDATED = 'service_user_initial_assessment_updated',
   INITIAL_ASSESSMENT_TEMPLATE_CREATED = 'initial_assessment_template_created',
   INITIAL_ASSESSMENT_TEMPLATE_UPDATED = 'initial_assessment_template_updated',
@@ -601,4 +602,6 @@ export enum AuditAction {
   VISIT_ATTENDANCE_TIMES_CORRECTED = 'visit_attendance_times_corrected',
   PAY_EVALUATION_FAILURE_RETRIED = 'pay_evaluation_failure_retried',
   PAY_EVALUATION_FAILURE_DISMISSED = 'pay_evaluation_failure_dismissed',
+  VISIT_CREATION_SCRIPT_STARTED = 'visit_creation_script_started',
+  VISIT_CREATION_SCRIPT_FINISHED = 'visit_creation_script_finished',
 }
