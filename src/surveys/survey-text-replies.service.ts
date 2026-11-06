@@ -1,4 +1,6 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Optional } from '@nestjs/common';
+import { SurveyUnsubscribeService } from './survey-unsubscribe.service';
+import { SURVEY_UNSUBSCRIBE_REASON } from './survey-eligibility.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
@@ -25,7 +27,18 @@ export class SurveyTextRepliesService implements OnModuleInit {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly texts: TextMessageService,
+    @Optional() private readonly unsubscribe?: SurveyUnsubscribeService,
   ) {}
+
+  /** Former people (left, or care ended): STOP unsubscribes them from all surveys, for good. */
+  private async isFormer(p: Subject): Promise<boolean> {
+    if (p.subjectKind === 'EMPLOYEE') {
+      const e = await this.prisma.employee.findUnique({ where: { id: p.subjectId }, select: { isActive: true } }).catch(() => null);
+      return e?.isActive === false;
+    }
+    const su = await this.prisma.serviceUser.findUnique({ where: { id: p.subjectId }, select: { status: { select: { code: true } } } }).catch(() => null);
+    return su?.status?.code === 'DISCHARGED';
+  }
 
   onModuleInit(): void {
     this.texts.onReply((reply) => this.handle(reply));
@@ -56,6 +69,12 @@ export class SurveyTextRepliesService implements OnModuleInit {
     let changed = 0;
     for (const p of people) {
       const existing = await this.prisma.surveyContactOptOut.findMany({ where: { subjectKind: p.subjectKind, subjectId: p.subjectId }, select: { channel: true, reason: true } });
+      if (reply.kind === 'STOP' && this.unsubscribe && (await this.isFormer(p))) {
+        if (existing.some((e) => e.channel === 'ALL' && e.reason === SURVEY_UNSUBSCRIBE_REASON)) continue;
+        await this.unsubscribe.apply(p, 'STOP');
+        changed += 1;
+        continue;
+      }
       if (reply.kind === 'STOP') {
         if (existing.some((e) => e.channel === 'ALL' || e.channel === 'TEXT')) continue;
         await this.prisma.surveyContactOptOut.create({ data: { ...p, channel: 'TEXT', reason: SURVEY_TEXT_STOP_REASON, recordedById: null } });

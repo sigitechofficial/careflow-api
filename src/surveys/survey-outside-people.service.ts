@@ -17,6 +17,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { surveyVisibleInScope } from './survey-scope.util';
 import { SurveyContactRuleService } from './survey-contact-rule.service';
 import { freeFromDay, librarySentWith } from './survey-contact-rule.util';
+import { SURVEY_UNSUBSCRIBE_REASON } from './survey-eligibility.util';
 import { surveyContactMessages } from './survey-contact-messages.util';
 import { readContactPlan } from './survey-contact-plan.util';
 import { formatSurveyDateTime } from './survey-recurrence.util';
@@ -233,7 +234,10 @@ export class SurveyOutsidePeopleService {
     const allowed = ['ALL', 'EMAIL', 'TEXT', 'PHONE'];
     if (channels.some((c) => !allowed.includes(c))) throw new BadRequestException('Choose how they do not want to be contacted.');
     const subject = row.sourceType === 'SERVICE_USER_CONTACT' && row.sourceId ? { subjectKind: 'CONTACT', subjectId: row.sourceId } : { subjectKind: 'EXTERNAL', subjectId: row.id };
-    const before = await this.prisma.surveyContactOptOut.findMany({ where: subject, select: { channel: true } });
+    const before = await this.prisma.surveyContactOptOut.findMany({ where: subject, select: { channel: true, reason: true } });
+    if (before.some((b) => b.channel === 'ALL' && b.reason === SURVEY_UNSUBSCRIBE_REASON)) {
+      throw new BadRequestException('They unsubscribed from all surveys themselves. This cannot be changed by staff.');
+    }
     await this.prisma.$transaction([
       this.prisma.surveyContactOptOut.deleteMany({ where: subject }),
       ...(channels.length ? [this.prisma.surveyContactOptOut.createMany({ data: [...new Set(channels)].map((channel) => ({ ...subject, channel, recordedById: actor.id })) })] : []),

@@ -53,7 +53,7 @@ import {
 } from './survey-contact-plan.util';
 import { surveyContactMessages } from './survey-contact-messages.util';
 import { SURVEY_TEXT_STOP_REASON } from './survey-text-replies.service';
-import { LAPSABLE_STATUSES, ineligibleRecipientIds, organisationDomains, personalEmail } from './survey-eligibility.util';
+import { LAPSABLE_STATUSES, SURVEY_UNSUBSCRIBE_REASON, ineligibleRecipientIds, organisationDomains, personalEmail } from './survey-eligibility.util';
 import { staffAnswerPlaces, type StaffAnswerPlaces } from './survey-staff-answer-places';
 
 /** RoleTask.sourceType of the phone call list task (sourceId = the survey or period). */
@@ -1019,6 +1019,8 @@ export class SurveyRemindersService {
         reason: staff.find((r) => r.reason)?.reason ?? null,
         since: (staff[0] ?? stop)?.createdAt.toISOString() ?? null,
         stoppedByText: stop ? { since: stop.createdAt.toISOString() } : null,
+        /** They unsubscribed from all surveys themselves (permanent; staff cannot change it). */
+        unsubscribed: rows.some((r) => r.channel === 'ALL' && r.reason === SURVEY_UNSUBSCRIBE_REASON),
       },
     };
   }
@@ -1031,6 +1033,10 @@ export class SurveyRemindersService {
     const finalChannels = channels.includes('ALL') ? ['ALL'] : channels;
     const reason = dto.reason?.trim().slice(0, 300) || null;
     const before = await this.prisma.surveyContactOptOut.findMany({ where: { subjectKind: dto.subjectKind, subjectId: dto.subjectId }, select: { channel: true, reason: true } });
+    // They unsubscribed from all surveys themselves: permanent, never lifted or changed by staff.
+    if (before.some((b) => b.channel === 'ALL' && b.reason === SURVEY_UNSUBSCRIBE_REASON)) {
+      throw new BadRequestException('They unsubscribed from all surveys themselves, so they are never sent surveys. This cannot be changed by staff.');
+    }
     // A text opt-out made by a STOP reply keeps its origin (so a START reply can still lift it).
     const stopMade = new Set(before.filter((b) => b.reason === SURVEY_TEXT_STOP_REASON).map((b) => b.channel));
     await this.prisma.$transaction([
