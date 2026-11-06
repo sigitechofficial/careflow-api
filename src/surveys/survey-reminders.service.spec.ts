@@ -384,3 +384,32 @@ describe('SurveyRemindersService — people who can no longer be sent it', () =>
     await expect(svc.remindOne(actor, 's1', 'r1')).rejects.toThrow(/can no longer be sent this survey/);
   });
 });
+
+describe('SurveyRemindersService — people whose care has ended', () => {
+  const rec = { id: 'r9', token: 'tok-9', status: 'SENT', employeeId: null, serviceUserId: 'su9', sentAt: new Date(NOW.getTime() - 4 * DAY), reminderCount: 0, remindedAt: null };
+  const ended = (email: string) => ({
+    id: 'su9', firstName: 'Ada', preferredName: null, email, mobile: null, phone: null, isActive: true,
+    portalAccount: { email: 'portal@example.com', isEnabled: true, deletedAt: null }, status: { code: 'DISCHARGED' },
+  });
+
+  it('anonymous survey: their own email with no link (answer on paper), never the portal, with the unsubscribe link', async () => {
+    const { svc, prisma, mail } = setup({ survey: { isAnonymous: true, targetKind: 'SERVICE_USER' }, recipients: [rec] });
+    prisma.serviceUser.findMany.mockResolvedValue([ended('ada@example.com')]);
+    prisma.companyProfile.findFirst.mockResolvedValue({ displayName: 'Example Care', email: 'office@example-care.co.uk', companyWebsite: null });
+    (svc as any).unsubscribe = { link: () => 'https://care.example/survey-unsubscribe/a.b' };
+    await svc.runDue(NOW);
+    expect(mail.send.mock.calls.map((c: any) => c[0].to)).toEqual(['ada@example.com']);
+    const text = mail.send.mock.calls[0][0].text;
+    expect(text).not.toContain('tok-9');
+    expect(text).toMatch(/paper copy/);
+    expect(text).toContain('https://care.example/survey-unsubscribe/a.b');
+  });
+
+  it('never an address on the organisation’s own domains', async () => {
+    const { svc, prisma, mail } = setup({ survey: { isAnonymous: false, targetKind: 'SERVICE_USER' }, recipients: [rec] });
+    prisma.serviceUser.findMany.mockResolvedValue([ended('ada@example-care.co.uk')]);
+    prisma.companyProfile.findFirst.mockResolvedValue({ displayName: 'Example Care', email: 'office@example-care.co.uk', companyWebsite: null });
+    await svc.runDue(NOW);
+    expect(mail.send).not.toHaveBeenCalled();
+  });
+});

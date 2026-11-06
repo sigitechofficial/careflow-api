@@ -9,7 +9,8 @@
   "timing": {
     "when": "Once a year: opens on the first working day of February and closes 4 weeks later, with a reminder after 2 weeks",
     "recurrence": "YEARLY",
-    "trigger": null
+    "trigger": null,
+    "sentWith": ["SUR-FAM-001"]
   },
   "anonymous": false,
   "allowAnonymousResponses": true,

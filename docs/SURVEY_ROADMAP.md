@@ -237,6 +237,18 @@ Eligibility after sending (fix, November 2026), checked the same way:
 | Former people chosen by name (widened, November 2026) | Surveying people who have left or whose care ended without anyone deciding to; a guessed date; reaching someone who died; a work address, the app or the portal reaching them. | By name only, Send now only (never by branch, job title, a schedule or a repeat), within 92 days of a recorded leaving date or service end date (never a guessed one), never anyone who has died; a reason (5–300) on any survey not meant for them, audited as a count and the reason; personal email only, never the carer app or portal (`survey-eligibility.util.spec` "people whose care ended", `surveys.service.spec` "staff who left in the last 3 months", "someone whose care ended"). |
 | Unsubscribe from all surveys | A one-click link (or STOP) that could show which survey or answer is theirs; staff overriding it. | The link names the person only (signed, never a survey or answer, so it is safe on anonymous surveys), changes nothing until confirmed (email scanners), and sets a permanent opt-out from every channel that staff cannot lift; STOP from a former person sets the same; audited without details (`survey-unsubscribe.service.spec`). |
 
+Phase 2 part 4 (outside people: families, professionals, commissioners), checked the same way:
+
+| Feature | Risk looked at | What stops it (and the test that proves it) |
+|---|---|---|
+| Personal links for outside people | A link on an anonymous survey showing whether its holder answered. | Named public surveys only; refused on anonymous ones in the API and never offered on the screen (`survey-outside-people.service.spec` "anonymous public surveys never get personal links"). |
+| Families from People involved | Contacting family members who did not agree, or a stale address. | Only contacts marked "Can receive care updates", with an email or mobile; their details are read again from the record at each send; opt-outs kept against the People involved record (`survey-outside-people.service.spec` "families"). |
+| Who has answered (outside people) | Names on anonymous surveys. | Named surveys only, with responses access, as for staff; anonymous public surveys have no list. |
+| The 4-week rule per real person, P10 | A representative surveyed twice in 4 weeks through different routes; a recorded answer counted on an anonymous survey. | One outside person per record; a named answer they gave for the person (chosen from People involved when recording) counts as their contact, never on anonymous surveys; the linked February pair (SUR-PWS-003 with SUR-FAM-001) is one contact (`survey-outside-people.service.spec` "P10"). |
+| Opt-outs and STOP | An outside person still contacted after asking not to be. | Honoured for invitations, reminders and the call list; STOP replies find outside people and People involved by mobile; audited without contact details (`survey-outside-people.service.spec`, `survey-text-replies`). |
+| Surveys about one person | A survey about someone showing to people outside their branches, or its answers leaking through the record. | Listed on the person's record by title and state only, in the viewer's branches; answers keep the survey's own access rules (`OutsidePeople.test` "a person’s record"). |
+| Audit | Outside people's details in the audit trail. | Contacts and lists audited without names or addresses; sends as counts (and an override's reason). |
+
 Known limits, said plainly: one-answer-per-device can be beaten with another device or by clearing the browser;
 the per-link limit is per server. Results show the burst caution for that reason.
 

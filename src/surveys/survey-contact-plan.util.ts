@@ -28,7 +28,8 @@ export const SURVEY_CONTACT_CHANNEL_LABELS: Record<SurveyContactChannel, string>
 export function contactChannelsFor(targetKind: SurveyTargetKind): SurveyContactChannel[] {
   if (targetKind === SurveyTargetKind.EMPLOYEE) return ['APP', 'EMAIL', 'TEXT'];
   if (targetKind === SurveyTargetKind.SERVICE_USER) return ['PORTAL', 'EMAIL', 'TEXT'];
-  return [];
+  // Named public surveys: outside people sent their own link (families, professionals, commissioners).
+  return ['EMAIL', 'TEXT'];
 }
 
 export type SurveyCallStep = {
@@ -107,8 +108,8 @@ export function checkContactPlan(
   input: unknown,
   survey: { targetKind: SurveyTargetKind; isAnonymous: boolean },
 ): ContactPlanCheck {
-  if (survey.targetKind === SurveyTargetKind.PUBLIC) {
-    return { ok: false, message: 'Public surveys are answered through their shared link, so there is no list of people to remind.' };
+  if (survey.targetKind === SurveyTargetKind.PUBLIC && survey.isAnonymous) {
+    return { ok: false, message: 'Anonymous public surveys are answered through their shared link, so there is no list of people to remind.' };
   }
   if (!input || typeof input !== 'object' || Array.isArray(input)) return { ok: false, message: 'Choose the reminders to send.' };
   const r = input as Record<string, unknown>;

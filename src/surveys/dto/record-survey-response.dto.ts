@@ -52,6 +52,14 @@ class RecordedResponseDetailsDto {
   respondentName?: string;
 
   @ApiPropertyOptional({
+    description:
+      'A family member or representative chosen from the person’s People involved: their own survey contact (4-week rule, decision P10). Named answers only.',
+  })
+  @IsOptional()
+  @IsUUID()
+  respondentContactId?: string;
+
+  @ApiPropertyOptional({
     description: 'Telephone: when the call took place (ISO date-time)',
   })
   @IsOptional()

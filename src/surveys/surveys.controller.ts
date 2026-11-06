@@ -101,6 +101,20 @@ export class SurveysController {
     return this.service.listRecordCandidates(user, id, search);
   }
 
+  @Get(':id/respondent-contacts')
+  @AnyPermission('surveys.manage', 'surveys.responses.record')
+  @ApiOperation({ summary: 'Record response: the person’s People involved (names only), to say who answered for them' })
+  respondentContacts(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Query('serviceUserId', ParseUUIDPipe) serviceUserId: string) {
+    return this.service.listRespondentContacts(user, id, serviceUserId);
+  }
+
+  @Get('about-person/:serviceUserId')
+  @AnyPermission('surveys.read', 'surveys.manage')
+  @ApiOperation({ summary: 'Surveys about one person we support (family or GP views on their care), for their record' })
+  aboutPerson(@CurrentUser() user: RequestUser, @Param('serviceUserId', ParseUUIDPipe) serviceUserId: string) {
+    return this.service.listAboutPerson(user, serviceUserId);
+  }
+
   @Get(':id/former-people')
   @Permissions('surveys.manage')
   @ApiOperation({ summary: 'People who left or whose care ended in the last 3 months, to choose by name (with a reason unless the survey is for them)' })

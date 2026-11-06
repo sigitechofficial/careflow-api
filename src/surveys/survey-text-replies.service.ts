@@ -12,7 +12,7 @@ import type { TextReplyKind } from '../text-messages/text-message-replies.util';
 /** The reason kept on an opt-out made by a STOP reply (a START reply lifts only these). */
 export const SURVEY_TEXT_STOP_REASON = 'Replied STOP to a survey text message';
 
-type Subject = { subjectKind: 'EMPLOYEE' | 'SERVICE_USER'; subjectId: string };
+type Subject = { subjectKind: 'EMPLOYEE' | 'SERVICE_USER' | 'EXTERNAL' | 'CONTACT'; subjectId: string };
 
 /**
  * STOP and START replies to survey texts. STOP: everyone whose record holds that mobile stops
@@ -32,6 +32,7 @@ export class SurveyTextRepliesService implements OnModuleInit {
 
   /** Former people (left, or care ended): STOP unsubscribes them from all surveys, for good. */
   private async isFormer(p: Subject): Promise<boolean> {
+    if (p.subjectKind === 'EXTERNAL' || p.subjectKind === 'CONTACT') return false;
     if (p.subjectKind === 'EMPLOYEE') {
       const e = await this.prisma.employee.findUnique({ where: { id: p.subjectId }, select: { isActive: true } }).catch(() => null);
       return e?.isActive === false;
@@ -47,12 +48,21 @@ export class SurveyTextRepliesService implements OnModuleInit {
   /** Records holding this mobile (numbers are written many ways, so the last ten digits find them first). */
   async peopleWithMobile(e164: string): Promise<Subject[]> {
     const lastTen = e164.replace(/\D/g, '').slice(-10);
-    const [staff, supported] = await Promise.all([
+    const [staff, supported, outside, family] = await Promise.all([
       this.prisma.$queryRaw<Array<{ employeeId: string; mobileTelephone: string | null }>>`
         SELECT "employeeId", "mobileTelephone" FROM "employees"."EmployeePersonalDetail"
          WHERE "deletedAt" IS NULL AND right(regexp_replace(coalesce("mobileTelephone", ''), '\\D', '', 'g'), 10) = ${lastTen}`,
       this.prisma.$queryRaw<Array<{ id: string; mobile: string | null; phone: string | null }>>`
         SELECT "id", "mobile", "phone" FROM "service_users"."ServiceUser"
+         WHERE "deletedAt" IS NULL AND (right(regexp_replace(coalesce("mobile", ''), '\\D', '', 'g'), 10) = ${lastTen}
+            OR right(regexp_replace(coalesce("phone", ''), '\\D', '', 'g'), 10) = ${lastTen})`,
+      // Outside people typed in (families, professionals, commissioners) and families from People involved.
+      this.prisma.$queryRaw<Array<{ id: string; mobile: string | null; phone: string | null; sourceType: string }>>`
+        SELECT "id", "mobile", "phone", "sourceType" FROM "surveys"."SurveyExternalContact"
+         WHERE "deletedAt" IS NULL AND (right(regexp_replace(coalesce("mobile", ''), '\\D', '', 'g'), 10) = ${lastTen}
+            OR right(regexp_replace(coalesce("phone", ''), '\\D', '', 'g'), 10) = ${lastTen})`,
+      this.prisma.$queryRaw<Array<{ id: string; mobile: string | null; phone: string | null }>>`
+        SELECT "id", "mobile", "phone" FROM "service_users"."ServiceUserContact"
          WHERE "deletedAt" IS NULL AND (right(regexp_replace(coalesce("mobile", ''), '\\D', '', 'g'), 10) = ${lastTen}
             OR right(regexp_replace(coalesce("phone", ''), '\\D', '', 'g'), 10) = ${lastTen})`,
     ]);
@@ -61,6 +71,13 @@ export class SurveyTextRepliesService implements OnModuleInit {
       ...supported
         .filter((s) => normaliseUkMobile(s.mobile) === e164 || normaliseUkMobile(s.phone) === e164)
         .map((s) => ({ subjectKind: 'SERVICE_USER' as const, subjectId: s.id })),
+      // A family member is kept against their People involved record (CONTACT), so it holds wherever they appear.
+      ...(family ?? [])
+        .filter((c) => normaliseUkMobile(c.mobile) === e164 || normaliseUkMobile(c.phone) === e164)
+        .map((c) => ({ subjectKind: 'CONTACT' as const, subjectId: c.id })),
+      ...(outside ?? [])
+        .filter((x) => x.sourceType !== 'SERVICE_USER_CONTACT' && (normaliseUkMobile(x.mobile) === e164 || normaliseUkMobile(x.phone) === e164))
+        .map((x) => ({ subjectKind: 'EXTERNAL' as const, subjectId: x.id })),
     ];
   }
 
@@ -88,7 +105,7 @@ export class SurveyTextRepliesService implements OnModuleInit {
         userId: undefined,
         module: AuditModule.SURVEY,
         action: AuditAction.SURVEY_CONTACT_OPT_OUT_CHANGED,
-        recordType: p.subjectKind === 'EMPLOYEE' ? 'Employee' : 'ServiceUser',
+        recordType: p.subjectKind === 'EMPLOYEE' ? 'Employee' : p.subjectKind === 'SERVICE_USER' ? 'ServiceUser' : p.subjectKind === 'CONTACT' ? 'ServiceUserContact' : 'SurveyExternalContact',
         recordId: p.subjectId,
         description:
           reply.kind === 'STOP'
