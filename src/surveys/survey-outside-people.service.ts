@@ -663,7 +663,7 @@ export class SurveyOutsidePeopleService {
       const blocked = (ch: string) => Boolean(opt.get(c.id)?.has('ALL') || opt.get(c.id)?.has(ch));
       if (c.email && !blocked('EMAIL')) {
         try {
-          await this.mail.send({ to: c.email, subject: m.emailSubject, text: m.emailText });
+          await this.mail.send({ to: c.email, subject: m.emailSubject, text: m.emailText, skipBcc: true });
         } catch (e) {
           this.logger.warn(`Survey ${survey.id}: an outside invitation email failed (${e instanceof Error ? e.name : 'error'})`);
         }

@@ -3750,13 +3750,20 @@ export class SurveysService {
       );
       if (formerSu.size) {
         const people = await this.prisma.serviceUser.findMany({ where: { id: { in: [...formerSu] } }, select: { id: true, firstName: true, preferredName: true, email: true } });
+        // Their own address only, never one on the organisation's own domains (as for former staff).
+        const domains = organisationDomains(
+          await Promise.resolve()
+            .then(() => this.prisma.companyProfile.findFirst({ select: { email: true, companyWebsite: true } }))
+            .catch(() => null),
+        );
         for (const r of recipients) {
           const su = r.serviceUserId ? people.find((p) => p.id === r.serviceUserId) : undefined;
-          if (!su?.email?.trim() || optedOut(`SERVICE_USER:${su.id}`, 'EMAIL')) continue;
+          const to = personalEmail(su?.email, domains);
+          if (!su || !to || optedOut(`SERVICE_USER:${su.id}`, 'EMAIL')) continue;
           const link = base && !survey.isAnonymous ? `${base}/survey/${r.token}` : null;
           const stopAll = this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id }) ?? null;
           await this.safeMail(survey.id, {
-            to: su.email.trim(),
+            to,
             subject: `Survey: ${survey.title}`,
             text: [
               `Hello ${su.preferredName?.trim() || su.firstName},`,
@@ -3896,7 +3903,8 @@ export class SurveysService {
 
   private async safeMail(surveyId: string, input: { to: string; subject: string; text: string }) {
     try {
-      await this.mail.send(input);
+      // Survey emails carry personal links or unsubscribe tokens: never copy them to MAIL_BCC.
+      await this.mail.send({ ...input, skipBcc: true });
     } catch (err) {
       this.logger.warn(
         `Survey ${surveyId} email to ${input.to} failed: ${err instanceof Error ? err.message : String(err)}`,

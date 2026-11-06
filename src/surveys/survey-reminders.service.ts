@@ -140,30 +140,44 @@ export class SurveyRemindersService {
   }
 
   /** Opted-out channels per person ("EMPLOYEE:<id>" → channels, ALL included). */
-  async optOutsFor(people: Array<{ employeeId: string | null; serviceUserId: string | null }>): Promise<Map<string, Set<string>>> {
+  async optOutsFor(people: Array<{ employeeId: string | null; serviceUserId: string | null; externalContactId?: string | null }>): Promise<Map<string, Set<string>>> {
     const employeeIds = people.map((p) => p.employeeId).filter((x): x is string => Boolean(x));
     const serviceUserIds = people.map((p) => p.serviceUserId).filter((x): x is string => Boolean(x));
+    const externalIds = people.map((p) => p.externalContactId).filter((x): x is string => Boolean(x));
     const map = new Map<string, Set<string>>();
-    if (!employeeIds.length && !serviceUserIds.length) return map;
+    if (!employeeIds.length && !serviceUserIds.length && !externalIds.length) return map;
+    // A family member from People involved: their opt-out is kept against that contact (CONTACT).
+    const family = externalIds.length
+      ? await Promise.resolve()
+          .then(() => this.prisma.surveyExternalContact.findMany({ where: { id: { in: externalIds }, sourceType: 'SERVICE_USER_CONTACT' }, select: { id: true, sourceId: true } }))
+          .catch(() => [] as Array<{ id: string; sourceId: string | null }>)
+      : [];
+    const contactIds = family.map((f) => f.sourceId).filter((x): x is string => Boolean(x));
     const rows = await this.prisma.surveyContactOptOut.findMany({
       where: {
         OR: [
           ...(employeeIds.length ? [{ subjectKind: 'EMPLOYEE', subjectId: { in: employeeIds } }] : []),
           ...(serviceUserIds.length ? [{ subjectKind: 'SERVICE_USER', subjectId: { in: serviceUserIds } }] : []),
+          ...(externalIds.length ? [{ subjectKind: 'EXTERNAL', subjectId: { in: externalIds } }] : []),
+          ...(contactIds.length ? [{ subjectKind: 'CONTACT', subjectId: { in: contactIds } }] : []),
         ],
       },
       select: { subjectKind: true, subjectId: true, channel: true },
     });
-    for (const r of rows) {
-      const key = `${r.subjectKind}:${r.subjectId}`;
+    const add = (key: string, channel: string) => {
       if (!map.has(key)) map.set(key, new Set());
-      map.get(key)!.add(r.channel);
+      map.get(key)!.add(channel);
+    };
+    for (const r of rows) {
+      if (r.subjectKind === 'CONTACT') {
+        for (const f of family.filter((x) => x.sourceId === r.subjectId)) add(`EXTERNAL:${f.id}`, r.channel);
+      } else add(`${r.subjectKind}:${r.subjectId}`, r.channel);
     }
     return map;
   }
 
-  private static optedOut(opts: Map<string, Set<string>>, p: { employeeId: string | null; serviceUserId: string | null }, channel: string): boolean {
-    const set = opts.get(p.employeeId ? `EMPLOYEE:${p.employeeId}` : `SERVICE_USER:${p.serviceUserId}`);
+  private static optedOut(opts: Map<string, Set<string>>, p: { employeeId: string | null; serviceUserId: string | null; externalContactId?: string | null }, channel: string): boolean {
+    const set = opts.get(p.employeeId ? `EMPLOYEE:${p.employeeId}` : p.serviceUserId ? `SERVICE_USER:${p.serviceUserId}` : `EXTERNAL:${p.externalContactId}`);
     return Boolean(set && (set.has('ALL') || set.has(channel)));
   }
 
@@ -199,7 +213,7 @@ export class SurveyRemindersService {
         targetKind: survey.targetKind,
         channels: contactChannelsFor(survey.targetKind).map((c) => ({ value: c, label: SURVEY_CONTACT_CHANNEL_LABELS[c] })),
         textMessages: { enabled: this.texts.isEnabled(), provider: this.texts.providerName(), repliesSupported: this.texts.supportsReplies() },
-        callListAvailable: !survey.isAnonymous && survey.targetKind !== SurveyTargetKind.PUBLIC,
+        callListAvailable: !survey.isAnonymous,
         limits: { maxReminders: MAX_SURVEY_REMINDERS, minGapDays: MIN_REMINDER_GAP_DAYS },
         quietNow: isQuietTime(new Date(), plan ?? { quietStart: '20:00', quietEnd: '09:00', weekdaysOnly: false }, tz),
         runs: runs.map((r) => ({
@@ -264,7 +278,7 @@ export class SurveyRemindersService {
    */
   async remindNow(actor: RequestUser, surveyId: string, meta?: RequestAuditMeta) {
     const survey = await this.requireSurvey(actor, surveyId);
-    if (survey.targetKind === SurveyTargetKind.PUBLIC) {
+    if (survey.targetKind === SurveyTargetKind.PUBLIC && survey.isAnonymous) {
       throw new BadRequestException('Public surveys are answered through their shared link, so there is no one to remind.');
     }
     if (survey.status !== SurveyStatus.ACTIVE) throw new BadRequestException('This survey is not open for answers.');
@@ -281,7 +295,7 @@ export class SurveyRemindersService {
     if (!plan.channels.length) throw new BadRequestException('Choose at least one way to send reminders first.');
     const candidates = await this.prisma.surveyRecipient.findMany({
       where: { surveyId: survey.id, status: { in: NOT_ANSWERED }, sentAt: { not: null }, reminderCount: { lt: MAX_SURVEY_REMINDERS } },
-      select: { id: true, token: true, employeeId: true, serviceUserId: true, reminderCount: true, remindedAt: true },
+      select: { id: true, token: true, employeeId: true, serviceUserId: true, externalContactId: true, reminderCount: true, remindedAt: true },
     });
     const due = candidates.filter((c) => reminderGapPassed(c.remindedAt, now, survey.isAnonymous));
     const access = await surveyAccessFor(this.prisma, actor, survey);
@@ -317,9 +331,6 @@ export class SurveyRemindersService {
     const survey = await this.requireSurvey(actor, surveyId);
     if (survey.isAnonymous) {
       throw new BadRequestException('On an anonymous survey you can only remind everyone who has not answered, never one person.');
-    }
-    if (survey.targetKind === SurveyTargetKind.PUBLIC) {
-      throw new BadRequestException('Public surveys are answered through their shared link, so there is no one to remind.');
     }
     if (survey.status !== SurveyStatus.ACTIVE) throw new BadRequestException('This survey is not open for answers.');
     const now = new Date();
@@ -511,10 +522,19 @@ export class SurveyRemindersService {
     const staffById = new Map(staff.map((s) => [s.employeeId, s]));
     const supportedById = new Map(supported.map((s) => [s.id, s]));
     const portalLink = base ? `${base}/portal/surveys` : null;
+    // Outside people (named public surveys): their current details (removed ones are not reminded).
+    const outsideIds = people.map((p) => p.externalContactId).filter((x): x is string => Boolean(x));
+    const outside = outsideIds.length
+      ? await this.prisma.surveyExternalContact.findMany({ where: { id: { in: outsideIds }, deletedAt: null }, select: { id: true, name: true, email: true, mobile: true, phone: true } })
+      : [];
+    const outsideById = new Map(outside.map((x) => [x.id, x]));
     // Anonymous staff surveys: where each person answers signed in (carer app, My surveys on the web).
     const places = survey.isAnonymous && employeeIds.length ? await staffAnswerPlaces(this.prisma, employeeIds) : new Map<string, StaffAnswerPlaces>();
     const webLink = base ? `${base}/my-surveys` : null;
     // Staff who have left (leavers' surveys only reach them): never the carer app, only a personal email.
+    const suDomains = (supported as Array<{ status?: { code: string } | null }>).some((x) => x.status?.code === 'DISCHARGED')
+      ? organisationDomains(await Promise.resolve().then(() => this.prisma.companyProfile.findFirst({ select: { email: true, companyWebsite: true } })).catch(() => null))
+      : [];
     const domains = (staff as Array<{ employee?: { isActive: boolean } | null }>).some((x) => x.employee?.isActive === false)
       ? organisationDomains(await Promise.resolve().then(() => this.prisma.companyProfile.findFirst({ select: { email: true, companyWebsite: true } })).catch(() => null))
       : [];
@@ -594,13 +614,40 @@ export class SurveyRemindersService {
         });
         await tryChannel('PORTAL', Boolean(portal), () => this.mailTo(survey.id, portal!, portalMessages.emailSubject, portalMessages.emailText));
         // Their own email: named surveys only (their own link); never a second copy to the portal address.
-        const ownEmail = su.email?.trim() && su.email.trim().toLowerCase() !== portal?.toLowerCase() ? su.email.trim() : null;
-        await tryChannel('EMAIL', Boolean(ownEmail) && !survey.isAnonymous, () => this.mailTo(survey.id, ownEmail!, m.emailSubject, m.emailText));
-        const mobile = firstUkMobile(su.mobile, su.phone);
-        // Anonymous surveys: a text can only point to the portal, so only to people who have one.
-        await tryChannel('TEXT', Boolean(mobile) && this.texts.isEnabled() && (!survey.isAnonymous || Boolean(portal)), async () =>
-          (await this.texts.send({ to: mobile!, body: m.text })).sent,
-        );
+        if (formerSu) {
+          // Care has ended: their own address (never one on the organisation's domains), never the portal. On an
+          // anonymous survey no link: they are asked to answer on paper. Always the unsubscribe link.
+          const own = personalEmail(su.email, suDomains);
+          const fm = surveyContactMessages({
+            kind: link ? 'SERVICE_USER' : 'EXTERNAL', anonymous: survey.isAnonymous, reminder: opts.reminder, title: survey.title, firstName,
+            link, portalLink: null, closesOn, organisation, textRepliesSupported: this.texts.supportsReplies(),
+            unsubscribeLink: this.unsubscribe?.link(base, { subjectKind: 'SERVICE_USER', subjectId: su.id }) ?? null,
+          });
+          await tryChannel('EMAIL', Boolean(own), () => this.mailTo(survey.id, own!, fm.emailSubject, fm.emailText));
+          const fmobile = firstUkMobile(su.mobile, su.phone);
+          await tryChannel('TEXT', Boolean(fmobile) && this.texts.isEnabled(), async () => (await this.texts.send({ to: fmobile!, body: fm.text })).sent);
+        } else {
+          const ownEmail = su.email?.trim() && su.email.trim().toLowerCase() !== portal?.toLowerCase() ? su.email.trim() : null;
+          await tryChannel('EMAIL', Boolean(ownEmail) && !survey.isAnonymous, () => this.mailTo(survey.id, ownEmail!, m.emailSubject, m.emailText));
+          const mobile = firstUkMobile(su.mobile, su.phone);
+          // Anonymous surveys: a text can only point to the portal, so only to people who have one.
+          await tryChannel('TEXT', Boolean(mobile) && this.texts.isEnabled() && (!survey.isAnonymous || Boolean(portal)), async () =>
+            (await this.texts.send({ to: mobile!, body: m.text })).sent,
+          );
+        }
+      } else if (p.externalContactId) {
+        const x = outsideById.get(p.externalContactId);
+        if (!x) {
+          counts.noContact += 1;
+          continue;
+        }
+        const m = surveyContactMessages({
+          kind: 'EXTERNAL', anonymous: false, reminder: opts.reminder, title: survey.title, firstName: x.name.split(/\s+/)[0] ?? null,
+          link, portalLink: null, closesOn, organisation, textRepliesSupported: this.texts.supportsReplies(),
+        });
+        await tryChannel('EMAIL', Boolean(x.email), () => this.mailTo(survey.id, x.email!, m.emailSubject, m.emailText));
+        const mobile = firstUkMobile(x.mobile, x.phone);
+        await tryChannel('TEXT', Boolean(mobile) && this.texts.isEnabled(), async () => (await this.texts.send({ to: mobile!, body: m.text })).sent);
       }
       if (reached) counts.people += 1;
       else if (possible > 0 && blocked === possible) counts.optedOut += 1;
@@ -611,7 +658,8 @@ export class SurveyRemindersService {
 
   private async mailTo(surveyId: string, to: string, subject: string, text: string): Promise<boolean> {
     try {
-      await this.mail.send({ to, subject, text });
+      // Personal survey links and unsubscribe tokens: never copied to MAIL_BCC.
+      await this.mail.send({ to, subject, text, skipBcc: true });
       return true;
     } catch (err) {
       this.logger.warn(`Survey ${surveyId}: a reminder email was not sent (${err instanceof Error ? err.name : 'error'})`);
@@ -717,7 +765,8 @@ export class SurveyRemindersService {
         deletedAt: null,
         isTemplate: false,
         isCatalogue: false,
-        targetKind: { not: SurveyTargetKind.PUBLIC },
+        // Public surveys: only named ones have people (outside people sent their own link).
+        NOT: { targetKind: SurveyTargetKind.PUBLIC, isAnonymous: true },
         OR: [{ closesAt: null }, { closesAt: { gt: now } }],
         AND: [{ OR: [{ contactPlan: { not: Prisma.DbNull } }, { clonedFrom: { contactPlan: { not: Prisma.DbNull } } }] }],
       },
@@ -734,7 +783,7 @@ export class SurveyRemindersService {
         if (plan.reminders.length && plan.channels.length && !isQuietTime(now, plan, tz)) {
           const candidates = await this.prisma.surveyRecipient.findMany({
             where: { surveyId: s.id, status: { in: NOT_ANSWERED }, sentAt: { not: null }, reminderCount: { lt: Math.min(plan.reminders.length, MAX_SURVEY_REMINDERS) } },
-            select: { id: true, token: true, employeeId: true, serviceUserId: true, sentAt: true, reminderCount: true, remindedAt: true },
+            select: { id: true, token: true, employeeId: true, serviceUserId: true, externalContactId: true, sentAt: true, reminderCount: true, remindedAt: true },
           });
           const byStep = new Map<number, typeof candidates>();
           for (const c of candidates) {
@@ -890,7 +939,7 @@ export class SurveyRemindersService {
     if (survey.isAnonymous) {
       throw new BadRequestException('Anonymous surveys have no call list: a list of people who have not answered would show who has.');
     }
-    if (survey.targetKind === SurveyTargetKind.PUBLIC) throw new BadRequestException('Public surveys have no list of people.');
+    if (survey.targetKind === SurveyTargetKind.PUBLIC && survey.isAnonymous) throw new BadRequestException('Public surveys have no list of people.');
     const owner = await this.planOwner(survey);
     const plan = readContactPlan(owner.contactPlan);
     const access = await surveyAccessFor(this.prisma, actor, survey);
@@ -925,6 +974,11 @@ export class SurveyRemindersService {
     ]);
     const staffById = new Map(staff.map((s) => [s.employeeId, s]));
     const suById = new Map(supported.map((s) => [s.id, s]));
+    const extIds = people.map((p) => (p as { externalContactId?: string | null }).externalContactId).filter((x): x is string => Boolean(x));
+    const outside = extIds.length
+      ? await this.prisma.surveyExternalContact.findMany({ where: { id: { in: extIds } }, select: { id: true, name: true, organisation: true, mobile: true, phone: true } })
+      : [];
+    const extById = new Map(outside.map((x) => [x.id, x]));
     const userIds = [...new Set(people.flatMap((p) => p.callAttempts.map((a) => a.calledById)).filter((x): x is string => Boolean(x)))];
     const users = userIds.length ? await this.prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, firstName: true, lastName: true, email: true } }) : [];
     const userName = new Map(users.map((u) => [u.id, `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email]));
@@ -932,10 +986,18 @@ export class SurveyRemindersService {
       .map((p) => {
         const s = p.employeeId ? staffById.get(p.employeeId) : undefined;
         const su = p.serviceUserId ? suById.get(p.serviceUserId) : undefined;
-        const name = s ? `${s.firstName ?? ''} ${s.lastName ?? ''}`.trim() || 'Employee' : su ? `${su.firstName} ${su.lastName ?? ''}`.trim() : 'Person';
+        const x = (p as { externalContactId?: string | null }).externalContactId ? extById.get((p as { externalContactId: string }).externalContactId) : undefined;
+        const name = s
+          ? `${s.firstName ?? ''} ${s.lastName ?? ''}`.trim() || 'Employee'
+          : su
+            ? `${su.firstName} ${su.lastName ?? ''}`.trim()
+            : x
+              ? `${x.name}${x.organisation ? ` (${x.organisation})` : ''}`
+              : 'Person';
         const phones = [
           ...(s ? [{ label: 'Mobile', number: s.mobileTelephone }, { label: 'Home', number: s.homeTelephone }] : []),
           ...(su ? [{ label: 'Mobile', number: su.mobile }, { label: 'Phone', number: su.phone }] : []),
+          ...(x ? [{ label: 'Mobile', number: x.mobile }, { label: 'Phone', number: x.phone }] : []),
         ].filter((x): x is { label: string; number: string } => Boolean(x.number?.trim()));
         return {
           recipientId: p.id,
