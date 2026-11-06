@@ -13,19 +13,20 @@ import {
  * adopts as its own drafts from Policies → Ready-made policies. Runs on every deploy. Categories
  * are added when missing (names an admin changed are kept). Missing catalogue documents are
  * created; ones still there have their content refreshed, and ones no longer in the library are
- * retired. A catalogue document that has been removed — deleted, made inactive or archived (by the
- * organisation, or retired here) — stays removed: it is never brought back or changed. Nothing an
+ * retired. A document retired here comes back if its reference returns to the library. One the
+ * organisation removed — deleted by someone, made inactive or archived — stays removed. Nothing an
  * organisation adopted or wrote is touched, and catalogue documents never appear in the policy
  * library or on pages (both filter isCatalogue).
  */
 export async function seedPolicyLibrary(
   prisma: PrismaClient,
   files: LibraryFile[] = loadPolicyLibrary(),
-): Promise<{ categoriesCreated: number; created: number; updated: number; keptRemoved: number; retired: number }> {
+): Promise<{ categoriesCreated: number; created: number; updated: number; restored: number; keptRemoved: number; retired: number }> {
   let categoriesCreated = 0;
   let created = 0;
   let updated = 0;
   let keptRemoved = 0;
+  let restoredCount = 0;
   const titleByRef = new Map(files.flatMap((f) => f.documents.map((d) => [d.reference, d.title] as const)));
   const catalogueRefs = files.flatMap((f) => f.documents.map((d) => catalogueReference(d.reference)));
 
@@ -57,11 +58,15 @@ export async function seedPolicyLibrary(
 
       const existing = await prisma.policyDocument.findFirst({
         where: { reference },
-        select: { id: true, isCatalogue: true, currentVersionId: true, deletedAt: true, isActive: true, status: true },
+        select: { id: true, isCatalogue: true, currentVersionId: true, deletedAt: true, deletedById: true, isActive: true, status: true },
       });
       if (existing && !existing.isCatalogue) continue; // never overwrite an organisation's own document
-      // Removed (deleted, inactive or archived): left exactly as it is, never re-activated.
-      if (existing && catalogueRemoved(existing)) {
+      // Retired by this seed (a reference that dropped out of the library and is back): restored, then refreshed below.
+      let restored = false;
+      if (existing && retiredBySeed(existing)) {
+        restored = true;
+      } else if (existing && catalogueRemoved(existing)) {
+        // Removed by the organisation (deleted by someone, made inactive or archived): left exactly as it is.
         keptRemoved += 1;
         continue;
       }
@@ -106,6 +111,7 @@ export async function seedPolicyLibrary(
             description: p.summary,
             documentType: p.documentType as PolicyDocumentType,
             primaryCategoryId: category!.id,
+            ...(restored ? { isActive: true, deletedAt: null } : {}),
           },
         });
         if (existing.currentVersionId) {
@@ -115,20 +121,36 @@ export async function seedPolicyLibrary(
           });
         }
       });
-      updated += 1;
+      if (restored) restoredCount += 1;
+      else updated += 1;
     }
   }
 
   // An empty library (its folder missing from the deploy) retires nothing: a retired document is never brought back.
   if (!catalogueRefs.length) {
     console.warn('[seed] Policy library: no library documents found, so none were retired.');
-    return { categoriesCreated, created, updated, keptRemoved, retired: 0 };
+    return { categoriesCreated, created, updated, restored: restoredCount, keptRemoved, retired: 0 };
   }
   const retired = await prisma.policyDocument.updateMany({
     where: { isCatalogue: true, deletedAt: null, reference: { notIn: catalogueRefs } },
     data: { isActive: false, deletedAt: new Date() },
   });
-  return { categoriesCreated, created, updated, keptRemoved, retired: retired.count };
+  return { categoriesCreated, created, updated, restored: restoredCount, keptRemoved, retired: retired.count };
+}
+
+/**
+ * Retired by this seed, not by a person: the seed's own retire sets only deletedAt and isActive, with
+ * no deletedById, and never archives. Such a document is brought back when its reference returns to
+ * the library. Anything a person removed (deletedById set, archived, or made inactive without being
+ * deleted) is not this.
+ */
+export function retiredBySeed(d: {
+  deletedAt: Date | null;
+  deletedById: string | null;
+  isActive: boolean;
+  status: PolicyStatus | string;
+}): boolean {
+  return Boolean(d.deletedAt) && !d.deletedById && !d.isActive && d.status !== PolicyStatus.ARCHIVED;
 }
 
 /** A catalogue document taken out of use: deleted, made inactive or archived. The seed never brings it back. */

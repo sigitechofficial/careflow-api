@@ -125,6 +125,15 @@ describe('PolicyAcknowledgementNotificationsService — on publish', () => {
 });
 
 describe('PolicyAcknowledgementNotificationsService — daily reminders', () => {
+  // Pinned to midday: the fixtures count back in whole 24-hour days, which near midnight can land on the
+  // day before or after (and the October clock change shifts it by an hour), changing "overdue by N days".
+  beforeEach(() => {
+    jest.useFakeTimers({ now: new Date('2026-11-06T12:00:00Z'), doNotFake: ['nextTick', 'setImmediate', 'queueMicrotask'] });
+  });
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
   it('sends each reminder once (claimed in the row metadata) and stops after acknowledging', async () => {
     const { service, store, sendToEmployees } = setup();
     // POL-1's clock started with v1.0, 30 days ago: due 16 days ago → OVERDUE_15 for Ben.

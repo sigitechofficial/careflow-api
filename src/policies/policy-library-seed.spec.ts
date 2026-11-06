@@ -1,10 +1,11 @@
 import { PolicyStatus } from '@prisma/client';
 import { catalogueReference, loadPolicyLibrary } from '../../prisma/seed-lib/policy-library';
-import { catalogueRemoved, seedPolicyLibrary } from '../../prisma/seeds/policy-library.seed';
+import { catalogueRemoved, retiredBySeed, seedPolicyLibrary } from '../../prisma/seeds/policy-library.seed';
 
 /**
  * The policy library seed runs on every deploy: it must create missing catalogue documents and refresh the ones still
- * in use, and never bring back (or change) one that was deleted, made inactive or archived.
+ * in use, never bring back (or change) one a person deleted, made inactive or archived, and bring back one it
+ * retired itself when that document returns to the library.
  */
 type Doc = {
   id: string;
@@ -12,6 +13,7 @@ type Doc = {
   isCatalogue: boolean;
   currentVersionId: string | null;
   deletedAt: Date | null;
+  deletedById?: string | null;
   isActive: boolean;
   status: PolicyStatus;
   title: string;
@@ -50,7 +52,7 @@ function fakeDb(docs: Doc[]) {
   return { db, updates, versionUpdates, created };
 }
 
-describe('policy library seed: removed documents stay removed', () => {
+describe('policy library seed: removed documents stay removed, its own retirements come back', () => {
   const [first] = loadPolicyLibrary();
   const documents = first!.documents.slice(0, 5);
   const files = [{ ...first!, documents }];
@@ -61,6 +63,7 @@ describe('policy library seed: removed documents stay removed', () => {
     isCatalogue: true,
     currentVersionId: `v${i}`,
     deletedAt: null,
+    deletedById: null,
     isActive: true,
     status: PolicyStatus.APPROVED,
     title: 'Old title',
@@ -71,7 +74,7 @@ describe('policy library seed: removed documents stay removed', () => {
     expect(documents.length).toBe(5);
     const { db, updates, versionUpdates, created } = fakeDb([
       doc(0),
-      doc(1, { deletedAt: new Date('2026-10-01T00:00:00Z'), isActive: false }),
+      doc(1, { deletedAt: new Date('2026-10-01T00:00:00Z'), deletedById: 'user-1', isActive: false }),
       doc(2, { isActive: false }),
       doc(3, { status: PolicyStatus.ARCHIVED, isActive: false }),
       // doc 4 is missing
@@ -91,7 +94,7 @@ describe('policy library seed: removed documents stay removed', () => {
   });
 
   it('a second deploy changes nothing about the removed ones either', async () => {
-    const removed = doc(1, { deletedAt: new Date('2026-10-01T00:00:00Z'), isActive: false });
+    const removed = doc(1, { deletedAt: new Date('2026-10-01T00:00:00Z'), deletedById: 'user-1', isActive: false });
     const { db, updates } = fakeDb([doc(0), removed, doc(2), doc(3), doc(4)]);
     await seedPolicyLibrary(db, files);
     await seedPolicyLibrary(db, files);
@@ -116,13 +119,37 @@ describe('policy library seed: removed documents stay removed', () => {
     });
   });
 
-  it('an empty library (its folder missing from the deploy) retires nothing, as nothing retired comes back', async () => {
+  it('an empty library (its folder missing from the deploy) retires nothing', async () => {
     const warn = jest.spyOn(console, 'warn').mockImplementation(() => undefined);
     const { db } = fakeDb([doc(0)]);
     const res = await seedPolicyLibrary(db, []);
     expect(res.retired).toBe(0);
     expect(db.policyDocument.updateMany).not.toHaveBeenCalled();
     warn.mockRestore();
+  });
+
+  it('brings back a document the seed itself retired once it is back in the library, and refreshes it', async () => {
+    const { db, updates, versionUpdates } = fakeDb([
+      doc(0, { deletedAt: new Date('2026-10-01T00:00:00Z'), isActive: false }), // retired by the seed: no deletedById
+      doc(1),
+      doc(2),
+      doc(3),
+      doc(4),
+    ]);
+    const res = await seedPolicyLibrary(db, files);
+    expect(res).toMatchObject({ restored: 1, updated: 4, keptRemoved: 0 });
+    const back = updates.find((u) => u.id === 'd0')!.data;
+    expect(back).toMatchObject({ title: documents[0]!.title, isActive: true, deletedAt: null });
+    expect(versionUpdates).toContain('v0');
+  });
+
+  it('the seed-retired rule: deleted with no person, not archived', () => {
+    const at = new Date();
+    expect(retiredBySeed({ deletedAt: at, deletedById: null, isActive: false, status: PolicyStatus.APPROVED })).toBe(true);
+    expect(retiredBySeed({ deletedAt: at, deletedById: 'user-1', isActive: false, status: PolicyStatus.APPROVED })).toBe(false);
+    expect(retiredBySeed({ deletedAt: at, deletedById: null, isActive: false, status: PolicyStatus.ARCHIVED })).toBe(false);
+    expect(retiredBySeed({ deletedAt: null, deletedById: null, isActive: false, status: PolicyStatus.APPROVED })).toBe(false);
+    expect(retiredBySeed({ deletedAt: null, deletedById: null, isActive: true, status: PolicyStatus.APPROVED })).toBe(false);
   });
 
   it('the rule', () => {

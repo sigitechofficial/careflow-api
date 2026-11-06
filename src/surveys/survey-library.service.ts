@@ -1,3 +1,5 @@
+import { lookupOptionGroups } from './survey-lookup-options';
+import { readOptionGroups } from './survey-platform.util';
 import {
   BadRequestException,
   ForbiddenException,
@@ -172,7 +174,8 @@ export class SurveyLibraryService {
       this.policyTitles(meta.relatedPolicies),
       this.organisationName(),
     ]);
-    const sections = this.sectionsOf(row, meta);
+    // List questions (ethnicity …) show the organisation's own list, as the answer form does.
+    const sections = await this.withListOptions(this.sectionsOf(row, meta), row.questions);
     return {
       data: fillDeep(
         {
@@ -760,6 +763,7 @@ export class SurveyLibraryService {
         /** MULTI_SELECT: answers that cannot be combined with any other ("None of these"). */
         exclusiveOptions: string[];
         commentConfig: CommentSettings | null;
+        answerGroups: Array<{ heading: string; options: string[] }>;
         /** Asked only if the earlier question (its text given) has one of these answers. */
         showIf: (ShowIfSettings & { questionText: string | null }) | null;
       }>;
@@ -790,12 +794,34 @@ export class SurveyLibraryService {
         otherOption: readOtherOption(q.otherOption),
         exclusiveOptions: readExclusiveOptions(q.exclusiveOptions),
         commentConfig: readCommentConfig(q.commentConfig),
-
+        /** Headings over the answer choices, as the answer form shows them. */
+        answerGroups: readOptionGroups((q as { optionGroups?: unknown }).optionGroups ?? null),
         showIf: showIfWithText(readShowIf(q.showIf), textByKey),
       });
 
     }
     return sections;
+  }
+
+  /**
+   * Questions answered from a CareFlow list (ETHNICITY …): the organisation's entries in use, grouped as the
+   * answer form shows them. Other questions are unchanged.
+   */
+  private async withListOptions<S extends { questions: Array<{ id: string; optionsFrom: string | null }> }>(
+    sections: S[],
+    questions: Array<{ id: string; optionsFrom: string | null; options: unknown }>,
+  ): Promise<Array<S & { questions: Array<S['questions'][number] & { optionGroups?: ReturnType<typeof lookupOptionGroups> }> }>> {
+    if (!questions.some((q) => q.optionsFrom)) return sections;
+    const filled = await withLookupOptions(this.prisma, questions.map((q) => ({ id: q.id, optionsFrom: q.optionsFrom, options: q.options })));
+    const byId = new Map<string, { options: string[]; optionGroups: ReturnType<typeof lookupOptionGroups> }>();
+    for (const q of filled) {
+      const entries = (q as { lookupEntries?: Parameters<typeof lookupOptionGroups>[0] }).lookupEntries;
+      if (entries) byId.set(q.id, { options: (q.options as string[]) ?? [], optionGroups: lookupOptionGroups(entries) });
+    }
+    return sections.map((s) => ({
+      ...s,
+      questions: s.questions.map((q) => (byId.has(q.id) ? { ...q, ...byId.get(q.id)! } : q)),
+    }));
   }
 
   /** Titles of related policies, from the ready-made policies (catalogue documents LIB-POL-…). */
