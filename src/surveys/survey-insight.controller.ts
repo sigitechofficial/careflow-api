@@ -64,8 +64,8 @@ export class SurveyInsightController {
   @Put('scoring')
   @Permissions('surveys.manage')
   @ApiOperation({ summary: 'Set (or remove) the scales a survey is scored on' })
-  saveScoring(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string, @Body() body: { scoring?: unknown }, @Req() req: Request) {
-    return this.insight.saveScoring(user, surveyId, body?.scoring ?? null, getRequestAuditMeta(req));
+  saveScoring(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string, @Body() body: { scoring?: unknown; unlockReason?: unknown }, @Req() req: Request) {
+    return this.insight.saveScoring(user, surveyId, body?.scoring ?? null, getRequestAuditMeta(req), body?.unlockReason);
   }
 }
 

@@ -9,7 +9,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { POSITIVE_SCALES, questionResult, type MetricsQuestion } from '../cqc-evidence/cqc-survey-metrics.util';
 import { keyQuestionPrefix } from '../cqc-evidence/cqc-statement-match.util';
 import { SurveysService } from './surveys.service';
-import { RESULTS_RESTRICTED, RESPONSES_RESTRICTED, surveyAccessFor, type SurveyAccess } from './survey-access';
+import { RESULTS_RESTRICTED, RESPONSES_RESTRICTED, isAdminActor, surveyAccessFor, type SurveyAccess } from './survey-access';
 import { isAnsweredWithoutName, offersAnswerWithoutName, withoutNameAnswersHeldBack } from './survey-respondent-anonymity.util';
 import {
   OTHER_BRANCHES_KEY,
@@ -430,7 +430,11 @@ export class SurveyInsightService {
   async themes(actor: RequestUser, surveyId: string) {
     const { survey, access } = await this.requireResults(actor, surveyId);
     const owner = await this.ownerOf(survey);
-    const units = await this.shownUnits(owner, await this.unitsOf(survey), access.threshold);
+    const allUnits = await this.shownUnits(owner, await this.unitsOf(survey), access.threshold);
+    // As the heatmap: one period at a time ("fewer than 3" in one period could otherwise be subtracted from a total).
+    const latest = allUnits.filter((u) => !u.hidden).at(-1) ?? null;
+    const units = allUnits.length > 1 ? (latest ? [latest] : []) : allUnits;
+    const period = allUnits.length > 1 && latest ? { id: latest.unit.id, label: this.unitLabel(owner, latest.unit) } : null;
     const { responses, questions } = await this.unitAnswers(owner, units);
     const min = Math.max(MIN_ANONYMOUS_GROUP_SIZE, access.threshold);
     const all: string[] = [];
@@ -465,18 +469,24 @@ export class SurveyInsightService {
               .sort((a, b) => a.sortOrder - b.sortOrder)
               .map((l) => ({ questionText: l.questionText, writtenAnswers: l.texts.length, themes: shape(l.texts) }))
           : [],
-        note: enough
+        period,
+        note: (period ? `Showing ${period.label}, the latest period that can be shown; open a period's own results for its themes. ` : '') + (enough
           ? `Counted inside CareFlow from the words people used; no written answer is sent anywhere. A theme mentioned fewer than ${THEME_MIN_COUNT} times shows as "fewer than ${THEME_MIN_COUNT}".`
-          : `Themes show once at least ${min} written answers can be counted${this.unlinkedPossible(owner) ? ' and the survey (or period) has closed' : ''}, so nobody can be identified.`,
-        unitsLeftOut: units.filter((u) => u.hidden).length,
+          : `Themes show once at least ${min} written answers can be counted${this.unlinkedPossible(owner) ? ' and the survey (or period) has closed' : ''}, so nobody can be identified.`),
+        unitsLeftOut: allUnits.filter((u) => u.hidden).length,
       },
     };
   }
 
   // ─── Response quality ───────────────────────────────────────────────────
 
-  private qualityOf(responses: Awaited<ReturnType<SurveyInsightService['unitAnswers']>>['responses'], questions: Map<string, QuestionRow>) {
-    const dup = duplicateIds(responses);
+  private qualityOf(
+    responses: Awaited<ReturnType<SurveyInsightService['unitAnswers']>>['responses'],
+    questions: Map<string, QuestionRow>,
+    /** Units whose responses may be compared for duplicates (shown units only: never an open anonymous period). */
+    duplicateUnits?: ReadonlySet<string>,
+  ) {
+    const dup = duplicateIds(duplicateUnits ? responses.filter((r) => duplicateUnits.has(r.surveyId)) : responses);
     const flags = new Map<string, QualityFlag[]>();
     for (const r of responses) {
       const f = new Set<QualityFlag>(readQualityFlags(r.qualityFlags));
@@ -514,10 +524,13 @@ export class SurveyInsightService {
     const { survey, access } = await this.requireResults(actor, surveyId);
     if (!access.responses) throw new ForbiddenException(RESPONSES_RESTRICTED);
     const owner = await this.ownerOf(survey);
-    // Every unit (open ones too): the response list shows them already.
-    const units: ShownUnit[] = (await this.unitsOf(survey)).map((unit) => ({ unit, figures: null as never, hidden: null }));
+    // Every unit (open ones too): the response list shows them already. Duplicates are compared only within units
+    // that can be shown (a match on an open anonymous period would date an answer against another).
+    const allUnits = await this.unitsOf(survey);
+    const units: ShownUnit[] = allUnits.map((unit) => ({ unit, figures: null as never, hidden: null }));
+    const shownIds = new Set((await this.shownUnits(owner, allUnits, access.threshold)).filter((u) => !u.hidden).map((u) => u.unit.id));
     const { responses, questions } = await this.unitAnswers(owner, units);
-    const flags = this.qualityOf(responses, questions);
+    const flags = this.qualityOf(responses, questions, shownIds);
     return {
       message: 'Response quality flags',
       data: [...flags].map(([responseId, f]) => ({ responseId, flags: f.map((flag) => ({ flag, label: QUALITY_FLAG_LABELS[flag] })) })),
@@ -558,10 +571,20 @@ export class SurveyInsightService {
     };
   }
 
-  async saveScoring(actor: RequestUser, surveyId: string, input: unknown, meta?: RequestAuditMeta) {
+  async saveScoring(actor: RequestUser, surveyId: string, input: unknown, meta?: RequestAuditMeta, unlockReasonInput?: unknown) {
     const survey = await this.surveys.visibleSurvey(actor, surveyId);
     if (!survey) throw new NotFoundException('Survey not found');
     if (survey.clonedFromId) throw new BadRequestException('Scores are set on the repeating survey, not on one period.');
+    // Locked once anyone has answered (the survey or any period): changing scales or bands afterwards would change
+    // what earlier figures meant. Admins may unlock with a reason (audited); otherwise change it on the next copy.
+    const answered =
+      (await this.prisma.surveyResponse.count({ where: { survey: { OR: [{ id: surveyId }, { clonedFromId: surveyId }] } } })) +
+      (await this.prisma.surveyPendingResponse.count({ where: { survey: { OR: [{ id: surveyId }, { clonedFromId: surveyId }] } } }));
+    const unlockReason = typeof unlockReasonInput === 'string' ? unlockReasonInput.trim() : '';
+    if (answered > 0) {
+      if (!isAdminActor(actor)) throw new ForbiddenException('Scores are locked once people have answered. Change them on the next copy of the survey, or ask an admin.');
+      if (unlockReason.length < 5 || unlockReason.length > 300) throw new BadRequestException('Scores are locked once people have answered. Give the reason for changing them (5 to 300 characters).');
+    }
     const questions = await this.prisma.surveyQuestion.findMany({
       where: { surveyId, deletedAt: null },
       select: { id: true, key: true, questionType: true, options: true, config: true },
@@ -575,7 +598,10 @@ export class SurveyInsightService {
       recordType: 'Survey',
       recordId: surveyId,
       description: scoring ? `Survey scoring set (${scoring.scales.length} scale${scoring.scales.length === 1 ? '' : 's'})` : 'Survey scoring removed',
-      newValues: { scales: scoring?.scales.map((s) => ({ key: s.key, label: s.label, method: s.method, questions: s.questionKeys.length })) ?? [] },
+      newValues: {
+        scales: scoring?.scales.map((s) => ({ key: s.key, label: s.label, method: s.method, questions: s.questionKeys.length })) ?? [],
+        ...(answered > 0 ? { unlockedAfterAnswers: true, reason: unlockReason } : {}),
+      },
       ...(meta ?? {}),
     });
     return { message: scoring ? 'Scoring saved' : 'Scoring removed', data: { scoring } };
@@ -856,7 +882,8 @@ export function combineScaleResults(scales: ReadonlyArray<{ key: string; bands: 
     const parts = perUnit.map((u) => u.find((s) => s.key === key)).filter((s): s is NonNullable<typeof s> => Boolean(s));
     const first = parts[0];
     const people = parts.reduce((n, s) => n + s.people, 0);
-    const sum = parts.reduce((n, s) => n + (s.average ?? 0) * s.people, 0);
+    // From the unrounded sums (a share of the most is rounded only once, at the end).
+    const sum = parts.reduce((n, s) => n + s.sum, 0);
     const average = people ? Math.round((sum / people) * 100) / 100 : null;
     const bandsShown = parts.length > 0 && parts.every((p) => p.bands !== null);
     const bands = bandsShown
@@ -870,6 +897,7 @@ export function combineScaleResults(scales: ReadonlyArray<{ key: string; bands: 
       average: average === null ? null : first?.method === 'PERCENT_OF_MAX' ? Math.round(average) : average,
       band: average === null ? null : bandOf(bandList, average),
       bands,
+      sum,
     };
   });
 }

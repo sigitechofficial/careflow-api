@@ -690,7 +690,10 @@ export class SurveyActionsService {
         period: period ? { id: period.id, title: period.title, opensAt: period.opensAt?.toISOString() ?? null, closesAt: period.closesAt?.toISOString() ?? null } : null,
         generatedOn: day(new Date()),
         threshold: access.threshold,
-        participation: { sentTo: p.sentTo, answered: p.answered, responseRate: p.responseRate, inFigures: shown ? counted : null },
+        // A repeating survey: the periods' answers that can be shown (each period's own figures are on its pack).
+        participation: isSeries
+          ? { sentTo: null, answered: counted, responseRate: null, inFigures: shown ? counted : null }
+          : { sentTo: p.sentTo, answered: p.answered, responseRate: p.responseRate, inFigures: shown ? counted : null },
         figuresShown: shown,
         figuresNote: shown ? null : 'Too few answers to show figures, or not closed yet where answers can be linked to no one.',
         headline: shown && !isSeries ? (figures.headline ?? null) : null,

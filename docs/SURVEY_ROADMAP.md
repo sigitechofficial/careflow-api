@@ -88,16 +88,16 @@ Legend: **Have**, **Partly**, **No**. Phase in the last column.
 | Benchmarks against other organisations | SurveyMonkey, Activated Insights | No | Anonymised sector benchmarks for ready-made surveys, opt-in with a data-sharing agreement | 3 |
 | Outcome measure (quality of life), not only satisfaction | ASCOT (national survey) | No | ASCOT under licence; report alongside satisfaction | 3 (licence first) |
 | Cross-survey 360 view (people, families, staff, professionals) | Qualtrics XM | **Have** (Phase 2 part 5, by CQC key question) | One report combining the annual surveys by key question | 2 |
-| Reports for CQC and commissioners, ready to share | QCS (CQC-linked) | Partly (CQC evidence capture) | One-click summary pack per period: participation, headlines, trends, actions taken, "You said, we did" | 2 |
+| Reports for CQC and commissioners, ready to share | QCS (CQC-linked) | **Have** (Phase 2 part 6: printable pack per survey or period) | One-click summary pack per period: participation, headlines, trends, actions taken, "You said, we did" | 2 |
 
 ### 3.4 Acting on results
 | Capability | Seen in | CareFlow | Build | Phase |
 |---|---|---|---|---|
 | **Alert rules that create tasks or cases with a due time** | Qualtrics closed-loop ticketing, Radar | No. Every ready-made survey lists alerts that staff action by hand | **Highest value.** Each library alert becomes a rule: answer → task for the named role, policy timescale, link to the complaint / safeguarding / incident record. Anonymous answers never identify anyone. | 1–2 |
 | Follow-up list for people who asked to be contacted | iWantGreatCare (reply online), Qualtrics | Partly (listed, notes on recorded responses) | Owner, due date, outcome, overdue view | 1–2 |
-| Action plans from results, tracked to completion | QCS, Culture Amp (community action plans) | No | Actions linked to the result that raised them; feeds the planned "Action plans and evidence" area and CQC evidence | 2 |
-| "You said, we did" to respondents and staff | Research evidence; providers publish annual results | No | Publish a summary to the portal, staff app and a printable letter | 2 |
-| Team discussion record | Ward feedback trial | No | Record when results were discussed with staff and what was agreed | 2 |
+| Action plans from results, tracked to completion | QCS, Culture Amp (community action plans) | **Have** (Phase 2 part 6: role tasks, CQC evidence) | Actions linked to the result that raised them; feeds the planned "Action plans and evidence" area and CQC evidence | 2 |
+| "You said, we did" to respondents and staff | Research evidence; providers publish annual results | **Have** (Phase 2 part 6: portal, carer app, letter, public page) | Publish a summary to the portal, staff app and a printable letter | 2 |
+| Team discussion record | Ward feedback trial | **Have** (Phase 2 part 6) | Record when results were discussed with staff and what was agreed | 2 |
 
 ### 3.5 Trust, safety and compliance
 | Capability | Seen in | CareFlow | Build | Phase |
@@ -263,6 +263,18 @@ Phase 2 part 5 (insight: trends, pooling, heatmap, themes, safeguarding words, q
 | Scores and bands | A band holding one or two people singling them out. | Scores show only from the threshold up; the people in each band are listed only when every band shown has at least 3 (`survey-insight.spec` "lists bands only when each holds at least 3 people"). |
 | Role dashboards | Counts or rates on surveys the viewer may not see; a rate ticking on an anonymous survey. | Branch scope and per-survey results access as everywhere; response rates only where counts are visible (else "Limited"); alerts as counts; work queues only for people who manage surveys (`SurveyInsight.test` "the dashboard"). |
 | 360 report | A small audience's figures shown beside the others. | Each audience's year unit follows the unit rules (threshold; closed where unlinked); key questions from the library section evidence; no written answers (`SurveyInsight.test` "the 360 report"). |
+
+Phase 2 part 6 (acting on results: actions, team discussions, "You said, we did", the CQC and commissioner pack), checked the same way:
+
+| Feature | Risk looked at | What stops it (and the test that proves it) |
+|---|---|---|
+| Actions from results | An action's source quoting an answer, or a figure the person raising it could not see; its task naming the person or the survey to everyone who manages role tasks. | The source label is built by the API from the figures engine (the figure as Results shows it), never typed or copied from answers; an action can't be raised from a figure that is not shown. The task (RoleTask SURVEY_ACTION) is generic when the survey's answers are limited or it is anonymous, is hidden from task lists of people without results access, and is closed only on the action, saying what was done. Audit rows hold source, dates and role, never the title or answers (`survey-actions.spec` "raises an action as a role task that names no one", "refuses an action from a figure that is not shown"). |
+| Actions feeding CQC evidence | Duplicated or lost "You said, we did" on the evidence; typed entries overwritten. | A done action's own entry (actionId) is replaced or removed as the action changes; entries typed on the evidence are kept and never repeated (`survey-actions.spec` "closing needs what was done; then CQC evidence…"). |
+| Team discussion record | Names of people who answered written into the record. | A manager's record (results access to read, surveys.manage to add); the form says not to name anyone who answered; audited as day, kind and attendee count only. |
+| "You said, we did" | A quote from a written answer pointing to who wrote it; a figure shown before it may be; a staff survey shown to people we support (or the reverse); a withdrawn summary still reachable. | Any item repeating 8 or more words in a row from a written answer is refused, checked again at publishing; the headline is kept only when the figures engine would show it; staff surveys go to the carer app only, people we support and family surveys to the portal only; the portal and app lists are by branch; withdrawing removes it from every channel and ends the public link; the public page has no names, no answers and a throttle (`survey-actions.spec` "refuses a quote from a written answer", "the public page shows only a published summary", "the portal lists summaries for the person’s branch"). |
+| CQC and commissioner pack | Figures below the threshold or from an open anonymous survey in a document that leaves CareFlow; staff named outside the organisation; the pack leaving without a trace. | Every figure from the figures engine under the viewer's threshold (a repeating survey pools only periods that can be shown); no written answers, themes as counts; owners as roles only; opening it is audited as an export (kind PACK) (`survey-actions.spec` "the pack is audited as an export, names owners by role only, and hides figures of an open anonymous survey"). |
+
+Part 5 review decisions (November 2026): themes and the heatmap on repeating surveys show the latest period that can be shown (nothing to subtract); duplicate flags compare only periods that can be shown; scores are locked once anyone has answered (an admin can change them with a reason, audited; otherwise change them on the next copy); drafts with no opening date or period key belong to no year (`survey-insight.spec` "review fixes (part 5, second round)").
 
 Known limits, said plainly: one-answer-per-device can be beaten with another device or by clearing the browser;
 the per-link limit is per server. Results show the burst caution for that reason.

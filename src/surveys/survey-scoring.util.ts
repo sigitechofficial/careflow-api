@@ -110,6 +110,8 @@ export type ScaleResult = {
   band: string | null;
   /** How many people fell in each band; null when any band shown would hold fewer than SCORE_BAND_MIN. */
   bands: Array<{ label: string; people: number }> | null;
+  /** The sum of the people's scores, unrounded: units are combined from this, never from rounded averages. */
+  sum: number;
 };
 
 /** Every scale's result over the responses (each a map of question id → answer). */
@@ -121,7 +123,8 @@ export function scoreScales(
   const byKey = new Map(questions.filter((q) => q.key).map((q) => [q.key as string, q]));
   return scoring.scales.map((scale) => {
     const scores = responses.map((r) => personScaleScore(scale, byKey, r)).filter((s): s is number => s !== null);
-    const average = scores.length ? Math.round((scores.reduce((n, s) => n + s, 0) / scores.length) * 100) / 100 : null;
+    const sum = scores.reduce((n, s) => n + s, 0);
+    const average = scores.length ? Math.round((sum / scores.length) * 100) / 100 : null;
     let bands: ScaleResult['bands'] = null;
     if (scale.bands.length && scores.length) {
       const counts = new Map<string, number>();
@@ -140,6 +143,7 @@ export function scoreScales(
       average: average === null ? null : scale.method === 'PERCENT_OF_MAX' ? Math.round(average) : average,
       band: average === null ? null : bandOf(scale.bands, average),
       bands,
+      sum,
     };
   });
 }

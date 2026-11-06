@@ -328,3 +328,62 @@ describe('review fixes (part 5)', () => {
     expect(out.note).toMatch(/^Showing Feb 2026/);
   });
 });
+
+describe('review fixes (part 5, second round)', () => {
+  const textResp = (i: number, unit: string, text: string) => ({ id: `${unit}-r${i}`, surveyId: unit, locationId: null, isAnonymous: false, channel: 'ONLINE', qualityFlags: [], answers: [{ questionId: `q-${unit}`, textValue: text, selectedOptions: null, booleanValue: null, numberValue: null, otherText: null, comment: null }] });
+  const textQ = (unit: string) => ({ id: `q-${unit}`, surveyId: unit, key: 'q', questionText: 'Anything else?', questionType: 'TEXTAREA', options: null, config: null, sectionTitle: null, sortOrder: 0, optionsFrom: null });
+
+  it('themes on a repeating survey come from the latest period that can be shown only (nothing to subtract)', async () => {
+    const periods = [
+      survey({ id: 'p1', clonedFromId: 's1', title: 'Pulse — Jan 2026', status: 'CLOSED' }),
+      survey({ id: 'p2', clonedFromId: 's1', title: 'Pulse — Feb 2026', status: 'CLOSED' }),
+      survey({ id: 'p3', clonedFromId: 's1', title: 'Pulse — Mar 2026', status: 'ACTIVE' }),
+    ];
+    const { service, prisma } = setup({ periods, figures: { p1: figures(6), p2: figures(6), p3: figures(9) }, responses: [], questions: [textQ('p2')] });
+    const out = (await service.themes({ id: 'u', permissions: [] } as any, 's1')).data;
+    expect(prisma.surveyResponse.findMany.mock.calls[0][0].where.surveyId.in).toEqual(['p2']);
+    expect(out.period).toEqual({ id: 'p2', label: 'Feb 2026' });
+  });
+
+  it('duplicates are compared only within periods that can be shown, never an open anonymous one', async () => {
+    const periods = [survey({ id: 'p1', clonedFromId: 's1', status: 'CLOSED' }), survey({ id: 'p2', clonedFromId: 's1', status: 'ACTIVE' })];
+    const same = 'The carers are wonderful and very kind people';
+    const answers = (unit: string, i: number) => ({
+      ...textResp(i, unit, same),
+      answers: [
+        ...Array.from({ length: 4 }, (_, k) => ({ questionId: `s${k}`, selectedOptions: ['Agree'], booleanValue: null, textValue: null, numberValue: null, otherText: null, comment: null })),
+        { questionId: 't', textValue: same, selectedOptions: null, booleanValue: null, numberValue: null, otherText: null, comment: null },
+      ],
+    });
+    const { service } = setup({ periods, figures: { p1: figures(6), p2: figures(6) }, responses: [answers('p1', 1), answers('p2', 2)] });
+    access.mockResolvedValue({ results: true, responses: true, threshold: 5 });
+    const flags = (await service.responseFlags({ id: 'u', permissions: [] } as any, 's1')).data;
+    expect(flags.some((f: any) => f.flags.some((x: any) => x.flag === 'DUPLICATE'))).toBe(false);
+  });
+
+  it('a share of the most is combined from unrounded sums, then rounded once', () => {
+    const scale = { key: 'a', bands: [] };
+    const unit = (people: number, sum: number) => [{ key: 'a', label: 'Audit', method: 'PERCENT_OF_MAX' as const, people, average: Math.round(sum / people), band: null, bands: null, sum }];
+    // 1 person at 66.6 and 2 at 66.6 each: 66.6 overall, not (67 + 67*2)/3.
+    expect(combineScaleResults([scale], [unit(1, 66.4), unit(2, 133.2)])[0].average).toBe(67);
+    expect(combineScaleResults([scale], [unit(2, 101), unit(2, 0)])[0].average).toBe(25);
+  });
+
+  it('a draft with no opening date or period key belongs to no year', () => {
+    expect(unitYear({ createdAt: new Date('2026-03-01') })).toBeNull();
+  });
+
+  it('scores are locked once anyone has answered; an admin unlocks with a reason, audited', async () => {
+    const { service, prisma } = setup({ periods: [], figures: {} });
+    prisma.surveyResponse.count.mockResolvedValue(3);
+    prisma.surveyPendingResponse = { count: jest.fn().mockResolvedValue(0) };
+    prisma.surveyQuestion.findMany.mockResolvedValue([{ id: 'q', key: 'k', questionType: 'LIKERT', options: null, config: null }]);
+    prisma.survey.update = jest.fn();
+    const scoring = { scales: [{ label: 'Demands', questionKeys: ['k'], method: 'MEAN' }] };
+    await expect(service.saveScoring({ id: 'u', roles: ['manager'], permissions: ['surveys.manage'] } as any, 's1', scoring)).rejects.toThrow(/locked once people have answered/);
+    await expect(service.saveScoring({ id: 'u', roles: ['Admin'], permissions: [] } as any, 's1', scoring)).rejects.toThrow(/Give the reason/);
+    const audit = (service as any).audit;
+    await service.saveScoring({ id: 'u', roles: ['Admin'], permissions: [] } as any, 's1', scoring, undefined, 'Wrong band in the HSE tool');
+    expect(audit.logAudit.mock.calls.at(-1)[0].newValues).toMatchObject({ unlockedAfterAnswers: true, reason: 'Wrong band in the HSE tool' });
+  });
+});

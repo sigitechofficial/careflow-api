@@ -106,7 +106,8 @@ export function unitYear(u: { opensAt?: Date | string | null; periodKey?: string
   const from = (v: Date | string | null | undefined) => (v ? new Date(v).getUTCFullYear() : null);
   const key = u.periodKey?.match(/^(\d{4})/);
   // The period it covers wins (a February period can be made, and open, in the January before).
-  return (key ? Number(key[1]) : null) ?? from(u.opensAt) ?? from(u.createdAt);
+  // A draft with neither (never opened, no period) belongs to no year: it is left out of years and the 360 report.
+  return (key ? Number(key[1]) : null) ?? from(u.opensAt);
 }
 
 // ─── Branch heatmap: small-group suppression ─────────────────────────────
