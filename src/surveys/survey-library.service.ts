@@ -682,6 +682,8 @@ export class SurveyLibraryService {
       audienceGroup: row.audienceGroup ?? null,
       // Section introductions come from the library (libraryMeta.sections); the survey's own start empty.
       sectionIntros: Prisma.JsonNull,
+      // A scored measure keeps its scales (question keys are kept on the copy).
+      scoring: row.scoring ?? Prisma.JsonNull,
     };
   }
 

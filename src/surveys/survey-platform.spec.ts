@@ -171,7 +171,7 @@ describe('answer retention', () => {
   it('every ready-made notice: the period and its starting point (from the answer for calls, reviews and conversations)', () => {
     const byRef = new Map<string, ReturnType<typeof parseRetentionNotice>>();
     for (const f of loadSurveyLibrary()) for (const s of f.surveys) byRef.set(s.reference, surveyLibraryMeta(s, f.group).retention);
-    expect(byRef.size).toBe(56);
+    expect(byRef.size).toBe(57);
     const fromAnswer = [...byRef].filter(([, r]) => r?.basis === 'FROM_ANSWER').map(([k]) => k).sort();
     expect(fromAnswer).toEqual(
       ['SUR-FAM-002', 'SUR-FAM-005', 'SUR-PWS-001', 'SUR-PWS-002', 'SUR-PWS-006', 'SUR-PWS-007', 'SUR-PWS-009', 'SUR-PWS-020', 'SUR-STF-017', 'SUR-STF-022'].sort(),
@@ -565,7 +565,7 @@ describe('wording checker: one idea per question', () => {
         const qs = surveyQuestionRows(s).map((q, i) => ({ id: String(i), questionText: q.questionText, questionType: q.questionType, options: q.options, config: q.config, isRequired: q.isRequired }));
         problems += checkWording({ description: surveyDescription(s), isAnonymous: Boolean(s.anonymous) }, qs).filter((x) => x.severity === 'PROBLEM').length;
       }
-    expect(n).toBe(56);
+    expect(n).toBe(57);
     expect(problems).toBe(0);
   });
 });

@@ -283,6 +283,17 @@ describe('SurveyLibraryService', () => {
     expect((await newer.service.forTemplate(leedsManager, 'tpl-1')).data).toMatchObject({ updateAvailable: true });
   });
 
+  it('a scored measure keeps its scales on the adopted template (none: no scoring)', async () => {
+    const scoring = { scales: [{ key: 'quality-of-life', label: 'Quality of life score', questionKeys: ['q-life'], reversed: [], method: 'MEAN', bands: [] }] };
+    const { service, prisma } = setup();
+    prisma.survey.findMany.mockImplementation(async (args: any) => (args.where.isCatalogue === true ? [{ ...catalogue(), scoring }] : []));
+    await service.adopt(admin, ['lib-1']);
+    expect(prisma.survey.create.mock.calls[0][0].data.scoring).toEqual(scoring);
+    const plain = setup();
+    await plain.service.adopt(admin, ['lib-1']);
+    expect(plain.prisma.survey.create.mock.calls[0][0].data.scoring).toBe(Prisma.JsonNull);
+  });
+
   it('adopt and apply-update carry whether people may answer without their name', async () => {
     const { service, prisma } = setup();
     prisma.survey.findMany.mockImplementation(async (args: any) =>

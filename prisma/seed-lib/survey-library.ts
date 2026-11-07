@@ -103,6 +103,68 @@ export type LibrarySurveySection = {
   questions: LibrarySurveyQuestion[];
 };
 export type LibrarySource = { source: string; url: string };
+export type LibrarySurveyScoring = {
+  scales: Array<{ key: string; label: string; questions: string[]; reversed?: string[]; method?: 'MEAN' | 'PERCENT_OF_MAX'; bands: Array<{ from: number; label: string }> }>;
+};
+const SCORED_TYPES = ['LIKERT', 'SINGLE_SELECT', 'RATING', 'YES_NO'];
+const SCALE_KEY = /^[a-z][a-z0-9-]{1,39}$/;
+
+/** Problems with a survey's scoring (questions by id, scorable, bands in order). */
+export function scoringProblems(s: LibrarySurvey, at: string): string[] {
+  const sc = s.scoring as unknown;
+  if (sc === undefined) return [];
+  const errors: string[] = [];
+  const scales = (sc as { scales?: unknown })?.scales;
+  if (!Array.isArray(scales) || !scales.length || scales.length > 12) return [`${at}: scoring.scales must list 1 to 12 scales`];
+  for (const k of Object.keys(sc as object)) if (k !== 'scales') errors.push(`${at}: scoring has an unknown field "${k}"`);
+  const byId = new Map(surveyQuestions(s).filter((q) => q.id).map((q) => [q.id as string, q]));
+  const keys = new Set<string>();
+  for (const [i, raw] of scales.entries()) {
+    const x = raw as Record<string, unknown>;
+    const sat = `${at}: scoring scale ${i + 1}`;
+    for (const k of Object.keys(x ?? {})) if (!['key', 'label', 'questions', 'reversed', 'method', 'bands'].includes(k)) errors.push(`${sat} has an unknown field "${k}"`);
+    if (typeof x?.key !== 'string' || !SCALE_KEY.test(x.key)) errors.push(`${sat}: key must be lower-case letters, digits and hyphens`);
+    else if (keys.has(x.key)) errors.push(`${sat}: key "${x.key}" is used twice`);
+    else keys.add(x.key);
+    if (typeof x?.label !== 'string' || !x.label.trim() || x.label.length > 80) errors.push(`${sat}: label must be 1–80 characters`);
+    const qs = Array.isArray(x?.questions) ? (x.questions as unknown[]) : [];
+    if (!qs.length) errors.push(`${sat}: questions must name at least one question id`);
+    for (const id of qs) {
+      const q = typeof id === 'string' ? byId.get(id) : undefined;
+      if (!q) errors.push(`${sat}: "${String(id)}" is not a question id in this survey`);
+      else if (!SCORED_TYPES.includes(q.type)) errors.push(`${sat}: "${id}" is ${q.type}; only ${SCORED_TYPES.join(', ')} questions score`);
+      else if (q.showIf) errors.push(`${sat}: "${id}" is asked only sometimes; scored questions are asked of everyone`);
+    }
+    const rev = x?.reversed === undefined ? [] : Array.isArray(x.reversed) ? (x.reversed as unknown[]) : null;
+    if (!rev || rev.some((r) => !qs.includes(r))) errors.push(`${sat}: reversed must list only questions on this scale`);
+    if (x?.method !== undefined && x.method !== 'MEAN' && x.method !== 'PERCENT_OF_MAX') errors.push(`${sat}: method must be MEAN or PERCENT_OF_MAX`);
+    const bands = Array.isArray(x?.bands) ? (x.bands as Array<Record<string, unknown>>) : null;
+    if (!bands || !bands.length || bands.length > 6) errors.push(`${sat}: bands must list 1 to 6 bands`);
+    else {
+      bands.forEach((b, j) => {
+        if (typeof b?.from !== 'number' || !Number.isFinite(b.from)) errors.push(`${sat}: band ${j + 1} needs a number "from"`);
+        if (typeof b?.label !== 'string' || !b.label.trim() || b.label.length > 60) errors.push(`${sat}: band ${j + 1} label must be 1–60 characters`);
+        if (j > 0 && typeof b?.from === 'number' && typeof bands[j - 1]?.from === 'number' && b.from <= (bands[j - 1].from as number)) errors.push(`${sat}: bands must go from the lowest "from" up`);
+      });
+    }
+  }
+  return errors;
+}
+
+/** The scoring as CareFlow stores it on the survey (Survey.scoring): question ids become question keys. */
+export function surveyScoringRow(s: LibrarySurvey) {
+  if (!s.scoring) return null;
+  return {
+    scales: s.scoring.scales.map((x) => ({
+      key: x.key,
+      label: x.label,
+      questionKeys: x.questions,
+      reversed: x.reversed ?? [],
+      method: x.method ?? 'MEAN',
+      bands: [...x.bands].sort((a, b) => a.from - b.from),
+    })),
+  };
+}
 /** An alert in words; `rule` (optional) makes it a task when the answers match (see survey-alert-rules.ts). */
 /**
  * An alert in words; `rule` (optional) makes it a task when the answers match (see survey-alert-rules.ts).
@@ -213,6 +275,13 @@ export type LibrarySurvey = {
    * instead (`to`), or null when nothing replaces it. Kept for good.
    */
   answerChanges?: Array<{ question: string; from: string; to: string | null; revision: number }>;
+  /**
+   * Optional scores (a scored measure, e.g. SUR-PWS-021): each scale averages its questions' answers (best
+   * answer highest; `reversed` the other way round), shown with Results under the reporting threshold. Questions
+   * are named by `id`; only LIKERT, SINGLE_SELECT, RATING and YES_NO questions score. Bands go from the lowest
+   * `from` up. Copied to the adopted template (src/surveys/survey-scoring.util.ts reads it).
+   */
+  scoring?: LibrarySurveyScoring;
   /**
    * Named surveys only: an anonymous version an organisation can choose instead at New survey (then
    * fixed). It has its own introduction and privacy notice. The contact-me question (and its own
@@ -1401,6 +1470,7 @@ export function validateLibrarySurvey(value: unknown, name: string, opts: Valida
     errors.push(`${at}: retiredQuestions and answerChanges are for surveys already released; before release just change the questions`);
   }
   if (survey.anonymousVariant !== undefined) errors.push(...anonymousVariantProblems(survey, at, opts));
+  errors.push(...scoringProblems(survey, at));
   return errors;
 }
 

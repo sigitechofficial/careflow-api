@@ -1432,6 +1432,8 @@ export class SurveysService {
           ? { audienceGroup: source.audienceGroup ?? null, audienceGroupOther: source.audienceGroupOther ?? null }
           : {}),
         sectionIntros: sectionIntrosForCopy(source),
+        // Scores go with the questions (a copy keeps the question keys they name).
+        scoring: source.scoring ?? Prisma.JsonNull,
         // Who may see the answers goes with it (a ready-made default stays a default).
         accessPolicy: source.accessPolicy ?? Prisma.JsonNull,
         reportingThreshold: source.reportingThreshold ?? null,

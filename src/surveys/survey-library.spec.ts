@@ -19,6 +19,7 @@ import {
   surveyLibraryMeta,
   anonymousVariantOf,
   surveyQuestionRows,
+  surveyScoringRow,
   validateLibrarySurvey,
   type LibrarySurvey,
   type LibrarySurveyQuestion,
@@ -119,6 +120,21 @@ const withQuestion = (question: LibrarySurveyQuestion, over: Partial<LibrarySurv
 const STAFF = { reference: 'SUR-STF-001', audience: 'EMPLOYEE' as const, channels: ['ONLINE' as const] };
 
 describe('survey library validator', () => {
+  it('checks a scored measure: question ids that score, asked of everyone, bands in order', () => {
+    const scored = (scoring: unknown, extra: Partial<LibrarySurveyQuestion> = {}) =>
+      withQuestion(q({ id: 'q-life', text: 'Do you feel well in yourself?', type: 'LIKERT', options: ['Always', 'Usually', 'Sometimes', 'Rarely', 'Never'], ...extra }), {
+        scoring,
+      } as Partial<LibrarySurvey>);
+    const good = { scales: [{ key: 'quality-of-life', label: 'Quality of life', questions: ['q-life'], bands: [{ from: 1, label: 'Low' }, { from: 4, label: 'High' }] }] };
+    expect(errorsOf(scored(good))).toBe('');
+    expect(surveyScoringRow(scored(good) as LibrarySurvey)).toEqual({
+      scales: [{ key: 'quality-of-life', label: 'Quality of life', questionKeys: ['q-life'], reversed: [], method: 'MEAN', bands: [{ from: 1, label: 'Low' }, { from: 4, label: 'High' }] }],
+    });
+    const bad = { scales: [{ key: 'Bad Key', label: 'x', questions: ['q-missing', 'q-life'], reversed: ['q-other'], bands: [{ from: 4, label: 'High' }, { from: 1, label: 'Low' }] }] };
+    expect(errorsOf(scored(bad))).toMatch(/key must be lower-case[\s\S]*"q-missing" is not a question id[\s\S]*reversed must list only questions on this scale[\s\S]*bands must go from the lowest/);
+    expect(errorsOf(scored(good, { type: 'TEXT', options: undefined }))).toMatch(/"q-life" is TEXT; only/);
+  });
+
   it('accepts a complete survey', () => {
     expect(validateLibrarySurvey(survey(), 'x.json', { policyReferences: POLICIES })).toEqual([]);
     expect(expectedMinutes(survey())).toBe(4);

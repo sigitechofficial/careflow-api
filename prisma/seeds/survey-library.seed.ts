@@ -4,6 +4,7 @@ import {
   readReleasedLibraryIds,
   surveyDescription,
   surveyLibraryMeta,
+  surveyScoringRow,
   surveyQuestionRows,
   type ReleasedLibraryIds,
   type SurveyLibraryFile,
@@ -104,6 +105,8 @@ export async function seedSurveyLibrary(
         libraryMeta: meta as unknown as Prisma.InputJsonValue,
         audienceGroup: meta.audienceGroup,
         closingMessage: s.closingMessage?.trim() || null,
+        // A scored measure's scales (null clears scoring a revision took away).
+        scoring: (surveyScoringRow(s) as unknown as Prisma.InputJsonValue) ?? Prisma.DbNull,
       };
 
       const existing = await prisma.survey.findFirst({
@@ -140,6 +143,7 @@ export async function seedSurveyLibrary(
         existing.audienceGroup === details.audienceGroup &&
         (existing.closingMessage ?? null) === details.closingMessage &&
         fingerprint(existing.libraryMeta) === fingerprint(meta) &&
+        fingerprint(existing.scoring ?? null) === fingerprint(surveyScoringRow(s)) &&
         fingerprint(existing.questions.map((q) => questionFingerprint(q))) ===
           fingerprint(rows.map((q) => questionFingerprint(q)));
       if (same) {
