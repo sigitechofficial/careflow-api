@@ -1,7 +1,7 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProperty, ApiTags } from '@nestjs/swagger';
 import { ArrayMaxSize, ArrayMinSize, IsArray, IsUUID } from 'class-validator';
-import type { Request } from 'express';
+import type { Request, Response } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { Permissions } from '../common/decorators/permissions.decorator';
@@ -9,6 +9,8 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { PolicyLibraryService } from './policy-library.service';
+import { PolicyExportService } from './policy-export.service';
+import { exportFormat, sendExport } from './policies.controller';
 
 export class AdoptLibraryPoliciesDto {
   @ApiProperty({ type: [String], description: 'Ready-made policy ids to adopt as draft policies' })
@@ -24,7 +26,22 @@ export class AdoptLibraryPoliciesDto {
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('policy-library')
 export class PolicyLibraryController {
-  constructor(private readonly service: PolicyLibraryService) {}
+  constructor(
+    private readonly service: PolicyLibraryService,
+    private readonly exports: PolicyExportService,
+  ) {}
+
+  @Get(':id/export')
+  @Permissions('policies.read')
+  @ApiOperation({ summary: 'Download a ready-made policy as PDF or Word' })
+  async exportPolicy(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Query('format') format: string | undefined,
+    @Res() res: Response,
+  ) {
+    sendExport(res, await this.exports.exportLibraryPolicy(user, id, exportFormat(format)));
+  }
 
   @Get()
   @Permissions('policies.read')

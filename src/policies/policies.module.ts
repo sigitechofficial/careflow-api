@@ -12,6 +12,7 @@ import { PolicyTagsController } from './policy-tags.controller';
 import { PolicyTagsService } from './policy-tags.service';
 import { PolicyLibraryController } from './policy-library.controller';
 import { PolicyLibraryService } from './policy-library.service';
+import { PolicyExportService } from './policy-export.service';
 import { PolicyAcknowledgementsController } from './policy-acknowledgements.controller';
 import { PolicyAcknowledgementsService } from './policy-acknowledgements.service';
 import { PolicyAcknowledgementNotificationsService } from './policy-acknowledgement-notifications.service';
@@ -37,6 +38,7 @@ import { PolicyAcknowledgementRemindersJob } from './policy-acknowledgement-remi
     PolicyCategoriesService,
     PolicyTagsService,
     PolicyLibraryService,
+    PolicyExportService,
     PolicyAcknowledgementsService,
     PolicyAcknowledgementNotificationsService,
     PolicyAcknowledgementRemindersJob,
