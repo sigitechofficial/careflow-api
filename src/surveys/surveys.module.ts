@@ -12,7 +12,7 @@ import { SurveyRemindersService } from './survey-reminders.service';
 import { SurveyTextRepliesService } from './survey-text-replies.service';
 import { SurveyContactRuleService } from './survey-contact-rule.service';
 import { SurveyContactRuleController } from './survey-contact-rule.controller';
-import { SurveyContactPreferencesController, SurveyRemindersController, SurveysToCollectController } from './survey-reminders.controller';
+import { SurveyContactPreferencesController, SurveyRemindersController, SurveysPersonHistoryController, SurveysToCollectController } from './survey-reminders.controller';
 import { SurveysController } from './surveys.controller';
 import { SurveysPublicController } from './surveys-public.controller';
 import { SurveysPortalController } from './surveys-portal.controller';
@@ -96,6 +96,7 @@ import {
     SurveyRemindersController,
     SurveyContactPreferencesController,
     SurveysToCollectController,
+    SurveysPersonHistoryController,
     SurveyContactRuleController,
     SurveyEventTriggersController,
     SurveyOutsidePeopleController,

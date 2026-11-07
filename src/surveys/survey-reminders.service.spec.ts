@@ -386,6 +386,62 @@ describe('SurveyRemindersService — surveys to collect', () => {
   });
 });
 
+describe('SurveyRemindersService — a person’s surveys (their record)', () => {
+  const at = (d: number) => new Date(NOW.getTime() - d * DAY);
+  const answeredRec = {
+    id: 'r9', surveyId: 's1', token: 'tok-9', status: 'COMPLETED', employeeId: 'e1', serviceUserId: null, sentAt: at(10), reminderCount: 1, remindedAt: at(7),
+    response: { id: 'resp1', submittedAt: at(6), channel: 'TELEPHONE', respondentRelation: 'SELF', respondentName: null, recordedById: 'u2' },
+  } as unknown as Rec;
+  const waitingRec = { id: 'r1', surveyId: 's1', token: 'tok-1', status: 'SENT', employeeId: 'e1', serviceUserId: null, sentAt: at(4), reminderCount: 0, remindedAt: null } as unknown as Rec;
+
+  function withHistory(opts: Parameters<typeof setup>[0] = {}) {
+    const t = setup({ recipients: [waitingRec, answeredRec], ...opts });
+    t.prisma.surveyEventOccurrence = {
+      findMany: jest.fn(async () => [{ id: 'o1', surveyId: 's1', event: 'RETURN_FROM_LONG_ABSENCE', eventOn: at(0), dueOn: new Date(NOW.getTime() + 28 * DAY), status: 'WAITING' }]),
+    };
+    t.prisma.user.findMany.mockResolvedValue([{ id: 'u2', firstName: 'Sam', lastName: 'Lee', email: 'sam@example.test' }]);
+    return t;
+  }
+
+  it('needs exactly one person', async () => {
+    await expect(withHistory().svc.personHistory(actor, {})).rejects.toThrow(/one person/);
+    await expect(withHistory().svc.personHistory(actor, { employeeId: 'e1', serviceUserId: 'su1' })).rejects.toThrow(/one person/);
+  });
+
+  it('coming up (with the day it is due), not answered (with numbers to call) and answered (how and by whom)', async () => {
+    const { svc } = withHistory();
+    const { data } = await svc.personHistory({ ...actor, permissions: ['surveys.responses.record'] }, { employeeId: 'e1' });
+    expect(data.comingUp).toEqual([expect.objectContaining({ surveyId: 's1', eventLabel: 'Back from a long absence', eventOn: '2026-11-11', dueOn: '2026-12-09', status: 'WAITING' })]);
+    expect(data.notAnswered).toEqual([
+      expect.objectContaining({ recipientId: 'r1', open: true, canRecord: true, person: expect.objectContaining({ name: 'Zara Ali', phones: [{ label: 'Mobile', number: '07700 900123' }] }) }),
+    ]);
+    expect(data.answered).toEqual([
+      expect.objectContaining({ recipientId: 'r9', channel: 'TELEPHONE', respondentRelation: 'SELF', recordedBy: 'Sam Lee', canViewAnswers: true }),
+    ]);
+    expect(data.anonymous).toEqual([]);
+  });
+
+  it('an anonymous survey shows only that it was sent (the day), never whether they answered', async () => {
+    const { svc } = withHistory({ survey: { isAnonymous: true } });
+    const { data } = await svc.personHistory(actor, { employeeId: 'e1' });
+    expect(data.answered).toEqual([]);
+    expect(data.notAnswered).toEqual([]);
+    expect(data.anonymous).toEqual([
+      { recipientId: 'r1', surveyId: 's1', title: 'Staff survey', sentAt: '2026-11-07', closesAt: null, surveyStatus: 'ACTIVE' },
+      { recipientId: 'r9', surveyId: 's1', title: 'Staff survey', sentAt: '2026-11-01', closesAt: null, surveyStatus: 'ACTIVE' },
+    ]);
+  });
+
+  it('a survey the user may not see is left out; answers are linked only for those who may see individual responses', async () => {
+    access.mockResolvedValue({ results: false, responses: false, threshold: 5 });
+    expect((await withHistory().svc.personHistory(actor, { employeeId: 'e1' })).data).toEqual({ comingUp: [], notAnswered: [], answered: [], anonymous: [] });
+    access.mockResolvedValue({ results: true, responses: false, threshold: 5 });
+    const { data } = await withHistory().svc.personHistory(actor, { employeeId: 'e1' });
+    expect(data.answered[0]).toMatchObject({ canViewAnswers: false });
+    expect(data.notAnswered[0]).toMatchObject({ canRecord: false });
+  });
+});
+
 describe('SurveyRemindersService — contact preferences', () => {
   it('a text opt-out made by a STOP reply keeps its origin when staff save other preferences', async () => {
     const { svc, prisma } = setup();

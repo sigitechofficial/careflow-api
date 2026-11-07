@@ -128,3 +128,19 @@ export class SurveysToCollectController {
     return this.reminders.toCollect(user, { serviceUserId: q.serviceUserId, employeeId: q.employeeId });
   }
 }
+
+/** One person's surveys on their record: coming up, not answered, answered (service user or employee). */
+@ApiTags('Survey reminders')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Controller('surveys-person-history')
+export class SurveysPersonHistoryController {
+  constructor(private readonly reminders: SurveyRemindersService) {}
+
+  @Get()
+  @AnyPermission('surveys.read', 'surveys.manage', 'surveys.responses.record')
+  @ApiOperation({ summary: 'A person’s surveys: coming up after an event, sent and not answered, answered (how and by whom)' })
+  list(@CurrentUser() user: RequestUser, @Query() q: SurveysToCollectQueryDto) {
+    return this.reminders.personHistory(user, { serviceUserId: q.serviceUserId, employeeId: q.employeeId });
+  }
+}

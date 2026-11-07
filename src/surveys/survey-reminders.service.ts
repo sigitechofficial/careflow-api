@@ -59,6 +59,7 @@ import { SURVEY_TEXT_STOP_REASON } from './survey-text-replies.service';
 import { SurveyUnsubscribeService } from './survey-unsubscribe.service';
 import { LAPSABLE_STATUSES, SURVEY_UNSUBSCRIBE_REASON, ineligibleRecipientIds, noAutomaticContactIds, organisationDomains, personalEmail } from './survey-eligibility.util';
 import { staffAnswerPlaces, type StaffAnswerPlaces } from './survey-staff-answer-places';
+import { OPEN_OCCURRENCE_STATUSES, SURVEY_TRIGGER_EVENT_INFO } from './survey-event-triggers.util';
 
 /** RoleTask.sourceType of the phone call list task (sourceId = the survey or period). */
 export const SURVEY_CALL_LIST_TASK_SOURCE = 'SURVEY_CALL_LIST';
@@ -1096,6 +1097,111 @@ export class SurveyRemindersService {
       });
     }
     return { message: 'Surveys to collect', data: out };
+  }
+
+  /**
+   * One person's surveys, for their record (service user or employee): coming up (waiting after an event, with the
+   * day it is due), sent and not answered, and answered (when, how and by whom). Only surveys the user may see
+   * (branch scope and the survey's own access); whether someone answered an anonymous survey is never shown, and
+   * the link to their answers only to those who may see that survey's individual responses.
+   */
+  async personHistory(actor: RequestUser, filter: { serviceUserId?: string; employeeId?: string }) {
+    if (Boolean(filter.serviceUserId) === Boolean(filter.employeeId)) throw new BadRequestException('Choose one person.');
+    const person = filter.serviceUserId ? { serviceUserId: filter.serviceUserId } : { employeeId: filter.employeeId };
+    const scope = this.orgScope.fromRequestUser(actor);
+    const now = new Date();
+    const tz = await this.timeZone();
+    const [recipients, occurrences] = await Promise.all([
+      this.prisma.surveyRecipient.findMany({
+        where: { ...person, survey: { deletedAt: null, isCatalogue: false, isTemplate: false } },
+        orderBy: { createdAt: 'desc' },
+        take: 200,
+        select: {
+          id: true,
+          surveyId: true,
+          status: true,
+          sentAt: true,
+          createdAt: true,
+          reminderCount: true,
+          remindedAt: true,
+          response: { select: { id: true, submittedAt: true, channel: true, respondentRelation: true, respondentName: true, recordedById: true } },
+        },
+      }),
+      this.prisma.surveyEventOccurrence.findMany({
+        where: { ...person, status: { in: OPEN_OCCURRENCE_STATUSES } },
+        orderBy: { dueOn: 'asc' },
+        take: 100,
+        select: { id: true, surveyId: true, event: true, eventOn: true, dueOn: true, status: true },
+      }),
+    ]);
+    const surveyIds = [...new Set([...recipients.map((r) => r.surveyId), ...occurrences.map((o) => o.surveyId)])];
+    const surveys = surveyIds.length ? await this.prisma.survey.findMany({ where: { id: { in: surveyIds }, deletedAt: null } }) : [];
+    const visible = new Map<string, { survey: Survey; responses: boolean; results: boolean }>();
+    for (const survey of surveys) {
+      if (!surveyVisibleInScope(scope, survey)) continue;
+      const access = await surveyAccessFor(this.prisma, actor, survey);
+      if (access.results || access.responses) visible.set(survey.id, { survey, responses: access.responses, results: access.results });
+    }
+    // Not answered yet on an open survey: numbers, reminders and calls, as on the to-collect list (same access rules).
+    const open = await this.toCollect(actor, filter).catch(() => ({ data: [] as Awaited<ReturnType<SurveyRemindersService['toCollect']>>['data'] }));
+    const toCollectBySurvey = new Map(open.data.map((i) => [i.survey.id, i.people[0] ?? null]));
+    const recorderIds = [...new Set(recipients.map((r) => r.response?.recordedById).filter((x): x is string => Boolean(x)))];
+    const recorders = recorderIds.length ? await this.prisma.user.findMany({ where: { id: { in: recorderIds } }, select: { id: true, firstName: true, lastName: true, email: true } }) : [];
+    const recorderName = new Map(recorders.map((u) => [u.id, `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email]));
+    const canRecord = actor.permissions.includes('surveys.responses.record');
+    const iso = (d: Date | null | undefined) => d?.toISOString() ?? null;
+
+    const comingUp = occurrences
+      .filter((o) => visible.get(o.surveyId)?.results)
+      .map((o) => ({
+        id: o.id,
+        surveyId: o.surveyId,
+        title: visible.get(o.surveyId)!.survey.title,
+        event: o.event,
+        eventLabel: SURVEY_TRIGGER_EVENT_INFO[o.event as keyof typeof SURVEY_TRIGGER_EVENT_INFO]?.label ?? o.event,
+        eventOn: dayKeyInTimeZone(o.eventOn, tz),
+        dueOn: dayKeyInTimeZone(o.dueOn, tz),
+        status: o.status,
+      }));
+    const notAnswered: Array<Record<string, unknown>> = [];
+    const answered: Array<Record<string, unknown>> = [];
+    const anonymous: Array<Record<string, unknown>> = [];
+    for (const r of recipients) {
+      const v = visible.get(r.surveyId);
+      if (!v) continue;
+      const s = v.survey;
+      const base = { recipientId: r.id, surveyId: s.id, title: s.title, sentAt: iso(r.sentAt ?? r.createdAt), closesAt: iso(s.closesAt), surveyStatus: s.status };
+      if (s.isAnonymous) {
+        // Anonymous: only that it was sent, never whether they answered (the day only, as elsewhere).
+        anonymous.push({ ...base, sentAt: dayKeyInTimeZone(r.sentAt ?? r.createdAt, tz) });
+        continue;
+      }
+      if (r.status === SurveyRecipientStatus.COMPLETED) {
+        answered.push({
+          ...base,
+          answeredAt: iso(r.response?.submittedAt),
+          channel: r.response?.channel ?? null,
+          respondentRelation: r.response?.respondentRelation ?? null,
+          respondentName: r.response?.respondentName ?? null,
+          recordedBy: r.response?.recordedById ? (recorderName.get(r.response.recordedById) ?? 'Someone') : null,
+          canViewAnswers: v.responses && Boolean(r.response),
+        });
+        continue;
+      }
+      const isOpen = s.status === SurveyStatus.ACTIVE && (!s.closesAt || s.closesAt > now) && r.status !== SurveyRecipientStatus.LAPSED;
+      notAnswered.push({
+        ...base,
+        recipientStatus: r.status,
+        open: isOpen,
+        reminders: r.reminderCount,
+        lastReminderAt: iso(r.remindedAt),
+        person: isOpen ? (toCollectBySurvey.get(s.id) ?? null) : null,
+        canRecord: canRecord && isOpen,
+      });
+    }
+    // Open ones first (still to do), then the rest newest first.
+    notAnswered.sort((a, b) => Number(b.open) - Number(a.open));
+    return { message: 'Surveys for this person', data: { comingUp, notAnswered, answered, anonymous } };
   }
 
   /** Call list rows: names, numbers on their record, reminders and earlier calls, phone-due people first. */
