@@ -24,6 +24,8 @@ export const APPLICANT_MIN_BATCH = 3;
 export const APPLICANT_MAX_WAIT_DAYS = 42;
 /** A link works for this many days. */
 export const APPLICANT_LINK_DAYS = 30;
+/** Someone who applies again (a new candidate, same email) is not invited again within this many days. */
+export const APPLICANT_REINVITE_DAYS = 183;
 /** Invitation links start with this (personal links of staff and service users are UUIDs). */
 export const APPLICANT_TOKEN_PREFIX = 'ap-';
 const TOKEN_SHAPE = /^ap-[A-Za-z0-9_-]{32}$/;
@@ -165,15 +167,33 @@ export class SurveyApplicantInvitesService {
     });
     if (!told.length) return [];
     const ids = told.map((c) => c.id);
+    const emailOf = (e: string | null) => (e ?? '').trim().toLowerCase();
+    // Their earlier applications (same email), so nobody is invited twice within 6 months.
+    const earlier = await this.prisma.candidate.findMany({
+      where: { id: { notIn: ids }, email: { in: [...new Set(told.map((c) => c.email!.trim()))], mode: 'insensitive' } },
+      select: { id: true, email: true },
+    });
     const [invited, optOuts] = await Promise.all([
-      this.prisma.surveyApplicantInvited.findMany({ where: { candidateId: { in: ids } }, select: { candidateId: true } }),
+      this.prisma.surveyApplicantInvited.findMany({ where: { candidateId: { in: [...ids, ...earlier.map((e) => e.id)] } }, select: { candidateId: true, invitedOn: true } }),
       this.prisma.surveyContactOptOut.findMany({
         where: { subjectKind: 'CANDIDATE', subjectId: { in: ids }, channel: { in: ['ALL', 'EMAIL'] } },
         select: { subjectId: true },
       }),
     ]);
+    const reinviteFrom = dayOf(new Date(now.getTime() - APPLICANT_REINVITE_DAYS * DAY_MS));
+    const earlierEmail = new Map(earlier.map((e) => [e.id, emailOf(e.email)]));
+    const recentEmails = new Set(invited.filter((r) => earlierEmail.has(r.candidateId) && r.invitedOn >= reinviteFrom).map((r) => earlierEmail.get(r.candidateId)!));
     const skip = new Set([...invited.map((r) => r.candidateId), ...optOuts.map((r) => r.subjectId)]);
-    return told.filter((c) => !skip.has(c.id)).map((c) => ({ id: c.id, firstName: c.firstName, email: c.email!.trim() }));
+    const seen = new Set<string>();
+    return told
+      .filter((c) => {
+        const email = emailOf(c.email);
+        // One invitation per email address, even with two applications told at once.
+        if (skip.has(c.id) || recentEmails.has(email) || seen.has(email)) return false;
+        seen.add(email);
+        return true;
+      })
+      .map((c) => ({ id: c.id, firstName: c.firstName, email: c.email!.trim() }));
   }
 
   /** The survey with invitations on (one at a time), or null. */

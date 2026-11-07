@@ -368,6 +368,21 @@ describe('SurveyRemindersService — contact preferences', () => {
     expect(res.data.stoppedByText).toEqual({ since: NOW.toISOString() });
     expect(res.data.reason).toBeNull();
   });
+
+  it('staff can keep a job applicant out of survey invitations, audited against the candidate', async () => {
+    const { svc, prisma, audit } = setup();
+    const full = { ...actor, permissions: ['surveys.manage', 'hr.candidates.update'] };
+    prisma.candidate = { findFirst: jest.fn(async () => ({ id: 'c1' })) };
+    prisma.surveyContactOptOut.findMany = jest.fn(async () => []);
+    prisma.surveyContactOptOut.deleteMany = jest.fn();
+    prisma.surveyContactOptOut.upsert = jest.fn((args: unknown) => args);
+    prisma.$transaction = jest.fn(async () => []);
+    await svc.setOptOuts(full, { subjectKind: 'CANDIDATE', subjectId: 'c1', channels: ['ALL'], reason: null });
+    expect(prisma.candidate.findFirst).toHaveBeenCalledWith({ where: { id: 'c1', deletedAt: null }, select: { id: true } });
+    expect(audit.logAudit).toHaveBeenCalledWith(expect.objectContaining({ recordType: 'Candidate', recordId: 'c1' }));
+    prisma.candidate.findFirst = jest.fn(async () => null);
+    await expect(svc.getOptOuts(full, 'CANDIDATE', 'c2')).rejects.toThrow('Candidate not found');
+  });
 });
 
 

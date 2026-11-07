@@ -37,9 +37,9 @@ const candidate = (id: string, over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-function setup(opts: { candidates?: any[]; survey?: any; invited?: string[]; optedOut?: string[]; base?: string } = {}) {
+function setup(opts: { candidates?: any[]; earlier?: any[]; survey?: any; invited?: string[]; invitedOn?: Record<string, Date>; optedOut?: string[]; base?: string } = {}) {
   const invites: any[] = [];
-  const invited: any[] = (opts.invited ?? []).map((candidateId) => ({ candidateId, surveyId: 's1' }));
+  const invited: any[] = (opts.invited ?? []).map((candidateId) => ({ candidateId, surveyId: 's1', invitedOn: opts.invitedOn?.[candidateId] ?? daysAgo(30) }));
   const s = opts.survey ?? survey();
   const prisma: any = {
     survey: {
@@ -54,7 +54,7 @@ function setup(opts: { candidates?: any[]; survey?: any; invited?: string[]; opt
       updateMany: jest.fn(async () => ({ count: 0 })),
       findMany: jest.fn(async () => []),
     },
-    candidate: { findMany: jest.fn(async () => opts.candidates ?? []) },
+    candidate: { findMany: jest.fn(async ({ where }: any) => (where.id?.notIn ? (opts.earlier ?? []) : (opts.candidates ?? []))) },
     surveyApplicantInvited: {
       findMany: jest.fn(async ({ where }: any) => invited.filter((r) => where.candidateId.in.includes(r.candidateId))),
       createMany: jest.fn(async ({ data }: any) => {
@@ -141,6 +141,27 @@ describe('job applicants: one-time links that never identify the applicant', () 
     });
     expect(await service.runBatch(now)).toBe(3);
     expect(invited.map((r) => r.candidateId).sort()).toEqual(['a', 'b', 'c']);
+  });
+
+  it('one invitation per person in 6 months, even when they apply again or have two applications', async () => {
+    const { service, invited } = setup({
+      candidates: [
+        candidate('a'),
+        candidate('b'),
+        candidate('c'),
+        candidate('twice', { email: 'A@example.com' }), // same person as a, a second application
+        candidate('again', { email: 'back@example.com' }),
+        candidate('later', { email: 'long@example.com' }),
+      ],
+      earlier: [
+        { id: 'old1', email: 'back@example.com' },
+        { id: 'old2', email: 'Long@example.com' },
+      ],
+      invited: ['old1', 'old2'],
+      invitedOn: { old1: daysAgo(100), old2: daysAgo(200) },
+    });
+    expect(await service.runBatch(now)).toBe(4);
+    expect(invited.filter((r) => r.surveyId === 's1' && !['old1', 'old2'].includes(r.candidateId)).map((r) => r.candidateId).sort()).toEqual(['a', 'b', 'c', 'later']);
   });
 
   it('sends nothing without the app’s web address, while the survey is not open, or when it closes within days', async () => {

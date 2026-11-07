@@ -37,6 +37,7 @@ import { surveyAccessFor, surveyResultsAudience } from './survey-access';
 import { roleForOwner } from './survey-alert-rules.util';
 import { personalLinkPath } from './survey-recipient-links.service';
 import { formatSurveyDateTime } from './survey-recurrence.util';
+import { candidateScopeWhere, resolveRecruitmentScope } from '../hr/recruitment/utils/recruitment-scope.util';
 import {
   callDue,
   checkContactPlan,
@@ -67,7 +68,8 @@ export type SurveyCallOutcome = (typeof SURVEY_CALL_OUTCOMES)[number];
 /** These take the person off the call list. */
 const FINAL_CALL_OUTCOMES: readonly string[] = ['DECLINED', 'WRONG_NUMBER'];
 
-export const SURVEY_OPT_OUT_SUBJECTS = ['EMPLOYEE', 'SERVICE_USER', 'CONTACT', 'EXTERNAL'] as const;
+/** CANDIDATE: a job applicant, kept out of applicant survey invitations (Phase 3). */
+export const SURVEY_OPT_OUT_SUBJECTS = ['EMPLOYEE', 'SERVICE_USER', 'CONTACT', 'EXTERNAL', 'CANDIDATE'] as const;
 export type SurveyOptOutSubject = (typeof SURVEY_OPT_OUT_SUBJECTS)[number];
 export const SURVEY_OPT_OUT_CHANNELS = ['ALL', 'EMAIL', 'TEXT', 'APP', 'PORTAL', 'PHONE'] as const;
 export type SurveyOptOutChannel = (typeof SURVEY_OPT_OUT_CHANNELS)[number];
@@ -1142,6 +1144,13 @@ export class SurveyRemindersService {
       if (!su || (scope.locationIds && !(su.locationId && scope.locationIds.includes(su.locationId)))) throw new NotFoundException('Person not found');
       return;
     }
+    if (subjectKind === 'CANDIDATE') {
+      // Whoever can see the candidate in Recruitment (a hiring manager only their own vacancies').
+      const where = await candidateScopeWhere(this.prisma, await resolveRecruitmentScope(this.prisma, actor));
+      const c = await this.prisma.candidate.findFirst({ where: { id: subjectId, deletedAt: null, ...where }, select: { id: true } });
+      if (!c) throw new NotFoundException('Candidate not found');
+      return;
+    }
     throw new BadRequestException('Outside contacts are managed from their contact list.');
   }
 
@@ -1192,7 +1201,7 @@ export class SurveyRemindersService {
       userId: actor.id,
       module: AuditModule.SURVEY,
       action: AuditAction.SURVEY_CONTACT_OPT_OUT_CHANGED,
-      recordType: dto.subjectKind === 'EMPLOYEE' ? 'Employee' : 'ServiceUser',
+      recordType: dto.subjectKind === 'EMPLOYEE' ? 'Employee' : dto.subjectKind === 'CANDIDATE' ? 'Candidate' : 'ServiceUser',
       recordId: dto.subjectId,
       description: finalChannels.length ? 'Survey contact preferences changed: some or all survey messages stopped' : 'Survey contact preferences changed: survey messages allowed again',
       oldValues: { channels: before.map((b) => b.channel) },
