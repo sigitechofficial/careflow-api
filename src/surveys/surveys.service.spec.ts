@@ -1464,6 +1464,47 @@ describe('SurveysService', () => {
       });
     });
 
+    describe('job applicants’ one-time links', () => {
+      const withInvites = (invite: { used: boolean; expired?: boolean } | null, claimed = true) => {
+        const invites = {
+          resolve: jest.fn(async () => (invite ? { id: 'inv1', survey: surveyRow({ targetKind: 'PUBLIC', status: 'ACTIVE', isAnonymous: true }), used: invite.used, expired: Boolean(invite.expired) } : null)),
+          claim: jest.fn(async () => claimed),
+          release: jest.fn(async () => undefined),
+        };
+        const svc = new SurveysService(
+          prisma, audit as any, config as any, mail as any, push as any, notifications as any,
+          new OrgScopeService(prisma), orgSettings as any, undefined, undefined, undefined, undefined, undefined, undefined, undefined, invites as any,
+        );
+        return { svc, invites };
+      };
+      const token = 'ap-' + 'a'.repeat(32);
+
+      it('answering: held like any answer linked to no one, counted apart from the shared link; a used link says so', async () => {
+        prisma.surveyQuestion.findMany.mockResolvedValue([question()]);
+        const fresh = withInvites({ used: false });
+        await fresh.svc.submitPublicResponse(token, { answers: [{ questionId: 'q1', booleanValue: true }] } as any);
+        expect(fresh.invites.claim).toHaveBeenCalledWith('inv1');
+        expect(prisma.surveyResponse.create).not.toHaveBeenCalled();
+        expect(held().payload).toMatchObject({ viaSharedLink: false });
+        expect(JSON.stringify(held())).not.toContain(token);
+
+        const used = withInvites({ used: true });
+        await expect(used.svc.submitPublicResponse(token, { answers: [{ questionId: 'q1', booleanValue: true }] } as any)).rejects.toMatchObject({
+          response: { code: 'SURVEY_ALREADY_COMPLETED' },
+        });
+        const form: any = await used.svc.getPublicByToken(token);
+        expect(form.data.alreadyCompleted).toBe(true);
+      });
+
+      it('a refused answer frees the link; an unknown link is not found', async () => {
+        prisma.surveyQuestion.findMany.mockResolvedValue([question()]);
+        const fresh = withInvites({ used: false });
+        await expect(fresh.svc.submitPublicResponse(token, { answers: [{ questionId: 'q-missing', booleanValue: true }] } as any)).rejects.toThrow();
+        expect(fresh.invites.release).toHaveBeenCalledWith('inv1');
+        await expect(withInvites(null).svc.getPublicByToken(token)).rejects.toBeInstanceOf(NotFoundException);
+      });
+    });
+
     describe('spam protection', () => {
       const withGuard = () => {
         // The guard's two tables, kept in memory here (survey-link-guard.spec covers them in full).

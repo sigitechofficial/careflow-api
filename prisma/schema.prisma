@@ -14441,6 +14441,9 @@ model Survey {
   /// Shared link: one answer per device. A random marker kept only on the device (never sent with or
   /// stored against the answer) stops a second answer from the same browser. Off by default.
   sharedLinkOncePerDevice Boolean @default(false)
+  /// Job applicants are invited by email with one-time links (anonymous public surveys only; one survey
+  /// at a time). Applicants told the outcome from this time on are invited. Null = off.
+  applicantInvitesFrom DateTime?
   /// Shared links: a raised limit of answers per 10 minutes for a planned sitting (e.g. 300 at a staff
   /// meeting), until sharedLinkLimitUntil; otherwise the standard limit (src/surveys/survey-link-guard.ts).
   sharedLinkLimit      Int?
@@ -14525,6 +14528,8 @@ model Survey {
   discussions      SurveyDiscussion[]
   youSaidWeDid     SurveyYouSaidWeDid[]
   translations     SurveyTranslation[]
+  applicantInvites SurveyApplicantInvite[]
+  applicantsInvited SurveyApplicantInvited[]
 
   @@unique([clonedFromId, periodKey])
   @@index([targetKind])
@@ -17285,6 +17290,37 @@ model SurveyTranslation {
   survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
 
   @@unique([surveyId, language])
+  @@index([surveyId])
+  @@schema("surveys")
+}
+
+/// Phase 3: a one-time link sent to a job applicant. Only a hash of the link's token is kept, with no
+/// applicant: nobody can tell whose link it was, or whether a given applicant answered. Days only.
+model SurveyApplicantInvite {
+  id        String   @id @default(uuid()) @db.Uuid
+  surveyId  String   @db.Uuid
+  tokenHash String   @unique
+  createdOn DateTime @db.Date
+  /// The last day the link works.
+  expiresOn DateTime @db.Date
+  used      Boolean  @default(false)
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@schema("surveys")
+}
+
+/// Phase 3: a job applicant (employees.Candidate) was invited to a survey, so they are never invited
+/// twice. Never which link was theirs, or whether they answered.
+model SurveyApplicantInvited {
+  id          String   @id @default(uuid()) @db.Uuid
+  candidateId String   @unique @db.Uuid
+  surveyId    String   @db.Uuid
+  invitedOn   DateTime @db.Date
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
   @@index([surveyId])
   @@schema("surveys")
 }

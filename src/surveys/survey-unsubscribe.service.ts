@@ -6,8 +6,9 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { SURVEY_UNSUBSCRIBE_REASON } from './survey-eligibility.util';
 
-export type UnsubscribeSubject = { subjectKind: 'EMPLOYEE' | 'SERVICE_USER' | 'EXTERNAL' | 'CONTACT'; subjectId: string };
-const KINDS = ['EMPLOYEE', 'SERVICE_USER', 'EXTERNAL', 'CONTACT'];
+export type UnsubscribeSubject = { subjectKind: 'EMPLOYEE' | 'SERVICE_USER' | 'EXTERNAL' | 'CONTACT' | 'CANDIDATE'; subjectId: string };
+/** CANDIDATE: a job applicant (employees.Candidate), invited to an applicant survey (Phase 3). */
+const KINDS = ['EMPLOYEE', 'SERVICE_USER', 'EXTERNAL', 'CONTACT', 'CANDIDATE'];
 
 /** 32 random bytes, base64url: 43 characters. */
 const TOKEN_SHAPE = /^[A-Za-z0-9_-]{43}$/;
@@ -86,7 +87,7 @@ export class SurveyUnsubscribeService {
       module: AuditModule.SURVEY,
       action: AuditAction.SURVEY_CONTACT_OPT_OUT_CHANGED,
       recordType:
-        subject.subjectKind === 'EMPLOYEE' ? 'Employee' : subject.subjectKind === 'SERVICE_USER' ? 'ServiceUser' : subject.subjectKind === 'CONTACT' ? 'ServiceUserContact' : 'SurveyExternalContact',
+        subject.subjectKind === 'EMPLOYEE' ? 'Employee' : subject.subjectKind === 'SERVICE_USER' ? 'ServiceUser' : subject.subjectKind === 'CONTACT' ? 'ServiceUserContact' : subject.subjectKind === 'CANDIDATE' ? 'Candidate' : 'SurveyExternalContact',
       recordId: subject.subjectId,
       description: via === 'STOP' ? 'Unsubscribed from all surveys (replied STOP)' : 'Unsubscribed from all surveys (link in a survey message)',
       newValues: { channels: ['ALL'], permanent: true },

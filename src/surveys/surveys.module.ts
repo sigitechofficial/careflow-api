@@ -31,6 +31,8 @@ import { SurveyPlatformService } from './survey-platform.service';
 import { SurveyPlatformController } from './survey-platform.controller';
 import { SurveyTranslationsService } from './survey-translations.service';
 import { SurveyTranslationsController } from './survey-translations.controller';
+import { SurveyApplicantInvitesService } from './survey-applicant-invites.service';
+import { SurveyApplicantInvitesController } from './survey-applicant-invites.controller';
 import {
   SurveyActionItemsController,
   SurveyActionsController,
@@ -105,8 +107,9 @@ import {
     SurveyUpdatesPublicController,
     SurveyPlatformController,
     SurveyTranslationsController,
+    SurveyApplicantInvitesController,
   ],
-  providers: [SurveysService, SurveyDistributionJob, SurveyLibraryService, SurveyAlertsService, SurveyAccessService, SurveyShareLinksService, SurveyRecipientLinksService, SurveyLinkGuard, SurveySectionsService, SurveyRemindersService, SurveyTextRepliesService, SurveyManagerCopiesService, SurveyContactRuleService, SurveyReviewersService, SurveyEventTriggersService, SurveyOutsidePeopleService, SurveyUnsubscribeService, SurveyInsightService, SurveyActionsService, SurveyPlatformService, SurveyTranslationsService],
+  providers: [SurveysService, SurveyDistributionJob, SurveyLibraryService, SurveyAlertsService, SurveyAccessService, SurveyShareLinksService, SurveyRecipientLinksService, SurveyLinkGuard, SurveySectionsService, SurveyRemindersService, SurveyTextRepliesService, SurveyManagerCopiesService, SurveyContactRuleService, SurveyReviewersService, SurveyEventTriggersService, SurveyOutsidePeopleService, SurveyUnsubscribeService, SurveyInsightService, SurveyActionsService, SurveyPlatformService, SurveyTranslationsService, SurveyApplicantInvitesService],
   exports: [SurveysService, SurveyAlertsService],
 })
 export class SurveysModule {}

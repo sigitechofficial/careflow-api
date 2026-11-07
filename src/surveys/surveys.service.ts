@@ -40,6 +40,7 @@ import {
   startOfOperationalDayUtc,
 } from '../common/utils/operational-day.util';
 import { formatUkDateLabel } from '../common/utils/uk-date-label.util';
+import { SurveyApplicantInvitesService, isApplicantToken } from './survey-applicant-invites.service';
 import { SurveyLinkGuard, linkLimitFor } from './survey-link-guard';
 import { SurveyRemindersService } from './survey-reminders.service';
 import { SurveyContactRuleService, type HeldPerson } from './survey-contact-rule.service';
@@ -763,6 +764,8 @@ export class SurveysService {
     @Optional() private readonly unsubscribe?: SurveyUnsubscribeService,
     /** Outside people: sending a lapsed invitation again by their own path (survey-outside-people.service.ts). */
     @Optional() private readonly outside?: SurveyOutsidePeopleService,
+    /** Job applicants' one-time links (survey-applicant-invites.service.ts). */
+    @Optional() private readonly applicantInvites?: SurveyApplicantInvitesService,
   ) {}
 
   /** Check a saved named response against the alert rules. Never fails or delays the caller. */
@@ -7618,6 +7621,18 @@ export class SurveysService {
       };
     }
 
+    if (isApplicantToken(cleaned)) {
+      // A job applicant's one-time link: the answer is linked to no one, like a shared link's.
+      const invite = await this.applicantInvites?.resolve(cleaned);
+      if (!invite) throw new NotFoundException('Survey link not found');
+      return this.buildPublicForm(invite.survey, {
+        alreadyCompleted: invite.used,
+        linkKind: 'recipient',
+        unlinked: true,
+        closedForYou: !invite.used && invite.expired,
+      });
+    }
+
     const recipient = await this.requireRecipientByToken(cleaned);
     const survey = recipient.survey;
     if (await this.lapsedNow(recipient)) {
@@ -7689,6 +7704,23 @@ export class SurveysService {
         // Not kept (a missing answer, the survey just closed): the same form can be sent again. Once
         // the answers are kept (a later step failed) the form stays used, or a retry would add them twice.
         if (!progress.kept) await this.linkGuard?.release(dto.formToken).catch(() => undefined);
+        throw e;
+      }
+    }
+
+    if (isApplicantToken(cleaned)) {
+      const invite = await this.applicantInvites?.resolve(cleaned);
+      if (!invite) throw new NotFoundException('Survey link not found');
+      if (invite.used || !(await this.applicantInvites!.claim(invite.id))) {
+        if (!invite.used && invite.expired) throw new BadRequestException(CLOSED_FOR_YOU_REASON);
+        throw new ConflictException({ message: 'You have already completed this survey.', code: SURVEY_ALREADY_COMPLETED });
+      }
+      const progress = { kept: false };
+      try {
+        return this.withClosingMessage(invite.survey.id, await this.submitOpenShareResponse(invite.survey, dto, meta, progress, { applicantInvite: true }));
+      } catch (e) {
+        // Not kept (a missing answer, the survey just closed): the link can be used again.
+        if (!progress.kept) await this.applicantInvites!.release(invite.id).catch(() => undefined);
         throw e;
       }
     }
@@ -7903,6 +7935,8 @@ export class SurveysService {
     _meta?: RequestAuditMeta,
     /** Set once the answers are kept (the form's token must then stay used). */
     progress: { kept: boolean } = { kept: false },
+    /** `applicantInvite`: through a job applicant's one-time link, not the shared link (counted apart). */
+    opts: { applicantInvite?: boolean } = {},
   ) {
     if (survey.noOpenPeriod) throw new BadRequestException('There is no survey open on this link right now.');
     const availability = this.evaluateAvailability(survey, false);
@@ -7933,7 +7967,7 @@ export class SurveysService {
           locationId: survey.shareLink?.locationId ?? null,
           respondentRelation: null,
           answers: toPendingAnswers(this.mapAnswersForCreate(questions, answerByQuestion, null)),
-          viaSharedLink: true,
+          viaSharedLink: !opts.applicantInvite,
           shareLinkId: survey.shareLink?.id ?? null,
           qualityFlags: qualityFlagsAtSubmit(dto),
         },

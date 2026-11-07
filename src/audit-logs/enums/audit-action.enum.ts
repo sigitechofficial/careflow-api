@@ -558,6 +558,7 @@ export enum AuditAction {
   SURVEY_ANSWERS_DELETED_RETENTION = 'survey_answers_deleted_retention',
   /** Phase 3: a survey's translation (another language or easy read) saved, imported, published, withdrawn or deleted (counts only). */
   SURVEY_TRANSLATION_CHANGED = 'survey_translation_changed',
+  SURVEY_APPLICANT_INVITES_CHANGED = 'survey_applicant_invites_changed',
   FEEDBACK_RECORDED = 'feedback_recorded',
   FEEDBACK_UPDATED = 'feedback_updated',
   FEEDBACK_STATUS_CHANGED = 'feedback_status_changed',
