@@ -39,6 +39,14 @@ export const FORM_EXPIRED = 'This page has been open for a long time. Please rel
 export const FORM_INVALID = 'This form could not be checked. Please reload the page and answer again.';
 export const ALREADY_SENT = 'These answers have already been sent. Thank you.';
 export const LINK_BUSY = 'A lot of answers are arriving through this link just now. Please try again in a few minutes.';
+/**
+ * Codes sent with the refusals a page sending answers later must tell apart (the kiosk's queue of
+ * answers kept while offline): already sent = the answers were kept (drop the copy); expired or
+ * invalid = they can never be sent with this form.
+ */
+export const FORM_ALREADY_SENT_CODE = 'SURVEY_FORM_ALREADY_SENT';
+export const FORM_EXPIRED_CODE = 'SURVEY_FORM_EXPIRED';
+export const FORM_INVALID_CODE = 'SURVEY_FORM_INVALID';
 
 /** The per-link limit in force: a raised one while its sitting lasts, else the standard one. */
 export function linkLimitFor(survey: { sharedLinkLimit: number | null; sharedLinkLimitUntil: Date | null } | null, now: number = Date.now()): number {
@@ -89,17 +97,17 @@ export class SurveyLinkGuard {
     // allowance and lock real people out of a survey.
     if (typeof input.website === 'string' && input.website.trim() !== '') return 'discard';
     const parts = (input.formToken ?? '').split('.');
-    if (parts.length !== 4 || parts[0] !== 'v1') throw new BadRequestException(FORM_INVALID);
+    if (parts.length !== 4 || parts[0] !== 'v1') throw new BadRequestException({ message: FORM_INVALID, code: FORM_INVALID_CODE });
     const [, issued, nonce, sig] = parts;
     const expected = this.sign(linkToken, issued, nonce);
     const a = Buffer.from(sig);
     const b = Buffer.from(expected);
-    if (a.length !== b.length || !timingSafeEqual(a, b)) throw new BadRequestException(FORM_INVALID);
+    if (a.length !== b.length || !timingSafeEqual(a, b)) throw new BadRequestException({ message: FORM_INVALID, code: FORM_INVALID_CODE });
     const issuedAt = parseInt(issued, 36) * 1000;
-    if (!Number.isFinite(issuedAt)) throw new BadRequestException(FORM_INVALID);
+    if (!Number.isFinite(issuedAt)) throw new BadRequestException({ message: FORM_INVALID, code: FORM_INVALID_CODE });
     // Given in whole seconds (rounded down), so someone who took MIN_FILL_MS or longer always passes.
     if (now - issuedAt < MIN_FILL_MS) throw new BadRequestException(TOO_QUICK);
-    if (now - issuedAt > FORM_TOKEN_MAX_AGE_MS) throw new BadRequestException(FORM_EXPIRED);
+    if (now - issuedAt > FORM_TOKEN_MAX_AGE_MS) throw new BadRequestException({ message: FORM_EXPIRED, code: FORM_EXPIRED_CODE });
     this.cleanup(now);
     // Claim the token (atomic on every server): a second use finds it taken.
     try {
@@ -108,7 +116,7 @@ export class SurveyLinkGuard {
       const expiresAt = new Date(Math.ceil((issuedAt + FORM_TOKEN_MAX_AGE_MS) / DAY_MS) * DAY_MS);
       await this.prisma.surveyLinkFormToken.create({ data: { nonce, expiresAt } });
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw new BadRequestException(ALREADY_SENT);
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') throw new BadRequestException({ message: ALREADY_SENT, code: FORM_ALREADY_SENT_CODE });
       throw e;
     }
     try {

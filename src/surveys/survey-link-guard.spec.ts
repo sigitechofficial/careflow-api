@@ -66,6 +66,17 @@ describe('SurveyLinkGuard (spam protection on shared links, kept in the database
     await expect(g.check('link-a', { formToken }, at(t0 + 6_000))).rejects.toThrow(ALREADY_SENT);
   });
 
+  it('refusals a page sending answers later must tell apart carry a code', async () => {
+    const g = new SurveyLinkGuard(store(), config());
+    const formToken = g.issue('link-a', t0);
+    await g.check('link-a', { formToken }, at(t0 + 5_000));
+    await expect(g.check('link-a', { formToken }, at(t0 + 6_000))).rejects.toMatchObject({ response: { code: 'SURVEY_FORM_ALREADY_SENT' } });
+    await expect(g.check('link-a', { formToken: g.issue('link-a', t0) }, at(t0 + 25 * 60 * 60_000))).rejects.toMatchObject({
+      response: { code: 'SURVEY_FORM_EXPIRED' },
+    });
+    await expect(g.check('link-a', { formToken: 'v1.x.y.z' }, at(t0))).rejects.toMatchObject({ response: { code: 'SURVEY_FORM_INVALID' } });
+  });
+
   it('several API servers share the used tokens and the per-link count', async () => {
     const db = store();
     const a = new SurveyLinkGuard(db, config());

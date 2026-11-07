@@ -325,6 +325,8 @@ export const UNANSWERED_CLOSED_LIST_DAYS = 30;
  * left a claim that lapses within half an hour: keep the answer and try again later.
  */
 export const SURVEY_ALREADY_COMPLETED = 'SURVEY_ALREADY_COMPLETED';
+/** A kiosk tablet keeps at most this many form tokens in stock for answers taken while offline. */
+export const MAX_KIOSK_FORM_TOKENS = 25;
 export const SURVEY_ANSWER_IN_PROGRESS = 'SURVEY_ANSWER_IN_PROGRESS';
 
 /**
@@ -7545,6 +7547,21 @@ export class SurveysService {
       ...(noOpenPeriod ? { noOpenPeriod } : {}),
       linkOncePerDevice: Boolean(linked.sharedLinkOncePerDevice),
     };
+  }
+
+  /**
+   * Public: a kiosk tablet's stock of form tokens for a shared link, so answers given while the tablet
+   * is offline can be sent later, each with a token of its own (survey-link-guard.ts: each is used
+   * once and lasts FORM_TOKEN_MAX_AGE_MS). Shared links only. Nothing is kept; every other check
+   * (the link's limit, the hidden field, a reused token) still applies when the answers arrive.
+   */
+  async shareFormTokens(token: string, count: number) {
+    const cleaned = token?.trim();
+    const byShare = cleaned ? await this.findShareSurvey(cleaned) : null;
+    if (!byShare || !this.linkGuard) throw new NotFoundException('Survey link not found');
+    const guard = this.linkGuard;
+    const n = Math.min(Math.max(Math.floor(Number(count)) || 1, 1), MAX_KIOSK_FORM_TOKENS);
+    return { message: 'Form tokens', data: { formTokens: Array.from({ length: n }, () => guard.issue(cleaned)) } };
   }
 
   /** Public: load survey form by survey share token OR recipient token. */

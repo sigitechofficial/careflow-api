@@ -1523,6 +1523,31 @@ describe('SurveysService', () => {
         expect(prisma.surveyResponse.create).toHaveBeenCalledTimes(1);
       });
 
+      it('kiosk: a stock of form tokens for a shared link (at most 25), each usable once; never for a person’s own link', async () => {
+        const { guarded } = withGuard();
+        prisma.survey.findFirst.mockResolvedValue(surveyRow({ targetKind: 'PUBLIC', status: 'ACTIVE' }));
+        prisma.surveyQuestion.findMany.mockResolvedValue([question()]);
+        const stock: any = await guarded.shareFormTokens('share-token-1', 500);
+        expect(stock.data.formTokens).toHaveLength(25);
+        expect(new Set(stock.data.formTokens).size).toBe(25);
+        expect((await guarded.shareFormTokens('share-token-1', Number.NaN)).data.formTokens).toHaveLength(1);
+        // Sent later (offline), each answer with its own token; sending the same one again is refused with a code.
+        const [first] = stock.data.formTokens;
+        jest.useFakeTimers({ now: Date.now() + 60_000 });
+        try {
+          await guarded.submitPublicResponse('share-token-1', { answers: [{ questionId: 'q1', booleanValue: true }], formToken: first } as any);
+          const again = guarded.submitPublicResponse('share-token-1', { answers: [{ questionId: 'q1', booleanValue: true }], formToken: first } as any);
+          await expect(again).rejects.toMatchObject({ response: { code: 'SURVEY_FORM_ALREADY_SENT' } });
+        } finally {
+          jest.useRealTimers();
+        }
+        expect(prisma.surveyResponse.create).toHaveBeenCalledTimes(1);
+
+        prisma.survey.findFirst.mockResolvedValue(null);
+        prisma.surveyShareLink.findFirst?.mockResolvedValue?.(null);
+        await expect(guarded.shareFormTokens('recipient-token', 5)).rejects.toBeInstanceOf(NotFoundException);
+      });
+
       it('answers kept before a later step failed: the form stays used, so a retry cannot add them twice', async () => {
         const { guard, guarded } = withGuard();
         prisma.survey.findFirst.mockResolvedValue(surveyRow({ targetKind: 'PUBLIC', status: 'ACTIVE' }));
