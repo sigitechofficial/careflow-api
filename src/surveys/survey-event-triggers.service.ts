@@ -454,7 +454,9 @@ export class SurveyEventTriggersService {
             lifecycleStatus: 'ACTIVE',
             carePathwayForm: { formType: 'CARE_PLAN' },
             serviceUser: suBranch,
-            ...(o.firstReviewOnly ? { lastReviewedAt: null } : {}),
+            // The first review after care starts: the plan is still on its first published version. (Publishing
+            // records the plan as reviewed that day, so "never reviewed" would never be true.)
+            ...(o.firstReviewOnly ? { publishedVersions: { none: { versionNumber: { gt: 1 } } } } : {}),
           },
           select: { id: true, serviceUserId: true, nextReviewDueAt: true },
         });
@@ -574,7 +576,9 @@ export class SurveyEventTriggersService {
         const rows = await this.prisma.learningTrainingEventAttendee.findMany({
           where: {
             attendanceStatus: { in: ['ATTENDED', 'PARTIALLY_ATTENDED'] },
-            trainingEvent: { status: { notIn: ['CANCELLED', 'DRAFT'] }, endAt: { gte, lt }, ...(o.courseIds?.length ? { courseId: { in: o.courseIds } } : {}) },
+            // Attendance recorded means the session took place, even when the event was never moved out of
+            // draft (the training screens do not do that); a cancelled event never counts.
+            trainingEvent: { status: { not: 'CANCELLED' }, endAt: { gte, lt }, ...(o.courseIds?.length ? { courseId: { in: o.courseIds } } : {}) },
             employeeId: { in: (await this.prisma.employee.findMany({ where: empWhere, select: { id: true } })).map((e) => e.id) },
           },
           select: { employeeId: true, trainingEventId: true, trainingEvent: { select: { endAt: true } } },
@@ -712,8 +716,9 @@ export class SurveyEventTriggersService {
               select: { attendanceStatus: true, trainingEvent: { select: { status: true } } },
             })
           : null;
-        // As when it was found: attended (or partly), on a session not cancelled or put back to draft since.
-        return !a || !['ATTENDED', 'PARTIALLY_ATTENDED'].includes(a.attendanceStatus) || ['CANCELLED', 'DRAFT'].includes(a.trainingEvent.status) ? 'RECORD_REMOVED' : null;
+        // As when it was found: still marked attended (or partly), on a session not cancelled since. (A draft
+        // event counts: the training screens never move an event out of draft once attendance is marked.)
+        return !a || !['ATTENDED', 'PARTIALLY_ATTENDED'].includes(a.attendanceStatus) || a.trainingEvent.status === 'CANCELLED' ? 'RECORD_REMOVED' : null;
       }
       case 'RETURN_FROM_LONG_ABSENCE': {
         const a = await this.prisma.employeeAbsenceRecord.findUnique({ where: { id }, select: { deletedAt: true, toDateTime: true } });

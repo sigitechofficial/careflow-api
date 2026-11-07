@@ -66,7 +66,7 @@ function setup(opts: { survey?: Record<string, unknown>; recipients?: Rec[]; opt
           (r) =>
             (!where.status?.in || where.status.in.includes(r.status)) &&
             (where.reminderCount?.lt === undefined || r.reminderCount < where.reminderCount.lt),
-        ).map((r) => ({ ...r, callAttempts: [] })),
+        ).map((r) => ({ ...r, callAttempts: (r as { callAttempts?: unknown[] }).callAttempts ?? [] })),
       ),
       findFirst: jest.fn(async ({ where }: any) => recipients.find((r) => r.id === where.id) ?? null),
       count: jest.fn(async () => recipients.filter((r) => r.status === 'COMPLETED').length),
@@ -348,6 +348,41 @@ describe('SurveyRemindersService — call list', () => {
     expect(row).not.toContain('07700');
     expect(row).not.toContain('son');
     await expect(svc.recordCall(actor, 's1', 'r2', { outcome: 'NO_ANSWER' })).rejects.toThrow(/already answered/);
+  });
+});
+
+describe('SurveyRemindersService — surveys to collect', () => {
+  const at = (d: number) => new Date(NOW.getTime() - d * DAY);
+  const rec = (id: string, employeeId: string, over: Record<string, unknown> = {}) =>
+    ({ id, token: `tok-${id}`, status: 'SENT', employeeId, serviceUserId: null, sentAt: at(4), reminderCount: 0, remindedAt: null, ...over }) as Rec;
+
+  it('lists open named surveys with everyone who has not answered, for one person too', async () => {
+    const { svc, prisma } = setup();
+    const res = await svc.toCollect(actor);
+    expect(res.data).toHaveLength(1);
+    expect(res.data[0].survey).toMatchObject({ id: 's1', title: 'Staff survey' });
+    expect(res.data[0].people.map((p) => p.name).sort()).toEqual(['Ola Bee', 'Zara Ali']);
+    const where = prisma.survey.findMany.mock.calls[0][0].where;
+    expect(where).toMatchObject({ isAnonymous: false, isTemplate: false, status: 'ACTIVE' });
+    const one = await svc.toCollect(actor, { employeeId: 'e3' });
+    expect(one.data[0].people.map((p) => p.name)).toEqual(['Ola Bee']);
+  });
+
+  it('leaves out surveys whose people the user may not see', async () => {
+    access.mockResolvedValue({ results: true, responses: false, threshold: 5 });
+    expect((await setup().svc.toCollect(actor)).data).toEqual([]);
+  });
+
+  it('keeps people who will not be phoned (they can be asked on a visit), but not those who declined', async () => {
+    const declined = { callAttempts: [{ id: 'c1', outcome: 'DECLINED', notes: null, calledById: null, createdAt: at(1) }] };
+    const wrongNumber = { callAttempts: [{ id: 'c2', outcome: 'WRONG_NUMBER', notes: null, calledById: null, createdAt: at(1) }] };
+    const { svc } = setup({
+      recipients: [rec('r1', 'e1'), rec('r3', 'e3', wrongNumber), rec('r4', 'e4', declined)],
+      optOuts: [{ subjectKind: 'EMPLOYEE', subjectId: 'e1', channel: 'PHONE' }],
+    });
+    const people = (await svc.toCollect(actor)).data[0].people;
+    expect(people.map((p) => p.recipientId).sort()).toEqual(['r1', 'r3']);
+    expect(people.find((p) => p.recipientId === 'r1')).toMatchObject({ optedOut: true, open: false });
   });
 });
 

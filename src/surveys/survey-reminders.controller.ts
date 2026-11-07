@@ -9,7 +9,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { SurveyRemindersService } from './survey-reminders.service';
 import { SurveysService } from './surveys.service';
-import { RecordSurveyCallDto, SaveSurveyContactPlanDto, SetSurveyOptOutsDto, SurveyOptOutQueryDto } from './dto/survey-reminders.dto';
+import { RecordSurveyCallDto, SaveSurveyContactPlanDto, SetSurveyOptOutsDto, SurveyOptOutQueryDto, SurveysToCollectQueryDto } from './dto/survey-reminders.dto';
 import { ResendLapsedDto } from './dto/survey-outside-people.dto';
 
 /** Reminders and follow-up (contact plan), "Remind now", and the phone call list. */
@@ -110,5 +110,21 @@ export class SurveyContactPreferencesController {
   @ApiOperation({ summary: 'Change how a person may be contacted about surveys' })
   set(@CurrentUser() user: RequestUser, @Body() dto: SetSurveyOptOutsDto, @Req() req: Request) {
     return this.reminders.setOptOuts(user, dto, getRequestAuditMeta(req));
+  }
+}
+
+/** Surveys still to collect across every open named survey (coordinators' list and a person's "Surveys due"). */
+@ApiTags('Survey reminders')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Controller('surveys-to-collect')
+export class SurveysToCollectController {
+  constructor(private readonly reminders: SurveyRemindersService) {}
+
+  @Get()
+  @Permissions('surveys.responses.record')
+  @ApiOperation({ summary: 'People who have not answered open named surveys, to phone, visit or record' })
+  list(@CurrentUser() user: RequestUser, @Query() q: SurveysToCollectQueryDto) {
+    return this.reminders.toCollect(user, { serviceUserId: q.serviceUserId, employeeId: q.employeeId });
   }
 }

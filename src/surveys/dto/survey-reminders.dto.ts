@@ -45,3 +45,16 @@ export class SetSurveyOptOutsDto extends SurveyOptOutQueryDto {
   @MaxLength(300)
   reason?: string | null;
 }
+
+/** Surveys still to collect: everyone, or one person (their record's "Surveys due"). */
+export class SurveysToCollectQueryDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  serviceUserId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+}

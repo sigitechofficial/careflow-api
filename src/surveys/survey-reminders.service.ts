@@ -1021,6 +1021,85 @@ export class SurveyRemindersService {
     const now = new Date();
     const effective = plan ?? { ...this.defaultPlan(survey.targetKind), call: null };
     const people = await this.callListPeople(survey.id, effective, now);
+    const rows = await this.describeCallPeople(people);
+    const task = await this.prisma.roleTask.findFirst({
+      where: { sourceType: SURVEY_CALL_LIST_TASK_SOURCE, sourceId: survey.id },
+      select: { id: true, status: true, dueDate: true, role: { select: { name: true } } },
+    });
+    return {
+      message: 'Call list',
+      data: {
+        survey: { id: survey.id, title: survey.title, targetKind: survey.targetKind, status: survey.status, closesAt: survey.closesAt?.toISOString() ?? null },
+        callStep: plan?.call ?? null,
+        task: task ? { id: task.id, status: task.status, dueDate: task.dueDate.toISOString().slice(0, 10), roleName: task.role.name } : null,
+        outcomes: SURVEY_CALL_OUTCOMES,
+        people: rows,
+      },
+    };
+  }
+
+  /**
+   * Surveys still to collect (Phase 3 follow-up): every open named survey the user may run a call list for, with the
+   * people who have not answered and can still be asked. Optionally for one person (their record's "Surveys due").
+   * Staff record the answers with Record response; anonymous surveys never appear (a list would show who answered).
+   */
+  async toCollect(actor: RequestUser, filter: { serviceUserId?: string; employeeId?: string } = {}) {
+    const now = new Date();
+    const scope = this.orgScope.fromRequestUser(actor);
+    const person = {
+      ...(filter.serviceUserId ? { serviceUserId: filter.serviceUserId } : {}),
+      ...(filter.employeeId ? { employeeId: filter.employeeId } : {}),
+    };
+    const surveys = await this.prisma.survey.findMany({
+      where: {
+        deletedAt: null,
+        isCatalogue: false,
+        isTemplate: false,
+        isAnonymous: false,
+        status: SurveyStatus.ACTIVE,
+        targetKind: { in: [SurveyTargetKind.SERVICE_USER, SurveyTargetKind.EMPLOYEE] },
+        OR: [{ closesAt: null }, { closesAt: { gt: now } }],
+        recipients: { some: { status: { in: NOT_ANSWERED }, sentAt: { not: null }, ...person } },
+      },
+      orderBy: [{ closesAt: { sort: 'asc', nulls: 'last' } }, { title: 'asc' }],
+      take: 100,
+    });
+    const out: Array<{
+      survey: { id: string; title: string; targetKind: SurveyTargetKind; closesAt: string | null; libraryReference: string | null };
+      people: Awaited<ReturnType<SurveyRemindersService['describeCallPeople']>>;
+    }> = [];
+    for (const survey of surveys) {
+      if (!surveyVisibleInScope(scope, survey)) continue;
+      let plan: SurveyContactPlan | null;
+      try {
+        ({ plan } = await this.requireCallList(actor, survey.id));
+      } catch {
+        continue; // no access to this survey's people: it is simply not listed
+      }
+      const effective = plan ?? { ...this.defaultPlan(survey.targetKind), call: null };
+      const people = (await this.callListPeople(survey.id, effective, now)).filter(
+        (p) => (!filter.serviceUserId || p.serviceUserId === filter.serviceUserId) && (!filter.employeeId || p.employeeId === filter.employeeId),
+      );
+      // Someone who asked not to be phoned, or whose number is wrong, can still be asked on a visit: only people
+      // who said they do not want to take part (or who have died) are left out.
+      const rows = (await this.describeCallPeople(people)).filter((r) => !r.declined && !r.died);
+      if (!rows.length) continue;
+      out.push({
+        survey: {
+          id: survey.id,
+          title: survey.title,
+          targetKind: survey.targetKind,
+          closesAt: survey.closesAt?.toISOString() ?? null,
+          libraryReference: survey.libraryReference ?? null,
+        },
+        people: rows,
+      });
+    }
+    return { message: 'Surveys to collect', data: out };
+  }
+
+  /** Call list rows: names, numbers on their record, reminders and earlier calls, phone-due people first. */
+  private async describeCallPeople(people: Awaited<ReturnType<SurveyRemindersService['callListPeople']>>) {
     const employeeIds = people.map((p) => p.employeeId).filter((x): x is string => Boolean(x));
     const serviceUserIds = people.map((p) => p.serviceUserId).filter((x): x is string => Boolean(x));
     const [staff, supported] = await Promise.all([
@@ -1047,7 +1126,7 @@ export class SurveyRemindersService {
     const userIds = [...new Set(people.flatMap((p) => p.callAttempts.map((a) => a.calledById)).filter((x): x is string => Boolean(x)))];
     const users = userIds.length ? await this.prisma.user.findMany({ where: { id: { in: userIds } }, select: { id: true, firstName: true, lastName: true, email: true } }) : [];
     const userName = new Map(users.map((u) => [u.id, `${u.firstName ?? ''} ${u.lastName ?? ''}`.trim() || u.email]));
-    const rows = people
+    return people
       .map((p) => {
         const s = p.employeeId ? staffById.get(p.employeeId) : undefined;
         const su = p.serviceUserId ? suById.get(p.serviceUserId) : undefined;
@@ -1076,6 +1155,8 @@ export class SurveyRemindersService {
           lastReminderAt: p.remindedAt?.toISOString() ?? null,
           due: p.due,
           optedOut: p.optedOut,
+          /** Said on a call that they do not want to take part (a wrong number does not stop asking on a visit). */
+          declined: p.closedBy?.outcome === 'DECLINED',
           open: p.open && !su?.dateOfDeath,
           calls: p.callAttempts.map((a) => ({
             id: a.id,
@@ -1087,20 +1168,6 @@ export class SurveyRemindersService {
         };
       })
       .sort((a, b) => Number(b.open && b.due) - Number(a.open && a.due) || a.name.localeCompare(b.name));
-    const task = await this.prisma.roleTask.findFirst({
-      where: { sourceType: SURVEY_CALL_LIST_TASK_SOURCE, sourceId: survey.id },
-      select: { id: true, status: true, dueDate: true, role: { select: { name: true } } },
-    });
-    return {
-      message: 'Call list',
-      data: {
-        survey: { id: survey.id, title: survey.title, targetKind: survey.targetKind, status: survey.status, closesAt: survey.closesAt?.toISOString() ?? null },
-        callStep: plan?.call ?? null,
-        task: task ? { id: task.id, status: task.status, dueDate: task.dueDate.toISOString().slice(0, 10), roleName: task.role.name } : null,
-        outcomes: SURVEY_CALL_OUTCOMES,
-        people: rows,
-      },
-    };
   }
 
   async recordCall(actor: RequestUser, surveyId: string, recipientId: string, dto: { outcome: string; notes?: string | null }, meta?: RequestAuditMeta) {

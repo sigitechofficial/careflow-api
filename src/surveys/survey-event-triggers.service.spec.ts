@@ -367,6 +367,10 @@ describe('SurveyEventTriggersService: review fixes', () => {
     expect(await svc.detect(NOW)).toBe(1);
     expect(prisma.surveyEventOccurrence.createMany).not.toHaveBeenCalled();
     expect(prisma.surveyEventOccurrence.updateMany.mock.calls[0][0].data).toMatchObject({ sourceKey: 'care-review:p1:2026-11-29', status: 'WAITING' });
+    // "First review only": the plan is still on its first published version (publishing marks it reviewed).
+    const where = prisma.serviceUserCarePlanInstance.findMany.mock.calls[0][0].where;
+    expect(where.publishedVersions).toEqual({ none: { versionNumber: { gt: 1 } } });
+    expect(where).not.toHaveProperty('lastReviewedAt');
   });
 
   it('rows raised for another event (setting changed) are cancelled, never sent as this survey', async () => {
@@ -495,7 +499,8 @@ describe('SurveyEventTriggersService: training feedback from Learning', () => {
     const found = await svc.findEvents(staffSurvey() as any, trigger({ event: 'TRAINING_ATTENDED', options: { part: 'A' } }) as any, '2026-11-06', '2026-11-20', TZ);
     const where = prisma.learningTrainingEventAttendee.findMany.mock.calls[0][0].where;
     expect(where.attendanceStatus).toEqual({ in: ['ATTENDED', 'PARTIALLY_ATTENDED'] });
-    expect(where.trainingEvent.status).toEqual({ notIn: ['CANCELLED', 'DRAFT'] });
+    // Attendance marked counts even on an event still in draft; a cancelled one never does.
+    expect(where.trainingEvent.status).toEqual({ not: 'CANCELLED' });
     expect(found.map((f: any) => f.sourceKey)).toEqual([`training:${E1}:e-a`, `training:${E1}:e-b`]);
   });
 
@@ -520,7 +525,7 @@ describe('SurveyEventTriggersService: training feedback from Learning', () => {
     expect(prisma.surveyEventOccurrence.updateMany).toHaveBeenCalledWith({ where: { id: { in: ['o-f', 'o-g'] } }, data: { status: 'BATCH' } });
   });
 
-  it('is not sent when the attendance was changed, or the session cancelled or put back to draft since', async () => {
+  it('is not sent when the attendance was changed or the session cancelled since (a draft session with attendance counts)', async () => {
     const { svc, prisma } = setup({ survey: staffSurvey() });
     const row = occ({ event: 'TRAINING_ATTENDED', serviceUserId: null, employeeId: 'e-a', sourceKey: `training:${E1}:e-a` });
     for (const [attendanceStatus, status, expected] of [
@@ -528,7 +533,7 @@ describe('SurveyEventTriggersService: training feedback from Learning', () => {
       ['PARTIALLY_ATTENDED', 'COMPLETED', null],
       ['ABSENT', 'COMPLETED', 'RECORD_REMOVED'],
       ['ATTENDED', 'CANCELLED', 'RECORD_REMOVED'],
-      ['ATTENDED', 'DRAFT', 'RECORD_REMOVED'],
+      ['ATTENDED', 'DRAFT', null],
     ] as const) {
       prisma.employee.findMany.mockResolvedValue([{ id: 'e-a', deletedAt: null, isActive: true }]);
       prisma.learningTrainingEventAttendee = { findFirst: jest.fn(async () => ({ attendanceStatus, trainingEvent: { status } })) };
