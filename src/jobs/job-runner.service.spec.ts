@@ -7,6 +7,7 @@ import type { OrganisationGeneralSettingsService } from '../organisation-general
 import {
   JobRunner,
   STALE_RUNNING_MS,
+  STALE_HEARTBEAT_MS,
   formatJobRunLogLine,
   isExternalCronMode,
   runCronTick,
@@ -27,6 +28,7 @@ type Row = {
   error: string | null;
   triggeredById: string | null;
   attempt: number;
+  heartbeatAt?: Date | null;
 };
 
 const tick = () => new Promise<void>((r) => setImmediate(r));
@@ -47,15 +49,21 @@ function matches(
         return false;
       continue;
     }
-    const v = row[key];
+    if (key === 'AND') {
+      if (!(cond as Record<string, unknown>[]).every((c) => matches(row, c)))
+        return false;
+      continue;
+    }
+    // As in Prisma: a missing column is null, and null is never before or after a date.
+    const v = row[key] ?? null;
     if (cond === null || typeof cond !== 'object' || cond instanceof Date) {
-      if (cmp(v, cond) !== 0) return false;
+      if (cond === null ? v !== null : v === null || cmp(v, cond) !== 0) return false;
       continue;
     }
     for (const [op, x] of Object.entries(cond as Record<string, unknown>)) {
       if (op === 'not' && cmp(v, x) === 0) return false;
-      if (op === 'lt' && !(cmp(v, x) < 0)) return false;
-      if (op === 'gte' && !(cmp(v, x) >= 0)) return false;
+      if (op === 'lt' && (v === null || !(cmp(v, x) < 0))) return false;
+      if (op === 'gte' && (v === null || !(cmp(v, x) >= 0))) return false;
       if (op === 'in' && !(x as unknown[]).some((y) => cmp(v, y) === 0))
         return false;
     }
@@ -97,6 +105,7 @@ function fakeStore() {
         error: null,
         triggeredById: data.triggeredById ?? null,
         attempt: 1,
+        heartbeatAt: data.heartbeatAt ?? null,
       };
       rows.push(row);
       return { id: row.id };
@@ -413,6 +422,51 @@ describe('JobRunner', () => {
     );
   });
 
+  describe('heartbeat: a run left by a stopped process', () => {
+    const running = (over: Partial<Row>): Row =>
+      ({
+        id: 'left-1',
+        jobName: 'rolling-rota',
+        periodKey: '2026-10-01',
+        source: 'internal',
+        status: 'running',
+        startedAt: new Date(Date.now() - 10 * 60_000),
+        finishedAt: null,
+        durationMs: null,
+        summary: null,
+        error: null,
+        triggeredById: null,
+        attempt: 1,
+        ...over,
+      }) as Row;
+
+    it('stops blocking once its heartbeat is older than STALE_HEARTBEAT_MS, and is marked failed', async () => {
+      const { runner, rows } = makeRunner();
+      rows.push(running({ heartbeatAt: new Date(Date.now() - STALE_HEARTBEAT_MS - 60_000) } as Partial<Row>));
+      const work = jest.fn().mockResolvedValue(jobSuccess());
+      const res = await runner.run('rolling-rota', { source: 'internal', periodKey: '2026-10-02' }, work);
+      expect(work).toHaveBeenCalledTimes(1);
+      expect(res).toMatchObject({ status: 'success' });
+      expect(rows[0]).toMatchObject({ status: 'failed', error: expect.stringMatching(/^stale/) });
+    });
+
+    it('a long run that is still alive keeps blocking (and is not failed), however long ago it started', async () => {
+      const { runner, rows } = makeRunner();
+      rows.push(running({ startedAt: new Date(Date.now() - 2 * STALE_RUNNING_MS), heartbeatAt: new Date(Date.now() - 30_000) } as Partial<Row>));
+      const work = jest.fn().mockResolvedValue(jobSuccess());
+      const res = await runner.run('rolling-rota', { source: 'internal', periodKey: '2026-10-02' }, work);
+      expect(work).not.toHaveBeenCalled();
+      expect(res).toMatchObject({ status: 'skipped' });
+      expect(rows[0]).toMatchObject({ status: 'running' });
+    });
+
+    it('a new run records its heartbeat from the start', async () => {
+      const { runner, rows } = makeRunner();
+      await runner.run('rolling-rota', { source: 'internal', periodKey: '2026-10-02' }, jest.fn().mockResolvedValue(jobSuccess()));
+      expect((rows[0] as Row & { heartbeatAt?: Date }).heartbeatAt).toBeInstanceOf(Date);
+    });
+  });
+
   it('skips (records) a run while another non-stale run of the same job is in progress', async () => {
     const { runner, rows } = makeRunner();
     let release!: () => void;
@@ -716,6 +770,10 @@ describe('cut-over: internal @Cron tick and external trigger share the period ke
     ['visit-plan-scheduled-end', '2026-10-02T00:30:00.000Z', 60_000],
     ['learning-maintenance', '2026-10-02T02:30:00.000Z', 60_000],
     ['care-plan-review-reminders', '2026-10-02T06:00:00.000Z', 60_000],
+    ['supervision-reminders', '2026-10-02T10:10:00.000Z', 30_000],
+    ['compliance-expiry-reminders', '2026-10-02T10:20:00.000Z', 30_000],
+    ['assessment-review-reminders', '2026-10-02T10:25:00.000Z', 30_000],
+    ['policy-acknowledgement-reminders', '2026-10-02T10:35:00.000Z', 30_000],
     ['rolling-rota', '2026-10-02T02:00:00.000Z', 60_000],
   ];
 

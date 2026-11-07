@@ -1,0 +1,618 @@
+{
+  "reference": "POL-GOV-009",
+  "revision": 1,
+  "title": "Statutory Notifications to CQC Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we decide which events must be notified to the Care Quality Commission under the Care Quality Commission (Registration) Regulations 2009, who decides and submits each notification, our deadlines, what a notification contains, how it is recorded and reconciled in CareFlow, and what happens when one is late. For the Directors, Nominated Individual, Registered Managers, Deputy Managers, On-call Managers, Care Coordinators and Office staff.",
+  "keyPoints": {
+    "intro": "This procedure gets every event CQC must hear about to an authorised manager, who decides and notifies on time. Failing to notify is a criminal offence for {{organisation}} and for the Registered Manager.",
+    "points": [
+      "If in doubt, notify. CQC must hear without delay about deaths during or connected with our care, serious injuries, abuse or allegations of abuse, police incidents, events that threaten safe care and court decisions on deprivation of liberty.",
+      "Only the Registered Manager decides and submits, or the Deputy Manager in their absence, or the Nominated Individual if both are unavailable. On-call Managers never submit a notification or decide that one is not needed.",
+      "On-call Managers: phone the escalation manager at once about any death, possibly serious injury, police involvement, allegation of abuse or event putting visits at risk. Hand over everything else by 10am the next working day.",
+      "If the escalation manager does not answer within 15 minutes, phone the branch's other Registered Manager or Deputy Manager who is not absent, then the Nominated Individual.",
+      "Our deadlines run every day of the year: deaths and police incidents within 24 hours of our becoming aware; abuse within 24 hours of the local authority referral; serious injuries within 24 hours of the health care professional's opinion.",
+      "We notify more than the law requires, including every allegation of abuse of a person we support whoever is responsible, every self-neglect referral, Prevent referrals, police-reported domestic abuse and police-involved modern slavery found through our visits.",
+      "Care Coordinators: ask the treating health care professional for their opinion on any injury needing more than first aid on the day of the initial review, chase every 2 working days and record the answer in the incident log entry.",
+      "If a High or Critical injury has no professional opinion by the end of the next working day after asking, we notify on what we know and update CQC when it arrives.",
+      "Never put anyone's name, address or date of birth in a notification unless CQC's form expressly asks or CQC later requests them. Use the CareFlow reference number and state facts only.",
+      "Submit through your own CQC provider portal account where CQC accepts the type there, and never share a login; otherwise use CQC's current form from the branch's secure email account.",
+      "Record every decision, including not to notify, with reasons and CQC's reference in the incident log entry or safeguarding record, save the submitted copy, and complete the notifications register the same day.",
+      "A notification never replaces a safeguarding referral, the duty of candour, a RIDDOR report or telling the commissioner. A late or wrong notification is put right at once and the Nominated Individual told within 1 working day."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Admin",
+    "Manager",
+    "Care Coordinator"
+  ],
+  "moduleLinks": [
+    "INCIDENT",
+    "SAFEGUARDING",
+    "BUSINESS_CONTINUITY",
+    "BRANCH"
+  ],
+  "relatedReferences": [
+    "POL-GOV-007",
+    "POL-GOV-008",
+    "POL-SG-002",
+    "POL-SG-005",
+    "POL-HS-007",
+    "POL-GOV-010",
+    "POL-GOV-012",
+    "POL-GOV-020"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 16 (Notification of death of service user)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/16"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 18 (Notification of other incidents), including the definitions of abuse, health care professional and prolonged harm in paragraph (5)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 14 (Notice of absence)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/14"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 15 (Notice of changes)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/15"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 12 (Statement of purpose)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/12"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 25 (Offences)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/25"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 5 (Fixed penalty offences)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/5"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Managing outbreaks in adult social care settings (28 October 2026), communication with partners where a medicine is the suspected source",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/managing-outbreaks-in-adult-social-care-settings"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Infections of concern in adult social care settings: A to Z (28 October 2026), group A streptococcus",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/infections-of-concern-in-adult-social-care-settings-a-z"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} tells the Care Quality Commission (CQC) about every event the law requires, without delay and accurately. The registered provider and each Registered Manager both carry the legal duty; the Nominated Individual is accountable to the Directors for this procedure, and delegating the task of submitting never transfers that accountability."
+        },
+        {
+          "p": "Our care workers work alone in people's homes, so most notifiable events first reach us by phone, often out of hours. This procedure gets each one to a manager who can decide in time, and a monthly check finds anything missed."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "It makes sure every notifiable event is decided by an authorised manager and notified within our deadlines; every decision not to notify is recorded and checked; notifications are factual, protect identities and trace to the CareFlow record; notices are given on time; and late or wrong notifications are put right and learned from."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to every branch registered with CQC as a location for the regulated activity personal care, and to everyone named in Roles and responsibilities. It covers notifications under regulations 12, 14, 15, 16 and 18 of the Care Quality Commission (Registration) Regulations 2009, and the outbreak notices UKHSA guidance asks for. Each branch notifies events concerning the people it supports; notices about {{organisation}} as a whole are given once, by the Nominated Individual."
+        },
+        {
+          "p": "Regulation 17 (detention under the Mental Health Act 1983), regulation 18(2)(h) (under-18s in adult psychiatric units) and regulation 18(4A)(a) (Deprivation of Liberty Safeguards requests, made only by care homes and hospitals) do not apply to our service."
+        },
+        {
+          "p": "Duties often arising from the same event are owned elsewhere and never replaced by a notification: incidents (Incident Reporting, Investigation and Learning Policy), safeguarding referrals (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure), the duty of candour (Duty of Candour Policy), RIDDOR (RIDDOR Reporting Procedure), data breaches (Personal Data Breach Procedure) and CQC assessments (Inspection Readiness and Working with Regulators Guideline)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Without delay",
+                "The legal standard. Our deadlines in What we notify and when are limits: we submit as soon as the decision is made."
+              ],
+              [
+                "Became aware",
+                "The time any employee first learned of the event or of the information that brings it within a notification test, including on a visit or out of hours. Deadlines run from this time, every day of the year, unless they name another starting point."
+              ],
+              [
+                "Escalation manager",
+                "The Registered Manager or Deputy Manager on the management escalation rota, or the Nominated Individual or another branch's Registered Manager or Deputy Manager covering it, reachable by phone whenever an On-call Manager is on duty."
+              ],
+              [
+                "Health care professional",
+                "A person registered with a health profession regulated under section 60(2) of the Health Act 1999 (regulation 18(5)), such as a doctor, registered nurse or paramedic."
+              ],
+              [
+                "Abuse",
+                "As regulation 18(5) defines it: sexual abuse; physical or psychological ill-treatment; theft, misuse or misappropriation of money or property; or neglect and acts of omission which cause harm or place at risk of harm."
+              ],
+              [
+                "Prolonged",
+                "Pain or psychological harm lasting, or likely to last, a continuous period of at least 28 days (regulation 18(5))."
+              ],
+              [
+                "Working day",
+                "Monday to Friday, excluding bank holidays in England."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for {{organisation}} meeting its notification duties. The Nominated Individual holds a CQC provider portal account, decides and submits notifications when the Registered Manager and Deputy Manager are both unavailable, gives every notice of absence and change, and reviews decisions not to notify as Monitoring and review sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager decides, prepares and submits every notification for their branch, records each decision with reasons, keeps the notifications register and answers CQC's follow-up questions. They check every notification the Deputy Manager decided or submitted at the next weekly management meeting."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager holds a portal account, carries out the Registered Manager's duties in their absence to the same deadlines, including as escalation manager, and carries out the monthly reconciliation."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours the On-call Manager makes sure an incident log entry or safeguarding record exists and escalates as Making a notification sets out, but never submits a notification or decides that one is not needed."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Office staff",
+          "blocks": [
+            {
+              "p": "Care Coordinators obtain the health care professional's opinion and missing facts as this procedure sets out, and tell the Registered Manager the same working day of any police involvement, deprivation of liberty court decision or death they learn of. Office staff pass every call about a death, injury, the police, an allegation of abuse or an event putting visits at risk to the Registered Manager or Deputy Manager at once, and CQC correspondence to the Registered Manager the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Care workers",
+          "blocks": [
+            {
+              "p": "Care Workers and Senior Care Workers report incidents as the Incident Reporting, Investigation and Learning Policy requires and, before leaving the home, phone the office (the On-call Manager out of hours) and speak to a person about any death, injury needing more than first aid, police involvement or allegation of abuse, including one the person, their family or another agency mentions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What we notify and when",
+      "blocks": [
+        {
+          "p": "The law requires each event under a regulation to be notified without delay where it occurs while we provide care or as a consequence of it. Our deadlines, and the wider events in Deciding whether an event is notifiable, are our policy; if unsure whether a test is met, we notify. Notifications and notices go through the CQC provider portal where CQC accepts that type there, otherwise on CQC's current form from the branch's secure email account."
+        },
+        {
+          "table": {
+            "columns": [
+              "Event",
+              "Basis",
+              "Our deadline"
+            ],
+            "rows": [
+              [
+                "Death of a person we support, as set out in Deciding: deaths",
+                "Regulation 16, including a description of the circumstances",
+                "Within 24 hours of our becoming aware"
+              ],
+              [
+                "Injury to a person we support that a health care professional judges serious",
+                "Regulation 18(2)(a) and (b)",
+                "Within 24 hours of the professional's opinion reaching us; without an opinion, as set out in Deciding: serious injuries"
+              ],
+              [
+                "Abuse or an allegation of abuse concerning a person we support",
+                "Regulation 18(2)(e)",
+                "Within 24 hours of the local authority referral, or of the report where no referral is made; outcome sent at closure"
+              ],
+              [
+                "Incident reported to, or investigated by, the police",
+                "Regulation 18(2)(f)",
+                "Within 24 hours of our becoming aware of the police report or involvement"
+              ],
+              [
+                "Event that prevents, or threatens, our ability to provide care safely",
+                "Regulation 18(2)(g)",
+                "The same working day if identified in office hours; otherwise within 24 hours"
+              ],
+              [
+                "Outcome or withdrawal of a court application to deprive a person we support of their liberty",
+                "Regulation 18(4A)(b) and (4B)",
+                "Within 2 working days of learning the outcome or withdrawal"
+              ],
+              [
+                "Suspected group A streptococcus outbreak, or a medicine or medical device suspected as the source of an outbreak",
+                "UKHSA guidance (our policy for devices), not a regulation 18 test",
+                "The same working day, by the Registered Manager, as the Transmission-Based Precautions and Outbreak Management Procedure sets out"
+              ],
+              [
+                "Absence of the Registered Manager, changes to the provider and statement of purpose revisions",
+                "Regulations 12, 14 and 15",
+                "As set out in Notices of absence and changes"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "One event can meet several tests, such as an assault during a visit that injures the person and is reported to the police; each is notified, cross-referenced."
+        }
+      ]
+    },
+    {
+      "heading": "Deciding whether an event is notifiable",
+      "blocks": [
+        {
+          "p": "The Registered Manager, or the Deputy Manager in their absence, decides at the initial review set by the Incident Reporting, Investigation and Learning Policy, or within the safeguarding timescales for a safeguarding concern, and records one of three decisions in the incident log entry or safeguarding record: notifiable, naming each regulation; not notifiable, with the reasons; or pending, naming the fact awaited, who is getting it and the decision date. A pending decision never runs past the deadline in What we notify and when. The Registered Manager tells the Nominated Individual the same working day of every decision not to notify a death or a High or Critical incident."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Deaths",
+          "blocks": [
+            {
+              "p": "In home care we notify:"
+            },
+            {
+              "bullets": [
+                "every death during a visit, including an expected death at the end of life;",
+                "every death where our staff find that the person has died, at a visit or on gaining entry under the No Reply, No Access and Missing Person Procedure, even when the death was expected (our policy);",
+                "every death, wherever and whenever it happens, including in hospital weeks later, that has or may have resulted from our care or a failure in it, such as a missed or late visit, a medicines error, a fall or injury during care, a pressure ulcer, choking or equipment we used;",
+                "a death not notified earlier, within 24 hours of a coroner, the police or a health professional raising our care as a possible factor, or a coroner asking us for a statement."
+              ]
+            },
+            {
+              "p": "A death we learn of afterwards, in hospital, a hospice or at home with others present, that is not connected with our care is not notified, and the Registered Manager records why. The notification describes the circumstances: where and when the person died or was found, the care last given, their known health condition, who was called (999, GP, police, coroner) and what we have done. If the police attend or are told of the death, we also notify a police incident."
+            }
+          ]
+        },
+        {
+          "heading": "Serious injuries",
+          "blocks": [
+            {
+              "p": "The test is a health care professional's reasonable opinion that the injury has caused an impairment of sensory, motor or intellectual function that is not likely to be temporary, changes to the structure of the body, prolonged pain or prolonged psychological harm, or shortened life expectancy; or needs treatment by a health care professional to prevent death or one of those outcomes. We are not the judge of the outcome, so we always ask."
+            },
+            {
+              "steps": [
+                "For any injury to a person we support needing more than first aid, the Care Coordinator asks the treating professional (GP, district nurse, paramedic or hospital team) for their opinion on the day of the initial review, in the same request the Duty of Candour Policy requires.",
+                "The Care Coordinator records the professional's name, profession, employer, the date, the question and the answer in the incident log entry, and chases every 2 working days until it arrives.",
+                "A diagnosed fracture, and hospital treatment given to prevent death or lasting harm, meet the test without further enquiry. For a category 3, 4, unstageable or deep tissue injury pressure ulcer that developed or worsened during our care, the Registered Manager asks the treating nurse in writing, as the Pressure Ulcer Prevention and Skin Integrity Procedure sets out. Pressure damage present when our care started or resumed is notified where it is referred as a safeguarding concern.",
+                "Where the opinion meets the test, the Registered Manager notifies within 24 hours of it reaching us. Where an injury graded High or Critical, or a pressure ulcer in step 3, has no opinion by the end of the next working day after asking, or the opinion is unclear, we notify on what we know and send an update when the opinion arrives.",
+                "Any other injury still without an opinion 10 working days after asking is decided by the Registered Manager on what we know, notifying if in doubt. Where harm from an injury decided not notifiable continues on day 28, the professional is asked again and the decision remade within 1 working day of the answer."
+              ]
+            },
+            {
+              "p": "We notify serious injuries that happened during a visit or that our care, or a failure in it such as a missed or late visit, may have caused or worsened. A serious injury clearly unconnected with our care that happened when we were not there, such as a fall at a day centre, is not notified by us; the Registered Manager records why and checks that the provider concerned knows. Injuries to staff follow the RIDDOR Reporting Procedure, not this test."
+            }
+          ]
+        },
+        {
+          "heading": "Abuse and allegations of abuse",
+          "blocks": [
+            {
+              "p": "The law requires notification of any abuse or allegation of abuse in relation to a person we support that occurs while we provide care or as a consequence of it. Our policy goes further: we notify every allegation of abuse concerning a person we support, whoever is alleged to be responsible (our staff, family, another provider, a stranger or a scammer), even if unproven, withdrawn or without a section 42 enquiry. This includes every allegation of domestic abuse of a person we support (Domestic Abuse Policy), every self-neglect safeguarding referral (Self-Neglect and Hoarding Procedure) and any allegation that a person we support has abused a child (Safeguarding Children and Young People Policy)."
+            },
+            {
+              "p": "The notification is made within 24 hours of the local authority referral; where no referral is made, within 24 hours of the report. When the safeguarding record is closed, the Registered Manager sends CQC the outcome, quoting CQC's reference. Conduct by a worker outside work that involved nobody we support is outside regulation 18: the Registered Manager records that decision and the Managing Allegations Against Staff Procedure applies."
+            }
+          ]
+        },
+        {
+          "heading": "Police incidents",
+          "blocks": [
+            {
+              "p": "We notify any incident reported to or investigated by the police that involves a person we support, happens in their home during our care, or involves a worker while working with a person we support: for example a theft from the person, an assault during a visit, a missing person report we make, or police called to a person's welfare or death. Our policy also notifies as police incidents:"
+            },
+            {
+              "bullets": [
+                "a police incident during or arising from our care that involves a child;",
+                "a police-reported domestic abuse incident involving a person we support, including where they are the alleged abuser;",
+                "a Prevent referral, or police contact about Prevent, concerning a person we support or their household, within 24 hours of the referral or the police first contacting us (Prevent and Radicalisation Guideline);",
+                "modern slavery where the potential victim is a household member or a worker, the police are involved and the matter was identified during our visits or arose from our service (Modern Slavery and Human Trafficking Policy)."
+              ]
+            },
+            {
+              "p": "A road collision on a working journey with no person we support involved is not notified unless the police investigate a possible offence by our worker; the Registered Manager records the decision. The notification gives the police reference number where known."
+            }
+          ]
+        },
+        {
+          "heading": "Events that stop the service running safely",
+          "blocks": [
+            {
+              "p": "For our service this test is met, and we notify, when:"
+            },
+            {
+              "bullets": [
+                "we cannot staff the next 24 hours of planned visits without missing visits, cutting essential tasks or delivering a double-handed visit with one worker, for any reason including sickness, an outbreak or severe weather;",
+                "the Business Continuity and Emergency Planning Policy is activated and any visit is missed, shortened or moved outside its agreed time because of the event, or is expected to be in the next 24 hours;",
+                "the Registered Manager stops accepting new packages under the capacity pause in the Governance and Quality Assurance Policy because the rota cannot safely cover existing care;",
+                "a branch office loses electricity, gas, water or sewerage, or its fire alarm or another safety device fails, for more than 24 hours, or damage to the office harms or is likely to harm the care people receive;",
+                "CareFlow, our phones or electronic call monitoring are unavailable for more than 24 hours, or for any time if visits are missed or medicines cannot be given safely as a result."
+              ]
+            },
+            {
+              "p": "The notification says what happened, how many people and visits are affected, what we have done to keep people safe, which commissioners we have told and how long we expect it to last. The Registered Manager updates CQC within 1 working day when the position worsens significantly and when the service is back to normal. A problem in a person's own home, such as a power cut there, is not this test; it follows the person's risk assessment and, where harm results, the other tests."
+            }
+          ]
+        },
+        {
+          "heading": "Deprivation of liberty",
+          "blocks": [
+            {
+              "p": "The law requires notification of an application to a court under section 16(2)(a) of the Mental Capacity Act 2005 to deprive a person we support of their liberty, once the outcome is known or it is withdrawn, giving the date and nature of the application, the outcome or reason for withdrawal, and its date. Our policy is to notify every such application we know of, whoever made it, including a commissioner, and to record the notification date in the deprivation of liberty log (Deprivation of Liberty in the Community Procedure)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Making a notification",
+      "blocks": [
+        {
+          "p": "Out of hours the On-call Manager phones the escalation manager at once about any death of a person we support, any injury that may be serious, any police involvement, any allegation of abuse and any event that puts visits at risk, and records the call. If the escalation manager does not answer within 15 minutes, the On-call Manager phones the branch's Registered Manager or Deputy Manager who is not absent, unless that was the manager called, then the Nominated Individual; if the Nominated Individual cannot be reached within 1 hour, the Director named to act for them is told. The manager who takes the call submits from a secure device within the deadline, weekends and bank holidays included. Everything else is handed over by 10am the next working day."
+        },
+        {
+          "steps": [
+            "Decide and record the decision as Deciding whether an event is notifiable sets out. A notification is never held back to complete an investigation, to wait for an opinion beyond the limit above, or for anyone's approval.",
+            "Gather the facts from the incident log entry or safeguarding record, daily visit notes, visit check-in/check-out, the eMAR, the body map and the care plan. A Care Coordinator obtains any missing fact the same day where a deadline needs it, otherwise within 1 working day.",
+            "Write the notification in plain factual terms, without opinion or blame: what happened, when, the type of place (such as the person's home during a morning visit), the harm, what we did to keep people safe, who has been told (local authority, police with their reference, commissioner, family) and what happens next.",
+            "Identify people only by the CareFlow reference number. Names, addresses, dates of birth and other directly identifying details of anyone are given only where CQC's form expressly asks for them, or later at CQC's request.",
+            "Submit by the route in What we notify and when, using your own named portal account; never share a login.",
+            "Save a copy of the submission and CQC's confirmation or reference: attach both to the incident log entry, adding CQC as an external body with its reference; for a safeguarding record, which cannot hold attachments, record CQC's reference in it and keep the copies with the notifications register. Complete the notifications register entry the same day. If an emailed notification has no acknowledgement within 5 working days, the submitter contacts CQC to confirm receipt and records it.",
+            "The escalations to the Directors and Nominated Individual that the Governance and Quality Assurance Policy lists are made within its timescales. A commissioner whose contract asks for copies of notifications receives one within the contract's timescale.",
+            "Update CQC within 2 working days of a significant new fact, such as a professional's opinion, a change in the person's condition or a police decision. Updates and outcomes quote CQC's reference and go by the route CQC's acknowledgement gives, otherwise from the branch's secure email account.",
+            "Answer any question CQC asks about a notification by CQC's deadline, or within 2 working days where none is set; the Registered Manager prepares the reply and the Nominated Individual approves it."
+          ]
+        },
+        {
+          "p": "Where another registered provider, such as a district nursing service or another home care agency, was involved, we never rely on its notification, and we tell it the same working day that we have notified."
+        },
+        {
+          "p": "Notification details never go in daily visit notes, which the person and family may read."
+        }
+      ]
+    },
+    {
+      "heading": "Notices of absence and changes",
+      "blocks": [
+        {
+          "p": "The Nominated Individual gives each of these notices about {{organisation}} and its registration in writing, by the route in What we notify and when, and records it in the notifications register."
+        },
+        {
+          "table": {
+            "columns": [
+              "Event",
+              "The law requires",
+              "Our policy"
+            ],
+            "rows": [
+              [
+                "Registered Manager's planned absence of 28 days or more",
+                "At least 28 days' notice, or a shorter period CQC agrees, with its length, reason and management arrangements (regulation 14)",
+                "Notice the day the absence is agreed, and never later than 28 days before it starts"
+              ],
+              [
+                "Registered Manager's absence of 28 days or more arising from an emergency, such as sudden illness",
+                "Within 5 working days of it starting; at once if not yet notified",
+                "Notice within 5 working days of the absence starting where it is expected to reach 28 days, or the same working day it becomes clear that a shorter absence will"
+              ],
+              [
+                "Registered Manager returning from a notified absence",
+                "Notice within 7 working days of the return",
+                "Notice within 2 working days of the return"
+              ],
+              [
+                "Someone other than the Registered Manager managing the service, a Registered Manager leaving, a change of Nominated Individual, Director or company secretary, a change in a Registered Manager's name, or a change of our name or address",
+                "Notice as soon as reasonably practicable (regulation 15)",
+                "Before a planned change takes effect, otherwise within 2 working days; applications follow the Statement of Purpose and Registration Procedure, and new Directors the Fit and Proper Persons (Directors) Policy"
+              ],
+              [
+                "Proposed or actual appointment of a receiver, manager, liquidator or provisional liquidator",
+                "Notice as soon as reasonably practicable (regulation 15)",
+                "Notice as soon as an appointment is proposed and within 1 working day of an appointment, as the Risk Management Policy sets out"
+              ],
+              [
+                "Revision of the statement of purpose",
+                "Written details within 28 days of the revision (regulation 12)",
+                "Within 10 working days of the Directors approving the revision"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Late, missed or incorrect notifications",
+      "blocks": [
+        {
+          "p": "Failing to notify as regulations 12 and 14 to 18 require is an offence for the registered provider and the Registered Manager, punishable on conviction by a fine of up to level 4 on the standard scale (regulation 25). Instead of prosecuting, CQC may issue a fixed penalty notice of 1,250 pounds to the provider and 625 pounds to a registered manager for each failure (Schedule 5 to the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014)."
+        },
+        {
+          "steps": [
+            "Whoever finds a notification late, missed or wrong tells the Registered Manager the same day.",
+            "The Registered Manager submits the missed notification, or sends CQC the correction quoting its reference, at once, explaining the delay or error and what we are doing about it.",
+            "The Registered Manager tells the Nominated Individual within 1 working day of the discovery and records the event as an incident in the incident log, linked to the original record.",
+            "The cause is found through the incident review and an action added to the service improvement plan within 5 working days; where the same cause recurs, those involved repeat this procedure's training within 1 month."
+          ]
+        },
+        {
+          "p": "Submitted notifications and their records are never altered or deleted; corrections are new entries linked to the original."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where",
+              "Kept"
+            ],
+            "rows": [
+              [
+                "Notification decision and reasons, the health care professional's opinion, the copy submitted, CQC's reference and updates",
+                "The incident log entry or safeguarding record",
+                "With that record, under the Records Management and Retention Policy"
+              ],
+              [
+                "Notifications register",
+                "Governance records for the branch",
+                "Life of the organisation plus 6 years"
+              ],
+              [
+                "Notices of absence and changes, and CQC's replies",
+                "Governance records",
+                "Life of the organisation plus 6 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Each register entry records the CareFlow reference number, event type and regulation, when we became aware, the deadline, the decision and its maker, when, how and by whom it was submitted, CQC's reference, updates sent and whether it was on time. It never contains names."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Notification tests, decisions, content, identifiers, the provider portal and this procedure",
+                "Registered Managers, Deputy Managers and the Nominated Individual",
+                "Before their first decision and within 3 months of appointment",
+                "Every 3 years"
+              ],
+              [
+                "Which events to phone through at once, and recording them",
+                "On-call Managers and Office staff",
+                "Before the first on-call shift or taking calls alone",
+                "Every 12 months"
+              ],
+              [
+                "Obtaining and recording the health care professional's opinion and missing facts",
+                "Care Coordinators",
+                "Within 3 months of starting and before first doing so",
+                "Every 3 years"
+              ],
+              [
+                "The notification duties and the Directors' oversight role",
+                "Directors",
+                "Within 1 month of appointment",
+                "At the annual governance update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Until a new Registered Manager or Deputy Manager is trained, each of their notification decisions is checked the same working day by the Registered Manager, or by the Nominated Individual for a new Registered Manager. Each April the Registered Managers, Deputy Managers and Nominated Individual decide 5 anonymised scenarios, including at least one death, one injury and one event that stops the service running safely; anyone who decides more than one wrongly is briefed again within 1 month."
+        },
+        {
+          "p": "Portal accounts are personal and held only by those who submit notifications. The Nominated Individual creates each Deputy Manager's account, checks the account list every 6 months and ends access the day someone leaves the role."
+        },
+        {
+          "p": "Managers, Care Coordinators and Office staff acknowledge this procedure in CareFlow by the deadline in the Induction and Care Certificate Procedure, within 14 days of starting a new role and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Pending decisions, notifications due and CQC questions outstanding",
+                "Weekly",
+                "Registered Manager",
+                "Weekly management meeting"
+              ],
+              [
+                "Reconciliation: every death in the incident log, High or Critical incident, safeguarding record opened, police reference, deprivation of liberty outcome, business continuity activation and Registered Manager absence in the month matched to a notification or a recorded decision not to notify, with timeliness",
+                "Monthly",
+                "Deputy Manager (Registered Manager for the Deputy Manager's own decisions)",
+                "Quality dashboard by the 7th working day"
+              ],
+              [
+                "Every decision not to notify a death or a High or Critical incident",
+                "Within 2 working days of each decision",
+                "Nominated Individual",
+                "Recorded in the incident log entry"
+              ],
+              [
+                "Notifications by type and branch, timeliness, late notifications and CQC's follow-up",
+                "Quarterly",
+                "Registered Manager",
+                "Directors' governance meeting"
+              ],
+              [
+                "10 events from the year, at least 5 of them decided not notifiable",
+                "Every 12 months",
+                "Independent quality reviewer",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of notifications on time and 100% of decisions recorded with reasons. Every shortfall becomes an action in the service improvement plan."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or in CQC's notification requirements or forms, a late or missed notification, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

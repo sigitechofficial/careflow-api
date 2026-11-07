@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { defaultExpiryFromValidity } from '../common/utils/validity-default.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import { CreateEmployeeSkillDto } from './dto/create-employee-skill.dto';
@@ -26,9 +27,18 @@ export class EmployeeSkillsService {
 
   async create(userId: string, employeeId: string, dto: CreateEmployeeSkillDto, meta?: RequestAuditMeta) {
     await this.ensureEmployee(employeeId);
+    // No expiry sent: refresh due the skill type's refresh period from today (Settings → Skill types).
+    let expiryDate = dto.expiryDate;
+    if (expiryDate === undefined && dto.skillTypeId) {
+      const type = await this.prisma.skillType.findFirst({
+        where: { id: dto.skillTypeId, deletedAt: null },
+        select: { defaultRefreshMonths: true },
+      });
+      expiryDate = defaultExpiryFromValidity(new Date(), type?.defaultRefreshMonths) ?? undefined;
+    }
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.employeeSkill.create({
-        data: { employeeId, ...dto, createdById: userId },
+        data: { employeeId, ...dto, expiryDate, createdById: userId },
         include: { skillType: true },
       });
       await this.audit.logAudit({

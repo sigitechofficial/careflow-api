@@ -1,0 +1,734 @@
+{
+  "reference": "POL-SG-004",
+  "revision": 1,
+  "title": "Mental Capacity Act and Best Interests Policy",
+  "documentType": "POLICY",
+  "summary": "How we apply the Mental Capacity Act 2005 to the decisions we make and help with: the five principles in home care, who decides what, how authorised assessors carry out and record formal capacity assessments, how best interests decisions are prepared, approved and reviewed, independent advocacy, attorneys and deputies, the limits on restraint and the offence of ill-treatment or wilful neglect. For all employees.",
+  "keyPoints": {
+    "intro": "Many people we support have conditions that affect some decisions. This tells you how to protect their right to decide and what to do, alone at a visit, when they cannot.",
+    "points": [
+      "Always assume the person can make their own decision. A diagnosis such as dementia, their age, how they look or a choice you think unwise never means they lack capacity.",
+      "Capacity is about one decision at one time: a person may choose their clothes but not understand a change to their care, or decide well in the morning but not at night.",
+      "Help the person decide first: use their glasses, hearing and communication aids, plain words, pictures or the real object, a quiet moment and the time of day the care plan says suits them.",
+      "Never carry out a formal capacity assessment unless you are an authorised assessor. Write what the person said and did in the daily visit notes and tell the office the same day: before you leave if it is sudden or the decision is needed now.",
+      "Follow any best interests plan exactly, keep explaining what you are doing, and stop if the person resists. Never hold, restrain, trick or force anyone; the only exception is an emergency intervention to stop immediate serious harm, always reported.",
+      "If an essential task such as a drink or continence care is needed and the person cannot decide, phone the office or On-call Manager, do not start it until a manager approves it, and wait up to 30 minutes after the planned end.",
+      "A relative cannot decide for the person unless the office has verified them as an attorney or deputy for that decision. Phone the office if anyone insists on care the person does not want.",
+      "If asked for your views on a best interests decision, describe what the person says, shows, enjoys and dislikes, not what you or their family would choose.",
+      "Ill-treating or wilfully neglecting a person who lacks capacity is a crime with a prison sentence of up to 5 years. Report any sign of it, by anyone, before you leave the visit.",
+      "Tell the office the same day if a person keeps trying to leave, objects to care or a restriction, or is watched constantly. Never lock anyone in or take their keys unless the care plan approves it; phone before you leave if anyone else does.",
+      "Never act as a person's attorney, deputy, certificate provider or witness for a power of attorney, and never help anyone fill in the forms. Pass any request to the office.",
+      "Complete your Mental Capacity Act training at induction before you work without a shadowing colleague, then every 12 months with your safeguarding refresher."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INITIAL_ASSESSMENT",
+    "CARE_PLAN",
+    "RISK_ASSESSMENT",
+    "MEDICATION",
+    "SAFEGUARDING"
+  ],
+  "relatedReferences": [
+    "POL-CD-004",
+    "POL-MED-003",
+    "POL-SG-005",
+    "POL-SG-006",
+    "POL-MED-009",
+    "POL-SG-012",
+    "POL-CD-016",
+    "POL-SG-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Mental Capacity Act 2005, section 1 (the principles)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 2 (people who lack capacity)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/2"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 3 (inability to make decisions)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/3"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 4 (best interests)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/4"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 5 (acts in connection with care or treatment)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/5"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 6 (section 5 acts: limitations, including restraint and decisions of attorneys and deputies)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/6"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 26 (effect of advance decisions)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/26"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 27 (family relationships: decisions nobody may make for another person)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/27"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 29 (voting rights: decisions nobody may make for another person)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/29"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 35 (independent mental capacity advocates: appointment and powers)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/35"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 37 (serious medical treatment by an NHS body)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/37"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 39 (provision of accommodation by a local authority)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/39"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 42(4) (duty to have regard to the code of practice)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/42"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 44 (ill-treatment or neglect)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/44"
+    },
+    {
+      "source": "Criminal Justice and Courts Act 2015, section 20 (ill-treatment or wilful neglect: care worker offence)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/2/section/20"
+    },
+    {
+      "source": "Mental Capacity Act 2005 (Independent Mental Capacity Advocates) (Expansion of Role) Regulations 2006, regulation 4 (adult protection cases)",
+      "url": "https://www.legislation.gov.uk/uksi/2006/2883/regulation/4/made"
+    },
+    {
+      "source": "Care Act 2014, section 67 (involvement in assessment, plans etc: independent advocacy)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/67"
+    },
+    {
+      "source": "Care Act 2014, section 68 (independent advocacy in safeguarding enquiries and safeguarding adults reviews)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/68"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 (need for consent)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Office of the Public Guardian, Mental Capacity Act Code of Practice (2007; GOV.UK page last updated 14 October 2020), including paragraphs 2.11, 4.26 to 4.38, 9.28 and 10.66 to 10.68",
+      "url": "https://www.gov.uk/government/publications/mental-capacity-act-code-of-practice"
+    },
+    {
+      "source": "UK Supreme Court, A Reference by the Attorney General for Northern Ireland of a Devolution Issue, 2026 UKSC 16 (2 June 2026), press summary",
+      "url": "https://caselaw.nationalarchives.gov.uk/uksc/2026/16/press-summary"
+    },
+    {
+      "source": "Department of Health and Social Care, UK Supreme Court 2026 judgment on what constitutes a deprivation of liberty (published 15 June 2026, updated 22 September 2026)",
+      "url": "https://www.gov.uk/government/publications/changes-to-the-definition-of-deprivation-of-liberty/uk-supreme-court-2026-judgment-on-what-constitutes-a-deprivation-of-liberty"
+    },
+    {
+      "source": "Department of Health and Social Care, Improved safeguarding and protections for vulnerable people (press release, 18 October 2025, on the Liberty Protection Safeguards consultation and a revised Mental Capacity Act Code of Practice)",
+      "url": "https://www.gov.uk/government/news/improved-safeguarding-and-protections-for-vulnerable-people"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} respects the right of every person we support to make their own decisions, including decisions others think unwise. Where a person lacks capacity for a particular decision, we act only as the Mental Capacity Act 2005 allows: we help them to decide wherever possible, respect valid attorneys, deputies and advance decisions, and otherwise act in their best interests in the least restrictive way."
+        },
+        {
+          "p": "{{organisation}} allows only trained, authorised staff to carry out formal capacity assessments, has every best interests decision about our care approved by the Registered Manager or Deputy Manager before it is used, and audits them every month. We never use the Act to override a person who can decide, or to justify convenience, control or restraint."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets out how we apply the Mental Capacity Act 2005 and its Code of Practice, and meet Regulation 11 where a person lacks capacity to consent: who decides what, how capacity is assessed and best interests decisions are made, approved and reviewed, when advocacy is needed, and the legal limits on restraint and ill-treatment."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, office and care staff, bank and agency workers, students and volunteers, and to every person we support. We care for adults aged 18 and over only. The Act applies from age 16, so its principles also apply when the Registered Manager, Deputy Manager or a Care Coordinator meets a young person of 16 or 17 to plan care starting at 18, under the Safeguarding Children and Young People Policy."
+        },
+        {
+          "p": "Consent at every visit, signed consent, verifying attorneys and deputies, recording advance decisions and the timescales for acting on a capacity doubt are set by the Consent to Care Policy, which this policy follows. Medicines decisions are covered by the Consent, Mental Capacity and Declined Medicines Policy and the Covert Administration of Medicines Policy; restrictions by the Restraint and Restrictive Practice Policy; deprivation of liberty by the Deprivation of Liberty in the Community Procedure; self-neglect by the Self-Neglect and Hoarding Procedure; and risky choices made by people with capacity by the Positive Risk-Taking Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Lacks capacity",
+                "Is unable, when the decision needs to be made, to understand, retain, or use or weigh the relevant information, or to communicate the decision by any means, because of a permanent or temporary impairment of, or disturbance in the functioning of, the mind or brain (sections 2 and 3 of the Act)."
+              ],
+              [
+                "Relevant information",
+                "The key points needed for this decision: what it is, the realistic options, and the reasonably foreseeable consequences of each choice or of not deciding (section 3(4)). It is not every detail."
+              ],
+              [
+                "Authorised assessor",
+                "A Care Coordinator, Field Care Supervisor, Deputy Manager or Registered Manager authorised in writing by the Registered Manager after the training in this policy, or an authorised On-call Manager where a decision cannot wait."
+              ],
+              [
+                "Best interests plan",
+                "Instructions in the visit plan, based on an approved best interests decision, telling care workers how to carry out a task for a person who lacks capacity for it and when to stop."
+              ],
+              [
+                "Restraint",
+                "Using or threatening force to make a person do something they resist, or restricting their freedom of movement whether or not they resist (section 6(4))."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for {{organisation}} meeting the Act and Regulation 11, approve this policy, and make sure enough trained assessors are available, including on call. The Nominated Individual challenges the capacity, best interests and restriction figures in the quarterly quality report, part of the quarterly governance report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on the Act: they authorise assessors, approve best interests decisions, chair best interests meetings, carry out second assessments, and deal with concerns about attorneys and deputies, unresolved disputes and possible deprivations of liberty."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out the Registered Manager's duties in their absence, approves best interests decisions, and carries out the monthly MCA records audit."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "When authorised, they carry out formal capacity assessments, prepare best interests decisions, consult, write best interests plans and request advocates. Care Coordinators arrange best interests meetings, write to other decision-makers and keep reviews in date. Field Care Supervisors check at every spot check that best interests plans are followed."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours, the On-call Manager answers care workers' calls at once or returns them within 15 minutes, advises them, obtains phone approval for any best interests decision that cannot wait, and hands over by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "They assume capacity, help people decide, follow best interests plans exactly while explaining what they are doing, and never use force to make a person accept care. During a visit they get advice from a Senior Care Worker or the Care Coordinator, or the On-call Manager out of hours. They record what the person said and did in the daily visit notes and tell the office the same day about any capacity doubt, before leaving where the change is sudden or the decision is needed at that visit, and phone the office before leaving if anyone insists on care the person does not want. They never carry out formal capacity assessments, but their knowledge of the person is essential evidence."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager and Office staff",
+          "blocks": [
+            {
+              "p": "The HR Manager keeps training and the list of authorised assessors in the training and compliance records. Office staff take decisions about a person's care only from the person, someone the care plan records they have asked to act for them, or a verified attorney or deputy, and pass every reported capacity doubt to the Care Coordinator the same working day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The law and the five principles",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the law requires",
+          "blocks": [
+            {
+              "bullets": [
+                "Section 5 protects staff giving care to a person who lacks capacity only where they took reasonable steps to establish the person's capacity and reasonably believe that the person lacks it and that the act is in their best interests. It never covers negligence, and section 6 limits it for restraint and for acts that conflict with a valid decision of an attorney or deputy.",
+                "Section 42(4): everyone acting for a person who lacks capacity in a professional capacity or for payment must have regard to the Code of Practice."
+              ]
+            },
+            {
+              "p": "The 2007 Code of Practice remains the statutory code and the Liberty Protection Safeguards are not in force; the government said in October 2025 that it would consult on them in 2026 and that the consultation would inform a revised Code, and until one is laid before Parliament we work to the 2007 Code. On 2 June 2026 the Supreme Court replaced the Cheshire West acid test for deprivation of liberty with a multifactorial assessment of all the circumstances in which no single factor is decisive (2026 UKSC 16). Its finding that a person who lacks capacity may still give valid consent to their arrangements concerns only deprivation of liberty and, the court held, is not the same as legal capacity, so the test of capacity, Regulation 11 and how we obtain consent to care are unchanged."
+            }
+          ]
+        },
+        {
+          "heading": "The five principles in practice",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Principle (section 1)",
+                  "What it means in our work"
+                ],
+                "rows": [
+                  [
+                    "Assume capacity unless it is established that the person lacks it.",
+                    "Our policy: nobody is recorded as lacking capacity without a formal assessment of a named decision. The only exception is a best interests decision for one visit, which records what the care worker saw and heard and is followed by a formal assessment within 7 days. A diagnosis such as dementia is not by itself a reason to assess."
+                  ],
+                  [
+                    "Take all practicable steps to help the person decide.",
+                    "Before anyone concludes a person cannot decide, we use everything the care plan records as helping them, as Preparing for the assessment sets out."
+                  ],
+                  [
+                    "An unwise decision does not by itself show a lack of capacity.",
+                    "A person may skip a shower, eat poorly or refuse equipment. Repeated unwise decisions that put them at significant risk, or one that is out of character, are a reason to look more closely, not proof (Code of Practice, paragraph 2.11)."
+                  ],
+                  [
+                    "Act in the person's best interests.",
+                    "Care follows an approved best interests decision centred on what the person would want, not on what suits us, the rota or their family."
+                  ],
+                  [
+                    "Consider the less restrictive option.",
+                    "Every best interests decision records the less restrictive options considered and uses the least restrictive one that meets the need, such as a door sensor rather than a locked door."
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Who makes which decision",
+      "blocks": [
+        {
+          "p": "We assess capacity and make best interests decisions only for decisions about the care and support we provide. For every other decision we give the decision-maker our observations and the person's views."
+        },
+        {
+          "table": {
+            "columns": [
+              "Decision",
+              "Who decides if the person lacks capacity",
+              "Our part"
+            ],
+            "rows": [
+              [
+                "Personal care, meals, routines and other visit tasks; how we get into the home, including keys we hold or a key safe; agreement to the care plan, information sharing, body map photographs and video, and spot checks; any restriction we use",
+                "Our authorised assessor assesses; the Registered Manager or Deputy Manager approves the best interests decision; care workers then act under section 5, following the best interests plan.",
+                "Assess, decide, approve, write the plan and review it. Restrictions also follow the Restraint and Restrictive Practice Policy."
+              ],
+              [
+                "Medicines support and medicines treatment",
+                "As the Consent, Mental Capacity and Declined Medicines Policy sets out: support decisions are ours, treatment decisions the prescriber's.",
+                "As that policy sets out."
+              ],
+              [
+                "Medical treatment, including resuscitation decisions",
+                "The treating health professional.",
+                "The Care Coordinator gives our observations and asks them to consider the person's capacity the same day the need arises; out of hours the On-call Manager uses NHS 111 when the GP practice is closed, and 999 in an emergency."
+              ],
+              [
+                "Where the person lives, moving to a care home, the care package and its funding",
+                "The local authority or NHS commissioner.",
+                "The Care Coordinator writes to the commissioner (for a person who pays for their own care, the local authority) within 2 working days with our observations and the person's views, asking for a capacity assessment and, where needed, a best interests decision."
+              ],
+              [
+                "Managing money and property",
+                "A verified attorney or deputy with authority for property and financial affairs; otherwise the Court of Protection, usually on an application by the family or local authority.",
+                "Never ours. Where nobody holds that authority, buying day-to-day items for the person's care with cash in their possession (sections 5 and 8) is a visit task under a best interests decision approved by the Registered Manager or Deputy Manager, as the Handling Money, Property and Shopping Procedure sets out."
+              ],
+              [
+                "Arrangements that may be a deprivation of liberty",
+                "The Court of Protection, on an application by the commissioner or local authority.",
+                "Refer under the Deprivation of Liberty in the Community Procedure."
+              ],
+              [
+                "Consenting to marriage, civil partnership, sexual relations, divorce or dissolution, adoption and the other family matters in section 27; voting",
+                "Nobody (sections 27 and 29).",
+                "Support the person, respect their privacy and report any sign of exploitation under the Sexual Safety Policy."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where a verified attorney or deputy holds authority for a decision the person cannot make, they decide, not us. A relative, friend, next of kin or benefits appointee is never treated as a decision-maker about our care or treatment; an appointee manages only the person's social security benefits. Family carers and other agencies who give part of the person's care, such as medicines or meals, make their own decisions about that care, recorded in the People involved part of the care plan. When another decision-maker's best interests decision changes our care, the Care Coordinator obtains it in writing for the Consent and decisions part of the care plan before we act on it, unless the person would be at risk from the delay, in which case the On-call Manager or Care Coordinator records who gave the decision and when."
+        }
+      ]
+    },
+    {
+      "heading": "Assessing capacity",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "When a formal assessment is needed",
+          "blocks": [
+            {
+              "p": "A formal capacity assessment is carried out when a specific decision about our care needs to be made and there is reason to doubt that the person can make it: for example, a care worker reports that the person cannot recall what they were told minutes earlier or gives answers that do not fit their situation; a relative, health professional or other agency raises a concern; the person repeatedly makes decisions that put them at significant risk, or one that is out of character; or a best interests decision or restriction is about to be relied on, or an assessment for a recurring decision reaches its review date."
+            },
+            {
+              "p": "Nobody is assessed simply because of a diagnosis or because they decline care. The doubt is recorded in the care plan by the Care Coordinator (the On-call Manager out of hours) the same working day and assessed within 7 days, or before the next visit where the decision must be made then, as the Consent to Care Policy sets out. Where the doubt follows a sudden change, which may be an infection, delirium, pain, the effect of a medicine or shock, the Care Coordinator tells the GP the same day (the On-call Manager uses NHS 111 when the practice is closed), and any decision that can safely wait is put off until the person has recovered."
+            }
+          ]
+        },
+        {
+          "heading": "Preparing for the assessment",
+          "blocks": [
+            {
+              "steps": [
+                "Name the decision precisely and when it must be made, for example whether to accept help to shower twice a week, never personal care or capacity in general.",
+                "Write down the realistic options and the relevant information for each before meeting the person.",
+                "Read the care plan's communication needs, What matters to me and the last 4 weeks of daily visit notes, and ask at least two core care team members (all if fewer) what they have seen and heard.",
+                "Arrange the help the person needs: an assessment visit at their best time, booked separately from a care visit so that neither is rushed, in the place they choose, sensory and communication aids, easy-read or pictorial information, the actual object, a trusted person if they want one, and speech and language therapy advice where communication is complex. A professional interpreter, including a British Sign Language interpreter, is used whenever needed; a family member never interprets in a formal capacity assessment.",
+                "Tell the person beforehand, in their preferred format, what you would like to talk about and that they may have someone with them, unless this would distress them."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Carrying out the assessment",
+          "blocks": [
+            {
+              "steps": [
+                "Give the relevant information in the way that suits the person, one point at a time. Visit more than once if they tire or need time.",
+                "Ask open questions and invite the person to tell you in their own words what the decision is and what they think will happen. Avoid yes or no answers, leading questions and memory tests unrelated to the decision.",
+                "Decide whether the person can understand the information, and whether they can retain it long enough to decide; retaining it only briefly does not by itself show they cannot decide.",
+                "Decide whether they can use or weigh it in their own situation. Where what they say they will do repeatedly differs from what they do, such as saying they eat well while food is left untouched, gather evidence from at least two occasions and from the daily visit notes, and talk the difference through with them.",
+                "Decide whether they can communicate their decision by any means, including gestures, writing, pictures or blinking.",
+                "Where any ability is missing, decide whether that is because of an impairment of, or disturbance in the functioning of, the mind or brain, naming it and how it causes the inability. An inability caused by something else, such as pressure from another person, is not a lack of capacity under the Act; undue influence is reported under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+                "Reach a conclusion on the balance of probabilities and tell the person the outcome and what happens next, in a way they understand."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Recording the outcome",
+          "blocks": [
+            {
+              "p": "The assessor records the assessment in the Consent and decisions part of the care plan on the day it is carried out, under their own log-in: the decision; the date, place and who was present; the options and information given; the help given; the person's responses for each ability, in their own words where possible; the impairment and how it causes any inability; the conclusion with reasons; whether the person may regain capacity and when; and the review date. A record that says only that the person lacks capacity, without the decision and the evidence, is never acceptable."
+            },
+            {
+              "p": "Where the person has capacity, their decision is respected even if it is unwise. The assessor records the risks discussed in the risk assessments within 2 working days under the Positive Risk-Taking Policy, and where part of the care plan is declined the Registered Manager decides within 1 working day whether the rest can be given safely and tells the commissioner in writing. Where the person lacks capacity, the assessor tells the Registered Manager or Deputy Manager the same working day and either refers the decision to the attorney or deputy who holds authority for it or prepares a best interests decision."
+            }
+          ]
+        },
+        {
+          "heading": "Fluctuating capacity and recurring decisions",
+          "blocks": [
+            {
+              "p": "Where capacity varies, the care plan records when the person is best able to decide, and decisions that can wait are made at those times. For a decision that recurs at every visit, such as accepting help with washing, the assessment records the pattern observed, and the visit plan tells care workers to let the person decide whenever they can and to use the best interests plan only when they cannot. A finding that a person lacks capacity for a recurring decision is relied on until the next care plan review at the latest, and is repeated sooner if their abilities change. When a person regains capacity, decisions made for them are revisited and the person decides again."
+            }
+          ]
+        },
+        {
+          "heading": "When the outcome is disputed",
+          "blocks": [
+            {
+              "p": "Where the person, an attorney or deputy, a family member, an advocate or a member of staff disagrees with an assessment, the assessor records the disagreement and the Registered Manager or Deputy Manager, whichever was not involved (if both were, another authorised assessor who was not), carries out a second assessment within 10 working days and explains the outcome in writing within 5 working days of it, with how to use the Complaints Policy and Procedure. If the disagreement remains, the Registered Manager writes to the local authority within 2 working days of being told, asking it to take the matter forward. Meanwhile care continues on the least restrictive basis the current care plan allows."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Best interests decisions",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Before a best interests decision is made",
+          "blocks": [
+            {
+              "p": "The assessor first checks and records that the decision is ours under Who makes which decision, that no verified attorney or deputy holds authority for it and no advance decision may cover it, and that it cannot wait until the person is likely to regain capacity. If it can wait, it waits, and care continues on the least restrictive basis the care plan allows."
+            }
+          ]
+        },
+        {
+          "heading": "The best interests checklist",
+          "blocks": [
+            {
+              "p": "Every best interests decision follows section 4 of the Act and records how the assessor:"
+            },
+            {
+              "bullets": [
+                "avoided basing it on the person's age, appearance, condition or behaviour, and considered all relevant circumstances, including whether and when the person may regain capacity;",
+                "involved the person as fully as possible, at home and at their best time, with the help used in the assessment, recording their views in their own words;",
+                "considered their past and present wishes and feelings, any advance statement or other written statement made while they had capacity, What matters to me, and the beliefs and values that would influence them;",
+                "took into account the views of anyone the person named, those caring for them or interested in their welfare, and any attorney, deputy or advocate;",
+                "considered every realistic option, including carrying on as now, with the benefits and burdens of each from the person's point of view, and chose the one that best serves the person with the least restriction of their rights and freedom, not the one easiest for us or their family."
+              ]
+            },
+            {
+              "p": "We never make decisions about life-sustaining treatment; resuscitation follows the DNACPR and ReSPECT Protocol."
+            }
+          ]
+        },
+        {
+          "heading": "Consultation and best interests meetings",
+          "blocks": [
+            {
+              "p": "The assessor consults, where practicable and appropriate: anyone the person has named; any attorney or deputy; family, friends and unpaid carers involved in the person's life; any advocate; other agencies who visit or support the person; at least two core care team members (all if fewer); and the GP or another health professional where the decision affects the person's health. Consultation may be in person, by phone or in writing, and each view is recorded with the name, relationship, date and what was said. Everyone consulted, including care workers, is asked what the person would want, from what they say, show, enjoy and dislike, not what the consultee would choose for them. Each person is given only the information they need to give a view, under the Confidentiality and Information Sharing Policy."
+            },
+            {
+              "p": "Where those consulted disagree or the decision involves a restriction, the Care Coordinator arranges a best interests meeting within 10 working days, chaired by the Registered Manager or Deputy Manager. Invitations go by phone and in writing at least 5 working days ahead unless the risk requires an earlier meeting. The meeting is held where and when the person can best take part, and they are supported to attend or have their views presented. The chair records it in the Consent and decisions part within 2 working days, and the Care Coordinator sends the outcome in writing to everyone consulted within 5 working days, with how to challenge it."
+            }
+          ]
+        },
+        {
+          "heading": "Approval, the care plan and review",
+          "blocks": [
+            {
+              "steps": [
+                "The assessor records the decision in the Consent and decisions part of the care plan: the capacity assessment it rests on, the options, who was consulted and their views, the choice and the reasons, and a review date no later than the next care plan review.",
+                "The Registered Manager or Deputy Manager approves it in CareFlow before it is used; nobody approves a decision they prepared. Out of hours, the On-call Manager obtains approval by phone and records who approved it and when.",
+                "The assessor writes the best interests plan into the visit plan: what to do and say, the approaches to try, the signs of objection or distress, when to stop and who to phone. It never includes force, restraint or deception.",
+                "The Care Coordinator tells every rostered care worker before their next visit, and care workers record in the daily visit notes how the person responded each time the plan was used.",
+                "The decision is reviewed by its review date, and sooner if the person repeatedly objects or becomes distressed, regains capacity, their circumstances change, such as a return from hospital, or anyone consulted asks."
+              ]
+            },
+            {
+              "p": "Where an essential task, such as continence care, a drink or a meal, cannot wait and the person cannot decide, the care worker phones the office (the On-call Manager out of hours) and, while waiting for the call back up to 30 minutes after the planned end of the visit, does not start that task but offers the care the person agrees to; after that, the office arranges an extra visit. A best interests decision approved by phone covers that visit only, is renewed in the same way for each visit, and is followed by a full best interests decision within the 7-day focused review, as the Consent to Care Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Challenges and disagreements",
+          "blocks": [
+            {
+              "p": "The person, anyone consulted and any member of staff may challenge a best interests decision. Where a best interests meeting does not resolve the disagreement, the Registered Manager writes to the local authority within 2 working days asking it to take the matter forward, including any application to the Court of Protection. Staff may also raise concerns under the Whistleblowing (Speaking Up) Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Independent advocacy",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Advocate",
+              "When the law provides one",
+              "Arranged by"
+            ],
+            "rows": [
+              [
+                "IMCA for serious medical treatment (section 37)",
+                "The person lacks capacity to consent to serious medical treatment proposed by the NHS and has nobody other than paid carers appropriate to consult.",
+                "The NHS body"
+              ],
+              [
+                "IMCA for a change of accommodation (section 39)",
+                "The local authority proposes to arrange residential accommodation, such as a care home, or a change of it, under the Care Act 2014 or section 117 of the Mental Health Act 1983, likely to last 8 weeks or more; the person lacks capacity to agree; and nobody other than paid carers is appropriate to consult.",
+                "The local authority"
+              ],
+              [
+                "IMCA in adult protection (2006 Expansion of Role Regulations, regulation 4)",
+                "Protective measures are proposed or taken after an allegation of abuse or neglect and the person lacks capacity to agree to them. This can apply even where family or friends are involved (Code of Practice, paragraph 10.67).",
+                "The local authority or NHS body, at its discretion"
+              ],
+              [
+                "Care Act advocate (Care Act 2014, sections 67 and 68)",
+                "The person would have substantial difficulty taking part in their assessment, care planning, review or a safeguarding enquiry, and no suitable unpaid person can support them.",
+                "The local authority"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Care Coordinator asks the local authority in writing within 2 working days of identifying that the person may qualify, or tells the NHS body the same day where treatment is involved, and records the request and the reply in the People involved part of the care plan; self-funders are also given the local advocacy service's details. After checking an advocate's identity and instruction, the Care Coordinator lets them meet the person in private and invites them to every best interests meeting. An IMCA may examine and copy the records we consider relevant, as section 35(6) allows; any other advocate sees records with the person's consent or, where they lack capacity to consent, where the Registered Manager or Deputy Manager records that it is in their best interests. Our staff never act as a person's advocate."
+        }
+      ]
+    },
+    {
+      "heading": "Attorneys, deputies and advance decisions",
+      "blocks": [
+        {
+          "p": "Attorneys and deputies are verified and recorded as the Consent to Care Policy sets out. They decide only within their authority and only when the person lacks capacity for that decision, and must follow the principles of the Act and act in the person's best interests. Where we have assessed capacity for a decision about our care, the assessor shares the outcome with them."
+        },
+        {
+          "p": "We follow a valid decision of an attorney or deputy and do not act against it, except to give life-sustaining treatment or prevent a serious deterioration while a court decision is sought (section 6(7)); in an emergency care workers call 999. Where we believe a decision is not in the person's best interests, the Registered Manager discusses it with the attorney or deputy and, if it is not resolved, writes to the local authority within 2 working days of the concern arising. Possible misuse of authority is reported under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and the safeguarding lead informs the Office of the Public Guardian within 2 working days, after discussing it with the local authority."
+        },
+        {
+          "p": "A valid and applicable advance decision to refuse treatment has the same effect as a refusal made with capacity (section 26). We never judge whether one is valid. It cannot refuse basic care such as warmth, shelter, keeping clean and the offer of food and drink by mouth (Code of Practice, paragraph 9.28), so care workers keep offering that care and follow the person's response at the time."
+        },
+        {
+          "p": "Staff never act as a person's attorney, deputy or appointee, never act as certificate provider or witness for a lasting power of attorney, and never help anyone complete the forms. Such requests go to the office, and the person is given the Office of the Public Guardian's details or advised to see a solicitor. Where a person may lose capacity, the assessor tells them about lasting powers of attorney, advance statements and advance decisions without advising them on making one."
+        }
+      ]
+    },
+    {
+      "heading": "Restraint, restriction and deprivation of liberty",
+      "blocks": [
+        {
+          "p": "The Act protects restraint only where it is reasonably believed necessary to prevent harm to the person and is proportionate to the likelihood and seriousness of that harm (section 6). Our policy is stricter: our staff never hold, restrain or use force to make a person accept care, and a task the person resists stops. The only physical action ever allowed is an emergency intervention under the Restraint and Restrictive Practice Policy: the least force, for the shortest time, to stop immediate serious harm when nothing else would work in time. In an emergency staff call 999."
+        },
+        {
+          "p": "A restriction is used for a person who lacks capacity only after an approved best interests decision under the Restraint and Restrictive Practice Policy. Restraint or a restriction used by our staff without approval, including an emergency intervention, is a safeguarding concern, phoned to the office before the care worker leaves under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure and logged in the incident log the same day. Care workers tell the office the same day, and record in the daily visit notes, if a person repeatedly tries or asks to leave, objects to their care or a restriction, is given medicines covertly or to sedate them, is under constant supervision, or is restricted by family or others; anyone else restraining the person, locking them in, taking their keys or keeping visitors away is phoned to the office before leaving as a safeguarding concern. The Care Coordinator (the On-call Manager out of hours) updates the deprivation of liberty screen the same working day. In a person's own home only the Court of Protection can authorise a deprivation of liberty; where there may be one, or the Registered Manager is in doubt, they refer it to the commissioner under the Deprivation of Liberty in the Community Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Ill-treatment and wilful neglect",
+      "blocks": [
+        {
+          "p": "Section 44 of the Act makes it a criminal offence, punishable by up to 5 years' imprisonment, for anyone caring for a person who lacks, or is reasonably believed to lack, capacity, including our staff and family carers, or for their attorney or deputy, to ill-treat or wilfully neglect them. Section 20 of the Criminal Justice and Courts Act 2015 also makes ill-treatment or wilful neglect by a paid care worker, or by those who manage them, an offence whatever the person's capacity, as the Safeguarding Adults Policy sets out."
+        },
+        {
+          "p": "Examples include rough handling, humiliating or shouting at a person, locking them in, deliberately leaving them soiled or without food, drink, warmth or medicines, and deliberately missing or cutting short visits. Staff report any sign of it, by anyone, before leaving the visit under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. The safeguarding lead reports it to the police as a possible crime as well as to the local authority, and an allegation against a member of staff follows the Managing Allegations Against Staff Procedure and may lead to dismissal under the Disciplinary Policy and Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Capacity doubts and assessments, disputes, best interests decisions, consultation, meetings and approvals",
+                "Consent and decisions part of the care plan"
+              ],
+              [
+                "Attorneys, deputies, advocates, advocacy requests, and letters to commissioners or the local authority",
+                "People involved part of the care plan"
+              ],
+              [
+                "Suspected ill-treatment, neglect, misuse of authority or unapproved restraint",
+                "Safeguarding records and the incident log"
+              ],
+              [
+                "Assessor authorisation, training and checked assessments",
+                "Training and compliance records; supervision and appraisal records"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are written at the time under the author's own log-in, earlier versions are never deleted, and records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Consent and the Mental Capacity Act (the course set by the Consent to Care Policy): the principles, helping people decide, reporting doubts, best interests plans, restraint and section 44",
+                "Care Workers and Senior Care Workers",
+                "At induction, before working without a shadowing colleague",
+                "Every 12 months, with the safeguarding refresher"
+              ],
+              [
+                "Capacity assessment, best interests decisions, legal authority, advocacy and deprivation of liberty",
+                "Care Coordinators, Field Care Supervisors, On-call Managers, Deputy Manager and Registered Manager",
+                "Before the first formal capacity assessment or on-call shift",
+                "Every 2 years, and within 2 months of a significant change in law or guidance"
+              ],
+              [
+                "Lead-level Mental Capacity Act and deprivation of liberty training",
+                "Registered Manager and Deputy Manager",
+                "Within 3 months of appointment",
+                "Every 3 years"
+              ],
+              [
+                "Briefing on this policy",
+                "Directors and Nominated Individual",
+                "Within 1 month of appointment",
+                "At the annual governance update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A new assessor's first three formal capacity assessments are checked by the Registered Manager or Deputy Manager before they are relied on, and each assessor has one assessment observed or checked every 12 months. A significant error, such as no named decision or no evidence for the conclusion, means feedback within 5 working days and the assessor's next two assessments checked. Authorisation lapses when training is out of date. Office staff and the HR Manager complete the awareness training the Consent to Care Policy sets. Spot checks and supervision test care workers' understanding and observe them following best interests plans; a shortfall means feedback the same day, retraining and re-observation within 4 weeks. Staff acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every formal capacity assessment and best interests decision completed in the month (if more than 10, a sample of 10: every disputed decision and restriction, the rest at least half chosen by risk and the others at random): decision named, help given, four abilities and causal link evidenced, consultation, options, approval before use, plan and review date",
+                "Monthly MCA records audit; those the Deputy Manager carried out or approved are audited by the Registered Manager",
+                "Deputy Manager",
+                "Registered Manager; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Capacity doubts assessed within 7 days; best interests meetings, advocacy requests and second assessments on time; restrictions and deprivation of liberty referrals with outcomes",
+                "Monthly review (the same review the Consent to Care Policy sets)",
+                "Registered Manager",
+                "Nominated Individual and Directors in the quarterly quality report"
+              ],
+              [
+                "Best interests decisions and recurring-decision assessments due or overdue for review",
+                "Weekly",
+                "Care Coordinator",
+                "Weekly management meeting"
+              ],
+              [
+                "Best interests plans followed and no force used",
+                "Every spot check",
+                "Field Care Supervisors",
+                "Registered Manager monthly"
+              ],
+              [
+                "Training, assessor authorisation and policy acknowledgements",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of capacity doubts assessed on time, 100% of best interests decisions approved before use, and 100% of audited records meeting every critical standard. Every shortfall goes in the service improvement plan within 5 working days with an owner and a deadline, and every complaint, incident or safeguarding concern involving care without consent, an unapproved restriction or possible ill-treatment is reviewed by the Registered Manager for learning."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, including a revised Code of Practice, any decision on the Liberty Protection Safeguards or further guidance on the 2026 deprivation of liberty judgment, a serious incident, an inspection finding, or when monitoring shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

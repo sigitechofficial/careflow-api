@@ -1,0 +1,336 @@
+{
+  "reference": "POL-CD-018",
+  "revision": 1,
+  "title": "Daily Records and Visit Notes Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How every visit is recorded in CareFlow: what care workers read before giving care, what the daily visit notes must contain and how to write them, late entries, corrections and recording on behalf, what to do when CareFlow or the work phone fails, who may see the notes, and how notes are checked and audited. For everyone who gives, records or checks care.",
+  "keyPoints": {
+    "intro": "Your daily visit notes are the only record of what happened at a visit. The next care worker, the office, the person and their family, health professionals and inspectors all rely on them.",
+    "points": [
+      "Before you start care, read My care at a glance, any care plan changes and the notes since your last visit. Before a first visit, or after 4 weeks or more away, read the whole care plan and the last 7 days of notes.",
+      "Write or dictate your notes in CareFlow on your work phone during or at the end of the visit, inside the home, before you check out. Never use your phone during personal care, and never let a voice note capture anyone else speaking.",
+      "Record every visit plan task as done or not done, with the reason for anything not done, how the person was, what they said that matters, any change you noticed and who you told.",
+      "A note never replaces a phone call. Phone the office, or the On-call Manager out of hours, before you leave about any concern, change or essential task not done. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager.",
+      "Write facts: what you saw, did and were told, with times and amounts. Put the person's own words in quotation marks and never use labels such as difficult, aggressive, wandering, feeding or nappies.",
+      "Write words in full. Use only the abbreviations this procedure allows, and write times in the 24-hour clock.",
+      "Never write a key safe code, the details of a safeguarding concern, complaint or incident, or anything about another person we support in the daily visit notes.",
+      "Never change, delete or back-date a note. Add a correction entry or a late entry, or phone the office if your shift has ended. If you write in the wrong person's record, phone the office at once. Falsifying a record is gross misconduct.",
+      "If CareFlow or your phone fails, phone the office on arrival and before you leave, and give them anything the next care worker must know.",
+      "Keep your work phone locked and with you, never share your log-in, and report a lost or stolen phone to the office at once."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["ALL_EMPLOYEES"],
+  "moduleLinks": ["VISIT", "CARE_PLAN", "AUDIT", "TRAINING"],
+  "relatedReferences": ["POL-CD-001", "POL-CD-013", "POL-MED-005", "POL-GOV-003", "POL-GOV-014", "POL-GOV-016", "POL-GOV-017", "POL-HR-017"],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(c) (accurate, complete and contemporaneous record of the care provided to each service user, maintained securely)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 5(1)(d) and (f) (accuracy; integrity and confidentiality)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/5"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 15 (right of access by the data subject)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/15"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 16 (right to rectification, including a supplementary statement)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/16"
+    },
+    {
+      "source": "Data Protection Act 2018, section 170 (unlawful obtaining etc of personal data)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/170"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "{{organisation}} keeps an accurate, complete and contemporaneous record of the care given at every visit to every person we support. Our care workers work alone, so the daily visit notes are how the next care worker knows what has happened, how the office notices a change before it becomes harm, and how we show the person, commissioners, CQC or a coroner what care was given." },
+        { "p": "Every visit is recorded in CareFlow in the person's home before check-out, in factual, respectful language the person would be comfortable to read; records are never altered or back-dated, and mistakes are corrected openly." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "p": "This procedure makes sure every care worker reads what they need before giving care and records every visit to one standard, that no record is lost or altered when information is late or wrong or CareFlow fails, and that notes are seen only by those entitled and are checked." }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This procedure applies to every employee who visits the people we support or records care, including managers who give care, On-call Managers and Office staff who make entries in the notes, and bank and agency workers. It covers the daily visit notes for every visit and the care-plan-directed records kept within them." },
+        { "p": "It does not cover the eMAR (Medicines Administration Records (MAR and eMAR) Procedure), check-in and check-out times (Missed, Late and Short Visits Procedure), care plans and risk assessments (Needs Assessment and Care Planning Policy), the incident log (Incident Reporting, Investigation and Learning Policy) or safeguarding records (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure)." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": {
+          "columns": ["Term", "Meaning"],
+          "rows": [
+            ["Daily visit notes", "The record in CareFlow of one visit: the care given and not given, what the person did and said, what the care worker observed and what action they took."],
+            ["Care-plan-directed record", "An extra record the care plan tells care workers to keep in the daily visit notes for a set purpose and period, such as a food and drink or bowel record."],
+            ["Late entry", "Anything added after check-out. It starts with 'Late entry' and gives the time of the event it describes and why it is late."],
+            ["Correction entry", "A new entry that identifies an earlier entry as wrong and gives the correct information and the reason. The earlier entry stays in the record."],
+            ["Recording on behalf", "An entry made by Office staff or the On-call Manager from what a care worker tells them by phone, starting 'Recorded on behalf by phone' and naming the care worker."]
+          ]
+        } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            { "p": "The Directors fund a work phone with CareFlow for every care worker who visits. The Nominated Individual reviews record-keeping audit results in the quarterly governance report and challenges any branch rated Amber or Red." }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            { "p": "The Registered Manager is accountable for the quality and security of daily records, reviews the monthly audit results, decides the same day on any suspected false record, and decides when the person or someone acting for them says a note is wrong or objects to records being kept. The Registered Manager or Deputy Manager removes any entry made in the wrong person's record." }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            { "p": "The Deputy Manager audits daily visit notes monthly within the care records audit and checks that actions are completed." }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            { "p": "Care Coordinators set up each care-plan-directed record in the visit plans (what is recorded, at which visits and until when), read and act on notes daily, transfer downtime log entries and add correction entries reported to them." }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            { "p": "Field Care Supervisors read care workers' notes before spot checks and weekly for new care workers, give feedback and book retraining." }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            { "p": "They follow this procedure at every visit and keep their work phone and log-in secure. Shadow leads (Senior Care Workers or Field Care Supervisors) check the new care worker's notes on every shadow shift." }
+          ]
+        },
+        {
+          "heading": "On-call Managers, Office staff and HR Manager",
+          "blocks": [
+            { "p": "Office staff and On-call Managers record calls and entries on behalf; the On-call Manager reads notes at weekends and on bank holidays. The HR Manager issues each new care worker's work phone before their first shadow shift, switches on CareFlow access to care records once pre-employment clearance is complete, and removes access on the day employment ends or a worker is suspended." }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Before giving care",
+      "blocks": [
+        { "steps": [
+          "Before your first visit to a person, read their whole care plan and the daily visit notes of the last 7 days. Do the same if you have not visited them for 4 weeks or more.",
+          "At every other visit, read My care at a glance, any care plan change since your last visit, and the notes since then, at least those of the last three visits.",
+          "Check the visit plan for any care-plan-directed record due at this visit, and the eMAR before any medicines support. If you arrive late, read the notes and eMAR before you start, as the Missed, Late and Short Visits Procedure requires.",
+          "If the notes show something that needed action and you cannot see that it was taken, such as a fall, a declined essential task or a new mark on the skin, phone the office, or the On-call Manager out of hours, before you start care. While you wait for advice, give only care the problem does not affect.",
+          "If what you find does not match the notes or care plan, follow the care plan for safety-critical tasks, phone the office before you leave and record what you found."
+        ] }
+      ]
+    },
+    {
+      "heading": "What to record at every visit",
+      "blocks": [
+        { "p": "Every visit has daily visit notes written, dictated or phoned through by a care worker who was there. A note that says only 'all care given as per care plan' or 'all fine' is never acceptable. Check-in and check-out record arrival and departure; you record the time of any event during the visit, such as a fall or a call to the GP." },
+        { "table": {
+          "columns": ["Topic", "What you record"],
+          "rows": [
+            ["How the person was", "How you found them on arrival and how you left them: where they were, how they seemed, and what they said about how they feel, in their own words."],
+            ["Care given", "Each visit plan task as done or not done. For anything not done, declined, done differently or done by someone else: the reason, what you offered and whether you offered again later in the visit."],
+            ["What the person did themselves", "The parts of each task the person did, and any change in what they can do."],
+            ["Food and drink", "What you prepared or offered and what was eaten and drunk. Where a food and drink record is in place (Nutrition and Hydration Policy): how much of each food was eaten (all, three quarters, half, a quarter or none), each drink in millilitres using the cup size in the care plan, what you left within reach, and what the person says they had since the last visit."],
+            ["Health, skin and wellbeing", "Any change in health, eating, drinking, passing urine, breathing, skin, mobility, memory, mood or behaviour, any new confusion, drowsiness or pain, and the skin checks the care plan requires. New marks or injuries also go on a CareFlow body map."],
+            ["Medicines", "Outcomes go on the eMAR, not in the notes, which record calls and advice about medicines and anything the medicines documents say to note there."],
+            ["Who you told", "Every call to the office, On-call Manager, GP, NHS 111, 999 or another professional: who you spoke to, the time, what you said and what they advised."],
+            ["Information from others", "What a family member, visitor or professional told you, and who told you."],
+            ["Leaving the home", "That the home was left as the care plan sets out: secure, key safe closed and code scrambled, heating and appliances as the person wants, drink and call alarm within reach."],
+            ["Reports made", "Only that an incident, safeguarding concern or complaint was reported, and to whom. The details go in the incident log, safeguarding record or complaint record."]
+          ]
+        } },
+        { "p": "Where the care plan sets a care-plan-directed record, you keep it at the visits it names until the Care Coordinator ends it. The owning documents set out its content:" },
+        { "table": {
+          "columns": ["Record", "Set out in"],
+          "rows": [
+            ["Food and drink record", "Nutrition and Hydration Policy"],
+            ["Skin checks and each repositioning", "Pressure Ulcer Prevention and Skin Integrity Procedure"],
+            ["Checks after a fall or possible head injury", "Falls Prevention and Response Procedure"],
+            ["Bowel record", "Personal Care, Continence and Oral Care Procedure"],
+            ["Diarrhoea and vomiting record", "Infections of Concern Guideline"],
+            ["Room temperature during a heat-health or cold-health alert", "Severe Weather and Extreme Temperatures Procedure"],
+            ["Summary of each money transaction, alongside the money and shopping record kept in the home", "Handling Money, Property and Shopping Procedure"],
+            ["Medicines stock checks, new supplies checked and when required doses given between visits", "The medicines documents named in the care plan"]
+          ]
+        } },
+        { "p": "The person, their family and every care worker on the rota may see the notes, including voice notes, so they never contain: key safe codes or other access details; the details of a safeguarding concern or allegation, incident investigation, complaint, CQC notification or duty of candour discussion; a person's blood-borne virus status; information about another person we support; or anything about a colleague's conduct or health, which is phoned to the office instead." }
+      ]
+    },
+    {
+      "heading": "How to write daily visit notes",
+      "blocks": [
+        { "bullets": [
+          "Write as you complete each task or at the end of the visit, inside the home, before you check out. Writing notes is part of the planned visit time; if the visit will run more than 15 minutes over, phone the office before the expected finish. Never write or dictate notes in the car or after leaving, except as a late entry.",
+          "Never use your phone while giving personal care. If the person does not like you using it during the visit, write the notes at the end somewhere quiet in the home, telling them what you are doing.",
+          "Write facts: what you saw, heard, did and were told. Label an opinion as yours and say why, for example 'I think she was in pain because she held her side and winced when standing'.",
+          "Be specific about times, amounts, sizes and places: 'drank 150 ml of tea from her blue mug', not 'drank well'; 'red area the size of a 50p coin on the left heel', not 'sore heel'.",
+          "Use the person's preferred name and put what they said in quotation marks. Refer to family members by relationship and first name, as recorded in the People involved part of the care plan.",
+          "Use words that say what happened rather than labels such as difficult, wandering or nappies, as the Person-Centred Care, Dignity and Respect Policy requires.",
+          "Write words in full. The only abbreviations allowed are units of measurement (ml, l, g, kg, mm, cm), GP, NHS, NHS 111, 999, OT, eMAR and DNACPR; shorthand such as 'c/o', 'NAD', 'SOB', 'pt' or 'BO' is never used. Write times in the 24-hour clock, for example 07:40.",
+          "Type the note in CareFlow, using speech-to-text only if agreed as a reasonable adjustment, and read it back before saving; or dictate it as a CareFlow voice note away from the person or with them aware, never capturing anyone else speaking. Anything CareFlow requires as text, such as medicines records and incident details, is still typed. Never use a voice assistant or other app.",
+          "If anything needs action, phone the office, or the On-call Manager out of hours, before you leave; the office may not read the note before the next visit. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly."
+        ] },
+        { "table": {
+          "columns": ["Instead of", "Write"],
+          "rows": [
+            ["Mary was aggressive.", "Mary pushed my hand away twice when I started to wash her back and said 'leave me alone'. I stopped and waited; she agreed to a wash 10 minutes later."],
+            ["Fed lunch. Ate well.", "Supported Mary to eat lunch at 12:40. She ate all of the soup and half of the sandwich, and drank 200 ml of orange squash."],
+            ["Refused meds.", "Mary declined her 08:00 tablets, saying 'they make me sick', and again when I offered at 08:25. Recorded on the eMAR. Phoned the office at 08:30; Asha, Care Coordinator, is contacting the GP."]
+          ]
+        } }
+      ]
+    },
+    {
+      "heading": "Particular visits",
+      "blocks": [
+        { "table": {
+          "columns": ["Situation", "How the visit is recorded"],
+          "rows": [
+            ["Two-worker visit", "Both workers check in and out under their own log-in. The worker who led the care writes one set of notes naming both workers; the other reads it before checking out and adds their own entry if anything is missing or they saw it differently."],
+            ["Shadow shift", "The new care worker writes the notes under their own log-in once they have CareFlow access, otherwise the shadow lead does. The shadow lead reads them before check-out and adds an entry if anything is missing or wrong."],
+            ["Agency worker", "Agency workers are given CareFlow access before their first visit. Where they have none, they phone the office before leaving each visit and Office staff record on their behalf."],
+            ["Student on placement", "Students do not use CareFlow at visits. The care worker they work with writes the notes and names the student."],
+            ["Family provide part of the care", "The care plan records what family do, for example meals or medicines. Record what they tell you about care they gave between visits and who told you; never record it as care you gave. If they could not do their part, phone the office the same day, before you leave if the person would otherwise go without food, drink or a medicine before our next visit."],
+            ["No reply or no access", "What you saw and did, who you spoke to and when, as the No Reply, No Access and Missing Person Procedure sets out."],
+            ["Person admitted to hospital from the visit", "What happened, the time of the 999 call, what was handed to the crew and how the home was left, before the end of your shift, as the Hospital Admission and Discharge Procedure sets out."]
+          ]
+        } },
+        { "p": "If a person objects to us keeping records, the care worker explains that the law requires us to record the care we give and tells the office the same working day. The objection is handled as a rights request under the Subject Access and Individual Rights Procedure: the Registered Manager discusses it with the person within 5 working days, offers them sight of their notes, records their view in the Consent and decisions part of the care plan and decides on Data Protection Officer advice, with the Nominated Individual approving any decision to continue. Recording continues meanwhile, because Regulation 17 requires it." }
+      ]
+    },
+    {
+      "heading": "Late entries, corrections and recording on behalf",
+      "blocks": [
+        { "p": "Nobody edits, deletes or back-dates a saved note; CareFlow records who wrote each entry and when. The only exception is an entry in the wrong person's record, as the Records Management and Retention Policy allows. Falsifying a note, including recording care that was not given, is gross misconduct under the Staff Code of Conduct, and deliberately hiding a mistake is dealt with under the Disciplinary Policy and Procedure." },
+        { "table": {
+          "columns": ["Situation", "What you do"],
+          "rows": [
+            ["You remember something after check-out", "During your shift, add a new note to that visit in CareFlow starting 'Late entry'. After your shift, phone the office, or the On-call Manager out of hours, as soon as you remember, and they add it to the person's Comms record, starting 'Late entry' with the visit date and your name. If it needs action, phone first."],
+            ["You saved something wrong", "During your shift, add a correction entry saying which entry is wrong, what is correct and why, for example 'Correction to my 08:15 note: the red area is on the right heel, not the left.' After your shift, phone the office; the Care Coordinator, or the On-call Manager out of hours, adds it to the person's Comms record before their next visit. Phone at once if the mistake could affect care."],
+            ["You wrote a note in the wrong person's record", "Phone the office, or the On-call Manager out of hours, at once and record it in the incident log before your shift ends; it is handled under the Personal Data Breach Procedure. Record the visit in the right record as a late entry. Staff cannot delete CareFlow visit notes, so the same working day the Registered Manager or Deputy Manager notes on that person's Comms record that the entry was made in error and must be disregarded, with the incident log reference, and asks the CareFlow supplier in writing to remove it."],
+            ["A colleague or the office tells you a note of yours is wrong", "If you agree, add a correction entry. If you do not, tell the Care Coordinator, who decides and records the decision on the person's Comms record."]
+          ]
+        } },
+        { "p": "An entry recorded on behalf holds only what the care worker reports about their own visit, gives the call time and is read back before the call ends. They also record in their own name, the same working day, calls about the person between visits, such as a change reported by family, a professional's advice or an alarm call." }
+      ]
+    },
+    {
+      "heading": "When CareFlow or the work phone is not working",
+      "blocks": [
+        { "table": {
+          "columns": ["Situation", "What happens"],
+          "rows": [
+            ["The app shows it is offline", "Write your notes as normal; they are sent, with the time you wrote them, when the signal returns. Before your shift ends, open CareFlow where there is a signal and check every note has sent; if any has not, phone the office."],
+            ["Your phone has failed or is lost, but CareFlow is working", "Phone the office, or the On-call Manager out of hours, on arrival and before leaving each visit, from the person's landline with their agreement or your own phone. Before leaving, give the care given, anything not done, any concern and anything the next care worker must know; they record it on your behalf during the call. The Care Coordinator gets a spare phone to you under the Mobile Phones and Social Media Policy. A lost or stolen phone is reported at once under the Personal Data Breach Procedure."],
+            ["CareFlow is unavailable to everyone", "The office or On-call Manager tells every care worker on shift and the Nominated Individual, and the Business Continuity and Emergency Planning Policy applies if the outage lasts or is expected to last more than 2 hours. You phone on arrival and before leaving each visit with the same information, which Office staff or the On-call Manager write in the downtime log. You never write care notes on paper, except a back-up MAR sheet when the office tells you to."],
+            ["CareFlow returns", "Within 24 hours the Care Coordinator, or the On-call Manager at weekends and on bank holidays, completes each visit in CareFlow from the downtime log, with manual times and notes starting 'Transferred from downtime log', naming the care worker, soonest next visit first. At their next shift each care worker reads the transferred notes for their visits and adds a late entry for anything missing."]
+          ]
+        } }
+      ]
+    },
+    {
+      "heading": "Who may see daily visit notes",
+      "blocks": [
+        { "p": "Within our organisation, care workers see the notes of people on their round (those they visit regularly or are rostered to visit in the next 14 days); other employees see what their role needs. Outside it, access follows the Confidentiality and Information Sharing Policy:" },
+        { "table": {
+          "columns": ["Who", "What they may see and how"],
+          "rows": [
+            ["The person", "At any visit, the notes of that visit on the care worker's phone, read aloud if they prefer. Assessors and reviewers tell the person they may see their notes and ask for a copy. A request for a copy, or for other visits' notes, goes to the office the same working day and is handled free of charge under the Subject Access and Individual Rights Procedure."],
+            ["Family members and representatives", "Only what the People involved and Consent and decisions parts of the care plan record the person agrees to, or what a verified attorney or deputy may see within their authority. Care workers never show their phone to a relative; requests for more go to the office the same working day."],
+            ["Professionals involved in the person's care", "Paramedics, district nurses and others treating the person, once you have seen their identity badge, may be shown the notes they need at the visit; record what you showed them in the notes and tell the office. Copies are sent by the Care Coordinator by secure email within 2 working days of the request, or the same day where urgent."],
+            ["Commissioners and CQC", "Commissioners see notes only of people they fund; CQC inspectors see the records they ask for, arranged by the Registered Manager under the Inspection Readiness and Working with Regulators Guideline."],
+            ["Anyone else, including police, solicitors and insurers", "Nothing at a visit. Every request goes to the office the same working day."]
+          ]
+        } },
+        { "p": "If the person, or someone acting for them, says a note is wrong, the care worker tells the office that working day. The Registered Manager decides: a wrong note gets a correction entry; where we believe it is right, the person's own statement is added alongside it and they are told why. Errors are corrected within the timescales in the Records Management and Retention Policy." }
+      ]
+    },
+    {
+      "heading": "Keeping notes confidential and secure",
+      "blocks": [
+        { "p": "Work phones are used under the Mobile Phones and Social Media Policy. For daily visit notes:" },
+        { "bullets": [
+          "Use only your own log-in. Never let anyone else, including the person or a family member, use CareFlow on your phone, and keep the screen out of sight of visitors.",
+          "Never photograph a screen, copy notes into a text, email or messaging app, or keep your own notes about a person.",
+          "Daily visit notes are never printed and left in the home.",
+          "Looking at the notes of a person you do not support, or using notes for anything other than their care, is a disciplinary matter and can be a criminal offence under section 170 of the Data Protection Act 2018."
+        ] }
+      ]
+    },
+    {
+      "heading": "Checking daily records",
+      "blocks": [
+        { "table": {
+          "columns": ["Check", "When and who", "What is done"],
+          "rows": [
+            ["Notes of people at higher risk", "Each day, for the previous day's visits: Care Coordinator for their caseload; On-call Manager at weekends and on bank holidays", "Notes read for everyone with a care-plan-directed record, in the first 7 days after a hospital discharge, in the first 4 weeks of a new package, or with an open safeguarding plan. Anything not yet acted on is acted on the same day; changes go to the Care Plan Review Procedure."],
+            ["Visits with no notes", "By 10am each day, within the daily exception review under the Missed, Late and Short Visits Procedure: Care Coordinator; On-call Manager at weekends and on bank holidays", "The care worker is phoned the same day to add a late entry or phone it through; the reason is recorded on the visit's check-in/check-out record."],
+            ["Each care worker's notes", "Before every spot check: Field Care Supervisor", "At least 5 of the care worker's notes from the previous 4 weeks read against this procedure; feedback at the spot check, recorded in supervision and appraisal records."],
+            ["New care worker's notes", "Weekly for the first 4 weeks after lone working sign-off: Field Care Supervisor", "At least 5 notes read; feedback within 2 working days."]
+          ]
+        } },
+        { "p": "Where the same shortfall is found at two checks in a row, the Field Care Supervisor books record-keeping retraining within 5 working days and reviews the care worker's notes weekly for the next 4 weeks. A shortfall that put a person at risk, such as an unreported fall or an essential task not done and not reported, is recorded in the incident log the same day. Any sign that a record is false, such as care recorded at a time the check-in/check-out record shows the care worker elsewhere, goes to the Registered Manager the same day, who decides whether the person needs a welfare check, whether it is a safeguarding concern and whether to start the Disciplinary Policy and Procedure." }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "p": "Daily visit notes, late entries, correction entries, entries recorded on behalf and care-plan-directed records are kept in CareFlow with each entry's author and time. Paper downtime logs are scanned into CareFlow and shredded once every entry has been transferred. Retention, including holds for investigations, inquests and claims, follows the Records Management and Retention Policy." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "table": {
+          "columns": ["Training", "Who", "When"],
+          "rows": [
+            ["This procedure, with practice notes marked by the trainer", "All care staff", "During induction, before the first shadow shift"],
+            ["Information governance, including record keeping (pass mark 80%)", "All employees", "In the first week, before any access to care records, then every 12 months"],
+            ["Notes checked on every shadow shift; notes of both observed visits assessed at lone working sign-off", "New care staff", "Before working without a shadowing colleague"],
+            ["Recording on behalf, correction entries and transferring downtime logs", "Office staff, On-call Managers and Care Coordinators", "Before first doing any of these, then every 12 months"],
+            ["Reviewing notes and giving feedback", "Field Care Supervisors and shadow leads", "Within spot checker training or the shadow lead briefing"]
+          ]
+        } },
+        { "p": "Care workers who find writing notes difficult, including those with dyslexia or for whom English is an additional language, are offered adjustments agreed with the HR Manager, such as approved speech-to-text software and extra practice with the Field Care Supervisor, and the paid English course in the Training and Development Policy." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": {
+          "columns": ["What is checked", "How and how often", "By whom", "Reported to"],
+          "rows": [
+            ["Daily visit notes against this procedure. Critical standards: a note for every visit; essential tasks not done recorded and reported; no key safe code or safeguarding detail in the notes", "Monthly care records audit of the previous 4 weeks' notes, sampled and scored under the Quality Audit and Monitoring Procedure", "Deputy Manager", "Registered Manager; quality dashboard by the 7th working day"],
+            ["Visits with no notes and late entries made after the shift ended", "Monthly, from the daily exception review records", "Deputy Manager", "Monthly Quality and Governance Meeting"],
+            ["Feedback on notes at spot checks and retraining", "Quarterly audit of supervision and spot check records", "Registered Manager", "Quarterly governance report"],
+            ["Training in date and acknowledgement of this procedure", "Monthly; targets 95% in date and every employee acknowledging by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version", "HR Manager", "Monthly Quality and Governance Meeting"]
+          ]
+        } },
+        { "p": "Shortfalls go into the service improvement plan within 5 working days. The Registered Manager reviews record-keeping themes from incidents, complaints, safeguarding enquiries and inspections each quarter for the governance report." },
+        { "p": "The Registered Manager reviews this procedure every 12 months, and sooner after a change in law, guidance or how CareFlow records visits, a serious incident or inspection finding involving records, or when monitoring shows the arrangements are not working. The Directors approve it under the Policy Management and Document Control Policy." }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,752 @@
+{
+  "reference": "POL-HS-011",
+  "revision": 1,
+  "title": "Driving at Work Policy",
+  "documentType": "POLICY",
+  "summary": "How we manage the risks of driving and riding for work: travel to and between visits in workers' own vehicles and company vehicles, cycling and motorcycling, and escorted journeys with the people we support. It sets the licence, insurance and vehicle checks, our rules on phones, fatigue and travel time, what to do after a collision or breakdown, and the training and monitoring that apply. For all staff.",
+  "keyPoints": {
+    "intro": "Most of your working day is spent on the road between visits. These rules keep you, the people we support and other road users safe while you travel.",
+    "points": [
+      "Never hold your phone while driving, even when stopped in traffic, and do not make or take calls, even hands-free. Park safely with the engine off before you use your phone or CareFlow.",
+      "Never speed or rush when running late. Once parked with the engine off, phone the office or On-call Manager as soon as you know you will be over 15 minutes late, or late at all for a time-critical visit; the office tells the person.",
+      "You may drive for work only once the HR Manager has checked your licence, business use insurance, MOT and vehicle tax. Send new insurance or MOT evidence before the old one expires, or you cannot be given driving visits.",
+      "Tell the HR Manager before you next drive for work about new penalty points, a medical condition you must tell the DVLA about, or a change to your insurance. If you lose your licence, tell us before your next shift.",
+      "Before your first journey each day, check your lights, tyres, windows and dashboard warning lights. Never drive a vehicle you think is unsafe: phone the office and we will cover your visits.",
+      "If you feel too tired, unwell or affected by a medicine to drive safely, do not drive. Stop somewhere safe and phone the office or On-call Manager. We pay for a taxi and nobody will criticise you.",
+      "Drive a person we support only when their care plan includes an escorted journey and you are approved for it. Never leave them alone in the vehicle, never drive them to hospital in an emergency and never drive their own vehicle.",
+      "After any collision, stop, make the scene safe, call 999 if anyone is hurt and give your details to anyone with good reason to ask. Phone the office before you drive on and record it in the incident log before your shift ends.",
+      "If you break down, get yourself to a safe place away from traffic before anything else, then phone the office or On-call Manager, who will cover your visits and pay for a taxi.",
+      "Never leave a person's medicines or keys, paper records, a work laptop or your work phone in a vehicle. Carry equipment and shopping in the boot, never loose inside the car.",
+      "Park legally and considerately, never across a driveway or dropped kerb. We repay parking charges at visits as expenses. Speeding and other fines and penalty charges are yours, except a parking penalty from staying with a person in an emergency recorded in the incident log."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "EMPLOYEE",
+    "HR",
+    "RECRUITMENT",
+    "VISIT",
+    "RISK_ASSESSMENT",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-HS-001",
+    "POL-HS-003",
+    "POL-HR-007",
+    "POL-HR-014",
+    "POL-HR-001",
+    "POL-GOV-007",
+    "POL-HS-014",
+    "POL-CD-013"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 2 (employer's duty to ensure, so far as is reasonably practicable, employees' health, safety and welfare, including safe systems of work, information, instruction and training)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/2"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 3 (suitable and sufficient risk assessment; significant findings recorded where there are five or more employees)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3"
+    },
+    {
+      "source": "Road Traffic Act 1988, section 143 (users of motor vehicles to be insured; offence to cause or permit uninsured use)",
+      "url": "https://www.legislation.gov.uk/ukpga/1988/52/section/143"
+    },
+    {
+      "source": "Road Traffic Act 1988, section 170 (duty to stop and give details after an accident; report to the police as soon as reasonably practicable and within 24 hours)",
+      "url": "https://www.legislation.gov.uk/ukpga/1988/52/section/170"
+    },
+    {
+      "source": "Road Vehicles (Construction and Use) Regulations 1986, regulation 110 (hand-held mobile phones and devices while driving, including causing or permitting another to drive while using one)",
+      "url": "https://www.legislation.gov.uk/uksi/1986/1078/regulation/110"
+    },
+    {
+      "source": "HSE: Driving and riding safely for work (employers; company and grey fleet vehicles; journey, driver and vehicle)",
+      "url": "https://www.hse.gov.uk/roadsafety/employer/index.htm"
+    },
+    {
+      "source": "HSE: Make sure drivers and riders are safe (licences, insurance and MOT checks; training at no cost to workers; phones and hands-free use)",
+      "url": "https://www.hse.gov.uk/roadsafety/employer/make-sure-drivers-riders-are-safe.htm"
+    },
+    {
+      "source": "HSE: Make sure vehicles used to drive or ride for work are safe (privately owned vehicles, daily checks, defect reporting)",
+      "url": "https://www.hse.gov.uk/roadsafety/employer/maintain-vehicles.htm"
+    },
+    {
+      "source": "HSE: Plan and manage journeys (realistic schedules, fatigue risk periods, breaks and weather)",
+      "url": "https://www.hse.gov.uk/roadsafety/employer/plan-manage-journeys.htm"
+    },
+    {
+      "source": "GOV.UK: Using a phone, sat nav or other device when driving (the law and penalties)",
+      "url": "https://www.gov.uk/using-mobile-phones-when-driving-the-law"
+    },
+    {
+      "source": "GOV.UK: Check someone's driving licence information (check code valid for 21 days)",
+      "url": "https://www.gov.uk/check-driving-information"
+    },
+    {
+      "source": "GOV.UK: Medical conditions, disabilities and driving (duty to tell DVLA)",
+      "url": "https://www.gov.uk/driving-medical-conditions"
+    },
+    {
+      "source": "GOV.UK: Driving eyesight rules (reading a number plate from 20 metres)",
+      "url": "https://www.gov.uk/driving-eyesight-rules"
+    },
+    {
+      "source": "GOV.UK: E-scooter trials, guidance for users (privately owned e-scooters may not be used on public land)",
+      "url": "https://www.gov.uk/guidance/e-scooter-trials-guidance-for-users"
+    },
+    {
+      "source": "The Highway Code, rule 91 (a break of at least 15 minutes after every two hours of driving) and rules 99 to 100 (seat belts)",
+      "url": "https://www.gov.uk/guidance/the-highway-code/rules-for-drivers-and-motorcyclists-89-to-102"
+    },
+    {
+      "source": "The Highway Code, rules 275 to 287 (breakdowns and incidents, including rule 286 on collisions)",
+      "url": "https://www.gov.uk/guidance/the-highway-code/breakdowns-and-incidents-274-to-287"
+    },
+    {
+      "source": "GOV.UK: Getting an MOT (first MOT by the third anniversary of registration)",
+      "url": "https://www.gov.uk/getting-an-mot"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} provides care in people's own homes, so most of our care workers spend part of every shift on the road, often early or late and in poor weather. HSE describes driving for work as one of the most dangerous things workers will do, and health and safety law applies to it whether the worker drives their own vehicle or one of ours."
+        },
+        {
+          "p": "{{organisation}} will plan rotas that never require anyone to rush, check that every driver is licensed, insured and fit to drive and that every vehicle used for our work is roadworthy, give clear rules and training at no cost to staff, and support anyone involved in a collision. No visit is so urgent that a worker should drive unsafely: the office can manage a late visit, but nobody can undo a collision."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that only checked, fit and insured drivers in roadworthy vehicles drive for us; that rotas allow realistic travel time and breaks so nobody is pressured to rush, drive tired or answer the phone at the wheel; that escorted journeys with the people we support are planned and safe; and that collisions, breakdowns and road incidents are handled safely, reported and learned from."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to all employees, bank workers, agency workers and students, and to the Directors and managers when they drive for work. Care workers have no fixed place of work, so for them it covers every journey in a working day: from home to the first visit, between visits, from the last visit home, and to the office, training, supervision, a pharmacy or shops for a person, on-call visits and escorted journeys. For office staff it covers journeys away from their usual office, such as to a person's home, a meeting or another branch, but not their daily commute. It covers cars, vans, motorcycles, mopeds and bicycles, whether owned by the worker or by us."
+        },
+        {
+          "p": "Other documents cover: pay for travel time and mileage (Working Time, Rest Breaks and Travel Time Policy); personal safety when parking and walking, and check-in monitoring (Lone Working and Staff Personal Safety Policy); alcohol, drugs and medicines that may affect driving (Staff Code of Conduct); decisions about travel in snow, ice, flooding and heat (Severe Weather and Extreme Temperatures Procedure); what the office does for the person when a visit is late (Missed, Late and Short Visits Procedure); first aid and emergencies (First Aid Procedure); and people's keys (Key Holding, Key Safes and Access to People's Homes Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Driving for work",
+                "Driving or riding any vehicle, including a bicycle, on a journey this policy covers."
+              ],
+              [
+                "Own vehicle",
+                "A car, van, motorcycle or moped a worker owns, leases privately or borrows and uses for work (sometimes called the grey fleet). The law applies to it as it does to a company vehicle."
+              ],
+              [
+                "Company vehicle",
+                "A vehicle {{organisation}} owns, leases or hires."
+              ],
+              [
+                "Business use insurance",
+                "Motor insurance whose certificate covers the worker driving in connection with their employment, not only for social, domestic, pleasure and commuting use."
+              ],
+              [
+                "Driver checks",
+                "The checks of licence, insurance, MOT and vehicle tax set out in this policy, recorded in the staff record."
+              ],
+              [
+                "Escorted journey",
+                "A journey in which a worker drives a person we support, as their care plan sets out."
+              ],
+              [
+                "Vehicle keeper",
+                "The member of Office staff the Registered Manager names as responsible for a company vehicle's checks, servicing and records."
+              ],
+              [
+                "Collision",
+                "Any road incident in which a vehicle we use for work hits another vehicle, a person, an animal or an object, however minor."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and fund what it needs: realistic travel time, insurance, company vehicle maintenance, taxis and driver training. They decline or renegotiate any package whose visits cannot be reached safely in the commissioned times, as the Health and Safety Policy sets out. The Nominated Individual reviews road safety figures in the monthly health and safety indicators and reports them to the Directors quarterly."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns the general travelling and driving risk assessment, decides the outcome of every driver review, authorises named drivers of company vehicles and names a vehicle keeper for each, makes sure every collision is reviewed under the Incident Reporting, Investigation and Learning Policy, and applies for any local authority parking permit scheme for health and social care workers in the areas we cover. The Deputy Manager covers these duties in the Registered Manager's absence and carries out the monthly checks in Monitoring and review."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager carries out and records the driver checks, warns each driver and the Care Coordinator 30 days before a document expires, tells the Care Coordinator the same day when a worker must not drive for work (giving only the restriction, never the reason), arranges occupational health advice where a health condition may affect driving, records approvals for escorted journeys, and books driver improvement sessions for new drivers and those agreed at a driver review."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators plan travel time as this policy sets out, allocate driving visits only to cleared drivers and escorted journeys only to approved drivers, reallocate visits and book taxis when a worker cannot drive, and act on workers' reports that travel time is not enough. They never phone a driver expecting an immediate answer."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors complete escorted journey risk assessments, look at each driver's vehicle with them once every 12 months, contact a worker involved in a collision within 1 working day, and raise any concern about a worker's driving with the Registered Manager the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            {
+              "p": "Office staff, and the On-call Manager out of hours, take phoned reports of breakdowns, collisions and workers too tired to drive, arrange cover and taxis, and check by the next working day that the incident log entry exists. A vehicle keeper carries out the monthly checks of their company vehicle."
+            }
+          ]
+        },
+        {
+          "heading": "Everyone who drives or rides for work",
+          "blocks": [
+            {
+              "p": "Drivers and riders hold a valid licence and insurance, keep their vehicle roadworthy, obey road traffic law, follow this policy, tell us about anything that affects their fitness or entitlement to drive, and report every collision, near miss and road incident. The legal responsibility for driving safely and lawfully rests with the driver; our responsibility is to make sure the work we give them can be done safely."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing road risk",
+      "blocks": [
+        {
+          "p": "The general travelling and driving risk assessment is kept by the Registered Manager in the risk assessment register, written with the representatives of employee safety and with care workers, whose yearly input is the November driving and travelling survey, rated with the method in the Risk Assessment and Home Environment Risk Assessment Procedure, and reviewed every 12 months and within 7 days after a significant road incident or change. Following HSE's approach, it covers:"
+        },
+        {
+          "bullets": [
+            "the journey: rural lanes, town traffic and parking, night and early morning driving, weather, distances between visits and time pressure;",
+            "the driver: experience, newly qualified drivers, drivers new to UK roads, health, eyesight, medicines and fatigue from split shifts, night visits and on-call work;",
+            "the vehicle: workers' own vehicles, company vehicles, bicycles and motorcycles, and carrying equipment, shopping and medicines;",
+            "workers at greater risk, including pregnant workers, young drivers and lone workers travelling at night;",
+            "escorted journeys and walking or public transport rounds."
+          ]
+        },
+        {
+          "p": "Each person's home environment risk assessment records where to park, the route to the door and any access problems, and the visit plans tell workers where to park. Each driver completes a driver declaration at recruitment and at every annual appraisal, covering their licence and points, any condition the DVLA must be told about, whether they meet the eyesight standard (reading a number plate from 20 metres, with glasses or lenses if worn), their vehicle and insurance, and their driving experience. Anything that raises a concern leads to an individual risk assessment by the HR Manager and Registered Manager within 5 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Driver checks",
+      "blocks": [
+        {
+          "p": "HSE expects employers to make sure licences, insurance and MOTs are legal and up to date for everyone who drives for work, including in their own vehicle, and the law makes it an offence to cause or permit uninsured driving. A worker is cleared to drive for work only when the HR Manager has completed and recorded these checks:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "At recruitment, before the first driving visit",
+              "After that"
+            ],
+            "rows": [
+              [
+                "GB driving licence",
+                "Photocard seen and copied; categories cover the vehicle; online DVLA check using a check code from the worker and the last 8 characters of the licence number (the code must be used within 21 days)",
+                "Every 12 months; every 6 months where the licence shows 6 or more penalty points or the driver passed their test less than 2 years ago"
+              ],
+              [
+                "Licence issued outside Great Britain",
+                "Original seen; the HR Manager completes the GOV.UK tool on driving in Great Britain with a non-GB licence with the worker, saves the result and records the date by which it must be exchanged or a GB test passed",
+                "The worker stops driving for work on that date unless they have shown the HR Manager a GB licence"
+              ],
+              [
+                "Motor insurance",
+                "Certificate and schedule showing business use with the worker as a covered driver; for escorted journeys, the insurer's written confirmation that carrying people we support is covered",
+                "Before each renewal date"
+              ],
+              [
+                "MOT and vehicle tax",
+                "Checked online on GOV.UK by registration number",
+                "Every 12 months and on each MOT expiry date, and before a new vehicle is used for work"
+              ],
+              [
+                "Driver declaration",
+                "Signed before the first driving visit",
+                "At every annual appraisal"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Copies and results are kept in the staff record and expiry dates in the training and compliance records. A self-declaration never replaces seeing the document. When a document expires without new evidence, the worker is not allocated driving visits from that date; the Care Coordinator offers a walking or public transport round where one exists. Agency workers drive for our visits only after the agency confirms in writing that it has checked their licence and business use insurance, and the Care Coordinator sees both documents at their local induction."
+        },
+        {
+          "p": "Drivers who passed their test less than 2 years ago, and drivers who have driven in Great Britain for less than 12 months, have a driver improvement session with an approved driving instructor within 3 months of their first driving visit, at our cost and in paid time; until then they are not allocated escorted journeys. Workers under 18 never drive for work or travel for work in a colleague's car, as the Young Workers Procedure sets out."
+        },
+        {
+          "p": "Workers tell us what affects their driving as the Staff Code of Conduct requires: loss of licence or disqualification before their next shift and within 24 hours at most; new penalty points, a condition they must tell the DVLA about, or a change to their insurance to the HR Manager before they next drive for work; and a change of vehicle within 5 working days, with its insurance, MOT and tax evidence before it is used for work. The law requires drivers to tell the DVLA about notifiable conditions, such as epilepsy, diabetes treated with insulin, sleep apnoea or certain heart and eye conditions, and to meet the eyesight standard; failure can lead to a fine of up to 1,000 pounds and prosecution after a collision. Health information is kept in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions)."
+        }
+      ]
+    },
+    {
+      "heading": "Driver reviews",
+      "blocks": [
+        {
+          "p": "Penalty points are not a disciplinary matter in themselves. Breaking this policy's rules while driving for work, such as using a phone, is a conduct matter under the Disciplinary Policy and Procedure, and deliberately hiding a loss of licence or a disqualification is gross misconduct under the Staff Code of Conduct. Not telling the HR Manager about new penalty points before next driving for work is also a conduct matter. A driver review is a supportive meeting with the Registered Manager or HR Manager, recorded in the staff record:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Trigger",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "Licence shows 6 or more points; any endorsement for using a phone, careless or dangerous driving, drink or drug driving, or driving uninsured; an at-fault collision while driving for work; or two collisions of any kind while driving for work in 12 months",
+                "Driver review within 5 working days. The Registered Manager decides one or more of: a driver improvement session with an approved driving instructor within 3 months, at our cost and in paid time; licence checks every 6 months; no escorted journeys or night driving for a stated period; or no driving for work until a stated date. The worker continues driving meanwhile unless the Registered Manager decides otherwise."
+              ],
+              [
+                "A health condition, medicine or eyesight change that may affect driving",
+                "The Staff Code of Conduct process for interim duties applies, with occupational health advice. The worker does not drive for work while a doctor or the DVLA says they must not."
+              ],
+              [
+                "Disqualification, or a licence revoked or surrendered",
+                "No driving for work from the moment we know. The HR Manager and Registered Manager meet the worker within 5 working days to look at a walking or public transport round, office work or other duties. Any decision that employment cannot continue is made only after that meeting, in writing, with the right to be accompanied and to appeal."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where a restriction follows a collision or other incident while driving for work, it is an interim measure under the Incident Reporting, Investigation and Learning Policy: the least restrictive option, explained to the worker in person and in writing within 1 working day, reviewed at least every 5 working days, and the worker is paid for any visits removed. The Care Coordinator offers walking or public transport visits wherever they exist."
+        }
+      ]
+    },
+    {
+      "heading": "Safe vehicles",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Workers' own vehicles",
+          "blocks": [
+            {
+              "p": "HSE notes that an MOT covers only basic defects and does not show a vehicle is safe. Workers who use their own vehicle keep it taxed, with a valid MOT once it is three years old, and serviced to the manufacturer's schedule. They also:"
+            },
+            {
+              "bullets": [
+                "before the first journey each day, walk round the vehicle: lights and indicators working, tyres not flat or damaged, windows and mirrors fully clear (including of ice and condensation), no dashboard warning lights;",
+                "once a week, check tyre pressures and tread, oil, coolant, screenwash, wipers and the windscreen for chips or cracks in the driver's view;",
+                "from October to March, carry an ice scraper, de-icer, torch, warm coat, blanket, phone charger and water;",
+                "never drive a vehicle with a defect that could make it unsafe, and phone the office before the next visit so it can be covered."
+              ]
+            },
+            {
+              "p": "Every driver and cyclist receives a high-visibility vest free of charge at induction. Once every 12 months, at a spot check or supervision, the Field Care Supervisor looks at the worker's vehicle with them against the weekly check list and records the result in the supervision and appraisal records. An unsafe vehicle is not used for work until the worker shows the Field Care Supervisor that it has been put right."
+            }
+          ]
+        },
+        {
+          "heading": "Company vehicles",
+          "blocks": [
+            {
+              "p": "Company vehicles are driven only by workers the Registered Manager has authorised by name after the HR Manager confirms they meet the conditions of our fleet insurance. The driver does the daily walk-round check before the first journey and records it on the check sheet kept in the vehicle. Defects are reported to the vehicle keeper the same day; a defect that could make the vehicle unsafe takes it off the road at once, with a note on the keys, until repaired. The vehicle keeper checks the vehicle, its documents, check sheets and travelling first aid kit monthly, arranges servicing, MOT and tax on time, and files the sheets in the branch health and safety file. Nobody smokes or vapes in a company vehicle at any time. Private use is allowed only where the Registered Manager agrees it in writing. A driver who receives a fine or penalty in a company vehicle pays it, and the vehicle keeper names the driver when the police or issuing authority ask."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Planning journeys, travel time and fatigue",
+      "blocks": [
+        {
+          "p": "Rotas include realistic travel time, never back to back, and visit time is never cut to make up for travel, as the Needs Assessment and Care Planning Policy requires. Our rules are:"
+        },
+        {
+          "bullets": [
+            "Travel time between visits is the time a route planner gives for that journey at that time of day, plus 5 minutes to park and reach the door. Care Coordinators allow more in rural areas and at school and rush hours, and at least double on journeys affected by snow, ice or flooding, as the Severe Weather and Extreme Temperatures Procedure sets out. Before a time-critical medicines visit they add at least 10 minutes' spare, as the Time-Sensitive Medicines Protocol requires.",
+            "Runs are grouped by area so that driving is kept short. The Highway Code recommends a break of at least 15 minutes after every 2 hours of driving; our rule is stricter: any run with 2 hours or more of driving in total includes a break of at least 15 minutes.",
+            "Working hours and rest breaks follow the Working Time, Rest Breaks and Travel Time Policy; Care Coordinators never roster beyond those limits.",
+            "A worker who finds the travel time on a run is not enough tells the Care Coordinator, who checks it against check-in and check-out times and changes the run from the next rota where it is short."
+          ]
+        },
+        {
+          "p": "Running late: never speed or take risks to catch up. Once parked with the engine off, phone the office, or the On-call Manager out of hours, as soon as you know you will arrive more than 15 minutes after the planned start, or at all late for a time-critical visit. The office, not the worker, tells the person or their contact under the Missed, Late and Short Visits Procedure."
+        },
+        {
+          "p": "Fatigue: HSE identifies 2am to 6am and 2pm to 4pm as the times when sleep-related collisions are most likely. Do not start or continue a journey if you feel sleepy. Stop somewhere safe and rest for at least 15 minutes; if you still feel tired, do not drive on. Phone the office or On-call Manager, who reallocates your remaining visits and books a taxi home at our cost. Nobody is criticised for stopping. An On-call Manager too tired to drive safely to cover a visit phones the escalation manager, who arranges other cover. An On-call Manager diverts the on-call phone to the escalation manager before any drive during an on-call period, as the Lone Working and Staff Personal Safety Policy sets out for visits, and never takes on-call calls while driving."
+        },
+        {
+          "p": "Weather: a worker who judges a road unsafe in snow, ice, flooding or high wind tells the office and is never pressured to drive it. Visits are then prioritised by missed-visit risk level under the Severe Weather and Extreme Temperatures Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Phones and distractions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "The law",
+              "Our rule"
+            ],
+            "rows": [
+              [
+                "It is illegal to hold and use a phone, sat nav or any device that can send or receive data while driving, including when stopped at lights or queuing in traffic. The penalty is 6 points and a 200 pound fine, and a driver who passed their test within the last 2 years loses their licence. An employer who causes or permits a worker to drive while using a hand-held device also commits an offence.",
+                "Never hold a phone or device at all unless you are safely parked with the engine off. Your phone sits in a fixed holder that does not block your view, or out of reach, with notifications silenced."
+              ],
+              [
+                "Hands-free use is legal if the device is never held, but the police can prosecute a driver who is not in proper control. HSE warns that hands-free calls increase the likelihood of a collision.",
+                "Do not make or take calls while driving, even hands-free. Let calls go to voicemail and return them once safely parked, and before you go into the next person's home."
+              ],
+              [
+                "A sat nav must be in a holder and must not block the view of the road.",
+                "Set your route before you move off and use voice guidance. Do not touch the screen while moving."
+              ],
+              [
+                "A driver may call 999 or 112 in a genuine emergency when it is unsafe or impracticable to stop.",
+                "The same: this is the only time you use a phone while driving."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "CareFlow, including the rota, visit notes and check-in, is used only when safely parked with the engine off. Office staff, Care Coordinators and managers never expect a driver to answer. If a driver does not answer, the caller leaves a message or text and waits for the call back; the timed escalation in the Lone Working and Staff Personal Safety Policy still applies if a check-in or check-out is missed. Drivers do not eat, adjust equipment or do anything else that takes their attention from the road while moving."
+        }
+      ]
+    },
+    {
+      "heading": "Cycling, motorcycling and other ways of travelling",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Travel",
+              "Our rules"
+            ],
+            "rows": [
+              [
+                "Bicycle",
+                "A roadworthy bicycle; white front and red rear lights lit at night, as the law requires; a helmet and the high-visibility vest we provide (our rule). An electric bicycle is used only if it may legally be ridden on the road without a licence, insurance or registration."
+              ],
+              [
+                "Motorcycle or moped",
+                "The same driver checks as a car, a licence covering the machine, the helmet the law requires and protective clothing."
+              ],
+              [
+                "E-scooter",
+                "Never used for work. The law forbids privately owned e-scooters on public land, and we do not allow rental trial e-scooters for work either (our rule)."
+              ],
+              [
+                "Walking and public transport",
+                "Walking time is planned like travel time. Personal safety on foot and at night follows the Lone Working and Staff Personal Safety Policy."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Carrying colleagues, items and equipment",
+      "blocks": [
+        {
+          "bullets": [
+            "Workers on a double-handed run may share a car where both agree and the driver's business use insurance covers carrying a colleague. Every passenger wears a seat belt, and nobody smokes or vapes in a vehicle while a person we support or a colleague is in it (Staff Code of Conduct).",
+            "Medicines collected for a person go straight to their home and are never left unattended in a vehicle (Medicines Management Policy). A person's keys are never left in a vehicle, and key safe codes are never written down, in a vehicle or anywhere else. Paper records are kept out of sight while travelling and never left in an unattended vehicle (Records Management and Retention Policy). Your work phone stays with you, and a work laptop is never left in a vehicle, even in the boot (Acceptable Use of IT and Devices Policy). Your own medicines are kept on you or locked out of sight, and never left in a vehicle overnight.",
+            "Equipment, shopping and laundry travel in the boot, never loose inside the car. Loads are within the limits in the Moving and Handling of People Policy: no single item over 10 kg, shopping bags 5 kg each at most.",
+            "Staff never drive a vehicle belonging to a person we support or their family, never give a lift to a person we support or their family outside an escorted journey in the care plan, and never drive a person to hospital in an emergency (First Aid Procedure)."
+          ]
+        },
+        {
+          "p": "Parking: park legally and considerately, never across a driveway, dropped kerb or emergency access, and where the visit plan says. Parking charges at visits are claimed as expenses under the Working Time, Rest Breaks and Travel Time Policy. Where a local authority runs a parking permit scheme for health and social care workers, the Registered Manager applies for permits for the drivers working in that area."
+        }
+      ]
+    },
+    {
+      "heading": "Escorted journeys",
+      "blocks": [
+        {
+          "p": "We drive a person only where their care plan includes an escorted journey, agreed with the person (or through a best interests decision under the Mental Capacity Act and Best Interests Policy) and with the commissioner where the journey is part of commissioned care. Before the first journey the Field Care Supervisor completes an escorted journey risk assessment in the person's risk assessments, covering:"
+        },
+        {
+          "bullets": [
+            "getting in and out of the car, using the method in the moving and handling plan, and folding any wheelchair (no part over 10 kg);",
+            "which seat the person uses, wearing a seat belt and any medical exemption certificate;",
+            "distress, disorientation, behaviour, or any risk of the person opening a door, undoing their belt or distracting the driver, and whether a second worker is needed;",
+            "continence and comfort stops, travel sickness, heat and cold, and any medicine due during the journey;",
+            "the destination, parking and access, how long the journey and outing will take, and what to do if the person becomes unwell."
+          ]
+        },
+        {
+          "p": "Any residual risk rated High is approved under the Risk Assessment and Home Environment Risk Assessment Procedure before the journey. The assessment is reviewed at every care plan review and within 7 days after any incident on a journey. The rules for every escorted journey are:"
+        },
+        {
+          "bullets": [
+            "The driver is approved for escorted journeys: the HR Manager records the approval in the staff record once the driver is cleared, has held a full licence for at least 12 months and has given the insurer's written confirmation. The Field Care Supervisor briefs the driver on the person's assessment before their first journey with that person.",
+            "The person transfers into a car seat with no more help than the moving and handling plan sets out. We never transport anyone seated in a wheelchair; the Care Coordinator helps arrange accessible transport instead.",
+            "Child locks are used on the rear doors where the assessment records a risk of a door being opened. No child is ever carried, and no animal except an assistance dog where the assessment records how it travels safely.",
+            "The person is never left alone in the vehicle, even briefly, and never in a parked car in warm weather.",
+            "The worker never accepts money for fuel, parking or the journey, and we never charge the person for the worker's mileage, fuel or parking: we pay these to the worker as expenses (Handling Money, Property and Shopping Procedure).",
+            "The worker checks in inside the home at the start of the visit and out at the end, phones the office before leaving the home with the person so the left-the-home alert is expected (Lone Working and Staff Personal Safety Policy), and phones the office if the outing will run more than 15 minutes over. If the person becomes unwell, the worker stops safely, calls 999 in an emergency and phones the office."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Collisions, breakdowns and road incidents",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "After a collision",
+          "blocks": [
+            {
+              "steps": [
+                "Stop as soon as it is safe, switch on hazard lights and turn off the engine. Check yourself and any passenger. Call 999 if anyone is injured, the road is blocked or anyone is threatening you.",
+                "If anyone other than you is hurt, or another vehicle, roadside property or an animal (a dog, horse, cattle, sheep, pig, goat, ass or mule) is hurt or damaged, the law requires you to stop and give your name and address, the vehicle owner's name and address and the registration number to anyone with reasonable grounds to ask. If you cannot, report the collision to the police as soon as reasonably practicable and within 24 hours. Where someone is injured and you cannot show your insurance certificate at the scene, report it to the police in the same way.",
+                "Exchange details, note the time, place, conditions and any witnesses, and photograph the vehicles and the scene, but never a person we support or their home. Do not discuss blame or admit liability.",
+                "If a person we support is with you, make them safe first and call 999 if they are hurt or may be hurt, even if they say they are fine.",
+                "Phone the office, or the On-call Manager out of hours, before you drive on, and say whether you feel fit to drive. If you are shaken or hurt, do not drive: we pay for a taxi to hospital, an urgent treatment centre or home, and the office covers your visits, High missed-visit risk visits first.",
+                "Record the collision in the incident log before the end of your shift, or as soon as you are able if you are injured. Tell your own insurer as your policy requires, or the vehicle keeper the same day for a company vehicle."
+              ]
+            },
+            {
+              "p": "The Registered Manager or Deputy Manager grades and reviews every collision under the Incident Reporting, Investigation and Learning Policy. Where a person we support was in the vehicle, the office tells their named contact the same day, and the Registered Manager considers a safeguarding concern under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, the duty of candour under the Duty of Candour Policy and a notification under the Statutory Notifications to CQC Procedure. A road collision with no person we support involved is notified to CQC only if the police investigate a possible offence by our worker. Injuries caused by a vehicle moving on a road are not reportable under RIDDOR, except injuries while loading or unloading, as the RIDDOR Reporting Procedure explains. The Field Care Supervisor contacts the worker within 1 working day and offers a debrief within 3 working days, and any driver review trigger is acted on."
+            }
+          ]
+        },
+        {
+          "heading": "Breakdowns",
+          "blocks": [
+            {
+              "steps": [
+                "Get the vehicle off the road or as far to the left as possible and switch on hazard lights.",
+                "Get out on the side away from traffic, with any passenger, and wait behind a barrier where there is one. If you cannot get out safely on a fast road, stay in the vehicle with your seat belt on and hazard lights on, and call 999.",
+                "Phone the office or On-call Manager. The office reallocates your visits and books a taxi at our cost to take you on to your remaining visits or home.",
+                "Arrange your own recovery. Take any person's medicines and keys, and your work phone, with you."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Other road incidents and costs",
+          "blocks": [
+            {
+              "p": "Near misses, aggression from other road users, threats in a car park and break-ins are recorded in the incident log before the end of the shift; violence follows the Violence and Aggression Towards Staff Policy. The loss or theft of medicines, a person's keys or a work phone is phoned to the office at once, and a lost device is handled under the Personal Data Breach Procedure."
+            },
+            {
+              "p": "We pay for taxis when a worker cannot drive because of a breakdown, collision, fatigue, illness, injury or distress after an incident at work, for agreed driver training, for parking charges at visits and for the high-visibility vest. We also repay a parking penalty incurred because the worker stayed with a person in an emergency recorded in the incident log. Workers pay all other fines and penalty charges, and the insurance, servicing, repairs, recovery and insurance excess of their own vehicle; mileage paid under the Working Time, Rest Breaks and Travel Time Policy contributes to these running costs."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Licence checks, insurance, MOT and tax evidence, driver declarations, driver reviews, escorted journey approvals and authorisations to drive company vehicles",
+                "The staff record, with expiry dates in the training and compliance records; health information in the restricted section (staff record documents)"
+              ],
+              [
+                "Vehicle make, colour and registration",
+                "The staff record, as the Lone Working and Staff Personal Safety Policy sets out"
+              ],
+              [
+                "General travelling and driving risk assessment; company vehicle check sheets, servicing and MOT records",
+                "The branch health and safety file"
+              ],
+              [
+                "Escorted journey risk assessments and parking instructions",
+                "The person's risk assessments and visit plans"
+              ],
+              [
+                "Collisions, breakdowns, near misses and road incidents",
+                "The incident log"
+              ],
+              [
+                "Annual vehicle look, training and briefings",
+                "Supervision and appraisal records; training and compliance records"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are kept for the periods in the Records Management and Retention Policy. Licence check results are kept for employment plus 6 years, and the HR Manager deletes copies of licences within 1 working day of employment ending, as the Staff Personal Data and HR Records Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Driving at work briefing: this policy, phones, fatigue, vehicle checks, collisions, breakdowns and carrying items",
+                "Everyone who drives or rides for work",
+                "At induction, before the first driving visit",
+                "Every 3 years with health and safety awareness, and after each new major version of this policy"
+              ],
+              [
+                "Car transfers and folding wheelchairs",
+                "Workers who make escorted journeys",
+                "Within practical moving and handling training",
+                "Every 12 months"
+              ],
+              [
+                "Escorted journey briefing on the person's risk assessment",
+                "Each approved driver",
+                "Before their first escorted journey with that person",
+                "When the assessment changes"
+              ],
+              [
+                "Escorted journey risk assessment",
+                "Field Care Supervisors",
+                "Within risk assessment training",
+                "Every 3 years"
+              ],
+              [
+                "Travel time planning and driver allocation rules",
+                "Care Coordinators and On-call Managers",
+                "Before first allocating visits or the first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "Company vehicle checks and records",
+                "Vehicle keepers and authorised drivers",
+                "On appointment or authorisation",
+                "When the vehicle changes"
+              ],
+              [
+                "Driver improvement session with an approved driving instructor",
+                "Drivers who passed their test less than 2 years ago or are new to driving in Great Britain; drivers as decided at a driver review",
+                "Within 3 months of the first driving visit or of the review",
+                "As the review decides"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "All training is free and in paid time. Employees acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Driver checks in date for every worker allocated driving visits: target 100%, and no driving visit allocated to a worker without them",
+                "Monthly report; 10 driver files checked each quarter (all if fewer)",
+                "HR Manager; Deputy Manager",
+                "Registered Manager; monthly health and safety indicators"
+              ],
+              [
+                "Travel time: 5 care runs compared with check-in and check-out times, and every run reported as short; runs replanned by the next rota",
+                "Monthly",
+                "Deputy Manager",
+                "Weekly management meeting; Health and Safety Meeting"
+              ],
+              [
+                "Escorted journey risk assessments in place before every journey: target 100%",
+                "Monthly, within the audit of 5 home environment risk assessments",
+                "Deputy Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Company vehicle check sheets, servicing and monthly checks",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager by exception"
+              ],
+              [
+                "Annual vehicle look completed for every driver: target 100%",
+                "Quarterly",
+                "Deputy Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Collisions, breakdowns, road near misses, driver reviews and taxi use, with trends",
+                "Quarterly",
+                "Registered Manager",
+                "Health and Safety Meeting; Directors in the quarterly governance report"
+              ],
+              [
+                "Rotas, travel time and workload survey (April and October): at least 90% of care staff say their rotas give enough travel time",
+                "Every 12 months",
+                "Registered Manager",
+                "Annual health and safety report to the Directors"
+              ],
+              [
+                "Driving and travelling survey (November): how many care staff feel they must rush when running late or are expected to answer calls while driving, and whether they report road incidents and near misses. Any Always or Usually answer on rushing or calls is a review trigger: the runs it names are re-timed",
+                "Every 12 months",
+                "Registered Manager",
+                "Health and Safety Meeting"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is given an action, an owner and a deadline in the service improvement plan and tracked at the Health and Safety Meeting until complete. This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or guidance, a serious road incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

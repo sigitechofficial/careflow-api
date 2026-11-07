@@ -1,0 +1,468 @@
+{
+  "reference": "SUR-FAM-001",
+  "revision": 1,
+  "title": "Family and representative survey",
+  "audience": "PUBLIC",
+  "respondents": "Family carers, relatives, friends, attorneys and deputies recorded in the People involved part of the care plan, where the person agrees or cannot give their views, answering in their own right",
+  "summary": "The yearly February survey for families and representatives, alongside the annual survey: their own view of the care we give and how we work with them, labelled as family views and never merged with people's own answers. About 10 minutes.",
+  "purpose": "Gives families' and representatives' own views of our care and of how we work with them, as the Compliments, Feedback and Involvement Procedure requires alongside the annual satisfaction survey. Results are reported as family views and never merged with the scores of the people we support. It evidences Regulation 17(2)(e) (feedback from relevant persons and others) and people's experience for Responsive (Listening to and involving people; Providing information), Caring (Kindness, compassion and dignity) and Effective (How staff, teams and services work together). Questions about the person's care offer Don't know, because many families do not see visits; no question asks for information about the person that they have not agreed to share.",
+  "timing": {
+    "when": "Once a year, opening with the annual survey on the first working day of February for 4 weeks, with a reminder after 2 weeks",
+    "recurrence": null,
+    "trigger": null,
+    "sentWith": ["SUR-PWS-003"]
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "PAPER", "TELEPHONE"],
+  "estimatedMinutes": 10,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Safeguarding",
+      "Safe and effective staffing",
+      "How staff, teams and services work together",
+      "Kindness, compassion and dignity",
+      "Listening to and involving people",
+      "Providing information",
+      "Partnerships and communities"
+    ]
+  },
+  "introduction": "{{organisation}} would like your own view of the care we give your family member and how we work with you. In this survey, \"your family member\" means the person we support, even if you are their friend or represent them. It takes about 10 minutes.\n\nTaking part is up to you. What you say will never affect anyone's care. If you write the reference number from your letter, we can follow up your answers; if you leave it blank, we cannot reply to you.\n\nThis survey is not for urgent concerns. If you are worried about your family member's safety, or need help now, phone our office (out of hours, the on-call number in the care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve our care and how we work with families. Our legal reason is our legitimate interest in running a good, safe service.\n\nIf you write your reference number, your answers are linked to you so we can follow them up; if you leave it blank, we will not know who you are unless you tell us. Your answers are seen only by our Registered Manager, Deputy Manager, safeguarding lead, Care Coordinators and the office staff who follow them up, never by care workers, and reports show combined family results only. If you tell us someone may be at risk of harm, we will tell our safeguarding lead and may tell the council.\n\nWe keep your answers for 3 years after the survey closes, under our Records Management and Retention Policy. We do not record the internet address or device you used. You can ask to see, correct or delete your information, or object to our using it, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about the care we give your family member, and how we work with you. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "q-relationship",
+          "text": "How are you connected to the person we support?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "If you have a legal power to make decisions for them, such as a lasting power of attorney, please still choose how you are connected.",
+          "options": ["Husband, wife or partner", "Son or daughter", "Other relative", "Friend or neighbour"],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us how you are connected",
+            "textRequired": true
+          }
+        },
+        {
+          "id": "q-carer",
+          "text": "Do you help to care for them yourself?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Unpaid help, such as meals, medicines, shopping or keeping them company.",
+          "options": ["Yes, most days", "Yes, sometimes", "No"]
+        }
+      ]
+    },
+    {
+      "title": "Their care",
+      "questions": [
+        {
+          "id": "q-ontime",
+          "text": "Do care workers arrive on time?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "On time means within about half an hour of the agreed time. Choose \"Don't know\" if you are not usually there.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more, for example which visits.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-staytime",
+          "text": "Do care workers stay for the time agreed?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you are not usually there.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more, for example which visits are cut short.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-known",
+          "text": "Does your family member see care workers they know?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you cannot say.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        },
+        {
+          "id": "q-dignity",
+          "text": "Do care workers treat your family member with dignity and respect?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you have not seen them together.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what you have seen.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-skills",
+          "text": "Do care workers seem to have the skills to care for your family member?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, helping them move, using equipment, or understanding their health conditions. Choose \"Don't know\" if you cannot say.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what you have noticed.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        },
+        {
+          "id": "q-safe",
+          "text": "Do you feel your family member is safe with our care workers?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "You can skip this question. If you are worried about their safety now, do not wait for this survey: phone the office (out of hours, the on-call number). In an emergency, call 999.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what worries you.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safeguarding"
+        }
+      ]
+    },
+    {
+      "title": "Working with you",
+      "questions": [
+        {
+          "id": "q-informed",
+          "text": "Do we tell you what you need to know about your family member's care?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "We can only share what your family member has agreed to, or what you need as their attorney or deputy. Choose \"Does not apply to me\" if you do not need information from us.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would you like to know?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Providing information"
+        },
+        {
+          "id": "q-listen",
+          "text": "Do we listen to what you know about your family member?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, their routines, what they like and what helps when they are upset. Choose \"Does not apply to me\" if this has not come up.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Listening to and involving people"
+        },
+        {
+          "id": "q-office-help",
+          "text": "When you contact our office, do you get the help you need?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes phoning us in the evening or at the weekend. Choose \"Does not apply to me\" if you have not contacted us in the last few months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Listening to and involving people"
+        },
+        {
+          "id": "q-tell-us",
+          "text": "If you were unhappy with the care we give, would you feel able to tell us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes making a complaint. Choose \"Don't know\" if you are not sure.",
+          "options": ["Yes, and I know how", "Yes, but I am not sure how", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What would make it easier to tell us?",
+            "showWhen": ["No"]
+          },
+          "evidence": "Responsive: Listening to and involving people"
+        }
+      ]
+    },
+    {
+      "title": "Support for you",
+      "questions": [
+        {
+          "id": "q-carer-assessment",
+          "text": "Have we told you that you can ask the council for a carer's assessment?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "A carer's assessment is when the council looks at what support you need as a carer. Choose Yes if we told you, even if you have already had one.",
+          "options": ["Yes", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-carer",
+            "answers": ["Yes, most days", "Yes, sometimes"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What is one thing we could do better for your family member, or for you?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include bank or medical details."
+        },
+        {
+          "text": "Is there anything a care worker has done that you would like us to thank them for?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "We will pass your thanks on. You can name them if you wish."
+        },
+        {
+          "id": "q-reference",
+          "text": "Please write the reference number from your letter, so we can follow up your answers if needed.",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "If you leave it blank, we cannot reply to you, but we will still act on what you tell us."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of the care workers, will contact you within 5 working days. We can only do this if you gave your reference number."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Deputy Manager runs it with the annual survey (SUR-PWS-003) under the Compliments, Feedback and Involvement Procedure: each year publish a new copy of this template on the first working day of February with an end date 4 weeks later. CareFlow cannot send a survey to family members by name (only to people we support and staff), so this is a public form: send the link by email or text, or a letter with the link, a QR code and a paper copy with a prepaid envelope to the Deputy Manager, and offer to take answers by phone. Office staff who are not in the person's core care team enter paper and phone answers with Record response (channel Paper or Telephone) on the day they arrive.",
+      "Who to invite: everyone recorded in the People involved part of the care plan whom the person agrees we may contact about their care, and verified attorneys and deputies; where the person lacks capacity to decide who is involved, those named in the best interests decision, under the Confidentiality and Information Sharing Policy. One invitation per family member, even if they support two people. Never invite anyone whose contact the person has refused, anyone the safeguarding lead has restricted or who may be harming the person, a family member in an open safeguarding enquiry about the person, a family member whose complaint is at Stage 2 or with the Ombudsman (they get the after-complaint survey, SUR-FAM-005, later), or the family of a person who has died.",
+      "Give each family member a reference number on their letter and keep the list with the invitations: it is the only way to know who answered, because a public form cannot tell us. CareFlow cannot send reminders for a public form: after 2 weeks send one reminder letter or message to everyone invited who has not given a reference number in an answer. A family member is sent at most one family survey in any 4 weeks; event surveys (SUR-FAM-002, SUR-FAM-005) come first. A representative who also answers the annual survey for the person makes it one contact (library decision P10): the two surveys are linked in the library, so sent within 7 days of each other, neither holds the other back.",
+      "The letter, the link message and the phone script reveal nothing about the person beyond what People involved allows. By phone, read every answer choice aloud; ask the safety question only once the family member can talk privately, never in front of the person or another relative. Offer large print, translation or an interpreter to match the family member's own communication needs; many are older spouses, so offer phone completion and breaks.",
+      "Who may open individual answers: the Deputy Manager, the office staff who enter or follow up answers, and the Registered Manager. This is set in Who can see the answers: individual responses are limited to the Deputy Manager, the Registered Manager, Care Coordinators and the safeguarding lead, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who enter or follow up answers. By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can publish a survey (\"Surveys\", act): give these to the Deputy Manager and the office staff who enter paper and phone answers."
+    ],
+    "actingOnResults": [
+      "Read every answer the working day it arrives and act under the alerts below, as far as the information allows where no reference number was given. Read every comment for safety, a missed visit or harm, even where the answers look fine.",
+      "How to count: report family views separately, never merged with the scores of the people we support; set them beside the annual survey's matching questions (on time, care workers they know, dignity, safe). For the frequency questions report the share answering Always or Usually, leaving out Don't know and Does not apply to me; for telling us, the share answering Yes, and I know how. Never report a group of fewer than 5 separately, and flag results resting on fewer than 10.",
+      "The Deputy Manager reports the results with the annual survey to the Directors and, in the May You said, we did summary, to family members as well as people we support, within 3 months of the survey closing, under the Governance and Quality Assurance Policy. Each family member whose feedback needs action is told within 5 working days what we will do. Keep answers for 3 years after the survey closes under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel your family member is safe with our care workers?\" answered Sometimes, Rarely or Never, or any comment suggesting abuse, neglect or risk.",
+        "action": "Tell the safeguarding lead the same working day; call 999 first if anyone is in immediate danger. The lead decides within 1 hour and refers the same working day where needed, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure; someone outside the core care team speaks privately with the person. Nothing is discussed with the family member until the lead decides, because the person answering may be involved. A concern about staff follows the Managing Allegations Against Staff Procedure.",
+        "rule": {
+          "task": "Possible safeguarding concern raised by family",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"Do you feel your family member is safe with our care workers?\" answered Usually.",
+        "action": "Where a reference number was given, the Care Coordinator contacts the family member within 5 working days to ask what would help, unless the comment needs the safeguarding route above.",
+        "rule": {
+          "task": "Family not fully sure person is safe: ask what would help",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Usually"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Any comment showing dissatisfaction that needs a response.",
+        "action": "Record a complaint the same working day; it is graded within 1 working day and acknowledged within 3 working days, under the Complaints Policy and Procedure. What we share in reply follows the Confidentiality and Information Sharing Policy."
+      },
+      {
+        "when": "A missed visit, a medicines problem, a fall or harm described.",
+        "action": "Log it in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy, and the Missed, Late and Short Visits Procedure or the Medication Errors, Near Misses and Incidents Procedure where they apply."
+      },
+      {
+        "when": "On time, staying the agreed time, care workers they know, dignity or skills answered Rarely or Never, with a reference number.",
+        "action": "The Care Coordinator checks visit records and continuity within 5 working days and talks to the person we support first about any change, under the Person-Centred Care, Dignity and Respect Policy.",
+        "rule": {
+          "task": "Family reports care problems: check records",
+          "if": [
+            {
+              "question": "q-ontime",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-staytime",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-known",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-dignity",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-skills",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do we tell you what you need to know?\" answered Rarely or Never, or a request for information.",
+        "action": "The Care Coordinator checks People involved; where the person has not agreed, they ask the person within 2 working days and reply only as agreed, under the Confidentiality and Information Sharing Policy.",
+        "rule": {
+          "task": "Family wants information: check consent first",
+          "if": [
+            {
+              "question": "q-informed",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "A comment that the family carer is exhausted or not coping.",
+        "action": "The Care Coordinator calls within 2 working days (our recommendation) and tells them about their right to a carer's assessment. If the carer can no longer do their part, the Care Coordinator updates the missed-visit contingency and risk level that day and reviews the care plan with the person within 7 days, under the Needs Assessment and Care Planning Policy."
+      },
+      {
+        "when": "The overall question Poor or Very poor, or another low rating with no particular concern, with a reference number.",
+        "action": "Tell the Care Coordinator the same working day; they contact the family member within 5 working days to agree what we will do.",
+        "rule": {
+          "task": "Family rated us poorly: agree what we will do",
+          "if": [
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you feel able to tell us?\" answered No or Yes, but I am not sure how, with a reference number.",
+        "action": "Send the complaints leaflet in the family member's format within 5 working days (our recommendation).",
+        "rule": {
+          "task": "Send the complaints leaflet",
+          "if": [
+            {
+              "question": "q-tell-us",
+              "answers": ["No", "Yes, but I am not sure how"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Thanks for a care worker.",
+        "action": "Record it as a compliment the same working day and pass it on within 5 working days."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes, with a reference number.",
+        "action": "Office staff, never the core care team, contact the family member within 5 working days and record what was agreed.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["DEPUTY_MANAGER", "REGISTERED_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "results": ["DEPUTY_MANAGER", "REGISTERED_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-GOV-006",
+    "POL-GOV-016",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-GOV-013",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-CD-001",
+    "POL-CD-002",
+    "POL-CD-006",
+    "POL-CD-013",
+    "POL-GOV-007",
+    "POL-MED-014",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from relevant persons and other persons",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Care Act 2014, section 10: a local authority must assess a carer who may have needs for support",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/10"
+    },
+    {
+      "source": "DHSC, Guidance for the Survey of Adult Carers in England 2025 to 2026: exclusions for bereaved carers, carers in dispute and open safeguarding matters",
+      "url": "https://www.gov.uk/government/publications/how-to-collect-sace-data-2025-to-2026/guidance-for-the-survey-of-adult-carers-in-england-sace-2025-to-2026"
+    }
+  ]
+}

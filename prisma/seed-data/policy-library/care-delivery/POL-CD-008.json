@@ -1,0 +1,648 @@
+{
+  "reference": "POL-CD-008",
+  "revision": 1,
+  "title": "Pressure Ulcer Prevention and Skin Integrity Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we identify people at risk of pressure ulcers and moisture damage, get a health professional's assessment and plan, check skin with dignity at visits, support repositioning and pressure-relieving equipment, record changes on CareFlow body maps and escalate them to the community nursing team the same day. It also sets out how pressure ulcers are handled as incidents, safeguarding matters and CQC notifications. For all staff.",
+  "keyPoints": {
+    "intro": "Care workers often see a person's skin more than anyone else. This is what you must do on every visit to prevent pressure damage and to make sure no change in skin goes unreported.",
+    "points": [
+      "Before each visit, check My care at a glance for the person's skin risk level, any pressure ulcer, their equipment and how often they must change position, and follow the care plan exactly.",
+      "If you find new or worse skin damage, phone the office before you leave, complete a CareFlow body map and record an incident in the incident log before the end of your shift.",
+      "With the person's agreement, look at the pressure areas named in the care plan whenever you give personal care or help them move. Never undress someone only to look for injuries.",
+      "Look for red patches, or on darker skin purple, blue, grey or darker ones, warm, hard or spongy areas, blisters, broken skin and pain. Report colour that fades when pressure is relieved the same day too. Never massage or rub skin.",
+      "Call 999 if the person is very unwell, newly confused, hard to wake or breathing fast. Phone the office before leaving if a wound looks infected: hot, swollen, smelly, leaking pus or more painful.",
+      "Help the person change position as the plan says, using the moving and handling plan and the number of workers it sets. Record the time and position in the daily visit notes.",
+      "Change wet or soiled pads and clothing at every visit, clean gently, pat skin dry and apply barrier products only as the eMAR shows. Use one pad only.",
+      "Check that pressure-relieving mattresses and cushions are in place, switched on and alarm-free. Never change their settings, switch a mattress off or add rings, rolled towels or extra layers. If one is faulty, phone the office before leaving and log it before your shift ends.",
+      "Only take a body map photograph in the CareFlow app on the work phone, never your own phone, when the care plan records consent or a best interests decision, and confirm it in the app. Never photograph an injury as evidence of abuse.",
+      "Never remove or change a nurse's dressing unless that task is delegated to you. Phone the office before leaving if a dressing is loose, soiled or off.",
+      "If a mattress pump sparks, smokes or smells of burning, switch it off at the socket if it is safe to do so and phone the office straight away.",
+      "If the person declines a position change or skin check, offer once more later in the visit, record it and phone the office before leaving if they are High risk or have a pressure ulcer."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "RISK_ASSESSMENT",
+    "VISIT",
+    "EQUIPMENT",
+    "INCIDENT",
+    "SAFEGUARDING"
+  ],
+  "relatedReferences": [
+    "POL-CD-002",
+    "POL-CD-003",
+    "POL-CD-007",
+    "POL-CD-010",
+    "POL-CD-018",
+    "POL-HS-006",
+    "POL-SG-002",
+    "POL-GOV-007"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(1) and (2)(a), (b), (c), (e) and (i) (safe care and treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18(1) and (2)(a), (b) and (e) (notification of serious injury and abuse)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Department of Health and Social Care, Safeguarding adults protocol: pressure ulcers and raising a safeguarding concern (first published 16 January 2024, updated 18 June 2025)",
+      "url": "https://www.gov.uk/government/publications/pressure-ulcers-how-to-safeguard-adults/safeguarding-adults-protocol-pressure-ulcers-and-raising-a-safeguarding-concern"
+    },
+    {
+      "source": "NHS Improvement, Pressure ulcers: revised definition and measurement. Summary and recommendations (June 2018)",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2021/09/NSTPP-summary-recommendations.pdf"
+    },
+    {
+      "source": "NICE and Social Care Institute for Excellence, Helping to prevent pressure ulcers: a quick guide for registered managers of care homes (2019), based on NICE's pressure ulcers guideline and quality standard (copy published by the London Borough of Richmond upon Thames)",
+      "url": "https://richmond.gov.uk/media/16685/nice-pressure-ulcers-quick-guide.pdf"
+    },
+    {
+      "source": "Medicines and Healthcare products Regulatory Agency, Drug Safety Update: Emollients: new information about risk of severe and fatal burns with paraffin-containing and paraffin-free emollients (18 December 2018)",
+      "url": "https://www.gov.uk/drug-safety-update/emollients-new-information-about-risk-of-severe-and-fatal-burns-with-paraffin-containing-and-paraffin-free-emollients"
+    },
+    {
+      "source": "NHS, Pressure ulcers (pressure sores) (page last reviewed 6 July 2023)",
+      "url": "https://www.nhs.uk/conditions/pressure-sores/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} treats pressure ulcers and avoidable skin damage as harm we work to prevent. We will identify everyone at risk, make sure a health professional assesses and plans for them, follow that plan at every visit, check skin with consent and dignity, and act the same day on any change."
+        },
+        {
+          "p": "The community nursing team assesses clinical risk, categorises and treats pressure ulcers and prescribes pressure-relieving equipment. Our part is to prevent, notice, record and report."
+        },
+        {
+          "p": "This procedure sits under the Person-Centred Care, Dignity and Respect Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure sets out how we meet Regulation 12 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 (safe care and treatment) for skin integrity. The skin risk levels, check frequencies and timescales in it are our policy, not legal requirements."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who works for us, including bank and agency workers and students. The assessment and planning duties apply to everyone whose care includes personal care, continence care or help to move; the duty to notice and report skin damage applies to everyone we visit."
+        },
+        {
+          "p": "Owned elsewhere: moving and repositioning methods (Moving and Handling of People Policy); washing and continence care (Personal Care, Continence and Oral Care Procedure); and creams and medicated dressings (Administering and Supporting People with Medicines Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Pressure ulcer",
+                "Localised damage to the skin or underlying tissue, usually over a bony area or under a medical or other device, caused by sustained pressure, including pressure with shear. It may be intact skin or an open wound."
+              ],
+              [
+                "Pressure areas",
+                "Areas that bear weight in a bed or chair or where bone is close to the skin, such as the back of the head, ears, shoulders, elbows, spine, tailbone, buttocks, hips, knees, ankles and heels, and skin under any device, splint or compression stocking."
+              ],
+              [
+                "Category",
+                "The grade a registered health professional gives a pressure ulcer: category 1 to 4, unstageable or deep tissue injury. Our staff never categorise; they describe what they see."
+              ],
+              [
+                "Non-fading discolouration",
+                "Skin that stays red on lighter skin, or purple, blue, grey or darker than the person's usual skin tone on darker skin, after the pressure is taken off it. It is an early sign of pressure damage."
+              ],
+              [
+                "Moisture damage",
+                "Redness, soreness or broken skin caused by prolonged contact with urine, faeces, sweat or wound fluid. It is recorded separately from pressure ulcers; where pressure and moisture combine, the damage is treated as a pressure ulcer."
+              ],
+              [
+                "Community nursing team",
+                "The NHS district or community nursing service for the person's GP practice, including tissue viability nurses, and its out-of-hours service."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this procedure and do not accept contract terms that leave too little visit time for skin care and repositioning. The Nominated Individual challenges the pressure ulcer figures in the quarterly quality report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on pressure ulcer prevention, reviews every pressure ulcer incident, makes the safeguarding, CQC notification and duty of candour decisions in this procedure, and escalates when health or equipment services do not respond. The Deputy Manager covers in their absence and carries out the monthly skin integrity check."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators request clinical assessments, nursing visits and equipment within the timescales in this procedure, record health professionals' advice in the care plan, and tell every rostered care worker about a change before their next visit."
+            }
+          ]
+        },
+        {
+          "heading": "Assessors and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Authorised assessors complete the pressure ulcer and skin risk assessment and set the skin risk level. Field Care Supervisors observe skin care, repositioning and equipment checks at spot checks."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Senior Care Workers and Care Workers carry out the checks, care and reporting in this procedure at every visit."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            {
+              "p": "Office staff record phoned reports in the daily visit notes the same working day and pass them to the Care Coordinator at once. Out of hours the On-call Manager takes the Care Coordinator's urgent actions, through the community nursing out-of-hours service or NHS 111, and hands over by 10am the next working day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Identifying risk and planning care",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The pressure ulcer and skin risk assessment",
+          "blocks": [
+            {
+              "p": "Under the Needs Assessment and Care Planning Policy, the assessor completes a pressure ulcer and skin risk assessment in CareFlow for anyone who needs help with personal care, continence or moving, before the care plan is approved (at the first visit of a short-notice start), rated by the Risk Assessment and Home Environment Risk Assessment Procedure method. It records each risk factor:"
+            },
+            {
+              "bullets": [
+                "cannot change position without help, or spends most of the day in a bed or chair;",
+                "reduced feeling in part of the body, for example from diabetes, stroke or spinal injury;",
+                "a pressure ulcer now or in the past;",
+                "poor nutrition: unplanned weight loss, being underweight or a Medium or High MUST result under the Nutrition and Hydration Policy;",
+                "thin, dry or fragile skin, poor circulation, or incontinence of urine or faeces;",
+                "significant cognitive impairment, sedating medicines, or recent surgery, acute illness or hospital stay;",
+                "a medical device on the skin, such as catheter or oxygen tubing, a splint or compression stockings."
+              ]
+            },
+            {
+              "table": {
+                "columns": [
+                  "Skin risk level",
+                  "When it applies"
+                ],
+                "rows": [
+                  [
+                    "High risk",
+                    "A current or previous pressure ulcer; unable to change position without help; two or more other risk factors; or a health professional's clinical risk assessment says high or very high risk."
+                  ],
+                  [
+                    "At risk",
+                    "Any one risk factor, where High risk does not apply."
+                  ],
+                  [
+                    "No risk identified",
+                    "None of the risk factors. Care workers still report any skin change they notice."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "My care at a glance shows the skin risk level, the site of any current pressure ulcer, pressure-relieving equipment and repositioning frequency. The skin risk level is reviewed at every care plan review."
+            }
+          ]
+        },
+        {
+          "heading": "Getting a clinical risk assessment and plan",
+          "blocks": [
+            {
+              "p": "With the person's agreement, or in their best interests where they lack capacity for the decision, the Care Coordinator asks the community nursing team for a clinical risk assessment and prevention plan: the same working day for High risk and within 2 working days for At risk, unless one from the last 3 months is already in the care plan. A request is chased after 2 working days (High risk) or 5 working days (At risk); if still not arranged, the Registered Manager writes to the GP practice and the commissioner within 2 working days."
+            },
+            {
+              "p": "The Care Coordinator records in the care plan and risk assessment the tool, result, date and author, the repositioning frequency, equipment settings and the skin checks the nurse wants, and writes them into the visit plans. Until the clinical plan arrives, care workers check skin at every visit that includes personal care, help the person change position at every visit and report changes the same day."
+            }
+          ]
+        },
+        {
+          "heading": "Repositioning between visits",
+          "blocks": [
+            {
+              "p": "Where the repositioning frequency is shorter than the gap between our visits and no family carer or other agency repositions the person in between, the Care Coordinator writes to the community nursing team and the commissioner within 2 working days (the same working day for a person with a pressure ulcer) asking for equipment, extra visits or another arrangement. A person at High risk who cannot change position without our help has a High missed-visit risk level under the Needs Assessment and Care Planning Policy; after a missed visit, the next care worker checks every pressure area named in the care plan and records the result. The care plan records what family carers or another agency do between our visits, such as repositioning or applying creams. Family members who reposition the person are trained by the community nursing team or an occupational therapist, never by us."
+            }
+          ]
+        },
+        {
+          "heading": "Reassessment and information",
+          "blocks": [
+            {
+              "p": "New or worsening skin damage, a change in mobility, continence, nutrition or cognition, acute illness, hospital discharge or new pressure-relieving equipment triggers a focused review within 7 days under the Care Plan Review Procedure (the last weeks of life follow that procedure's own timescale), and the Care Coordinator asks the community nursing team to reassess within 2 working days (the same working day for new damage)."
+            },
+            {
+              "p": "The assessor gives the person, and with their agreement their family, information in their preferred format on causes, early signs, changing position, equipment and who to call, recorded in the care plan."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Checking skin at visits",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Baseline and routine checks",
+          "blocks": [
+            {
+              "p": "At the first visit that includes personal care, and the first after every hospital stay, the care worker records the condition of the pressure areas seen during that care on a CareFlow body map, with the person's agreement. Damage found then is recorded as present when our care started or resumed and reported as below."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Skin risk level",
+                  "Skin check",
+                  "Recorded in the daily visit notes"
+                ],
+                "rows": [
+                  [
+                    "High risk",
+                    "Pressure areas seen during care, at every position change and under every device; every pressure area named in the care plan at least once a day, at the visit the care plan names",
+                    "Every visit: areas checked and either no change or the change found"
+                  ],
+                  [
+                    "At risk",
+                    "Pressure areas seen during personal care, continence care or help to move",
+                    "Every such visit, as above"
+                  ],
+                  [
+                    "No risk identified",
+                    "Anything noticed during care",
+                    "Any change, which is also reported"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "How to check skin",
+          "blocks": [
+            {
+              "steps": [
+                "Tell the person what you are going to do and ask their agreement, or follow the best interests plan in the care plan where they cannot agree. Check skin during personal care or an agreed skin check in the care plan; never undress someone only to look for injuries.",
+                "In private and in good light, keeping the person covered except for the area you are looking at, check each pressure area and the skin under any device, comparing it with the last body map entry.",
+                "If an area looks discoloured, relieve the pressure and look again before you leave: discolouration that does not fade is new damage.",
+                "On darker skin, redness may not show. Look for purple, blue, grey or darker patches and shiny or tight skin, and feel gently with the back of your hand for warmth, coolness, hardness or a spongy feel.",
+                "Ask whether any area is painful, itchy or sore, and watch for signs of pain in a person who cannot tell you. Never massage or rub skin over pressure areas, or use heat or talcum powder on them."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Preventing pressure and moisture damage",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Repositioning",
+          "blocks": [
+            {
+              "bullets": [
+                "Help the person change position at the frequency and to the positions the care plan sets, using the method, equipment and number of workers in the moving and handling plan. Encourage people who can move themselves to do so.",
+                "Never drag a person across a surface. Never position a person on a pressure ulcer or discoloured area unless the nurse's plan says so.",
+                "Use only the pressure relief the plan sets: never improvise with rings, rolled towels or water-filled gloves, and add no extra layers under the person on a pressure-relieving mattress.",
+                "Record each repositioning in the daily visit notes: the time, the position the person was found in and left in, and the skin condition.",
+                "If repositioning or skin care cannot be completed in the visit time, phone the office before leaving; visit length is then reviewed under the Needs Assessment and Care Planning Policy."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Pressure-relieving equipment",
+          "blocks": [
+            {
+              "p": "Mattresses, overlays and cushions are prescribed by the community nursing team or an occupational therapist and usually belong to the community equipment service. The care plan records each item, its setting and the supplier's fault number."
+            },
+            {
+              "bullets": [
+                "Before use at every visit, check the mattress or cushion is in place and the right way up with an intact, dry cover, and that a powered mattress is switched on, alarm-free and on the setting the care plan records.",
+                "Never change settings or switch off a powered mattress unless the care plan or the nurse says so. If the pump sparks, smokes or smells of burning, switch it off at the socket if safe and phone the office (Fire Safety in People's Homes Policy). Pressure cushions go only on the chair the plan names.",
+                "If an item is faulty, alarming, deflated or missing, make the person comfortable, phone the office before leaving and record it in the incident log before the end of your shift. If a person who cannot move themselves is on a deflated mattress, wait for the office's call back up to 30 minutes after the planned end of the visit; after that the office arranges an extra visit. The office reports it to the supplier the same day and, for a powered mattress, asks the community nursing team the same day for interim advice. The Registered Manager reports a fault that harmed or could have harmed the person to the MHRA Yellow Card scheme within 2 working days.",
+                "A fault not put right within 24 hours, and a new mattress or overlay on a bed with rails, are handled under the Hoists, Slings and Lifting Equipment Procedure."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Moisture and continence",
+          "blocks": [
+            {
+              "bullets": [
+                "Change wet or soiled pads, clothing and bedding at every visit; clean gently, pat dry, especially in skin folds, and never rub.",
+                "Apply barrier creams and other skin products only as the eMAR and body map show, under the Medicines Management Policy.",
+                "Use one continence pad at a time, of the type the continence service supplied.",
+                "Cream and emollient residue on bedding, clothing and dressings catches fire easily. Where the person smokes or uses a naked flame, gas hob, open fire or heater, the assessor records the fire risk in the individual fire risk assessment, the care plan and, where we support with the product, its eMAR entry, under the Fire Safety in People's Homes Policy.",
+                "Report new soreness, redness or broken skin from moisture to the office the same day. The Care Coordinator asks the community nursing team or GP within 2 working days for advice and, where needed, a continence reassessment."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Nutrition, wounds and dressings",
+          "blocks": [
+            {
+              "p": "Poor eating and drinking raises the risk of skin damage and is acted on under the Nutrition and Hydration Policy. Pressure ulcers and wounds are dressed by the community nursing team: care workers never remove, change or reapply a nurse's dressing unless the task is delegated to them under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy. A loose, soiled, leaking or missing dressing is phoned to the office before leaving, and the Care Coordinator contacts the community nursing team the same day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Recording skin changes on body maps",
+      "blocks": [
+        {
+          "p": "Care workers complete a CareFlow body map for every new mark, discoloured area, blister, broken skin, moisture damage, wound or device mark, and for any change to a known pressure ulcer, recording:"
+        },
+        {
+          "bullets": [
+            "the exact position and the approximate length and width in centimetres;",
+            "colour compared with the person's usual skin, whether it faded when pressure was relieved, and whether it is warm, cool, hard or spongy;",
+            "whether the skin is intact, blistered, broken or moist, any smell or leakage, and the condition of any dressing;",
+            "what the person says, in their own words, including pain and their explanation of any mark;",
+            "what you did and who you told, with the time."
+          ]
+        },
+        {
+          "p": "While a change is being monitored, the care worker adds a body map entry at every visit until the community nurse or safeguarding lead advises otherwise and the Care Coordinator records that advice in the care plan. A body map for a possible abuse or neglect concern goes with the care worker's Safeguarding Concern incident in CareFlow."
+        },
+        {
+          "p": "Under the Consent to Care Policy, a care worker may add a body map photograph to monitor a pressure area, wound or skin change and share it with the community nursing team or GP. It is taken only in the CareFlow app on the work phone and never kept on the device; only where the care plan records consent or a best interests decision, confirmed in the app, which will not save it otherwise; never of the face or intimate areas unless the care plan records this as clinically necessary and agreed; and protecting the person's dignity. If consent is refused or pending, no photograph is taken. Body map video follows the same rules, only where the care plan records a clinical reason. Nobody photographs an injury to gather evidence of suspected abuse or neglect. The Care Coordinator asks the community nurse for the category and measurements in writing."
+        }
+      ]
+    },
+    {
+      "heading": "Reporting and escalation",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is seen",
+              "What happens",
+              "Who and when"
+            ],
+            "rows": [
+              [
+                "The person is very unwell: new confusion, very drowsy, fast breathing, high temperature with shivering, or blue, grey or blotchy skin",
+                "Call 999, give first aid, then phone the office",
+                "Care worker, at once"
+              ],
+              [
+                "A wound looks infected: hot, swollen or red skin around it, pus, a bad smell, a high temperature, or severe or worsening pain",
+                "Phone the office; body map; community nursing team or GP asked for an urgent visit or advice; infection report in the incident log under the Infection Prevention and Control Policy",
+                "Care worker before leaving; Care Coordinator the same day"
+              ],
+              [
+                "New pressure damage: non-fading discolouration, a warm, hard or spongy area, a blister, broken skin or pain over a pressure area or device; or a known pressure ulcer that looks worse",
+                "Phone the office; body map; incident log entry; community nursing team asked to visit; rostered care workers told; focused review",
+                "Care worker before leaving, incident log before the end of the shift; Care Coordinator the same day; review within 7 days"
+              ],
+              [
+                "Discolouration that fades once pressure is relieved",
+                "Recorded in the daily visit notes and phoned to the office; checked at every visit; if still present at the next visit, treated as new pressure damage",
+                "Care worker the same day; Care Coordinator sets extra checks the same working day"
+              ],
+              [
+                "Moisture damage with broken skin",
+                "Phone the office; body map; incident log entry",
+                "Care worker the same day, incident log before the end of the shift; Care Coordinator seeks advice within 2 working days"
+              ],
+              [
+                "Repositioning or a skin check declined by a person at High risk or with a pressure ulcer",
+                "Offer once more later in the visit, record it and phone the office, which agrees what happens next under the Visit Cancellations and Refusals of Care Procedure. Declined at 2 consecutive visits or 3 times in 7 days: community nursing team told and focused review within 7 days",
+                "Care worker before leaving; Care Coordinator the same working day"
+              ],
+              [
+                "Signs that anyone, including our staff, has neglected or harmed the person, such as repositioning not done, equipment withheld or the person left wet or soiled",
+                "Safeguarding concern under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure",
+                "Care worker before leaving; safeguarding lead assesses within 1 hour"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Care Coordinator gives the community nursing team the NHS number, body map description and skin risk level, records who they spoke to, the advice and the visit date in the daily visit notes, and puts advice that changes care into the care plan before the next visit it applies to. If the team has not visited or advised by the end of the next working day after new damage was reported, the Care Coordinator escalates to the team leader and the GP practice and tells the Registered Manager."
+        },
+        {
+          "p": "Damage found when our care starts, or on return from hospital or another service and not mentioned in the discharge information, is reported to the community nursing team the same day and to the previous or discharging service in writing within 2 working days. Where it may suggest neglect, the safeguarding lead assesses it within 1 hour of the report, using the skin history and any decision guide result that the Care Coordinator asks that service for the same day. At a hospital admission, the ambulance crew is told about any pressure ulcer and the person's equipment, under the Hospital Admission and Discharge Procedure."
+        },
+        {
+          "p": "Pressure damage at the end of life is recorded and reported in the same way, with repositioning as the End of Life Care Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Incidents, safeguarding and notifications",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Incident review",
+          "blocks": [
+            {
+              "p": "Every new or worsening pressure ulcer and every case of moisture damage with broken skin has an incident log entry under the Incident Reporting, Investigation and Learning Policy, including damage present when our care started or resumed, marked as such. The incident owner records the category the health professional gives and grades the incident at least as follows:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Damage",
+                  "Minimum severity"
+                ],
+                "rows": [
+                  [
+                    "Category 1 or 2, or moisture damage with broken skin",
+                    "Medium"
+                  ],
+                  [
+                    "Category 3 or 4, unstageable, deep tissue injury, more than one category 2 ulcer, or any damage our staff's neglect may have caused",
+                    "High"
+                  ],
+                  [
+                    "Death that a pressure ulcer caused or may have contributed to",
+                    "Critical"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Investigations compare what happened with the care plan, repositioning and skin check records, visit check-in and check-out times, equipment checks and referral dates, and ask why any gap occurred. Two pressure damage incidents for one person within 4 weeks trigger that policy's pattern review."
+            }
+          ]
+        },
+        {
+          "heading": "Safeguarding decision",
+          "blocks": [
+            {
+              "p": "A pressure ulcer is not in itself proof of neglect. We follow the Department of Health and Social Care protocol and, where it differs, the local Safeguarding Adults Board's pressure ulcer guidance:"
+            },
+            {
+              "steps": [
+                "For a category 3, 4, unstageable or deep tissue injury pressure ulcer, or more than one category 2, the Registered Manager asks the community nursing team the same working day to complete the national safeguarding decision guide, which the protocol expects a registered nurse not involved in the person's care to complete within 48 hours.",
+                "The Registered Manager, as safeguarding lead, considers the result with our own records. A score of 15 or more, or professional judgement that neglect or abuse may have occurred, leads to a referral under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+                "The decision guide never delays a referral: where there is any sign of neglect or abuse, or our own care may have contributed through missed or late visits, repositioning not done or equipment not used, the safeguarding lead decides within 1 hour of the report.",
+                "The decision, score and reasons are recorded in the safeguarding record. The person or their representative is involved and told the outcome, including, where there is no referral, why not and what will be done."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "CQC notification and duty of candour",
+          "blocks": [
+            {
+              "p": "Regulation 18 of the Care Quality Commission (Registration) Regulations 2009 requires CQC to be notified without delay of abuse or an allegation of abuse, and of an injury to a person we support during or because of our care that a health care professional reasonably judges has caused, or needs treatment to prevent, outcomes such as changes to the structure of the body, prolonged pain or shortened life expectancy."
+            },
+            {
+              "p": "For a category 3, 4, unstageable or deep tissue injury pressure ulcer that developed or worsened while we were providing care, the Registered Manager asks the treating nurse in writing on the day of the initial review, in the same request the Duty of Candour Policy requires, whether in their professional opinion it meets those tests. The Care Coordinator sends the request, chases it every 2 working days until answered and records the answer in the incident log entry. Where the tests are met, the Registered Manager notifies CQC within 24 hours of the opinion reaching us, under the Statutory Notifications to CQC Procedure. Our policy is also to notify on what we know, updating CQC later, where no opinion has come by the end of the next working day after asking or it is unclear. Other pressure damage needing more than first aid follows that procedure's serious injury steps. Damage present when our care started or resumed is notified where it is referred as a safeguarding concern. The Registered Manager decides at the initial review whether the Duty of Candour Policy applies."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Records are written under the Daily Records and Visit Notes Procedure and kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Recognising and reporting changes, including pressure ulcer prevention: risk factors, skin checks on all skin tones, moisture care, equipment checks, body maps and body map photographs, and escalation, with an observed skin check",
+                "Care staff",
+                "At induction, before working without a shadowing colleague; every 2 years and on appointment as a Senior Care Worker"
+              ],
+              [
+                "Each person's pressure-relieving equipment",
+                "Each care worker allocated to that person",
+                "Before their first unshadowed visit, recorded in training and compliance records"
+              ],
+              [
+                "Skin risk assessment, risk levels and requesting clinical assessments",
+                "Assessors, including On-call Managers who assess",
+                "Before the first assessment; within the annual assessor update"
+              ],
+              [
+                "Escalation pathway, nursing and equipment contacts",
+                "Care Coordinators and On-call Managers",
+                "Before first allocating visits or the first on-call shift; every 12 months"
+              ],
+              [
+                "The national pressure ulcer safeguarding protocol and decision guide",
+                "Registered Manager and Deputy Manager",
+                "Within 3 months of appointment; every 3 years with lead-level safeguarding training"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Pressure area care and reporting is a critical item at every spot check of a visit that includes personal care or repositioning. A care worker who misses a reportable skin change, skips planned repositioning or changes equipment settings gets feedback the same day, is retrained before doing the task again and is re-observed within 4 weeks."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every person at High risk or with a pressure ulcer: clinical assessment in date, skin checks, body maps and repositioning recorded as planned, equipment checks, nursing contacts on time (target 100%)",
+                "Monthly check of every such person",
+                "Deputy Manager",
+                "Registered Manager and Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Skin risk assessments, My care at a glance, body maps and photograph consent against the care plan",
+                "Within the monthly audit of 10 care plans",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Skin checks, repositioning and equipment checks in practice",
+                "Every spot check that includes personal care or repositioning",
+                "Field Care Supervisor",
+                "Registered Manager monthly"
+              ],
+              [
+                "New and worsening pressure ulcers by category, split into those developed in our care and those present when care started; moisture damage; safeguarding and CQC decisions",
+                "Each incident reviewed; trends monthly",
+                "Registered Manager",
+                "Quarterly quality report to the Nominated Individual and Directors"
+              ],
+              [
+                "Training compliance (100% induction, 95% refreshers in date)",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is recorded with an action, owner and deadline in the service improvement plan. This procedure is reviewed every 12 months by the Registered Manager under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious incident, an inspection finding, or when monitoring shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

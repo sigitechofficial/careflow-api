@@ -1,0 +1,345 @@
+{
+  "reference": "SUR-PRO-003",
+  "revision": 1,
+  "title": "Feedback from hospital discharge and reablement teams",
+  "audience": "PUBLIC",
+  "audienceGroup": "PROFESSIONALS",
+  "respondents": "Hospital ward and discharge teams, care transfer hubs, hospital social work teams, and reablement and intermediate care teams that referred people to us or handed over to us in the last 3 months",
+  "summary": "A quick quarterly survey for hospital discharge and reablement teams: replies to referrals, capacity information, start dates, first visits, problems after discharge, readmission information and declined packages, how well we communicate, confidence in safe discharges home, and an overall rating. About 5 minutes.",
+  "purpose": "Coming home from hospital is the riskiest moment for the people we support. This survey tells us how hospital and reablement teams experience us at that moment, against the standards in the Hospital Admission and Discharge Procedure and the Needs Assessment and Care Planning Policy (replying the same working day to a hospital discharge, restarting care from the first planned visit, telling the ward and hub about problems at once). It gives the Registered Manager early warning of a pattern the Nominated Individual may need to raise with the trust or commissioner, and its shared items sit beside the February professionals' results.",
+  "timing": {
+    "when": "Every 3 months, in the second week of March, June, September and December, about the last 3 months; open 3 weeks",
+    "recurrence": "QUARTERLY",
+    "trigger": null
+  },
+  "anonymous": false,
+  "channels": ["ONLINE"],
+  "estimatedMinutes": 5,
+  "cqc": {
+    "keyQuestions": ["SAFE", "RESPONSIVE", "EFFECTIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Safe systems, pathways and transitions",
+      "Care provision, integration and continuity",
+      "How staff, teams and services work together",
+      "Partnerships and communities"
+    ]
+  },
+  "introduction": "{{organisation}} would like your team's view of how we work with you when people leave hospital or reablement. It takes about 5 minutes and works on a phone. Taking part is up to you. Please do not name patients. If you write the reference number from our email, we know which team answered and can follow up; if you leave it blank, we will still act on what you tell us.\n\nThis survey is not for urgent concerns. If you are worried about a patient or need us now, phone our office (out of hours, our on-call number). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve how we work with hospital and reablement teams. Our legal reason is our legitimate interest in running a good, safe service.\n\nThis survey is not anonymous. We ask which kind of team you are in, and if you write the reference number or give your details, your answers are linked to your team or to you so we can follow them up. Only our Registered Manager and Deputy Manager look at individual answers. Reports show combined results only, for groups of 5 or more. If you tell us someone may be at risk of harm, we will tell our safeguarding lead and may tell the council.\n\nWe keep your answers for 3 years after the survey closes, under our Records Management and Retention Policy. You can ask to see, correct or delete your information, or object to our using it, by contacting our office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "q-team-type",
+          "text": "Which team are you in?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Hospital ward or discharge team",
+            "Care transfer hub",
+            "Hospital social work team",
+            "Reablement or intermediate care team"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us your team",
+            "textRequired": true
+          }
+        }
+      ]
+    },
+    {
+      "title": "Working with us in the last 3 months",
+      "questions": [
+        {
+          "id": "q-referral-in-time",
+          "text": "When you send us a referral, do we reply in time for your discharge plans?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "We aim to reply the same working day for hospital discharges. Choose Don't know if you have not seen this in the last 3 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name patients.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "q-capacity-accurate",
+          "text": "Is what we tell you about our capacity accurate?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, whether we can take a package in an area, and how soon. Choose Don't know if you have not seen this in the last 3 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name patients.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        },
+        {
+          "id": "q-start-agreed",
+          "text": "Do we start care on the date agreed?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not seen this in the last 3 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name patients.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        },
+        {
+          "id": "q-first-visit",
+          "text": "Does the first visit at home happen as planned?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, at the agreed time, with the right equipment and information. Choose Don't know if you have not seen this in the last 3 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name patients.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "q-problem-after",
+          "text": "If there is a problem after discharge, do we tell you quickly?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, missing medicines, equipment or information. Choose Don't know if you have not seen this in the last 3 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name patients.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "q-readmission-info",
+          "text": "When someone we support goes back into hospital, do we give the ward the information it needs?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose Don't know if you have not seen this in the last 3 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What was missing? Please do not name patients.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "q-decline-early",
+          "text": "When we cannot take a package, do we tell you early and clearly?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose Don't know if you have not seen this in the last 3 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name patients.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        }
+      ]
+    },
+    {
+      "title": "How we work with you",
+      "questions": [
+        {
+          "id": "pro-communicate",
+          "text": "How well do we communicate with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, how easy we are to reach and how quickly we reply. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name patients.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        },
+        {
+          "id": "q-confident-home",
+          "text": "How confident are you that we can take people home from hospital safely?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What makes you less confident? Please do not name patients.",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "pro-overall",
+          "text": "Overall, how would you rate us as a care provider to work with?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What is the main reason for your rating?",
+            "showWhen": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one change would help us work better with your team?",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "Please do not name patients or staff."
+        },
+        {
+          "id": "q-reference",
+          "text": "Please write the reference number from our email, so we know which team answered.",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "If you leave it blank, we will still act on what you tell us, but we cannot reply to your team."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, our Registered Manager or Deputy Manager will contact you within 5 working days, through your organisation's main number. We can only do this if you give your details below."
+        },
+        {
+          "id": "q-contact-details",
+          "text": "Your name, organisation and a work phone number or email.",
+          "type": "TEXT",
+          "required": false,
+          "showIf": {
+            "question": "q-contact",
+            "answers": ["Yes"]
+          }
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Deputy Manager runs it under the Compliments, Feedback and Involvement Procedure. CareFlow cannot yet send a survey to named people outside the organisation, so this is a public form: each quarter publish a new copy of this template (for example \"Discharge teams, March 2027\") in the second week of March, June, September and December, with an end date 3 weeks later, and email the link to each team's inbox, hub lead or reablement manager, who forwards it, with a reference number for that team. Keep the list of reference numbers with the invitations, because a public form cannot tell us who answered.",
+      "Build the list from the quarter's referral records and hospital contact notes: teams that sent us a referral or handed over a discharge or reablement case. Skip a team with fewer than 2 contacts in the quarter. A team is asked at most once a quarter; ask team leads to encourage each person to answer no more than twice a year, which the public link cannot enforce. These teams are not on the February professionals' list, and a practice pharmacist is not sent this within 4 weeks of the medicines survey (SUR-PRO-004). No reminder, because the next round follows soon.",
+      "Who may open individual answers: the Deputy Manager and the Registered Manager. This is set in Who can see the answers: individual responses are limited to the Deputy Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "Read each response the working day it arrives and act under the alerts below. Phone back only through the team's main number, found independently (Confidentiality and Information Sharing Policy). With no reference number or contact details, act on the information given and record it; never try to identify who answered.",
+      "The Deputy Manager collates the results within 2 weeks of closing for the next quarterly governance report, beside our own discharge problem log and restart timeliness. Positive means Always or Usually, Very good or Good, or Very or Fairly confident, leaving out Don't know. With fewer than 5 responses, show themed comments without scores. Trend by quarter. Communicate and the overall rating sit beside the February professionals' results. Send a short quarterly You said, we did note to the hub and discharge leads.",
+      "Keep answers for 3 years after the survey closes, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "A comment describing harm or serious risk to a person after discharge or restart, or a hospital's concern about our care, such as pressure damage or dehydration.",
+        "action": "Record it in the incident log the same working day. The Registered Manager (the On-call Manager out of hours) decides within 1 hour whether it is a safeguarding concern (Hospital Admission and Discharge Procedure; Safeguarding Concerns: Reporting, Referral and Enquiry Procedure), and tells the commissioner by the end of the next working day, or the same working day where a safeguarding concern is raised."
+      },
+      {
+        "when": "A comment that we refused or delayed a discharge unsafely, or failed to restart care, or other dissatisfaction needing a response.",
+        "action": "Record it as a complaint the same working day where a response is needed; grade it within 1 working day and acknowledge it within 3 working days where the team can be contacted (Complaints Policy and Procedure). The Registered Manager reviews the case against the Hospital Admission and Discharge Procedure within 5 working days."
+      },
+      {
+        "when": "Referral replies, capacity information, start date, first visit, problems after discharge, readmission information or telling you early when we cannot take a package answered Rarely or Never; confidence to take people home safely Not very or Not at all confident; or communicate or overall answered Poor or Very poor.",
+        "action": "The Registered Manager reviews the quarter's referral and restart records within 5 working days, contacts the team lead where the team can be identified, and adds actions to the service improvement plan within 5 working days (Compliments, Feedback and Involvement Procedure).",
+        "rule": {
+          "task": "Discharge team concern: review referral and restart records",
+          "if": [
+            {
+              "question": "q-referral-in-time",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-capacity-accurate",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-start-agreed",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-first-visit",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-problem-after",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-readmission-info",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-decline-early",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-confident-home",
+              "answers": ["Not very confident", "Not at all confident"]
+            },
+            {
+              "question": "pro-communicate",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "The same problem raised by 2 or more teams in a quarter, or in two quarters running.",
+        "action": "The Registered Manager reports it in the quarterly governance report; if they cannot resolve it, the Nominated Individual takes it to the senior leads of the hospital trust and commissioner (Hospital Admission and Discharge Procedure)."
+      },
+      {
+        "when": "A compliment about a team or care worker.",
+        "action": "Record it the same working day and pass it on within 5 working days (Compliments, Feedback and Involvement Procedure)."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Registered Manager or Deputy Manager phones back through the team's main number within 5 working days.",
+        "rule": {
+          "task": "Discharge team asked to be contacted",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {"responses": ["DEPUTY_MANAGER", "REGISTERED_MANAGER"], "results": ["DEPUTY_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": ["POL-CD-015", "POL-CD-002", "POL-GOV-006", "POL-GOV-016", "POL-GOV-005", "POL-SG-002", "POL-GOV-013", "POL-GOV-017"],
+  "regulatoryBasis": [
+    {
+      "source": "Department of Health and Social Care, Hospital discharge and community support guidance: seek feedback on how discharge went in practice; agreed pathways for raising concerns after discharge; sufficient and accurate information on discharge",
+      "url": "https://www.gov.uk/government/publications/hospital-discharge-and-community-support-guidance/hospital-discharge-and-community-support-guidance"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from relevant persons and other persons on the services provided",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

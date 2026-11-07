@@ -1,0 +1,411 @@
+{
+  "reference": "SUR-STF-008",
+  "revision": 1,
+  "title": "Lone working and your safety",
+  "audience": "EMPLOYEE",
+  "respondents": "Everyone who works alone for us: care staff, field care supervisors, care coordinators who visit, on-call managers and office staff who work alone",
+  "summary": "An anonymous November survey, Part 1 of two linked parts with driving and travel: safe travel, risks known before visits, equipment, check-in follow-up, getting help, leaving when unsafe, abuse and harassment, and out-of-hours support. About 9 minutes.",
+  "purpose": "Tests whether the lone working controls work from the worker's side: safe travel, information about risks before a first visit, safety equipment, the check-in and escalation system, getting through for help, freedom to leave, and how abuse and harassment from people we support, households and the public are reported and handled. It also carries the all-staff view of out-of-hours on-call support. It is the annual lone working survey named in the Lone Working and Staff Personal Safety Policy and the Violence and Aggression Towards Staff Policy, feeds their risk assessments, and is one of the reasonable steps to prevent third-party and sexual harassment.",
+  "timing": {
+    "when": "Once a year, opening on the first working day of November for 2 weeks, with the driving and travelling survey (SUR-STF-021) as Part 2; and 2 to 4 weeks after a serious safety incident, to the whole branch care team where 10 or more people",
+    "recurrence": "YEARLY",
+    "trigger": "A serious safety incident (optional branch send)",
+    "sentWith": ["SUR-STF-021"]
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 9,
+  "cqc": {
+    "keyQuestions": ["SAFE", "WELL_LED"],
+    "qualityStatements": [
+      "Safe environments",
+      "Safe and effective staffing",
+      "Learning culture",
+      "Workforce equality, diversity and inclusion"
+    ]
+  },
+  "introduction": "This is Part 1 of {{organisation}}'s yearly survey about your safety at work; Part 2 is about driving and travelling. Please think about the last 12 months. It takes about 9 minutes, in paid working time. It is anonymous: we cannot see who answered, and our reports never show results for fewer than 5 people. To report an incident, phone the office or the On-call Manager and record it before your shift ends.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to make lone working safer. Our legal reason is our legitimate interest in keeping our staff safe.\n\nThe survey is anonymous: we do not record your name, so your answers cannot be traced to you. CareFlow records only which branch an answer came from. Please do not write names or addresses. Only the HR Manager looks at individual answers. Our reports show results only for groups of 5 or more people, and comments and branch results for abuse and harassment only for groups of 10 or more. If a comment tells us someone may be at risk of harm, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "closingMessage": "Thank you. A reminder: if you need help but cannot talk freely, phone the office or On-call Manager and use the code phrase, or raise the CareFlow emergency alert. If you are in danger, call 999. If you cannot speak, listen to the questions and cough or tap the phone to answer; on a mobile, press 55 when asked, so the call is put through to the police.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-lone-overall",
+          "text": "Overall, how would you rate what we do to keep you safe when you work alone?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "What is the main thing we should change?",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Safe environments"
+        }
+      ]
+    },
+    {
+      "title": "Getting to and from visits",
+      "questions": [
+        {
+          "id": "q-travel-day",
+          "text": "Do you feel safe travelling between visits in daylight?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not travel between visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-travel-dark",
+          "text": "Do you feel safe travelling between visits after dark?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not travel between visits after dark.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would help you feel safer? Please give an area, not an address.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe environments"
+        }
+      ]
+    },
+    {
+      "title": "In people's homes",
+      "questions": [
+        {
+          "id": "q-risks-told",
+          "text": "Before your first visit to someone, are you told about any risks to your safety?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not visit people's homes.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-safe-visits",
+          "text": "Do you feel safe during visits in people's homes?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not visit people's homes.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-equipment",
+          "text": "Do you have working safety equipment for your visits, such as your personal alarm?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not visit people's homes.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What is missing or not working?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe environments"
+        }
+      ]
+    },
+    {
+      "title": "Getting help",
+      "questions": [
+        {
+          "id": "q-late-checkin",
+          "text": "If you are late checking in or out, does someone from the office or on-call contact you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if this has not happened to you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-get-through",
+          "text": "Can you get through to the office or the On-call Manager when you need help?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-silent-help",
+          "text": "Do you know what to do if you need help urgently during a visit but cannot talk freely?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, I am sure", "I think so", "No"],
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-leave-supported",
+          "text": "I would be supported, not blamed, if I left a visit because I felt unsafe.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Safe: Learning culture"
+        }
+      ]
+    },
+    {
+      "title": "Out of hours",
+      "questions": [
+        {
+          "id": "q-oncall-overall",
+          "text": "Overall, how would you rate our out-of-hours on-call support?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you have not needed on-call.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-know-who-call",
+          "text": "Do you know when to phone 999, NHS 111 or on-call?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, I am sure", "I am not always sure", "No"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-held-back",
+          "text": "In the last 12 months, was there a time you needed help out of hours but did not phone on-call?",
+          "type": "YES_NO",
+          "required": true,
+          "comment": {
+            "prompt": "What stopped you? Please do not include names.",
+            "showWhen": ["Yes"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Abuse and harassment",
+      "introduction": "These questions are about people we support, anyone in their home, or members of the public, not colleagues. You do not have to answer the questions about what happened to you, and our employee assistance programme can help if they bring back difficult feelings (number in your staff handbook).",
+      "questions": [
+        {
+          "id": "q-abuse",
+          "text": "In the last 12 months, has anyone done any of these to you while you were working? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "helpText": "To raise harassment by a colleague, speak to any manager or our Speaking Up Lead. These questions help us check our steps to prevent abuse and harassment are working.",
+          "options": [
+            "Shouted, swore at or insulted me",
+            "Threatened me",
+            "Made racist or other remarks about who I am",
+            "Made sexual comments or advances",
+            "Touched me in a sexual way I did not want",
+            "Pushed, hit, kicked, bit, scratched or spat at me",
+            "Sent me unwanted calls or messages",
+            "None of these",
+            "Prefer not to say"
+          ],
+          "exclusiveOptions": ["None of these", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-abuse-reported",
+          "text": "Did you report it to us?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes, all of it", "Yes, some of it", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "showIf": {
+            "question": "q-abuse",
+            "answers": [
+              "Shouted, swore at or insulted me",
+              "Threatened me",
+              "Made racist or other remarks about who I am",
+              "Made sexual comments or advances",
+              "Touched me in a sexual way I did not want",
+              "Pushed, hit, kicked, bit, scratched or spat at me",
+              "Sent me unwanted calls or messages"
+            ]
+          },
+          "comment": {
+            "prompt": "What stopped you reporting it? Please do not include names.",
+            "showWhen": ["Yes, some of it", "No"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-abuse-support",
+          "text": "How would you rate the support you got from us after you reported it?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose \"Does not apply to me\" if you did not report it.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "showIf": {
+            "question": "q-abuse",
+            "answers": [
+              "Shouted, swore at or insulted me",
+              "Threatened me",
+              "Made racist or other remarks about who I am",
+              "Made sexual comments or advances",
+              "Touched me in a sexual way I did not want",
+              "Pushed, hit, kicked, bit, scratched or spat at me",
+              "Sent me unwanted calls or messages"
+            ]
+          },
+          "comment": {
+            "prompt": "What would have helped?",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-told-outcome",
+          "text": "When you report a safety concern, are you told what we have done about it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not reported a safety concern.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Learning culture"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one thing would make you feel safer when you work alone?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or addresses. To report a specific risk at a home, phone the office so we can act on it now."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it with the Registered Manager. Use Send or schedule with everyone in your branches, repeating yearly from the first working day of November, kept open 14 days, and schedule the driving and travelling survey (SUR-STF-021) for the same moment as Part 2, telling staff in one message. Skip November's pulse. CareFlow records the branch of each anonymous answer, never the person.",
+      "After a serious safety incident, send a one-off copy 2 to 4 weeks later to the whole branch care team, only where that is 10 or more people; never to the small group around the person harmed, who get the debrief and supervision the Violence and Aggression Towards Staff Policy sets. Never in September, and fold it into the November run when within 4 weeks. CareFlow refuses an anonymous survey that would reach fewer than 5 people.",
+      "It is done in paid working time. Paper on request, in a sealed envelope to the HR Manager, who enters it alone with Record response, recorded as anonymous. Set one reminder after 1 week in Reminders and follow-up: on an anonymous survey CareFlow sends it to everyone who has not answered, with no personal link, and never to one person.",
+      "Who may open individual answers: the HR Manager only, who reads comments each working day while the survey is open. This is set in Who can see the answers: individual responses are limited to the HR Manager, and results to the HR Manager and the Registered Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. On-call Managers and Care Coordinators, whose support is being rated, never open them or see results below organisation or branch level."
+    ],
+    "actingOnResults": [
+      "Comments are read each working day while the survey is open. A current risk at an identifiable home goes to the Registered Manager the same working day, so the Field Care Supervisor reviews that person's behaviour and aggression risk assessment (within 7 days after an incident, and before the next visit where it involved physical violence, a weapon, sexual harassment or threats to harm), under the Violence and Aggression Towards Staff Policy. Risk to a person we support goes to the safeguarding lead the same working day. Wrongdoing is a speaking-up concern with the Nominated Individual as case owner; harassment by a colleague is logged by the Nominated Individual as an anonymous report. Nobody tries to identify the writer.",
+      "How to count: positive means Very good or Good, Strongly agree or Agree, Always or Usually, or Yes, I am sure, leaving out Does not apply to me, Don't know and Prefer not to say. For needing help but not phoning on-call, No is the good answer. Never show a result for fewer than 5; flag 5 to 9; show branch results and comments only for 10 or more; report the abuse and harassment questions at organisation level unless 10 or more in a branch answered them.",
+      "Library triggers: reporting \"No\" or \"Yes, some of it\" from 20% or more of those affected means an under-reporting action in the violence and aggression risk assessment and team briefings; any sexual harassment option chosen goes to the sexual harassment risk assessment, and identity-based remarks to the harassment risk assessment under the Equality, Diversity and Inclusion Policy, at aggregate level only; late check-in follow-up or getting through below 90% positive means the Deputy Manager checks escalation timescales and on-call answer times (missed calls returned within 15 minutes); not being sure what to do when you cannot talk, or when to phone 999, NHS 111 or on-call, above 10% means refreshers at team meetings and spot checks; anyone needing help but not phoning on-call is explored at team meetings and in the on-call review.",
+      "All results go into the general lone working risk assessment review (every 12 months) under the Lone Working and Staff Personal Safety Policy and the violence and aggression general risk assessment, with actions in the service improvement plan, reviewed at the Health and Safety Meeting. Keep individual answers for 1 year after the survey closes under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe during visits in people's homes?\" answered Never (anonymous: counts only).",
+        "action": "The Registered Manager reviews the branch lone working and violence and aggression risk assessments within 5 working days. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Lone worker never feels safe on visits (anonymous)",
+          "if": [
+            {
+              "question": "q-safe-visits",
+              "answers": ["Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Was there a time you needed help out of hours but did not phone on-call?\" answered Yes (anonymous: counts only).",
+        "action": "The Registered Manager explores why at team meetings and in the on-call review within 1 month. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Held back from calling on-call (anonymous)",
+          "if": [
+            {
+              "question": "q-held-back",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 28
+        }
+      },
+      {
+        "when": "Sexual comments, advances or unwanted touching from people we support, households or the public (anonymous: counts only).",
+        "action": "The Registered Manager reviews the sexual harassment risk assessment within 1 month under the Sexual Safety Policy. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Sexual harassment of a lone worker (anonymous): review",
+          "if": [
+            {
+              "question": "q-abuse",
+              "answers": ["Made sexual comments or advances", "Touched me in a sexual way I did not want"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 28,
+          "minimumAnswers": 10
+        }
+      },
+      {
+        "when": "Abuse or harassment not reported to us (anonymous: counts only).",
+        "action": "The Registered Manager adds an under-reporting action to the violence and aggression risk assessment and team briefings within 1 month. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Abuse not reported (anonymous): repeat the routes",
+          "if": [
+            {
+              "question": "q-abuse-reported",
+              "answers": ["Yes, some of it", "No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 28,
+          "minimumAnswers": 10
+        }
+      }
+    ]
+  },
+  "alertsNeverTo": ["CARE_COORDINATOR"],
+  "access": {
+    "responses": ["HR_MANAGER"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-HS-003",
+    "POL-HS-004",
+    "POL-HS-015",
+    "POL-SG-010",
+    "POL-HR-012",
+    "POL-HR-013",
+    "POL-HR-018",
+    "POL-SG-002",
+    "POL-GOV-006",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety Executive, Lone working: employers must manage the risks to lone workers, including violence, and keep in touch with them",
+      "url": "https://www.hse.gov.uk/lone-working/employer/index.htm"
+    },
+    {
+      "source": "Health and Safety Executive, INDG73 Protecting lone workers: how to manage the risks of working alone (assess the risks, train, supervise, keep in touch, and review with the workers)",
+      "url": "https://www.hse.gov.uk/pubns/indg73.htm"
+    },
+    {
+      "source": "Independent Office for Police Conduct, Silent Solution: making a 999 call from a mobile when you cannot speak (press 55 when prompted)",
+      "url": "https://www.policeconduct.gov.uk/news/if-youre-risk-domestic-abuse-remember-silent-solution"
+    },
+    {
+      "source": "Equality Act 2010, section 40A: an employer must take all reasonable steps to prevent sexual harassment of employees, including by third parties",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40A"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from staff",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

@@ -1,0 +1,287 @@
+{
+  "reference": "SUR-PWS-016",
+  "revision": 1,
+  "title": "Getting information in a way that works for you",
+  "audience": "SERVICE_USER",
+  "respondents": "People we support with an information or communication need recorded in their care plan, including language needs; a representative may answer where the person cannot give their views, even with help",
+  "summary": "Asks people with a recorded communication need whether we have it right: is the record still right, do staff know, is our information usable, do we arrange interpreters properly, are aids checked, and did the doctor or hospital know. About 7 minutes.",
+  "purpose": "Gives the Accessible Information Standard self-assessment the views of people with communication needs, as the Communication and Accessible Information Policy requires (at least 3 people each year), and asks the people the standard protects whether each step happens: their need identified and still right, recorded and known by staff, met in our information, interpreting and aids, and shared with the NHS. It is also the standard's review step for each person who answers. Results go into the self-assessment the Deputy Manager prepares and the Nominated Individual approves, into the quarterly quality report, and to Care Coordinators to fix individual records.",
+  "timing": {
+    "when": "Early December 2026, so results reach the first self-assessment due by 31 March 2027; then each April from 2028, ahead of the June self-assessment",
+    "recurrence": null,
+    "trigger": "The yearly send to people with a recorded communication need"
+  },
+  "anonymous": false,
+  "channels": ["TELEPHONE", "IN_PERSON", "PAPER", "PORTAL"],
+  "estimatedMinutes": 7,
+  "cqc": {
+    "keyQuestions": ["CARING", "RESPONSIVE"],
+    "qualityStatements": ["Providing information", "Equity in access", "Treating people as individuals"]
+  },
+  "introduction": "{{organisation}} would like to know whether we give you information, and talk with you, in a way that works for you. It takes about 7 minutes. You can ask for this survey in another format, such as large print, easy read, audio or another language, or with an interpreter.\n\nTaking part is up to you, and what you say will not affect your care. Your answers are linked to your name so we can put your records right. Your care workers (carers) will not see them.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to make sure we meet your communication needs and to improve our care. The law expects us to check this; our legal reason is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name so we can put things right. They are seen only by our Registered Manager, Deputy Manager, Care Coordinators and the office staff who follow them up, never by your care workers (carers), and reports show combined results only. With your agreement, we may ask your doctor or hospital to record your needs. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this survey, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care over the last few months. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your communication needs",
+      "questions": [
+        {
+          "id": "q-needs-right",
+          "text": "Is the way we have written down your communication needs still right for you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Your care plan records how you need information from us, for example large print, an interpreter or someone to read letters to you. If we phone or visit, we will read out what it says.",
+          "options": ["Yes", "No, it needs changing", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What do you need now?",
+            "showWhen": ["No, it needs changing"]
+          },
+          "evidence": "Responsive: Providing information"
+        },
+        {
+          "id": "q-formats",
+          "text": "How would you like to get information from us now?",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "helpText": "Choose all that help you. It does not cost you anything.",
+          "options": [
+            "Standard print",
+            "Large print",
+            "Easy read",
+            "Audio",
+            "Braille",
+            "Email or text message",
+            "In another language",
+            "British Sign Language",
+            "Someone to read or explain things to me"
+          ],
+          "otherOption": {
+            "label": "Something else (please tell us)",
+            "textPrompt": "Please tell us what would help",
+            "textRequired": true
+          },
+          "showIf": {
+            "question": "q-needs-right",
+            "answers": ["No, it needs changing"]
+          },
+          "evidence": "Responsive: Providing information"
+        },
+        {
+          "id": "q-staff-know",
+          "text": "Do our staff know how to communicate with you without you having to explain?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        }
+      ]
+    },
+    {
+      "title": "Information from us",
+      "questions": [
+        {
+          "id": "q-information",
+          "text": "Is the information we give you easy for you to use?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, letters, your list of visit times, and the copy of your care plan in your home, in large print, easy read, audio, braille, email or another language.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Which information is hard to use?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Providing information"
+        }
+      ]
+    },
+    {
+      "title": "Support to communicate",
+      "questions": [
+        {
+          "id": "q-interp",
+          "text": "When you need an interpreter or other support to talk with us, do we arrange it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, a sign language interpreter, a language interpreter, or more time to talk. Choose \"Does not apply to me\" if you do not need this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What happened?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Equity in access"
+        },
+        {
+          "id": "q-family-interp",
+          "text": "Have our staff asked a family member, friend or child to interpret for you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "We should offer a professional interpreter first. A family member or friend helps only if you choose this, and a child never interprets.",
+          "options": ["Yes", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-interp",
+            "answers": ["Always", "Usually", "Sometimes", "Rarely", "Never"]
+          },
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Yes"]
+          },
+          "evidence": "Responsive: Equity in access"
+        },
+        {
+          "id": "q-aids",
+          "text": "Do your care workers check your hearing aids or glasses are working before talking with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not use hearing aids, glasses or other aids.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us more, including if an aid is broken or lost.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-nhs-knew",
+          "text": "In the last 12 months, when you saw a doctor or went to hospital, did they know how to communicate with you?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "We share your needs with them if you agree. You can skip this question.",
+          "options": ["Yes", "No", "I have not seen a doctor or been to hospital", "Don't know"],
+          "notCountedOptions": ["I have not seen a doctor or been to hospital", "Don't know"],
+          "comment": {
+            "prompt": "Who did not know? We can write to them if you agree.",
+            "showWhen": ["No"]
+          },
+          "evidence": "Responsive: Equity in access"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What would make it easier for you to understand us, or for us to understand you?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, speaking more slowly, writing things down, a picture board, or texts instead of calls."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days, in the way that works for you."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Keep a list of the people with a recorded information or communication need (CareFlow cannot yet choose people by their care plan). Start a copy from this template and use Send or schedule, Chosen people: in early December 2026, leaving out anyone sent the technology survey (SUR-PWS-015) in the previous 4 weeks, so results reach the first self-assessment due by 31 March 2027; then each April from 2028, at least 4 weeks after the annual survey closes. When you send, CareFlow holds back anyone who had a survey contact in the last 4 weeks (a send, or answers entered with Record response, including a quality check) and sends them this survey on their free day if the copy is still open with 3 or more days left; phone, visit or post only to people it has sent it to. CareFlow cannot see care plan reviews, so leave out anyone who had one in the last 4 weeks.",
+      "This survey must reach each person in their recorded format, as the Communication and Accessible Information Policy requires for every document: the portal or email where that is their format; otherwise office staff or a Field Care Supervisor outside the core care team phone or visit, or post large print, easy read, audio, braille or a translation, and enter the answers with Record response (channel Telephone, In person or Paper). Use a professional interpreter, including a British Sign Language interpreter for a video call; never a child. Test the easy read version with at least 3 people. A survey that fails to reach someone in their format is itself a finding.",
+      "By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can send or open a survey: give these to the staff who make the calls and visits; Care Coordinators can only view surveys unless given them.",
+      "Before the first question, read the person's recorded need aloud from the care plan, so they can say whether it is still right. A representative answers only where the person cannot give their views even with help: record them in CareFlow's \"Who is answering\" field and report their answers separately.",
+      "Who may open individual answers: the Care Coordinators and office staff who make or follow up the calls, the Deputy Manager and the Registered Manager. This is set in Who can see the answers: individual responses are limited to Care Coordinators, the Deputy Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who make or follow up the calls."
+    ],
+    "actingOnResults": [
+      "Act on every answer that needs it the same working day, under the alerts below. The cost of an aid or format is never passed to the person.",
+      "How to count: for the frequency questions report the share answering Always or Usually, leaving out Does not apply to me; report the information question with the annual survey's, which uses the same words. Report the response rate by format: a low rate for one format, such as British Sign Language, is a finding in itself. Groups under 5 (often braille or British Sign Language) are reported together as other formats; flag results resting on fewer than 10.",
+      "The Deputy Manager puts the views of at least 3 people with communication needs into the annual self-assessment, which the Nominated Individual approves; the Nominated Individual also challenges the communication results in the quarterly quality report. Actions go into the service improvement plan within 5 working days, and each person whose answers need action is told within 5 working days what we will do, under the Governance and Quality Assurance Policy.",
+      "Keep answers for 3 years after the survey closes under the Records Management and Retention Policy. For CQC, the answers and actions evidence the Accessible Information Standard in practice and people's experience of information (Regulations 9 and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Is the way we have written down your communication needs still right for you?\" answered No, it needs changing, or a changed need in any comment.",
+        "action": "Record the change the same working day; the Care Coordinator decides that day. Where it affects how care workers communicate, the care plan summary is updated and approved before the next visit and every rostered care worker is told before their next visit; other changes are approved within 5 working days, under the Communication and Accessible Information Policy.",
+        "rule": {"task": "Communication needs changed: update the record", "if": [{"question": "q-needs-right", "answers": ["No, it needs changing"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0}
+      },
+      {
+        "when": "\"Have our staff asked a family member, friend or child to interpret for you?\" answered Yes, or a comment describing interpreting by a child or by family against the person's choice.",
+        "action": "Log it in the incident log the same day; the Registered Manager reviews it by the end of the next working day. If it concerned a safeguarding conversation or a capacity assessment, tell the safeguarding lead the same working day under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+        "rule": {"task": "Family, friend or child interpreted: log and review", "if": [{"question": "q-family-interp", "answers": ["Yes"]}], "owner": "REGISTERED_MANAGER", "dueWorkingDays": 1, "record": "INCIDENT"}
+      },
+      {
+        "when": "\"Is the information we give you easy for you to use?\" answered Rarely or Never.",
+        "action": "The Care Coordinator contacts the person within 5 working days and reissues documents in the recorded format: large print and electronic with the standard version; easy read at once, or within 5 working days for documents about the person; audio, braille, British Sign Language video or translation within 10 working days, with the content read aloud or explained within 2 working days meanwhile.",
+        "rule": {"task": "Information hard to use: reissue in their format", "if": [{"question": "q-information", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "\"When you need an interpreter or other support to talk with us, do we arrange it?\" answered Rarely or Never.",
+        "action": "The Care Coordinator contacts the person within 5 working days and checks bookings with the language service provider.",
+        "rule": {"task": "Interpreter or support not arranged: check bookings", "if": [{"question": "q-interp", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "\"Do your care workers check your hearing aids or glasses are working?\" answered Rarely or Never, or an aid reported broken or lost.",
+        "action": "Tell the Care Coordinator the same working day; the core team is reminded before their next visit and the Field Care Supervisor observes communication at the next spot check. With the person's agreement, the Care Coordinator contacts the service that supplied a broken or lost aid within 2 working days, under the Communication and Accessible Information Policy.",
+        "rule": {"task": "Aids not checked: remind team, check aids", "if": [{"question": "q-aids", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0}
+      },
+      {
+        "when": "\"Did they know how to communicate with you?\" answered No.",
+        "action": "With the person's agreement, the Care Coordinator writes to that GP practice or hospital within 2 working days asking it to record and meet the need.",
+        "rule": {"task": "GP or hospital did not know their needs: write to them", "if": [{"question": "q-nhs-knew", "answers": ["No"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 2}
+      },
+      {
+        "when": "Staff not knowing how to communicate (Rarely or Never) or the overall question Poor or Very poor, with no particular concern.",
+        "action": "The Care Coordinator contacts the person within 5 working days to agree what we will do, under the Compliments, Feedback and Involvement Procedure.",
+        "rule": {"task": "Communication or experience poor: agree what we will do", "if": [{"question": "q-staff-know", "answers": ["Rarely", "Never"]}, {"question": "q-overall", "answers": ["Poor", "Very poor"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "Dissatisfaction that needs a response.",
+        "action": "Record a complaint the same working day; it is graded within 1 working day and acknowledged within 3 working days, under the Complaints Policy and Procedure."
+      },
+      {
+        "when": "Praise for our service or a named care worker.",
+        "action": "Record it as a compliment the same working day and pass it to each employee named within 5 working days."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff contact the person within 5 working days, in their recorded format, and record what was agreed.",
+        "rule": {"task": "Asked to be contacted about their answers", "if": [{"question": "q-contact", "answers": ["Yes"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5, "contactRequest": true}
+      }
+    ]
+  },
+  "access": {"responses": ["CARE_COORDINATOR", "DEPUTY_MANAGER", "REGISTERED_MANAGER"], "results": ["CARE_COORDINATOR", "DEPUTY_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": ["POL-CD-006", "POL-GOV-006", "POL-GOV-002", "POL-GOV-005", "POL-SG-002", "POL-GOV-017"],
+  "regulatoryBasis": [
+    {
+      "source": "NHS England, Accessible Information Standard (DAPB1605): identify, record, flag, share, meet and review people's information and communication needs",
+      "url": "https://standards.nhs.uk/published-standards/accessible-information"
+    },
+    {
+      "source": "Healthwatch England, Updated Accessible Information Standard out (18 July 2025): a new review step, a senior named role, and annual self-assessment, the first by March 2027",
+      "url": "https://www.healthwatch.co.uk/news/2025-07-18/updated-accessible-information-standard-out"
+    },
+    {
+      "source": "Equality Act 2010, section 20: the duty to make reasonable adjustments, including auxiliary aids, at no cost to the disabled person",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

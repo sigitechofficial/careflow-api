@@ -1,0 +1,354 @@
+{
+  "version": 1,
+  "code": "SAF",
+  "title": "CQC single assessment framework",
+  "status": "ACTIVE",
+  "effectiveFrom": "2023-11-20",
+  "checkedOn": "2026-11-05",
+  "note": "CQC's framework in force at November 2026: 5 key questions, 34 quality statements and 6 evidence categories. The summaries are CareFlow's own short wording of what each quality statement expects, not CQC's text. CQC has consulted on sector frameworks (draft adult social care framework published March 2026, with key lines of enquiry replacing quality statements); when the final framework is published it is added as version 2 with mapsFrom links back to these codes. cqc.org.uk returned HTTP 403 to automated access on 5 November 2026, so titles were checked against the other sources listed; titles marked unverified must be checked by hand on the CQC website.",
+  "sources": [
+    {
+      "id": "dash-analysis",
+      "source": "DHSC, Analysis of Care Quality Commission data on inspections, assessments and ratings, 2014 to 2024 (updated 17 October 2024)",
+      "url": "https://www.gov.uk/government/publications/review-into-the-operational-effectiveness-of-the-care-quality-commission-full-report/analysis-of-care-quality-commission-data-on-inspections-assessments-and-ratings-2014-to-2024"
+    },
+    {
+      "id": "dash-report",
+      "source": "DHSC, Review into the operational effectiveness of the Care Quality Commission: full report (15 October 2024)",
+      "url": "https://www.gov.uk/government/publications/review-into-the-operational-effectiveness-of-the-care-quality-commission-full-report/review-into-the-operational-effectiveness-of-the-care-quality-commission-full-report"
+    },
+    {
+      "id": "kent-sfc",
+      "source": "Skills for Care, Are we nearly there yet? Update on CQC single assessment framework (Kent Connect to Support, October 2023)",
+      "url": "https://kent.connecttosupport.org/media/amac3z0d/are-we-nearly-there-yet-cqc-single-assessment-framework-oct-23.pdf"
+    },
+    {
+      "id": "nelincs",
+      "source": "North East Lincolnshire Council, CQC Regulation of Adult Social Care: overview for scrutiny (31 January 2024)",
+      "url": "https://www.nelincs.gov.uk/assets/uploads/2023/06/9.-CQC-Regulation-of-Adult-Social-Care-PresentationPDF-393KBicon-namepaperclip-prefixfa.pdf"
+    },
+    {
+      "id": "aspens-vodg",
+      "source": "Aspens Charities (VODG), Single Assessment Framework: Workforce Wellbeing and Enablement (CQC guidance as updated February 2024)",
+      "url": "https://www.vodg.org.uk/asset/910F77DA-B5A4-42E3-B539AF4B41C8160B"
+    },
+    {
+      "id": "access-group",
+      "source": "The Access Group, CQC quality statements (secondary summary, modified 14 October 2026)",
+      "url": "https://www.theaccessgroup.com/en-gb/blog/hsc-cqc-quality-statements/"
+    }
+  ],
+  "keyQuestions": [
+    {
+      "code": "SAFE",
+      "title": "Safe",
+      "summary": "People are protected from abuse and avoidable harm.",
+      "statements": [
+        {
+          "code": "SAFE_LEARNING_CULTURE",
+          "title": "Learning culture",
+          "summary": "There is an open culture where safety concerns are raised and listened to, incidents are investigated, and lessons are learned and shared so care improves.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis"] }
+        },
+        {
+          "code": "SAFE_SYSTEMS_PATHWAYS_TRANSITIONS",
+          "title": "Safe systems, pathways and transitions",
+          "summary": "The provider works with people and partners to keep care safe and continuous, including when people move between services.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis", "dash-report", "nelincs", "kent-sfc"] }
+        },
+        {
+          "code": "SAFE_SAFEGUARDING",
+          "title": "Safeguarding",
+          "summary": "People are protected from abuse, neglect, discrimination and avoidable harm, their right to live safely is respected, and concerns are shared quickly with the right agencies.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-report", "nelincs"] }
+        },
+        {
+          "code": "SAFE_INVOLVING_PEOPLE_RISKS",
+          "title": "Involving people to manage risks",
+          "summary": "Staff work with each person to understand and manage risks in a way that keeps them safe while supporting their choices and independence.",
+          "aliases": ["Involving people to manage risk"],
+          "verification": { "status": "unverified", "sources": ["access-group"] }
+        },
+        {
+          "code": "SAFE_ENVIRONMENTS",
+          "title": "Safe environments",
+          "summary": "The places where care is given, and the equipment used, are safe and are checked, including risks in people's own homes.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["kent-sfc"] }
+        },
+        {
+          "code": "SAFE_STAFFING",
+          "title": "Safe and effective staffing",
+          "summary": "There are enough suitably qualified, skilled and supported staff, recruited safely, to give safe and reliable care.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis", "dash-report"] }
+        },
+        {
+          "code": "SAFE_IPC",
+          "title": "Infection prevention and control",
+          "summary": "Infection risks are assessed and managed, the spread of infection is prevented and controlled, and concerns are shared promptly.",
+          "aliases": ["Infection control"],
+          "verification": { "status": "unverified", "sources": ["access-group"] }
+        },
+        {
+          "code": "SAFE_MEDICINES",
+          "title": "Medicines optimisation",
+          "summary": "People's medicines are managed safely, involve the person, and are reviewed so they get the most benefit from them.",
+          "aliases": ["Medicine optimisation"],
+          "verification": { "status": "unverified", "sources": ["access-group"] }
+        }
+      ]
+    },
+    {
+      "code": "EFFECTIVE",
+      "title": "Effective",
+      "summary": "Care and support achieve good outcomes, help people keep a good quality of life and follow the best available evidence.",
+      "statements": [
+        {
+          "code": "EFFECTIVE_ASSESSING_NEEDS",
+          "title": "Assessing needs",
+          "summary": "People's health, care, wellbeing and communication needs are assessed and reviewed with them, so their care works as well as it can.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis", "nelincs"] }
+        },
+        {
+          "code": "EFFECTIVE_EVIDENCE_BASED_CARE",
+          "title": "Delivering evidence-based care and treatment",
+          "summary": "Care is planned and given with people, following good practice, current guidance and legal requirements.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-report"] }
+        },
+        {
+          "code": "EFFECTIVE_WORKING_TOGETHER",
+          "title": "How staff, teams and services work together",
+          "summary": "Staff, teams and other services work together and share information so people get joined-up care, including when they move between services.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis"] }
+        },
+        {
+          "code": "EFFECTIVE_HEALTHIER_LIVES",
+          "title": "Supporting people to live healthier lives",
+          "summary": "People are supported to manage their health and wellbeing, stay independent and, where possible, reduce their future need for care.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["nelincs"] }
+        },
+        {
+          "code": "EFFECTIVE_MONITORING_OUTCOMES",
+          "title": "Monitoring and improving outcomes",
+          "summary": "The outcomes of people's care are routinely checked and the information is used to improve care.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis", "dash-report"] }
+        },
+        {
+          "code": "EFFECTIVE_CONSENT",
+          "title": "Consent to care and treatment",
+          "summary": "People are told about their rights, consent is sought before care is given, and the Mental Capacity Act is followed when someone may lack capacity.",
+          "aliases": [],
+          "verification": { "status": "unverified", "sources": ["access-group"] }
+        }
+      ]
+    },
+    {
+      "code": "CARING",
+      "title": "Caring",
+      "summary": "Staff involve people and treat them with compassion, kindness, dignity and respect.",
+      "statements": [
+        {
+          "code": "CARING_KINDNESS_DIGNITY",
+          "title": "Kindness, compassion and dignity",
+          "summary": "People are always treated with kindness, empathy and compassion, and their privacy and dignity are respected.",
+          "aliases": [],
+          "verification": { "status": "unverified", "sources": ["access-group"] }
+        },
+        {
+          "code": "CARING_INDIVIDUALS",
+          "title": "Treating people as individuals",
+          "summary": "Care reflects each person's strengths, preferences, culture, faith and background, and treats them as a unique person.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis", "kent-sfc"] }
+        },
+        {
+          "code": "CARING_INDEPENDENCE_CHOICE",
+          "title": "Independence, choice and control",
+          "summary": "People are supported to make their own choices, stay as independent as they want to be and have control over their care and their lives.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis", "kent-sfc"] }
+        },
+        {
+          "code": "CARING_IMMEDIATE_NEEDS",
+          "title": "Responding to people's immediate needs",
+          "summary": "Staff notice and respond quickly to people's immediate needs, including pain, discomfort and distress.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["kent-sfc"] }
+        },
+        {
+          "code": "CARING_WORKFORCE_WELLBEING",
+          "title": "Workforce wellbeing and enablement",
+          "summary": "Staff wellbeing is looked after, and staff are supported and enabled to give person-centred care.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["kent-sfc", "aspens-vodg"] }
+        }
+      ]
+    },
+    {
+      "code": "RESPONSIVE",
+      "title": "Responsive",
+      "summary": "Services are organised so that they meet people's needs.",
+      "statements": [
+        {
+          "code": "RESPONSIVE_PERSON_CENTRED",
+          "title": "Person-centred care",
+          "summary": "People and their families are at the centre of planning and delivering their care, which is tailored to their needs.",
+          "aliases": [],
+          "verification": { "status": "unverified", "sources": ["access-group"] }
+        },
+        {
+          "code": "RESPONSIVE_CONTINUITY",
+          "title": "Care provision, integration and continuity",
+          "summary": "Care is planned around the needs of people and the local community, is joined up and flexible, and supports choice and continuity.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["kent-sfc", "nelincs"] }
+        },
+        {
+          "code": "RESPONSIVE_PROVIDING_INFORMATION",
+          "title": "Providing information",
+          "summary": "People get information they can understand and use, in formats that meet their communication needs, about their care, rights and choices.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis"] }
+        },
+        {
+          "code": "RESPONSIVE_LISTENING_INVOLVING",
+          "title": "Listening to and involving people",
+          "summary": "People's feedback, concerns and complaints are sought and listened to, they are involved in decisions, and what they say leads to improvement.",
+          "aliases": [],
+          "verification": { "status": "unverified", "sources": ["access-group"] }
+        },
+        {
+          "code": "RESPONSIVE_EQUITY_ACCESS",
+          "title": "Equity in access",
+          "summary": "Everyone can get the care they need when they need it, and barriers to access are removed.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["kent-sfc"] }
+        },
+        {
+          "code": "RESPONSIVE_EQUITY_EXPERIENCES",
+          "title": "Equity in experiences and outcomes",
+          "summary": "The provider looks for and acts on differences in experience or outcomes for people most likely to face inequality.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis", "kent-sfc", "nelincs"] }
+        },
+        {
+          "code": "RESPONSIVE_PLANNING_FUTURE",
+          "title": "Planning for the future",
+          "summary": "People are supported to plan ahead and make informed choices about their future care, including at the end of their life.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis"] }
+        }
+      ]
+    },
+    {
+      "code": "WELL_LED",
+      "title": "Well-led",
+      "summary": "Leadership, management and governance make sure care is high quality and person-centred, with an open and fair culture that supports learning.",
+      "statements": [
+        {
+          "code": "WELL_LED_SHARED_DIRECTION",
+          "title": "Shared direction and culture",
+          "summary": "There is a shared vision, strategy and culture built on transparency, equity, human rights, listening and learning.",
+          "aliases": [],
+          "verification": { "status": "unverified", "sources": ["access-group"] }
+        },
+        {
+          "code": "WELL_LED_CAPABLE_LEADERS",
+          "title": "Capable, compassionate and inclusive leaders",
+          "summary": "Leaders have the skills, knowledge and integrity for their role, are visible and approachable, and lead with compassion and inclusion.",
+          "aliases": [],
+          "verification": { "status": "unverified", "sources": ["access-group"] }
+        },
+        {
+          "code": "WELL_LED_SPEAK_UP",
+          "title": "Freedom to speak up",
+          "summary": "People and staff feel able to raise concerns without fear, and are listened to and supported when they do.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["kent-sfc"] }
+        },
+        {
+          "code": "WELL_LED_WORKFORCE_EDI",
+          "title": "Workforce equality, diversity and inclusion",
+          "summary": "Staff are treated fairly, diversity is valued, and discrimination is tackled, including making reasonable adjustments.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis", "kent-sfc"] }
+        },
+        {
+          "code": "WELL_LED_GOVERNANCE",
+          "title": "Governance, management and sustainability",
+          "summary": "Roles, accountability and governance are clear; risks, performance and outcomes are monitored and acted on; and information is managed securely.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["dash-analysis", "dash-report", "nelincs"] }
+        },
+        {
+          "code": "WELL_LED_PARTNERSHIPS",
+          "title": "Partnerships and communities",
+          "summary": "The provider works openly with partners and the community, shares information and learning, and collaborates to improve care.",
+          "aliases": [],
+          "verification": { "status": "verified", "sources": ["nelincs"] }
+        },
+        {
+          "code": "WELL_LED_LEARNING_IMPROVEMENT",
+          "title": "Learning, improvement and innovation",
+          "summary": "The provider focuses on continuous learning, improvement and innovation, including learning from feedback, audits and research.",
+          "aliases": ["Learning, innovation and improvement"],
+          "verification": { "status": "verified", "sources": ["nelincs", "dash-report"] }
+        },
+        {
+          "code": "WELL_LED_ENVIRONMENTAL_SUSTAINABILITY",
+          "title": "Environmental sustainability – sustainable development",
+          "summary": "The provider understands the effect its work has on the environment and takes steps to reduce it.",
+          "aliases": ["Environmental sustainability", "Environmental sustainability - sustainable development"],
+          "verification": { "status": "verified", "sources": ["dash-analysis", "kent-sfc"] }
+        }
+      ]
+    }
+  ],
+  "evidenceCategories": [
+    {
+      "code": "PEOPLES_EXPERIENCE",
+      "title": "People's experience",
+      "description": "What people who use the service, and their families, carers and advocates, tell us about their care: surveys, interviews, compliments, complaints and feedback.",
+      "sources": ["kent-sfc", "nelincs", "dash-report"]
+    },
+    {
+      "code": "STAFF_FEEDBACK",
+      "title": "Feedback from staff and leaders",
+      "description": "What staff and managers say about the service, its culture and the support they get: staff surveys, supervision themes, speak-up records and self-assessments.",
+      "sources": ["kent-sfc", "nelincs", "dash-report"]
+    },
+    {
+      "code": "PARTNER_FEEDBACK",
+      "title": "Feedback from partners",
+      "description": "What commissioners, health and care professionals and other partners say about working with the service.",
+      "sources": ["kent-sfc", "nelincs", "dash-report"]
+    },
+    {
+      "code": "OBSERVATION",
+      "title": "Observation",
+      "description": "What is seen when care is given, for example spot checks and observed practice in people's homes.",
+      "sources": ["kent-sfc", "nelincs", "dash-report"]
+    },
+    {
+      "code": "PROCESSES",
+      "title": "Processes",
+      "description": "How the service works and checks itself: policies, audits, action plans, training records and governance minutes, and how well they work.",
+      "sources": ["kent-sfc", "nelincs", "dash-report"]
+    },
+    {
+      "code": "OUTCOMES",
+      "title": "Outcomes",
+      "description": "The difference care makes to people: measures of health, independence and quality of life, and trends over time.",
+      "sources": ["kent-sfc", "nelincs", "dash-report"]
+    }
+  ]
+}

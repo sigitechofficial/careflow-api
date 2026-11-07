@@ -1,0 +1,367 @@
+{
+  "reference": "SUR-STF-010",
+  "revision": 1,
+  "title": "Speaking up and learning from mistakes",
+  "audience": "EMPLOYEE",
+  "respondents": "All employees, including bank staff and apprentices",
+  "summary": "An anonymous March survey, six months after the September one: whether staff know how to raise a concern inside and outside the management chain, feel safe to, hold back and why, whether mistakes lead to learning, and bullying and harassment. About 7 minutes.",
+  "purpose": "Shows whether staff who work alone in people's homes know how to raise a concern inside and outside the management chain, feel safe to do so, whether they hold back and why, and whether mistakes lead to learning or blame. It gives a six-monthly reading on the Whistleblowing (Speaking Up) Policy, Incident Reporting, Investigation and Learning Policy and Bullying, Harassment and Sexual Harassment Policy targets measured in September, using the same wording, and measures bullying, harassment and sexual harassment, including from people we support and their households, as part of the duty to take all reasonable steps to prevent sexual harassment.",
+  "timing": {
+    "when": "Once a year, opening on the second Monday of March for 3 weeks, after the equality monitoring survey closes; not in a year when the independent quality review staff questionnaire (SUR-CQC-002) runs in March",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 7,
+  "cqc": {
+    "keyQuestions": ["SAFE", "WELL_LED"],
+    "qualityStatements": [
+      "Learning culture",
+      "Safeguarding",
+      "Freedom to speak up",
+      "Shared direction and culture",
+      "Workforce equality, diversity and inclusion"
+    ]
+  },
+  "introduction": "{{organisation}} wants everyone to feel safe to speak up and to report mistakes. Please think about the last 12 months. It takes about 7 minutes, in paid working time. It is anonymous: we cannot see who answered, and our reports never show results for fewer than 5 people.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy; you can also go straight to CQC or the council's adult safeguarding team, and Protect gives free, confidential advice.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to make it safer to speak up and to learn from mistakes. Our legal reason is our legitimate interest in being a good employer and keeping people safe.\n\nThe survey is anonymous: we do not record your name, so your answers cannot be traced to you, and trying to identify someone is a disciplinary matter. CareFlow records only which branch an answer came from. Please do not write names. Only the HR Manager, the Registered Manager and the Nominated Individual look at individual answers. Our reports show results only for groups of 5 or more, and comments and branch results only for groups of 10 or more. If a comment describes someone at risk, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Speaking up",
+      "questions": [
+        {
+          "id": "stf-concern-acted",
+          "text": "If I raised a concern about something wrong at work, I am confident we would act on it.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "A concern means something wrong or unsafe at work, such as poor care, abuse, records that are not true, visits cut short or someone being put at risk.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-concern-safe",
+          "text": "If I raised a concern, I am confident I would not be treated worse for it.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, losing hours, getting worse runs or being left out.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-routes",
+          "text": "Who could you go to with a concern about wrongdoing? Choose everyone you know how to contact.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "My supervisor, Field Care Supervisor or Care Coordinator",
+            "The Registered Manager, Deputy Manager or HR Manager",
+            "Our Speaking Up Lead (the Nominated Individual)",
+            "The Care Quality Commission (CQC)",
+            "The council's adult safeguarding team",
+            "The police",
+            "Protect (free advice for workers)",
+            "I would not know who to go to"
+          ],
+          "exclusiveOptions": ["I would not know who to go to"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "q-held-back",
+          "text": "In the last 12 months, did you have a concern about wrongdoing that you did not raise?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "q-what-stopped",
+          "text": "What stopped you? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "options": [
+            "I did not think anything would change",
+            "I was worried about how I would be treated",
+            "I was worried about my hours or my job",
+            "I was worried about my visa",
+            "I did not want to get a colleague into trouble",
+            "I did not know who to tell",
+            "I was not sure it was serious enough",
+            "Someone told me not to",
+            "I sorted it out myself"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us, without names",
+            "textRequired": true
+          },
+          "showIf": {
+            "question": "q-held-back",
+            "answers": ["Yes"]
+          },
+          "evidence": "Well-led: Freedom to speak up",
+          "helpText": "You do not have to answer this question."
+        },
+        {
+          "id": "q-seen-worse",
+          "text": "In the last 12 months, have you seen anyone treated worse for raising a concern?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "q-safeguarding-know",
+          "text": "If you thought someone we support was being abused, would you know what to do straight away?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Not sure", "No"],
+          "evidence": "Safe: Safeguarding"
+        }
+      ]
+    },
+    {
+      "title": "When things go wrong",
+      "questions": [
+        {
+          "id": "stf-incidents",
+          "text": "I feel safe to report incidents and mistakes, including my own.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-cause-not-blame",
+          "text": "When something goes wrong at work, we look for the cause rather than someone to blame.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-told-next",
+          "text": "When you report an incident or concern, are you told what happened next?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not reported an incident or concern in the last 12 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would you have liked to hear? Please do not include names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Learning culture"
+        }
+      ]
+    },
+    {
+      "title": "Bullying and harassment",
+      "introduction": "These questions help us check that our steps to prevent harassment are working. You do not have to answer the questions about what has happened to you or what you have seen.",
+      "questions": [
+        {
+          "id": "stf-bh-experienced",
+          "text": "In the last 12 months, has any of these happened to you at work? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "helpText": "Bullying is offensive, frightening or insulting behaviour, or misuse of power, that upsets, humiliates or harms you. Harassment is unwanted behaviour linked to who you are, such as your race, religion, sex, sexuality, disability or age. Sexual harassment is unwanted sexual comments, messages, looks or touching.",
+          "options": [
+            "Bullying by a colleague or manager",
+            "Harassment by a colleague or manager",
+            "Sexual harassment by a colleague or manager",
+            "Abuse or harassment from a person we support, their family or visitors",
+            "Sexual harassment from a person we support, their family or visitors",
+            "None of these",
+            "Prefer not to say"
+          ],
+          "exclusiveOptions": ["None of these", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "stf-bh-reported",
+          "text": "Did you report it to us?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes, all of it", "Yes, some of it", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "showIf": {
+            "question": "stf-bh-experienced",
+            "answers": [
+              "Bullying by a colleague or manager",
+              "Harassment by a colleague or manager",
+              "Sexual harassment by a colleague or manager",
+              "Abuse or harassment from a person we support, their family or visitors",
+              "Sexual harassment from a person we support, their family or visitors"
+            ]
+          },
+          "comment": {
+            "prompt": "What stopped you reporting it? Please do not include names.",
+            "showWhen": ["Yes, some of it", "No"]
+          },
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-bh-witnessed",
+          "text": "In the last 12 months, have you seen a colleague being bullied, harassed or sexually harassed at work?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "stf-bh-know",
+          "text": "Do you know how to report bullying, harassment or sexual harassment?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Not sure", "No"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-bh-fair",
+          "text": "If I reported bullying or harassment, I am confident it would be handled fairly.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Freedom to speak up"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What would make it easier to speak up or to report mistakes here?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or details that could identify you or anyone else."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it. Use Send or schedule with everyone in your branches, repeating yearly, opening on the second Monday of March (after the equality monitoring survey closes), kept open 21 days; in a year when the independent quality review staff questionnaire (SUR-CQC-002) runs in March, skip this survey and that month's pulse. CareFlow records the branch of each anonymous answer, never the person. Agency workers are not sent it; they can use the speaking-up routes.",
+      "It is done in paid working time. Paper on request, in a sealed envelope to the HR Manager, who enters it alone with Record response, recorded as anonymous. No telephone completion: it could not be anonymous. Offer translated versions for staff whose first language is not English; never ask language. Set two reminders in Reminders and follow-up, one after 1 week and one after 2 weeks: on an anonymous survey CareFlow sends them to everyone who has not answered, with no personal link, and never to one person. CareFlow refuses an anonymous survey that would reach fewer than 5 people.",
+      "Who may open individual answers: the HR Manager, the Registered Manager and the Nominated Individual. This is set in Who can see the answers: individual responses are limited to the HR Manager, the Registered Manager and the Nominated Individual, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "Comments are read each working day while the survey is open. Specific wrongdoing, abuse or a person at risk goes to the Registered Manager the same working day; as an anonymous concern the Nominated Individual is case owner and logs it under the Whistleblowing (Speaking Up) Policy, and if a person we support may be at risk the safeguarding lead acts the same day under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, as far as the information allows. An unreported incident described means the Registered Manager checks the incident log and repeats the reporting message at the next team meeting. Nobody tries to identify the writer: trying is a disciplinary matter.",
+      "How to count: positive means Strongly agree or Agree, Always or Usually, or Yes, leaving out Does not apply to me and Prefer not to say; for the routes question, the share choosing any option except the first. Targets (as in September): concern acted on 80%, not treated worse 80%, a route outside the line manager 90%, incidents 90%, know how to report harassment 90%, harassment handled fairly 80%. Never show a result for fewer than 5; flag 5 to 9 with no breakdown or comments; branch results and comments only for 10 or more. Small agencies combine branches or two years rather than lower the threshold.",
+      "Any target missed gets an action in the service improvement plan within 5 working days of the report. A branch with no concerns logged in 12 months and a speaking-up result below target goes to a Nominated Individual review within 10 working days. Fear for hours, job or visa in \"What stopped you\", or anyone seeing someone treated worse, means a Nominated Individual review of detriment checks and rota decisions, reported to the Directors. Any sexual or third-party harassment means the Registered Manager, with the HR Manager, reviews the harassment risk assessment within 1 month under the Sexual Safety Policy and the Equality, Diversity and Inclusion Policy. Not knowing what to do about abuse means safeguarding refreshers at team meetings and supervision.",
+      "Keep individual answers for 1 year after the survey closes under the Records Management and Retention Policy. For CQC, these results and actions evidence a speak-up and learning culture (Regulation 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "A concern about wrongdoing not raised (anonymous: counts only).",
+        "action": "The Nominated Individual reviews speaking-up arrangements within 10 working days. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Concern held back (anonymous): review speaking up",
+          "if": [
+            {
+              "question": "q-held-back",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 10
+        }
+      },
+      {
+        "when": "Held back for fear of treatment, hours, job or visa, or someone seen treated worse for raising a concern (anonymous: counts only).",
+        "action": "The Nominated Individual reviews detriment checks and rota decisions within 10 working days and reports to the Directors. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Fear of detriment for speaking up (anonymous): review",
+          "if": [
+            {
+              "question": "q-what-stopped",
+              "answers": [
+                "I was worried about how I would be treated",
+                "I was worried about my hours or my job",
+                "I was worried about my visa"
+              ]
+            },
+            {
+              "question": "q-seen-worse",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "NOMINATED_INDIVIDUAL",
+          "dueWorkingDays": 10,
+          "minimumAnswers": 10
+        }
+      },
+      {
+        "when": "Sexual harassment, or abuse or harassment from a person we support or their household, experienced (anonymous: counts only).",
+        "action": "The Registered Manager, with the HR Manager, reviews the harassment risk assessment within 1 month under the Sexual Safety Policy. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Sexual or third-party harassment (anonymous): review",
+          "if": [
+            {
+              "question": "stf-bh-experienced",
+              "answers": [
+                "Sexual harassment by a colleague or manager",
+                "Abuse or harassment from a person we support, their family or visitors",
+                "Sexual harassment from a person we support, their family or visitors"
+              ]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 28,
+          "minimumAnswers": 10
+        }
+      },
+      {
+        "when": "\"Would you know what to do straight away?\" about abuse answered No (anonymous: counts only).",
+        "action": "The Registered Manager arranges safeguarding refreshers at team meetings and supervision within 1 month. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Unsure what to do about abuse (anonymous): refresh",
+          "if": [
+            {
+              "question": "q-safeguarding-know",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 28
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["HR_MANAGER", "REGISTERED_MANAGER", "NOMINATED_INDIVIDUAL"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER", "NOMINATED_INDIVIDUAL"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-HR-018",
+    "POL-GOV-007",
+    "POL-HR-013",
+    "POL-SG-010",
+    "POL-HR-012",
+    "POL-SG-002",
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Employment Rights Act 1996, section 43B: protected disclosures, including disclosures about sexual harassment (subsection 1(da), from 6 April 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/43B"
+    },
+    {
+      "source": "Equality Act 2010, section 40A: an employer must take all reasonable steps to prevent sexual harassment of employees (\"all\" from 30 October 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40A"
+    },
+    {
+      "source": "Equality Act 2010, section 40(1A) to (1C): an employer must not permit a third party to harass an employee, and is liable unless it took all reasonable steps to prevent it (from 30 October 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from staff",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

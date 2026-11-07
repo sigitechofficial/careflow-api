@@ -1,0 +1,741 @@
+{
+  "reference": "POL-HR-004",
+  "revision": 1,
+  "title": "Induction and Care Certificate Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How new staff are inducted from their start date to the end of a 6-month probation: training before working alone, shadowing, lone working sign-off, the Care Certificate, prior learning, probation reviews, the Level 2 qualification, and agency, bank and returning staff. For managers, HR, Care Coordinators, shadow leads and new starters.",
+  "keyPoints": {
+    "intro": "What this procedure means for you from your first day until you pass probation, and for everyone who leads shadow shifts, assesses or allocates new workers.",
+    "points": [
+      "Never visit a person alone until the Registered Manager or Deputy Manager has recorded your lone working sign-off in CareFlow. Until then you work only alongside your shadow lead, who stays in sight whenever you give care.",
+      "Complete the training you need before working alone, including safeguarding and Prevent, infection control, moving and handling, emergency first aid, fire safety, health and safety, and lone working. Induction sessions, shadow shifts and study we set are paid working time.",
+      "Only do tasks you are signed off for. If a visit needs something you are not signed off for, such as medicines support or a hoist, do not do it; phone the office, or the On-call Manager out of hours, straight away.",
+      "Complete all 16 Care Certificate standards within 12 weeks of starting, or 18 weeks if you are contracted for under 20 hours a week. Your assessor checks your knowledge and watches you on real visits.",
+      "If you hold a Care Certificate or a care qualification, show the original to the HR Manager before you start. We still check your knowledge and watch your practice before you work alone.",
+      "Even while shadowing, report any concern about a person's safety to the office or the On-call Manager before you leave the visit. Do not assume your shadow lead will report it for you.",
+      "Your probation lasts 6 months, with reviews in weeks 4, 12 and 22. Raise any worry with your Field Care Supervisor at any time; do not wait for a review.",
+      "Read and acknowledge in CareFlow every policy on your induction list before your lone working sign-off, or by the end of week 4 in an office role, then each new major version within 14 days.",
+      "Shadow leads: stay in sight of the new worker whenever they give care, never count them as the second worker on a two-person visit, and before your shift ends tell the Field Care Supervisor how each shadow shift went so it is recorded in CareFlow.",
+      "Care Coordinators: allocate lone visits only for signed-off tasks, and for a worker's first 4 weeks alone never send them alone to a home rated Medium or higher for violence or an animal, or High or higher for self-neglect."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "HR",
+    "Care Coordinator",
+    "Senior Carer/Nurse",
+    "Carer/Domestic"
+  ],
+  "moduleLinks": [
+    "TRAINING",
+    "HR",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-HR-001",
+    "POL-HR-005",
+    "POL-HR-006",
+    "POL-HR-010",
+    "POL-MED-016",
+    "POL-HS-003",
+    "POL-SG-001",
+    "POL-HR-007"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18 (staffing), including 18(2)(a) training and supervision and 18(2)(b) further qualifications",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Health and Care Act 2022, section 181 (training on learning disability and autism, inserting section 20(5ZA) and section 21A into the Health and Social Care Act 2008)",
+      "url": "https://www.legislation.gov.uk/ukpga/2022/31/section/181"
+    },
+    {
+      "source": "Department of Health and Social Care, The Oliver McGowan code of practice on statutory learning disability and autism training (final from 6 September 2025)",
+      "url": "https://www.gov.uk/government/publications/oliver-mcgowan-code-of-practice"
+    },
+    {
+      "source": "Skills for Care, Skills for Health, NHS England and DHSC, Care Certificate standards updated 2025",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Developing-your-workforce/Care-Certificate/Care-Certificate-Standards/Care-Certificate-standards-March-2025.pdf"
+    },
+    {
+      "source": "Care Certificate standards updated 2025: Assessor and employer guide (March 2025)",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Developing-your-workforce/Care-Certificate/Care-Certificate-Standards/Care-Certificate-assessor-and-employer-guide-March-2025.pdf"
+    },
+    {
+      "source": "Care Certificate standards updated 2025: Questions and answers for health and adult social care professionals (October 2025)",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Developing-your-workforce/Care-Certificate/Care-Certificate-Standards/Care-Certificate-standards-FAQs.pdf"
+    },
+    {
+      "source": "NHS Employers, Care Certificate (completion within 12 weeks of starting)",
+      "url": "https://www.nhsemployers.org/your-workforce/plan/workforce-supply/education-and-training/care-certificate"
+    },
+    {
+      "source": "DHSC, Adult Social Care Learning and Development Support Scheme: a guide for employers, and Eligible training courses and qualifications",
+      "url": "https://www.gov.uk/government/publications/adult-social-care-learning-and-development-support-scheme"
+    },
+    {
+      "source": "Employment Rights Act 2025, section 25 (unfair dismissal qualifying period of six months), in force 1 January 2027 under the Employment Rights Act 2025 (Commencement No. 4 and Transitional and Saving Provisions) Regulations 2026 (S.I. 2026/559), regulations 3 and 4",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/36/section/25"
+    },
+    {
+      "source": "Acas, Probation periods",
+      "url": "https://www.acas.org.uk/probation-periods"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} gives every new member of staff a planned, paid induction for their role. No new care worker works alone with a person we support until they have been trained, have shadowed experienced colleagues and have been observed and assessed as competent."
+        },
+        {
+          "p": "Regulation 18 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires the people we employ to receive the training, supervision and development their role needs and to be enabled to gain further relevant qualifications. Until separate regulations are made, Regulation 18 is read as also requiring learning disability and autism training appropriate to each person's role (Health and Care Act 2022, section 181), to the standard in the Oliver McGowan code of practice."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure gives every new starter an induction matched to their role and experience, and makes probation decisions rest on evidence."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to every new employee in a care, office or management role, bank staff, former staff who return, staff moving to a new role, agency workers and students on placement. It runs from the confirmed start date to the end of probation."
+        },
+        {
+          "p": "Other documents cover: checks before clearance (Safer Recruitment Policy; Pre-Employment Checks and DBS Procedure); training after induction (Training and Development Policy); supervision, spot checks and appraisal after probation (Supervision, Spot Checks and Appraisal Policy); medicines competence (Medicines Training and Competency Assessment Procedure); performance after probation (Capability and Performance Procedure); misconduct (Disciplinary Policy and Procedure); and workers under 18 (Young Workers Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Care Certificate",
+                "The 16 national standards for health and social care workers new to care, updated in March 2025. It is not a qualification; the employer awards it when all 16 standards are met."
+              ],
+              [
+                "Shadow shift",
+                "A paid shift in which a new worker accompanies a shadow lead on real visits."
+              ],
+              [
+                "Shadow lead",
+                "A Senior Care Worker or Field Care Supervisor who has passed probation, holds the Care Certificate or a Level 2 or higher care qualification, and has completed the shadow lead briefing."
+              ],
+              [
+                "Direct supervision",
+                "The shadow lead is present, can see the new worker and can step in at once."
+              ],
+              [
+                "Assessor",
+                "A Field Care Supervisor, authorised Senior Care Worker, Deputy Manager or Registered Manager trained to judge Care Certificate evidence."
+              ],
+              [
+                "Lone working sign-off",
+                "The recorded approval that a new care worker may work without direct supervision, listing the tasks signed off."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors fund paid induction, assessor time and the Level 2 qualification. The Nominated Individual decides probation for Registered Manager and Deputy Manager posts and hears probation appeals."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this procedure; authorises assessors; approves each worker's induction route; signs every Care Certificate after reviewing the portfolio; decides probation outcomes for all other posts; and offers the Level 2 qualification. The Registered Manager or Deputy Manager approves lone working sign-off. The Deputy Manager covers the Registered Manager's duties in their absence and audits induction records."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager sends each induction plan, books training, keeps induction and probation dates in CareFlow, records Care Certificates in the training and compliance records and the Adult Social Care Workforce Data Set (ASC-WDS), and produces the monthly induction report. They send the first weeks questionnaire within 5 working days of lone working sign-off, and the end of probation questionnaire once probation is confirmed or extended, never to a leaver; the reviewing managers never see the answers."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators allocate shadow shifts with a named shadow lead after checking the person's agreement, and allocate lone visits only for signed-off tasks and within the first-4-weeks limits. They introduce new workers to people under the Person-Centred Care, Dignity and Respect Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors act as assessors, review self-assessments, observe practice on real visits, recommend lone working sign-off and lead probation reviews for care staff."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Senior Care Workers lead shadow shifts, show new workers each person's hazards, safety controls and approaches, and report the same day any concern about a new worker's practice to the Field Care Supervisor and about their conduct to the Registered Manager. Authorised Senior Care Workers also assess."
+            }
+          ]
+        },
+        {
+          "heading": "New starters",
+          "blocks": [
+            {
+              "p": "New starters attend every session, complete evidence on time and never do a task they are not signed off for."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Induction stages and timescales",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Stage",
+              "When",
+              "Led by",
+              "Completed when"
+            ],
+            "rows": [
+              [
+                "Induction plan",
+                "At least 3 working days before the start date",
+                "HR Manager",
+                "The worker and Care Coordinator have the plan: route, session dates, shadow lead, assessor and review dates. Adjustments for disability or learning needs are agreed and recorded."
+              ],
+              [
+                "Organisational induction",
+                "Week 1: 4 days on the new-to-care route, including face-to-face moving and handling, emergency first aid and full medicines training of at least 6 hours each; at least 2 days on the experienced route",
+                "HR Manager arranges; Field Care Supervisors or approved training providers deliver",
+                "Sessions and assessments done, equipment issued."
+              ],
+              [
+                "Shadowing",
+                "After clearance, normally weeks 1 to 3",
+                "Shadow leads",
+                "Minimum shadow shifts completed and recorded."
+              ],
+              [
+                "Lone working sign-off",
+                "Normally by the end of week 4",
+                "Field Care Supervisor recommends; Registered Manager or Deputy Manager approves",
+                "Approval recorded in CareFlow with the signed-off tasks."
+              ],
+              [
+                "Care Certificate",
+                "By the end of week 12, or week 18 if contracted for under 20 hours a week",
+                "Assessor; Registered Manager signs",
+                "Certificate awarded and recorded."
+              ],
+              [
+                "Probation",
+                "6 months, reviews in weeks 4, 12 and 22",
+                "Field Care Supervisor or line manager",
+                "Probation confirmed, extended or employment ended."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Office-based induction sessions may start before clearance only under the conditions in the Safer Recruitment Policy. Shadowing, access to care records and key safe codes start only once the staff record shows cleared to work. A care worker not signed off for lone working by the end of week 6 is reviewed by the Registered Manager, who agrees a written plan or acts under the probation section."
+        }
+      ]
+    },
+    {
+      "heading": "Organisational induction and training before working alone",
+      "blocks": [
+        {
+          "p": "Every new starter is taken through: our values and statement of purpose; the Staff Code of Conduct, professional boundaries and the duty of candour; the Whistleblowing (Speaking Up) Policy; reporting safeguarding concerns, with the Local Safeguarding Contacts sheet, and exploitation at work to the Fair Work Agency; confidentiality; pay, travel time, rotas, sickness reporting and uniform; the employee assistance programme; and finding, reading, acknowledging and questioning policies in CareFlow. Care staff are shown on a trainer's device how to use the CareFlow app: rota, visit check-in and check-out, care plans, risk assessments, daily visit notes and voice notes, the eMAR, body maps and body map photographs, and the incident log."
+        },
+        {
+          "p": "Before their first shadow shift, care staff also practise the doorstep introduction and learn to use key safes without ever writing down or sharing a code, what to do if they will be late, nobody answers or a visit must run over, and whom to phone for advice during a visit: a Senior Care Worker or the Care Coordinator in office hours, the On-call Manager out of hours."
+        },
+        {
+          "p": "Each care worker also receives, free of charge, their ID badge, a work phone, four uniform tops, a full PPE kit, an exposure card, a personal first aid kit and a personal alarm, learns the code phrase in person, and gives the HR Manager their emergency contact, work vehicle details and photograph for lone working monitoring. Each is offered free hepatitis B vaccination, and the Field Care Supervisor completes their baseline skin check within 6 weeks of starting."
+        },
+        {
+          "table": {
+            "columns": [
+              "Training (Care Certificate standard)",
+              "Who",
+              "Completed",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Safeguarding adults and children (10, 11), and the GOV.UK Prevent awareness course",
+                "All employees",
+                "Care staff before working without a shadowing colleague; others in week 1 and before taking calls alone",
+                "Safeguarding every 12 months, with a Prevent update; Prevent awareness course every 3 years"
+              ],
+              [
+                "Understand your role, personal development, duty of care, equality, person-centred care and mental capacity, communication, privacy and dignity (1 to 7)",
+                "All employees",
+                "Care staff before working without a shadowing colleague; others in week 1",
+                "Person-centred care, dignity, consent and mental capacity every 12 months"
+              ],
+              [
+                "Fluids, nutrition and food hygiene (8)",
+                "Care staff",
+                "Before preparing food or drinks without a shadowing colleague",
+                "Every 3 years"
+              ],
+              [
+                "Dementia and mental health awareness (9)",
+                "All employees",
+                "During induction",
+                "Every 3 years"
+              ],
+              [
+                "Emergency first aid including basic life support (12): at least 6 hours face to face with a practical assessment",
+                "Care staff",
+                "Before working alone",
+                "Basic life support every 12 months; full emergency first aid every 3 years"
+              ],
+              [
+                "Health and safety (13) and fire safety",
+                "All employees",
+                "Care staff before working alone; others: fire safety in week 1, health and safety within 4 weeks",
+                "Health and safety every 3 years; fire safety every 12 months"
+              ],
+              [
+                "Moving and handling of people, theory and practical, with the equipment they will use",
+                "Care staff",
+                "Before any moving and handling without a shadowing colleague",
+                "Practical refresher of at least 3 hours every 12 months"
+              ],
+              [
+                "Handling information and data protection (14)",
+                "All employees",
+                "Week 1, before access to care records",
+                "Every 12 months"
+              ],
+              [
+                "Infection prevention and control (15), including hand hygiene, PPE and sharps exposure response",
+                "Care staff; awareness for other roles",
+                "Care staff before working without a shadowing colleague; others in week 1",
+                "Every 12 months"
+              ],
+              [
+                "Learning disability and autism (16): Oliver McGowan e-learning module",
+                "All employees",
+                "During induction",
+                "With the Tier 1 or Tier 2 package"
+              ],
+              [
+                "Oliver McGowan Mandatory Training: Tier 2 for everyone with contact with the people we support or their families, in person or by phone, or who makes decisions about their care; Tier 1 only for staff with no such contact",
+                "All employees",
+                "Within 6 months of starting",
+                "At least every 3 years"
+              ],
+              [
+                "Medicines awareness",
+                "All employees",
+                "By the end of week 1",
+                "Every 3 years for staff who do not give medicines support"
+              ],
+              [
+                "Anti-bribery and fraud awareness, with a knowledge check",
+                "All employees",
+                "Care staff before working without a shadowing colleague; others during induction",
+                "Every 2 years"
+              ],
+              [
+                "Lone working and personal safety",
+                "Care staff",
+                "Before the first lone visit",
+                "Every 3 years and after any violent incident"
+              ],
+              [
+                "Personal care, including intimate, continence and mouth and denture care, and recognising and reporting changes in a person's needs",
+                "Care staff",
+                "Personal care signed off before working without a shadowing colleague; recognising changes during induction",
+                "Every 2 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The induction plan also books training due later under the Training and Development Policy: dementia skills (Tier 2) and end of life care within 6 months, and person-specific training, such as breakaway, before the first visit to that person without a trained colleague."
+        },
+        {
+          "p": "Each Care Certificate knowledge session ends with an assessment in which every question must be answered correctly; wrong answers are discussed and re-assessed the same day or at the next session. Medicines support also needs the separate medicines knowledge assessment (at least 80% with all five critical safety questions correct) and observed competency under the Medicines Training and Competency Assessment Procedure. Care staff acknowledge in CareFlow every document assigned to their role before lone working sign-off, and other staff by the end of week 4; after that, everyone acknowledges each new major version within 14 days; a minor version needs no new acknowledgement."
+        }
+      ]
+    },
+    {
+      "heading": "Shadowing and supervised practice",
+      "blocks": [
+        {
+          "p": "The person's agreement to shadow visits is asked at assessment and recorded in the care plan, or a best interests decision is recorded where they cannot decide. The Care Coordinator checks it before allocating, and the shadow lead confirms it at the door and again before any intimate care. If the person declines, the new worker does not attend that visit or that part of it, and leaves if the person becomes distressed. Only one new worker shadows a visit."
+        },
+        {
+          "table": {
+            "columns": [
+              "Route",
+              "Minimum shadowing before lone working sign-off"
+            ],
+            "rows": [
+              [
+                "New-to-care",
+                "At least 5 shadow shifts on at least 3 different days, totalling at least 20 hours of visits, covering morning and evening visits and every type of task the worker will do alone, including two-worker and medicines visits where those apply."
+              ],
+              [
+                "Experienced",
+                "At least 2 shadow shifts totalling at least 8 hours of visits, covering every type of task the worker will do alone."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The assessor adds shifts until satisfied, and the worker may ask for more. On early visits the new worker watches and helps; once the shadow lead judges it safe, the new worker gives care under direct supervision. The shadow lead never leaves the new worker alone with the person and stays responsible for the visit. The new worker writes the daily visit notes under their own log-in once they have access to care records, otherwise the shadow lead does, and the shadow lead reads them before check-out."
+        },
+        {
+          "p": "A shadowing worker is always additional to planned staffing and is never counted as one of the two workers on a two-worker visit. Before the end of their shift the shadow lead tells the Field Care Supervisor which visits and tasks were covered, what the worker did themselves, and any concern, and the Field Care Supervisor records it the same working day in the worker's induction check-in supervision record in CareFlow. The new worker and the shadow lead each make sure any concern about the person's safety is phoned to the office, or the On-call Manager out of hours, before leaving the visit."
+        }
+      ]
+    },
+    {
+      "heading": "Lone working sign-off",
+      "blocks": [
+        {
+          "steps": [
+            "The HR Manager confirms in CareFlow that every course in the training table due before working alone, the minimum shadowing, the policy acknowledgements and the knowledge assessments for all 16 standards (on the experienced route, the gap learning) are complete.",
+            "The assessor observes the worker leading at least two complete visits that include personal care, assesses hand hygiene and PPE competency on a real visit, where every item must be met, and observes moving and handling with the equipment the worker will use. The performance outcomes of every standard that applies to the tasks being signed off must be recorded as met.",
+            "Where the worker's first language is not English, the Field Care Supervisor checks that they can give an address and describe an emergency clearly in English to 999 and to the office.",
+            "The Field Care Supervisor records the recommendation in CareFlow, listing the tasks signed off and any not yet signed off, such as medicines support, hoisting or a specialised task.",
+            "Within 2 working days the Registered Manager or Deputy Manager reviews the evidence and records lone working sign-off, or what is still needed.",
+            "Each further task is signed off the same way after observed assessment, under the Medicines Training and Competency Assessment Procedure for medicines."
+          ]
+        },
+        {
+          "p": "For their first 4 weeks of lone working, a new care worker is never allocated alone to a home rated Medium or above for violence or aggression to staff or for an animal, or High or above for self-neglect. The Field Care Supervisor carries out an unannounced spot check within 4 weeks of their first lone visit and reads at least 5 of their daily visit notes each week for those 4 weeks under the Daily Records and Visit Notes Procedure. Any lone visit, or task done alone, before it was signed off is logged in the incident log the same day; the Registered Manager decides by the end of the next working day whether anyone was put at risk."
+        }
+      ]
+    },
+    {
+      "heading": "The Care Certificate",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Who completes it",
+          "blocks": [
+            {
+              "p": "Every Care Worker and Senior Care Worker on the new-to-care route completes the Care Certificate, as does any Field Care Supervisor or Care Coordinator who will give care and is new to care. Office, HR and allocation roles complete only the standards in the training table. Registered nurses and other registered professionals do not need it but complete organisational induction and the training table."
+            }
+          ]
+        },
+        {
+          "heading": "Evidence and assessment",
+          "blocks": [
+            {
+              "bullets": [
+                "Knowledge outcomes are evidenced by our session assessments, written or oral answers and discussion with the assessor; e-learning counts only with its assessment and never alone for the whole certificate.",
+                "Performance outcomes are observed by the assessor during real work with people we support. Shadow leads' records and the person's views inform the judgement, but the assessor decides.",
+                "Simulation is used only where the national guide allows it and the evidence could not reasonably be gathered in real work during induction, such as basic life support; the assessor records the reason in the portfolio.",
+                "We never photograph, film or audio record people we support as Care Certificate evidence.",
+                "Each outcome is recorded as met, with the date and assessor, in the worker's Care Certificate portfolio in the training and compliance records. Care Certificate work we set is paid working time."
+              ]
+            },
+            {
+              "p": "Standards may be signed off one at a time, and lone working sign-off may come before the full certificate, as the national assessor and employer guide allows. The worker then works alone only on tasks whose standards are met and stays under direct supervision for anything else."
+            }
+          ]
+        },
+        {
+          "heading": "Timescale and sign-off",
+          "blocks": [
+            {
+              "p": "The assessor reviews progress with the worker in weeks 4 and 8. When all 16 standards are met, the assessor submits the portfolio; the Registered Manager reviews the whole portfolio within 5 working days and signs the certificate in the national recommended format, or returns it with the gaps listed. The worker receives the certificate and a copy of the portfolio within 5 working days of signature. The HR Manager records completion in the training and compliance records the same day and in ASC-WDS within 1 month."
+            },
+            {
+              "p": "If the standards are not met by the deadline because of absence or lack of opportunity, the Registered Manager agrees one extension of up to 4 weeks with a written plan. If the worker is not making progress, the Field Care Supervisor raises it at once and it is handled under the probation section. We never issue a full certificate, or use the Care Certificate logo, for partial completion."
+            }
+          ]
+        },
+        {
+          "heading": "Prior learning and existing certificates",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Evidence held",
+                  "What we require"
+                ],
+                "rows": [
+                  [
+                    "None, or no paid care work in the last 2 years",
+                    "New-to-care route and the full Care Certificate."
+                  ],
+                  [
+                    "Care Certificate (2025 standards) from another employer, verified with that employer, and care work in the last 2 years",
+                    "Experienced route. Self-assessment against the 2025 standards and learning for any gap. The existing certificate is recorded, not reissued."
+                  ],
+                  [
+                    "Care Certificate (2015 standards), as above",
+                    "As above, plus knowledge assessment for Standard 16, the mental capacity outcome now in Standard 5 (5.3) and any other 2025 outcome the self-assessment shows is not covered."
+                  ],
+                  [
+                    "Level 2 Adult Social Care Certificate, Level 2 or 3 Diploma in adult care or health and social care, an earlier NVQ or QCF equivalent, or an adult care apprenticeship, and care work in the last 2 years",
+                    "Experienced route. Self-assessment, gap learning, and Standard 16 learning where the qualification did not cover it."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The HR Manager sees the original certificate, and the worker completes the national Care Certificate self-assessment before starting. The Field Care Supervisor reviews it and the Registered Manager approves the route before the induction plan is sent; a worker whose evidence is not ready starts on the new-to-care route and moves route once it is approved. Every worker on the experienced route still completes organisational induction, every practical session, the minimum shadowing and the observed lone working sign-off."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Level 2 Adult Social Care Certificate qualification",
+      "blocks": [
+        {
+          "p": "At the final probation meeting the Registered Manager offers the Level 2 Adult Social Care Certificate qualification to every Care Worker and Senior Care Worker who holds the Care Certificate but no Level 2 or higher adult care qualification. It is voluntary."
+        },
+        {
+          "bullets": [
+            "The HR Manager enrols the worker with an approved learning provider on the scheme's eligible list within 3 months of the worker accepting, and shares Care Certificate evidence for recognition of prior learning.",
+            "We pay the full fee and never recover it, even if the worker leaves; the HR Manager claims Learning and Development Support Scheme reimbursement where eligible.",
+            "Assessment visits take place in working time, with 2 hours of paid study time each month while enrolled.",
+            "The target is completion within 9 months of enrolment, reviewed at every supervision; the Registered Manager may extend it after absence.",
+            "Workers who complete it are offered the Level 3 Diploma under the Training and Development Policy."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Probation",
+      "blocks": [
+        {
+          "p": "Every new employee serves a 6-month probation period; this is our policy, not a legal requirement. Discrimination and whistleblowing protections apply from the first day. Where employment ends on or after 1 January 2027, employees with 6 months' continuous service are protected from unfair dismissal (Employment Rights Act 2025, section 25); before that date the qualifying period is 2 years. We hold the final review in week 22 so the decision is confirmed before the 6-month point, and we follow the same fair process whatever the length of service."
+        },
+        {
+          "table": {
+            "columns": [
+              "Review",
+              "Led by",
+              "Considers"
+            ],
+            "rows": [
+              [
+                "Week 4",
+                "Field Care Supervisor (care staff) or line manager",
+                "Induction, shadowing, lone working sign-off, Care Certificate progress, conduct, attendance; supervision agreement signed; the private welfare questions in the Modern Slavery and Human Trafficking Policy, any answer suggesting exploitation phoned to the Registered Manager the same day; for a sponsored worker, their written employment rights information again."
+              ],
+              [
+                "Week 12",
+                "As above",
+                "Care Certificate completion, at least one spot check, feedback from people we support, visit check-in and check-out compliance, acknowledgements."
+              ],
+              [
+                "Week 22",
+                "As above, with the decision-maker",
+                "All evidence, including a second spot check for care staff; recommendation to confirm, extend or end."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Each review is recorded in the supervision and appraisal records, counts as a supervision, and the worker receives a copy within 5 working days. A concern is raised with the worker when it arises, with a written support plan, not saved for a review."
+        },
+        {
+          "p": "The Registered Manager, or the Nominated Individual for Registered Manager and Deputy Manager posts, decides the outcome, and the HR Manager confirms it in writing within 5 working days and before the end of month 6. Probation may be extended once, by up to 3 months, with a written improvement plan reviewed every 4 weeks. Before employment is ended for failing probation, the worker is given at least 3 working days' written notice of a meeting, the evidence, and the right to be accompanied by a colleague or trade union representative. Reasons are given in writing within 5 working days, and the worker may appeal in writing within 5 working days to the Nominated Individual, or a Director where the Nominated Individual decided, who hears it within 10 working days. Any concern about harm to a person is handled under the Safeguarding Adults Policy and the Managing Allegations Against Staff Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Induction for agency, bank, returning and other staff",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Induction"
+            ],
+            "rows": [
+              [
+                "Agency workers",
+                "Before the first visit, the HR Manager (On-call Manager out of hours) checks the agency profile and the agency's written confirmation that core training, including emergency first aid, is in date. The Care Coordinator or Field Care Supervisor checks photo ID and gives a recorded local induction: our key rules, check-in and check-out, key safes, the code phrase, reporting concerns, the Local Safeguarding Contacts sheet and the care plans for their visits, with a personal alarm, first aid kit and PPE kit; the Care Coordinator issues the spare work phone. Medicines support only after competence is confirmed under the Medicines Training and Competency Assessment Procedure. A Field Care Supervisor spot checks them within 2 weeks of their first visit, then every 3 months."
+              ],
+              [
+                "Bank staff",
+                "The same induction, Care Certificate and probation as employees."
+              ],
+              [
+                "Former staff returning after under 3 months",
+                "A recorded session on changes since they left; expired training renewed before visits are allocated."
+              ],
+              [
+                "Former staff returning after 3 months or more",
+                "Full induction on the route the prior learning rules give, including medicines and infection control reassessment and observed lone working sign-off."
+              ],
+              [
+                "Staff moving to a new role",
+                "A role induction plan from the Registered Manager, including the role training in the Training and Development Policy, completed before the new duties start; the documents for the new role are acknowledged within 14 days of starting it."
+              ],
+              [
+                "Office, HR and allocation staff",
+                "Organisational induction in week 1, role training with their line manager, the training table, and a workstation assessment within 2 weeks."
+              ],
+              [
+                "Students on placement",
+                "Organisational induction, safeguarding and infection control training, and an observed hand hygiene and PPE check before giving personal care. They always work alongside a member of staff and are never signed off for lone working."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where in CareFlow"
+            ],
+            "rows": [
+              [
+                "Induction plan, route decision and adjustments",
+                "Staff record"
+              ],
+              [
+                "Training, knowledge assessments, observed assessments, lone working sign-off, signed-off tasks, and the Care Certificate portfolio and certificate",
+                "Training and compliance records"
+              ],
+              [
+                "Shadow shift records, probation reviews, support and improvement plans, outcome letters",
+                "Supervision and appraisal records"
+              ],
+              [
+                "Policy acknowledgements",
+                "Policy acknowledgements"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "They are kept for employment plus 6 years, except policy acknowledgements, which stay with each policy version for the life of {{organisation}} plus 6 years. A worker may ask for a copy of their Care Certificate portfolio at any time, including after leaving, and receives it within 10 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Shadow lead briefing: this procedure, direct supervision, recording and reporting concerns",
+                "Senior Care Workers and Field Care Supervisors",
+                "Before leading a first shadow shift",
+                "Every 3 years"
+              ],
+              [
+                "Care Certificate assessor training, using the national assessor and employer guide",
+                "Assessors",
+                "Before a first assessment; first two assessments carried out jointly with the Registered Manager, Deputy Manager or an experienced assessor",
+                "Observed assessing by the Registered Manager or Deputy Manager every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager holds an assessor standardisation meeting every 12 months to agree what sufficient evidence looks like. An assessor whose portfolio is returned twice in 6 months for insufficient evidence completes two further joint assessments."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Each new starter's stage, overdue sign-offs, Care Certificate deadlines and probation reviews",
+                "Weekly tracker check; monthly induction report",
+                "HR Manager",
+                "Registered Manager; workforce figures to the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Induction records against this procedure, target 100%",
+                "Within the quarterly audit of new-starter files under the Safer Recruitment Policy",
+                "Deputy Manager",
+                "Quarterly governance report to the Directors"
+              ],
+              [
+                "Lone visits or tasks done before sign-off, target none",
+                "Incident log review, monthly",
+                "Registered Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Care Certificates completed by the deadline, target 95%; induction training, target 100%",
+                "Monthly",
+                "HR Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "New starters' first weeks and end of probation questionnaires; leavers within 6 months",
+                "Quarterly",
+                "HR Manager",
+                "Quarterly governance report"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law, national guidance or the Care Certificate standards, a serious incident involving a new worker, an inspection finding, or monitoring showing the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { Public } from '../common/decorators/public.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
+import { AllowIndependentReviewer } from '../common/auth/independent-reviewer';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -76,6 +77,7 @@ export class AuthController {
   @Post('change-password')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @AllowIndependentReviewer()
   changePassword(@CurrentUser() user: RequestUser, @Body() dto: ChangePasswordDto, @Req() req: Request) {
     if (user.accountKind === 'temporary_inspector' || user.accountKind === 'service_user' || user.accountKind === 'employee') {
       throw new ForbiddenException('Password change is not available for this account type');
@@ -86,6 +88,7 @@ export class AuthController {
   @Post('logout')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @AllowIndependentReviewer()
   logout(@CurrentUser() user: RequestUser, @Req() req: Request) {
     return this.authService.logout(user, req);
   }
@@ -93,6 +96,7 @@ export class AuthController {
   @Get('me')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @AllowIndependentReviewer()
   me(@CurrentUser() user: RequestUser) {
     return { data: user };
   }
@@ -100,6 +104,7 @@ export class AuthController {
   @Patch('me')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @AllowIndependentReviewer()
   updateMe(@CurrentUser() user: RequestUser, @Body() dto: UpdateProfileDto, @Req() req: Request) {
     if (user.accountKind === 'temporary_inspector' || user.accountKind === 'service_user' || user.accountKind === 'employee') {
       throw new ForbiddenException('Profile update is not available for this account type');
@@ -110,6 +115,7 @@ export class AuthController {
   @Get('me/login-history')
   @ApiBearerAuth()
   @UseGuards(JwtAuthGuard)
+  @AllowIndependentReviewer()
   myLoginHistory(@CurrentUser() user: RequestUser) {
     if (user.accountKind === 'service_user' || user.accountKind === 'employee') {
       throw new ForbiddenException('Login history is not available for this account type');

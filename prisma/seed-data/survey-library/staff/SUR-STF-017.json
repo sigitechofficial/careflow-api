@@ -1,0 +1,299 @@
+{
+  "reference": "SUR-STF-017",
+  "revision": 1,
+  "title": "After a difficult event: how are you doing?",
+  "audience": "EMPLOYEE",
+  "respondents": "Staff given support after a death, emergency, assault, sexual incident or other distressing event at work, including witnesses, about 4 weeks later",
+  "summary": "A short, private check about 4 weeks after a distressing event at work: whether you were contacted, offered a private talk and counselling, given the changes you needed, and how you are now. It never asks what happened. About 5 minutes.",
+  "purpose": "Home care workers are often first to find a person who has died or collapsed, and they face violence alone. The Work-Related Stress and Staff Wellbeing Policy and related policies promise contact within 1 working day, a private talk within 3 working days, the employee assistance programme every time, and a check again within 4 weeks. This check in week 4 finds anyone still struggling, so they get a private conversation, counselling, a GP or occupational health, and an individual stress risk assessment; and it shows whether the promised support happened as the worker experienced it. It never asks what happened: the facts belong in the incident log.",
+  "timing": {
+    "when": "21 to 28 days after the distressing event is recorded; one survey covers every event in that period, and nobody is sent it more than once in any 4 weeks",
+    "recurrence": null,
+    "trigger": "A distressing event at work recorded for the worker",
+    "contactRule": {"holdBack": false, "countsAsContact": true, "reason": "After a difficult event (safety and welfare, priority 1): goes on time."}
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "TELEPHONE", "PAPER"],
+  "estimatedMinutes": 5,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING", "WELL_LED"],
+    "qualityStatements": ["Learning culture", "Workforce wellbeing and enablement", "Capable, compassionate and inclusive leaders"]
+  },
+  "introduction": "About 4 weeks ago something happened at work that may have been upsetting. {{organisation}} wants to check how you are and whether we gave you the support we promise. We will not ask what happened. It takes about 5 minutes, and taking part is your choice; it will not affect your job or hours. If you are struggling now, you can contact our employee assistance programme (number on the office noticeboard), your GP or NHS 111 (mental health option), or phone Samaritans on 116 123, free, 24 hours a day.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to help you and to check our support after difficult events. Our legal reason is our legitimate interest in being a good employer, and, for what you tell us about your health, our duties as your employer for your health and safety at work.\n\nYour answers are linked to you so we can help. Only the HR Manager reads them; your supervisor and the rota team learn only what is needed to change your work, unless you agree to more. Reports show combined results for 5 or more people only. Nothing you tell us here about your health or how you are coping is shared with the Home Office.\n\nWe keep your answers for 1 year after you answer; anything you ask us to act on is kept in the restricted part of your staff record, under our Records Management and Retention Policy. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "closingMessage": "Thank you. The HR Manager reads your answers each working day. If you are struggling, you can contact our employee assistance programme (number on the office noticeboard), your GP or NHS 111 (mental health option), or phone Samaritans on 116 123, free, 24 hours a day. In an emergency, call 999.",
+  "sections": [
+    {
+      "title": "The support you were offered",
+      "introduction": "These questions are about the time since the event. We will not ask you what happened.",
+      "questions": [
+        {
+          "id": "q-contacted",
+          "text": "After the event, did your supervisor or another manager contact you to check how you were?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, by the next working day", "Yes, but later than that", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not include the names of people we support.",
+            "showWhen": ["No"]
+          },
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "q-talk",
+          "text": "Were you offered a private talk about how you were feeling?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "We offer this talk within 3 working days. It is always your choice whether to have it, and you do not have to talk about what happened.",
+          "options": ["Yes, and I had one", "Yes, but I did not want one", "Yes, but it has not happened yet", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-talk-helpful",
+          "text": "How helpful was the talk?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Very helpful", "Fairly helpful", "Not very helpful", "Not at all helpful"],
+          "showIf": {
+            "question": "q-talk",
+            "answers": ["Yes, and I had one"]
+          },
+          "comment": {
+            "prompt": "What would have made it more helpful?",
+            "showWhen": ["Not very helpful", "Not at all helpful"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-eap",
+          "text": "Were you told how to get free, confidential counselling (our employee assistance programme)?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "If not, ask any manager for the number. It is also on the branch office noticeboard, and the service never tells us who uses it.",
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-changes",
+          "text": "Since the event, have you had the changes to your work that you needed?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, time off that day, a break from certain visits, or not going back to a home.",
+          "options": ["Yes", "Partly", "No", "I did not need any changes"],
+          "notCountedOptions": ["I did not need any changes"],
+          "comment": {
+            "prompt": "What would help you now?",
+            "showWhen": ["Partly", "No"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "How you are now",
+      "introduction": "You do not have to answer these questions. Your answers help us offer the right support.",
+      "questions": [
+        {
+          "id": "q-now",
+          "text": "Compared with just after the event, how are you feeling now?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Better", "About the same", "Worse", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-thoughts",
+          "text": "In the last 2 weeks, have thoughts about the event upset you?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes, often", "Yes, sometimes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-able",
+          "text": "Do you feel able to do your usual work at the moment?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "Yes, with some changes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "comment": {
+            "prompt": "What would help you at work?",
+            "showWhen": ["Yes, with some changes", "No"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything else we could do to support staff after a difficult event?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include the names of people we support."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone will contact you within 5 working days. It does not have to be your supervisor.",
+          "comment": {
+            "prompt": "Who would you like to talk to? For example, your Field Care Supervisor, the HR Manager or our mental health first aider.",
+            "showWhen": ["Yes"]
+          }
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it, alongside the Field Care Supervisor's own 4-week check conversation. CareFlow cannot start a survey from an incident record and accepts only one answer from each person per survey, so keep one copy of this template for each month (for example \"After a difficult event, March 2027\") and add the worker with Send or schedule, chosen employee, 21 to 28 days after the event is recorded. If a second event happens within 4 weeks, send once, about 4 weeks after the later event. Event surveys come first under the named 4-week rule. Under the 4-week rule CareFlow never holds this survey back, because welfare after a distressing event comes first; it counts as a contact, so other named staff surveys wait 4 weeks.",
+      "Send it to every employee given the support, including witnesses offered a talk; not to agency workers or students, anyone who has left, or anyone off sick (the return-to-work survey, SUR-STF-022, follows a return after 4 weeks or more). It may go while an investigation or safeguarding enquiry is open, because it asks only about wellbeing and support; where the police are involved, check with the investigator first (a precaution). Online in the app, answered privately; by phone only with the HR Manager, never the Field Care Supervisor who gave the support; paper on request, sealed to the HR Manager. It is done in paid time. In respondent text say \"private talk\", never \"debrief\", and use no clinical words.",
+      "Who may open individual answers: the HR Manager only; Field Care Supervisors and Care Coordinators are told only what they need to act, never the answers or health details, unless the worker agrees. This is set in Who can see the answers: individual responses are limited to the HR Manager, and results to the HR Manager and the Registered Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them.",
+      "Check your EAP's hours and put them in the covering message."
+    ],
+    "actingOnResults": [
+      "The HR Manager reads each response the working day it arrives and acts under the alerts below. Combined results (support given on time, how workers are at 4 weeks) go into the quarterly stress and wellbeing report under the Work-Related Stress and Staff Wellbeing Policy, only for 5 or more responses.",
+      "Library pattern trigger: 3 or more responses in a branch in a quarter saying no manager contact or no talk offered means the Registered Manager reviews how distressing events are handed to Field Care Supervisors, including out of hours, within 10 working days.",
+      "Keep answers for 1 year after the response under the Records Management and Retention Policy; anything acted on goes in the restricted part of the staff record."
+    ],
+    "alerts": [
+      {
+        "when": "A comment suggesting thoughts of self-harm or that the worker is in crisis.",
+        "action": "The HR Manager phones the worker the same working day; if they may be in immediate danger, call 999. Otherwise the Registered Manager or Deputy Manager contacts them by the end of the next working day and agrees, before their next shift, whether and how they work, under the Work-Related Stress and Staff Wellbeing Policy."
+      },
+      {
+        "when": "\"How are you feeling now?\" answered Worse, thoughts about the event upset you Yes, often, or not able to do your usual work.",
+        "action": "The HR Manager contacts the worker within 1 working day (library timescale) to offer a private conversation, the employee assistance programme and the GP; an individual stress risk assessment within 5 working days, and an occupational health referral within 5 working days of the worker's written consent, under the Work-Related Stress and Staff Wellbeing Policy.",
+        "rule": {
+          "task": "Still struggling after a difficult event: contact",
+          "if": [
+            {
+              "question": "q-now",
+              "answers": ["Worse"]
+            },
+            {
+              "question": "q-thoughts",
+              "answers": ["Yes, often"]
+            },
+            {
+              "question": "q-able",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 1,
+          "urgent": true
+        }
+      },
+      {
+        "when": "Changes to work answered Partly or No, or able to work Yes, with some changes.",
+        "action": "The HR Manager agrees the change with the worker and tells the Care Coordinator the adjustment, never the reason, so it is on the rota before the next shift.",
+        "rule": {
+          "task": "Agree work changes after a difficult event",
+          "if": [
+            {
+              "question": "q-changes",
+              "answers": ["Partly", "No"]
+            },
+            {
+              "question": "q-able",
+              "answers": ["Yes, with some changes"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 1
+        }
+      },
+      {
+        "when": "Not contacted, no private talk offered, or a talk accepted that has not happened yet.",
+        "action": "The HR Manager offers or arranges the talk within 1 working day and records the missed step as a shortfall against the policy's target (talk offered within 3 working days, 100%), with an action in the service improvement plan within 5 working days.",
+        "rule": {
+          "task": "Support after an event missed: arrange it",
+          "if": [
+            {
+              "question": "q-contacted",
+              "answers": ["No"]
+            },
+            {
+              "question": "q-talk",
+              "answers": ["Yes, but it has not happened yet", "No"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 1
+        }
+      },
+      {
+        "when": "\"Were you told how to get free, confidential counselling?\" answered No or Not sure.",
+        "action": "The HR Manager sends the employee assistance programme details the same working day.",
+        "rule": {
+          "task": "Send counselling (employee assistance) details",
+          "if": [
+            {
+              "question": "q-eap",
+              "answers": ["No", "Not sure"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "A comment describing abuse or neglect of a person we support, or wrongdoing.",
+        "action": "Abuse or neglect goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure); wrongdoing to the Registered Manager as a speaking-up concern (Whistleblowing (Speaking Up) Policy)."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The person the worker names, or the HR Manager, contacts them within 5 working days; within 1 working day if they are still struggling (the second alert).",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "alertsNeverTo": ["FIELD_CARE_SUPERVISOR", "CARE_COORDINATOR"],
+  "access": {"responses": ["HR_MANAGER"], "results": ["HR_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-HS-015",
+    "POL-GOV-007",
+    "POL-HS-004",
+    "POL-HR-005",
+    "POL-CD-011",
+    "POL-HR-019",
+    "POL-GOV-013",
+    "POL-GOV-002",
+    "POL-SG-002",
+    "POL-HR-018",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Research in Practice, Evidence Briefing 16, Supporting staff following a difficult event (2024): no evidence that debriefing is effective; Psychological First Aid does not require people to talk through the event",
+      "url": "https://researchinpractice.org.uk/media/ra3h2thk/16-connected-briefing_-supporting-staff-following-a-difficult-event_0524.pdf"
+    },
+    {
+      "source": "Health and Safety Executive, Reporting and learning from incidents: offer a chance to talk, consider changes to work, and offer confidential counselling",
+      "url": "https://www.hse.gov.uk/violence/employer/reporting-learning-from-incidents.htm"
+    },
+    {
+      "source": "Samaritans: free, 24 hours a day, on 116 123",
+      "url": "https://www.samaritans.org/"
+    }
+  ]
+}

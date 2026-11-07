@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import { sanitizeRichTextHtml } from '../common/utils/rich-text-html.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -131,13 +132,14 @@ export class CarePlanTextService {
 
   async create(userId: string, dto: CreateCarePlanTextTemplateDto, meta?: RequestAuditMeta) {
     await this.validateReferences(dto.categoryId, dto.formId);
+    const contentHtml = sanitizeRichTextHtml(dto.contentHtml);
 
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.carePlanTextTemplate.create({
         data: {
           title: dto.title.trim(),
-          contentHtml: dto.contentHtml,
-          plainText: stripHtml(dto.contentHtml),
+          contentHtml,
+          plainText: stripHtml(contentHtml),
           categoryId: dto.categoryId ?? null,
           formId: dto.formId ?? null,
           createdById: userId,
@@ -179,15 +181,15 @@ export class CarePlanTextService {
         dto.formId ?? before.formId ?? undefined,
       );
     }
+    const contentHtml =
+      dto.contentHtml !== undefined ? sanitizeRichTextHtml(dto.contentHtml) : undefined;
 
     return this.prisma.$transaction(async (tx) => {
       const updated = await tx.carePlanTextTemplate.update({
         where: { id },
         data: {
           ...(dto.title !== undefined ? { title: dto.title.trim() } : {}),
-          ...(dto.contentHtml !== undefined
-            ? { contentHtml: dto.contentHtml, plainText: stripHtml(dto.contentHtml) }
-            : {}),
+          ...(contentHtml !== undefined ? { contentHtml, plainText: stripHtml(contentHtml) } : {}),
           ...(dto.categoryId !== undefined ? { categoryId: dto.categoryId } : {}),
           ...(dto.formId !== undefined ? { formId: dto.formId } : {}),
           updatedById: userId,
@@ -254,9 +256,10 @@ export class CarePlanTextService {
     });
     if (!row) throw new NotFoundException('Care plan text template not found');
 
-    const previewHtml = replaceCarePlanTextPlaceholders(
-      row.contentHtml,
-      dto.serviceUserName.trim(),
+    // Sanitised after the name goes in: the name is typed by the user, and the stored template may
+    // predate save-time sanitising.
+    const previewHtml = sanitizeRichTextHtml(
+      replaceCarePlanTextPlaceholders(row.contentHtml, dto.serviceUserName.trim()),
     );
 
     await this.audit.logAudit({

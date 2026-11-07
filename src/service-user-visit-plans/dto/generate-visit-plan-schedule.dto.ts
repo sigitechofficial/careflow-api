@@ -17,14 +17,16 @@ export class GenerateVisitPlanScheduleDto {
   scheduleAreaId?: string | null;
 
   @ApiPropertyOptional({
-    description: 'Create visits up to N days before fromDate (capped per slot allowBackfillDays)',
+    description:
+      'Create visits up to N days before fromDate. Must not exceed the organisation Max backfill days ' +
+      '(Settings → Dom Care); a slot with its own Max backfill days (> 0) is capped by that too.',
     minimum: 0,
-    maximum: 14,
+    maximum: 31,
   })
   @IsOptional()
   @IsInt()
   @Min(0)
-  @Max(14)
+  @Max(31)
   backfillDays?: number;
 
   @ApiPropertyOptional({

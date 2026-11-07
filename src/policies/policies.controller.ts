@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -38,6 +39,7 @@ import {
   UpdatePolicyDto,
 } from './dto/policy.dto';
 import { PoliciesService } from './policies.service';
+import { PolicyExportService, type PolicyExportFile, type PolicyExportFormat } from './policy-export.service';
 import { policyUploadMulterOptions } from './policy-upload.util';
 
 @ApiTags('Policies')
@@ -45,7 +47,23 @@ import { policyUploadMulterOptions } from './policy-upload.util';
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('policies')
 export class PoliciesController {
-  constructor(private readonly service: PoliciesService) {}
+  constructor(
+    private readonly service: PoliciesService,
+    private readonly exports: PolicyExportService,
+  ) {}
+
+  @Get(':id/export')
+  @Permissions('policies.read')
+  @ApiOperation({ summary: 'Download a policy (a version, or its current one) as PDF or Word' })
+  async exportPolicy(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Query('format') format: string | undefined,
+    @Query('versionId') versionId: string | undefined,
+    @Res() res: Response,
+  ) {
+    sendExport(res, await this.exports.exportPolicy(user, id, exportFormat(format), versionId || undefined));
+  }
 
   @Get()
   @Permissions('policies.read')
@@ -278,4 +296,19 @@ export class PoliciesController {
   ) {
     return this.service.update(user, id, dto, getRequestAuditMeta(req));
   }
+}
+
+/** Sends a made document as a download (attachment, a safe file name). */
+export function sendExport(res: Response, file: PolicyExportFile) {
+  const ascii = file.fileName.replace(/[^ -~]/g, '_').replace(/"/g, "'");
+  res.setHeader('Content-Type', file.contentType);
+  res.setHeader('Content-Disposition', `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(file.fileName)}`);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Cache-Control', 'no-store');
+  res.send(file.buffer);
+}
+
+export function exportFormat(raw: string | undefined): PolicyExportFormat {
+  if (raw === 'pdf' || raw === 'docx') return raw;
+  throw new BadRequestException('Choose pdf or docx.');
 }

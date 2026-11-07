@@ -1,0 +1,506 @@
+{
+  "reference": "POL-CD-012",
+  "revision": 1,
+  "title": "DNACPR and ReSPECT Protocol",
+  "documentType": "PROTOCOL",
+  "summary": "How we find out about, record and act on DNACPR decisions, ReSPECT plans and other recommendations about cardiopulmonary resuscitation for the people we support at home: what care workers do in an emergency, how the form stays with the person and travels to hospital and back, and how we raise concerns with the GP. It applies to everyone who works for us.",
+  "keyPoints": {
+    "intro": "This protocol tells you how to find a person's CPR recommendation before every visit and exactly what to do if they collapse, stop breathing or die while you are there.",
+    "points": [
+      "Read My care at a glance before every visit. It shows any DNACPR decision, ReSPECT plan or advance decision, what it says about CPR, and where the form is kept in the home.",
+      "If someone is unresponsive, call 999 on speaker. Start CPR where they lie unless My care at a glance records a recommendation against CPR and you find the form, or the copy the care plan names, straight away.",
+      "If there is no form, you cannot find it straight away, or it is unclear, start CPR and tell the call handler what the record says. If in doubt, start CPR.",
+      "If a recommendation against CPR is recorded and you find the form, do not start CPR unless they stopped breathing straight after choking or a severe allergic reaction. Unless the death is recorded as expected, call 999 and tell the call handler about the form.",
+      "If the person appears to have died, My care at a glance records the death as expected and you find the form, do not call 999: phone the community nurse or GP named in the care plan (NHS 111 when closed), then the office.",
+      "A DNACPR decision is only about CPR. Give all other care and first aid as normal, including for choking, bleeding, a fall, a seizure or an allergic reaction, and call 999 whenever the First Aid Procedure says to.",
+      "Never decide whether CPR is right for someone or give your opinion on a form. Never take, write on, copy or photograph the form: it stays in the person's home unless it goes to hospital with them.",
+      "If a form is new, changed, crossed through as cancelled or missing, phone the office before you leave. Until My care at a glance shows the form is back in the home, start CPR in an emergency.",
+      "If the person goes to hospital, give the form to the ambulance crew. At your first visit after they come home, check the form is back where the care plan says and phone the office if it is not.",
+      "If the person or family question the form, or the person says their wishes have changed, listen, do not advise, and tell the office the same day.",
+      "After any emergency, record what happened, the times and what the form said in the daily visit notes and the incident log before the end of your shift. Your Field Care Supervisor will contact you within 1 working day."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "INITIAL_ASSESSMENT",
+    "VISIT",
+    "INCIDENT",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-CD-011",
+    "POL-HS-008",
+    "POL-CD-004",
+    "POL-SG-004",
+    "POL-CD-002",
+    "POL-CD-015",
+    "POL-CD-005",
+    "POL-GOV-007"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9 (person-centred care), including 9(3)(d) enabling people to participate in decisions",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 (safe care and treatment), including 12(2)(c) competence and 12(2)(i) care planning when care is shared or transferred",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 25 (validity and applicability of advance decisions)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/25"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 26 (effect of advance decisions)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/26"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 11(7) and (8) (lasting powers of attorney and life-sustaining treatment)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/11"
+    },
+    {
+      "source": "Resuscitation Council UK, ReSPECT (Recommended Summary Plan for Emergency Care and Treatment), form version 3",
+      "url": "https://www.resus.org.uk/respect"
+    },
+    {
+      "source": "Resuscitation Council UK, ReSPECT for healthcare professionals",
+      "url": "https://www.resus.org.uk/respect/respect-healthcare-professionals"
+    },
+    {
+      "source": "Resuscitation Council UK, FAQs on emergency treatment plans and recommendations about CPR",
+      "url": "https://www.resus.org.uk/professional-library/faqs/faqs-decision-making-cpr"
+    },
+    {
+      "source": "NHS, Do not attempt cardiopulmonary resuscitation (DNACPR) decisions",
+      "url": "https://www.nhs.uk/conditions/do-not-attempt-cardiopulmonary-resuscitation-dnacpr-decisions/"
+    },
+    {
+      "source": "Resuscitation Council UK, 2025 Adult Basic Life Support Guidelines (27 October 2025)",
+      "url": "https://www.resus.org.uk/library/2025-resuscitation-guidelines/adult-basic-life-support-guidelines"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Some people we support have a recommendation, made by their clinicians, that cardiopulmonary resuscitation (CPR) should not be attempted if their heart and breathing stop, or a ReSPECT plan setting out the care and treatment they would want in an emergency. Our care workers are often alone with someone who collapses at home, so before every visit they must know the recommendation, where the form is and exactly what to do."
+        },
+        {
+          "p": "{{organisation}} will ask about recommendations at every assessment and review, record them in CareFlow, keep the form with the person, act on it in an emergency, and raise any concern about how one was made. Our staff never make, change or judge the validity of a resuscitation decision: that is for the person and their clinicians."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This protocol makes sure that people who would want CPR get it without delay, and that people with a recommendation against CPR are not given treatment they would not want."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This protocol applies to everyone who works for us, including bank and agency workers, students and volunteers, and to every adult we support, however their care is funded."
+        },
+        {
+          "p": "Owned elsewhere: first aid, basic life support and the 999 response (First Aid Procedure); expected deaths, advance care planning and what happens after a death (End of Life Care Policy); advance decisions and verifying attorneys and deputies (Consent to Care Policy); capacity and best interests (Mental Capacity Act and Best Interests Policy); hospital stays (Hospital Admission and Discharge Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "CPR",
+                "Cardiopulmonary resuscitation: chest compressions, rescue breaths and defibrillation given when a person's heart and breathing stop."
+              ],
+              [
+                "DNACPR decision",
+                "Do not attempt cardiopulmonary resuscitation: a recommendation, recorded by the clinician responsible for the person's care, that CPR should not be attempted if the heart and breathing stop, because the person has refused it or the clinician judges that CPR would not work or would cause more harm than benefit. Sometimes called a DNR or DNAR form."
+              ],
+              [
+                "ReSPECT plan",
+                "Recommended Summary Plan for Emergency Care and Treatment: a personalised form, agreed between the person, the people close to them and their clinicians, recording what matters to them and recommendations for emergency care and treatment, including a recommendation about CPR."
+              ],
+              [
+                "Other emergency care plan",
+                "A local or out-of-area form with the same purpose, such as a treatment escalation plan. It is acted on like a ReSPECT plan, and the Care Coordinator asks the GP within 2 working days to confirm it applies."
+              ],
+              [
+                "Advance decision to refuse treatment",
+                "A decision the person made while they had capacity to refuse a specified treatment in the future. Where valid and applicable it is legally binding. One refusing CPR or other life-sustaining treatment must be in writing, signed, witnessed and state that it applies even if life is at risk."
+              ],
+              [
+                "Recommendation against CPR",
+                "A DNACPR decision, or a ReSPECT plan or other emergency care plan recording that CPR is not recommended."
+              ],
+              [
+                "Form found",
+                "The original form, or the copy the care plan names, located straight away in the place My care at a glance records, without delaying CPR to search the home."
+              ],
+              [
+                "Unclear form",
+                "A form that does not show the person's name or shows the wrong name or NHS number, is not signed by a clinician, is crossed through or marked cancelled, says it applies only to a hospital stay or only until a date that has passed, or whose CPR recommendation cannot be read."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for this protocol and fund its training. The Nominated Individual scrutinises the quarterly figures and challenges any delay in resolving a concern."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on this protocol (the Deputy Manager covers in their absence), reviews every incident under it and takes forward concerns the GP has not resolved."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Assessors and reviewers ask about and record recommendations. The Care Coordinator keeps My care at a glance current, briefs care workers about changes, and liaises with the GP practice, hospital, telecare provider and other agencies. Field Care Supervisors carry out the home checks this protocol sets."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Office staff pass care workers' reports of new, changed or missing forms to the Care Coordinator at once and, with the On-call Manager, support care workers during emergency calls and cover their later visits. Out of hours the On-call Manager makes the urgent change to My care at a glance."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Care workers read My care at a glance before every visit, act on the recommendation in an emergency as this protocol sets out, keep the form where the person keeps it, report any change, and record what happens."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law requires and what is our policy",
+      "blocks": [
+        {
+          "bullets": [
+            "DNACPR decisions and ReSPECT plans are clinical recommendations, not legally binding. They guide the professionals responding in an emergency, who use their judgement.",
+            "A doctor may make a DNACPR decision even where the person does not agree, and nobody, including an attorney, can insist on CPR. The person must be told unless that would cause them physical or psychological harm; for a person who lacks capacity, the doctor must ask those close to them and should involve an independent mental capacity advocate where there is nobody. Learning disability, autism and dementia are never reasons for a DNACPR decision, and decisions must not be made for a group of people, such as everyone over a certain age (NHS guidance).",
+            "A valid and applicable advance decision refusing CPR has the same effect as a refusal made with capacity (Mental Capacity Act 2005, sections 25 and 26). A health and welfare attorney can refuse CPR only where the lasting power of attorney expressly gives authority over life-sustaining treatment (section 11(8)).",
+            "We must enable people to take part in decisions about their care, and plan care with other professionals when it is shared or transferred (Regulations 9 and 12)."
+          ]
+        },
+        {
+          "p": "Everything else here is our policy, informed by Resuscitation Council UK guidance."
+        }
+      ]
+    },
+    {
+      "heading": "Finding out and recording",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "At referral, assessment and every review",
+          "blocks": [
+            {
+              "p": "The Care Coordinator asks the referrer, and the ward for a hospital discharge, about any DNACPR decision, ReSPECT plan or advance decision that applies at home. At the assessment, including before the assessor leaves the first visit of a short-notice start, and at every full care plan review, the assessor or reviewer asks the person, with anyone they want present: have you talked with your doctor or nurse about what should happen in an emergency, including CPR, and do you have a form about it? Where there is a form, they read the original in the home."
+            },
+            {
+              "p": "Asking is not a resuscitation conversation. Where the person wants to talk about CPR, the Care Coordinator asks the GP practice, with their agreement, within 2 working days to arrange it, and offers advance care planning under the End of Life Care Policy. A person who does not want to discuss it is asked again only at the next full review or if they raise it. Where a death is recorded as expected but there is no recommendation, the Care Coordinator raises it with the GP within 2 working days."
+            }
+          ]
+        },
+        {
+          "heading": "What we record in CareFlow",
+          "blocks": [
+            {
+              "p": "My care at a glance is never left blank. It always shows one of these statuses, with the date last checked and where the form is kept."
+            },
+            {
+              "bullets": [
+                "No recommendation in place (with the date asked).",
+                "ReSPECT plan: CPR recommended.",
+                "DNACPR decision, or ReSPECT plan: CPR not recommended.",
+                "Advance decision refusing CPR, no DNACPR form.",
+                "Form not in the home: start CPR in an emergency."
+              ]
+            },
+            {
+              "p": "The Consent and decisions part of the care plan records the form type and date; the clinician's name, role and organisation; the CPR recommendation; any other ReSPECT recommendations and emergency contacts; any review date; where the original and any copy are kept in the home; who the form says was involved; and when and by whom we read it. People involved records any attorney with authority over life-sustaining treatment, verified under the Consent to Care Policy. Each new or changed entry is approved under the Needs Assessment and Care Planning Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Keeping the form in the home",
+          "blocks": [
+            {
+              "p": "The form belongs to the person and stays with them. We suggest the home care plan folder or another place a care worker or paramedic can reach straight away, never locked away, and record where they choose. Our staff never take the original to the office, and never write on, copy or photograph it; the office holds no copies. With the person's agreement, the Care Coordinator tells their named contact where it is kept, so they can show it if they call 999."
+            }
+          ]
+        },
+        {
+          "heading": "New, changed, cancelled or missing forms",
+          "blocks": [
+            {
+              "steps": [
+                "A care worker who finds a new or changed form, a form crossed through or marked cancelled, or no form where the care plan says, phones the office before leaving and reads out the name, date, clinician and recommendation on any form found.",
+                "The Care Coordinator, or the On-call Manager out of hours as an urgent safety change checked by the Registered Manager or Deputy Manager by the end of the next working day, updates My care at a glance before the next visit and briefs every rostered care worker before their next visit. A missing form is recorded at once as Form not in the home.",
+                "For a missing form, the Care Coordinator asks the person and family the same working day, then asks the clinician who made it or the GP practice for a replacement, chasing every 2 working days, and tells the Registered Manager if it is not replaced within 5 working days; the Registered Manager then writes to the practice manager or the clinician's organisation within 2 working days.",
+                "Within 5 working days of any change, a Field Care Supervisor reads the original at a home visit, confirms the care plan record and replaces the home copy of the care plan.",
+                "With the person's agreement, the Care Coordinator checks within 2 working days that the GP practice holds the same recommendation, and tells the telecare provider and other agencies visiting the person, as the Confidentiality and Information Sharing Policy allows."
+              ]
+            },
+            {
+              "p": "Our policy is that a passed review date does not cancel a form: care workers keep following it, and the Care Coordinator asks the GP to review it within 2 working days of the date passing."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Action in an emergency",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The person is unresponsive",
+          "blocks": [
+            {
+              "p": "Care workers follow the First Aid Procedure; the recommendation changes only whether CPR is started. This includes a person found on arrival or after gaining entry under the No Reply, No Access and Missing Person Procedure."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "What you do"
+                ],
+                "rows": [
+                  [
+                    "Unresponsive and not breathing normally, including slow gasping breaths, with no recommendation recorded, a recommendation for CPR, an unclear form, a form not yet recorded in My care at a glance, or a form you cannot find straight away",
+                    "Call 999 on speaker. Start CPR where the person lies and keep going until the crew take over or the call handler tells you to stop. Tell the call handler what My care at a glance says and about any form you have seen. If in doubt, start CPR."
+                  ],
+                  [
+                    "A recommendation against CPR is recorded and you find the form, but the person stopped breathing normally straight after choking or a severe allergic reaction",
+                    "Call 999 on speaker if you have not already and start CPR. Tell the call handler what happened and about the form, and keep going unless they tell you to stop."
+                  ],
+                  [
+                    "Unresponsive and not breathing normally, a recommendation against CPR is recorded and you find the form, the death is not recorded as expected and the row above does not apply",
+                    "Call 999 and tell the call handler there is a DNACPR decision or ReSPECT plan and what it says. Do not start CPR unless the call handler tells you to. Stay with the person, keep them comfortable and give the form to the crew."
+                  ],
+                  [
+                    "The person appears to have died, the death is recorded as expected in My care at a glance, and you find a form recommending against CPR",
+                    "Do not call 999. Phone the community nursing team or GP named in the care plan (NHS 111 when closed), then the office, and follow the expected death steps in the End of Life Care Policy. Anything unexpected, such as an injury, anything that worries you or any doubt that the person has died means a 999 call."
+                  ],
+                  [
+                    "An advance decision refusing CPR is recorded but there is no DNACPR form",
+                    "Call 999, tell the call handler about the advance decision and where it is, and follow their instructions."
+                  ],
+                  [
+                    "Any other case where the person is cold and stiff or has obviously been dead for some time",
+                    "Call 999, tell the call handler what you see and follow their advice on whether to start CPR."
+                  ],
+                  [
+                    "A relative or another person present disagrees with what the form or record says",
+                    "Do not argue. Follow this table, tell the call handler what they are saying and let the call handler and crew decide."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "All other care continues",
+          "blocks": [
+            {
+              "p": "A DNACPR decision applies only to CPR. All other care, comfort and first aid continue in full and are never reduced or delayed because of the form, including clearing a choking person's airway under the Nutrition and Hydration Policy and the 999 thresholds in the First Aid Procedure. Resuscitation Council UK advises that CPR may be appropriate after an unforeseen, potentially reversible cause such as choking or a severe allergic reaction. Care workers tell the call handler about any ReSPECT plan and read out its recommendations, including any recommendation to be treated at home."
+            }
+          ]
+        },
+        {
+          "heading": "Handing over and afterwards",
+          "blocks": [
+            {
+              "p": "The care worker hands over to the crew, including the form, as the First Aid Procedure sets out, and phones the office once the crew have taken over (straight away if someone else is giving CPR). Before the end of their shift the care worker records in the daily visit notes and the incident log what they found, the times, whether the form was found and what it said, the call handler's advice, whether CPR was given, who was told and whether the form went to hospital."
+            },
+            {
+              "p": "The entry is graded under the Incident Reporting, Investigation and Learning Policy. These always have at least an Enhanced investigation: a form not found in an emergency, CPR started despite a recommendation against it that was in the home, CPR withheld without a form found, and My care at a glance not matching the form. The Field Care Supervisor contacts the care worker within 1 working day and offers a debrief within 3 working days, with the employee assistance programme."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Concerns about a recommendation",
+      "blocks": [
+        {
+          "p": "Care workers never say whether they think CPR is right or that a form is invalid. They listen, and tell the office the same day when the person or family question a form, the person did not know about it or their wishes have changed, or their health has changed markedly since it was made. The Care Coordinator then acts as follows."
+        },
+        {
+          "table": {
+            "columns": [
+              "Concern",
+              "Action and timescale"
+            ],
+            "rows": [
+              [
+                "The recommendation appears to have been made because of age, disability, learning disability, autism or dementia, or as a blanket decision for a group, without the person or their representative being involved",
+                "Care Coordinator raises it with the GP the same working day and tells the Registered Manager, who decides that day whether it is a safeguarding concern under the Safeguarding Adults Policy."
+              ],
+              [
+                "The person with capacity wants to refuse CPR, or wants CPR despite a recommendation against it",
+                "Care Coordinator tells the GP the same working day and asks for a review with the person."
+              ],
+              [
+                "The form is unclear",
+                "CPR is started in an emergency until it is replaced. Care Coordinator asks the clinician or GP the same working day to correct or replace it."
+              ],
+              [
+                "The person or family disagree, were not involved, or the person's health has improved or worsened markedly",
+                "Care Coordinator asks the GP or responsible clinician within 2 working days to review the recommendation with the person and those close to them."
+              ],
+              [
+                "No reply from the GP within 5 working days, or the concern is not resolved",
+                "Registered Manager writes to the practice manager or the clinician's organisation within 2 working days; an unresolved concern about discrimination is raised with the integrated care board."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Except for an unclear form, the recommendation stays in force while a concern is looked at, and in an emergency the care worker tells the call handler about the concern. We help the person or family ask for a review or second opinion and give them the NHS complaints and independent advocacy routes. Where the person lacks capacity, the treating clinician decides: the Care Coordinator gives them our observations the same day under the Mental Capacity Act and Best Interests Policy and, where there is nobody but paid staff to consult, asks them to involve an independent mental capacity advocate. Each concern and outcome is recorded in Consent and decisions."
+        }
+      ]
+    },
+    {
+      "heading": "Moving between home and hospital",
+      "blocks": [
+        {
+          "bullets": [
+            "Planned or emergency admission: the form goes with the person, and the Care Coordinator includes the CPR status in the hospital admission information under the Hospital Admission and Discharge Procedure.",
+            "Before discharge: the Care Coordinator asks the ward whether the recommendation has changed, whether any hospital form applies at home, and that the original form comes home with the person.",
+            "First visit after discharge: the care worker checks the form is back where the care plan says and phones the office before leaving if it is not; My care at a glance shows Form not in the home until it is found or replaced, and the record is confirmed at the home review within 7 days of discharge.",
+            "Care ends or another provider takes over: with the person's agreement, the new provider is told the status and where the form is kept; the form stays with the person."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Previous care plan versions are never deleted, so the record shows what care workers were told on any date. Records are kept under the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "This protocol",
+                "All employees",
+                "Read and acknowledged in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version"
+              ],
+              [
+                "A practical DNACPR and ReSPECT scenario, including finding the form and telling the call handler",
+                "Care staff, Field Care Supervisors and On-call Managers",
+                "Within the basic life support practical every 12 months under the First Aid Procedure"
+              ],
+              [
+                "Asking about and recording recommendations, reading the form, and raising concerns",
+                "Assessors and reviewers",
+                "Within assessment and care planning training, before the first assessment, then at the annual assessor update"
+              ],
+              [
+                "Emergency calls where a recommendation is in place, missing or disputed",
+                "Office staff, Care Coordinators and On-call Managers",
+                "Within the First Aid Procedure's emergency calls briefing, before taking calls alone, then every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Field Care Supervisors test care workers' knowledge at every spot check as the First Aid Procedure sets out and, in the home of a person with a recorded form, check that it is where the care plan says."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Status recorded with the date checked, detail complete and form location recorded",
+                "Monthly audit of 10 care plans; target 100%",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Any blank status, Form not in the home, passed review date or open concern",
+                "Weekly CareFlow check",
+                "Care Coordinator",
+                "Weekly management meeting"
+              ],
+              [
+                "Every incident log entry with a CPR attempt, a 999 call for an unresponsive person or an incident under this protocol",
+                "Within the First Aid Procedure's monthly check, also against this protocol; target 100%",
+                "Registered Manager or Deputy Manager",
+                "Monthly health and safety indicators"
+              ],
+              [
+                "People with a recorded recommendation, concerns raised with GPs and outcomes, CPR attempts and incidents",
+                "Quarterly",
+                "Registered Manager",
+                "Quarterly quality report to the Nominated Individual and Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan with an owner and deadline. This protocol is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national resuscitation guidance (including a new ReSPECT form version), a serious incident, an inspection finding or monitoring showing the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

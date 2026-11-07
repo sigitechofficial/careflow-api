@@ -8,6 +8,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { uploadBasePath } from '../common/utils/upload-path.util';
 
 const PHOTO_SEGMENTS = ['service-users', 'photos'] as const;
 
@@ -21,7 +22,7 @@ export class ServiceUserPhotosService {
 
   uploadRoot(): string {
     const base = this.config.get<string>('app.uploadBasePath', 'uploads');
-    return join(process.cwd(), base, ...PHOTO_SEGMENTS);
+    return join(uploadBasePath(base), ...PHOTO_SEGMENTS);
   }
 
   maxFileSize(): number {

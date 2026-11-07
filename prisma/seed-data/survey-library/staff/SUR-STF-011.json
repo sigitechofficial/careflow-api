@@ -1,0 +1,286 @@
+{
+  "reference": "SUR-STF-011",
+  "revision": 1,
+  "title": "Equality, diversity and inclusion monitoring",
+  "audience": "EMPLOYEE",
+  "respondents": "All employees, including bank staff",
+  "summary": "An anonymous, voluntary yearly survey showing who works for us and whether experience at work differs between groups: fair treatment, unfair treatment and who it came from, belonging and being yourself. Every question can be skipped. About 7 minutes.",
+  "purpose": "Shows who works for us and, more importantly, whether experience at work differs between groups: fair treatment, unfair treatment and who it came from, belonging, and being yourself. It sits alongside the named equality monitoring form in the Equality, Diversity and Inclusion Policy and never replaces it: the named form lets the HR Manager compare hours, pay and training by characteristic from HR records, while this survey gives experience by group, usually more honestly because nobody is named. Results feed the annual workforce equality report (year to 31 March, completed by 30 April), the harassment risk assessment and positive action. The characteristic questions use the Government Statistical Service harmonised standards.",
+  "timing": {
+    "when": "Once a year, opening about 11 February, after the training needs survey closes, for 3 weeks",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 7,
+  "cqc": {
+    "keyQuestions": ["WELL_LED"],
+    "qualityStatements": ["Workforce equality, diversity and inclusion", "Capable, compassionate and inclusive leaders"]
+  },
+  "introduction": "{{organisation}} wants everyone to be treated fairly here. This survey asks about your experience at work and, if you choose, about you. Every question is optional, and it takes about 7 minutes in paid working time. It is anonymous and separate from the equality form you filled in when you joined: we cannot see who answered, and our reports only show totals for groups of 10 or more.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers only in totals, to check that people are treated fairly and to put things right. Our legal reason is our legitimate interest, with the condition for equality monitoring in the Data Protection Act 2018; our appropriate policy document explains this.\n\nThe survey is anonymous: we do not record your name, so your answers cannot be traced to you. CareFlow records only which branch an answer came from. Only the HR Manager looks at individual answers. Reports show totals and comments only for groups of 10 or more (ethnic group by broad group), never two characteristics together. Please do not write names. If a comment describes someone at risk, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Your experience at work",
+      "questions": [
+        {
+          "id": "stf-fair",
+          "text": "I am treated fairly at work, whoever I am.",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "For example, whatever your age, race, religion, sex, sexuality, disability or background.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-unfair",
+          "text": "In the last 12 months, have you been treated unfairly at work because of who you are?",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "options": ["Yes, by a colleague or manager", "Yes, by a person we support, their family or visitors", "No", "Prefer not to say"],
+          "exclusiveOptions": ["No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-unfair-about",
+          "text": "What was it about? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "options": [
+            "My age",
+            "A disability or health condition",
+            "My race, colour, nationality or ethnic background",
+            "My religion or beliefs",
+            "My sex",
+            "My sexual orientation",
+            "Being trans, or my gender identity",
+            "Pregnancy or having a baby",
+            "My caring responsibilities",
+            "My accent or language",
+            "Something else",
+            "Prefer not to say"
+          ],
+          "exclusiveOptions": ["Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "showIf": {
+            "question": "q-unfair",
+            "answers": ["Yes, by a colleague or manager", "Yes, by a person we support, their family or visitors"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-belong",
+          "text": "I feel I belong here.",
+          "type": "LIKERT",
+          "required": false,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-be-myself",
+          "text": "I can be myself at work.",
+          "type": "LIKERT",
+          "required": false,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        }
+      ]
+    },
+    {
+      "title": "About you",
+      "introduction": "These questions are optional: choose \"Prefer not to say\" for any you would rather not answer. We only ever show totals for groups of 10 or more people.",
+      "questions": [
+        {
+          "id": "stf-role-group",
+          "text": "Which best describes your main job?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            "Care worker, senior care worker or field care supervisor",
+            "Office, care coordination, on-call or management role",
+            "Prefer not to say"
+          ],
+          "notCountedOptions": ["Prefer not to say"]
+        },
+        {
+          "id": "q-age",
+          "text": "How old are you?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Under 25", "25 to 34", "35 to 44", "45 to 54", "55 to 64", "65 or over", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"]
+        },
+        {
+          "id": "q-sex-at-birth",
+          "text": "What was your sex at birth?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "By sex at birth we mean the sex that was recorded on your birth certificate. The next question asks about gender identity.",
+          "options": ["Female", "Male", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"]
+        },
+        {
+          "id": "q-gender-identity",
+          "text": "Is the gender you identify with the same as your sex registered at birth?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "This question is voluntary.",
+          "options": ["Yes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"]
+        },
+        {
+          "id": "q-sexual-orientation",
+          "text": "Which of the following options best describes how you think of yourself?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Heterosexual or Straight", "Gay or Lesbian", "Bisexual", "Other", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"]
+        },
+        {
+          "id": "q-ethnic-group",
+          "text": "What is your ethnic group?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose one option that best describes your ethnic group or background.",
+          "optionsFrom": "ethnicity"
+        },
+        {
+          "id": "q-religion",
+          "text": "What is your religion?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            "No religion",
+            "Christian (including Church of England, Catholic, Protestant and all other Christian denominations)",
+            "Buddhist",
+            "Hindu",
+            "Jewish",
+            "Muslim",
+            "Sikh",
+            "Any other religion",
+            "Prefer not to say"
+          ],
+          "notCountedOptions": ["Prefer not to say"]
+        },
+        {
+          "id": "q-condition",
+          "text": "Do you have any physical or mental health conditions or illnesses lasting or expected to last for 12 months or more?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"]
+        },
+        {
+          "id": "q-activity-restriction",
+          "text": "Does your condition or illness/do any of your conditions or illnesses reduce your ability to carry out day-to-day activities?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes, a lot", "Yes, a little", "Not at all", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "showIf": {
+            "question": "q-condition",
+            "answers": ["Yes"]
+          }
+        },
+        {
+          "id": "q-look-after",
+          "text": "Do you look after anyone outside work? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "options": ["Yes, a child or children", "Yes, an adult who is ill, disabled or older", "No", "Prefer not to say"],
+          "exclusiveOptions": ["No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"]
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What could we do to make this a fairer, more welcoming place to work?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or anything that could identify you or anyone else."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it. Use Send or schedule with everyone in your branches, repeating yearly, opening about 11 February (after the training needs survey closes on 10 February), kept open 21 days, so results reach the workforce equality report due by 30 April. CareFlow records the branch of each anonymous answer, never the person. Set two reminders in Reminders and follow-up, one after 1 week and one after 2 weeks: on an anonymous survey CareFlow sends them to everyone who has not answered, with no personal link, and never to one person. CareFlow refuses an anonymous survey that would reach fewer than 5 people.",
+      "Tell staff it is separate from the named equality form they filled in when they joined, and why both exist; it never replaces that form. Say in the invitation what changed last year because of it. It is done in paid working time. Online is the main route, because the sex question is endorsed for online self-completion; paper on request in a sealed envelope to the HR Manager, who enters it alone with Record response (the paper wording of the sex question is untested by the standard's authors). No telephone completion. Offer translated online versions, keeping the English wording as the master.",
+      "The characteristic questions use the Government Statistical Service harmonised standards verbatim (sex at birth, gender identity from the interim guidance, sexual orientation, ethnic group, religion, long-lasting health conditions and activity restriction), with these adaptations: every question is optional with \"Prefer not to say\"; the \"please describe\" write-ins are removed, because in a small team they would identify people; the gender identity write-in is removed; ethnic group keeps the standard's question but takes its answers from the organisation's ethnicity list in Settings (CareFlow's default list starts with the 2021 Census categories), which CareFlow reports by group heading, showing a detailed option only where 10 or more people chose it. Sex, gender identity and sexual orientation keep the standard's own answers: CareFlow's lists for these are record-keeping lists (for example \"Not Known (not recorded)\" or a list of gender identities) and do not answer the standard's questions. Never edit this wording. Attribution: contains public sector information licensed under the Open Government Licence v3.0; question wording from the Government Analysis Function harmonised standards. The age bands, the caring question and the experience questions are our own.",
+      "Who may open individual answers: the HR Manager only. This is set in Who can see the answers: individual responses are limited to the HR Manager, and results to the HR Manager and the Registered Manager, showing from 10 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Under Individual responses, ethnic group shows only its group heading, and only for a group that 10 or more people chose; otherwise it reads \"Not shown\". Results fold any group chosen by fewer than 10 into \"Other groups\"."
+    ],
+    "actingOnResults": [
+      "Report totals only: never a group under 5 overall, flagged under 10, and at least 10 per category for any characteristic breakdown. Combine small categories (ethnic group by its group headings, combined further as numbers allow, a detailed option only at 10 or more; religion as No religion, Christian and other religions combined, as numbers allow). Never cross two characteristics, never cross a characteristic with role in a single-branch agency, and never show \"No\" to the gender identity question below 10. Agencies under about 30 staff will usually see whole-organisation results only.",
+      "A group of 10 or more scoring 10 percentage points or more below everyone else on treated fairly, belonging or being yourself: the Registered Manager investigates under the Equality, Diversity and Inclusion Policy, using the named-form HR data on hours, pay and training for the same characteristic, with an action in the service improvement plan within 5 working days of the report. Any unfair treatment by a person we support, their family or visitors: the Registered Manager, with the HR Manager, reviews the third-party part of the harassment risk assessment within 1 month under the Sexual Safety Policy and the Equality, Diversity and Inclusion Policy, and repeats the reporting route at the next staff briefing. Unfair treatment by a colleague or manager goes into the workforce equality report, and the summary to staff restates the routes.",
+      "Comments are read each working day while the survey is open. A specific incident goes to the Registered Manager the same working day: discrimination or harassment is logged as an anonymous report under the Bullying, Harassment and Sexual Harassment Policy, wrongdoing as an anonymous concern with the Nominated Individual as case owner under the Whistleblowing (Speaking Up) Policy. Nobody tries to identify the writer. Comments are shown only for groups of 10 or more, with anything identifying removed.",
+      "The results go into the workforce equality report (year to 31 March, by 30 April), to the Directors by mid-May, with actions in the service improvement plan within 5 working days and a summary to all staff within 1 month. Keep individual answers for 1 year after the survey closes and reports for the life of the organisation plus 6 years, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "Unfair treatment by a person we support, their family or visitors (anonymous: counts only).",
+        "action": "The Registered Manager, with the HR Manager, reviews the third-party part of the harassment risk assessment within 1 month. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Third-party unfair treatment (anonymous): review",
+          "if": [
+            {
+              "question": "q-unfair",
+              "answers": ["Yes, by a person we support, their family or visitors"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 28,
+          "minimumAnswers": 10
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["HR_MANAGER"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "reportingThreshold": 10
+  },
+  "relatedPolicies": ["POL-HR-012", "POL-GOV-013", "POL-HR-013", "POL-SG-010", "POL-HR-018", "POL-GOV-006", "POL-GOV-002", "POL-GOV-017"],
+  "regulatoryBasis": [
+    {
+      "source": "Government Analysis Function, Sex harmonised standard (published 9 October 2026): \"What was your sex at birth?\", for online self-completion",
+      "url": "https://analysisfunction.civilservice.gov.uk/policy-store/sex-harmonised-standard/"
+    },
+    {
+      "source": "Government Analysis Function, Gender identity data harmonisation interim guidance (11 December 2024): the Census 2021 question, asked after the sex question; write-in removed (adapted)",
+      "url": "https://analysisfunction.civilservice.gov.uk/policy-store/gender-identity-data-harmonisation-guidance/"
+    },
+    {
+      "source": "Government Analysis Function, Sexual orientation harmonised standard",
+      "url": "https://analysisfunction.civilservice.gov.uk/policy-store/sexual-orientation/"
+    },
+    {
+      "source": "Government Analysis Function, Ethnicity harmonised standard: England question; asked at its first stage only (the five published groups that online respondents choose before a detailed option), with \"Prefer not to say\" added (adapted)",
+      "url": "https://analysisfunction.civilservice.gov.uk/policy-store/ethnicity-harmonised-standard/"
+    },
+    {
+      "source": "Government Analysis Function, Religion harmonised standard: write-in removed and \"Prefer not to say\" added (adapted)",
+      "url": "https://analysisfunction.civilservice.gov.uk/policy-store/religion/"
+    },
+    {
+      "source": "Government Analysis Function, Long-lasting health conditions and illness harmonised standard (used with the activity restriction standard to identify disability)",
+      "url": "https://analysisfunction.civilservice.gov.uk/policy-store/long-lasting-health-conditions-and-illness/"
+    },
+    {
+      "source": "Government Analysis Function, Activity restriction harmonised standard",
+      "url": "https://analysisfunction.civilservice.gov.uk/policy-store/activity-restriction/"
+    },
+    {
+      "source": "Government Analysis Function, Terms of use: content published under the Open Government Licence v3.0; acknowledge the Analysis Function as the source",
+      "url": "https://analysisfunction.civilservice.gov.uk/terms-of-use/"
+    },
+    {
+      "source": "Acas, Checking equality, diversity and inclusion: small employers can use an anonymous and voluntary staff survey and should analyse it for differences between groups",
+      "url": "https://www.acas.org.uk/improving-equality-diversity-and-inclusion/checking-equality-diversity-and-inclusion"
+    }
+  ]
+}

@@ -1,0 +1,247 @@
+{
+  "reference": "SUR-APP-001",
+  "revision": 2,
+  "revisionNote": "How to run it now uses CareFlow's applicant invitations: each Monday, applicants told the outcome are emailed their own one-time link, only in batches of 3 or more, and still anonymously. Staff no longer send the link by hand or keep notes of who was invited.",
+  "title": "Your application with us",
+  "audience": "PUBLIC",
+  "respondents": "Everyone who applied for a job with us and has been told the outcome, whether successful or not, including applicants who withdrew",
+  "summary": "A short anonymous survey for job applicants once they know the outcome: whether the advert told you what you needed, how easy it was to apply, how quickly we replied and kept you informed, whether the interview was fair and adjustments were offered, and whether pre-start checks were explained. About 5 minutes.",
+  "purpose": "Shows where our recruitment loses or puts off good applicants (unclear adverts, a hard form on a phone, slow replies, unfair-feeling interviews, unexplained checks) and whether recruitment feels fair and accessible, against the Safer Recruitment Policy's standards: adverts that describe the real job, replies within 5 working days, adjustments offered to everyone invited to interview, and no health questions before an offer. Results go into the workforce part of the quarterly governance report and the annual recruitment report.",
+  "timing": {
+    "when": "The Monday after the applicant is told the outcome, in a weekly batch of 3 or more; one or two applicants alone wait for a later batch, for up to 6 weeks",
+    "recurrence": null,
+    "trigger": "An applicant told the outcome of their application, or withdrawing"
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 5,
+  "cqc": {
+    "keyQuestions": ["SAFE", "WELL_LED"],
+    "qualityStatements": ["Safe and effective staffing", "Workforce equality, diversity and inclusion"]
+  },
+  "introduction": "Thank you for applying to {{organisation}}. We would like to know what applying to us was like, so we can make it better. It takes about 5 minutes. Taking part is up to you, and it cannot affect this or any future application. It is anonymous: we do not keep your name or any link to you, so we cannot reply to your answers. To complain about how we handled your application or used your information, contact our office or use the complaints form on our website.\n\nThis survey is not for urgent concerns. If you are worried about the safety of someone we support, phone our office. In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve how we recruit. Our legal reason is our legitimate interest in recruiting fairly and well.\n\nThe survey is anonymous: we do not record your name, contact details, the job you applied for, or the internet address or device you used, so your answers cannot be traced to you. Please do not write your name or anyone else's. Only the HR Manager and the Registered Manager look at individual answers. Reports show results only once 5 or more people have answered, and never quote comments until 10 or more have. If a comment tells us someone may be at risk of harm, we will act on it as far as we can.\n\nWe keep answers for 1 year, under our Records Management and Retention Policy. To ask about how we use information, contact our office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Your application",
+      "questions": [
+        {
+          "id": "q-stage",
+          "text": "How far did your application with us go?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose I was offered the job even if you turned it down or the offer was later withdrawn.",
+          "options": [
+            "I applied but was not invited to an interview",
+            "I had an interview but was not offered the job",
+            "I was offered the job",
+            "I withdrew my application"
+          ]
+        },
+        {
+          "id": "q-advert",
+          "text": "Did the job advert tell you what you needed to know?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, pay, hours, the area, travel between visits, and whether you need to drive.",
+          "options": ["Yes, everything", "Most things", "No", "I did not see an advert"],
+          "notCountedOptions": ["I did not see an advert"],
+          "comment": {
+            "prompt": "What was missing or unclear?",
+            "showWhen": ["Most things", "No"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-apply-ease",
+          "text": "How easy was it to apply?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Including filling in our form on a phone, if you used one.",
+          "options": ["Very easy", "Easy", "Neither easy nor difficult", "Difficult", "Very difficult"],
+          "comment": {
+            "prompt": "What made it difficult?",
+            "showWhen": ["Difficult", "Very difficult"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-reply-time",
+          "text": "How long did we take to reply after you applied?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "From when you sent your application to when someone from our team first replied. Do not count an automatic email.",
+          "options": ["2 days or less", "3 to 6 days", "1 to 2 weeks", "More than 2 weeks", "I can't remember"],
+          "notCountedOptions": ["I can't remember"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-kept-informed",
+          "text": "Did we keep you up to date about your application?",
+          "type": "LIKERT",
+          "required": false,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "What would have helped?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Interview and checks",
+      "questions": [
+        {
+          "id": "q-interview-fair",
+          "text": "Did the interview give you a fair chance to show what you could offer?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "Partly", "No"],
+          "showIf": {
+            "question": "q-stage",
+            "answers": ["I had an interview but was not offered the job", "I was offered the job"]
+          },
+          "comment": {
+            "prompt": "Please tell us why. Please do not name anyone.",
+            "showWhen": ["Partly", "No"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-adjustments-asked",
+          "text": "Before your interview, did we ask if you needed any changes to how we interview you, such as extra time?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "This is about changes to how we interview, not about your health.",
+          "options": ["Yes", "No", "I can't remember"],
+          "notCountedOptions": ["I can't remember"],
+          "showIf": {
+            "question": "q-stage",
+            "answers": ["I had an interview but was not offered the job", "I was offered the job"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-checks-explained",
+          "text": "Did we explain the checks needed before you could start, such as the DBS check and references?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes, and it was clear", "Yes, but it was not clear", "No", "I can't remember"],
+          "notCountedOptions": ["I can't remember"],
+          "showIf": {
+            "question": "q-stage",
+            "answers": ["I was offered the job"]
+          },
+          "comment": {
+            "prompt": "What was unclear?",
+            "showWhen": ["Yes, but it was not clear", "No"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-apply-overall",
+          "text": "Overall, how would you rate your experience of applying to us?",
+          "type": "LIKERT",
+          "required": false,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "What went wrong?",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "text": "What one thing would have made applying to us better?",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "Please do not include your name or anyone else's name."
+        },
+        {
+          "text": "What made you want to work for us?",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "Please do not include your name or anyone else's name."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it under the Compliments, Feedback and Involvement Procedure. Publish one copy for each quarter (for example \"Applying to us, January to March 2027\") with an end date at the end of the quarter, so results can be reported and the anonymous count-only check runs when it closes, and turn on Invite job applicants on that copy (turning it on for the new quarter turns it off on the last one). Every Monday CareFlow emails everyone moved in Recruitment to Rejected, Withdrawn or Accepted since the week before their own link, which works once and for 30 days. It sends only when 3 or more are waiting, so the day an answer arrives can never point to one applicant: one or two wait for a later Monday, and anyone still waiting after 6 weeks is not invited. The email is separate from the outcome message, says taking part is up to them and cannot affect any application, and has a link to stop survey emails. CareFlow never records which link went to whom or who answered: answers are added to Results in groups, like other anonymous answers. Invitations need the app's web address and email to be set up; keep the shared link off, so every answer comes from an applicant.",
+      "No reminder. CareFlow invites each person once, and not again within 6 months if they apply again with the same email address. Before moving anyone to their final stage, stop survey emails in Survey contact preferences on their candidate record for a candidate whose offer was withdrawn for false information or forged documents, where the police asked us not to contact them, or anyone referred to the Disclosure and Barring Service, and for anyone who asked not to be contacted. Check that the applicant privacy notice lists feedback invitations as a purpose before turning invitations on. Paper on request, with an unmarked return envelope to the HR Manager, entered with Record response; no phone completion, because a call identifies the person. Never add questions about health, disability, the job or branch applied for, or any personal characteristic.",
+      "Who may open individual answers: the HR Manager and the Registered Manager, who also reads every report because comments may concern the HR Manager's own interviews. This is set in Who can see the answers: individual responses are limited to the HR Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "The HR Manager reads comments weekly. A comment showing dissatisfaction that needs a response is recorded as an anonymous complaint and investigated as far as it allows (Complaints Policy and Procedure); discrimination and misuse of personal data are graded High. Nobody tries to identify who answered.",
+      "Report quarterly. Show no results until 5 or more people have answered in total, rolling quarters together until 5 is reached; report a stage group only at 5 or more, combining those offered the job with those interviewed where needed. Below 10 responses, report comment themes in the HR Manager's own words, never quotes. Positive means Yes, everything, Very easy or Easy, 2 days or less or 3 to 6 days, Always or Usually, Yes, Yes, and it was clear, or Very good or Good, leaving out the not-counted answers.",
+      "Results go into the workforce part of the quarterly governance report, with actions in the service improvement plan within 5 working days, and the annual recruitment report sets the year's trend beside offer-to-start drop-out and time to clear checks (Safer Recruitment Policy). Keep answers for 1 year, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "A comment saying a fee or payment was asked for, in return for a job, interview, DBS check or training.",
+        "action": "The HR Manager tells the Registered Manager the same working day. We never charge applicants (Safer Recruitment Policy): investigate under the Anti-Bribery and Fraud Prevention Policy and check any agencies used."
+      },
+      {
+        "when": "A comment describing discrimination or harassment at any stage, or health or disability questions asked before an offer.",
+        "action": "The Registered Manager investigates as far as possible under the Equality, Diversity and Inclusion Policy, reviews the recruitment campaign's equality analysis, and retrains the interview panel where health questions were asked before an offer (Safer Recruitment Policy)."
+      },
+      {
+        "when": "A comment about a member of staff's conduct, or the safety of someone we support.",
+        "action": "Described wrongdoing is a speaking-up concern for the Registered Manager (Whistleblowing (Speaking Up) Policy). A concern about the safety of someone we support goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure; Managing Allegations Against Staff Procedure if it is about staff)."
+      },
+      {
+        "when": "\"Did we ask if you needed any changes to how we interview you?\" answered No (anonymous: counts only).",
+        "action": "The Registered Manager reminds everyone who arranges interviews within 20 working days that every candidate invited to interview is asked about adjustments (Safer Recruitment Policy). The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Interview adjustments not offered (anonymous): remind",
+          "if": [
+            {
+              "question": "q-adjustments-asked",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 20
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-HR-001",
+    "POL-HR-019",
+    "POL-HR-012",
+    "POL-GOV-005",
+    "POL-GOV-006",
+    "POL-GOV-013",
+    "POL-GOV-021",
+    "POL-HR-018",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Equality Act 2010, section 60: an employer must not ask about an applicant's health before offering work, except as the section allows, such as for adjustments to the recruitment process",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/60"
+    },
+    {
+      "source": "Skills for Care, Values-based recruitment: design an application process that lets candidates show their values, behaviours and motivation",
+      "url": "https://www.skillsforcare.org.uk/Recruitment-support/Values-based-recruitment/Values-based-recruitment.aspx"
+    },
+    {
+      "source": "Care England, Speed is now a care recruitment strategy, not an admin task (May 2026): applicants left waiting a few days may accept elsewhere",
+      "url": "https://www.careengland.org.uk/speed-is-now-a-care-recruitment-strategy-not-an-admin-task/"
+    }
+  ]
+}

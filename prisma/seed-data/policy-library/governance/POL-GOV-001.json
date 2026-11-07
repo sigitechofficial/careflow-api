@@ -1,0 +1,800 @@
+{
+  "reference": "POL-GOV-001",
+  "revision": 1,
+  "title": "Policy Management and Document Control Policy",
+  "documentType": "POLICY",
+  "summary": "The parent policy of the governance category and the framework every other document in our library follows: the document types we use, our writing standard, who writes, checks and approves each document, how documents are published and acknowledged in CareFlow, how they are reviewed, versioned, kept and withdrawn, and how ready-made policies and branch procedures are controlled. For managers and office staff who manage documents.",
+  "keyPoints": {
+    "intro": "What this policy means for you if you write, check, approve, publish or manage any of our policies, procedures, protocols, guidelines or forms.",
+    "points": [
+      "The published version in CareFlow is the only valid version of any document. Printed copies are uncontrolled: never keep policy folders in offices or people's homes, and check CareFlow before relying on any printout.",
+      "Never publish a document without the right approval: the Directors approve policies, procedures, protocols and guidelines; the Nominated Individual approves minor changes between reviews and urgent changes; the Registered Manager approves forms. Nobody approves a document they wrote.",
+      "A ready-made policy adopted from the CareFlow library is only a draft. Check every role, timescale and arrangement against what we actually do, change the practice or the text, and take it through full approval.",
+      "Treat any change to what someone must do, who does it, a timescale, threshold or legal basis as a major change: consult for 10 working days, screen for equality impact, and staff must acknowledge again.",
+      "If people would be at risk or we would act unlawfully, make an urgent change: phone each affected care worker the same day and before their next affected visit, and publish the approved update within 5 working days.",
+      "Start each planned review 2 months before the review date. A document past its review date stays in force, but tell the Nominated Individual and finish it within 1 month; after that it goes to the Directors and the risk register.",
+      "Publish an approved version within 5 working days, on its effective date, and email the change summary the same day to affected staff who have work email; never text document changes to care workers. Where training must come first, publish when the training is done.",
+      "Staff acknowledge each new document and each new major version within 14 days; minor versions need no new acknowledgement. Chase anyone overdue within 2 working days of the deadline; at 28 days the Registered Manager or Deputy Manager meets them, recorded in supervision records.",
+      "Never delete a published, superseded or archived version. CareFlow keeps every version with its approvals and acknowledgements, and we keep them for the life of the organisation plus 6 years.",
+      "Write in the house style: roles never names, no phone numbers or personal details, plain English, other documents named by their exact title, and the law clearly separated from our own rules.",
+      "A branch may add a local procedure only where a local arrangement genuinely differs. It must never lower an organisation-wide standard, and the Nominated Individual approves it."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": false,
+  "audience": [
+    "Admin",
+    "Manager"
+  ],
+  "moduleLinks": [
+    "AUDIT",
+    "BRANCH"
+  ],
+  "relatedReferences": [
+    "POL-GOV-002",
+    "POL-GOV-003",
+    "POL-GOV-004",
+    "POL-GOV-010",
+    "POL-GOV-012",
+    "POL-GOV-017",
+    "POL-HR-004",
+    "POL-HR-006"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 Good governance, including 17(1) and 17(2)(a), (b) and (d)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Safety (Consultation with Employees) Regulations 1996, Regulation 3 Duty of employer to consult",
+      "url": "https://www.legislation.gov.uk/uksi/1996/1513/regulation/3"
+    },
+    {
+      "source": "Equality Act 2010, section 20 Duty to make adjustments, including 20(6) information in an accessible format",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20"
+    },
+    {
+      "source": "Digital Care Hub, Records management abbreviated code of practice for adult social care providers, Appendix 1 Retention schedule (policies, strategies and operating procedures)",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/records-management-abbreviated-code-of-practice-and-guidance-for-adult-social-care-providers/appendix-1-retention-schedule/"
+    },
+    {
+      "source": "Care Quality Commission, Our March update (24 March 2026): draft sector-specific assessment frameworks",
+      "url": "https://www.cqc.org.uk/news/our-march-update"
+    },
+    {
+      "source": "Care Quality Commission, State of health and adult social care in England: 2025 to 2026 (HC 691, laid before Parliament 22 October 2026)",
+      "url": "https://www.gov.uk/government/publications/state-of-health-and-adult-social-care-in-england-2025-to-2026"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} runs its service through written policies, procedures, protocols and guidelines that tell every employee what we do, how we do it and why. Our care workers work alone in people's homes, so these documents protect people only if they are correct, current, approved and known by the staff who must follow them."
+        },
+        {
+          "p": "The law requires us to establish and operate effectively the systems and processes that make sure we meet the regulations, and to keep securely the records needed to manage the service (Regulation 17(1) and 17(2)(d) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). Our policy is that every controlled document is written to one standard, approved under a clear authority, published only in CareFlow, acknowledged by the staff it applies to, reviewed on time, and kept, with every earlier version, for the life of {{organisation}} plus 6 years."
+        },
+        {
+          "p": "This is the governance category's parent policy and the framework every document in our library follows."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that only one current, approved version of each document, held in CareFlow, is in use; that it is clear who writes, checks, approves, publishes and withdraws each type of document; that staff are told about changes and their acknowledgement is tracked to completion; that documents are reviewed on time, and sooner when needed; and that we can show an inspector, commissioner, court or coroner which version applied on any date, who approved it and who had acknowledged it."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to {{organisation}} as a whole and to every branch and service we run. It covers every controlled document: policies, procedures, protocols and guidelines; the forms and standard letters that support them; local procedures for a single branch; and ready-made policies we adopt from the CareFlow policy library. It applies to everyone who writes, checks, approves, publishes or manages these documents."
+        },
+        {
+          "p": "It does not cover records about individual people, such as care plans, risk assessments and staff records, which follow the Records Management and Retention Policy; the statement of purpose, which follows the Statement of Purpose and Registration Procedure; employment contracts; or external documents we follow but do not write, such as legislation, NICE guidance, Safeguarding Adults Board procedures and commissioners' contracts."
+        },
+        {
+          "p": "Our policies and procedures do not form part of employees' contracts of employment, and we change them under this policy. A change to a contractual term is made only by written agreement with the employee, led by the HR Manager."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Controlled document",
+                "Any document within the scope of this policy, with its control information recorded in the CareFlow Policies list."
+              ],
+              [
+                "Current version",
+                "The one version of a document with the status Published in CareFlow. It is the only valid version."
+              ],
+              [
+                "Document owner",
+                "The manager recorded as owner of the document in CareFlow, accountable for keeping it accurate, reviewed and followed."
+              ],
+              [
+                "Major change",
+                "A change to what anyone must do, who does it, a timescale, threshold, frequency or standard, the legal basis, or who the document applies to. It creates a new major version, for example v2.0, and staff must acknowledge it again."
+              ],
+              [
+                "Minor change",
+                "A change that does not alter what anyone must do, such as correcting a typing error, an updated job or document title, a broken link or a changed contact route, or a planned review that finds no change is needed. It creates a new minor version, for example v2.1, which staff do not need to acknowledge again."
+              ],
+              [
+                "Urgent change",
+                "A change that must take effect before the normal route can be completed, because otherwise people we support or staff would be at risk of harm or we would be acting unlawfully."
+              ],
+              [
+                "Local procedure",
+                "A procedure that applies in one branch only, because a local arrangement differs from the rest of {{organisation}}."
+              ],
+              [
+                "Ready-made policy",
+                "A complete document from the CareFlow policy library, listed in CareFlow under Ready-made policies, which becomes our own draft when we adopt it."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "bullets": [
+                "Approve this policy and every new or majorly changed policy, procedure, protocol and guideline, every planned review, and every withdrawal of one of these documents.",
+                "Set each document's review frequency at approval and provide the management time that writing, consultation and review need.",
+                "Receive the document control figures in the quarterly governance report under the Governance and Quality Assurance Policy, and the Nominated Individual's annual document control audit."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "bullets": [
+                "Oversees the document control system on the Directors' behalf.",
+                "Checks every new document, major change and planned review before it goes to the Directors, within 10 working days of its submission in CareFlow, and is recorded as the reviewer of each document in CareFlow.",
+                "Approves minor changes, urgent changes and local procedures on the Directors' behalf, and reports each one to the next Directors' meeting.",
+                "Escalates overdue reviews, tracks changes to CQC's assessment framework, and carries out the annual document control audit."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is the document owner of every organisation-wide document, including this policy. Where we operate more than one branch, the Directors name one Registered Manager as owner of each document; the other Registered Managers are consulted on every new document and major change and lead the rollout in their branch. The Registered Manager:"
+            },
+            {
+              "bullets": [
+                "writes or commissions each draft, consults on it, submits it in CareFlow and publishes it once approved;",
+                "approves forms and standard letters;",
+                "makes sure affected staff are told about each new version, briefed and trained where needed, and acknowledge it where required;",
+                "replies in writing within 10 working days to anyone who asks for a document to be changed, and treats a request that shows a risk to safety as an urgent change."
+              ]
+            },
+            {
+              "p": "When the Registered Manager is absent, the Deputy Manager carries out these duties, as the Registered Manager Role and Absence Cover Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "bullets": [
+                "Produces the monthly document control report by the fifth working day of each month, compiled from the CareFlow Policies list and Ready-made policies.",
+                "Checks each draft against the writing standard in this policy before it is submitted, and drafts documents the Registered Manager assigns.",
+                "Checks at each quarterly branch office inspection that paper forms in stock and documents on display are the current versions."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "bullets": [
+                "Drafts HR documents for the Registered Manager and advises on any document that affects employees' duties, training or conduct.",
+                "Keeps each employee's role, job title and branch accurate in their staff record, so that CareFlow shows each document to the right staff for acknowledgement.",
+                "Reports acknowledgement compliance to the Registered Manager every month by document, naming each overdue employee."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "bullets": [
+                "Brief the care workers they manage on new and changed documents, and chase overdue acknowledgements as set out in this policy.",
+                "Tell the Registered Manager when a document does not work in practice or does not match what staff are asked to do.",
+                "Field Care Supervisors check at each spot check that any form kept in the person's home is the current version."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "All employees",
+          "blocks": [
+            {
+              "p": "Every employee uses only the current version of a document in CareFlow, which care workers read in the Employee App on their work phone, acknowledges each new document and each new major version within 14 days, asks their manager when anything is unclear, and reports any document that is wrong, out of date or unworkable to their line manager or the Registered Manager. A care worker who finds during a visit that a document cannot be followed safely in that home phones the office, or the On-call Manager out of hours, before leaving and follows the instruction given; the Registered Manager then decides whether an urgent change is needed."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Document types and how they fit together",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Type",
+              "What it is for",
+              "Example",
+              "Approved by"
+            ],
+            "rows": [
+              [
+                "Policy",
+                "What we will do and why: our commitments, the firm rules and who is accountable. Each category has a parent policy, numbered 001, which every other document in that category sits under.",
+                "Safeguarding Adults Policy",
+                "The Directors"
+              ],
+              [
+                "Procedure",
+                "How a task is done, step by step, by whom and by when.",
+                "Safeguarding Concerns: Reporting, Referral and Enquiry Procedure",
+                "The Directors"
+              ],
+              [
+                "Protocol",
+                "A fixed sequence of steps for a specific high-risk or clinical situation. Staff depart from it only on the advice of a health professional, which they record.",
+                "Time-Sensitive Medicines Protocol",
+                "The Directors"
+              ],
+              [
+                "Guideline",
+                "Good practice that supports professional judgement where a fixed rule would not work. Staff record the reason for any departure.",
+                "Prevent and Radicalisation Guideline",
+                "The Directors"
+              ],
+              [
+                "Form or standard letter",
+                "A blank form or letter for a step done outside CareFlow's own screens, such as a paper record used during a CareFlow outage.",
+                "Paper medicines record for system downtime",
+                "The Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Procedures, protocols and guidelines carry the same authority as the policy they sit under. Where documents appear to conflict:"
+        },
+        {
+          "bullets": [
+            "the law always takes precedence over any of our documents;",
+            "an organisation-wide document takes precedence over a local procedure;",
+            "a policy takes precedence over a procedure, protocol or guideline beneath it; and",
+            "between two documents of the same type, the more recently approved one applies until the conflict is resolved."
+          ]
+        },
+        {
+          "p": "Anyone who finds a conflict tells the Registered Manager, who corrects it within 10 working days, or as an urgent change where safety is affected."
+        },
+        {
+          "p": "Every document has a unique reference made up of POL, the category code and a three-digit number, for example POL-SG-002. Our category codes are GOV (governance and quality), MED (medicines), SG (safeguarding), HS (health and safety), IPC (infection prevention and control), CD (care delivery) and HR (people and employment). A form takes the reference of the document it supports followed by F and a number. Documents name a form by reference only once it is published in CareFlow; otherwise they name the CareFlow record holding the information. A local procedure takes the reference of the organisation-wide document it adds to, followed by the branch's short code. A reference is never reused, even after a document is withdrawn."
+        }
+      ]
+    },
+    {
+      "heading": "Writing standard",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What every document contains",
+          "blocks": [
+            {
+              "p": "The Policies list in CareFlow is our register of controlled documents. For each document it holds the control information: reference, title, type, version, status, owner, approver, dates, change summary, audience, branches and acknowledgement setting. The document itself is organised in this order:"
+            },
+            {
+              "steps": [
+                "Key points for staff: up to 12 plain-English points, at most 450 words, covering what staff must do, must never do, their timescales and whom to tell; in a document for managers only, they are written for those managers.",
+                "Policy statement, Purpose, Scope (including what the document does not cover and which document does), Definitions where needed, and Roles and responsibilities by job role.",
+                "The arrangements, with numbered steps for sequences and tables for timescales, thresholds and escalation.",
+                "Records, Training and competence, and Monitoring and review, always last.",
+                "The related documents and the legislation and guidance relied on, each named precisely with a link."
+              ]
+            },
+            {
+              "p": "A policy is at most 6,000 words, a procedure 4,500, a protocol 3,500 and a guideline 3,000, excluding the key points. Anything longer is split or moved to the document that owns the subject."
+            }
+          ]
+        },
+        {
+          "heading": "How we write",
+          "blocks": [
+            {
+              "bullets": [
+                "Plain English in short sentences, using must for what is mandatory and will for what we do.",
+                "Job roles, never named individuals, and the people we support, not clients.",
+                "Specific arrangements: who does what, by when, where it is recorded and who is told. A document never leaves a decision to the reader.",
+                "Written for home care: a care worker alone on a short scheduled visit in the person's home, supported by the branch office or, out of hours, the On-call Manager. Documents say what care workers do at the door, during the visit and while waiting for help, and never use care home or hospital terms.",
+                "What the law requires is stated separately from what our policy is, so that readers can tell the two apart.",
+                "Other documents are named by their exact title and not restated; each subject has one owning document.",
+                "No telephone numbers, email addresses or other personal details; contact routes are kept on the contact sheets the category parent policies require, such as the Local Safeguarding Contacts sheet.",
+                "Every number and rule matches the rest of the library. Where a document changes a timescale or threshold, the owner lists every other document that uses it and changes them in the same approval round."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Equality and accessibility",
+          "blocks": [
+            {
+              "p": "For every new document and major change, the owner screens for equality impact by asking whether the document could affect anyone differently because of a protected characteristic under the Equality Act 2010, whether it creates a barrier for disabled people or people whose first language is not English, and how it will be made accessible. The outcome is recorded in the version's change summary. Where the screening finds a possible adverse impact, the owner completes a full equality impact assessment with the HR Manager and presents it to the approver with the draft."
+            },
+            {
+              "p": "The law requires reasonable adjustments for disabled employees, which can include providing information in an accessible format (Equality Act 2010, section 20). Our policy is that any employee who finds a document hard to read is offered a read-through of the key points with their line manager, a large-print or audio version, or a translated summary, and their acknowledgement is recorded after that support."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Writing, consulting and approving documents",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Who writes documents",
+          "blocks": [
+            {
+              "p": "The document owner writes each draft or assigns it to the Deputy Manager or, for HR documents, the HR Manager. An external adviser may draft a document, but the owner remains accountable for it. CareFlow allows one draft version of a document at a time, so the owner coordinates all changes into that draft. The owner proposes whether a change is major or minor; the approver confirms it, and any doubt is resolved by treating it as major."
+            }
+          ]
+        },
+        {
+          "heading": "Routes for each kind of change",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Kind of change",
+                  "Consultation",
+                  "Checked by",
+                  "Approved by",
+                  "Staff acknowledgement"
+                ],
+                "rows": [
+                  [
+                    "New document or major change",
+                    "10 working days, as set out under Consultation",
+                    "Nominated Individual",
+                    "The Directors",
+                    "Required where the document requires acknowledgement"
+                  ],
+                  [
+                    "Planned review that finds no change is needed",
+                    "None",
+                    "Nominated Individual",
+                    "The Directors",
+                    "Not required"
+                  ],
+                  [
+                    "Minor change between reviews",
+                    "None",
+                    "Deputy Manager",
+                    "Nominated Individual, reported to the next Directors' meeting",
+                    "Not required; affected staff are told as set out under Telling staff"
+                  ],
+                  [
+                    "Urgent change",
+                    "As far as time allows, with full consultation within 1 month afterwards",
+                    "Deputy Manager, where time allows",
+                    "Nominated Individual or, if unavailable, a Director, ratified at the next Directors' meeting",
+                    "Required, with a phone briefing before each affected care worker's next visit the change affects"
+                  ],
+                  [
+                    "Local procedure",
+                    "Staff of that branch for 10 working days",
+                    "Owner of the organisation-wide document it adds to",
+                    "Nominated Individual",
+                    "Required for that branch's staff"
+                  ],
+                  [
+                    "Form or standard letter",
+                    "At least two staff who will use it",
+                    "Deputy Manager",
+                    "Registered Manager",
+                    "Not required"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Consultation",
+          "blocks": [
+            {
+              "p": "For a new document or a major change, the owner circulates the draft and a summary of the changes and allows 10 working days for comments from:"
+            },
+            {
+              "bullets": [
+                "the Deputy Manager, the Registered Managers of any other branches, and the Care Coordinators and Field Care Supervisors;",
+                "at least three care workers or Senior Care Workers who will use the document;",
+                "the HR Manager, for any document that affects employees' duties, training or conduct;",
+                "the representatives of employee safety, and the safety representatives of any trade union we recognise, for any document that affects staff health and safety. The law requires us to consult employees in good time on any measure that may substantially affect their health and safety (Health and Safety (Consultation with Employees) Regulations 1996, regulation 3);",
+                "at least three people we support or their representatives, through Field Care Supervisors at quality visits or by telephone, where the document changes how people receive care, complain, or have their money, keys, information or medicines handled; and",
+                "a relevant health professional or adviser where the document sets clinical or technical practice, such as a pharmacist for a medicines procedure."
+              ]
+            },
+            {
+              "p": "The owner summarises the comments and the response to each theme for the approver, and records a short consultation summary in the version's change summary."
+            }
+          ]
+        },
+        {
+          "heading": "Checking and approval in CareFlow",
+          "blocks": [
+            {
+              "steps": [
+                "The owner creates the new version in CareFlow as a major or minor version and completes the content, audience, the branches it applies to, links to CareFlow modules, the acknowledgement setting, the proposed effective date and review date, and the change summary: what changed and why, the consultation summary and the equality screening outcome.",
+                "The Deputy Manager checks the draft against the writing standard, and the owner submits it for review. Once submitted, the version is locked and its status is In review.",
+                "The Nominated Individual checks it within 10 working days for accuracy against the law and guidance it cites, consistency with the parent policy and the rest of the library, whether it works for a care worker alone on a visit, the right approval route, and evidence of consultation and equality screening, then either requests changes in CareFlow, which returns it to Draft with comments, or passes it to the approver.",
+                "The Directors decide at a Directors' meeting or, between meetings, by a Director's approval in CareFlow reported to the next meeting. The approval is recorded in CareFlow by the Director who approves it, or by the Nominated Individual quoting the date and minute number of the meeting in the approval comments. The status becomes Approved.",
+                "The owner makes any consequential changes to other documents in the same approval round or, where they are minor, within 1 month."
+              ]
+            },
+            {
+              "p": "Nobody checks or approves a document they wrote: the Registered Manager makes the writing-standard check on a draft the Deputy Manager wrote, a Director replaces the Nominated Individual for a draft the Nominated Individual wrote, and the Nominated Individual approves a form or standard letter the Registered Manager wrote. Only the Nominated Individual, the Registered Manager, the Deputy Manager and the HR Manager have CareFlow permissions to create and manage documents, and only the Directors, the Nominated Individual and the Registered Manager can approve. CareFlow's approval permission covers every document type, so the Registered Manager approves only forms and standard letters. The Nominated Individual checks these permissions and every approval in the annual audit."
+            }
+          ]
+        },
+        {
+          "heading": "Urgent changes",
+          "blocks": [
+            {
+              "p": "An urgent change is needed, for example, when new law comes into force, a national patient safety or medicines alert requires different practice, or an incident, safeguarding enquiry or inspection shows that a document is putting people at risk. Where there is an immediate risk, the Registered Manager issues an interim instruction the same day; out of hours, the On-call Manager gives it where it cannot wait and hands over to the Registered Manager or Deputy Manager by 10am the next working day. Care Coordinators, or the On-call Manager out of hours, phone every affected care worker, including agency workers and anyone already out on visits, the same day and always before their next visit the change affects, and record the briefing in the staff record. Instructions are never left only as a voicemail or text; a care worker not reached in time is taken off that visit and a briefed care worker sent. The updated document is approved and published within 5 working days of the need being identified, and full consultation follows within 1 month."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Publishing and telling staff",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Publishing",
+          "blocks": [
+            {
+              "p": "The Registered Manager publishes each approved version in CareFlow on its effective date, which is within 5 working days of approval. Where staff must be trained before a change takes effect, the version stays Approved, the training is delivered under the Training and Development Policy, and the version is published when the training is complete, no later than 1 month after approval unless the Directors set a later date. Before publishing, the Registered Manager checks that the audience, the branches it applies to and the acknowledgement setting are correct. Publishing makes the earlier version Superseded automatically, so only one version is ever current. The review date is the approval date plus the review frequency the Directors set."
+            }
+          ]
+        },
+        {
+          "heading": "Telling staff",
+          "blocks": [
+            {
+              "bullets": [
+                "On the day of publication, the Registered Manager emails the change summary to everyone in the document's audience who has a work email account. Care workers and Senior Care Workers have none and are never sent document changes by text or messaging app.",
+                "CareFlow notifies every employee in the audience of a document they must acknowledge, in the Employee App or, for office staff, on the web.",
+                "For a major change, Care Coordinators and Field Care Supervisors go through what has changed at the next team meeting and at each care worker's next supervision or spot check, recorded in the supervision record. A minor change that affects care workers is explained at the next team meeting.",
+                "Where another document sets a time for telling staff of a change, such as in safeguarding guidance, they are told within it at a team meeting, supervision or spot check, or by phone, recorded in the supervision record."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Acknowledgement and follow-up",
+          "blocks": [
+            {
+              "p": "Acknowledgement is required for every document whose audience includes anyone other than managers (the Directors, the Nominated Individual, Registered Managers, the Deputy Manager and the HR Manager). A document whose audience is managers only may be briefed to those managers instead, as this policy is; the approver confirms the setting. Other roles given a duty by such a document learn it through the training it sets out. By acknowledging a document, an employee confirms that they have read and understood it and will follow it. Staff acknowledge each new document, and each new major version of it, within 14 days of publication, or of moving into a role it applies to; a minor version does not need acknowledging again and does not restart the count. Care workers read and acknowledge documents in paid time, never while they are with a person."
+            },
+            {
+              "table": {
+                "columns": [
+                  "When",
+                  "What happens",
+                  "Who"
+                ],
+                "rows": [
+                  [
+                    "Publication",
+                    "The document appears for acknowledgement; the employee has 14 days.",
+                    "Employee"
+                  ],
+                  [
+                    "Within 2 working days after the deadline",
+                    "Each overdue employee is contacted, reminded and offered help, including a read-through of the key points.",
+                    "Care Coordinator or Field Care Supervisor for care staff; Registered Manager for office staff"
+                  ],
+                  [
+                    "14 days after the deadline (28 days after publication)",
+                    "Meeting with the employee, recorded in the supervision record. The manager decides whether the employee may continue the work the document governs until they acknowledge it; if not, the Care Coordinator takes them off the visits concerned.",
+                    "Registered Manager or Deputy Manager"
+                  ],
+                  [
+                    "After that meeting",
+                    "Continued failure to acknowledge without good reason is managed under the Disciplinary Policy and Procedure.",
+                    "Registered Manager"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "For an employee on leave or sickness absence, or a bank worker with no shifts, when the deadline falls, the 14 days run from their return, and the line manager notes this in the supervision record. New starters acknowledge the documents required for their role under the Induction and Care Certificate Procedure: care staff before their lone working sign-off, which is not given until they have done so, and other staff by the end of their fourth week, with follow-up as in the table from that deadline. A document may set an earlier deadline for itself, never a later one. Agency workers do not acknowledge in CareFlow: the Care Coordinator or Field Care Supervisor who gives their local induction before the first visit, under the Safer Recruitment Policy, takes them through the key points of the documents their work requires."
+            }
+          ]
+        },
+        {
+          "heading": "Copies for people we support and others",
+          "blocks": [
+            {
+              "p": "A person we support, or their representative, may ask for any of our documents that affects them. The Registered Manager provides it within 10 working days, in the format the person needs, such as large print, easy read, another language or read aloud, as the Communication and Accessible Information Policy sets out. Requests from CQC, commissioners, the police, a coroner or a court are met from CareFlow by the Registered Manager by the deadline they set, including earlier versions where the request concerns a past date. Where a commissioner's contract requires us to send new or changed policies, the Registered Manager sends them within the contract's timescale."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reviewing documents",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Review frequency",
+          "blocks": [
+            {
+              "p": "Every document is reviewed every 12 months unless the Directors set a different frequency when they approve it: 6 months for a document in an area of law that changes often, such as right to work checks or deprivation of liberty, or 24 months for a stable document, such as the Staff Code of Conduct or this policy. No document goes more than 24 months without a planned review."
+            }
+          ]
+        },
+        {
+          "heading": "Planned reviews",
+          "blocks": [
+            {
+              "steps": [
+                "3 months before the review date, the document appears on the monthly document control report.",
+                "At least 2 months before the review date, the owner starts the review by checking the legislation and guidance it cites for changes, the incidents, complaints, safeguarding concerns and audit findings linked to it, feedback from staff and the people we support, and whether practice matches what the document says.",
+                "At least 1 month before the review date, the owner submits a revised draft, or a minor version recording that no change is needed and what was checked.",
+                "By the review date, the version is approved and published with a new review date."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Early review",
+          "blocks": [
+            {
+              "p": "The owner reviews a document early after:"
+            },
+            {
+              "bullets": [
+                "a change in law, statutory guidance, NICE guidance or CQC requirements, or a national safety alert;",
+                "a serious incident, safeguarding enquiry, upheld complaint or claim that involved the document;",
+                "an inspection, commissioner or audit finding, or monitoring showing the arrangements are not working;",
+                "a change to our services, branches, structure, job roles or the way CareFlow is set up; or",
+                "a change to a Safeguarding Adults Board's procedures or a commissioner's contract that affects the document."
+              ]
+            },
+            {
+              "p": "Within 10 working days of the trigger, the owner decides whether a change is needed and whether it is urgent, and records the decision in the document control report."
+            },
+            {
+              "p": "CQC published draft sector-specific assessment frameworks on 24 March 2026, including one for adult social care. CQC's State of Care report of October 2026 still describes its current framework as in use. Until CQC confirms that the new framework applies, we continue to work to the current assessment framework. Within 3 months of CQC publishing the final adult social care framework, the Nominated Individual checks the whole library against it and arranges the changes needed."
+            }
+          ]
+        },
+        {
+          "heading": "Missed review dates",
+          "blocks": [
+            {
+              "p": "A document past its review date remains in force until it is replaced. The Registered Manager tells the Nominated Individual of every overdue review and sets a completion date no more than 1 month later. A review more than 1 month overdue is reported to the Directors and recorded on the risk register under the Risk Management Policy until it is complete. Where the law or national guidance has changed, an overdue document is dealt with as an urgent change."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Version control, archiving and withdrawal",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Versions and retention",
+          "blocks": [
+            {
+              "p": "Only a Draft can be edited. An approved version cannot be edited or returned to Draft, so an error found after approval is corrected through a new version straight after publication, as an urgent change where safety is affected."
+            },
+            {
+              "p": "We never delete a published, superseded or archived version. CareFlow keeps every version with its approval record, acknowledgements and audit trail. We keep them for the life of {{organisation}} plus 6 years, following the Digital Care Hub's retention schedule for adult social care providers, which is sector guidance, not a legal requirement. If we stop using CareFlow or close, the Nominated Individual saves every version from CareFlow, obtains the approval and acknowledgement records from the CareFlow supplier before our access ends, and keeps them for the rest of that period under the Records Management and Retention Policy. A draft not worked on for 3 months is progressed by the owner or, if it is a new document that has never been published, deleted."
+            }
+          ]
+        },
+        {
+          "heading": "Withdrawing a document",
+          "blocks": [
+            {
+              "steps": [
+                "The owner proposes the withdrawal, giving the reason, which document replaces it, and every other document, form and CareFlow link that refers to it.",
+                "The person who would approve the document approves the withdrawal and the date it takes effect.",
+                "On that date, the Registered Manager archives the document in CareFlow and tells affected staff, in the same way as for publication, what they must follow instead.",
+                "References in other documents are corrected as minor changes within 1 month, and any related form is withdrawn and its paper stock destroyed."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Forms, standard letters and printed copies",
+          "blocks": [
+            {
+              "p": "Forms and standard letters are held in CareFlow with the document type Form, under the document they support, and staff use only the current version. When a form changes, Office staff replace the paper stock in each branch office within 5 working days and destroy the old stock. Where the form is kept in people's homes, such as the money and shopping record, a Field Care Supervisor or Senior Care Worker replaces it at their next visit to the person and within 1 month (5 working days for an urgent change), starting the new form from the next entry and keeping completed pages of the old one under the Records Management and Retention Policy."
+            },
+            {
+              "p": "Any printed copy of a document is uncontrolled, and anyone using one checks CareFlow first. We keep no policy folders in branch offices or people's homes. Documents we display in branch offices, such as the signed health and safety statement, are replaced within 5 working days of a new version."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Ready-made policies from the CareFlow library",
+      "blocks": [
+        {
+          "p": "Adopting a ready-made policy in CareFlow creates a Draft in our name. It has no force until it has been approved and published under this policy, and it is treated as a new document: full consultation, equality screening and Directors' approval, starting at v1.0. We adopt each category's parent policy before the documents beneath it."
+        },
+        {
+          "p": "Before submitting an adopted draft, the owner checks every arrangement in it against what we actually do and can do: the roles we have, our branches and services, staffing and rota capacity, every timescale and frequency, local authority and Safeguarding Adults Board arrangements, and our commissioners' contract terms. Where our practice falls short, the owner either changes our practice, with an action plan, owner and date approved with the document, or changes the text. We never publish a document we do not follow. Every change we make to the ready-made text is listed in the change summary, and any number or rule we change is checked against every related document."
+        },
+        {
+          "p": "The Deputy Manager lists on the monthly document control report any adopted policy whose CareFlow library version has been revised. Within 1 month, the owner compares the revision with our version and decides whether to make a change; a revision that reflects a change in the law is an early review trigger. Applying the update in CareFlow creates a new major version, or replaces the text of a draft already open, with the library text in place of ours, so before submitting it the owner re-applies every change we made on adoption, using the change summaries in the version history. The date on which the library was researched never replaces our own planned review."
+        }
+      ]
+    },
+    {
+      "heading": "Local procedures for a branch",
+      "blocks": [
+        {
+          "p": "A branch may have a local procedure only where a local arrangement differs from the rest of {{organisation}}, such as a local authority's safeguarding referral route, an integrated care board's process or a commissioner's contract requirement. A local procedure may add steps or stricter requirements, but it never lowers or contradicts an organisation-wide standard; if it appears to, the organisation-wide document applies."
+        },
+        {
+          "p": "The branch's Registered Manager or Deputy Manager writes it, and the Nominated Individual approves it. It is published in CareFlow for that branch and its staff only. It is reviewed with the organisation-wide document it adds to, and within 1 month of any major change to that document. Local contact sheets, such as the Local Safeguarding Contacts sheet, are not local procedures."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Every version: text, status, dates, owner, approver, audience and change summary",
+                "CareFlow Policies, version history",
+                "Life of {{organisation}} plus 6 years"
+              ],
+              [
+                "Submissions, requests for changes, approvals, publication and archiving",
+                "CareFlow approval records and audit trail; Directors' meeting minutes",
+                "With the version; minutes under the Records Management and Retention Policy"
+              ],
+              [
+                "Consultation responses, equality screening and any full equality impact assessment",
+                "Summary in the change summary; full responses with the papers for the approving meeting",
+                "With the version"
+              ],
+              [
+                "Staff acknowledgements",
+                "CareFlow policy acknowledgements",
+                "With the version"
+              ],
+              [
+                "Briefings and acknowledgement follow-up meetings",
+                "Supervision records and the staff record",
+                "As the Staff Personal Data and HR Records Policy sets out"
+              ],
+              [
+                "Monthly document control reports, early review decisions and the annual audit",
+                "Governance records under the Governance and Quality Assurance Policy",
+                "As the Records Management and Retention Policy sets out"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "The Registered Manager, Deputy Manager and HR Manager are briefed on this policy and the CareFlow policy workflow by the Nominated Individual before they first write, submit or publish a document, and again after each major change to this policy or at least every 24 months. The briefing is recorded in the training and compliance records.",
+            "Each Director is briefed by the Nominated Individual on their approval duties when appointed.",
+            "Care Coordinators and Field Care Supervisors learn, when they start in the role, how to check acknowledgement status in CareFlow and how to brief staff on changes.",
+            "Every employee learns at induction how to find, read and acknowledge documents in CareFlow and how to raise a concern about a document, under the Induction and Care Certificate Procedure.",
+            "Where the annual audit finds that an author's documents repeatedly fail the writing standard or the approval route, the Nominated Individual arranges further support and checks that author's next two documents."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Reviews due within 3 months, overdue reviews, drafts not worked on for 3 months, approved versions not published within 5 working days without training to complete first, and revised ready-made policies",
+                "Monthly document control report compiled from the CareFlow Policies list",
+                "Deputy Manager",
+                "Registered Manager and Nominated Individual"
+              ],
+              [
+                "Acknowledgements by document, naming overdue employees, with targets of 95% within 14 days and 100% within 28 days",
+                "Monthly, from the CareFlow acknowledgement summary and staff acknowledgements lists",
+                "HR Manager",
+                "Registered Manager; quarterly governance report to the Directors"
+              ],
+              [
+                "Reviews more than 1 month overdue",
+                "Monthly",
+                "Nominated Individual",
+                "Directors and the risk register"
+              ],
+              [
+                "Paper forms in stock, documents on display and forms kept in people's homes are current",
+                "Quarterly branch office inspection; every spot check in a person's home",
+                "Deputy Manager; Field Care Supervisors",
+                "Registered Manager"
+              ],
+              [
+                "Quality of document control: correct approval route, consultation and equality screening recorded, control information complete, references and links correct, consistency with related documents, and superseded versions kept",
+                "Audit of 10 documents published in the previous 12 months, or all if fewer, every 12 months",
+                "Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The target is that 100% of documents are within their review date. Every shortfall found by these checks produces an action with a named owner and deadline, recorded with the report or audit and checked at the next one. Results feed into the audit programme under the Quality Audit and Monitoring Procedure."
+        },
+        {
+          "p": "This policy is reviewed every 24 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors. It is reviewed sooner after a change in law or guidance (including CQC confirming its new framework), a change to how CareFlow manages documents, a serious incident or inspection finding linked to an out-of-date or uncontrolled document, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

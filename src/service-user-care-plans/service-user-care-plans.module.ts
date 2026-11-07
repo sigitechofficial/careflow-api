@@ -3,6 +3,7 @@ import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { InitialAssessmentsModule } from '../initial-assessments/initial-assessments.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { PrismaModule } from '../prisma/prisma.module';
+import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
 import { CarePlanComposeService } from './care-plan-compose.service';
 import { CarePlanReviewRemindersJob } from './care-plan-review-reminders.job';
 import { CarePlanTaskReconciliationService } from './care-plan-task-reconciliation.service';
@@ -17,6 +18,7 @@ import { ServiceUserCarePlansService } from './service-user-care-plans.service';
     PrismaModule,
     AuditLogsModule,
     InitialAssessmentsModule,
+    OrganisationGeneralSettingsModule,
     forwardRef(() => NotificationsModule),
   ],
   controllers: [ServiceUserCarePlansController, ServiceUserCarePlansReviewController],

@@ -10,6 +10,7 @@ import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
+import { USER_DISPLAY_SELECT } from '../common/security/secret-fields';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { assertActiveEmployee, assertServiceUserExists } from '../medications/medication.asserts';
@@ -33,9 +34,10 @@ const eventInclude = {
   schedule: { include: { round: true, frequency: true } },
   round: true,
   administeredBy: { include: { personalDetail: true } },
-  enteredBy: true,
-  createdBy: true,
-  managerReviewedBy: true,
+  // identity.User relations: display fields only (the full row carries passwordHash / refreshTokenHash).
+  enteredBy: { select: USER_DISPLAY_SELECT },
+  createdBy: { select: USER_DISPLAY_SELECT },
+  managerReviewedBy: { select: USER_DISPLAY_SELECT },
   route: true,
   notGivenReason: true,
 } satisfies Prisma.MedicationAdministrationEventInclude;

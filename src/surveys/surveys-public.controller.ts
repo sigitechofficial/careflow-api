@@ -1,5 +1,5 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Param, Post, Query, Req } from '@nestjs/common';
+import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { Public } from '../common/decorators/public.decorator';
@@ -17,6 +17,18 @@ export class SurveysPublicController {
   @ApiOperation({ summary: 'Load a survey form by recipient share token' })
   getByToken(@Param('token') token: string) {
     return this.service.getPublicByToken(token);
+  }
+
+  @Public()
+  @Get(':token/form-tokens')
+  @Throttle({ default: { limit: 10, ttl: 60_000 } })
+  @ApiOperation({
+    summary: 'Kiosk tablet: a stock of form tokens for a shared link (answers taken offline are sent later)',
+    description: 'Shared links only (404 otherwise). Each token is used once and lasts 24 hours.',
+  })
+  @ApiQuery({ name: 'count', required: false, description: 'How many (1 to 25, default 1)' })
+  formTokens(@Param('token') token: string, @Query('count') count?: string) {
+    return this.service.shareFormTokens(token, Number(count ?? 1));
   }
 
   @Public()

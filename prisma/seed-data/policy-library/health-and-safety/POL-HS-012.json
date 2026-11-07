@@ -1,0 +1,487 @@
+{
+  "reference": "POL-HS-012",
+  "revision": 1,
+  "title": "Animals and Pets in People's Homes Guideline",
+  "documentType": "GUIDELINE",
+  "summary": "How we keep staff and the people we support safe around dogs, cats and other animals in people's homes while respecting what pets mean to them. It covers assessing and rating animals, what care workers do at the door and during visits, pet care tasks, bites and scratches, staff allergies, animal welfare concerns and pets left alone after a hospital admission or death. For care staff, Care Coordinators and managers.",
+  "keyPoints": {
+    "intro": "Many of the people we support live with pets that matter deeply to them, and we work as guests in their homes. This is what you must do to keep yourself, the person and the animal safe on every visit.",
+    "points": [
+      "Before every visit, check the animals in My care at a glance and the home environment risk assessment, and follow every control exactly.",
+      "Look and listen before you open the door or key safe. If a dog that should be secured is loose, or any animal worries you, do not go in: wait somewhere safe and phone the office or On-call Manager.",
+      "If an animal threatens you, stop, leave the room or the home, shutting the door between you, and phone before you leave. Do not go back in until the Registered Manager, Deputy Manager or On-call Manager confirms it is secured.",
+      "During personal care, moving and handling and medicines support, keep dogs out of the room (except an assistance dog the assessment allows) and other animals clear of the task. Never step over or reach across a dog, or disturb one that is eating or sleeping.",
+      "If an animal bites or scratches you and breaks the skin, wash it with soap and warm water, let it bleed slightly, cover it and phone the office. Call 999 if it is large or deep or will not stop bleeding.",
+      "Never touch a bat. After any bat bite or scratch, wash the wound and get medical help straight away through NHS 111, then phone the office.",
+      "Do only the pet care tasks in the visit plan. Never walk dogs away from the home, give animal medicines, clean cages or tanks, or take an animal to your home or in your car, except an assistance dog on an agreed escorted journey.",
+      "Wear gloves and an apron for litter trays and animal waste, and wash your hands after touching any animal, its bowls or its waste. If you are pregnant or have weakened immunity, do not empty litter trays or clean up animal waste.",
+      "Tell the HR Manager about any allergy to or fear of animals, pregnancy or weakened immunity, so you are not sent to homes or tasks that put you at risk. Nobody is criticised for this.",
+      "Record every bite, scratch, near miss or visit stopped by an animal in the incident log before the end of your shift, and a new or changed animal as a hazard.",
+      "Phone the office the same day if an animal seems neglected, hurt or harmed by someone, or is left alone when the person goes into hospital; before you leave if it is in distress now."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Senior Carer/Nurse",
+    "Carer/Domestic"
+  ],
+  "moduleLinks": [
+    "RISK_ASSESSMENT",
+    "INITIAL_ASSESSMENT",
+    "CARE_PLAN",
+    "INFECTION_CONTROL",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-HS-001",
+    "POL-HS-002",
+    "POL-HS-003",
+    "POL-HS-004",
+    "POL-HS-008",
+    "POL-IPC-001",
+    "POL-SG-012",
+    "POL-CD-015"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety at Work etc. Act 1974, sections 2 and 3",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/2"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 3 (risk assessment)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(a), (b) and (h)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Dangerous Dogs Act 1991, section 3 (dog dangerously out of control in any place, including a private home; householder case limited to trespassers)",
+      "url": "https://www.legislation.gov.uk/ukpga/1991/65/section/3"
+    },
+    {
+      "source": "GOV.UK, Controlling your dog in public: dangerously out of control includes making someone worried it might injure them, in any place including the owner's home",
+      "url": "https://www.gov.uk/control-dog-public"
+    },
+    {
+      "source": "GOV.UK, Banned dogs: prohibited types including XL Bully, and conditions for exempted dogs",
+      "url": "https://www.gov.uk/control-dog-public/banned-dogs"
+    },
+    {
+      "source": "GOV.UK, Report a dog: council dog warden service or local police",
+      "url": "https://www.gov.uk/control-dog-public/report-a-dog"
+    },
+    {
+      "source": "Animal Welfare Act 2006, sections 3 (responsibility, including on a temporary basis) and 9 (duty to ensure welfare)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/45/section/9"
+    },
+    {
+      "source": "Care Act 2014, section 47 (protecting property of adults admitted to hospital or cared for away from home)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/47"
+    },
+    {
+      "source": "HSE, INDG73 Protecting lone workers: how to manage the risks of working alone",
+      "url": "https://www.hse.gov.uk/pubns/indg73.htm"
+    },
+    {
+      "source": "NHS, Animal and human bites (reviewed 27 October 2025)",
+      "url": "https://www.nhs.uk/conditions/animal-and-human-bites/"
+    },
+    {
+      "source": "NHS, Rabies: get medical help immediately after a bat bite or scratch in the UK (reviewed 3 August 2026)",
+      "url": "https://www.nhs.uk/conditions/rabies/"
+    },
+    {
+      "source": "NHS, Toxoplasmosis: avoid cleaning cat litter trays in pregnancy; wear gloves and wash hands",
+      "url": "https://www.nhs.uk/conditions/toxoplasmosis/"
+    },
+    {
+      "source": "UKHSA, Psittacosis: spread by dust from dried bird droppings (updated 28 November 2024)",
+      "url": "https://www.gov.uk/guidance/psittacosis"
+    },
+    {
+      "source": "RSPCA, Report animal cruelty or an animal in distress",
+      "url": "https://www.rspca.org.uk/utilities/contactus/reportcruelty"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "For many of the people we support, a pet is company, routine and a reason to get up in the morning. {{organisation}} respects that: we never ask a person to give up an animal, and we plan care around their pets."
+        },
+        {
+          "p": "Animals can also bite, scratch, trip people, spread infection and trigger allergies, and our care workers meet them alone. We assess these risks and agree controls with the household before we visit."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "Every animal in a home we visit is known, rated and controlled; staff know what to do when one is dangerous; pet tasks are limited and hygienic; animals at risk are acted on."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "All our staff who visit people's homes, including bank and agency workers and students, and the Office staff and On-call Managers who support them. It covers every animal they may meet there, including assistance dogs."
+        },
+        {
+          "p": "Setting an animal on a worker is covered by the Violence and Aggression Towards Staff Policy, and pests by the Infection Prevention and Control Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Secured",
+                "A dog shut in another room, crated or behind a gate it cannot get past, unable to reach the worker's route or the care area; any other animal in its cage, tank, enclosure or another room."
+              ],
+              [
+                "Pet emergency contact",
+                "The person the household names to care for an animal if the person we support suddenly cannot."
+              ],
+              [
+                "Prohibited type",
+                "A dog of a type banned under the Dangerous Dogs Act 1991 (Pit Bull Terrier, Japanese Tosa, Dogo Argentino, Fila Brasileiro, XL Bully), kept only with a Certificate of Exemption."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "Owns this guideline; approves High animal risk controls and Very high alternatives; decides on police, dog warden and RSPCA reports. The Deputy Manager deputises and audits; out of hours the On-call Manager acts until the 10am handover on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Care Coordinators ask about animals at referral, allocate suitable workers, brief them and act on doorstep calls, pet emergencies and welfare concerns. Field Care Supervisors assess and rate animals, agree controls and pet tasks with the person, review after incidents and check controls at spot checks."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Care workers follow the controls and report as set out here; Senior Care Workers show new staff each home's arrangements on shadowing shifts."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing animals in the home",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Before and at the first visit",
+          "blocks": [
+            {
+              "p": "At referral the Care Coordinator asks the referrer and the household about every animal and any history of biting, records the answers in the initial assessment and asks for any dog to be secured before the assessor arrives."
+            }
+          ]
+        },
+        {
+          "heading": "What the assessor records",
+          "blocks": [
+            {
+              "p": "The Animals section of the home environment risk assessment records, for each animal: species, size and number; behaviour with visitors and any bite or attack history; where it is kept during visits, who secures it and whether the person can reliably do so; who else, such as family, looks after it; animals outside, on the route or visiting with family; litter trays and pet waste in care areas; and any prohibited type. The assessor also records each animal and where it is kept during visits in My care at a glance, with any rating of Medium or above; the pet emergency contact in People involved; pet tasks in the visit plans; and what the animal means to the person in What matters to me."
+            },
+            {
+              "p": "It is reviewed at every care plan review, within 7 days of a new animal arriving or a change in behaviour, and before the next visit after a bite, scratch, attack or near miss involving staff. Until a new animal is assessed, the Care Coordinator (On-call Manager out of hours) asks the household the same day to keep it secured during visits."
+            }
+          ]
+        },
+        {
+          "heading": "Rating and controls",
+          "blocks": [
+            {
+              "p": "The assessor rates the residual risk from each animal with the method in the Risk Assessment and Home Environment Risk Assessment Procedure, never lower than the situations below. Every dog, whatever its rating, is secured or kept out of the room during personal care, moving and handling and medicines support, except an assistance dog the assessment records as calm during care, settled out of the way. Other free-moving animals are kept off the bed and clear of the task; a hoist transfer waits until they are."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Rating",
+                  "Situations rated at least this level",
+                  "Controls"
+                ],
+                "rows": [
+                  [
+                    "Low",
+                    "Calm with visitors, no history of biting; caged or small animals.",
+                    "The controls above; reviewed at each care plan review."
+                  ],
+                  [
+                    "Medium",
+                    "Large or powerful dog; barks, jumps or guards; history unknown; a cat that scratches or attacks.",
+                    "Secured away from the route and care area for the whole visit, before the worker arrives. Care Coordinator phone-briefs every worker before their first visit and records it on the risk assessment. No worker in their first 4 weeks of lone working goes alone."
+                  ],
+                  [
+                    "High",
+                    "Has bitten anyone, or lunged at or growled at staff; a prohibited type; the owner cannot reliably secure it.",
+                    "As Medium, and the worker confirms the animal is secured before entering, by phoning the household from outside or seeing it. Approved before the visit by the Registered Manager or Deputy Manager (On-call Manager out of hours, confirmed or changed by 10am the next working day); reviewed at least every 3 months."
+                  ],
+                  [
+                    "Very high",
+                    "Has bitten a worker or visitor causing an injury that needed hospital treatment, or attacked more than once; or no secure arrangement can be relied on.",
+                    "Visits do not go ahead as planned. The Registered Manager or Deputy Manager (On-call Manager out of hours) decides a safe alternative the same day, such as a relative taking the animal out during visits; the person still receives essential care and the commissioner is told where commissioned care changes. Only the Registered Manager approves visits resuming."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "From the moment an animal bites a worker, scratches them so the skin breaks or lunges at them, it is treated as at least High: the next visit goes ahead only with High controls until the review. If the household declines an agreed control, the Health and Safety Policy applies."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "At the door and during the visit",
+      "blocks": [
+        {
+          "p": "Look and listen for animals before opening the door or key safe. Phone the office, or the On-call Manager out of hours, and speak to a person (no answer within 15 minutes: phone the Registered Manager or Deputy Manager directly) when:"
+        },
+        {
+          "table": {
+            "columns": [
+              "What you find",
+              "What you do",
+              "What the office does"
+            ],
+            "rows": [
+              [
+                "A dog that should be secured is loose, a new or unknown animal is in the way, or any animal is aggressive at the door",
+                "Do not go in; if you have opened the door, shut it, leaving the door and key safe secure. Wait somewhere safe, such as your locked car.",
+                "Phones the household to secure it. If it is not secured within 10 minutes, the Care Coordinator (On-call Manager out of hours) sends a key holder, relative or second worker or rearranges the visit under the Missed, Late and Short Visits Procedure; at once for a High missed-visit risk level."
+              ],
+              [
+                "You cannot get in safely and believe the person needs urgent help",
+                "Call 999 and tell the call handler about the animal, then phone the office.",
+                "Follows the No Reply, No Access and Missing Person Procedure."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Record any visit stopped by an animal, and any new or changed animal as a hazard, in the incident log before the end of your shift."
+        },
+        {
+          "p": "During the visit:"
+        },
+        {
+          "bullets": [
+            "Keep your route to the door clear. Never step over or between a dog and the person, reach over a dog, disturb an animal that is eating, sleeping or has young, take anything from its mouth or separate fighting animals.",
+            "If an animal gets loose or threatens you, stop the task, make the person as safe as you can and follow the attack steps below.",
+            "Keep animals away from medicines, wounds, dressings, catheters and food surfaces. A dropped dose you cannot find is phoned in as a medicines incident (Medication Errors, Near Misses and Incidents Procedure) and the owner told to get veterinary advice at once if the animal may have eaten it.",
+            "An assistance dog is working: do not feed, distract or stroke it without the person's agreement.",
+            "Never bring your own animal to a visit, or take a person's animal in your car, except an assistance dog travelling with the person on an escorted journey under the Driving at Work Policy.",
+            "Before leaving, close doors and gates that keep animals contained."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pet care tasks",
+      "blocks": [
+        {
+          "p": "Care workers help with an animal only where the task is in the visit plan and agreed with the person and the animal is rated Low, never instead of essential care. For local authority or NHS-funded care the Care Coordinator first confirms the task with the commissioner in writing; for self-funders and direct payments it is agreed in the service agreement."
+        },
+        {
+          "table": {
+            "columns": [
+              "Allowed when in the visit plan",
+              "Never done by our staff"
+            ],
+            "rows": [
+              [
+                "Putting down food and fresh water from the person's supplies",
+                "Walking a dog away from the home or garden"
+              ],
+              [
+                "Letting a dog into the person's enclosed garden and back",
+                "Giving veterinary medicines, flea or worm treatments"
+              ],
+              [
+                "Emptying and refilling a cat litter tray",
+                "Bathing, grooming, clipping nails, lifting or restraining an animal"
+              ],
+              [
+                "Cleaning up a small amount of animal waste in the care area",
+                "Cleaning bird cages, tanks or hutches, or handling birds, reptiles, exotic or venomous animals"
+              ],
+              [
+                "Helping the person care for their animal themselves",
+                "Taking an animal to a vet or groomer, or looking after it at a staff member's home"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Wear nitrile gloves and an apron for litter trays and animal waste. Clean up waste with the spill method in the Laundry, Soiled Linen and Spillages Procedure, double-bag it in our waste bags into the bin the care plan names, and wash your hands with soap and water after touching any animal, its bowls, bedding or waste. Prepare pet food away from the person's food and wash pet bowls separately. Bird cages are excluded because dried droppings can spread psittacosis."
+        },
+        {
+          "p": "Workers who are pregnant or have weakened immunity do not empty litter trays or clean up animal waste, because cat faeces can carry toxoplasmosis. Animal waste building up, or more animals than the person can care for, is phoned in before leaving and handled as set out under Welfare concerns."
+        }
+      ]
+    },
+    {
+      "heading": "Bites, scratches and attacks",
+      "blocks": [
+        {
+          "steps": [
+            "Get away: go to another room and shut the door, or leave the home, using only the force needed to free yourself. If the animal attacks the person and they are injured or in danger, call 999. An attacking or threatening animal is serious and imminent danger: nobody goes back in until the Registered Manager, Deputy Manager or On-call Manager confirms it is secured.",
+            "Give first aid under the First Aid Procedure: wash with soap and warm water, let it bleed slightly, dry and cover it. Call 999 if the wound is large or deep or will not stop bleeding.",
+            "Never touch a bat. After a bat bite or scratch, wash the wound and get medical help straight away through NHS 111, because some UK bats carry rabies.",
+            "Phone the office or On-call Manager before you leave the area (no answer within 15 minutes: the Registered Manager or Deputy Manager), saying whether the home and key safe are secure; check out or give the time you left. The office arranges the care still due (never sending you back alone), NHS 111 advice the same day for any wound that broke the skin, and cover for your visits.",
+            "Record it in the incident log before the end of your shift, saying what the animal did and what happened just before. A near miss, such as a dog snapping without contact, is phoned in and recorded the same way."
+          ]
+        },
+        {
+          "p": "The Registered Manager or Deputy Manager reviews the incident under the Incident Reporting, Investigation and Learning Policy and the RIDDOR Reporting Procedure. Nobody is required to return to a home where an animal harmed them; a debrief is offered within 3 working days."
+        },
+        {
+          "p": "In law a dog is dangerously out of control anywhere, including its owner's home, if it injures someone or makes them reasonably worried it will; the householder exception covers only trespassers, not invited care workers. The Registered Manager or Deputy Manager decides the same working day, after speaking to the worker, on a report to the police or council dog warden, and reports where a dog injured anyone, the household refuses to secure it or others remain at risk. Other agencies visiting the person are told of a High or Very high animal risk under the Confidentiality and Information Sharing Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Animal welfare, hospital admission and death",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Welfare concerns",
+          "blocks": [
+            {
+              "p": "Care workers record facts in the daily visit notes and phone the office, which logs the concern in the incident log, the same day if an animal lacks food or water, is injured, ill, very thin, filthy or shut in, or anyone harms or threatens an animal; before leaving if it is in distress now."
+            },
+            {
+              "p": "The Care Coordinator speaks to the person the same day if the animal is suffering now; within 2 working days, with their family where appropriate, for animal waste building up or more animals than the person can care for, which are self-neglect signs; otherwise within 5 working days. With agreement, they arrange help from family, the person's vet or an animal welfare charity, or ask the commissioner to review the care plan. Under the Confidentiality and Information Sharing Policy, the Registered Manager decides the same working day whether to report to the RSPCA where an animal is suffering now, or nothing has improved 4 weeks after that conversation. Possible self-neglect follows the Self-Neglect and Hoarding Procedure, where an animal in distress is an urgent sign. Anyone harming or threatening a pet may be controlling or frightening the person, so the office also raises a safeguarding concern under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Hospital admission or death",
+          "blocks": [
+            {
+              "p": "When a person goes to hospital from a visit, the care worker leaves animals secured with food and water and never takes one away, under the Hospital Admission and Discharge Procedure. Whenever a person is admitted, the Care Coordinator (On-call Manager out of hours) phones the pet emergency contact the same day and arranges access under the Key Holding, Key Safes and Access to People's Homes Procedure. With no contact able to help, the Care Coordinator asks the local authority the same day to protect the animals under section 47 of the Care Act 2014; out of hours the On-call Manager calls its emergency duty team if an animal would otherwise go without food or water before the next working day."
+            },
+            {
+              "p": "We do not visit only for an animal, except that the Registered Manager or On-call Manager may authorise one short visit a day, for up to 48 hours, to put down food and water where nobody else can act sooner, with the agreement of the person or representative where they can be reached, recorded in the care plan. After a death, the Care Coordinator tells the next of kin or executor about the animals the same day, and contacts the RSPCA that day if nobody takes responsibility."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Staff allergies, fears and health",
+      "blocks": [
+        {
+          "p": "Staff tell the HR Manager at induction, or when it arises, about any allergy to or fear of animals, pregnancy or weakened immunity. The HR Manager records it in the staff record and tells the Care Coordinator the same day, who does not allocate the worker to homes with that animal or to excluded tasks. A severe allergy or other health effect leads to an individual risk assessment by the HR Manager and Registered Manager within 5 working days. Nobody is criticised for declaring an allergy or fear."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Animal awareness (dog warning signs, doorstep checks, attacks), within lone working and personal safety training",
+                "Care staff, On-call Managers, and Field Care Supervisors and Care Coordinators who make visits",
+                "Induction, before working alone",
+                "Every 3 years, and after an animal attack on the worker"
+              ],
+              [
+                "Assessing and rating animals, within risk assessment training",
+                "Field Care Supervisors, Care Coordinators, On-call Managers",
+                "Before their first assessment",
+                "Every 3 years"
+              ],
+              [
+                "Doorstep animal calls and pet emergencies, within the emergency calls briefing",
+                "Office staff, Care Coordinators, On-call Managers",
+                "Before taking calls alone",
+                "Every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At every spot check in a home with animals, the Field Care Supervisor asks what animal controls apply; a worker who cannot say is briefed before their next visit there. Staff acknowledge this guideline in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Animals section in the audit of 5 home environment risk assessments (target 100%)",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly health and safety indicators"
+              ],
+              [
+                "Every animal incident and welfare concern against these timescales (target 100%)",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly health and safety indicators"
+              ],
+              [
+                "Trends in bites, near misses, stopped visits and repeat addresses",
+                "Quarterly",
+                "Registered Manager",
+                "Health and Safety Meeting and Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "This guideline is reviewed every 24 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in law or guidance, a serious animal-related injury, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

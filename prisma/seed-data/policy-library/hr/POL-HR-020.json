@@ -1,0 +1,264 @@
+{
+  "reference": "POL-HR-020",
+  "revision": 1,
+  "title": "Staff Fitness Concerns and DBS Referrals Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we act when information after appointment suggests that someone who works for us may no longer be of good character, competent or fit by reason of their health to work with the people we support. It covers where concerns come from, routing and interim safeguards, fitness decisions, DBS Update Service changes and barred workers, the legal duty to refer to the Disclosure and Barring Service, referrals to professional regulators, records and audit. For managers, the HR Manager and Care Coordinators.",
+  "keyPoints": {
+    "intro": "This procedure tells managers, the HR Manager and Care Coordinators what to do when information suggests a worker may no longer be safe or fit to work with the people we support, and how we meet our legal duty to refer to the DBS.",
+    "points": [
+      "Pass any information that questions a worker's character, competence or health to the Registered Manager (the On-call Manager out of hours) the same working day; anything suggesting someone has been or may be harmed goes at once under the Managing Allegations Against Staff Procedure.",
+      "Never question the worker, investigate or tell colleagues yourself; the Registered Manager decides the route within 1 working day and records it in the restricted section of the staff record.",
+      "Care Coordinators: apply any restriction on the CareFlow rota before the worker's next visit, check their next 14 days of visits, and tell people we support only that a different worker will visit.",
+      "Interim safeguards are the least restrictive that keep people safe and are never a finding; the worker is told before their next affected visit, never in front of a person we support, is paid for visits removed, and gets written confirmation within 1 working day.",
+      "A status check showing a DBS certificate is no longer current goes to the Registered Manager the same working day, who decides the worker's duties that day; the HR Manager requests an early barred list confirmation the same day.",
+      "Anyone found to be barred stops all work with the people we support at once, leaving a visit as soon as the person is safe and another worker takes over: it is an offence for us to let a barred person work in regulated activity.",
+      "When we dismiss someone or remove them from regulated activity, or would or might have done had they not left, because of harm, risk of harm or a relevant offence, the law requires a DBS referral; failing to refer without reasonable excuse is an offence.",
+      "The Registered Manager records the referral decision within 5 working days, and any referral is submitted within 10 working days of that decision, without waiting for an appeal, a police outcome or another body's referral, unless the police ask us to delay.",
+      "When a nurse, social worker or other registered professional no longer meets the fitness requirements, the Registered Manager tells their regulator, whatever job they do for us.",
+      "A resignation, settlement agreement or reference request never stops an investigation, a DBS or regulator referral or an accurate reference.",
+      "Keep fitness information only in the restricted section of the staff record: never in supervision notes, daily visit notes, rota notes or messages."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["Admin", "Manager", "HR", "Care Coordinator"],
+  "moduleLinks": ["HR", "EMPLOYEE", "SAFEGUARDING", "INCIDENT"],
+  "relatedReferences": ["POL-SG-007", "POL-HR-001", "POL-HR-002", "POL-HR-007", "POL-HR-008", "POL-HR-010", "POL-HR-011", "POL-HR-018"],
+  "regulatoryBasis": [
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 19(1), (4) and (5) (fit and proper persons employed; action when a person no longer meets the requirements; informing the professional regulator)", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/19" },
+    { "source": "Safeguarding Vulnerable Groups Act 2006, section 35 (regulated activity providers: duty to refer)", "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/35" },
+    { "source": "Safeguarding Vulnerable Groups Act 2006, Schedule 3, paragraph 10 (relevant conduct: vulnerable adults' barred list)", "url": "https://www.legislation.gov.uk/ukpga/2006/47/schedule/3/paragraph/10" },
+    { "source": "Safeguarding Vulnerable Groups Act 2006, sections 7 and 9 (barred person engaging in regulated activity; use of a barred person for regulated activity)", "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/9" },
+    { "source": "Safeguarding Vulnerable Groups Act 2006, section 37 (duty to provide information on request)", "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/37" },
+    { "source": "Safeguarding Vulnerable Groups Act 2006, section 38 (duty to provide information: offences)", "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/38" },
+    { "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18 (notification of other incidents)", "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18" },
+    { "source": "Disclosure and Barring Service, Making barring referrals to the DBS (updated 11 September 2026)", "url": "https://www.gov.uk/guidance/making-barring-referrals-to-the-dbs" },
+    { "source": "Disclosure and Barring Service, DBS Update Service employer guide (updated 5 October 2026)", "url": "https://www.gov.uk/government/publications/dbs-update-service-employer-guide/dbs-update-service-employer-guide" },
+    { "source": "Nursing and Midwifery Council, Managing concerns: a resource for employers (updated 12 December 2024)", "url": "https://www.nmc.org.uk/employer-resource/" },
+    { "source": "Health and Care Professions Council, Fitness to practise: raising concerns (updated 12 February 2025)", "url": "https://www.hcpc-uk.org/concerns/raising-concerns/" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "Our care workers are alone in people's homes with their keys, medicines and money, and many of the people we support could not easily tell anyone if something were wrong. The law requires everyone we employ to remain fit for their work and, when someone no longer is, requires us to take necessary and proportionate action and to inform a registered professional's regulator (Regulation 19 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014)." },
+        { "p": "{{organisation}} acts on all information questioning a worker's fitness, the same day where anyone may be at risk, and fairly: a concern is not a finding, and a criminal record or health condition is not automatically a bar. {{organisation}} meets in full its legal duties to refer to the Disclosure and Barring Service (DBS) and to inform professional regulators, whatever the worker's role or reason for leaving." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "bullets": [
+          "Fitness concerns reach the Registered Manager quickly and go to the right procedure.",
+          "People we support are protected by the least restrictive safeguards while fair, recorded decisions are made.",
+          "Every DBS and regulator referral the law requires is decided and made on time."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This procedure applies to everyone who works for us, including bank staff, managers, agency workers, students on placement, volunteers and contractors, from the day they are cleared to work, and to former workers." },
+        { "p": "Other documents own: allegations that someone has harmed, or may pose a risk to, an adult or child (Managing Allegations Against Staff Procedure); misconduct, suspension and hearings (Disciplinary Policy and Procedure); performance (Capability and Performance Procedure); health and ill-health capability (Sickness Absence Policy); information found before clearance (Safer Recruitment Policy); how status, repeat DBS and registration checks are run (Pre-Employment Checks and DBS Procedure); and Directors and the Nominated Individual (Fit and Proper Persons (Directors) Policy). For concerns about the Registered Manager, the Nominated Individual takes the Registered Manager's place throughout, as the Registered Manager Role and Absence Cover Policy sets out." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Fitness concern", "Information suggesting a worker may no longer be of good character, have the qualifications, competence, skills and experience their work needs, or be able, by reason of their health and after reasonable adjustments, to carry out tasks intrinsic to their role (Regulation 19(1))."],
+          ["Regulated activity", "Work with adults that a barred person must not do, including personal care in a person's home and the regular day-to-day management or supervision of people who provide it."],
+          ["Relevant conduct", "Conduct defined in the Safeguarding Vulnerable Groups Act 2006, Schedule 3, paragraph 10 (paragraph 4 for children), including conduct that endangers or is likely to endanger a vulnerable adult, or would if repeated, and inappropriate sexual conduct involving a vulnerable adult."],
+          ["Harm test", "The worker may harm a child or vulnerable adult, cause them to be harmed, put them at risk of harm, attempt to harm them or incite someone else to (Safeguarding Vulnerable Groups Act 2006, section 35(4)). No actual conduct is needed."],
+          ["Relevant offence", "A caution or conviction for an offence that leads to automatic barring, with or without the right to make representations."],
+          ["Professional regulator", "The body that registers a health or social care professional, such as the Nursing and Midwifery Council (nurses and nursing associates), the Health and Care Professions Council or Social Work England (social workers)."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [
+        { "table": { "columns": ["Role", "Duties under this procedure"], "rows": [
+          ["Directors and Nominated Individual", "The Nominated Individual acts for the Registered Manager in concerns about them, approves keeping a worker with safeguards where criminal information is relevant to the role, reviews referral decisions and carries out the formal action check."],
+          ["Registered Manager", "Receives every fitness concern and decides the route, interim safeguards, the fitness outcome and every DBS and regulator referral, approving each referral before submission. The Deputy Manager acts in their absence, except in a case the Deputy Manager is involved in."],
+          ["HR Manager", "Named contact for the worker; keeps the restricted section of the staff record; runs status and registration checks; prepares and submits referrals; answers DBS and regulator requests."],
+          ["On-call Manager", "Out of hours: receives fitness information, stops a worker's visits where a person may be at risk, and hands over by 10am the next working day."],
+          ["Care Coordinators", "Change the CareFlow rota before the worker's next visit so no visit is missed or late, brief replacement workers on the person's care without giving the reason, and tell the people we support only that a different worker will visit."],
+          ["Field Care Supervisors and supervising Senior Care Workers", "Pass fitness information from supervision, spot checks and appraisal self-declarations to the Registered Manager the same working day, and carry out the extra spot checks safeguards require."],
+          ["Office staff", "Pass any call or letter about a worker to the Registered Manager the same working day and confirm nothing to the caller."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Where concerns come from",
+      "blocks": [
+        { "table": { "columns": ["Source", "Examples", "Passed to the Registered Manager"], "rows": [
+          ["The worker", "Arrest, charge, caution, conviction, police or children's social care investigation, referral to the DBS or a regulator, or a health condition or medicine affecting safe work, which the Staff Code of Conduct requires them to report before their next shift", "The same working day by whoever receives it"],
+          ["DBS and registration checks", "A status check showing a certificate is no longer current; a repeat certificate showing new information; a new condition, suspension, interim order or lapse on a professional register", "By the HR Manager the same working day"],
+          ["Our own work", "Safeguarding concerns, complaints, incidents, spot checks, supervision, self-declarations, and eMAR, daily visit note and check-in/check-out audits", "The same working day; at once by phone where anyone may be at risk"],
+          ["Others", "Police, the local authority, CQC, a commissioner, another employer or regulator, families, the public, social media or anonymous sources", "The same working day; at once where anyone may be at risk"]
+        ] } },
+        { "p": "Whoever receives the information keeps no copy and records only that a matter was passed to the Registered Manager." }
+      ]
+    },
+    {
+      "heading": "First response and routing",
+      "blocks": [
+        { "steps": [
+          "The person receiving the information writes down what was said, by whom and when, phones the Registered Manager and passes the note to them. They never question the worker, investigate, or tell colleagues or the people we support.",
+          "If the information suggests the worker has harmed, or may pose a risk to, an adult or child, including conduct outside work such as violence, sexual offences, domestic abuse, theft or fraud, the Registered Manager follows the Managing Allegations Against Staff Procedure from that moment. This procedure applies again at the referral decision.",
+          "For any other concern, the Registered Manager opens a fitness concern record in the restricted section within 1 working day: the information and its source, which part of Regulation 19(1) it concerns, any risk to people we support, interim safeguards, and the route chosen below, with reasons.",
+          "Unless the police or local authority have asked us to wait, the Registered Manager or HR Manager meets the worker privately within 1 working day of the route decision to tell them what we hold and hear their explanation. The meeting is in paid time at the branch office or by video, never in a person's home, and the worker may be accompanied by a colleague or trade union representative.",
+          "The HR Manager, as named contact, offers the employee assistance programme and occupational health and keeps in touch at least weekly while the concern is open."
+        ] },
+        { "table": { "columns": ["Concern", "Route"], "rows": [
+          ["Harm or risk of harm to an adult or child", "Managing Allegations Against Staff Procedure"],
+          ["Possible misconduct, such as dishonesty, falsified records or not reporting an arrest or referral", "Disciplinary Policy and Procedure"],
+          ["Competence shortfall in a task the worker was trained and signed off for", "Capability and Performance Procedure"],
+          ["Health affecting tasks intrinsic to the role, including a disclosed alcohol or drug dependency", "Sickness Absence Policy, with occupational health referral within 5 working days of consent; suspected impairment at work follows the Staff Code of Conduct"],
+          ["A criminal matter outside work that does not suggest risk to adults or children, such as a drink-driving or public order offence", "Fitness decision under this procedure; driving matters also under the Driving at Work Policy"],
+          ["Update Service change, refused check, barred worker or registration matter", "This procedure, as set out below"]
+        ] } },
+        { "p": "Loss of the right to work is not a fitness concern; it follows the Right to Work and Sponsored Workers Policy." }
+      ]
+    },
+    {
+      "heading": "Interim safeguards",
+      "blocks": [
+        { "p": "The Registered Manager or Deputy Manager decides the same day, on a written risk assessment in the restricted section, whether interim safeguards are needed. Out of hours the On-call Manager may stop a worker's visits where a person may be at risk; the Registered Manager or Deputy Manager confirms or changes this by 10am the next working day. The least restrictive measure that keeps people safe is chosen:" },
+        { "bullets": [
+          "no change, with additional unannounced spot checks by a Field Care Supervisor;",
+          "removal from a particular person's visits, or from a task such as medicines support, handling money or driving people we support;",
+          "double-up visits only, with a colleague the Registered Manager chooses;",
+          "office or training duties with no contact with people we support;",
+          "suspension, only under the Disciplinary Policy and Procedure or the Managing Allegations Against Staff Procedure."
+        ] },
+        { "p": "The Registered Manager or HR Manager tells the worker of a safeguard by phone or in person before their next affected visit, never in front of a person we support. A worker stopped while out on visits starts no further visit and leaves one in progress only once the person is safe; the Care Coordinator (On-call Manager out of hours) covers the rest. The HR Manager confirms each safeguard and review in writing within 1 working day, giving reasons as far as the police and local authority allow. The worker is paid for rostered visits a safeguard removes, and a worker without fixed hours is offered other visits the risk assessment allows. For a sponsored worker, the HR Manager checks before any change to duties or pay whether a sponsor report is needed under the Right to Work and Sponsored Workers Policy. The Care Coordinator checks the worker's next 14 days of visits, including double-up partners, cover and on-call shifts. Key safe codes and keys follow the Key Holding, Key Safes and Access to People's Homes Procedure." },
+        { "p": "Once a matter moves to another procedure, safeguards are reviewed as that procedure sets. Safeguards set only under this procedure are reviewed at least every 4 weeks and within 1 working day of new information, such as a charge, court date or verdict, which the worker must report before their next shift. Safeguards end as soon as the risk assessment no longer supports them." }
+      ]
+    },
+    {
+      "heading": "Deciding whether a worker remains fit",
+      "blocks": [
+        { "p": "For a concern kept under this procedure, the Registered Manager records a fitness decision within 10 working days of the route decision. Where it depends on a court or regulator outcome, an interim decision is recorded in that time and a final decision within 5 working days of the outcome. The decision weighs:" },
+        { "bullets": [
+          "relevance to the worker's duties, for example dishonesty in a role with access to homes, money and key safe codes;",
+          "seriousness, how long ago it happened, and whether it is part of a pattern with earlier concerns in the staff record;",
+          "the worker's explanation and whether they told us promptly and honestly; late or hidden disclosure is itself a conduct concern;",
+          "evidence of change, and any views of the police, local authority, regulator or occupational health."
+        ] },
+        { "table": { "columns": ["Outcome", "What follows"], "rows": [
+          ["Fit, no further action", "Safeguards end the same day."],
+          ["Fit with safeguards", "Safeguards, such as not handling money or extra spot checks, are recorded with a review date no more than 3 months ahead. Where criminal information is relevant to the role, the Nominated Individual approves within 2 working days."],
+          ["Fit for some duties only", "Duties are adjusted, or the worker is redeployed by written agreement; health-related changes follow the Sickness Absence Policy and the Equality, Diversity and Inclusion Policy."],
+          ["Formal procedure needed", "The matter moves to the Disciplinary Policy and Procedure, the Capability and Performance Procedure or the Sickness Absence Policy. No one is dismissed under this procedure."]
+        ] } },
+        { "p": "The HR Manager confirms the decision and reasons to the worker in writing within 2 working days. The worker may ask in writing within 5 working days for a review by the Nominated Individual (a Director other than the Nominated Individual where the Nominated Individual decided), decided within 10 working days; safeguards stay in place meanwhile." }
+      ]
+    },
+    {
+      "heading": "Particular situations",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Update Service status changes",
+          "blocks": [
+            { "p": "When a status check shows a certificate is no longer current, the HR Manager tells the Registered Manager the same working day. The Registered Manager decides that day, on a written risk assessment, whether the worker continues normal duties, works with extra supervision or is removed from visits until the new certificate is seen. The same working day, with the worker's consent and where the certificate included an adults' barred list check, the HR Manager emails the DBS an early confirmation request; the DBS replies within 7 working days. A worker who refuses this consent does no visits until the new certificate is seen. The Registered Manager speaks to the worker privately within 1 working day, and the HR Manager submits a new DBS application within 2 working days. The worker shows the HR Manager the original new certificate within 5 working days of receiving it, and any information on it is handled as a fitness concern, or as an allegation where it suggests risk to adults or children." }
+          ]
+        },
+        {
+          "heading": "Refusing a check or consent",
+          "blocks": [
+            { "p": "A worker who refuses a repeat DBS check or consent to status checks is told in writing by the HR Manager why it is required. If they still refuse after 5 working days, the Registered Manager meets them within a further 5 working days. They continue on their existing certificate unless a status check has shown it is no longer current or its 3-year repeat date has passed, in which case they do no visits until the check is complete. Continued refusal is handled under the Disciplinary Policy and Procedure after employment law adviser advice." }
+          ]
+        },
+        {
+          "heading": "A worker who is barred",
+          "blocks": [
+            { "p": "It is an offence for a barred person to engage in regulated activity, and for us to permit it when we know or have reason to believe they are barred. Whoever learns that a worker is barred phones the Registered Manager (the On-call Manager out of hours) at once. The worker stops all work with people we support immediately. If they are in a person's home, the Care Coordinator (On-call Manager out of hours) phones them to stop, stay only until the person is safe, such as finishing a transfer under way, and then leave; another worker or a manager completes the visit, and their remaining visits are reallocated. The law allows a barred person to continue only as long as is necessary to prevent harm when nobody else can act. The HR Manager removes their CareFlow access and recovers their ID badge and any keys the same day, and the Care Coordinator offers a key safe code change the same working day to every person whose code they knew, under the Key Holding, Key Safes and Access to People's Homes Procedure. The Registered Manager tells the Nominated Individual the same working day, and the police where the worker continued or sought to work knowing they were barred. The safeguarding lead decides the same day whether the people the worker visited, listed from check-in/check-out records, need welfare checks. The worker stays on full pay while the HR Manager takes employment law advice within 2 working days, and the employment decision, including any role outside regulated activity, is made within 10 working days under the Disciplinary Policy and Procedure." }
+          ]
+        },
+        {
+          "heading": "Agency workers, students and former workers",
+          "blocks": [
+            { "p": "Employment agencies and colleges have their own duty to refer as personnel suppliers, but it never replaces ours. When we stop an agency worker or student working with the people we support for a reason in The duty to refer to the DBS, the Registered Manager tells the agency or college the same day by phone, the HR Manager confirms it in writing within 1 working day and later obtains their referral decision in writing, and the Registered Manager makes our own referral decision." },
+            { "p": "Where information about a former worker arrives, the Registered Manager assesses whether we would or might have removed them from regulated activity had they still worked for us; if so, the referral decision is recorded within 5 working days of the information arriving." }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Working with other agencies",
+      "blocks": [
+        { "table": { "columns": ["Agency", "How we work with them"], "rows": [
+          ["Local authority, designated officer and police", "Allegations follow the Managing Allegations Against Staff Procedure, including what the worker may be told and when our investigation may start. If the police ask us to delay a DBS referral, the Registered Manager records the request and the officer's name, asks again at least every 10 working days and submits as soon as they agree."],
+          ["DBS", "The DBS may require the information we hold about anyone it is considering barring, whether or not we referred them (Safeguarding Vulnerable Groups Act 2006, section 37). The HR Manager answers by the DBS deadline, or within 10 working days where none is set, after the Registered Manager approves the reply."],
+          ["CQC", "Notifications follow the Statutory Notifications to CQC Procedure where its tests are met. Conduct outside work involving nobody we support is not notifiable under regulation 18 of the Care Quality Commission (Registration) Regulations 2009; the Registered Manager records that decision. Fitness records CQC requests are provided by its deadline or within 2 working days."],
+          ["Commissioners", "Where a contract requires notice of a worker's removal or referral, the Registered Manager gives it within the contract timescale, naming the worker only if the contract requires it and the Nominated Individual approves."]
+        ] } },
+        { "p": "Information is shared under the Confidentiality and Information Sharing Policy. Giving the DBS or a regulator the information the law requires needs no consent from the worker. We never tell a worker's other employers ourselves; the local authority or designated officer decides." }
+      ]
+    },
+    {
+      "heading": "The duty to refer to the DBS",
+      "blocks": [
+        { "p": "The law requires us to give the DBS the information we hold about a worker when two conditions are both met (Safeguarding Vulnerable Groups Act 2006, section 35). First, we withdraw their permission to work in regulated activity or move them out of it, or would or might have done so had they not resigned, retired, been redeployed or otherwise left. Second, we think they have engaged in relevant conduct, satisfy the harm test, or have a caution or conviction for a relevant offence. The duty applies even if the local authority, a regulator or a supplying agency has been told or has referred. Failing to refer, or to provide information the DBS requires, without reasonable excuse is a criminal offence (section 38). Suspension while facts are established does not by itself trigger the duty, nor normally does a return to regulated activity after an investigation." },
+        { "p": "The Registered Manager records a referral decision, with reasons against each condition, within 5 working days of the trigger: the outcome meeting under the Managing Allegations Against Staff Procedure; a disciplinary or capability outcome of dismissal, permanent removal from regulated activity or redeployment out of it; or a resignation or departure during or before a process, once any investigation is completed. Decisions are made on the balance of probabilities; a police decision to take no further action, or an acquittal, does not decide them." },
+        { "steps": [
+          "The HR Manager asks the Nominated Individual for the formal action check under the Whistleblowing (Speaking Up) Policy. A possible connection with a protected disclosure never stops a referral the law requires, but the employment law adviser then reviews the evidence before submission.",
+          "The Registered Manager tells the Nominated Individual of the decision within 1 working day. Where the decision is not to refer although the worker was dismissed, removed from regulated activity or left during a case, the Nominated Individual reviews it within 5 working days and may direct a referral.",
+          "The HR Manager prepares the referral in the DBS Barring Referral Service and attaches the evidence we hold: a chronology, the investigation report and statements, hearing notes, the outcome or resignation letter, local authority and police references, the worker's own account, and their job description and training records. If the online service is unavailable for 2 working days, the HR Manager requests a paper form from the DBS.",
+          "The Registered Manager reads the complete referral and records approval. The HR Manager submits it within 10 working days of the referral decision, without waiting for an appeal, and saves the confirmation in the restricted section.",
+          "The HR Manager tells the worker in writing within 2 working days of submission, unless the police or local authority advise that this would prejudice their enquiries.",
+          "If an appeal overturns the outcome and the worker returns to regulated activity, the HR Manager tells the DBS within 2 working days and sends the appeal outcome."
+        ] },
+        { "p": "The DBS tells us its decision only where we can show a legitimate interest; any outcome we receive goes to the Registered Manager the same day. Where the legal conditions are not met but the police or local authority advise a referral, or a serious risk remains although the evidence was not enough to act on, the Registered Manager may refer with the Nominated Individual's approval and the Data Protection Officer's advice on the lawful basis, using the same steps." }
+      ]
+    },
+    {
+      "heading": "Referrals to professional regulators",
+      "blocks": [
+        { "p": "Where a registered professional no longer meets Regulation 19(1), the law requires us to inform their regulator (Regulation 19(5)(b)), whatever job they do for us, for example a registered nurse employed as a Care Worker. The Registered Manager decides within 5 working days of the finding, or of the information where no internal process is needed, and the HR Manager refers through the regulator's employer referral route within 5 working days of that decision, after the Registered Manager approves it. Where the worker may be practising elsewhere and someone may be at immediate risk, the Registered Manager refers the same working day so the regulator can consider interim action." },
+        { "p": "A regulator may also expect a referral before our own process ends: the Nursing and Midwifery Council's Managing concerns resource marks concerns such as physical abuse, or falsified records that put people at risk, as needing immediate referral. The Registered Manager checks the regulator's employer guidance at the route decision and, where unsure, takes and records the regulator's advice. Regulator and DBS referrals are separate, and both may be needed. The HR Manager tells the worker in writing within 2 working days of a referral." },
+        { "p": "Registration is itself a legal requirement where the work or title needs it (Regulation 19(4)). A worker whose registration lapses, is suspended or is subject to an interim order stops work requiring registration the same day, and any suspension, interim order or new condition is also a fitness concern, whatever role the worker holds. Where conditions are imposed, the Registered Manager checks before the worker's next shift that their duties comply." }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "table": { "columns": ["Record", "Retention"], "rows": [
+          ["Fitness concern record, including risk assessments, safeguards, decisions and letters", "Employment plus 6 years; 20 years from closure where the concern involved alleged harm or risk to an adult or child"],
+          ["DBS and regulator referral decisions, including decisions not to refer, referrals as submitted, evidence, confirmations and correspondence", "20 years from the referral decision"],
+          ["Status check, early confirmation and registration check results", "As the Pre-Employment Checks and DBS Procedure sets out"]
+        ] } },
+        { "p": "These records are kept in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions); managers appointed to the case are given what they need by the HR Manager. People we support are identified by CareFlow reference, except in a referral form that asks for their details. Fitness information never appears in supervision notes, daily visit notes, rota notes or messages, and leaves CareFlow only as an encrypted attachment. While a police or local authority enquiry is open, the HR Manager checks with them before releasing fitness records under any subject access request, including the worker's own. Nothing is destroyed while a DBS or regulator case, tribunal claim, safeguarding enquiry or police investigation is open or expected." },
+        { "p": "References follow the Staff Personal Data and HR Records Policy. We never agree reference wording, a settlement term or any other arrangement that stops us completing a process, making a referral or giving an accurate reference." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "table": { "columns": ["Who", "Training", "When"], "rows": [
+          ["Registered Manager, Deputy Manager, Nominated Individual and HR Manager", "Fitness decisions, the duty to refer, the harm test and regulator referrals, with the DBS decision training in the Safer Recruitment Policy", "Before a first decision or referral, then every 3 years"],
+          ["On-call Managers", "Receiving fitness information and stopping a worker's visits out of hours, within their allegations training", "Before the first on-call shift, then every 12 months"],
+          ["Care Coordinators and Office staff", "Passing on information, rota changes and confidentiality", "When starting the role, then within the annual safeguarding refresher"],
+          ["Field Care Supervisors and supervising Senior Care Workers", "Recognising fitness concerns in supervision, spot checks and self-declarations", "Within supervision skills training, then every 3 years"]
+        ] } },
+        { "p": "Everyone in the audience for this procedure acknowledges it in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["What is checked", "How often", "By whom", "Reported to"], "rows": [
+          ["Open fitness concerns, safeguard reviews, status check changes, and referral decisions and submissions due", "Monthly", "HR Manager", "Registered Manager; Monthly Quality and Governance Meeting"],
+          ["Every fitness concern closed in the quarter against this procedure's timescales, and every dismissal, removal from regulated activity and departure during a process checked for a recorded referral decision", "Quarterly", "Deputy Manager (Registered Manager for the Deputy Manager's own decisions)", "Registered Manager; quarterly governance report to the Directors"],
+          ["Every DBS and regulator referral decision in the year, made or not", "Annually, in November", "Nominated Individual", "Directors"]
+        ] } },
+        { "p": "The target is 100% on time for every timescale in this procedure. Every shortfall goes into the service improvement plan with an action, owner and deadline." },
+        { "p": "This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or DBS or regulator guidance, a serious case, an inspection finding, or when monitoring shows it is not working." }
+      ]
+    }
+  ]
+}

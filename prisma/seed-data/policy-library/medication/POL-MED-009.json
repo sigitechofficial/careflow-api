@@ -1,0 +1,688 @@
+{
+  "reference": "POL-MED-009",
+  "revision": 1,
+  "title": "Covert Administration of Medicines Policy",
+  "documentType": "POLICY",
+  "summary": "When and how a medicine may be given to a person without their knowledge: only for a person who lacks capacity to decide about that medicine, after a prescriber-led best interests decision, written pharmacist advice and the Registered Manager's approval of a written plan. Covers the decision process, giving and recording covert doses at visits, deprivation of liberty, review and audit. For managers, coordinators and care staff.",
+  "keyPoints": {
+    "intro": "Hiding a medicine from a person takes away their choice and is lawful only in narrow circumstances. This tells you what you must never do, how to follow an approved covert administration plan, and when to phone the office.",
+    "points": [
+      "Never hide, crush or mix a medicine into food or drink, or disguise it in any way, unless the care plan has an approved covert administration plan for that medicine and you are named and signed off for that person.",
+      "If a relative or anyone else asks you to hide a medicine, or you find medicine already hidden in food or drink, do not give or serve it. Phone the office, or the On-call Manager out of hours, before you leave.",
+      "If a person keeps declining medicines, never force, trick or pressure them. Record Refused and phone the office. Only the prescriber and the Registered Manager can decide that a medicine may be given covertly.",
+      "Under an approved plan, follow it exactly for each medicine: offer it openly first where the plan says so, use only the food or drink and amount it names, and prepare each dose just before you give it.",
+      "If the food or drink named in the plan is not in the home, give nothing covertly: offer the medicine openly, record what happened and phone the office before you leave.",
+      "Stay with the person until the whole portion is eaten or drunk. Never leave it for later, for anyone else to give, or where another person or a pet could take it.",
+      "Record Given only when you saw all of it taken, with a note of what it was given in. Otherwise record Partially given or Refused, never prepare another dose, and phone the office before you leave.",
+      "Phone before you leave if the person notices the medicine, refuses food or drink, seems drowsy or unwell, or someone else may have eaten it. Call 999 if anyone is seriously unwell.",
+      "If the person seems to understand or asks about their medicines, do not give anything covertly at that visit. Offer the medicine openly, record what happened and phone the office.",
+      "Never give a new or changed medicine, or one not listed in the plan, covertly. Offer it openly and phone the office.",
+      "You must be trained and observed on the person's plan before your first covert dose for them, again whenever the way it is given changes, and at least every 12 months."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Senior Carer/Nurse",
+    "Carer/Domestic"
+  ],
+  "moduleLinks": [
+    "MEDICATION",
+    "CARE_PLAN",
+    "RISK_ASSESSMENT",
+    "SAFEGUARDING"
+  ],
+  "relatedReferences": [
+    "POL-MED-001",
+    "POL-MED-003",
+    "POL-MED-005",
+    "POL-MED-014",
+    "POL-MED-016",
+    "POL-SG-004",
+    "POL-SG-005",
+    "POL-SG-006"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Mental Capacity Act 2005, section 1 The principles",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 4 Best interests",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/4"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 5 Acts in connection with care or treatment",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/5"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 6 Section 5 acts: limitations",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/6"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 Need for consent",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 Safeguarding service users from abuse and improper treatment, including 13(4)(b), (5) and (7)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18 Notification of other incidents, including 18(2)(e) abuse or allegation of abuse",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Office of the Public Guardian, Mental Capacity Act Code of Practice (2007; GOV.UK page last updated 14 October 2020)",
+      "url": "https://www.gov.uk/government/publications/mental-capacity-act-code-of-practice"
+    },
+    {
+      "source": "Specialist Pharmacy Service (NHS), Covert administration of medicines (first published 13 January 2025, last updated 17 June 2026), referring to NICE guideline NG67 section 1.8 for community social care",
+      "url": "https://www.sps.nhs.uk/articles/covert-administration-of-medicines/"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), summarising NICE guideline NG67 Managing medicines for adults receiving social care in the community, including covert administration",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    },
+    {
+      "source": "Court of Protection, Re AG, 2016 EWCOP 37 (6 July 2016): covert medication, Article 8 and review",
+      "url": "https://caselaw.nationalarchives.gov.uk/ewcop/2016/37"
+    },
+    {
+      "source": "Department of Health and Social Care, UK Supreme Court 2026 judgment on what constitutes a deprivation of liberty (published 15 June 2026, updated 22 September 2026)",
+      "url": "https://www.gov.uk/government/publications/changes-to-the-definition-of-deprivation-of-liberty/uk-supreme-court-2026-judgment-on-what-constitutes-a-deprivation-of-liberty"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} gives a medicine to a person without their knowledge only as a last resort: for a person who lacks capacity to decide about that medicine, when the prescriber has decided through a best interests process that it is necessary, a pharmacist has advised in writing how it can be given safely, and the Registered Manager has approved our written covert administration plan. Care workers never decide for themselves, or at a relative's request, to hide a medicine."
+        },
+        {
+          "p": "Covert administration overrides what a person shows they want and depends on deceiving them. The Court of Protection has called it a serious interference with a person's autonomy and right to respect for private life, which makes careful recording and regular review essential. {{organisation}} therefore treats every covert administration plan as a restriction and refers it to the commissioner as a possible deprivation of liberty."
+        },
+        {
+          "p": "This policy adds the covert administration detail to the Medicines Management Policy and the Consent, Mental Capacity and Declined Medicines Policy, following NICE guideline NG67 and the Specialist Pharmacy Service guidance on covert administration."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "No medicine is given covertly until every legal and organisational condition in this policy is met and recorded, and less restrictive options have been tried first.",
+            "Covert doses are given only by named, trained care workers following a written plan, and every dose and failed attempt is recorded and acted on.",
+            "Each plan ends as soon as it is no longer needed, and covert administration without lawful authority is handled as an incident and a safeguarding concern."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to managers, Care Coordinators, Field Care Supervisors, Senior Care Workers, Care Workers, On-call Managers and Office staff, including bank workers, and to every adult who receives medicines support from us, however their care is funded. Agency workers are never allocated to give a covert dose."
+        },
+        {
+          "p": "It does not repeat declined doses (Consent, Mental Capacity and Declined Medicines Policy), how capacity assessments and best interests meetings are carried out (Mental Capacity Act and Best Interests Policy), deprivation of liberty referrals (Deprivation of Liberty in the Community Procedure), restriction approval (Restraint and Restrictive Practice Policy) or eMAR set-up (Medicines Administration Records (MAR and eMAR) Procedure). Medicines through a feeding tube are also Level 3 tasks under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy. Where Mental Health Act 1983 powers apply, such as a community treatment order or guardianship, the Registered Manager writes within 2 working days of any proposal to the commissioner and the responsible mental health team, as the Deprivation of Liberty in the Community Procedure sets out, and no medicine is given covertly until the responsible clinician has decided in writing and every step of this policy is complete."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Covert administration",
+                "Giving a medicine in a disguised form, usually hidden in food or drink, so that the person does not know they are taking it. Applying a patch where the person will not notice it, or giving a medicine through a feeding tube without their knowledge, is also covert."
+              ],
+              [
+                "Not covert",
+                "Mixing a medicine with food or drink that the person knows contains it and accepts, on a pharmacist's written advice; or giving a medicine openly to a person who lacks capacity but accepts it when offered."
+              ],
+              [
+                "Prescriber's authorisation",
+                "The written decision of the prescriber (an independent prescriber where any use is outside the product licence), in a letter or secure email from the practice and filed in the Consent and decisions part of the care plan, naming each medicine that may be given covertly, confirming it is in the person's best interests, accepting any use outside the product licence and setting a review date. A verbal authorisation is never enough."
+              ],
+              [
+                "Pharmacist's advice",
+                "A pharmacist's written advice for each named medicine: whether and how it can be given covertly, the form, the food or drink and amount, preparation, how soon after mixing it must be taken, interactions with food, and disposal of an uneaten portion."
+              ],
+              [
+                "Named care worker",
+                "A care worker with current medicines competency for the formulations involved who has been trained and observed on this person's covert administration plan and signed off in the training and compliance records."
+              ],
+              [
+                "Failed covert dose",
+                "A covert dose not taken in full, recorded as Partially given or Refused."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for {{organisation}} meeting Regulations 11 and 13 and approve this policy. The Nominated Individual, as board-level lead for reducing restrictive practice, challenges the covert administration figures in the quarterly medicines governance report and receives escalations of disputed decisions."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager alone decides whether covert administration is explored and approves every plan and every change to one; the Deputy Manager cannot. During an absence or vacancy this authority passes only to an acting manager whose appointment letter gives it and who has completed the medicines lead and assessor training, under the Registered Manager Role and Absence Cover Policy. Otherwise no plan starts or changes until the Registered Manager returns, and medicines are offered openly. The Registered Manager also chairs best interests meetings we host, decides the deprivation of liberty screen outcome and sends the referral, and keeps the restrictive practice register."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "Chairs a best interests meeting where the Registered Manager prepared the case, may suspend a plan that is not working or is causing harm, and carries out the monthly audit. Never approves a plan or a change, unless appointed acting manager with that authority."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator and Field Care Supervisor",
+          "blocks": [
+            {
+              "p": "The Care Coordinator runs each step of the decision process, writes the plan, sets up the flagged eMAR entries, allocates only named care workers to covert dose visits and keeps review dates. The Field Care Supervisor trains, observes and signs off named care workers and observes covert doses at spot checks; either may write or review a plan as an authorised assessor."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Never hide or disguise a medicine except as a named care worker under an approved plan, follow the plan exactly, record every covert dose at the time, and phone the office before leaving as set out under At the visit. Senior Care Workers show the plan to new named care workers during shadowing."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager, Office staff and HR Manager",
+          "blocks": [
+            {
+              "p": "Office staff and the On-call Manager allocate only named care workers to covert dose visits when rotas change and act on failed covert doses. The On-call Manager never starts, extends or changes covert administration out of hours and hands every covert administration matter to the Registered Manager or Deputy Manager by 10am the next working day. The HR Manager keeps sign-offs in the training and compliance records and tells the care worker and the Care Coordinator 30 days before one expires."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The law and our position",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the law requires",
+          "blocks": [
+            {
+              "bullets": [
+                "Care and treatment need the person's consent; where a person aged 16 or over lacks capacity, we must act in accordance with the Mental Capacity Act 2005 (Regulation 11). A person with capacity may refuse a medicine even if this harms them, and giving it to them covertly is unlawful.",
+                "The Act's principles apply (section 1): a person is assumed to have capacity unless it is established that they lack it, and anything done for a person who lacks capacity must be in their best interests, with regard to whether its purpose can be achieved in a way less restrictive of their rights and freedom. A best interests decision considers the person's wishes, feelings, beliefs and values and consults those close to them and any attorney or deputy (section 4).",
+                "Section 5 protects care given, after reasonable steps to establish capacity, to a person reasonably believed to lack capacity and in their best interests. It does not protect negligence (section 5(3)), does not affect an advance decision to refuse treatment (section 5(4)) and does not authorise an act that conflicts with a decision an attorney or deputy has made within their authority (section 6(6)).",
+                "Regulation 13 prohibits control or restraint, including by chemical means, that is not necessary and proportionate, and deprivation of liberty without lawful authority, which at home only the Court of Protection can give. Department of Health and Social Care guidance on the Supreme Court judgment of 2 June 2026 lists sedating medication as a restriction and treats covert medication given to a person who objects to medication as a form of objection.",
+                "In Re AG (2016) the Court of Protection held that covert medication interferes with the right to respect for private life under Article 8 of the European Convention on Human Rights and needs a best interests decision involving health professionals and family, a recorded plan, and review whenever the medication changes."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Our position",
+          "blocks": [
+            {
+              "p": "Crushing a tablet, opening a capsule or mixing a medicine with food or drink usually means using it outside its product licence. The Specialist Pharmacy Service advises that a prescriber must authorise covert administration, that only an independent prescriber can authorise use outside the product licence, and that a pharmacist advises whether and how each medicine can be given safely. NICE guideline NG67 says care workers must not give, or decide to give, medicines covertly without clear authorisation and instructions in the provider's care plan, in line with the Mental Capacity Act 2005. Our policy goes further:"
+            },
+            {
+              "bullets": [
+                "Each medicine is decided separately, and only medicines the prescriber judges necessary to prevent significant harm are given covertly, never for convenience, to save visit time or because staff or family ask.",
+                "When required medicines for distress, agitation or sleep are never given covertly. Another when required medicine is given covertly only where the authorisation names it and its PRN guidance sets out the signs of need, including non-verbal signs.",
+                "Covert doses are always Level 2 administration by named care workers, never by injection and never with force.",
+                "Covert administration is never decided at an assessment visit, never started out of hours, and never given where a verified attorney or deputy with authority refuses it or an advance decision may cover the medicine, until the prescriber has decided in writing."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Before covert administration is considered",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Less restrictive options first",
+          "blocks": [
+            {
+              "p": "When a person who lacks, or may lack, capacity declines a medicine, the Consent, Mental Capacity and Declined Medicines Policy applies, including same-day clinical advice and the Registered Manager's review of a pattern of declined doses by the end of the next working day. Covert administration may be explored only after the Care Coordinator has recorded in the medicines section of the care plan the result of each of these:"
+            },
+            {
+              "bullets": [
+                "finding the reason for declining, such as pain, nausea, swallowing difficulty, taste or fear, and asking the GP about it;",
+                "the medicines best interests plan, such as a different time, a familiar care worker or the person's preferred drink;",
+                "a medication review to stop medicines that are no longer essential and simplify dose times;",
+                "a form the person may accept openly, such as a liquid, dispersible tablet or patch;",
+                "the person's medicines wishes record and what else is known about what they would want."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "When anyone proposes it",
+          "blocks": [
+            {
+              "p": "Whoever receives a suggestion to give a medicine covertly, from a relative, professional, commissioner or colleague, tells the Care Coordinator the same working day; care workers phone the office before they leave the visit. The Care Coordinator (On-call Manager out of hours) records the proposal in the care plan and updates the deprivation of liberty screen the same working day, and arranges a restrictive practice assessment as a focused review within 7 days under the Care Plan Review Procedure. Unless they decide at once that covert administration will not be explored, the Registered Manager treats the proposal as a possible deprivation of liberty and sends the referral letter within 2 working days of the screen reaching them, as the Deprivation of Liberty in the Community Procedure requires. Meanwhile medicines are offered openly only."
+            }
+          ]
+        },
+        {
+          "heading": "When someone else is already hiding medicines",
+          "blocks": [
+            {
+              "p": "Care workers never serve food or drink into which someone else has put a medicine. A care worker who finds, or is told, that food or drink contains a hidden medicine does not serve or give it and phones the office, or the On-call Manager out of hours, before leaving. Unless the care plan records that a prescriber's best interests decision allows that family member to give that medicine covertly, it is reported as a possible safeguarding concern: the safeguarding lead assesses the risk within 1 hour under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and the Care Coordinator tells the prescriber the same day, asks them to consider a best interests decision and records in the care plan who gives which doses."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Making a covert administration decision",
+      "blocks": [
+        {
+          "p": "Whether a medicine may be given covertly is a medicines treatment decision. It belongs to the prescriber, or to a verified health and welfare attorney or deputy whose authority covers it. Our part is to give evidence, take part in the best interests process and decide whether we can carry out the decision safely. No covert dose is given until every step below is complete."
+        },
+        {
+          "table": {
+            "columns": [
+              "Step",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Decide whether covert administration should be explored, recording why less restrictive options have not worked",
+                "Registered Manager",
+                "Within the 7-day focused review"
+              ],
+              [
+                "Write to the prescriber by secure email asking for a medication review, a capacity assessment for each medicine and a best interests decision, with the eMAR declines, daily visit notes, options tried, the person's known wishes and the people involved",
+                "Care Coordinator",
+                "Within 2 working days of the Registered Manager's decision; chased by phone after 5 working days without a reply, and the Registered Manager writes to the practice manager after 10"
+              ],
+              [
+                "Assess capacity for each medicine; our authorised assessor's observations are recorded in the Consent and decisions part of the care plan and given to the prescriber",
+                "Prescriber",
+                "Before the best interests meeting"
+              ],
+              [
+                "Hold the best interests meeting",
+                "Prescriber; where the prescriber asks us to host it, the Care Coordinator arranges it and the Registered Manager chairs",
+                "Within 10 working days of the prescriber agreeing; invitations at least 5 working days ahead unless the risk requires sooner"
+              ],
+              [
+                "Obtain the prescriber's authorisation and the pharmacist's advice for each medicine, from the supplying pharmacy or practice pharmacist",
+                "Care Coordinator",
+                "Before the plan is submitted for approval"
+              ],
+              [
+                "Write the plan, update the risk assessments and visit plans, set up the flagged eMAR entries with a second check, arrange named care worker sign-off",
+                "Care Coordinator",
+                "Before the plan is submitted for approval"
+              ],
+              [
+                "Approve the plan in CareFlow",
+                "Registered Manager",
+                "Before the first covert dose"
+              ]
+            ]
+          }
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "The best interests meeting",
+          "blocks": [
+            {
+              "p": "The meeting may be held in person, by phone or by video, and the person is supported to attend or have their views presented. We invite the prescriber, a pharmacist (or their written advice), the Registered Manager or Deputy Manager, the Care Coordinator, any verified attorney or deputy, family and friends involved, any advocate, any other provider giving the person medicines, and any court-appointed representative. At least two core care team members (all if fewer) are asked beforehand what the person says and shows when offered medicines. Where nobody but paid staff is appropriate to consult, the Care Coordinator tells the GP practice the same day that an independent mental capacity advocate may be needed and asks the local authority in writing within 2 working days to consider one."
+            },
+            {
+              "p": "For each medicine the meeting records: whether it is still necessary; the less restrictive options; benefits and burdens for the person, including the risk that they detect it and refuse food or drink, choking, interactions with food and loss of trust; their wishes, feelings, beliefs and values; whether they may regain capacity; whether it is offered openly first; who gives which doses, including family; the review date; where records are kept and who may see them; and what happens if capacity returns. Where we host, the chair records the meeting in the Consent and decisions part of the care plan within 2 working days; where the prescriber hosts, the Care Coordinator files their written record there. The Care Coordinator sends the outcome to everyone consulted within 5 working days, with how to challenge it."
+            }
+          ]
+        },
+        {
+          "heading": "The covert administration plan",
+          "blocks": [
+            {
+              "p": "The plan is written in the medicines section of the care plan, with its key steps in the visit plans. For each medicine it states:"
+            },
+            {
+              "bullets": [
+                "the medicine, dose and time, and the dates of the authorisation and pharmacist's advice it rests on;",
+                "whether it is offered openly first; our default is yes, unless the meeting recorded that this causes distress or makes the person refuse food or drink;",
+                "how to prepare it: the tablet crusher or mixing pot, kept with the person's medicines, used only for them and cleaned after each use; whether each medicine is prepared separately; and the food or drink and amount, always a small quantity the person reliably takes, that meets their dietary, cultural and religious needs and, where drinks are thickened, is at their prescribed IDDSI level, and who keeps it in stock (the person's own food and drink, bought by family or by us where shopping is in the care plan);",
+                "how soon after mixing it must be taken, and any food, temperature or timing restrictions;",
+                "what to do if part or none is taken, and how to dispose of an uneaten portion;",
+                "side effects and signs that the person has noticed the medicine, and the named care workers."
+              ]
+            },
+            {
+              "p": "The Care Coordinator checks that the visit length allows time to offer the medicine, give it and stay until it is taken, and asks the commissioner in writing within 2 working days for any extra time needed; for a self-funder, the extra time and its cost are agreed in writing with the person's attorney, deputy or representative under the service agreement before the plan starts. The full plan is held in CareFlow and the GP record; the home copy of the care plan states that a best interests decision about how medicines are given is in place and where it is held, unless the meeting decided the full plan should be in the home copy."
+            }
+          ]
+        },
+        {
+          "heading": "Approval",
+          "blocks": [
+            {
+              "p": "Before approving, the Registered Manager checks and records that every step in the table is complete for each medicine, that no attorney, deputy or advance decision prevents it, that each eMAR entry's instructions state 'Covert administration approved', and that at least three named care workers are signed off. Where the Registered Manager prepared the plan, the Nominated Individual checks it before approval."
+            },
+            {
+              "p": "Within 2 working days of approval the Registered Manager enters the plan on the restrictive practice register, and the Care Coordinator tells the commissioner in writing, adding to the deprivation of liberty referral already made, and tells the GP practice and pharmacy as the Medicines Management Policy requires. Every rostered care worker is told before their next visit."
+            }
+          ]
+        },
+        {
+          "heading": "When a decision cannot wait",
+          "blocks": [
+            {
+              "p": "Where the prescriber judges that a medicine, such as an anti-epileptic, must be given before the full process can be completed to prevent serious harm, they may make an interim best interests decision after discussing it by phone with the Registered Manager and, where reachable, the family and any attorney. We act on it only once the prescriber has confirmed it by secure email, a pharmacist has advised in writing, the Registered Manager has approved an interim plan and the care worker is signed off. The meeting is then held within 10 working days, with the Registered Manager reviewing the interim plan at least weekly until it is. Until these conditions are met, and always out of hours, medicines are offered openly and the office obtains advice on missed doses from the prescriber, pharmacist or NHS 111."
+            }
+          ]
+        },
+        {
+          "heading": "When people disagree",
+          "blocks": [
+            {
+              "p": "Where anyone consulted disagrees and the meeting does not resolve it, we do not give the medicine covertly. The Registered Manager writes to the local authority within 2 working days, or the same working day where the medicine is time-sensitive or flagged advice-if-declined, asking it to take the matter forward, including any Court of Protection application, and tells the prescriber and the Nominated Individual. Meanwhile medicines are offered openly. Where a verified attorney or deputy with authority decides, we follow their decision and raise any concern as the Mental Capacity Act and Best Interests Policy sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Deprivation of liberty and restrictive practice",
+      "blocks": [
+        {
+          "p": "Covert administration is a significant restriction under the Deprivation of Liberty in the Community Procedure. Because it is used only for a person who lacks capacity, it is always referred to the commissioner as a possible deprivation of liberty once proposed; we never decide ourselves that the person is content with it. An approved plan continues while the commissioner decides, and we never stop or reduce a package because a decision is awaited. While a referral is pending, no medicine is added to a plan and no plan is changed without the Registered Manager's approval, and the commissioner is told in writing within 2 working days: of each approved change by the Care Coordinator, and of any increased objection or distress by the Registered Manager. Where this policy says the commissioner is told, for a self-funder it means the local authority that received the referral."
+        },
+        {
+          "bullets": [
+            "Where a Court of Protection order is in place, the Registered Manager writes to the applicant within 2 working days of the proposal and of any later change to the plan. Covert administration starts only within the measures the order authorises or once the applicant confirms in writing that the court has approved it.",
+            "A psychotropic or sedating medicine given covertly is also recorded on the restrictive practice register as a medicine used to manage distress or behaviour, and the Care Coordinator asks the prescriber in writing at every review whether it is still needed, supporting the national STOMP programme."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Giving a medicine covertly",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "At the visit",
+          "blocks": [
+            {
+              "p": "Each person with a plan has at least three named care workers, so that leave and sickness can be covered. When none can attend, the Care Coordinator (On-call Manager out of hours) sends a Field Care Supervisor, Senior Care Worker or Care Coordinator who is signed off for the person; if nobody is, the medicine is offered openly and a dose not taken is handled as a declined dose. Anyone who is not named, or who finds the eMAR entry's instructions without 'Covert administration approved', offers the medicine openly only and phones the office before leaving. So does a named care worker who finds that the food or drink named in the plan is not in the home; the Care Coordinator agrees restocking with the family, or adds it to the person's shopping, the same day. The named care worker:"
+            },
+            {
+              "steps": [
+                "Reads the plan for each medicine due and checks the six rights against the label and the eMAR.",
+                "Offers the medicine openly first where the plan says so; if the person takes it, records Given with the note taken openly.",
+                "Otherwise prepares each medicine exactly as the plan states, just before giving it, never in advance, never in a whole meal or a drink to be sipped over time, and never by another method.",
+                "Gives the portion containing the medicine before the rest of the meal or drink and stays until it is finished or the time the plan allows after mixing has passed. If this will take the visit past its planned end, phones the office, which tells the next visit of the delay; the extra time is paid.",
+                "If part or none is taken, does not press the person, prepare another dose or add more medicine, and disposes of the rest as the plan states; where it gives no instruction, seals it in a lidded container marked with the person's name, the medicine and the date, kept with their medicines, in locked storage where they have it and out of reach of other people and pets, for return to the pharmacy.",
+                "Records the outcome on the eMAR at the time: Given only where the whole portion was seen taken, noting what it was given in; Partially given with how much was taken; or Refused where none was taken, noting how the person responded.",
+                "Records in the daily visit notes the person's response, any sign they noticed the medicine, and any change in eating, drinking, alertness or understanding.",
+                "Phones the office, or the On-call Manager out of hours, before leaving after any failed covert dose and whenever the person noticed the medicine, refused food or drink, seemed drowsy or unwell, or someone else may have taken it. Calls 999 if anyone is seriously unwell."
+              ]
+            },
+            {
+              "p": "If the person shows they understand, or asks about, their medicines, nothing is given covertly at that visit: the care worker offers each medicine openly, records the outcome and phones the office. A counted controlled drug given covertly is counted before and after the dose and recorded as the Controlled Drugs in the Community Procedure requires. Whenever the office or On-call Manager does not answer a call under this policy within 15 minutes, the care worker phones the Registered Manager or Deputy Manager directly, and gives nothing covertly while waiting for advice."
+            }
+          ]
+        },
+        {
+          "heading": "What the office does",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "Action",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "Any failed covert dose",
+                    "Office staff (On-call Manager out of hours) record the call and review the dose on the eMAR; the pharmacist is asked about a partly taken dose; time-sensitive and advice-if-declined medicines handled under the Consent, Mental Capacity and Declined Medicines Policy",
+                    "Before the care worker leaves; clinical advice the same day"
+                  ],
+                  [
+                    "Someone else may have taken the medicine",
+                    "Office gets advice for that person from NHS 111, or calls 999 if they are unwell; incident logged; safeguarding lead told",
+                    "At once"
+                  ],
+                  [
+                    "Person may have regained capacity",
+                    "Covert administration suspended; Care Coordinator (On-call Manager out of hours) asks the prescriber to reassess; it resumes only when the prescriber confirms in writing that the person still lacks capacity and the Registered Manager agrees",
+                    "Prescriber the same working day"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Unauthorised covert administration",
+          "blocks": [
+            {
+              "p": "A medicine given covertly without an approved plan, by someone who is not a named care worker, by a method the plan does not state, or so that someone else took it, is a medicines incident, logged before the end of the shift and reviewed by the Registered Manager or Deputy Manager the same day under the Medication Errors, Near Misses and Incidents Procedure. Covert administration without lawful authority is also a safeguarding concern under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and the Registered Manager decides on a CQC notification of abuse or an allegation of abuse under regulation 18 of the Care Quality Commission (Registration) Regulations 2009. The Registered Manager decides the same day whether the care worker continues medicines visits, and their competency is reassessed before further unsupervised medicines support. The Registered Manager tells the Directors within 24 hours where it is referred to safeguarding or notified to CQC, as the Medicines Management Policy requires, and the Nominated Individual within 24 hours as a concern involving staff. A deliberate covert dose without an approved plan is handled under the Managing Allegations Against Staff Procedure and is a disciplinary matter."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reviewing and ending covert administration",
+      "blocks": [
+        {
+          "p": "Every review, by an authorised assessor with the person, the core care team and those consulted, asks whether each medicine is still needed, whether the person now takes it openly, whether their capacity has changed, how they have responded and whether a less restrictive option now exists. Changes are approved by the Registered Manager."
+        },
+        {
+          "table": {
+            "columns": [
+              "Trigger",
+              "What happens",
+              "Timescale"
+            ],
+            "rows": [
+              [
+                "New plan",
+                "Review of every covert medicine, with the prescriber's view",
+                "4 weeks after the first covert dose"
+              ],
+              [
+                "Every plan",
+                "Scheduled review, also at every care plan review; the prescriber reviews each authorisation, asked in writing by the Care Coordinator 4 weeks before it is due",
+                "At least every 3 months, and every 4 weeks while a deprivation of liberty referral is pending; prescriber at least every 6 months or sooner if they set it"
+              ],
+              [
+                "New medicine, or change of dose, form, brand or time",
+                "Offered openly until an updated authorisation and pharmacist's advice cover it and the Registered Manager approves the change; deprivation of liberty screen updated; commissioner told in writing of the approved change",
+                "Prescriber asked and screen updated the same working day; commissioner within 2 working days of approval"
+              ],
+              [
+                "Hospital admission and discharge",
+                "Ward told on admission that covert administration is in place; after discharge no covert dose until the discharge medicines check is done and the prescriber confirms in writing that the authorisation still applies",
+                "Ward the same day; prescriber the same working day as discharge"
+              ],
+              [
+                "New swallowing difficulty or change in IDDSI level",
+                "Covert dose of any affected medicine stopped until the pharmacist re-advises in writing",
+                "GP the same day; review within 7 days"
+              ],
+              [
+                "Failed covert doses at two consecutive visits or three times in seven days; the person notices the medicine or refuses food or drink; objection or distress; an incident or safeguarding concern involving the plan",
+                "Prescriber told; focused review; food and drink record started under the Nutrition and Hydration Policy where food or drink is refused; plan suspended the same day by the Registered Manager or Deputy Manager if it is not working or is causing harm",
+                "Prescriber the same day; review within 7 days"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A plan ends when the prescriber stops the medicine or the authorisation, the person regains capacity, the person takes the medicine openly for 4 consecutive weeks, or a review finds covert administration no longer in their best interests. The Registered Manager ends it in CareFlow, an authorised eMAR user removes 'Covert administration approved' from the entry's instructions with a second check, care workers are told before their next visit, and within 2 working days the register is updated and the commissioner told in writing."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Proposal, options tried, capacity assessments, best interests meeting record, authorisation, pharmacist's advice and approval",
+                "Consent and decisions part and medicines section of the care plan; copies scanned to the person's documents in CareFlow"
+              ],
+              [
+                "The plan and its risks, such as detection, food refusal, choking and others taking the medicine",
+                "Medicines section, visit plans and risk assessments"
+              ],
+              [
+                "Each covert dose and failed covert dose; the person's response and calls to the office",
+                "eMAR at the time, under the care worker's own log-in; daily visit notes"
+              ],
+              [
+                "Restriction and deprivation of liberty referral",
+                "Restrictive practice register; deprivation of liberty log"
+              ],
+              [
+                "Sign-offs; unauthorised covert administration",
+                "Training and compliance records; incident log and safeguarding records"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are shared only as the best interests decision and the Confidentiality and Information Sharing Policy allow, and are kept under the Records Management and Retention Policy. Its retention schedule keeps restrictive practice register and deprivation of liberty log entries for as long as the care record of the person they are about, or as long as any linked safeguarding, serious incident, complaint or claim record where that is longer."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training or check",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "What covert administration is, why it is never done without an approved plan, and what to report, within full medicines training",
+                "Everyone who gives medicines support",
+                "Before giving medicines support, then every 12 months"
+              ],
+              [
+                "Person-specific sign-off: plan explained by the Field Care Supervisor or Care Coordinator, then the care worker observed preparing, giving and recording a covert dose",
+                "Each named care worker",
+                "Before their first covert dose for that person, when the method changes, and at least every 12 months"
+              ],
+              [
+                "Covert administration pathway: the law, decision steps, writing and reviewing plans, deprivation of liberty",
+                "Care Coordinators, Field Care Supervisors, Deputy Manager and Registered Manager",
+                "Before preparing or reviewing a plan, then every 2 years with capacity assessment training"
+              ],
+              [
+                "Allocating covert dose visits and responding to failed covert doses",
+                "Office staff and On-call Managers",
+                "Within eMAR monitoring training, before monitoring alone or the first on-call shift, then every 12 months"
+              ],
+              [
+                "Read and acknowledge this policy in CareFlow",
+                "Everyone in this policy's audience",
+                "During induction, and within 14 days of each new major version; a minor version does not need acknowledging again"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A care worker whose sign-off has expired is not allocated to a covert dose visit. Each named care worker is observed giving a covert dose at least every 6 months during the observed medicines practice spot check, where following the plan exactly, staying until the dose is taken and recording the right outcome are critical items. A shortfall means feedback the same day, retraining and observation before the next covert dose, and re-observation within 4 weeks."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Failed covert doses, in eMAR exception monitoring",
+                "Daily",
+                "Office staff and Care Coordinator; On-call Manager out of hours",
+                "Registered Manager for every pattern"
+              ],
+              [
+                "Review and authorisation expiry dates",
+                "Weekly",
+                "Care Coordinator",
+                "Weekly management meeting"
+              ],
+              [
+                "Every active plan: authorisation and advice cover each medicine; approved before the first dose; covert doses recorded with a note and failed doses escalated; only named care workers allocated, against visit records; reviews, referral and register in date",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager and the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Plans started, reviewed and ended, failed-dose patterns, incidents, disputes and deprivation of liberty outcomes",
+                "Quarterly, in the medicines governance report",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ],
+              [
+                "Covert administration against this policy and NICE NG67, and in the annual restrictive practice report",
+                "Every 12 months, in September, within the annual medicines audit",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of plans approved with every condition met before the first covert dose, 100% of reviews on time, 100% of covert doses given by named care workers, and no covert administration without an approved plan. Every shortfall produces an action with a named owner and deadline in the service improvement plan within 5 working days."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, such as a revised Mental Capacity Act Code of Practice, an update to NICE NG67, further guidance on the 2026 Supreme Court judgment or any decision on the Liberty Protection Safeguards, a serious incident involving covert administration, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

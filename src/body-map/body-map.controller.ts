@@ -18,7 +18,7 @@ import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiTags } from '@nes
 import { BodyMapPhotoConsentStatus } from '@prisma/client';
 import { existsSync, mkdirSync } from 'fs';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { AnyPermission } from '../common/decorators/permissions.decorator';
@@ -43,6 +43,7 @@ import {
   PatchBodyMapMedicationSiteAdministrationDto,
   UpsertBodyMapMedicationSiteDto,
 } from './dto/body-map-medication-site.dto';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 class UploadBodyMapPhotoDto {
   consentStatus!: BodyMapPhotoConsentStatus;
@@ -50,7 +51,7 @@ class UploadBodyMapPhotoDto {
 }
 
 function bodyMapPhotoUploadRoot() {
-  return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'body-map', 'photos');
+  return uploadPath('body-map', 'photos');
 }
 
 function ensureBodyMapPhotoDir() {

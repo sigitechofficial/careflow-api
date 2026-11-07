@@ -1,0 +1,543 @@
+{
+  "reference": "SUR-PWS-001",
+  "revision": 1,
+  "title": "Welcome check-in: your first week",
+  "audience": "SERVICE_USER",
+  "audienceGroup": "NEW_CLIENTS",
+  "respondents": "People new to our care, in their first week; a representative may answer for someone who cannot give their views, even with help",
+  "summary": "The first-week check call for everyone new to our care: overall experience, visit times, the right care workers, dignity, feeling safe, our information, contacting the office and raising concerns. Named, about 12 minutes, usually by phone.",
+  "purpose": "The first-week check call the Care Coordinator makes to every new person within 7 days of their first visit, under the Person-Centred Care, Dignity and Respect Policy and the Compliments, Feedback and Involvement Procedure. It asks the core questions of the quality check and the annual survey in the same words (overall experience, on time, visit length, familiar care workers, care given your way, doing what matters, dignity, fair treatment, culture and beliefs, feeling safe, our information, and telling us if unhappy), so the first-week result feeds quality check satisfaction on the quality dashboard and compares with later checks. It adds what the policy requires at this call: whether the care workers suit the person, whether they know what help the person needs, whether the person has understood our information and knows how to contact the office, and anything they want changed. It catches early problems with fit, timing, introductions and information before they become complaints or harm, and evidences Regulation 9(3) (involving people), Regulation 17(2)(a) and (e) (assessing people's experience; seeking and acting on feedback) and Regulation 16(2) (an accessible complaints system).",
+  "timing": {
+    "when": "5 to 7 days after the first visit, so the call is made within the 7 days the Person-Centred Care, Dignity and Respect Policy sets",
+    "recurrence": null,
+    "trigger": "The person's first care visit"
+  },
+  "anonymous": false,
+  "channels": ["TELEPHONE", "IN_PERSON", "PAPER"],
+  "estimatedMinutes": 12,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Safeguarding",
+      "Safe and effective staffing",
+      "Assessing needs",
+      "Monitoring and improving outcomes",
+      "Kindness, compassion and dignity",
+      "Treating people as individuals",
+      "Independence, choice and control",
+      "Person-centred care",
+      "Care provision, integration and continuity",
+      "Providing information",
+      "Listening to and involving people",
+      "Equity in experiences and outcomes"
+    ]
+  },
+  "introduction": "Welcome to {{organisation}}. We call everyone in their first week to ask how your care is going and whether anything needs to change. It takes about 12 minutes.\n\nTaking part is up to you, and what you say will not affect your care. Please give your own views; someone can help you. Your answers are linked to your name so we can sort out anything that is not right. Your care workers (carers) will not see them.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to check your care is right for you and to improve our service. The law expects us to ask for feedback; our legal reason for using your answers is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name so we can put things right. They are seen only by our Registered Manager, Deputy Manager, safeguarding lead, Care Coordinators and the office staff who follow them up, never by your care workers (carers), and reports show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this call, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them. To do this, or to complain about how we use your information, contact the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care since it started. Choose \"Don't know\" if it is too early to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your visits",
+      "questions": [
+        {
+          "id": "q-ontime",
+          "text": "Do your care workers arrive on time?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "On time means within about half an hour of the time agreed with you. Think about the visits since your care started.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing",
+          "comment": {
+            "prompt": "Please tell us more, for example which visits are late.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-staytime",
+          "text": "Do your care workers stay for the time agreed for your visit?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, if your visit is booked for 45 minutes, do they stay that long, unless you ask them to go earlier?",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing",
+          "comment": {
+            "prompt": "Please tell us more, for example which visits are cut short.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-known",
+          "text": "Are you visited by care workers you know?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "We mean your regular care workers, or new ones who have been introduced to you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Care provision, integration and continuity"
+        },
+        {
+          "id": "q-right-workers",
+          "text": "Are the care workers who visit you right for you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if it is too early to say. You do not have to give a reason.",
+          "options": ["Yes", "Some of them", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Person-centred care",
+          "comment": {
+            "prompt": "Please tell us more if you would like to.",
+            "showWhen": ["Some of them", "No"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "How you are treated",
+      "questions": [
+        {
+          "id": "q-dignity",
+          "text": "Do your care workers treat you with dignity and respect?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, keeping you covered during personal care and taking care of your home.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Kindness, compassion and dignity",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-yourway",
+          "text": "Do your care workers do things the way you want them done?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, asking you first and listening to how you like things done.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Independence, choice and control",
+          "comment": {
+            "prompt": "Please tell us what you would like done differently.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-know-needs",
+          "text": "Do your care workers know what help you need?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, whether they know what to do at each visit without you having to explain it every time.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Effective: Assessing needs",
+          "comment": {
+            "prompt": "Please tell us what they did not know.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-culture",
+          "text": "Do your care workers respect your culture and beliefs?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, your religion, your language, the food you eat, how you like to dress, or anything else about who you are. Choose \"Does not apply to me\" if this does not matter to you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Treating people as individuals",
+          "comment": {
+            "prompt": "Please tell us what we could do differently.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-fair",
+          "text": "Do you feel we treat you fairly?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Fairly means giving you care as good as anyone else gets, whatever your age, disability, race, religion, sex or sexuality.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Equity in experiences and outcomes",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Feeling safe",
+      "questions": [
+        {
+          "id": "q-safe",
+          "text": "Do you feel safe with your care workers?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "If you do not feel safe, please do not wait for this survey. Phone the office now, or call 999 in an emergency.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safeguarding",
+          "comment": {
+            "prompt": "Please tell us what would help you feel safer.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        }
+      ],
+      "introduction": "You can skip this question if you would rather not answer it."
+    },
+    {
+      "title": "Your care so far",
+      "questions": [
+        {
+          "id": "q-matters",
+          "text": "Does our care help you do the things that matter to you?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, staying in your own home, getting up and dressed, or seeing family and friends. Think about your care so far.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Effective: Monitoring and improving outcomes",
+          "comment": {
+            "prompt": "What would help you do more of the things that matter to you?",
+            "showWhen": ["Rarely", "Never"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Information and getting in touch",
+      "questions": [
+        {
+          "id": "q-information",
+          "text": "Is the information we give you easy for you to use?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, your welcome pack, your care plan and your list of visit times. We can give you information in large print, easy read, audio or another language.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Providing information",
+          "comment": {
+            "prompt": "What would make our information easier for you?",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-office-contact",
+          "text": "Do you know how to contact our office, including evenings and weekends?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "The numbers are in your welcome pack and care folder.",
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Responsive: Providing information"
+        },
+        {
+          "id": "q-tell-us",
+          "text": "If you were unhappy with your care, would you feel able to tell us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes making a complaint. Choose \"Don't know\" if you are not sure.",
+          "options": ["Yes, and I know how", "Yes, but I am not sure how", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "What would make it easier to tell us?",
+            "showWhen": ["No"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything about your care you would like us to change?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, visit times, which care workers come, or how things are done.",
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "text": "Is there anything your care workers do that you would like us to thank them for?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "We will pass your thanks on to them. You can name them if you wish."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Care Coordinator makes this call to every new person 5 to 7 days after their first visit, so it is completed within the 7 days the Person-Centred Care, Dignity and Respect Policy sets, and records it in CareFlow surveys on the day, with who answered and whether by phone or in person. Each week the Care Coordinator checks the list of people who started care against the calls recorded; a call more than 2 weeks overdue is an action trigger in the Compliments, Feedback and Involvement Procedure.",
+      "The call is never made by a member of the person's core care team. Make it by phone at a time that suits the person and never during a care visit. For people who live alone, have dementia or other cognitive impairment, have communication difficulties or have no family involved, a Field Care Supervisor who is not in their core care team does it face to face instead. Use paper only if the person prefers. This is a call, not a send: keep a copy of this template open for responses and enter each call with Record response; do not use Send or schedule, which would put it in the person's portal. Recording answers needs the \"Record survey responses\" responsibility, and opening a survey for responses needs \"Surveys\" (act): give these to the Care Coordinators and office staff who make these calls (by default only managers and admins can record survey answers, and only managers can open a survey for responses).",
+      "Start by saying: \"This is a short call we make to everyone in their first week. It takes about 12 minutes. What you say will not affect your care.\" Read each question, its help text and every answer choice exactly as written, slowly; check the person can hear you, repeat the choices whenever asked and allow breaks. Read the comment prompt after a low answer and write down the person's own words.",
+      "Ask the feeling safe question only once the person confirms they can talk privately. Otherwise leave it unanswered (it is optional for this reason), ask it at their next spot check and record that in CareFlow. Where an interpreter is needed, use a professional interpreter, never a family member.",
+      "The person may involve a family member or representative. Where the person cannot give their views even with support, ask the representative recorded in their care plan, record them in CareFlow's \"Who is answering\" field, and record what you observe of the person's wellbeing. Report representatives' answers separately from people's own.",
+      "If the person cannot be reached, try three times at different times of day over 5 working days; then the Field Care Supervisor completes the check face to face within the next 10 working days.",
+      "Use the same words for the core questions (overall experience, on time, visit length, familiar care workers, care given your way, doing what matters, dignity, fair treatment, culture and beliefs, feeling safe, our information and telling us if unhappy) as the quality check and the annual survey: never reword them, so results compare. The easy read version uses the same wording with three answers (Always or usually; Sometimes; Rarely or never) plus Don't know.",
+      "This is the person's first contact from us: send no other survey, including the monthly visit check-in, for 4 weeks after this call (check the person's survey history in CareFlow before sending anything). The six-week review (SUR-PWS-002) comes after that window.",
+      "Who may open individual answers: the Care Coordinator and office staff who make or follow up the calls, and the managers. This is set in Who can see the answers: individual responses are limited to Care Coordinators, the Registered Manager, the Deputy Manager and the safeguarding lead, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who make or follow up the calls."
+    ],
+    "actingOnResults": [
+      "The Care Coordinator acts on every answer the same working day under the alerts below, and records any change in the person's care plan or daily visit notes.",
+      "How to count: the first-week satisfaction figure is the share answering Very good or Good to the overall question, leaving out Don't know; it is counted in quality check satisfaction on the quality dashboard (target at least 90%). For the other scale questions report the share answering Always or Usually, leaving out Does not apply to me and Don't know. Always show how many people answered each question.",
+      "The Deputy Manager's monthly feedback summary to the Monthly Quality and Governance Meeting reports first-week calls on time (target 100%), first-week satisfaction and the themes from comments, using the fixed theme list in the Compliments, Feedback and Involvement Procedure (timekeeping and visit length; continuity; communication and the office; staff attitude, dignity and respect; personal care; medicines; fairness, culture and identity; safety; other).",
+      "Satisfaction below 90% in any branch, the same negative theme from 3 or more people in one branch in a month, or any first-week call more than 2 weeks overdue needs action: the Registered Manager records the reason and an action in the service improvement plan under the Governance and Quality Assurance Policy.",
+      "Never report results for a group of fewer than 5 people separately: combine it with another group.",
+      "Keep individual answers for 3 years from the call under the Records Management and Retention Policy. For CQC, the call records, the monthly summaries and the actions taken are evidence of involving people from the start of their care and of seeking and acting on feedback (Regulation 9(3) and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe with your care workers?\" answered Sometimes, Rarely or Never, or any comment suggesting abuse, neglect or that someone is at risk.",
+        "action": "Treat as a possible safeguarding concern. Call 999 first if anyone is in immediate danger. Pass it to the safeguarding lead the same working day; the lead assesses the risk within 1 hour, arranges a private conversation with the person by someone outside their core care team, and refers to the local authority where needed, immediately if the risk is immediate and otherwise the same working day, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. A concern about a member of staff also follows the Managing Allegations Against Staff Procedure.",
+        "rule": {
+          "task": "Possible safeguarding concern: does not always feel safe",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"Do you feel safe with your care workers?\" answered Usually.",
+        "action": "The Care Coordinator contacts the person within 5 working days, once they confirm they can talk privately, to ask what would help them feel safer. Anything suggesting abuse or neglect goes to the safeguarding lead at once.",
+        "rule": {
+          "task": "Ask what would help them feel safer",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Usually"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Are the care workers who visit you right for you?\" answered Some of them or No.",
+        "action": "The Care Coordinator asks the person the same working day whether they want a change; they do not have to give a reason. A request is acknowledged by the end of the next working day and actioned from the next rota, and in every case within 7 days, at once if the person is distressed or has raised a concern about that care worker, under the Person-Centred Care, Dignity and Respect Policy. A reason suggesting misconduct or abuse goes to the safeguarding lead the same working day; a reason based on a care worker's protected characteristic is answered by the Registered Manager under the Equality, Diversity and Human Rights in Care Policy.",
+        "rule": {
+          "task": "Care workers not right: offer a change",
+          "if": [
+            {
+              "question": "q-right-workers",
+              "answers": ["Some of them", "No"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "\"Do your care workers arrive on time?\", \"Do your care workers stay for the time agreed for your visit?\" or \"Are you visited by care workers you know?\" answered Rarely or Never, or a comment describing a missed visit.",
+        "action": "The Care Coordinator checks the check-in and check-out records for the visits so far and contacts the person within 5 working days to agree changes. A missed visit not already recorded goes in the incident log the same working day, graded at least Medium, under the Missed, Late and Short Visits Procedure.",
+        "rule": {
+          "task": "Check visit times, length and familiar care workers",
+          "if": [
+            {
+              "question": "q-ontime",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-staytime",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-known",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "record": "INCIDENT"
+        }
+      },
+      {
+        "when": "\"Do your care workers know what help you need?\" or \"Do your care workers do things the way you want them done?\" answered Rarely or Never.",
+        "action": "The Care Coordinator checks the same working day that the care plan is complete and that the care workers on the rota have read it, briefs them, and contacts the person within 5 working days. Where the full care plan is not yet in place after a short-notice start, it is completed within 7 days of the start under the Needs Assessment and Care Planning Policy.",
+        "rule": {
+          "task": "Check the care plan is complete and read",
+          "if": [
+            {
+              "question": "q-know-needs",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-yourway",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "\"Do your care workers treat you with dignity and respect?\", \"Do your care workers respect your culture and beliefs?\" or \"Do you feel we treat you fairly?\" answered Rarely or Never, or a comment describing unfair or degrading treatment.",
+        "action": "Tell the Registered Manager the same working day. Dissatisfaction is recorded as a complaint the same working day, graded within 1 working day and acknowledged within 3 working days under the Complaints Policy and Procedure; discrimination by our staff is graded High. Degrading or humiliating treatment is a possible safeguarding concern and goes straight to the safeguarding lead.",
+        "rule": {
+          "task": "Dignity, respect or fairness concern",
+          "if": [
+            {
+              "question": "q-dignity",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-culture",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-fair",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "\"Is the information we give you easy for you to use?\" answered Rarely or Never.",
+        "action": "The Care Coordinator contacts the person within 5 working days to agree the format, contact method or support they need, records it in their care plan and puts it in place, under the Communication and Accessible Information Policy.",
+        "rule": {
+          "task": "Agree an information format that works for them",
+          "if": [
+            {
+              "question": "q-information",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do you know how to contact our office, including evenings and weekends?\" answered No or Not sure, or \"If you were unhappy with your care, would you feel able to tell us?\" answered \"Yes, but I am not sure how\", No or Don't know.",
+        "action": "Within 5 working days the Care Coordinator sends the office and out-of-hours numbers and the How to raise a concern or make a complaint leaflet in the person's recorded format, and checks the numbers are in their care folder. For No to telling us, a Field Care Supervisor who is not in the person's core care team offers a private conversation about what would make it easier.",
+        "rule": {
+          "task": "Send office numbers and the complaints leaflet",
+          "if": [
+            {
+              "question": "q-office-contact",
+              "answers": ["No", "Not sure"]
+            },
+            {
+              "question": "q-tell-us",
+              "answers": ["Yes, but I am not sure how", "No", "Don't know"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Overall experience answered Poor or Very poor, or \"Does our care help you do the things that matter to you?\" answered Rarely or Never, with no particular concern described.",
+        "action": "The Care Coordinator contacts the person within 5 working days to agree what we will do and records any complaint that emerges the same working day.",
+        "rule": {
+          "task": "Poor experience: agree what we will do",
+          "if": [
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "q-matters",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "A comment or an answer to \"Is there anything about your care you would like us to change?\" asking for a change, or expressing dissatisfaction that needs a response.",
+        "action": "A request for a change is acknowledged to the person by the end of the next working day and dealt with under the Person-Centred Care, Dignity and Respect Policy. Dissatisfaction that needs a response is a complaint: record it the same working day under the Complaints Policy and Procedure. If unsure, treat it as a complaint."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Care Coordinator, or someone else in the office who is not in the person's core care team, contacts the person within 5 working days in the way they prefer and records what was agreed.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      },
+      {
+        "when": "An answer to \"Is there anything your care workers do that you would like us to thank them for?\", or any other comment praising our service or a named member of staff.",
+        "action": "Record it as a compliment in CareFlow the same working day; the Field Care Supervisor or line manager passes it to each employee named within 5 working days, under the Compliments, Feedback and Involvement Procedure."
+      }
+    ]
+  },
+  "access": {
+    "responses": ["CARE_COORDINATOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER", "SAFEGUARDING_LEAD"],
+    "results": ["CARE_COORDINATOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-CD-001",
+    "POL-GOV-006",
+    "POL-GOV-005",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-CD-002",
+    "POL-CD-005",
+    "POL-CD-006",
+    "POL-CD-013",
+    "POL-GOV-002",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9(3)(d) and (f): supporting people to take part in decisions about their care, with the information they need",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(a) and (e): assess, monitor and improve quality, including people's experience; seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 16(2): an accessible system for identifying, receiving and handling complaints",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/16"
+    },
+    {
+      "source": "NICE NG21 Home care: delivering personal care and practical support to older people living in their own homes, recommendations 1.1.5 (matching care workers), 1.2.4 (written information that people may find hard to take in at first), 1.4.5 (how to complain) and 1.4.7 (continuity and introducing new care workers)",
+      "url": "https://www.nice.org.uk/guidance/ng21"
+    },
+    {
+      "source": "NHS England, Using the Friends and Family Test to improve patient experience (version 2): the overall experience question with a free-text follow-up; people receiving ongoing care may fear that feedback affects their care",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2019/09/using-the-fft-to-improve-patient-experience-guidance-v2.pdf"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1(2) and (3): presume capacity and take all practicable steps to help a person decide",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    }
+  ]
+}

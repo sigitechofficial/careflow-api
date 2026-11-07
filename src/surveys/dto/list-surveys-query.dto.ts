@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsIn, IsOptional } from 'class-validator';
+import { IsEnum, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { SurveyStatus, SurveyTargetKind } from '@prisma/client';
 
 export class ListSurveysQueryDto {
@@ -19,4 +19,10 @@ export class ListSurveysQueryDto {
   @IsOptional()
   @IsIn(['true', 'false'])
   isTemplate?: string;
+
+  @ApiPropertyOptional({ description: "Who it's for (audience group code)" })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  audienceGroup?: string;
 }

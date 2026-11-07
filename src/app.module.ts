@@ -26,6 +26,7 @@ import { EmployeeSkillsModule } from './employee-skills/employee-skills.module';
 import { EmployeeCertificationsModule } from './employee-certifications/employee-certifications.module';
 import { EmployeeDocumentsModule } from './employee-documents/employee-documents.module';
 import { EmployeeReviewsModule } from './employee-reviews/employee-reviews.module';
+import { SupervisionModule } from './supervision/supervision.module';
 import { EmployeeNonCoreActivitiesModule } from './employee-non-core-activities/employee-non-core-activities.module';
 import { SpecialVisitsModule } from './special-visits/special-visits.module';
 import { EmployeeAllocationsModule } from './employee-allocations/employee-allocations.module';
@@ -122,6 +123,7 @@ import { PictureGalleryModule } from './picture-gallery/picture-gallery.module';
 import { BodyMapModule } from './body-map/body-map.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { SurveysModule } from './surveys/surveys.module';
+import { CqcEvidenceModule } from './cqc-evidence/cqc-evidence.module';
 import { SpecialistPathwaysModule } from './specialist-pathways/specialist-pathways.module';
 import { SafeguardingModule } from './safeguarding/safeguarding.module';
 import { CrmModule } from './crm/crm.module';
@@ -136,6 +138,7 @@ import { PayrollModule } from './payroll/payroll.module';
 import { OfficeSalariesModule } from './office-salaries/office-salaries.module';
 import { SetupChecklistModule } from './setup-checklist/setup-checklist.module';
 import { RoleTasksModule } from './role-tasks/role-tasks.module';
+import { ScriptsModule } from './scripts/scripts.module';
 import { RoleResponsibilitiesModule } from './role-responsibilities/role-responsibilities.module';
 import { LearningModule } from './learning/learning.module';
 import { PoliciesModule } from './policies/policies.module';
@@ -185,6 +188,7 @@ import { JobsModule } from './jobs/jobs.module';
     EmployeeCertificationsModule,
     EmployeeDocumentsModule,
     EmployeeReviewsModule,
+    SupervisionModule,
     EmployeeNonCoreActivitiesModule,
     SpecialVisitsModule,
     EmployeeAllocationsModule,
@@ -281,6 +285,7 @@ import { JobsModule } from './jobs/jobs.module';
     BodyMapModule,
     IncidentsModule,
     SurveysModule,
+    CqcEvidenceModule,
     SpecialistPathwaysModule,
     SafeguardingModule,
     CrmModule,
@@ -295,6 +300,7 @@ import { JobsModule } from './jobs/jobs.module';
     OfficeSalariesModule,
     SetupChecklistModule,
     RoleTasksModule,
+    ScriptsModule,
     RoleResponsibilitiesModule,
     LearningModule,
     PoliciesModule,

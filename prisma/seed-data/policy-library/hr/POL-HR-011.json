@@ -1,0 +1,801 @@
+{
+  "reference": "POL-HR-011",
+  "revision": 1,
+  "title": "Sickness Absence Policy",
+  "documentType": "POLICY",
+  "summary": "How staff report sickness so every visit is covered, the evidence we need, Statutory Sick Pay from the first day and our company sick pay scheme, keeping in touch, occupational health, returning to work, and how frequent and long-term absence is managed fairly, including the ill-health capability route. For every employee and the managers who support them.",
+  "keyPoints": {
+    "intro": "What you must do when you are too ill to work, what you are paid, and how we support you back. The people we support still need their visits, so telling us early matters.",
+    "points": [
+      "If you are too ill to work, phone and speak to a person at least 2 hours before your first visit or shift: the office, or the On-call Manager out of hours (office staff: the Deputy Manager). A text, voicemail or message is never enough.",
+      "If the office does not answer within 15 minutes, phone the On-call Manager, then the Registered Manager or Deputy Manager. If you are too ill to phone, someone else may phone for you. Never arrange cover with a colleague yourself.",
+      "Tell us whether you have diarrhoea, vomiting, a high temperature, a rash or another sign of infection. The infection rules then decide when you can return, and that absence is never held against you.",
+      "If you fall ill during a shift, finish only what cannot safely wait and phone the office or On-call Manager from the person's home. Never leave a person at risk, and do not drive if you feel unsafe.",
+      "Phone by 12 noon the day before you plan to return, and by 12 noon the day before each rostered day while you are still off without a fit note.",
+      "For absence of up to 7 calendar days you complete a self-certificate at your return-to-work conversation. From day 8 you need a fit note: send a photo or copy to the HR Manager within 2 working days.",
+      "You are paid Statutory Sick Pay from your first day off sick if you qualify. After probation you also get company sick pay, which tops your pay up to normal pay for a set period.",
+      "Your supervisor holds a short return-to-work conversation after every absence. It is about your health and any support you need, never about blame.",
+      "Tell your supervisor or the HR Manager if a health condition, disability, pregnancy, stress or medicines affect your work. You need not give a diagnosis, and we will look at adjustments and offer occupational health.",
+      "Pregnancy-related absence, absence caused by our infection rules, and absence caused by violence at work never count towards absence review points.",
+      "While you are off, your named contact keeps in touch as agreed with you: at least weekly from week 2, then every 2 weeks with a welfare meeting every 4 weeks. You can use the free 24-hour confidential employee assistance programme at any time.",
+      "Never work for anyone else while off sick from us without telling the HR Manager first: you may lose company sick pay, and the Disciplinary Policy and Procedure may apply."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "INFECTION_CONTROL"
+  ],
+  "relatedReferences": [
+    "POL-IPC-008",
+    "POL-HR-010",
+    "POL-HR-005",
+    "POL-HS-015",
+    "POL-HS-016",
+    "POL-HR-015",
+    "POL-HR-012",
+    "POL-HR-019"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "GOV.UK, Statutory Sick Pay (SSP): employer guide (entitlement, eligibility and form SSP1, notice and fit notes, help with sick pay)",
+      "url": "https://www.gov.uk/employers-sick-pay/print"
+    },
+    {
+      "source": "GOV.UK, Statutory Sick Pay: what you'll get",
+      "url": "https://www.gov.uk/statutory-sick-pay/what-youll-get"
+    },
+    {
+      "source": "GOV.UK, Statutory Sick Pay: eligibility",
+      "url": "https://www.gov.uk/statutory-sick-pay/eligibility"
+    },
+    {
+      "source": "Acas, Employment Rights Act 2025: changes and dates (SSP from the first day of sickness and removal of the lower earnings limit from 6 April 2026; unfair dismissal qualifying period from 1 January 2027)",
+      "url": "https://www.acas.org.uk/employment-rights-act-2025"
+    },
+    {
+      "source": "Statutory Sick Pay (General) Regulations 1982, regulation 5 (qualifying days)",
+      "url": "https://www.legislation.gov.uk/uksi/1982/894/regulation/5"
+    },
+    {
+      "source": "Statutory Sick Pay (General) Regulations 1982, regulation 7 (time and manner of notification of incapacity)",
+      "url": "https://www.legislation.gov.uk/uksi/1982/894/regulation/7"
+    },
+    {
+      "source": "Department for Work and Pensions, Getting the most out of the fit note: guidance for employers and line managers",
+      "url": "https://www.gov.uk/government/publications/fit-note-guidance-for-employers-and-line-managers/getting-the-most-out-of-the-fit-note-guidance-for-employers-and-line-managers"
+    },
+    {
+      "source": "Acas, Absence from work (absence policies)",
+      "url": "https://www.acas.org.uk/absence-from-work"
+    },
+    {
+      "source": "Acas, Absence trigger points",
+      "url": "https://www.acas.org.uk/absence-trigger-points"
+    },
+    {
+      "source": "Acas, Keeping in touch during absence",
+      "url": "https://www.acas.org.uk/keeping-in-touch-during-absence"
+    },
+    {
+      "source": "Acas, Returning to work after absence",
+      "url": "https://www.acas.org.uk/returning-to-work-after-absence"
+    },
+    {
+      "source": "Acas, Disability-related absence",
+      "url": "https://www.acas.org.uk/supporting-disabled-people/disability-related-absence"
+    },
+    {
+      "source": "Acas, Sickness and ending employment",
+      "url": "https://www.acas.org.uk/sick-leave/sickness-and-ending-employment"
+    },
+    {
+      "source": "Equality Act 2010, section 18 (pregnancy and maternity discrimination: work cases, including illness suffered as a result of pregnancy)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/18"
+    },
+    {
+      "source": "Equality Act 2010, section 15 (discrimination arising from disability)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/15"
+    },
+    {
+      "source": "Equality Act 2010, section 20 (duty to make adjustments)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20"
+    },
+    {
+      "source": "Maternity and Parental Leave etc. Regulations 1999, regulation 6(1) (start of maternity leave after pregnancy-related absence)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3312/regulation/6"
+    },
+    {
+      "source": "Access to Medical Reports Act 1988, section 3 (notification and consent, including the rights of access and amendment under sections 4 and 5)",
+      "url": "https://www.legislation.gov.uk/ukpga/1988/28/section/3"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 13(15) (carrying forward leave not taken because of sickness)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/13"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 88 (pay during notice while incapable of work because of sickness)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/88"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1 Part 1, paragraphs 1 (employment) and 2 (occupational medicine and assessing working capacity)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/part/1"
+    },
+    {
+      "source": "GOV.UK, PAYE and payroll for employers: keeping records",
+      "url": "https://www.gov.uk/paye-for-employers/keeping-records"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Many of the people we support rely on each visit to get up, eat, take their medicines or stay safe. When a care worker is ill the visit still has to happen, and a care worker who works while unwell may spread infection, make mistakes or be injured."
+        },
+        {
+          "p": "{{organisation}} is committed to making it easy and safe to report sickness so that every visit is covered; to paying sick pay from the first day of sickness, with company sick pay once probation is complete, so that nobody feels they must work while ill; to keeping in touch, using occupational health and making reasonable adjustments to help people back; and to managing frequent or long-term absence consistently, and only after looking for its cause. Absence caused by pregnancy, by our infection control rules or by violence at work is never held against anyone."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "To make sure sickness is reported in time for every visit to be reallocated safely; to set out the evidence we need and the sick pay staff receive; to support staff while they are off and back at work; to manage frequent and long-term absence fairly and without discrimination; and to keep staff health information confidential."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee of {{organisation}}, including bank, zero hours, part-time, apprentice, office and management staff. Agency workers report sickness to their agency and to our office under the same reporting rules, and their agency pays them; students on placement report to our office and their college."
+        },
+        {
+          "p": "Owned elsewhere: exclusion periods and pay for staff excluded while well (Staff Infection-Related Illness and Exclusion Policy); performance shortfalls not caused by ill health (Capability and Performance Procedure); pregnancy risk assessment (New and Expectant Mothers at Work Procedure); family leave, time off for dependants and antenatal appointments (Flexible Working and Family Leave Policy); stress risk assessments (Work-Related Stress and Staff Wellbeing Policy); reporting work-related injuries (RIDDOR Reporting Procedure); holiday entitlement (Working Time, Rest Breaks and Travel Time Policy); and cover for an absent Registered Manager (Registered Manager Role and Absence Cover Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Episode",
+                "One continuous period of sickness absence, including non-working days within it."
+              ],
+              [
+                "Long-term absence",
+                "Sickness absence lasting, or expected to last, 4 weeks (28 calendar days) or more."
+              ],
+              [
+                "Normal pay",
+                "Pay at the basic rate for contracted hours or, for staff on variable or zero hours, for average weekly paid hours including travel time over the 12 complete weeks before the absence began."
+              ],
+              [
+                "Review point",
+                "A level of sickness absence that leads to an informal meeting to understand the cause and offer support. Reaching one is never itself a sanction."
+              ],
+              [
+                "Named contact",
+                "The employee's named supervisor under the Supervision, Spot Checks and Appraisal Policy, or the HR Manager where the employee prefers or the absence relates to their supervisor."
+              ],
+              [
+                "Rolling period",
+                "A period counted back from the first day of the latest absence."
+              ],
+              [
+                "Working day",
+                "Monday to Friday, excluding bank holidays in England."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and fund company sick pay, the external occupational health provider and the 24-hour confidential employee assistance programme. The Nominated Individual acts in formal cases where the Capability and Performance Procedure says so and audits formal cases every November."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "Owns this policy, decides whether to start a formal stage, sets adjusted review points, agrees adjustments and return plans with the HR Manager, and chairs meetings the Capability and Performance Procedure assigns to the Registered Manager. The Deputy Manager acts in their absence, but the Nominated Individual then holds any meeting that could end in a final written attendance warning or dismissal."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "Keeps absence records and medical evidence, calculates sick pay and sends it to payroll, issues form SSP1, identifies review points and long-term absence, makes occupational health referrals, sends every letter, and attends formal meetings as adviser and note-taker."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Managers",
+          "blocks": [
+            {
+              "p": "Take sickness calls, record the absence and reallocate visits before they are due, and build adjustments and return plans into the rota. The On-call Manager hands every absence reported out of hours to the Care Coordinator by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Named supervisors and all employees",
+          "blocks": [
+            {
+              "p": "Named supervisors, normally Field Care Supervisors for care staff, keep in touch, hold return-to-work conversations and absence review meetings, and act as case lead where the Capability and Performance Procedure says so. Every employee reports sickness and provides evidence as this policy requires, keeps in touch, attends return-to-work conversations and occupational health appointments, and tells the HR Manager before doing any other work while off sick from us."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting sickness",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Telling us you cannot work",
+          "blocks": [
+            {
+              "steps": [
+                "The employee phones as soon as they know they cannot work, and at least 2 hours before their first visit or office shift unless the table below gives a different time, and speaks to a person. A text, voicemail, email or message through a colleague is never enough. If they are too ill to phone, someone else may phone for them.",
+                "They tell us whether they have diarrhoea, vomiting, a high temperature, a new cough, a rash or another sign of infection, whether the illness or injury is connected with work, when they expect to return, and anything urgent about their visits, such as keys they hold for a person or a medicine due at a set time.",
+                "If the office does not answer within 15 minutes, they phone the On-call Manager, and if the On-call Manager does not answer within 15 minutes, the Registered Manager or Deputy Manager directly. They never arrange cover with a colleague themselves.",
+                "While off without a fit note, they phone by 12 noon the day before each rostered day to say whether they will work. Once a fit note covers the absence, they phone by 12 noon the day before they plan to return. Care staff make these calls to the Care Coordinator on a working day and the On-call Manager at a weekend or on a bank holiday."
+              ]
+            },
+            {
+              "table": {
+                "columns": [
+                  "Employee",
+                  "Who they phone"
+                ],
+                "rows": [
+                  [
+                    "Care Worker, Senior Care Worker, Field Care Supervisor",
+                    "The office in office hours; the On-call Manager out of hours, at weekends and on bank holidays."
+                  ],
+                  [
+                    "Office staff, Care Coordinator, HR Manager",
+                    "The Deputy Manager (the Registered Manager for the HR Manager), or a Care Coordinator if they do not answer within 15 minutes; the On-call Manager where the call falls outside office hours."
+                  ],
+                  [
+                    "On-call Manager due on call",
+                    "The Care Coordinator in office hours or the manager on the management escalation rota out of hours, at least 4 hours before the on-call period."
+                  ],
+                  [
+                    "Deputy Manager; Registered Manager",
+                    "The Registered Manager; the Nominated Individual. Both by 9am on the first day; a manager due on the management escalation rota also phones the On-call Manager at once so that escalation calls go to another manager."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "What the office does",
+          "blocks": [
+            {
+              "p": "Where symptoms suggest infection, the Care Coordinator, or the On-call Manager out of hours, applies the exclusion table during the call under the Staff Infection-Related Illness and Exclusion Policy. The same day they record in the staff record only that the employee is unavailable and the expected return date, with any infection-related absence entry that policy requires, and pass any other reason the employee gave to the HR Manager alone. They reallocate visits before they are due, giving priority to time-sensitive medicines and people with a High missed-visit risk level under the Missed, Late and Short Visits Procedure, and collect any key the employee holds before the next visit that needs it, under the Key Holding, Key Safes and Access to People's Homes Procedure. People we support are told only that a different worker will visit; the office phones the person or their chosen contact before any visit that will be more than 30 minutes late, or where cover cannot meet a recorded preference for the sex of the care worker. Where the employee says an injury or illness is connected with work, the Care Coordinator tells the HR Manager the same day for the RIDDOR Reporting Procedure and checks that it is in the incident log. Where visits cannot be covered, the Business Continuity and Emergency Planning Policy applies."
+            }
+          ]
+        },
+        {
+          "heading": "Becoming unwell during a shift",
+          "blocks": [
+            {
+              "steps": [
+                "A care worker who feels too unwell to carry on finishes only what cannot safely wait, never leaves a person at risk, and phones the office, or the On-call Manager out of hours, from the person's home before going on, then the Registered Manager or Deputy Manager directly if nobody answers within 15 minutes. If they need urgent help themselves they call 999 or NHS 111 first.",
+                "Where the person cannot safely be left, the worker stays until the replacement worker arrives, unless the office or On-call Manager tells them to leave because their symptoms put the person at risk. On a double-handed visit the colleague does no two-worker task alone.",
+                "The worker records in the daily visit notes what was and was not done, secures the home as the care plan says, checks out and goes home. With symptoms of infection they never enter another home or the office, under the Staff Infection-Related Illness and Exclusion Policy.",
+                "The Care Coordinator, or the On-call Manager, reallocates the remaining visits, sends another worker at once where the person cannot safely be left, and arranges a taxi home at our cost where the employee cannot drive safely."
+              ]
+            },
+            {
+              "p": "Hours worked are paid in full, and the rest of that day's rostered hours are sickness absence. The exception is a worker who stops because of violence or aggression, a distressing event, abuse or work-related distress under the Violence and Aggression Towards Staff Policy or the Work-Related Stress and Staff Wellbeing Policy, or a fatigue stop under the Working Time, Rest Breaks and Travel Time Policy: the rest of that day's rostered hours are paid in full and are not sickness absence."
+            }
+          ]
+        },
+        {
+          "heading": "No contact",
+          "blocks": [
+            {
+              "p": "If a care worker does not check in for a visit and has not phoned, the monitor follows the worker-safety escalation in the Lone Working and Staff Personal Safety Policy, because we cannot assume they are only unwell, and the Care Coordinator covers the visit. If any employee is found safe but has not explained the absence, or an office-based employee does not arrive, the Care Coordinator or line manager phones the employee, then their emergency contact, the same day. If there is still no contact on the second day, the Field Care Supervisor makes a welfare visit to the employee's home that day and tells the HR Manager. Absence that remains unexplained once the employee is found safe is dealt with under the Disciplinary Policy and Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Sickness and annual leave",
+          "blocks": [
+            {
+              "p": "An employee who falls ill during booked annual leave phones the office on the first day of sickness and provides a self-certificate or fit note as below (from a local doctor if abroad); those days become sickness absence and the leave is given back. Statutory annual leave accrues during sickness, and may be taken during sick leave at the employee's request but is never required. The law lets a worker carry over statutory leave that sickness prevented them taking, to be taken within 18 months of the end of the leave year in which it arose; for most workers this covers the 4 weeks under regulation 13 (Working Time Regulations 1998, regulation 13(15)). Our policy carries over all 5.6 weeks of statutory leave on the same terms."
+            }
+          ]
+        },
+        {
+          "heading": "Medical appointments",
+          "blocks": [
+            {
+              "p": "Routine medical and dental appointments are made outside rostered hours where possible. Otherwise the employee asks the Care Coordinator as soon as the appointment is made, and at least 5 working days ahead where they can, so that visits are covered; the time is unpaid unless it is disability leave or an occupational health appointment we arrange. Antenatal appointments follow the Flexible Working and Family Leave Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Evidence of sickness",
+      "blocks": [
+        {
+          "p": "For absence of up to 7 calendar days, including non-working days, the employee completes a self-certificate at the return-to-work conversation. We never ask for a doctor's note for these days, and we pay for any medical evidence we do ask for."
+        },
+        {
+          "p": "From the 8th day the employee needs a fit note, which a doctor, registered nurse, occupational therapist, pharmacist or physiotherapist may issue on paper or digitally. They send a photograph or copy to the HR Manager within 2 working days of issue and obtain each further note before the last one ends. A fit note without the issuer's name and profession is not accepted. An employee may return before a fit note ends; there is no fit-to-return note."
+        },
+        {
+          "p": "Where a fit note says the employee may be fit for work, the HR Manager and Registered Manager decide within 2 working days whether the advised changes can be made and agree them with the employee before their first shift. In home care these are typically fewer or shorter visits, no moving and handling or two-worker visits, visits near home, no driving, or office-based duties such as rota support or e-learning. Where they cannot be made, the employee stays on sick leave with sick pay on the same fit note and is told why in writing."
+        }
+      ]
+    },
+    {
+      "heading": "Sick pay",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Statutory Sick Pay: what the law requires",
+          "blocks": [
+            {
+              "bullets": [
+                "Since 6 April 2026 Statutory Sick Pay is payable from the first full day of sickness, with no minimum earnings level, to an employee who has done some work for us and gives notice of sickness. A day on which they worked for a minute or more before going home sick does not count.",
+                "The rate for 2026 to 2027 is £123.25 a week or 80% of average weekly earnings over the previous 8 weeks, whichever is lower, for up to 28 weeks. Episodes 8 weeks or less apart are linked and count towards the same 28 weeks.",
+                "It is paid for qualifying days. For staff with fixed working days these are those days; for staff whose days vary, our contracts agree they are the days rostered on the published rota and, beyond it, the days of the week usually worked as recorded in the staff record when the absence began.",
+                "It is not payable during Statutory Maternity Pay or Maternity Allowance, for pregnancy-related sickness in the 4 weeks before the expected week of childbirth, or in the other cases GOV.UK lists.",
+                "An employer may not require notice of sickness in person, on a form, as medical evidence or more than once every 7 days. For Statutory Sick Pay purposes our time limit is the end of the first rostered day of sickness; it is withheld only for days reported late without good reason, and never because a fit note arrived late."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Our company sick pay scheme",
+          "blocks": [
+            {
+              "p": "Company sick pay tops up Statutory Sick Pay to normal pay. Entitlement depends on continuous service on the first day of absence and is an amount, measured in weeks of normal pay, available in any rolling 12 months; each payment is deducted from it."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Continuous service",
+                  "Company sick pay in any rolling 12 months"
+                ],
+                "rows": [
+                  [
+                    "Probation not completed",
+                    "Statutory Sick Pay only, where the employee qualifies"
+                  ],
+                  [
+                    "Probation completed, under 2 years",
+                    "2 weeks at normal pay"
+                  ],
+                  [
+                    "2 years to under 5 years",
+                    "4 weeks at normal pay, then 4 weeks at half pay"
+                  ],
+                  [
+                    "5 years or more",
+                    "8 weeks at normal pay, then 8 weeks at half pay"
+                  ]
+                ]
+              }
+            },
+            {
+              "bullets": [
+                "Statutory Sick Pay is included in company sick pay, not added to it. At half pay the employee receives half normal pay or Statutory Sick Pay, whichever is higher; when company sick pay is used up, Statutory Sick Pay continues where due.",
+                "A day on the published rota is paid at the hours rostered that day, including travel time between visits; days beyond the published rota are paid at one-seventh of weekly normal pay.",
+                "The Registered Manager may withhold company sick pay, never Statutory Sick Pay, only for days when the employee did not report sickness as this policy requires without good reason, did not provide a fit note when due, or worked elsewhere without telling us. Reasons are given in writing within 5 working days; pay withheld for a missing fit note is paid once it arrives. The employee may use the Grievance Policy and Procedure.",
+                "An employee suspended under the Disciplinary Policy and Procedure stays on full pay if unwell. For sickness during notice, the HR Manager applies the Employment Rights Act 1996, which may require full pay for the statutory notice period (section 88)."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Paying sick pay",
+          "blocks": [
+            {
+              "p": "The HR Manager codes each absence in the staff record and sends sick pay to payroll for the next pay run, with Statutory Sick Pay and company sick pay shown separately on the payslip, and updates the statutory rate each April. Form SSP1 is sent within 7 days of the first day off sick where an employee does not qualify, by the start of the 23rd week where Statutory Sick Pay will end before the sickness does, and within 7 days where it ends unexpectedly. For a sponsored worker the HR Manager checks absence and pay against the sponsor duties in the Right to Work and Sponsored Workers Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Absences treated differently",
+      "blocks": [
+        {
+          "p": "So that nobody is penalised for following our safety rules, being harmed at work, being pregnant or seeking help, the HR Manager records these absences with their own absence type, and none of them counts towards review points."
+        },
+        {
+          "table": {
+            "columns": [
+              "Absence",
+              "Pay"
+            ],
+            "rows": [
+              [
+                "Excluded while well, or hours lost to a restriction, under the Staff Infection-Related Illness and Exclusion Policy",
+                "Normal rate, on the basis that policy sets"
+              ],
+              [
+                "Too unwell to work with an infection",
+                "Company sick pay and Statutory Sick Pay. Three or more infection-related absences in 6 months lead only to an occupational health referral"
+              ],
+              [
+                "Infection a doctor diagnoses as caught at work; blood or body fluid exposure or post-exposure treatment; reaction to a vaccine we arrange",
+                "Normal rate, under the Staff Infection-Related Illness and Exclusion Policy, the Sharps Safety and Needlestick Injury Procedure or the Staff Vaccination and Immunisation Policy"
+              ],
+              [
+                "Absence caused by violence or aggression at work",
+                "Normal pay for up to 13 weeks, not deducted from company sick pay; then company sick pay"
+              ],
+              [
+                "Other injury from an accident at work recorded in the incident log",
+                "Company sick pay and Statutory Sick Pay; an employee still on probation receives 2 weeks at normal pay"
+              ],
+              [
+                "Pregnancy-related sickness",
+                "Company sick pay and Statutory Sick Pay, subject to the maternity rules; never used in any decision about the employee"
+              ],
+              [
+                "Planned disability leave for treatment, rehabilitation or assessment, agreed in advance",
+                "Normal pay for up to 5 rostered days in any rolling 12 months, then as sickness absence"
+              ],
+              [
+                "Planned treatment for an alcohol or drug dependency the employee has told us about under the Staff Code of Conduct, with dates agreed with the HR Manager",
+                "Company sick pay, and Statutory Sick Pay where due"
+              ],
+              [
+                "Safe leave under the Domestic Abuse Policy",
+                "Normal pay for up to 10 rostered days in any rolling 12 months, as that policy sets; recorded as safe leave in the restricted section, never as sickness"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Sickness absence caused by domestic abuse is recorded as sickness, but the HR Manager and Registered Manager decide within 5 working days of learning the cause whether to disregard it for review points, and record the decision in the restricted section of the staff record."
+        },
+        {
+          "p": "Pregnancy: unfavourable treatment because of illness resulting from pregnancy is unlawful during the protected period (Equality Act 2010, section 18). Absence wholly or partly because of pregnancy on or after the start of the 4th week before the expected week of childbirth starts maternity leave the next day (Maternity and Parental Leave etc. Regulations 1999, regulation 6(1)); the HR Manager confirms this to the employee in writing within 2 working days."
+        },
+        {
+          "p": "Disability: the law requires reasonable adjustments to avoid substantial disadvantage to a disabled employee (Equality Act 2010, section 20) and forbids unfavourable treatment because of something arising from disability, such as disability-related absence, unless it is a proportionate means of achieving a legitimate aim (section 15). Employees tell their named supervisor or the HR Manager about a health condition, disability, pregnancy, stress or medicine that affects their work (a medicine before their next shift, under the Staff Code of Conduct); they need not give a diagnosis. Where an employee tells us of a long-term condition, or a review suggests one, the HR Manager offers occupational health. Within 5 working days of the advice the Registered Manager and HR Manager agree with the employee how disability-related absence is recorded, the adjusted review points that apply to it, any disability leave and other adjustments, review them every 12 months and when health changes, and tell the employee about Access to Work."
+        }
+      ]
+    },
+    {
+      "heading": "Keeping in touch and support",
+      "blocks": [
+        {
+          "p": "Contact supports the employee and never pressures them back; nobody is asked to do work or deal with work matters while off sick. At the first contact the named contact agrees how and when they will be in touch and records it in the staff record; an employee who finds contact hard may name a family member or friend to be contacted instead."
+        },
+        {
+          "table": {
+            "columns": [
+              "Stage of absence",
+              "Contact"
+            ],
+            "rows": [
+              [
+                "First week",
+                "The employee's own calls. The named contact also phones within 3 working days where the absence relates to stress, an injury at work or a distressing incident."
+              ],
+              [
+                "Weeks 2 to 4",
+                "The named contact phones at least weekly."
+              ],
+              [
+                "After week 4",
+                "Contact at least every 2 weeks, and a welfare meeting at least every 4 weeks with the named contact and the HR Manager, at the branch office, by video or, only at the employee's request, at home. The employee hears about vacancies, training and reorganisations as colleagues at work do."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every employee can use our free 24-hour confidential employee assistance programme. Where absence relates to stress, the HR Manager or Registered Manager completes an individual stress risk assessment with the employee within 5 working days of learning this, by phone or video if they prefer, under the Work-Related Stress and Staff Wellbeing Policy."
+        },
+        {
+          "p": "The HR Manager offers an occupational health referral, made within 5 working days of written consent: by the end of week 4 of any absence; once absence for a musculoskeletal problem, stress, anxiety, depression or a work-related injury or illness passes 7 days; at any absence review; and on request. The referral describes the role, including lone working, driving, personal care and moving and handling, and asks about return date, adjustments, a phased return and whether the condition is likely to be a disability. The employee sees the referral before it is sent and the report before or when it reaches us. Appointments in working hours are paid, and travel costs are reimbursed."
+        },
+        {
+          "p": "Before we ask the employee's own GP or consultant for a report, the law requires us to tell them, including their rights to refuse consent, to see the report before or after it is supplied and to ask for it to be amended, and to have their consent (Access to Medical Reports Act 1988, sections 3 to 5). Our policy is that the HR Manager obtains that consent in writing. An employee may decline any referral or report; we then decide on the information we have and tell them so in writing."
+        }
+      ]
+    },
+    {
+      "heading": "Returning to work",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Return-to-work conversation",
+          "blocks": [
+            {
+              "p": "After every episode the named supervisor holds a private return-to-work conversation, never in a person's home or in front of colleagues: by phone or in person within 3 working days of return after up to 7 days' absence; before or at the start of the first shift after longer absence; and in person or by video, with the HR Manager where adjustments are needed, before the first shift after long-term absence. It covers how the employee is and whether they are fit for every task on their visits, including moving and handling, driving and medicines support; whether work caused the absence, which is then recorded in the incident log if it is not already; medicines that may affect their work; support and adjustments; care plan changes for people on their run and training that expired; the self-certificate, which goes to the HR Manager; and, stated factually, whether a review point has been reached."
+            },
+            {
+              "p": "The supervisor records it in the staff record within 2 working days without health details, which go only to the HR Manager for the restricted section. After infection-related absence it runs alongside the return conversation in the Staff Infection-Related Illness and Exclusion Policy and never delays a return that policy allows."
+            }
+          ]
+        },
+        {
+          "heading": "Phased returns and adjustments",
+          "blocks": [
+            {
+              "p": "A phased return or temporary adjustment advised on a fit note, by occupational health or at the return-to-work conversation is set out in a written return plan agreed by the HR Manager and Registered Manager with the employee: hours, visits, tasks to avoid, review dates and end date. The Care Coordinator builds it into the rota before the first shift and never allocates excluded tasks; the named supervisor checks progress weekly. A phased return normally lasts up to 4 weeks, or up to 8 weeks on occupational health advice. For its first 2 weeks the employee receives normal pay; after that, hours worked are paid and hours not worked are paid from any remaining company sick pay or, if the employee chooses, as annual leave. Temporary adjustments are reviewed at least every 4 weeks; a permanent change to hours or role needs the employee's written agreement."
+            }
+          ]
+        },
+        {
+          "heading": "After a long absence",
+          "blocks": [
+            {
+              "p": "After 4 weeks or more away the employee has supervision in their first week back, and about 4 weeks after the return the HR Manager sends the confidential coming back to work survey as the 4-week check on the return plan; only the HR Manager reads the answers. After 3 months or more they also have an unannounced spot check within 4 weeks, hand hygiene and PPE reassessment and observed moving and handling before working without a colleague, and medicines reassessment before giving medicines support. After any absence caused by an injury, a Field Care Supervisor observes the employee's moving and handling before they handle people without a colleague, under the Moving and Handling of People Policy. Expired training is renewed before the visits it covers. The Care Coordinator allocates no task needing reassessment until the result is in the training and compliance records. Each new major version of a policy published during the absence is acknowledged within 14 days of return, under the Policy Management and Document Control Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Frequent short-term absence",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Review points",
+          "blocks": [
+            {
+              "p": "Review points count sickness absence only, leaving out every absence in Absences treated differently, and disabled employees have the adjusted review points agreed for them. We do not use the Bradford Factor. A review point is reached by:"
+            },
+            {
+              "bullets": [
+                "3 or more episodes in any rolling 6 months;",
+                "total absence in any rolling 12 months of twice the employee's usual rostered days a week, for example 10 days for someone working 5 days a week; or",
+                "3 or more episodes in any rolling 12 months that start on the same weekday, or start or end next to annual leave, a bank holiday or a refused rota change."
+              ]
+            },
+            {
+              "p": "The HR Manager checks review points within 2 working days of each return and tells the named supervisor."
+            }
+          ]
+        },
+        {
+          "heading": "Absence review meeting",
+          "blocks": [
+            {
+              "p": "Within 10 working days the named supervisor holds an informal absence review meeting in private and in paid time, at the branch office or by video. It is not a warning. They explore causes, including health, disability, pregnancy, caring responsibilities, travel and rota pressures, stress and working relationships, and agree support such as occupational health, adjustments, a rota change, flexible working, time off for dependants or the employee assistance programme. They explain that attendance will be monitored for 6 months and what further absence would lead the Registered Manager to consider a formal stage. The meeting is recorded in the supervision record within 2 working days and copied to the employee within 5 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Formal stages",
+          "blocks": [
+            {
+              "p": "Where, during the 6-month monitoring period or while an attendance warning is live, the employee has 2 or more further episodes, or further absence of more than their usual rostered days in one week, the Registered Manager decides within 5 working days whether to start the next stage, recording reasons in the staff record after considering causes, occupational health advice and adjustments. No formal meeting is held while occupational health advice is awaited."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Stage",
+                  "Possible outcomes",
+                  "Live period"
+                ],
+                "rows": [
+                  [
+                    "Stage 1",
+                    "No further action; further support; first written attendance warning",
+                    "6 months"
+                  ],
+                  [
+                    "Stage 2",
+                    "No further action; further support; final written attendance warning",
+                    "12 months"
+                  ],
+                  [
+                    "Stage 3",
+                    "No further action; redeployment or a change of hours by agreement; extension of the final warning by up to 6 months; dismissal with notice",
+                    "Not applicable"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Managers, notice, the right to be accompanied, outcome letters and appeals follow the Who acts table and timescales of the Capability and Performance Procedure, and the invitation encloses the absence record. Before every formal attendance or ill-health capability meeting, including an appeal, the HR Manager asks for the formal action check in the Whistleblowing (Speaking Up) Policy, and the meeting waits until it is complete. Attendance warnings are separate from capability and disciplinary warnings, never added to them, and marked expired on their expiry date. Evidence that an absence was not genuine, such as working elsewhere while reporting sick, is dealt with under the Disciplinary Policy and Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Long-term absence and ill-health capability",
+      "blocks": [
+        {
+          "steps": [
+            "Within 10 working days of the occupational health advice (the referral is offered by the end of week 4), the case lead named for the employee's role in the Capability and Performance Procedure and the HR Manager meet the employee to agree a return plan, adjustments, temporary alternative duties or other support, confirmed in writing within 5 working days.",
+            "While absence continues, welfare meetings take place at least every 4 weeks and occupational health advice is updated at least every 3 months.",
+            "Where occupational health advises that the employee is unlikely to return to their role, even with adjustments, within the next 3 months, or absence has lasted 6 months with no return date, the Registered Manager decides within 5 working days whether to hold an ill-health capability meeting, after the HR Manager takes advice from our employment law adviser.",
+            "The invitation goes at least 5 working days ahead with occupational health advice no more than 3 months old, a list of vacancies in every branch the employee could do with reasonable training or adjustments, the possible outcomes, stating plainly that dismissal is possible, and the right to be accompanied. The manager named for Stage 3 in the Capability and Performance Procedure chairs it, at the branch office, by video or, at the employee's request, at home.",
+            "The chair considers the medical evidence, the employee's views, adjustments, Access to Work and redeployment. Outcomes are a return plan with a review date, redeployment (to lower pay or different terms only with written agreement after a 4-week trial at current pay), a further review period of up to 3 months, or dismissal on grounds of ill-health capability with notice. No warning is ever given in this route.",
+            "The outcome letter goes within 5 working days; appeals follow the Capability and Performance Procedure."
+          ]
+        },
+        {
+          "p": "Dismissal is a last resort. The unfair dismissal qualifying period falls from 2 years to 6 months for dismissals taking effect on or after 1 January 2027; our policy is that every employee receives this whole process whatever their service. Where an employee has a terminal diagnosis, no ill-health capability meeting is held unless they ask for their employment to end, and the Nominated Individual agrees any arrangements with them."
+        }
+      ]
+    },
+    {
+      "heading": "Records and confidentiality",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Retention"
+            ],
+            "rows": [
+              [
+                "Absence dates, absence type and expected return",
+                "Staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Reason given, self-certificates, fit notes, occupational health and medical reports, disability and return plans",
+                "Restricted section of the staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Return-to-work conversations and absence review meetings",
+                "Staff record and supervision records",
+                "Employment plus 6 years"
+              ],
+              [
+                "Formal attendance and ill-health capability case files",
+                "Restricted case file in the staff record, with the same access as a capability case file",
+                "Employment plus 6 years"
+              ],
+              [
+                "Sick pay and sickness absence for payroll",
+                "Payroll records",
+                "6 years from the end of the tax year (HMRC requires at least 3)"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Health information is special category data, processed to meet our employment obligations and to assess working capacity under Schedule 1 Part 1 paragraphs 1 and 2 of the Data Protection Act 2018, with the appropriate policy document kept under the Data Protection Policy; the Staff Personal Data and HR Records Policy sets the wider rules. Diagnoses and medical evidence are seen only by the HR Manager, Registered Manager, Deputy Manager and, for those two posts, the Nominated Individual; supervisors and Care Coordinators are told adjustments, never conditions. People we support and colleagues are never told why an employee is off. Sickness absence is never judged at appraisal or mentioned in references we give."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "This policy, acknowledged in CareFlow",
+                "Organisational induction",
+                "Within 14 days of each new major version"
+              ],
+              [
+                "Care Coordinators, Office staff who take calls, On-call Managers",
+                "Sickness calls, recording, confidentiality and reallocating visits, with the symptom-call training in the Staff Infection-Related Illness and Exclusion Policy",
+                "Before taking calls alone or the first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "Named supervisors, Deputy Manager, Registered Manager",
+                "Managing sickness absence briefing by the HR Manager: conversations, reviews, disability, pregnancy, mental health, occupational health",
+                "Before the first return-to-work conversation or review",
+                "Every 3 years"
+              ],
+              [
+                "HR Manager",
+                "Statutory Sick Pay, fit notes and incapacity counting",
+                "Within 1 month of appointment",
+                "Every 3 years, plus the annual employment law update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Managers who chair formal meetings or hear appeals hold the hearings training required by the Disciplinary Policy and Procedure. The HR Manager briefs supervisors and meeting managers within 10 working days of any change in the law affecting this policy."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Sickness absence rate by branch and role against the target of below 5% of contracted hours; long-term cases; review points and actions; occupational health referrals; formal cases",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "10 absences, or all if fewer: reported by phone before the shift, recorded the same day, return-to-work conversation on time, evidence held, absence type and sick pay coded correctly, excluded absences left out of review points. Target 100%",
+                "Quarterly",
+                "Deputy Manager",
+                "Quarterly governance report"
+              ],
+              [
+                "Absence themes, including work-related, stress and musculoskeletal absence",
+                "Quarterly, anonymised",
+                "Registered Manager",
+                "Health and Safety Meeting and Directors"
+              ],
+              [
+                "Formal cases by protected characteristic and branch",
+                "Annually, with the disciplinary and capability analysis",
+                "HR Manager",
+                "Directors"
+              ],
+              [
+                "Every dismissal under this policy and 3 other formal cases (all if fewer)",
+                "Annually, in November",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Staff who say they were supported when off sick and on return. Target at least 80%",
+                "September staff survey",
+                "HR Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Targets: 100% of occupational health referrals within 5 working days of consent; at least 95% of return-to-work conversations on time; 100% of formal stages preceded by an absence review meeting; 100% of outcome letters within 5 working days. Shortfalls, and causes the figures reveal such as rota pressure, go into the service improvement plan with an owner and deadline within 5 working days."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, with the HR Manager, and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in law or guidance, a tribunal finding, a serious incident or an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

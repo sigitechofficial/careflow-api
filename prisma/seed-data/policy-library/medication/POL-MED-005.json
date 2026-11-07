@@ -1,0 +1,667 @@
+{
+  "reference": "POL-MED-005",
+  "revision": 1,
+  "title": "Medicines Administration Records (MAR and eMAR) Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we set up, second-check, complete, monitor, correct and protect the eMAR in CareFlow for every medicine we support, which outcome to record for each dose, and what staff do when CareFlow or a device is unavailable. It is for every employee who records, checks, monitors or audits medicines records.",
+  "keyPoints": {
+    "intro": "The eMAR is how you, the next care worker and health professionals know what each person has taken. These are the rules for checking and recording it on every medicines visit.",
+    "points": [
+      "Before every dose, check on the eMAR what is due, when each medicine was last taken, including doses family gave, and any change. If a dose seems taken but is not recorded, or nobody knows, do not give it; phone the office.",
+      "Record each dose on the eMAR straight after it is taken, and always before you check out, under your own log-in. Never record Given before a dose is taken or for a dose you did not see taken, and never record for a colleague.",
+      "Choose the outcome that matches what happened, such as Given, Refused, Partially given, Not Given / Missed or Unavailable, and add a note saying what happened and what you did whenever a dose was not given as planned.",
+      "Phone the office, or the On-call Manager out of hours, before you leave about every dose not given as planned. The only exception is a dose left out under an approved leave-out arrangement.",
+      "For a when required medicine record the dose, time, reason and effect; for a patch or cream, where it was applied; for a counted controlled drug, count before and after each dose (a rescue medicine once the person is safe) and record the balance.",
+      "If the label, the medicine and the eMAR do not match, do not give the dose; phone the office. The only exception is an eMAR entry showing 'Directions changed by prescriber, label not yet updated'. Never act on a relative's instruction.",
+      "If a relative gave a dose, record Family Administered with the time given and who told you, and go by that time, not the eMAR's. Record a when required dose given between visits in the daily visit notes, not the eMAR.",
+      "Never change a saved record yourself, even if the app lets you. If you recorded something wrongly, phone the office before you leave, or as soon as you realise. A false record, or hiding a mistake, is a serious disciplinary matter.",
+      "If the eMAR will not open or save, or the app is offline and someone else could have given a dose since it last connected, phone the office before giving any dose.",
+      "If CareFlow is down for everyone, record on the back-up MAR sheet you carry, phone the office before each dose and with each outcome, and leave the sheet with the home copy of the care plan.",
+      "Keep your log-in private, lock your device and never let anyone else use it. Report a lost or stolen device to the office at once."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "MEDICATION",
+    "VISIT",
+    "AUDIT",
+    "BUSINESS_CONTINUITY"
+  ],
+  "relatedReferences": [
+    "POL-MED-001",
+    "POL-MED-003",
+    "POL-MED-004",
+    "POL-MED-006",
+    "POL-MED-013",
+    "POL-MED-014",
+    "POL-GOV-017",
+    "POL-GOV-020"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 Good governance, including 17(2)(c) an accurate, complete and contemporaneous record kept securely for each service user",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(c) competence and 12(2)(g) the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "UK GDPR, Article 32 Security of processing (confidentiality, integrity, availability and resilience of processing systems)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/32"
+    },
+    {
+      "source": "Rotherham Metropolitan Borough Council, Contracted Home Care and Support Medication Support Guidance (June 2023), sections 11.1.3, 12 and 14, applying NICE guideline NG67 to the content of MARs, recording every occasion of support and checking transcribed entries",
+      "url": "https://rotherham.gov.uk/downloads/file/3478/rotherham-contracted-home-care-and-support-medication-support-guidance-june-2023"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), summarising NICE guideline NG67 on care workers using a medicines administration record and recording whether the person has taken or declined their medicine",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} uses the eMAR in CareFlow as the record of every medicine we support for each person. A missing or wrong record can cause a missed or double dose, so recording is part of giving the medicine."
+        },
+        {
+          "p": "The law requires us to maintain securely an accurate, complete and contemporaneous record for each person, including the care and treatment provided (Regulation 17(2)(c) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014), and to manage medicines properly and safely (Regulation 12(2)(g)). Following NICE guideline NG67, we record the support given for each medicine on every occasion."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every medicine we support has an eMAR entry matching a written source, second-checked before the first dose.",
+            "Every due dose has the right outcome, recorded at the time, and exceptions are acted on the same day.",
+            "Errors are corrected openly with a full audit trail, and records stay complete during downtime."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to all employees, including bank and agency workers, who set up, check, complete, monitor, correct or audit medicines records. It covers every prescribed and over-the-counter medicine we support at Level 1, 2 or 3, and Level 0 medicines placed on the eMAR under the Self-Administration of Medicines Procedure."
+        },
+        {
+          "p": "It does not cover how each formulation is given (Administering and Supporting People with Medicines Procedure), when required and time-sensitive medicines (When Required (PRN) Medicines Protocol; Time-Sensitive Medicines Protocol), controlled drug supply and storage (Controlled Drugs in the Community Procedure), medicines changes and discharge (Medicines Changes, Transfers of Care and Hospital Discharge Procedure) or responding to declined doses (Consent, Mental Capacity and Declined Medicines Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "eMAR entry",
+                "The record in CareFlow for one medicine: its details, instructions and schedule, from which CareFlow creates each due dose."
+              ],
+              [
+                "Authorised eMAR user",
+                "A Care Coordinator, Field Care Supervisor, Deputy Manager, Registered Manager or On-call Manager authorised by the Registered Manager, after eMAR set-up and change competency, to set up, change and stop entries and to second-check them. Every On-call Manager is authorised before their first on-call shift; Senior Care Workers may be authorised to second-check only."
+              ],
+              [
+                "Second check",
+                "An independent check, by an authorised eMAR user who did not make the entry, that every detail matches the written source and the dispensing label (for a bought medicine, the pack record), recorded in the entry's notes as 'Second check completed' with the checker's name and date."
+              ],
+              [
+                "Exception",
+                "A dose recorded as Partially given, Refused, Not Given / Missed, Nausea / Vomiting, Unavailable or Other, and any dose still showing as due after its visit."
+              ],
+              [
+                "Recording error",
+                "A missing or wrong outcome, a dose recorded before it was given or not seen taken, a missing required note, when required detail, application site or controlled drug balance, or an entry not matching its source."
+              ],
+              [
+                "Downtime",
+                "Any time the eMAR cannot be opened or a record saved because CareFlow, the device or the connection has failed."
+              ],
+              [
+                "Back-up MAR sheet",
+                "A blank paper MAR sheet, used only during downtime."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Levels of support and authoritative source have the meanings in the Medicines Management Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors provide CareFlow, work devices with data and the business continuity arrangements; the Nominated Individual challenges eMAR completion and recording error figures in the quarterly medicines governance report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "As medicines lead, is accountable for the eMAR's accuracy and security, authorises eMAR users and keeps the authorised list, decides on possibly deliberate recording errors and leads the response to an outage."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "Allocates and receives the monthly full eMAR audits and makes the audit trail and back-up checks in Monitoring and review."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator and Field Care Supervisor",
+          "blocks": [
+            {
+              "p": "As authorised eMAR users they set up, change, stop and second-check entries. The Care Coordinator also reviews the previous day's eMAR, makes corrections, transfers downtime records and keeps the business continuity copy current."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "They follow Recording at each visit and carry blank back-up MAR sheets. Authorised Senior Care Workers also second-check entries."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff, On-call Manager and HR Manager",
+          "blocks": [
+            {
+              "p": "Office staff in office hours, and the On-call Manager outside them, make the eMAR checks, act on alerts and calls, and run downtime arrangements; the On-call Manager hands over to the Registered Manager or Deputy Manager by 10am the next working day. The HR Manager removes CareFlow access the day employment ends or an employee is suspended."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What every eMAR entry contains",
+      "blocks": [
+        {
+          "p": "Every entry contains at least the information NICE NG67 sets for a medicines administration record, and nothing is left blank: where an item does not apply, the entry says so."
+        },
+        {
+          "table": {
+            "columns": [
+              "Item",
+              "What is recorded"
+            ],
+            "rows": [
+              [
+                "The person",
+                "Full name, date of birth, NHS number, GP practice and supplying pharmacy."
+              ],
+              [
+                "Allergies",
+                "Each allergy with the reaction and its source, or 'No known allergies' confirmed against the GP record or another authoritative source, entered before any medicine."
+              ],
+              [
+                "The medicine",
+                "Name exactly as on the label, formulation and strength; medicines in a monitored dosage system listed individually."
+              ],
+              [
+                "Dose and timing",
+                "Dose, frequency and due times; for a when required medicine, the minimum gap, the most in 24 hours and the most at one time."
+              ],
+              [
+                "Route and site",
+                "Route and, for creams, patches and drops, where it is applied and any site rotation."
+              ],
+              [
+                "Level and flags",
+                "How assisted (Self, Prompting, Supervision or Full assistance); Time critical, with its window, for a time-sensitive medicine; Controlled for a controlled drug; and 'Advice if declined', 'Count stock' or 'Covert administration approved' in the instructions where they apply."
+              ],
+              [
+                "Instructions",
+                "What the medicine is for, special instructions such as with food, and any written pharmacist advice on crushing or mixing."
+              ],
+              [
+                "Dates and source",
+                "Start date, stop or review date, course length for short courses, and the written source with its date. CareFlow's activity log shows who set up or changed the entry; its notes show the second check."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Setting up, changing and stopping entries",
+      "blocks": [
+        {
+          "p": "Only authorised eMAR users set up, change or stop an entry, and nobody second-checks an entry they made. An entry is never set up or changed from a relative's list, a previous provider's record, a pill organiser not filled by the pharmacy, or anyone's report of what a prescriber said."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "New entries",
+          "blocks": [
+            {
+              "steps": [
+                "Set up the entry from the dispensing label and at least one authoritative source, such as the GP practice medication list, a discharge letter or the prescriber's written instruction. For a bought medicine, use the pack record and the pharmacist's or GP's recorded advice instead, marked 'Bought medicine' with a stop or review date (Over-the-Counter Medicines and Homely Remedies Guideline).",
+                "If the label and the source differ, or the directions are unclear, such as 'as directed' or a when required medicine with no dose, phone the GP practice or pharmacist the same day. The medicine is not given until the difference is resolved.",
+                "Enter every item in What every eMAR entry contains, allergies first, copying names and directions in full.",
+                "Ask a second authorised eMAR user to check every item against the source and the label: in person, or at a short-notice start by telephone with the label read back. The checker records the check in the entry's notes.",
+                "The second check is completed before the first dose is due. If it cannot be, the office or On-call Manager obtains advice from the prescriber, pharmacist or NHS 111 before that dose and records it in the care plan."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Changes and stopped medicines",
+          "blocks": [
+            {
+              "p": "A change of dose, time, strength or formulation is made only from a written instruction or an accepted verbal instruction, as the Medicines Changes, Transfers of Care and Hospital Discharge Procedure defines them. A new label counts only once the pharmacy or GP practice confirms it reflects a new prescription."
+            },
+            {
+              "bullets": [
+                "The entry is changed from the date and time the change takes effect, so earlier dose records keep the details that applied then. Before the next affected dose, a second authorised eMAR user checks it against the written instruction in the person's documents in CareFlow, or a verbal instruction's record in the daily visit notes, with any new label read back by phone by the care worker at the visit; out of hours, the On-call Manager asks the manager on the management escalation rota. If nobody can check in time, step 5 of New entries applies.",
+                "Where the label no longer matches, the Care Coordinator asks the pharmacy the same working day to relabel or resupply, and the entry carries the dated instruction 'Directions changed by prescriber, label not yet updated'. Care workers follow the eMAR over the label only where this instruction is shown.",
+                "A stopped medicine's entry is ended with the date, time and reason, and its future doses are cancelled. Entries are never deleted.",
+                "The Care Coordinator briefs every care worker on the rota before their next visit."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Recording at each visit",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Before and during the visit",
+          "blocks": [
+            {
+              "steps": [
+                "Check in, open the person's eMAR and read any care plan changes since your last visit.",
+                "Check which doses are due and when each medicine was last taken, including any when required dose in the last 24 hours. CareFlow dates Already Done, Self Medicated and Family Administered records when saved, not when taken, so go by the time in their note or ask. Ask the person whether they have taken anything since the last visit.",
+                "If a dose appears already taken but is not recorded, or the pack does not match the record, do not give it. Record Not Given / Missed with a note and phone the office (at Level 1, Already Done may apply).",
+                "Check the six rights against the label and the eMAR, and confirm in the app that you have checked the person's identity and allergies. If any check fails, do not give the dose; phone the office.",
+                "Give the support the care plan sets out and see the dose taken or applied.",
+                "Record each medicine's outcome straight after it is taken, with the actual time and any notes the outcome needs. Each medicine is recorded separately, including those in a monitored dosage system. On a two-worker visit, whoever gave the dose records it.",
+                "Before you check out, make sure no dose due at the visit still shows as due."
+              ]
+            },
+            {
+              "p": "If you cannot record before leaving, phone each outcome to the office before you leave; the office records it on your behalf, and CareFlow shows who entered it."
+            },
+            {
+              "p": "While waiting for advice before a dose, stay and carry on with other tasks; if none comes within 30 minutes after the planned end, the office arranges an extra visit. Call 999 if the person gets worse."
+            }
+          ]
+        },
+        {
+          "heading": "Choosing the outcome",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Outcome",
+                  "Use it when",
+                  "You must also"
+                ],
+                "rows": [
+                  [
+                    "Given",
+                    "You gave or applied the dose and saw it taken; or, at Level 1, you prompted or assisted and saw the person take it.",
+                    "Add any detail under Particular medicines."
+                  ],
+                  [
+                    "Partially given",
+                    "Spat out, not swallowed, vomited soon after or only partly taken.",
+                    "Note how much was taken and why; never repeat it without advice; phone the office."
+                  ],
+                  [
+                    "Refused",
+                    "The person chose not to take the dose, including by turning you away at the door.",
+                    "Note what you offered and what the person said or showed; seal any dose already out of its packaging; phone the office."
+                  ],
+                  [
+                    "Not Given / Missed",
+                    "Not given for another reason, such as asleep where the care plan says not to wake them, too drowsy, minimum interval not passed, a failed check or withheld on advice.",
+                    "Note the reason; phone the office."
+                  ],
+                  [
+                    "Nausea / Vomiting",
+                    "The person is vomiting or feels too sick to take it.",
+                    "Note what you saw; phone the office."
+                  ],
+                  [
+                    "Unavailable",
+                    "The medicine is not in the home, has run out or cannot be found.",
+                    "Phone the office, which obtains advice on the missed dose straight away and contacts the pharmacy or GP for a supply the same day."
+                  ],
+                  [
+                    "Self Medicated or Family Administered",
+                    "A Level 0 medicine the person took, or a dose a relative gave, as the Self-Administration of Medicines Procedure sets out.",
+                    "Note whether you saw it or were told, when it was taken and who told you."
+                  ],
+                  [
+                    "Already Done",
+                    "Level 1 only: the person says they took the dose without you seeing it, and the pack confirms it has gone.",
+                    "Note the time the person gives; if the pack does not confirm it, use Not Given / Missed and phone."
+                  ],
+                  [
+                    "Other",
+                    "Any other situation, including a dose left out under an approved leave-out arrangement, noted 'Left out'.",
+                    "Note what happened; phone the office, except for 'Left out'."
+                  ],
+                  [
+                    "Hospitalised or Absent",
+                    "Office staff or the On-call Manager only, as set out in Doses given by others and absences.",
+                    "Note who is responsible for the doses."
+                  ],
+                  [
+                    "Cancelled",
+                    "CareFlow or an authorised eMAR user only, for doses after a medicine is stopped.",
+                    "Never used to clear a dose that was due."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "We do not use the Independent or Please Contact Carer outcomes: record what actually happened and phone it through."
+            }
+          ]
+        },
+        {
+          "heading": "Particular medicines",
+          "blocks": [
+            {
+              "bullets": [
+                "When required medicines: record the dose, time, reason and, where seen before leaving, the effect, and record offers not needed, as the When Required (PRN) Medicines Protocol sets out. Never give a dose inside the minimum gap or over the 24-hour maximum, whether or not CareFlow warns you; phone the office.",
+                "Creams, patches, drops and inhalers: record each product separately. For a patch, record the new site on the CareFlow body map and that you removed the old patch, noting where it was.",
+                "Variable doses, such as warfarin or 'one or two tablets': record the exact dose given. A dose that changes with blood tests is changed only from the written dosing record.",
+                "Controlled drugs flagged for a count: count the stock before the dose and, if it does not match the expected balance, give nothing unless the office passes on advice to give it, and phone the office at once (Controlled Drugs in the Community Procedure). After the dose, count again and record the remaining balance. A rescue medicine is counted only once the person is safe. When CareFlow asks about a witness, record the second care worker if one is allocated, otherwise none; no dose is delayed to find one.",
+                "Time-sensitive medicines: record the actual time given. If you arrive outside the window, phone the office before giving the dose and record the advice in the note."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Doses given by others and absences",
+          "blocks": [
+            {
+              "p": "The care plan records who gives which medicines and how they tell us. We record only what happened and who did it:"
+            },
+            {
+              "bullets": [
+                "A relative who gives a dose we usually support, for example on a day out, tells the care worker or the office, and it is recorded as Family Administered with the time given and who told us. A when required dose given between visits goes in the daily visit notes from the between-visits record, never on the eMAR (When Required (PRN) Medicines Protocol). If nobody can say whether it was given, it is recorded as Not Given / Missed and the office obtains advice.",
+                "For a planned absence, or a visit the person cancelled under the Visit Cancellations and Refusals of Care Procedure, Office staff or the On-call Manager record Absent for each dose due, noting who is responsible; for an absence the care worker notes in the daily visit notes which medicines left the home and checks them on return.",
+                "When there is no answer at a visit, the No Reply, No Access and Missing Person Procedure applies; once the person is found, the office records each dose as Absent or Not Given / Missed with the reason.",
+                "From a hospital admission, Office staff or the On-call Manager record Hospitalised; no dose restarts until the discharge medicines check is done.",
+                "Doses given by community nurses or other providers stay on their own records, never as Given by us. Where their timing affects our support, such as insulin and a meal, the care plan says what we check, recorded in the daily visit notes."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Office monitoring of the eMAR",
+      "blocks": [
+        {
+          "p": "Office staff, or the On-call Manager outside office hours, check the eMAR for every person at 11am, 3pm, 7pm and 11pm each day, and act on CareFlow medication alerts as they arrive. CareFlow sends them to Admin, Manager and Branch Admin users and the key worker; the On-call Manager holds the Manager role."
+        },
+        {
+          "table": {
+            "columns": [
+              "What is found",
+              "Who acts",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "No check-in within 15 minutes of the planned start of a visit with a time-sensitive dose",
+                "Office staff or On-call Manager",
+                "Act at once under the Time-Sensitive Medicines Protocol."
+              ],
+              [
+                "A dose still showing as due after the care worker has checked out, or from a visit that did not take place",
+                "Office staff or On-call Manager",
+                "Phone the care worker at once. If given, it is recorded with the actual time and a note that it was recorded late; if not, or the care worker is unsure, it is a missed dose: pharmacist, GP or NHS 111 advice straight away and the next care worker briefed."
+              ],
+              [
+                "An exception outcome",
+                "Office staff or On-call Manager",
+                "Check a call was received (none is needed for 'Left out') and the next dose is safe, and mark the dose reviewed on the eMAR's missed and refused doses list with the action taken, the same working day."
+              ],
+              [
+                "A controlled drug balance that does not follow from the last count",
+                "Office staff or On-call Manager",
+                "Phone the care worker at once; handle it as a medicines incident."
+              ],
+              [
+                "The previous day's eMAR",
+                "Care Coordinator; On-call Manager at weekends and on bank holidays",
+                "By 10am, check every dose due has an outcome, every exception was reviewed and every 'Left out' dose was checked at the next visit."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Correcting a record",
+      "blocks": [
+        {
+          "p": "Care workers never change a saved record themselves, even where the app lets them save it again. A care worker who realises they recorded wrongly phones the office before leaving the home, or as soon as they realise."
+        },
+        {
+          "steps": [
+            "The Care Coordinator, Deputy Manager or Registered Manager establishes with the care worker what happened; out of hours, the On-call Manager does so only where the error could affect the next dose.",
+            "They correct the record in CareFlow the same working day (the On-call Manager before the next dose) with the correction reason and notes. CareFlow keeps the original in the audit trail; nothing is deleted.",
+            "A record is changed to Given only where the care worker confirms they saw the dose taken. Where the facts cannot be established, the record stays and a note explains what is known.",
+            "Nobody corrects a record they made, including one they entered on a care worker's behalf.",
+            "The error is entered in the incident log under the Medication Errors, Near Misses and Incidents Procedure, by the care worker before the end of their shift or by the Care Coordinator the same working day where the office or an audit finds it. Two recording errors within 3 months lead to competency reassessment before further unsupervised medicines support; the Field Care Supervisor discusses it at the care worker's next supervision or spot check."
+          ]
+        },
+        {
+          "p": "Knowingly recording a dose that was not given, or altering or withholding a record to hide an error, is a medicines incident and a disciplinary matter under the Disciplinary Policy and Procedure. The Registered Manager decides the same day whether the care worker continues medicines visits and whether it is a safeguarding concern."
+        }
+      ]
+    },
+    {
+      "heading": "When the eMAR is unavailable",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "The care app shows it is offline",
+                "Records are kept on the device and sent, with the time you made them, when the signal returns. Doses recorded elsewhere since it last connected may not show, so phone the office before giving a dose a colleague or relative could have given since."
+              ],
+              [
+                "Your device has failed or is lost, but CareFlow is working",
+                "Phone the office before giving any dose. The office reads you the doses due and when each was last taken, and you phone each outcome through before you leave for the office to record on your behalf. Report a lost or stolen device at once under the Personal Data Breach Procedure."
+              ],
+              [
+                "CareFlow is unavailable to everyone",
+                "The office or On-call Manager tells every care worker on shift, and the back-up MAR sheet arrangements below apply."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every care worker who gives medicines support carries two blank back-up MAR sheets, issued at medicines training and replenished by the Field Care Supervisor at spot checks. Every Monday, and the same day an entry is set up, changed or stopped, the Care Coordinator (On-call Manager for a change made out of hours) saves the person's current MAR chart export to the business continuity records outside CareFlow (Business Continuity and Emergency Planning Policy), which Office staff and the On-call Manager can open during an outage."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Using the back-up MAR sheet",
+          "blocks": [
+            {
+              "steps": [
+                "Phone the office before giving any dose. The office reads you the medicines due from the business continuity copy and any doses already phoned through during the outage.",
+                "Read any back-up MAR sheet already in the home, check the pack and ask the person when each medicine was last taken. If you cannot establish that the dose has not already been given, or that no paracetamol-containing dose was taken in the last 4 hours, do not give it until the office has obtained advice.",
+                "Check the six rights against the label and the details the office gives you.",
+                "Record each dose on the sheet at the time, in black ink, completing every column, with the eMAR outcome label, any controlled drug balance, and your printed name and signature. Correct a mistake with a single line and your initials.",
+                "Phone the outcome of every dose to the office before you leave; the office records each one in its downtime log.",
+                "Leave the sheet with the home copy of the care plan for the next care worker."
+              ]
+            },
+            {
+              "p": "The Registered Manager, or the On-call Manager out of hours, tells the Nominated Individual at once of an outage affecting everyone, and activates the Business Continuity and Emergency Planning Policy if it lasts, or is expected to last, more than 2 hours."
+            },
+            {
+              "p": "When CareFlow returns, the Care Coordinator (On-call Manager at weekends and bank holidays) enters every downtime log outcome on the care worker's behalf, with the actual time and the note 'Transferred from back-up MAR sheet', soonest next medicines visit first and always within 24 hours. At the next visit, the care worker checks the sheet's doses show on the eMAR with that note: if not, they phone the office before giving any dose and leave the sheet in the home; if so, they bring it to the office by the end of their shift, in a sealed envelope through its letterbox if closed. Within 2 working days of the sheet arriving, a second authorised eMAR user checks the entries against it and corrects differences under Correcting a record; it is scanned into the person's CareFlow documents and shredded."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Access, security and sharing",
+      "blocks": [
+        {
+          "bullets": [
+            "Everyone uses their own CareFlow log-in, never shares it and never records under anyone else's. Devices are locked when not in use, as the Acceptable Use of IT and Devices Policy sets out.",
+            "Care workers open the eMAR only for the people they are visiting or the office asks them to check.",
+            "The Registered Manager removes eMAR permissions the same day authorisation is withdrawn.",
+            "Care workers show paramedics or a visiting nurse the eMAR when they need it to treat the person, and tell the office. Other requests go to the office under the Confidentiality and Information Sharing Policy.",
+            "Printed MAR charts are confidential, never left in a home except a back-up MAR sheet in use, and shredded when no longer needed."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "The eMAR, its audit trail, corrections and scanned back-up MAR sheets are kept in CareFlow for the periods in the Records Management and Retention Policy, including any retention hold. Calls and advice go in the daily visit notes."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training or check",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Read and acknowledge this procedure in CareFlow",
+                "All employees",
+                "By the deadline in the Induction and Care Certificate Procedure, then within 14 days of each new major version"
+              ],
+              [
+                "eMAR recording, outcomes, notes and the back-up MAR sheet, within full medicines training (pass mark 80%) and observed competency",
+                "Everyone who gives medicines support",
+                "Before giving medicines support, then every 12 months"
+              ],
+              [
+                "eMAR set-up, change, stop and second-check competency",
+                "Authorised eMAR users and Senior Care Workers authorised to second-check",
+                "Before the first entry or check, then every 12 months"
+              ],
+              [
+                "Corrections and recording on behalf of a care worker",
+                "Care Coordinators, Deputy Manager, Registered Manager and On-call Managers; Office staff for recording on behalf only",
+                "Before first doing either, then every 12 months"
+              ],
+              [
+                "eMAR monitoring and downtime arrangements",
+                "Office staff and On-call Managers",
+                "Before monitoring alone or the first on-call shift, then every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The annual business continuity exercise includes an eMAR outage."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Full eMAR audit for every person: doses accounted for by reading each outcome, never given totals (CareFlow counts Partially given, Already Done, Self Medicated and Family Administered as given), outcomes and notes correct, when required, site and controlled drug details complete, entries matching their source",
+                "Monthly",
+                "Care Coordinator or Field Care Supervisor, outside their own caseload",
+                "Deputy Manager"
+              ],
+              [
+                "CareFlow medication audit trail: every correction, dose record saved again in the app, record entered on behalf, and entry set up, changed or stopped with its second check",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager and the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "eMAR against the labels and medicines in the home",
+                "At each in-home medicines check",
+                "Field Care Supervisor or authorised Senior Care Worker",
+                "Deputy Manager"
+              ],
+              [
+                "Business continuity copy current, back-up MAR sheet stock, and eMAR permissions against the authorised list",
+                "Quarterly",
+                "Deputy Manager; Registered Manager for permissions",
+                "Registered Manager; quarterly medicines governance report"
+              ],
+              [
+                "Recording errors and corrections by type and care worker",
+                "Quarterly, in the medicines trend review",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ],
+              [
+                "eMAR arrangements against this procedure and NICE NG67",
+                "Every 12 months, in the annual medicines audit",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of due doses with an outcome, 100% of new and changed entries second-checked before the next dose, 100% of exceptions reviewed the same working day and 100% of downtime records transferred within 24 hours. Every shortfall produces an action with a named owner and a deadline, recorded with the audit."
+        },
+        {
+          "p": "The Registered Manager reviews this procedure every 12 months, and sooner after a change in law, national guidance or how CareFlow records medicines, a serious medicines incident or inspection finding, or when monitoring shows it is not working; the Directors approve it under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

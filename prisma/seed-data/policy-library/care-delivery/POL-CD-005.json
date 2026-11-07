@@ -1,0 +1,709 @@
+{
+  "reference": "POL-CD-005",
+  "revision": 1,
+  "title": "Equality, Diversity and Human Rights in Care Policy",
+  "documentType": "POLICY",
+  "summary": "How we make sure the care we give is fair, free from discrimination and respectful of each person's identity, culture, beliefs, relationships and human rights. It covers understanding people's identity and beliefs, reasonable adjustments, preferences and discriminatory requests about care workers, responding to discrimination against the people we support, equality monitoring, training and checks. For all employees.",
+  "keyPoints": {
+    "intro": "Every person we support has the right to fair care that respects who they are. This is what that means for you on every visit and every call.",
+    "points": [
+      "Never make assumptions about a person because of their age, disability, race, religion or belief, sex, sexual orientation or gender identity. Read their care plan and ask them how they want things done.",
+      "Follow the culture, faith and identity needs in the care plan, such as how personal care is given, food rules, prayer times, modesty and religious items. If something is unclear or has changed, ask the person and tell the office the same day.",
+      "Use the name and pronouns the person wants, treat their partner as their partner, and never share anything about their sexual orientation, gender history or beliefs except as their care plan says they agree.",
+      "Never give intimate care against a recorded preference about the sex of the care worker unless the person agrees on that occasion. Never agree a request about which care workers a person has; pass it to the office the same day.",
+      "Never push your own religious, political or other views on a person, comment on how they live, or refuse or delay care because of who they are. If your beliefs make a task difficult, tell your Care Coordinator before you are allocated it.",
+      "If a person's disability, condition or language makes any part of our service hard for them to use, tell the office the same day so we can make a reasonable adjustment. We never charge anyone for an adjustment.",
+      "If you see or hear anyone, including a colleague, mock a person, treat them unfairly or ignore their cultural or religious needs, phone the office or On-call Manager before you leave the home. It may be discriminatory abuse.",
+      "If a person tells you they have been abused, threatened or harassed because of who they are, phone the office or On-call Manager before you leave the home. Call 999 if they are in danger.",
+      "If anyone abuses or refuses you because of who you are (not a preference about your sex), leave if unsafe, phone the office or On-call Manager before leaving the area and log it before your shift ends. You will not be sent back.",
+      "Report every change in a person's health or behaviour. Never put it down to their age, dementia or learning disability without it being checked.",
+      "Support people to practise their faith, keep their relationships, have their say and vote if they wish. Never tell anyone how to vote or fill in a ballot paper for them."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "INITIAL_ASSESSMENT",
+    "VISIT",
+    "SAFEGUARDING",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-CD-001",
+    "POL-CD-006",
+    "POL-CD-004",
+    "POL-SG-001",
+    "POL-HS-004",
+    "POL-HR-012",
+    "POL-CD-011",
+    "POL-GOV-005"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Equality Act 2010, section 4 (the protected characteristics)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/4"
+    },
+    {
+      "source": "Equality Act 2010, section 20 (duty to make adjustments; no charge to the disabled person, subsection (7))",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20"
+    },
+    {
+      "source": "Equality Act 2010, section 28 (marriage and civil partnership, and age for under-18s, not protected in services)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/28"
+    },
+    {
+      "source": "Equality Act 2010, section 29 (provision of services: discrimination, harassment and reasonable adjustments; religion or belief and sexual orientation excluded from harassment, subsection (8))",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/29"
+    },
+    {
+      "source": "Equality Act 2010, Schedule 2, paragraph 2 (services and public functions: the duty to make adjustments is owed to disabled persons generally)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/schedule/2/paragraph/2"
+    },
+    {
+      "source": "Equality Act 2010, section 150(5) (public function defined by reference to the Human Rights Act 1998)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/150"
+    },
+    {
+      "source": "Equality Act 2010, section 40(1A) to (1C) (employer must not permit third-party harassment of employees; inserted by the Employment Rights Act 2025, section 21, in force 30 October 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40"
+    },
+    {
+      "source": "Equality Act 2010, section 149 (public sector equality duty, including persons exercising public functions, subsection (2))",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/149"
+    },
+    {
+      "source": "Human Rights Act 1998, Schedule 1 (the Convention rights, including Articles 2, 3, 5, 8, 9, 10 and 14 and Protocol 1, Article 3)",
+      "url": "https://www.legislation.gov.uk/ukpga/1998/42/schedule/1"
+    },
+    {
+      "source": "Care Act 2014, section 73 (provision of publicly arranged regulated care is a function of a public nature under the Human Rights Act 1998)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/73"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9(3)(h) (reasonable adjustments)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 10(2)(c) (due regard to relevant protected characteristics)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/10"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13(4)(a) (care must not include discrimination on grounds of any protected characteristic)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Gender Recognition Act 2004, section 22 (prohibition on disclosure of protected information)",
+      "url": "https://www.legislation.gov.uk/ukpga/2004/7/section/22"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, paragraph 8 (equality of opportunity or treatment; never used for decisions about an individual, sub-paragraph (3); written notice to stop, sub-paragraph (5))",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/8"
+    },
+    {
+      "source": "Equality and Human Rights Commission, Equality Act 2010: Code of Practice for services, public functions and associations, 2026 (in force 5 August 2026; sex means biological sex, paragraph 2.88; anticipatory reasonable adjustments and no charge, paragraphs 7.22 and 7.53; single-sex services where care involves intimate physical contact, paragraphs 13.109 and 13.110; asking about sex sensitively and privately, paragraphs 13.161 to 13.165)",
+      "url": "https://www.gov.uk/government/publications/equality-act-2010-code-of-practice-for-services-public-functions-and-associations-2026"
+    },
+    {
+      "source": "The Equality Act 2010 (Code of Practice on Services, Public Functions and Associations) (Commencement) Order 2026 (S.I. 2026/788)",
+      "url": "https://www.legislation.gov.uk/uksi/2026/788/made"
+    },
+    {
+      "source": "Supreme Court, For Women Scotland Ltd v The Scottish Ministers, judgment 16 April 2025 (meaning of sex in the Equality Act 2010)",
+      "url": "https://www.supremecourt.uk/cases/uksc-2024-0042"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} supports adults of every age, background, culture, faith and identity in their own homes. Every person we support has the right to care that is fair, respects who they are and how they choose to live, and upholds their human rights. We do not accept discrimination, harassment or degrading treatment of anyone we support, whoever is responsible."
+        },
+        {
+          "p": "{{organisation}} will ask each person what their identity, culture, beliefs and relationships mean for their care rather than make assumptions; make reasonable adjustments so disabled people can use our service on equal terms; meet legitimate preferences about who gives intimate care; refuse requests that would treat our staff unfairly because of who they are; act on every report of discrimination; and use our own information to check that everyone receives equally good care."
+        },
+        {
+          "p": "This policy is about the people we support; equality for employees and job applicants is covered by the Equality, Diversity and Inclusion Policy. The Directors are accountable for this policy and the Registered Manager leads on equality and human rights in care."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets out how we meet the Equality Act 2010, the Human Rights Act 1998 and Regulations 9, 10 and 13 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014. It sets our arrangements, timescales and responsibilities for respecting identity and beliefs, upholding human rights, reasonable adjustments, requests about care workers, responding to discrimination, and checking that our care is fair."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, office staff, care staff, bank and agency workers, students and volunteers in every contact with the people we support and their families, and to every adult we support however their care is arranged or paid for. Related matters are covered by:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Related matter",
+              "Document"
+            ],
+            "rows": [
+              [
+                "Dignity, matching care workers and ordinary requests to change care workers",
+                "Person-Centred Care, Dignity and Respect Policy"
+              ],
+              [
+                "Communication needs, the Accessible Information Standard and interpreters",
+                "Communication and Accessible Information Policy; Needs Assessment and Care Planning Policy"
+              ],
+              [
+                "Consent, mental capacity, restrictions and deprivation of liberty",
+                "Consent to Care Policy; Mental Capacity Act and Best Interests Policy"
+              ],
+              [
+                "Discriminatory abuse and any other abuse or neglect of a person we support",
+                "Safeguarding Adults Policy; Safeguarding Concerns: Reporting, Referral and Enquiry Procedure"
+              ],
+              [
+                "Abuse, harassment or refusal of staff by people we support or their families",
+                "Violence and Aggression Towards Staff Policy"
+              ],
+              [
+                "Equality for employees, including requests linked to an employee's own religion or belief",
+                "Equality, Diversity and Inclusion Policy"
+              ],
+              [
+                "Faith and cultural wishes at the end of life and after death",
+                "End of Life Care Policy"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Protected characteristics",
+                "The nine characteristics in section 4 of the Equality Act 2010: age, disability, gender reassignment, marriage and civil partnership, pregnancy and maternity, race, religion or belief, sex and sexual orientation."
+              ],
+              [
+                "Discrimination",
+                "Treating a person less favourably because of a protected characteristic; applying a rule to everyone that disadvantages people who share a characteristic without good justification; treating a disabled person unfavourably because of something arising from their disability without good justification; or failing to make a reasonable adjustment."
+              ],
+              [
+                "Reasonable adjustment",
+                "A change to how we provide our service, or an extra aid or service such as an interpreter or large print, that removes or reduces a substantial disadvantage a disabled person would otherwise face."
+              ],
+              [
+                "Discriminatory abuse",
+                "Abuse, harassment, slurs or unequal treatment because of a protected characteristic. It is a category of abuse under the Safeguarding Adults Policy, and is handled under the Violence and Aggression Towards Staff Policy where staff are its target."
+              ],
+              [
+                "Hate incident",
+                "Any incident that the person or anyone else believes was motivated by hostility or prejudice because of who the person is, such as their disability, race, religion, sexual orientation or transgender identity. It is a hate crime when it is also a criminal offence."
+              ],
+              [
+                "Discriminatory request",
+                "A request to have, or not to have, care workers of a particular race, religion or belief, sexual orientation, age, disability, gender reassignment or other protected characteristic, other than a preference about the sex of the care worker that this policy allows."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for fair care at {{organisation}}, approve this policy, fund interpreters, accessible information and other adjustments, and receive the annual equality review. The Nominated Individual challenges the equality findings in the quarterly quality report and decides whether a service is ended under the Violence and Aggression Towards Staff Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is the lead for equality and human rights in care. They respond to every discriminatory request, decide on reasonable adjustments a Care Coordinator cannot agree and on staff requests linked to their beliefs, decide within 1 hour of a report of discrimination against a person whether it is a safeguarding concern, and present the annual equality review. The Deputy Manager is deputy lead, acts in the Registered Manager's absence (the On-call Manager out of hours), audits this policy's standards in the monthly care plan audit and prepares the annual equality review."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "As assessors and reviewers they ask each person about their identity, beliefs, relationships and adjustments, record them in the care plan and offer the equality monitoring questions. Care Coordinators handle requests about care workers and adjustments within this policy's timescales. Field Care Supervisors check at every spot check that care respects the person's identity and beliefs, and ask the person privately whether they are treated fairly."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "They follow the identity, belief and adjustment arrangements in each care plan, never discriminate, report discrimination by anyone, and pass every request about care workers and every need for an adjustment to the office the same day."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and HR Manager",
+          "blocks": [
+            {
+              "p": "Office staff record requests and reports of discrimination in CareFlow the same working day and pass them to the Care Coordinator or Registered Manager. The HR Manager keeps training records and, with each employee's agreement, records in the staff record the languages they speak, so care workers can be matched on language."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law requires",
+      "blocks": [
+        {
+          "bullets": [
+            "Equality Act 2010, section 29: as a provider of services to the public we must not discriminate against, harass or victimise anyone who asks for or receives our service, including by ending it. Harassment protection for people using services does not cover religion or belief or sexual orientation, though less favourable treatment for those reasons is still discrimination; our policy treats harassment for any protected characteristic as discriminatory abuse. Marriage and civil partnership is not protected in services (section 28); we treat married, civil partner and unmarried partners alike.",
+            "Equality Act 2010, sections 20 and 29(7) and Schedule 2: we must make reasonable adjustments for disabled people, including information in accessible formats. The duty is owed to disabled people generally, so we must plan for what they are likely to need rather than wait to be asked, and we cannot ask a disabled person to pay any of the cost (section 20(7)).",
+            "Following the Supreme Court judgment in For Women Scotland Ltd v The Scottish Ministers (16 April 2025), sex in the Equality Act 2010 means biological sex, and a gender recognition certificate does not change it for the Act's purposes. The Equality and Human Rights Commission's Code of Practice for services, public functions and associations, in force since 5 August 2026, applies this. Trans people remain protected because of gender reassignment, with or without a certificate. Under section 22 of the Gender Recognition Act 2004 it is an offence to pass on information acquired at work about a person's application for a gender recognition certificate or, where one has been granted, their gender before it, unless an exception such as their agreement applies.",
+            "Where a local authority arranges or pays for care, section 73 of the Care Act 2014 means we exercise a public function in providing it. We must act compatibly with the person's Convention rights (Human Rights Act 1998, section 6) and, because section 150(5) of the Equality Act 2010 defines a public function by reference to that Act, have due regard in providing that care to eliminating discrimination, advancing equality of opportunity and fostering good relations (section 149(2)).",
+            "Regulation 9(3)(h) requires reasonable adjustments to enable each person to receive care; Regulation 10(2)(c) requires due regard to their relevant protected characteristics; Regulation 13(4)(a) forbids care that includes discrimination on grounds of any protected characteristic.",
+            "Since 30 October 2026 an employer is liable for third-party harassment of its employees, including by the people it supports and their families, unless it took all reasonable steps to prevent it (Equality Act 2010, section 40). Our response to discriminatory requests is one of those steps."
+          ]
+        },
+        {
+          "p": "Our policy is to apply these human rights and equality standards to everyone we support, including people who pay for their own care."
+        }
+      ]
+    },
+    {
+      "heading": "Human rights in everyday care",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Right",
+              "What it means in our care"
+            ],
+            "rows": [
+              [
+                "Life (Article 2)",
+                "We report every change in health and never put it down to age, dementia or learning disability without it being checked. If a resuscitation or treatment decision appears to have been made because of age or disability without the person or their representative being involved, the Care Coordinator raises it with the GP the same working day under the DNACPR and ReSPECT Protocol."
+              ],
+              [
+                "No inhuman or degrading treatment (Article 3)",
+                "Nobody is left wet, soiled, exposed, hungry or in pain, rushed, mocked or handled roughly; any instance is reported under the Safeguarding Adults Policy."
+              ],
+              [
+                "Liberty (Article 5)",
+                "We never lock a person in, take their keys or stop them going out except under an arrangement approved under the Consent to Care Policy."
+              ],
+              [
+                "Private and family life, home and correspondence (Article 8)",
+                "The person decides who visits, who is involved and what is shared. We respect their relationships, sexuality and routines, and never open post, read messages or look at private papers unless asked."
+              ],
+              [
+                "Thought, conscience and religion (Article 9)",
+                "We support people to practise their faith or belief, or none, and never pressure anyone about belief."
+              ],
+              [
+                "Expression (Article 10)",
+                "We give information in a form the person can use, help them keep in touch by phone, letter or online, and record their views in their own words, including when they disagree with us."
+              ],
+              [
+                "Free elections (Protocol 1, Article 3)",
+                "We help people who wish to register and vote in person, by post or by proxy. Staff never tell anyone how to vote, never fill in a ballot paper or sign a postal vote for them, never act as their proxy, and post a sealed postal vote only when asked."
+              ],
+              [
+                "No discrimination (Article 14)",
+                "Each right is upheld equally for every person."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Any care decision that limits one of these rights must be lawful, necessary, proportionate and the least restrictive option, approved as the Consent to Care Policy and the Restraint and Restrictive Practice Policy set out. Staff who believe another organisation, such as a hospital, housing provider or transport service, is treating a person unfairly report it to the office the same day. With the person's agreement, the Care Coordinator raises it with that organisation within 2 working days (the same day where health or safety is affected) and helps the person complain or get an advocate; the Registered Manager writes to the organisation within 5 working days if it is not resolved. Where the person may be at risk of harm, the safeguarding procedures apply."
+        }
+      ]
+    },
+    {
+      "heading": "Understanding and respecting each person",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Asking, not assuming",
+          "blocks": [
+            {
+              "p": "At assessment and every care plan review the assessor asks the person, privately if they prefer, what their identity, culture, beliefs and relationships mean for their care, and records the agreed arrangements in their words in What matters to me and My needs and support, so care workers do not have to ask the person to explain them at every visit. We never decide what someone needs from their age, appearance, name, religion or nationality. The assessor asks about:"
+            },
+            {
+              "bullets": [
+                "the name, title and pronouns the person wants staff to use;",
+                "personal care: washing in running water, washing after using the toilet, hair and skin care, use of each hand, religious items and modesty;",
+                "food and drink rules, separate utensils and fasting;",
+                "prayer and worship times to avoid for visits, prayer mats, shoes in particular rooms and visits from a faith leader;",
+                "festivals and dates that change routines;",
+                "the people who matter, including partners of any sex, and how each is involved;",
+                "any preference about the sex of care workers for personal care, and the reason where the person wishes to give one."
+              ]
+            },
+            {
+              "p": "Where a person cannot tell us, the assessor asks the people who know them, such as family, an attorney or an advocate, about their known beliefs, practices and past wishes, records who said what, and follows the Mental Capacity Act and Best Interests Policy for any decision. A family member's own views never replace the person's known wishes. Changes reported by care workers are dealt with the same working day under the Care Plan Review Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Faith and culture in daily care",
+          "blocks": [
+            {
+              "bullets": [
+                "Care workers handle religious items, such as a Qur'an, Bible, rosary, kara or turban, only with permission and as the care plan describes, and ask before touching a person's head or hair.",
+                "Food is prepared and bought as the care plan describes; care workers check labels when shopping.",
+                "Before a fasting period the person intends to observe, such as Ramadan, the Care Coordinator gets the prescriber's or pharmacist's advice on dose times and forms, records it in the medicines section of the care plan, and agrees visit times with the person, as the Consent, Mental Capacity and Declined Medicines Policy sets out. Questions about animal products in medicines, such as gelatine, go to the pharmacist the same working day. Care workers never change or stop medicines themselves.",
+                "Staff support a person's practice, such as setting out a prayer mat or reading aloud on request, but are never required to take part in worship.",
+                "Staff never promote their own religious, political or other beliefs, never comment on a person's faith, lifestyle or relationships, and never display material intended to persuade.",
+                "A care worker unsure during a visit how to respect a person's faith, culture or identity asks the person and, if still unsure, phones a Senior Care Worker or the Care Coordinator (the On-call Manager out of hours) before acting, and records what was agreed in the daily visit notes."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Lesbian, gay, bisexual and trans people",
+          "blocks": [
+            {
+              "p": "Many older lesbian, gay, bisexual and trans people have faced discrimination and may not be open about their identity at first. Staff never assume a person is heterosexual or that a partner is a friend or relative. A partner is treated as a partner, and involved as the person has agreed, whether or not they are married or in a civil partnership. Staff use the name and pronouns a trans person wants, and how personal care is given is agreed with them and written in the care plan. A person's gender history is recorded only where needed for their care, such as health screening, and shared only with their agreement or where the law requires it."
+            }
+          ]
+        },
+        {
+          "heading": "Age, disability, pregnancy and language",
+          "blocks": [
+            {
+              "p": "Staff never assume what a person can do or wants because of their age or disability. A person who is pregnant or has recently given birth has visit times, positioning and equipment planned with their midwife or health visitor where they agree. Professional interpreters, including British Sign Language, are booked at no cost under the Communication and Accessible Information Policy; a family member interprets only where the person chooses after being offered a professional, never in a safeguarding conversation or capacity assessment, and never a child. Where we have care workers who speak the person's language, the Care Coordinator includes them in the core care team if the person wishes; they speak the person's language during care but never interpret at formal or safeguarding conversations. Our information is provided in the person's language or format under the same policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reasonable adjustments",
+      "blocks": [
+        {
+          "p": "We plan for the adjustments disabled people commonly need. The assessor asks every person whether their health, disability or sensory loss makes any part of our service harder to use, and records each adjustment in the care plan, with communication adjustments also in My care at a glance. Examples:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Barrier",
+              "Adjustments we make"
+            ],
+            "rows": [
+              [
+                "Sight loss",
+                "Information, rotas and the care plan in large print, braille or audio, or read aloud; care workers say who they are on arrival and put things back where the person keeps them."
+              ],
+              [
+                "Deafness or hearing loss",
+                "A British Sign Language interpreter for assessments and reviews; contact by text or email; care workers face the person and check hearing aids work."
+              ],
+              [
+                "Dementia, learning disability or autism",
+                "A small consistent team and visit times; easy read or picture information; extra time to answer; sensory preferences such as light and noise respected."
+              ],
+              [
+                "Mental ill health, anxiety or fatigue",
+                "Advance notice of any change of care worker; a named office contact; assessments split across two visits; visits timed to when the person feels best."
+              ]
+            ]
+          }
+        },
+        {
+          "steps": [
+            "Office staff record a request from the person, their representative or a member of staff in CareFlow the same working day; the Care Coordinator acknowledges it to the person by the end of the next working day.",
+            "The Care Coordinator agrees with the person what will help and puts it in place within 5 working days, records it in the care plan and tells each care worker on the rota before their next visit.",
+            "Where it needs care time or funding a commissioner must agree, the Care Coordinator asks the commissioner in writing within 2 working days. Where the person could not otherwise receive care safely, the Registered Manager, or the On-call Manager out of hours, authorises an interim arrangement, confirmed or ended with the commissioner within 5 working days.",
+            "Where the Care Coordinator believes an adjustment is not reasonable, the Registered Manager decides within 5 working days of referral, weighing the benefit to the person against cost and practicality, and offers the nearest alternative. The person receives the reasons in writing, in their format, with how to complain under the Complaints Policy and Procedure.",
+            "Adjustments are reviewed at every care plan review."
+          ]
+        },
+        {
+          "p": "We never charge for an adjustment, such as an interpreter, accessible information, communication support or a change to how or when care is given. The number and length of visits are set from each person's assessed needs under the Needs Assessment and Care Planning Policy and are agreed and charged in the same way for everyone."
+        }
+      ]
+    },
+    {
+      "heading": "Preferences and requests about care workers",
+      "blocks": [
+        {
+          "p": "We do not plan rotas to include or exclude care workers by race, religion or belief, sexual orientation, age, disability, gender reassignment or any other protected characteristic at anyone's request. Care workers never agree a request about allocation themselves; they pass it to the office the same day."
+        },
+        {
+          "table": {
+            "columns": [
+              "Request",
+              "Our response"
+            ],
+            "rows": [
+              [
+                "A care worker of a particular sex for personal care",
+                "Met on every visit, as the Person-Centred Care, Dignity and Respect Policy sets out. We take the request to mean biological sex unless the person tells us otherwise. Any allocation question touching a care worker's gender history is handled privately by the Registered Manager with that worker, and their gender history is never disclosed to the person, family or colleagues without the worker's agreement."
+              ],
+              [
+                "Care workers of the same sex for every visit",
+                "Met where the person explains it is needed because of their religion, past abuse or a similar reason linked to their dignity or safety. This is the only allocation by a care worker's sex beyond personal care. The Registered Manager approves it within 5 working days and records the reason in the care plan, and the reviewer confirms at every care plan review that it is still needed; the Care Coordinator meets it in the meantime where possible."
+              ],
+              [
+                "A care worker who speaks the person's language or understands their practices",
+                "Met through skills: care workers who speak the language or know the practices in the care plan. We do not promise a care worker of a particular ethnicity, nationality or religion."
+              ],
+              [
+                "Not to have a named care worker, for no stated reason or a reason unrelated to a protected characteristic",
+                "Actioned from the next rota and within 7 days under the Person-Centred Care, Dignity and Respect Policy."
+              ],
+              [
+                "Not to have a named care worker, or any care worker, because of a protected characteristic other than sex as above",
+                "A discriminatory request, handled as set out in the next section."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where meeting a preference or refusing a discriminatory request removes visits from a care worker, the Care Coordinator offers equivalent hours in the same rota week, and contracted hours are always paid in full, as the Equality, Diversity and Inclusion Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Discriminatory requests and staff beliefs",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Responding to a discriminatory request",
+          "blocks": [
+            {
+              "steps": [
+                "Nobody agrees to the request. A care worker refused at a visit stays calm, does not argue and gives any care the person still accepts. If the person will not accept care from them, or they feel unsafe, they leave, securing the home and key safe as usual and checking out in CareFlow, and phone the office, or the On-call Manager out of hours, before leaving the area, saying what care is still due. The office or On-call Manager arranges that care with another competent care worker under the Missed, Late and Short Visits Procedure. The care worker records it in the incident log as discriminatory abuse before their shift ends, or Office staff do so the same working day where the request was made to the office, and the Registered Manager is told the same day.",
+                "A named care worker who was refused is not sent back. If they did not hear the request, the Registered Manager or their Field Care Supervisor tells them privately before their next shift and offers the support in the Violence and Aggression Towards Staff Policy.",
+                "Within 5 working days the Registered Manager or Deputy Manager speaks with the person, alone first where a relative or visitor made the request, to explain our policy, understand the reason and consider whether a health condition is the cause.",
+                "Where it arises from a condition such as dementia, delirium or mental illness, it is treated as distressed behaviour: the care plan is reviewed and no sanction is applied.",
+                "Where the person or relative understands what they are doing, the Registered Manager applies stage 2 of the staged response in the Violence and Aggression Towards Staff Policy within the same 5 working days: a written warning that the request will not be met and that continued discrimination may lead to the service being changed or ended, copied to any commissioner. Continued discriminatory refusals move to stage 3.",
+                "Throughout, the Care Coordinator covers every visit with a competent care worker, so the person is never left without essential care."
+              ]
+            },
+            {
+              "p": "Where a request hides a legitimate need, such as difficulty following an accent because of hearing loss or fear linked to past abuse, the Registered Manager meets it through adjustments to communication and the care plan, never by excluding care workers because of a protected characteristic. Discriminatory abuse of staff by anyone else is reported and supported under the Violence and Aggression Towards Staff Policy, and the Registered Manager or Deputy Manager reports a possible hate crime to the police for the worker the same day if they ask."
+            }
+          ]
+        },
+        {
+          "heading": "Staff beliefs and care tasks",
+          "blocks": [
+            {
+              "p": "A care worker whose religion or belief makes a task difficult, such as handling pork or alcohol, tells their Care Coordinator before being allocated it, never at the visit. A task in the care plan that a care worker meets unexpectedly, for example on a cover visit, is completed as the care plan sets out, and the care worker raises it with the Care Coordinator afterwards. The Registered Manager, with the HR Manager under the Equality, Diversity and Inclusion Policy, decides within 5 working days whether allocation can reasonably be adjusted without affecting anyone's care; meanwhile the Care Coordinator allocates another competent worker where one is available. Personal care and other core care are never excused because of who a person is, such as their sexual orientation, gender identity, religion or race. Refusing or delaying care, or showing disapproval, because of a person's characteristics or lifestyle is managed under the Disciplinary Policy and Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Responding to discrimination against the people we support",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "Discrimination or harassment by our staff, such as derogatory remarks, mockery, ignoring cultural or religious needs or less favourable care",
+                "Anyone who sees, hears or is told of it phones the office, or the On-call Manager out of hours, before leaving the home, or the same day if it arises elsewhere. The Registered Manager decides within 1 hour of the report whether it is a safeguarding concern, and if so the safeguarding timescales apply. Otherwise it is logged in the incident log, discussed with the worker in supervision within 7 days and followed by an unannounced spot check within 4 weeks. Deliberate discrimination is managed under the Disciplinary Policy and Procedure. We tell the person, apologise and put it right, following the Duty of Candour Policy where it applies."
+              ],
+              [
+                "A hate incident or crime by a relative, neighbour, visitor or member of the public",
+                "The care worker calls 999 if the person is in danger and phones the office, or the On-call Manager out of hours, before leaving the visit, from outside the home if the person responsible is present or they feel unsafe. The Care Coordinator, or the On-call Manager out of hours, offers support to report it to the police the same working day and records the person's decision. The Registered Manager (the Deputy Manager, or the On-call Manager out of hours, in their absence) assesses the risk within 1 hour of the report and refers under the safeguarding procedures where the person may be at risk; the Domestic Abuse Policy also applies where a family member is responsible."
+              ],
+              [
+                "A complaint of discrimination",
+                "Handled under the Complaints Policy and Procedure, with the Registered Manager overseeing the response and the protected characteristic recorded in the complaint record. An allegation of abuse goes through the safeguarding procedures first."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Staff who raise concerns about discrimination are supported and will not suffer for doing so, and may also raise them under the Whistleblowing (Speaking Up) Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Equality information and fair access",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Equality monitoring information",
+          "blocks": [
+            {
+              "p": "At assessment the assessor explains why we ask and invites the person to answer our equality monitoring questions: age, disability, ethnicity, religion or belief, sex, whether their gender identity is the same as their sex at birth, sexual orientation and first language. Answering is voluntary and every question includes prefer not to say. Answers are recorded in the initial assessment, separately from the care plan, and asked again at the 6-week review only where the person has neither answered nor declined."
+            },
+            {
+              "p": "Monitoring answers are used only in totals, never to make a decision about an individual, and groups of fewer than 5 people are never reported separately. A person may change or withdraw their answers at any time; if they tell us to stop using them, the Care Coordinator removes them from monitoring within 5 working days. Information needed for care, such as faith practices, is recorded in the care plan with the person's agreement, not taken from monitoring answers. The lawful basis for both uses is recorded under the Data Protection Policy; for monitoring it includes Data Protection Act 2018, Schedule 1, paragraph 8 (equality of opportunity or treatment), covered by our appropriate policy document."
+            }
+          ]
+        },
+        {
+          "heading": "Annual equality review",
+          "blocks": [
+            {
+              "p": "The Deputy Manager prepares an equality review each year covering 1 April to 31 March, completed by 30 April. For each characteristic where numbers allow, it compares referrals accepted and declined with reasons; time from referral to first visit; missed and late visits; continuity; reviews on time; complaints, safeguarding concerns and incidents causing harm; satisfaction results, including whether people feel treated fairly and that their culture, beliefs and identity are respected; adjustment requests and decisions; requests about care workers and discriminatory requests; discrimination reported against people we support and against staff; and the languages spoken by people we support compared with those of our care workers."
+            },
+            {
+              "p": "The Registered Manager investigates any difference of 10 percentage points or more between a group of 5 or more people and everyone else, presents the review to the Directors' governance meeting held by mid-May, and adds its actions to the service improvement plan within 5 working days. Actions may include positive action, such as recruiting care workers who speak the languages people need or sharing information about our service with under-represented communities."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Identity, beliefs, relationships, name and pronouns, preferences about care workers and reasons; reasonable adjustments",
+                "The care plan, with communication adjustments in My care at a glance"
+              ],
+              [
+                "Discriminatory requests, abuse of staff and staged response letters",
+                "The incident log"
+              ],
+              [
+                "Discrimination against a person we support",
+                "Safeguarding records or the incident log; complaint records"
+              ],
+              [
+                "Staff requests linked to their beliefs, decisions, and languages spoken",
+                "The staff record"
+              ],
+              [
+                "Equality monitoring answers",
+                "The initial assessment"
+              ],
+              [
+                "Annual equality review",
+                "Governance records"
+              ],
+              [
+                "Training and acknowledgements of this policy",
+                "Training and compliance records; policy acknowledgements"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Equality, diversity, inclusion and human rights (the Care Certificate standard on this topic), including this policy, faith and cultural practices in care, and lesbian, gay, bisexual and trans awareness",
+                "All employees",
+                "Care staff before working without a shadowing colleague; others in their first week",
+                "Every 12 months, within the person-centred care and dignity refresher"
+              ],
+              [
+                "Discriminatory requests, reasonable adjustments, equality monitoring conversations and human rights in care decisions",
+                "Registered Manager, Deputy Manager, Care Coordinators, Field Care Supervisors and On-call Managers",
+                "Before their first assessment, rota planning or on-call shift",
+                "Every 3 years, and within 2 months of a significant change in equality law or statutory guidance"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The checks on a new assessor's first three assessments include the identity, beliefs and adjustments recorded. At every spot check the Field Care Supervisor observes whether the care worker follows the person's cultural, religious and identity needs and adjustments. A care worker whose practice falls short receives feedback the same day, is retrained and is observed again within 4 weeks."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Identity, beliefs and adjustments recorded and followed in care plans",
+                "Monthly audit of 10 care plans",
+                "Deputy Manager",
+                "Registered Manager"
+              ],
+              [
+                "Discriminatory requests, adjustment decisions and reports of discrimination against this policy's timescales (target 100%)",
+                "Every record, monthly",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Equality themes in feedback, complaints, safeguarding and incidents",
+                "Monthly",
+                "Registered Manager",
+                "Quarterly quality report to the Nominated Individual and Directors"
+              ],
+              [
+                "Fairness of care across groups",
+                "Annual equality review",
+                "Deputy Manager; Registered Manager presents",
+                "Directors' governance meeting by mid-May"
+              ],
+              [
+                "Training compliance (100% induction, 95% refreshers in date) and policy acknowledgements (by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version)",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The annual satisfaction survey and the 3-monthly quality checks ask every person whether they feel treated fairly and that their culture, beliefs and identity are respected. Every shortfall is given an action, an owner and a deadline in the service improvement plan and tracked to completion."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in equality or human rights law or statutory guidance, a serious incident, an inspection finding, or when monitoring shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

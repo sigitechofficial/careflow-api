@@ -1,0 +1,650 @@
+{
+  "reference": "POL-SG-007",
+  "revision": 1,
+  "title": "Managing Allegations Against Staff Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we respond when anyone who works for us is alleged to have harmed, or may pose a risk to, an adult or a child, at work or outside it. It covers the safeguarding lead's same-day risk assessment and interim measures, referral to the local authority, the LADO, the police and CQC, coordinating our investigation with theirs, outcomes, DBS and regulator referrals, references and records. For managers, the HR Manager, Care Coordinators and Office staff.",
+  "keyPoints": {
+    "intro": "This procedure tells managers, the HR Manager, Care Coordinators and Office staff what to do when anyone who works for us is alleged to have harmed, or may pose a risk to, an adult or a child. The person's safety comes first, and the worker is treated fairly while the facts are established.",
+    "points": [
+      "Pass any allegation against anyone who works for us to the safeguarding lead by phone at once: the Registered Manager or Deputy Manager, the On-call Manager out of hours, or the Nominated Individual if it concerns the Registered Manager.",
+      "If you are unsure whether something is an allegation, poor practice or a complaint, treat it as an allegation; only the safeguarding lead decides otherwise, and records why.",
+      "Never tell the worker what has been alleged, question anyone or gather statements yourself; nobody is interviewed and no internal investigation starts until the local authority and police agree.",
+      "The safeguarding lead assesses the risk within 1 hour and decides the same day, on a written risk assessment, whether the worker is restricted, removed from visits or stopped from all work. None of these is a finding of guilt.",
+      "Care Coordinators: change the rota in CareFlow straight away so the worker has no visit, double-up or cover visit they have been removed from, and tell other people we support only that their usual worker is unavailable.",
+      "The local authority is told the same working day, the police the same day where a crime may have been committed, the LADO within one working day where children may be affected, and any supplying agency the same day.",
+      "Discuss the allegation only with the people this procedure names: never with the care team, the person's family or other employers, and never on social media. Media enquiries go to the Nominated Individual.",
+      "The worker's named contact, normally the HR Manager, keeps in touch at least weekly; interim measures are reviewed at least every 5 working days and lifted as soon as they are no longer needed.",
+      "If the worker resigns, the process is still completed. We never agree anything that stops us finishing it, referring to the DBS or giving an accurate reference.",
+      "Record the allegation only in the safeguarding record, the incident log and the restricted section of the staff record, never in daily visit notes, supervision notes or the rota."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "HR",
+    "Admin",
+    "Care Coordinator"
+  ],
+  "moduleLinks": [
+    "SAFEGUARDING",
+    "HR",
+    "EMPLOYEE",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-002",
+    "POL-SG-003",
+    "POL-HR-008",
+    "POL-HR-020",
+    "POL-HR-018",
+    "POL-GOV-007",
+    "POL-GOV-009"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Department of Health and Social Care, Care and support statutory guidance, chapter 14, paragraphs 14.120 to 14.132 (allegations against people in positions of trust), updated 30 October 2026",
+      "url": "https://www.gov.uk/government/publications/care-act-2014-supporting-implementation/care-and-support-statutory-guidance"
+    },
+    {
+      "source": "Safeguarding Vulnerable Groups Act 2006, section 35 (regulated activity providers: duty to refer)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/35"
+    },
+    {
+      "source": "Disclosure and Barring Service, Making barring referrals to DBS (updated 11 September 2026)",
+      "url": "https://www.gov.uk/guidance/making-barring-referrals-to-the-dbs"
+    },
+    {
+      "source": "Department for Education, Working together to safeguard children 2026, paragraphs 260 to 266 (allegations against people who work with children; designated officer informed within one working day; duty to refer to the DBS)",
+      "url": "https://www.gov.uk/government/publications/working-together-to-safeguard-children--2"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13(1) to (3) (safeguarding service users from abuse and improper treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 19(1) and (5) (fit and proper persons employed)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/19"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18(1) and (2)(e) and (f) (notification of abuse, allegations of abuse and police incidents)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Criminal Justice and Courts Act 2015, section 20 (ill-treatment or wilful neglect: care worker offence)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/2/section/20"
+    },
+    {
+      "source": "Data Protection Act 2018, section 11(2) (criminal offence data includes the alleged commission of offences)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/section/11"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Our care workers are trusted to work alone in people's homes, often with people who cannot easily tell anyone if something is wrong. {{organisation}} therefore acts on every allegation that someone who works for us has harmed, or may pose a risk to, an adult or a child, the same day, whoever makes it and whoever it is about, including a manager or a Director."
+        },
+        {
+          "p": "{{organisation}} puts the safety of the people we support first, never prejudices the enquiries of the local authority or the police, and treats the worker fairly: an allegation is not a finding, and interim measures are not a punishment."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure makes sure every allegation reaches the safeguarding lead at once, people are protected the same day, agencies are told on time, our investigation never gets ahead of theirs, and every case ends with a recorded outcome."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure covers allegations about employees on any contract, bank staff, managers, the Nominated Individual and Directors, and the agency workers, students, volunteers and contractors who work with the people we support. It covers conduct at work and outside it, past or present, towards any adult or child. It also covers concerns we learn of about someone who works for another organisation."
+        },
+        {
+          "p": "Reporting and referring the concern, and any section 42 enquiry we are asked to carry out, follow the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and allegations involving children also follow the Safeguarding Children and Young People Policy. Suspension, disciplinary investigations and hearings are in the Disciplinary Policy and Procedure. Raising a concern outside the management chain is covered by the Whistleblowing (Speaking Up) Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Allegation",
+                "Information suggesting that someone who works for us has behaved in a way that has harmed, or may have harmed, an adult or a child; may have committed a criminal offence against, or related to, an adult or a child; or has behaved towards an adult or a child in a way that indicates they may pose a risk of harm to adults with care and support needs (Care and support statutory guidance, paragraph 14.123) or may not be suitable to work with children (Working together to safeguard children 2026, paragraph 260)."
+              ],
+              [
+                "Practice concern",
+                "Poor practice that is not an allegation, such as a late record or a missed glove change, handled through supervision or the Capability and Performance Procedure."
+              ],
+              [
+                "Person in a position of trust",
+                "Anyone who works, paid or unpaid, with adults with care and support needs. Safeguarding Adults Boards set position of trust (PiPoT) procedures for concerns about them."
+              ],
+              [
+                "Case manager",
+                "The manager who leads our response to an allegation: the Registered Manager, or the manager named under Allegations about managers, Directors and others."
+              ],
+              [
+                "Named contact",
+                "The person who keeps the worker informed and supported, normally the HR Manager. The named contact is never the case manager or an investigator."
+              ],
+              [
+                "LADO",
+                "The Local Authority Designated Officer, who manages and oversees allegations against people who work with children."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Role",
+              "Duties under this procedure"
+            ],
+            "rows": [
+              [
+                "Directors and Nominated Individual",
+                "The Nominated Individual is told of every allegation the same day, leads cases about the Registered Manager, reviews long-running and closed cases. The Directors fund legal and employment law advice and commission external investigators."
+              ],
+              [
+                "Registered Manager",
+                "Case manager unless conflicted: leads every step of this procedure, including outcomes and the learning review."
+              ],
+              [
+                "Deputy Manager",
+                "Case manager when the Registered Manager is absent or conflicted; audits allegation cases monthly."
+              ],
+              [
+                "On-call Manager",
+                "Out of hours: the 1-hour risk assessment, stopping a worker from all work where a person is at risk, emergency referrals, phoning the manager on the management escalation rota at once, and handover by 10am the next working day."
+              ],
+              [
+                "HR Manager",
+                "Named contact for the worker; the employment side and the restricted section of the staff record; written notice to an agency, college or contractor; employment law advice; references."
+              ],
+              [
+                "Care Coordinators and Field Care Supervisors",
+                "Change rotas in CareFlow the same day, brief replacement workers on the person's care without giving the reason, keep in contact with the person at risk, and gather records the case manager asks for."
+              ],
+              [
+                "Office staff, Senior Care Workers and Care Workers",
+                "Pass any allegation to the safeguarding lead at once, in the caller's own words, and keep it confidential."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Recognising an allegation",
+      "blocks": [
+        {
+          "p": "Allegations come from disclosures, colleagues, families, complaints, records, spot checks, social media, anonymous calls, other agencies or employers, or the worker's own disclosure of an arrest, charge or investigation under the Staff Code of Conduct. Every one goes to the safeguarding lead, however old the events and whether or not the worker still works for us."
+        },
+        {
+          "p": "Within the 1-hour risk assessment the safeguarding lead records whether the matter is an allegation, a practice concern or a complaint, with reasons. If in doubt, it is an allegation. A complaint that contains an allegation is handled under this procedure first: it is still acknowledged within 3 working days under the Complaints Policy and Procedure, and the response is agreed with the local authority and police. Conduct outside work is an allegation where it suggests a risk to adults or children, for example domestic abuse, violence, sexual offences, offences involving children, fraud or theft. Force that was not a necessary emergency intervention, or any prohibited practice under the Restraint and Restrictive Practice Policy, is always an allegation."
+        },
+        {
+          "p": "A matter categorised as a practice concern is recorded the same day, with the reasons, in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions), and discussed in supervision within 7 days, and the worker has an unannounced spot check within 4 weeks. When a worker has three practice concerns in 12 months, the Registered Manager reviews them together, asks the local authority for advice where they could amount to an allegation, and records the decision."
+        },
+        {
+          "p": "An allegation is never dismissed because the person has dementia, a learning disability or mental ill health, has made allegations before or withdraws it. Where a person's repeated allegations were not substantiated, the Registered Manager agrees with them, their representative and the commissioner how visits are staffed, for example by two workers, without reducing their care."
+        }
+      ]
+    },
+    {
+      "heading": "Immediate response",
+      "blocks": [
+        {
+          "p": "Whoever receives the allegation follows the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, never investigating, confronting or warning the worker. The safeguarding lead then takes these steps."
+        },
+        {
+          "steps": [
+            "Within 1 hour: assess the risk to the person and to anyone else the worker visits, categorise the matter, and record what was alleged, by whom, when and how it reached us in the safeguarding record. Where the allegation concerns our care, open an incident log entry graded at least High under the Incident Reporting, Investigation and Learning Policy, with restricted access, and list in the safeguarding record the daily visit notes, eMAR entries and check-in and check-out records covering the events, so they are kept for the agencies.",
+            "If the worker is on shift, the Care Coordinator (On-call Manager out of hours) reallocates their remaining visits to the person at risk. If the worker is in that person's home and the risk is immediate, the Care Coordinator or On-call Manager phones and asks them to finish the visit safely and not start their next visit, giving only an operational reason, and sends another worker or calls the police.",
+            "The same day: decide interim measures on a written risk assessment and make the referrals and notifications below.",
+            "Agree with the local authority and the police what the worker may be told. Until then, the worker is told only that their rota has changed or, if suspended, the decision and their named contact.",
+            "Within 1 working day: a Field Care Supervisor or Care Coordinator contacts the person, and their representative where appropriate, to check their welfare and explain the change of worker in the terms the agencies agreed.",
+            "Where others may be at risk, for example from theft, sexual or physical abuse or rushed visits, the case manager lists everyone the worker visited in the previous 3 months from check-in and check-out data and agrees with the agencies whether welfare checks are needed; a Field Care Supervisor completes them within 5 working days."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Referrals and notifications",
+      "blocks": [
+        {
+          "p": "The case manager records each referral and notification, with its reference number, the officer's name and the advice given, in the safeguarding record. Where the local Safeguarding Adults Board's position of trust procedure sets a shorter timescale or a named contact, we follow it."
+        },
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "When",
+              "By whom"
+            ],
+            "rows": [
+              [
+                "Local authority adult safeguarding team, for the area where the harm happened, using the route on the Local Safeguarding Contacts sheet",
+                "The same working day; immediately where the risk is immediate; out of hours as the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure sets out",
+                "Safeguarding lead or On-call Manager"
+              ],
+              [
+                "Local authority position of trust lead, where the conduct happened outside work or involved nobody we support",
+                "The same working day the matter is categorised as an allegation",
+                "Registered Manager"
+              ],
+              [
+                "Police, where a crime may have been committed, including ill-treatment or wilful neglect by a care worker (Criminal Justice and Courts Act 2015, section 20)",
+                "At once by 999 in an emergency; otherwise the same day",
+                "Safeguarding lead or On-call Manager"
+              ],
+              [
+                "LADO for the area of the branch employing the worker, and for the child's area if different, where a child is involved or the worker's conduct towards an adult may affect their suitability to work with children",
+                "Within one working day",
+                "Registered Manager"
+              ],
+              [
+                "CQC, under the Statutory Notifications to CQC Procedure",
+                "Without delay and within 24 hours of the referral, as the Safeguarding Adults Policy sets out",
+                "Registered Manager"
+              ],
+              [
+                "Nominated Individual",
+                "The same day",
+                "Registered Manager"
+              ],
+              [
+                "Commissioner funding the person's care",
+                "The same working day, naming the worker only where the contract requires it and the Nominated Individual approves",
+                "Registered Manager"
+              ],
+              [
+                "Supplying agency, college or contractor's employer",
+                "The same day by phone, confirmed in writing within 1 working day",
+                "Registered Manager, with the HR Manager"
+              ],
+              [
+                "Insurers",
+                "Within 5 working days",
+                "Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Working together to safeguard children 2026 (paragraph 264) expects the LADO to be informed within one working day of every allegation against someone who works with children. Our policy is that the LADO is also always told where the alleged conduct is sexual or violent, or the worker has declared other work or volunteering with children. Where the conduct happened outside work and involved nobody we support, regulation 18 of the Care Quality Commission (Registration) Regulations 2009 does not require a CQC notification, and the Registered Manager records that decision."
+        },
+        {
+          "p": "Information about the worker is shared only where relevant and necessary, and the reasons are recorded. An alleged offence is criminal offence data (Data Protection Act 2018, section 11(2)), shared on the conditions in the Confidentiality and Information Sharing Policy. The local authority or LADO decides whether the worker's other employers or voluntary organisations are told; we never tell them without that agreement, unless someone is in immediate danger, when we call 999."
+        }
+      ]
+    },
+    {
+      "heading": "Risk assessment and interim measures",
+      "blocks": [
+        {
+          "p": "Suspension is never automatic. The case manager's written risk assessment, in the restricted section of the staff record, covers the seriousness of the allegation, the evidence so far, the vulnerability of the people the worker visits, the worker's access to keys, key safe codes, money and medicines, any risk to evidence or witnesses, and the views of the local authority, police and LADO. The least restrictive measure that keeps people safe and protects the enquiries is chosen."
+        },
+        {
+          "table": {
+            "columns": [
+              "Measure",
+              "Normally used when"
+            ],
+            "rows": [
+              [
+                "No change, with closer monitoring through unannounced spot checks",
+                "The allegation is low risk, unlikely to be repeated and agencies agree"
+              ],
+              [
+                "Removal from the visits of the person concerned, and their household",
+                "The risk is limited to one person or household"
+              ],
+              [
+                "Removing a task, such as medicines support or handling money",
+                "The allegation concerns that task only"
+              ],
+              [
+                "Working only on double-up visits, with a colleague the case manager chooses",
+                "A second worker at every visit controls the risk"
+              ],
+              [
+                "Temporary office or training duties with no contact with people we support",
+                "Contact with people we support must stop but other work is safe"
+              ],
+              [
+                "Suspension on full pay under the Disciplinary Policy and Procedure",
+                "No other measure protects people or the enquiries, or gross misconduct is alleged"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Out of hours, the On-call Manager may stop a worker from all work at once where a person is at risk; the Registered Manager or Deputy Manager confirms or changes this by 10am the next working day. Suspension itself, pay, CareFlow access, ID badge and equipment, and key safe code changes follow the Disciplinary Policy and Procedure."
+        },
+        {
+          "p": "Care Coordinators change the rota in CareFlow the same day, so that no visit is missed or late, and check the worker's visits for the next 14 days, including double-up partners, cover and on-call shifts. Where theft, financial abuse or harm is alleged, the person whose visits the worker leaves is offered a key safe code change the same working day under the Key Holding, Key Safes and Access to People's Homes Procedure, and any key the worker holds for that home is recovered that day. The worker is paid for rostered visits an interim measure removes and, without fixed hours, is offered other visits the risk assessment allows."
+        },
+        {
+          "p": "The case manager reviews every interim measure at least every 5 working days, and on any new information, recording the review and telling the worker the outcome. Measures end as soon as the risk assessment no longer supports them."
+        }
+      ]
+    },
+    {
+      "heading": "Coordinating enquiries and our investigation",
+      "blocks": [
+        {
+          "p": "The police lead any criminal investigation and it always takes priority; the local authority decides whether a section 42 enquiry is needed and who carries it out. The Registered Manager or Deputy Manager attends every strategy, position of trust or LADO meeting we are invited to, with a written chronology, and records our actions with an owner and a deadline."
+        },
+        {
+          "steps": [
+            "No interviews, written accounts or internal investigation start until the police and local authority agree; their agreement and any conditions are recorded in the safeguarding record.",
+            "Records they ask for are sent securely by their deadline, or within 2 working days. While a case is open, the HR Manager checks with them before releasing records under any rights request, including the worker's own.",
+            
+            "Any disciplinary investigation follows the Disciplinary Policy and Procedure: the investigating officer, who is not the section 42 enquiry officer, is appointed with written terms of reference within 2 working days of the agencies agreeing, and uses their findings only where they agree. The Comprehensive incident investigation under the Incident Reporting, Investigation and Learning Policy stays paused until then, reviewed at least every 4 weeks, and restarts with terms of reference the Nominated Individual agrees within 2 working days.",
+            "The case manager asks the police and local authority for an update at least every 10 working days, records the reply, and asks for a decision in writing where none has come within 20 working days, escalating under the Safeguarding Adults Board's procedure if needed.",
+            "A police decision to take no further action, or an acquittal, does not end our process: our decisions use the balance of probabilities, and the DBS referral duty still applies."
+          ]
+        },
+        {
+          "p": "Our aim is to conclude every case within 3 months of the allegation."
+        },
+        {
+          "p": "A concern about someone who works for another organisation, such as another agency's care worker or a district nurse, is referred to the local authority under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure; we contact their employer only if the local authority agrees."
+        }
+      ]
+    },
+    {
+      "heading": "Allegations about managers, Directors and others",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Allegation about",
+              "Reported to and case manager",
+              "Additional steps"
+            ],
+            "rows": [
+              [
+                "Care Coordinator, Field Care Supervisor, HR Manager, Office staff or care staff",
+                "Registered Manager",
+                "Where the allegation is about the HR Manager, our employment law adviser advises on the case and the Deputy Manager is the named contact."
+              ],
+              [
+                "Deputy Manager",
+                "Registered Manager",
+                "The Deputy Manager takes no part in the case or the related safeguarding record."
+              ],
+              [
+                "Registered Manager",
+                "Nominated Individual, who is case manager",
+                "The Directors commission an external investigator; the Registered Manager Role and Absence Cover Policy applies if they are restricted or suspended."
+              ],
+              [
+                "Nominated Individual or a Director",
+                "The chair of the Directors (the deputy chair if it concerns the chair), and the local authority directly",
+                "The other Directors appoint an external case manager and investigator, and assess fitness under the Fit and Proper Persons (Directors) Policy. Where we have only one Director, or it concerns every Director, the HR Manager passes it the same working day through our employment law adviser to that policy's independent reviewer, who takes these steps."
+              ],
+              [
+                "Agency worker",
+                "Registered Manager",
+                "The worker does no visits for us until the case ends; we obtain the agency's outcome in writing."
+              ],
+              [
+                "Student, volunteer or contractor",
+                "Registered Manager",
+                "The person does no further work with people we support until the case ends."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Supporting the people involved",
+      "subsections": [
+        {
+          "heading": "The person at risk",
+          "blocks": [
+            {
+              "p": "The person's care continues with familiar workers wherever possible. A manager asks them privately what they want to happen, through a professional interpreter where needed and never a family member, and passes their wishes to the local authority. They are offered support from their GP, Victim Support or specialist services and told the outcome as far as the agencies allow. Making an allegation never affects their care, and where our care may have caused harm the Registered Manager makes the duty of candour decision under the Duty of Candour Policy, treating an unclear case as notifiable."
+            }
+          ]
+        },
+        {
+          "heading": "The worker",
+          "blocks": [
+            {
+              "p": "The HR Manager, as named contact, contacts the worker at least weekly, gives updates as far as the agencies allow, and offers the employee assistance programme, occupational health and the right to be accompanied by a trade union representative or colleague at any meeting. Interim measures and their reviews are confirmed in writing within 1 working day of each decision, giving reasons only as far as the agencies have agreed."
+            }
+          ]
+        },
+        {
+          "heading": "Colleagues and confidentiality",
+          "blocks": [
+            {
+              "p": "The staff member who raised the allegation is told within 2 working days what has been done, as far as confidentiality allows, and is protected from victimisation. Colleagues who witnessed events or supported a disclosure are offered a debrief within 3 working days."
+            },
+            {
+              "p": "Details are shared only with those named in this procedure. Speculation, gossip or social media comment about a case by any employee is a disciplinary matter, and only the Nominated Individual or a Director speaks to the media."
+            }
+          ]
+        }
+      ],
+      "blocks": []
+    },
+    {
+      "heading": "Outcomes",
+      "blocks": [
+        {
+          "p": "Within 5 working days of the local authority confirming its outcome, of the police deciding on their action where the local authority has no further role, or of our own report where the agencies passed the matter back to us, the case manager and HR Manager meet, record one outcome for each allegation and decide what follows."
+        },
+        {
+          "table": {
+            "columns": [
+              "Outcome",
+              "Meaning",
+              "What follows"
+            ],
+            "rows": [
+              [
+                "Substantiated",
+                "Enough evidence shows, on the balance of probabilities, that it happened",
+                "Disciplinary Policy and Procedure; DBS and regulator referral decision; safeguarding actions in the care plan"
+              ],
+              [
+                "Unsubstantiated",
+                "Not enough evidence to prove or disprove it; not a finding of innocence or guilt",
+                "Return to work plan, with extra spot checks where the risk assessment supports them"
+              ],
+              [
+                "Unfounded",
+                "No evidence or proper basis supports it, for example a misunderstanding",
+                "Return to work plan"
+              ],
+              [
+                "False",
+                "There is sufficient evidence to disprove it",
+                "Return to work plan"
+              ],
+              [
+                "Malicious",
+                "There is clear evidence of a deliberate intention to deceive or cause harm",
+                "Return to work plan; a malicious allegation by an employee goes to the Disciplinary Policy and Procedure"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The local authority's finding is recorded alongside ours: partly substantiated counts as substantiated for the parts found; where it is not substantiated or inconclusive, the case manager decides which other outcome the evidence supports. The HR Manager confirms the outcome to the worker in writing within 5 working days of the meeting. A false or malicious allegation by a person we support is never a reason to reduce or end their care; the Care Coordinator reviews whether it shows an unmet need, such as distress, delirium or a change in cognition."
+        },
+        {
+          "p": "Before a worker returns after a restriction or suspension, the Registered Manager and HR Manager meet them to agree a return plan: which people they will visit, honouring the wishes of the person at risk, supervision in their first week back, an unannounced spot check within 4 weeks and any training identified. A worker who returns to full duties has their restriction marked ended in the staff record that day."
+        }
+      ]
+    },
+    {
+      "heading": "DBS, regulators and references",
+      "blocks": [
+        {
+          "p": "The law requires us to refer a worker to the Disclosure and Barring Service when we remove them from regulated activity, or would or might have had they not left, because we think they engaged in relevant conduct, meet the harm test or have a relevant caution or conviction (Safeguarding Vulnerable Groups Act 2006, section 35). Failing to refer without reasonable excuse is an offence (section 38), whoever else has been told; we obtain a supplying agency's or college's referral decision in writing and still make our own."
+        },
+        {
+          "p": "The Registered Manager records the DBS referral decision, with reasons, within 5 working days of the outcome meeting where the worker has been dismissed, permanently removed from regulated activity or redeployed, or left during the case, and approves any referral, which the HR Manager submits within 10 working days of that decision, without waiting for an appeal, under the Staff Fitness Concerns and DBS Referrals Procedure. Where a registered professional, such as a nurse, no longer meets Regulation 19, the Registered Manager informs their regulator under the same procedure."
+        },
+        {
+          "p": "If a worker resigns or stops working for us during a case, the investigation is completed and an outcome recorded, and the worker is invited to take part. We never agree a settlement agreement, reference wording or any other term that stops us completing the process, cooperating with the agencies, referring to the DBS or a regulator, or giving an accurate reference."
+        },
+        {
+          "p": "References are written by the HR Manager and approved by the Registered Manager. A substantiated allegation of harm or risk to an adult or child is included in any reference for work with adults or children, stating the facts and the outcome. An allegation that was unsubstantiated, unfounded, false or malicious is never mentioned. If a reference is requested while a case is open, the HR Manager takes advice from our employment law adviser and the local authority before replying."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Retention"
+            ],
+            "rows": [
+              [
+                "The allegation, decisions with reasons, referrals, notifications, meeting notes, information shared and the outcome",
+                "The safeguarding record of the person concerned; for conduct involving nobody we support, the restricted section of the staff record",
+                "As the Safeguarding Adults Policy and the Records Management and Retention Policy set out"
+              ],
+              [
+                "Grading, linked references and closure, where the allegation concerns our care",
+                "The incident log entry, restricted to the Registered Manager, Deputy Manager, Nominated Individual and investigation lead",
+                "20 years from closure, as for serious incidents under the Incident Reporting, Investigation and Learning Policy"
+              ],
+              [
+                "Risk assessments, interim measures and reviews, the outcome, the return plan, and DBS, regulator and reference decisions",
+                "Restricted section of the staff record; managers appointed to the case are given what they need by the HR Manager",
+                "20 years from closure, even where the disciplinary case file is kept for a shorter period"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where an allegation is found false or malicious, the HR Manager removes it from the staff record within 5 working days of the outcome; the safeguarding record and incident log entry keep the finding. The staff record names people we support by CareFlow reference only. Allegations never appear in daily visit notes, supervision notes or rota notes."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "Registered Manager, Deputy Manager and Nominated Individual",
+                "Managing allegations, the local position of trust procedure and the LADO process, within safeguarding lead training",
+                "Within 3 months of appointment, then every 3 years; until trained, the Nominated Individual (for a new Nominated Individual, the Registered Manager) countersigns every categorisation and interim measure decision the same working day"
+              ],
+              [
+                "HR Manager",
+                "Briefing on this procedure, the Disciplinary Policy and Procedure and DBS referral duties, given by the Registered Manager",
+                "Before managing a first case, then every 12 months"
+              ],
+              [
+                "On-call Managers",
+                "Receiving an allegation, the 1-hour risk assessment and stopping a worker from all work out of hours",
+                "Before the first on-call shift, then every 12 months"
+              ],
+              [
+                "Care Coordinators and Office staff",
+                "Passing on allegations, rota changes and confidentiality",
+                "When starting the role, then within the annual safeguarding refresher"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Training is recorded in training and compliance records. Managers, the HR Manager, Care Coordinators and Office staff acknowledge this procedure in CareFlow by the deadline in the Induction and Care Certificate Procedure, within 14 days of starting a new role and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every open allegation, its interim measures and review dates",
+                "Weekly",
+                "Registered Manager",
+                "Weekly management meeting"
+              ],
+              [
+                "Every allegation case opened in the month against each timescale in this procedure",
+                "Monthly, within the safeguarding record audit",
+                "Deputy Manager (Registered Manager for cases the Deputy Manager led)",
+                "Monthly safeguarding report to the Nominated Individual"
+              ],
+              [
+                "Every case open longer than 3 months, with what is delaying it and the action agreed with the Registered Manager",
+                "Monthly",
+                "Nominated Individual",
+                "Directors in the quarterly governance report"
+              ],
+              [
+                "Every case closed in the quarter: decisions, outcomes, DBS and reference decisions, learning review",
+                "Quarterly",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Numbers, types, outcomes, time to conclude, referrals, and links with recruitment, supervision and closed-culture warning signs",
+                "Annually, in the annual safeguarding report",
+                "Registered Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Targets: 100% of categorisation and interim measure decisions recorded the same day; 100% of LADO referrals within one working day where required; 100% of interim measures reviewed at least every 5 working days; 100% of DBS referral decisions within 5 working days; at least 80% of cases concluded within 3 months. The learning review within 28 days of closure under the Safeguarding Adults Policy also asks whether recruitment, references, supervision, spot checks or rota patterns could have prevented the harm or detected it sooner."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law, guidance or local Safeguarding Adults Board procedures, a serious case or inspection finding, or when monitoring shows it is not working."
+        }
+      ]
+    }
+  ]
+}

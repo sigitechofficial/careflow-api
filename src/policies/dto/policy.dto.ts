@@ -159,6 +159,14 @@ export class CreatePolicyDto {
   @IsDateString()
   reviewDate?: string;
 
+  @ApiPropertyOptional({
+    description: 'Staff must read and acknowledge this policy (within 14 days of each new version being published)',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  acknowledgementRequired?: boolean;
+
   @ApiPropertyOptional({ type: () => [PolicyApplicabilityInputDto] })
   @IsOptional()
   @IsArray()

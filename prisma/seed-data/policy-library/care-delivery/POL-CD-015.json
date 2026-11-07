@@ -1,0 +1,638 @@
+{
+  "reference": "POL-CD-015",
+  "revision": 1,
+  "title": "Hospital Admission and Discharge Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "What we do when a person we support goes into hospital, in an emergency or as planned: handing over at the visit, telling the ward what it needs to know, looking after the home, keys and pets, holding the package and keeping in touch with the ward, then planning the discharge, challenging an unsafe one and restarting care safely. For care workers, Office staff, Care Coordinators, Field Care Supervisors, On-call Managers and managers.",
+  "keyPoints": {
+    "intro": "What you do when a person goes into hospital, and at your first visit after they come home, often weaker and with new medicines or equipment.",
+    "points": [
+      "If a person needs hospital during your visit, call 999 and stay, checked in on CareFlow, until the crew arrive or the Registered Manager, Deputy Manager or On-call Manager agrees you can leave.",
+      "After calling 999, give no further medicine unless the call handler or crew asks you to. Give the crew My care at a glance, any DNACPR or ReSPECT form, hospital passport, medicines and the person's aids.",
+      "Once the person has gone, make the home safe: medicines left in their usual storage, cooker and plug-in heaters off, windows closed, pets left with food and water, door locked, key safe closed and scrambled. Then phone the office.",
+      "Before the end of your shift, record in the daily visit notes what happened, what went with the person and who you told. Every 999 call also goes in the incident log.",
+      "Never cancel visits yourself. If anyone tells you a person has gone into hospital, phone the office (On-call Manager out of hours) straight away.",
+      "Never enter the home of a person who is in hospital unless the Care Coordinator has agreed and recorded the task, and never take away their belongings, money or keys. Do not visit them on the ward in your own time.",
+      "Before your first visit after a hospital stay, the office phones you about the changes; read My care at a glance and the care plan changes before you arrive.",
+      "If nobody answers at your first visit after discharge, or the person is not home, phone the office from the doorstep and follow the No Reply, No Access and Missing Person Procedure.",
+      "At the first visit after discharge, give no medicine unless CareFlow shows the flash message that the discharge medicines check is complete; if not, phone the office before any dose and do other care while you wait, up to 30 minutes after the planned end.",
+      "At that visit, check the DNACPR or ReSPECT form is back, record the pressure areas on a body map during personal care, check there is food, drink and warmth, and use only equipment you have been trained to use in that home.",
+      "Phone the office (On-call Manager out of hours) before you leave if the person seems unwell, drowsy or in pain, has no food, their DNACPR or ReSPECT form is missing, or there is a wound, catheter or equipment you were not told about.",
+      "If the office does not answer within 15 minutes, phone the Registered Manager or Deputy Manager directly. Call 999 in an emergency, including confusion that comes on suddenly."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Staff Allocation",
+    "Senior Carer/Nurse",
+    "Carer/Domestic"
+  ],
+  "moduleLinks": [
+    "VISIT",
+    "CARE_PLAN",
+    "MEDICATION",
+    "RISK_ASSESSMENT",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-MED-013",
+    "POL-CD-002",
+    "POL-CD-003",
+    "POL-CD-012",
+    "POL-CD-014",
+    "POL-HS-013",
+    "POL-HS-008",
+    "POL-CD-011"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(i): working with others where responsibility for care is shared or transferred",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Care Act 2014, section 74: discharge of hospital patients with care and support needs (duty on NHS trusts to involve the patient and carers, as substituted by the Health and Care Act 2022 from 1 July 2022)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/74"
+    },
+    {
+      "source": "Care Act 2014, section 47: protecting property of adults being cared for away from home",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/47"
+    },
+    {
+      "source": "Health and Social Care Act 2012, section 251B: duty to share information",
+      "url": "https://www.legislation.gov.uk/ukpga/2012/7/section/251B"
+    },
+    {
+      "source": "Health and Social Care Act 2012, section 251C: meaning of relevant health or adult social care commissioner or provider",
+      "url": "https://www.legislation.gov.uk/ukpga/2012/7/section/251C"
+    },
+    {
+      "source": "Mental Health Act 1983, section 117: after-care",
+      "url": "https://www.legislation.gov.uk/ukpga/1983/20/section/117"
+    },
+    {
+      "source": "Department of Health and Social Care, Hospital discharge and community support guidance, statutory guidance for NHS bodies and local authorities (last updated 26 January 2024), including Annex A (estimated date of discharge) and Annex B (discharge pathways)",
+      "url": "https://www.gov.uk/government/publications/hospital-discharge-and-community-support-guidance/hospital-discharge-and-community-support-guidance"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Hospital admissions and discharges are risky times for the people we support: information is lost, homes and pets can be left unprotected, and people often come home weaker, with new medicines and equipment, sometimes without warning. {{organisation}} will make sure the ward knows how the person lives, their home and pets are looked after, their package and care team are held, and care restarts safely and on time."
+        },
+        {
+          "p": "The Registered Manager leads on this procedure; the Deputy Manager covers in their absence."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "To give the ambulance crew and ward accurate information, protect the home and pets, hold the package, join discharge planning in time to challenge an unsafe discharge, and restart care safely from the first visit due."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to all employees, including agency workers placed with us, and to every person we support who goes into hospital, including a mental health hospital, as an emergency or planned admission or a short attendance, and to their return home or move to a rehabilitation bed or care home. A person under a hospital at home or virtual ward team has not been admitted: visits continue and that team's written instructions are added to the care plan."
+        },
+        {
+          "p": "Covered elsewhere: medicines information, the eMAR and the discharge medicines check (Medicines Changes, Transfers of Care and Hospital Discharge Procedure); waiting for and handing over to the ambulance crew (First Aid Procedure); new packages starting on discharge (Needs Assessment and Care Planning Policy); CPR recommendations (DNACPR and ReSPECT Protocol); fast-track end of life discharges and deaths (End of Life Care Policy); and finding a person who does not answer the door (No Reply, No Access and Missing Person Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Hospital stay",
+                "Admission to a hospital bed for one night or longer."
+              ],
+              [
+                "Short attendance",
+                "Time at an emergency department, urgent treatment centre or same-day unit without an overnight stay."
+              ],
+              [
+                "Hospital contact",
+                "The person's Care Coordinator, named to the ward as our contact for the stay."
+              ],
+              [
+                "Care transfer hub",
+                "The local NHS and local authority team that coordinates discharges needing new or changed support."
+              ],
+              [
+                "Discharge problem",
+                "Discharge without notice to us; no written discharge information; needs, equipment, medicines or access not as agreed; or the person coming home unwell or unsafe."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors sign no contract that would stop us holding packages or restarting care as set out here. The Nominated Individual takes any pattern of unsafe discharges the Registered Manager cannot resolve to the senior leads of the hospital trust and commissioner."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "They decide with the Care Coordinator how care restarts, escalate unsafe discharges, and decide on safeguarding for admissions and discharge problems."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "As hospital contact, the Care Coordinator sends the admission information, tells the commissioner and other agencies, keeps in touch with the ward, manages the hold, plans the discharge and restart, and briefs care workers."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "They carry out pre-discharge assessments, first visits for short-notice restarts, discharge medicines checks and home reviews after discharge."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Office staff confirm admissions, cancel visits and phone the ward. Out of hours the On-call Manager does this and the Care Coordinator's same-day tasks, handing over to the Registered Manager or Deputy Manager by 10am the next working day; the Care Coordinator then takes over any open action."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "They hand over to the ambulance crew, leave the home secure, report admissions they hear about and make the checks at the first visit after discharge."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law requires",
+      "blocks": [
+        {
+          "bullets": [
+            "Regulation 12(2)(i) requires us to work with others who share or take over a person's care, so that care planning happens in time to keep the person safe.",
+            "Section 74 of the Care Act 2014 requires the NHS trust running the hospital to involve the patient and any unpaid carer as soon as feasible in discharge planning.",
+            "Section 47 of the Care Act 2014 requires the local authority to take reasonable steps to protect the belongings of an adult in hospital who cannot protect them where no other arrangement exists.",
+            "Sections 251B and 251C of the Health and Social Care Act 2012 require a provider of publicly arranged care to share information likely to help the person's health or social care and in their best interests, unless we reasonably consider that they object or would be likely to.",
+            "Section 117 of the Mental Health Act 1983 requires the integrated care board and local authority to arrange after-care for people leaving hospital after detention under certain sections, such as section 3."
+          ]
+        },
+        {
+          "p": "The Department of Health and Social Care's Hospital discharge and community support guidance (statutory guidance for NHS bodies and local authorities) says it is good practice to set an estimated date of discharge within 48 hours of admission, and expects concerns to use the local escalation route. A paused home care package restarting at the same level is pathway 0; restarting a package that lapsed is pathway 1. Holding the package keeps a person whose needs are unchanged on pathway 0."
+        }
+      ]
+    },
+    {
+      "heading": "Being ready for a hospital stay",
+      "blocks": [
+        {
+          "p": "At the assessment and every full care plan review, the assessor or reviewer checks that:"
+        },
+        {
+          "bullets": [
+            "My care at a glance is current, its home copy is in the home for the ambulance crew, and it lists what the person wants taken to hospital (such as glasses, hearing aids, dentures, hospital passport, phone and charger) and where these are kept;",
+            "People involved names who we tell about an admission, who looks after the home, keys and post, and the pet emergency contact;",
+            "Consent and decisions records the person's agreement to sharing information with hospitals, or the best interests basis."
+          ]
+        },
+        {
+          "p": "The welcome pack asks people and families to phone the branch office as soon as they know of an admission or discharge date."
+        }
+      ]
+    },
+    {
+      "heading": "When a person goes into hospital",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "From one of our visits",
+          "blocks": [
+            {
+              "steps": [
+                "Call 999 and follow the First Aid Procedure: stay, checked in on CareFlow, until the crew arrive or the Registered Manager, Deputy Manager or On-call Manager agrees you can leave, and phone the office (On-call Manager out of hours), which covers your next visits.",
+                "After calling 999, give no further medicine unless the call handler or crew asks. Give the crew the facts and times, the home copy of My care at a glance, any DNACPR or ReSPECT form, advance care plan summary and hospital passport, the person's aids, and the medicines as the Medicines Changes, Transfers of Care and Hospital Discharge Procedure sets out. Tell them about communication needs, any pressure ulcer and any known infection.",
+                "Never take charge of the person's money, cards or valuables; if they want them, they go with them.",
+                "Once the person has left, leave medicines that stay behind in their usual storage, switch off the cooker and any plug-in heater, close windows, leave the heating as the person has it, leave pets secured with food and water (never take one away), lock the door as the care plan says, and close and scramble the key safe.",
+                "Phone the office to say which hospital the person went to, what went with them and how the home was left. Before the end of your shift, record this in the daily visit notes and the incident log."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "When we hear in another way",
+          "blocks": [
+            {
+              "p": "A care worker who is told of an admission phones the office and cancels nothing. Where the caller is not named in the care plan, Office staff (On-call Manager out of hours) confirm the admission with the ward before cancelling visits. For a planned admission, the Care Coordinator agrees the last visit with the person and sends the admission information to the pre-admission team at least 2 working days before (the same working day if we hear later); at that last visit the care worker checks that any DNACPR or ReSPECT form, advance care plan summary, hospital passport and aids are packed to go with the person."
+            }
+          ]
+        },
+        {
+          "heading": "On the day of admission",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Action",
+                  "Who",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "Cancel visits on the CareFlow rota with the reason 'Client hospital admission'; phone each affected care worker; record Hospitalised on the eMAR",
+                    "Office staff (On-call Manager)",
+                    "At once, before the next visit is due"
+                  ],
+                  [
+                    "Phone the ward with the key information and our contact details",
+                    "Office staff (On-call Manager)",
+                    "The same day"
+                  ],
+                  [
+                    "Confirm who looks after the home and keys; phone the pet emergency contact",
+                    "Care Coordinator (On-call Manager)",
+                    "The same day"
+                  ],
+                  [
+                    "Tell the named contact, where they do not know and the person agrees",
+                    "Office staff (On-call Manager)",
+                    "The same day"
+                  ],
+                  [
+                    "Send the written admission information by secure email",
+                    "Care Coordinator",
+                    "The same working day; by 12 noon the next working day after an out-of-hours admission"
+                  ],
+                  [
+                    "Tell the telecare provider and other agencies visiting the person",
+                    "Care Coordinator",
+                    "The same working day"
+                  ],
+                  [
+                    "Tell the commissioner in writing that the package is held",
+                    "Care Coordinator",
+                    "By the end of the next working day, or sooner where the contract requires"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Telling the ward",
+          "blocks": [
+            {
+              "p": "The phone call covers allergies, time-sensitive medicines, CPR status and where the form is, any advance care plan or advance decision, communication needs, known infection, whether the person lives alone and anyone with legal authority. The written admission information adds a copy of My care at a glance and the medicines summary; what the person could do before admission (moving and transfers with the method and equipment, personal care, continence, eating and drinking, memory and understanding, skin); our visit pattern and what family do; and a request to be told the expected date of discharge and involved in planning it."
+            },
+            {
+              "p": "We share this for direct care under the Confidentiality and Information Sharing Policy. Where a person with capacity objects, nothing they object to is shared unless the Registered Manager or Deputy Manager (On-call Manager out of hours, only where it cannot wait) decides to share it under Sharing without agreement in that policy; we offer the person our contact details to give the ward themselves. Anyone may tell 999 or the ambulance crew what they need to treat the person. Safeguarding and domestic abuse information is shared only by the safeguarding lead. For a person with a self-neglect support plan, the Care Coordinator tells the ward about home conditions the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Short attendances",
+          "blocks": [
+            {
+              "p": "Visits are cancelled only while the person is away. When they come home, the Care Coordinator (On-call Manager out of hours) asks what changed; changed needs follow Deciding how care restarts, and changed medicines the discharge medicines check. A person with a High missed-visit risk level who returns after their last visit has passed gets a visit or welfare call that evening."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "While the person is in hospital",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Holding the package",
+          "blocks": [
+            {
+              "p": "An admission never ends a package on its own. We hold every person's visit times and core care team for 14 days from admission, unless the commissioner's contract sets another period or the commissioner ends the package. By day 10 the Care Coordinator agrees in writing with the commissioner (self-funder: the person or representative) whether the hold continues."
+            },
+            {
+              "bullets": [
+                "Held commissioned care is invoiced only where the contract pays for it. A person who pays for their own care is never charged while in hospital.",
+                "When a hold ends, the times may go to others after the person or representative is told in writing. We still restart care on discharge at the nearest times we can staff, offering preferred times as they become available.",
+                "A package ends only when the commissioner confirms an end date, the person or their verified attorney or deputy ends it, or it is handed back under the Visit Cancellations and Refusals of Care Procedure.",
+                "Care workers' pay for visits an admission cancels follows the Working Time, Rest Breaks and Travel Time Policy."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Keeping in touch with the ward",
+          "blocks": [
+            {
+              "p": "Within 2 working days of admission the Care Coordinator phones the ward, introduces themselves as our hospital contact and asks for the expected date of discharge, likely pathway and any change in needs; then at least every 3 working days. With the person's agreement, the Care Coordinator or a Field Care Supervisor joins any discharge meeting we are invited to."
+            },
+            {
+              "p": "Where the ward reports a change in mobility, equipment, medicines, swallowing, skin or capacity, a Field Care Supervisor or other authorised assessor speaks with the person and ward staff before discharge, on the ward or by phone or video call, and records it in the initial assessment. For a person leaving detention under the Mental Health Act 1983, the Care Coordinator agrees our part with whoever leads the after-care plan. Staff never visit the person in hospital in a personal capacity (Professional Boundaries Policy)."
+            }
+          ]
+        },
+        {
+          "heading": "The home, keys, pets and belongings",
+          "blocks": [
+            {
+              "p": "The person or their representative stays responsible for the home. Our staff enter the empty home only for a task the Care Coordinator has agreed with them and recorded, such as putting the heating on before discharge, under the Key Holding, Key Safes and Access to People's Homes Procedure. Pets follow the Animals and Pets in People's Homes Guideline, including its limits on food-and-water visits. Nobody from {{organisation}} moves or removes belongings or takes post away. Where the person cannot protect their belongings or pets and nobody else can, the Care Coordinator asks the local authority the same day to act under section 47; out of hours, the On-call Manager calls the local authority emergency duty team if an animal would otherwise go without food or water before the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "When plans change",
+          "blocks": [
+            {
+              "bullets": [
+                "Death in hospital: the End of Life Care Policy applies.",
+                "Move to a rehabilitation bed or care home: the Care Coordinator asks the commissioner (self-funder: the person or representative) to confirm in writing within 2 working days whether the package is held or ends; core care team members are told by phone before their next shift.",
+                "A concern from the hospital about our care, such as pressure damage or dehydration: recorded in the incident log the same day, and the Registered Manager (On-call Manager out of hours) decides within 1 hour whether it is a safeguarding concern."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Planning the discharge",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What we need before care restarts",
+          "blocks": [
+            {
+              "p": "When discharge is planned, the Care Coordinator (On-call Manager out of hours) asks the ward or hub for the following:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Area",
+                  "What we ask for"
+                ],
+                "rows": [
+                  [
+                    "Timing",
+                    "Discharge date, expected arrival home, transport and who will be there. We ask for 24 hours' notice and arrival home before 6pm."
+                  ],
+                  [
+                    "Discharge information",
+                    "By secure email before the person leaves, including the medicines information."
+                  ],
+                  [
+                    "Needs",
+                    "Moving and handling method advised by therapists; personal care; continence, catheter or stoma; eating, drinking and swallowing; memory and capacity; wounds and dressings; infection advice."
+                  ],
+                  [
+                    "Equipment",
+                    "What is needed, who supplies it, and confirmation it is fitted before the first visit that needs it."
+                  ],
+                  [
+                    "Follow-up",
+                    "District nursing, therapy, GP or mental health team referrals, with dates."
+                  ],
+                  [
+                    "Decisions",
+                    "Any change to the CPR recommendation, whether any form completed in hospital applies at home, and confirmation that the original form comes home; any restriction planned at home; any new attorney or deputy."
+                  ],
+                  [
+                    "Commissioned support",
+                    "The commissioner's or hub's plan for our visits."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The Care Coordinator asks the person what they want and, with their agreement, asks each family carer in the care plan whether they can still do their part; if not, cover is arranged and the commissioner told the same working day. They check with the person or representative that there will be heating, food and drinks in the home."
+            },
+            {
+              "p": "Where the ward reports a restriction used in hospital or planned at home, a new covert or sedating medicine, or a doubt about the person's capacity for their care arrangements, the Care Coordinator (On-call Manager out of hours) updates the deprivation of liberty screen the same working day under the Deprivation of Liberty in the Community Procedure; a hospital's Deprivation of Liberty Safeguards authorisation gives no authority at home. No new or increased restriction is used at home until approved under the Restraint and Restrictive Practice Policy, and the commissioner is told in writing within 2 working days. The Registered Manager raises a possible deprivation of liberty with the discharge team and commissioner the same working day, before discharge wherever possible."
+            }
+          ]
+        },
+        {
+          "heading": "Deciding how care restarts",
+          "blocks": [
+            {
+              "p": "The Care Coordinator decides with the Registered Manager or Deputy Manager (On-call Manager out of hours) before the person leaves the ward, recording the decision and reasons in the care plan."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "How care restarts"
+                ],
+                "rows": [
+                  [
+                    "Needs, moving and handling, equipment, medicines and capacity unchanged, and a stay of 28 days or less",
+                    "On the existing care plan, updated and approved before the first visit; first visit by a core care team member briefed by phone."
+                  ],
+                  [
+                    "Any of these changed or not known, or a stay of more than 28 days",
+                    "As a short-notice start under the Needs Assessment and Care Planning Policy: first visit by a Field Care Supervisor (On-call Manager out of hours), with a second worker where moving and handling needs are unknown."
+                  ],
+                  [
+                    "Needs exceed the support commissioned",
+                    "Discharge team or hub and commissioner told the same working day, before discharge. Where the person would be at risk, the Registered Manager (On-call Manager out of hours) may authorise interim extra support, confirmed or ended with the commissioner within 5 working days. Self-funders agree changes in writing first unless care would otherwise be missed."
+                  ],
+                  [
+                    "We cannot meet needs safely or staff the first visit",
+                    "Registered Manager or Deputy Manager (On-call Manager) tells the ward and hub or commissioner before the person leaves, and confirms it in writing the same day with what we can offer."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Care restarts from the first planned visit after the person arrives home, including evenings, weekends and bank holidays. A same-day discharge we hear of by 2pm is staffed through the daily cover check. Later, the Care Coordinator or On-call Manager staffs that day's remaining visits for anyone with a High missed-visit risk level or who would otherwise go without essential care overnight, and for others agrees the first visit time with the person, recording it on the visit record."
+            }
+          ]
+        },
+        {
+          "heading": "Raising concerns about a discharge",
+          "blocks": [
+            {
+              "steps": [
+                "The Care Coordinator (On-call Manager out of hours) raises a likely discharge problem with the ward at once, says what a safe discharge needs and asks for the discharge to wait until it is resolved.",
+                "If it is not resolved within 2 hours, or before the discharge time if sooner, the Registered Manager or Deputy Manager (On-call Manager) phones the hospital discharge lead or care transfer hub and the commissioner, using the local escalation route, and confirms by secure email the same day.",
+                "Where the person lacks capacity for the decision, the Care Coordinator gives the ward our observations of how they managed at home and asks how their best interests were decided.",
+                "We never delay a restart over a dispute about who pays. If the person is discharged before the concern is resolved, care restarts as a short-notice start and Problems after discharge applies."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Restarting care",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Before the first visit",
+          "blocks": [
+            {
+              "p": "The Care Coordinator (On-call Manager out of hours) makes sure that visits are back on the CareFlow rota from the first visit due; the care plan, including its infection section, and the risk assessments are approved, or the short-notice first visit booked; access details are re-confirmed; for a person with a self-neglect support plan an assessor has checked the route and space needed for care, and for a person experiencing domestic abuse the visit safety plan has been reviewed; equipment is in place and care workers are trained on anything new before using it; an authorised eMAR user is booked for the discharge medicines check within 24 hours of arrival; every care worker on the rota for the next 7 days is phoned about the changes before their first visit, recording who was told; and the telecare provider, other agencies and, by the end of the next working day, the commissioner know care has restarted."
+            }
+          ]
+        },
+        {
+          "heading": "The first visit after discharge",
+          "blocks": [
+            {
+              "steps": [
+                "Read My care at a glance and the care plan changes before you arrive. If nobody answers or the person is not home, phone the office from the doorstep and follow the No Reply, No Access and Missing Person Procedure. Ask the person how they are and what has changed.",
+                "Give no medicine unless CareFlow shows the flash message 'Discharge medicines check completed'; if not, phone the office before any dose and carry on with other care while you wait for advice, up to 30 minutes after the planned end of the visit; after that the office arranges an extra visit.",
+                "Check any DNACPR or ReSPECT form is back where the care plan says.",
+                "At the first personal care, record the pressure areas you see on a CareFlow body map, with the person's agreement.",
+                "Check the equipment is there and working. Use only equipment you have been trained to use in that home.",
+                "With the person's agreement, check there is food and drink they can manage, nothing out of date in the fridge, and that the home is warm. Leave a drink within reach. If they were away a week or more, first run any tap or shower you will use for 2 minutes, with the person out of the room (Risk Assessment and Home Environment Risk Assessment Procedure).",
+                "Before you leave, phone the office (On-call Manager out of hours) about anything not right, or if the person seems unwell, drowsy or in pain, is not eating or drinking, has no food, their DNACPR or ReSPECT form is missing, or there is a wound, dressing, catheter or equipment you were not told about; if nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. Call 999 in an emergency, including confusion that comes on suddenly. Record what you found in the daily visit notes."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "The first 7 days",
+          "blocks": [
+            {
+              "p": "Until the home review, the Care Coordinator reads the person's daily visit notes every working day, and the On-call Manager at weekends and bank holidays, acting the same day on any sign the person is not managing. A Care Coordinator or Field Care Supervisor holds a full review at home within 7 days of discharge under the Care Plan Review Procedure, whichever way care restarted. It covers the reviews other procedures require after a hospital stay, such as medicines support, nutrition, skin, infection and the CPR record, and asks the person and family how the discharge went."
+            }
+          ]
+        },
+        {
+          "heading": "Problems after discharge",
+          "blocks": [
+            {
+              "p": "A person who arrives home without our knowing is visited, as a short-notice start, within 1 hour of our finding out where they have a High missed-visit risk level and within 2 hours otherwise, unless the person or an adult with them confirms they are safe until the next planned visit."
+            },
+            {
+              "p": "For every discharge problem, the Care Coordinator records it in the incident log and raises it with the ward the same working day (at once where care is due), and writes to the hospital discharge team or care transfer hub within 2 working days. Where the person was harmed or put at serious risk, the Registered Manager (On-call Manager out of hours) assesses it as a possible safeguarding concern within 1 hour under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and the Registered Manager tells the commissioner by the end of the next working day, or the same working day where a safeguarding concern is raised. Unreported pressure damage follows the Pressure Ulcer Prevention and Skin Integrity Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Admissions linked to our care",
+      "blocks": [
+        {
+          "p": "For any admission our staff did not call 999 for, the Care Coordinator asks the reason. Where it followed a fall, injury, choking, pressure damage, dehydration, malnutrition, infection, medicines incident, or a missed, late or short visit, they record an incident, graded at least High, the same working day under the Incident Reporting, Investigation and Learning Policy. The Registered Manager (On-call Manager out of hours) decides on safeguarding within 1 hour where a missed, late or short visit or care not given as planned may have contributed, otherwise at the initial review; the Registered Manager decides on CQC notification and the duty of candour at the initial review."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Cancelled and restarted visits: the CareFlow rota. Calls, ward contacts, hold dates and first-visit findings: the daily visit notes. Admission and discharge information: the person's documents. Restart decision, updated care plan and home review: the care plan. Pressure areas: the body map. 999 calls, linked admissions and discharge problems: the incident log. Retention follows the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Handing over to the crew, leaving the home secure, the first visit after discharge",
+                "Care Workers and Senior Care Workers",
+                "At induction before working without a shadow; every 12 months within the basic life support practical"
+              ],
+              [
+                "Admission calls, confirming admissions, phoning the ward, unplanned discharges",
+                "Office staff and On-call Managers",
+                "Before taking calls alone or the first on-call shift; every 12 months within the emergency calls briefing"
+              ],
+              [
+                "Hospital contact role, holds, discharge planning, restart routes and escalation",
+                "Care Coordinators and Field Care Supervisors",
+                "Before first acting as hospital contact or allocating visits; every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At least once a year at a spot check, the Field Care Supervisor asks each care worker what they would hand to an ambulance crew and check at a first visit after discharge, briefing anyone who cannot say before their next visit. Staff acknowledge this procedure in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "People in hospital, hold dates, expected discharges and planned restarts",
+                "Weekly",
+                "Care Coordinator",
+                "Weekly management meeting"
+              ],
+              [
+                "Every admission and discharge against this procedure's timescales, with the medicines audit; target 100%",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Every readmission within 30 days of discharge, for discharge or care factors",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager"
+              ],
+              [
+                "Admissions, linked admissions, discharge problems by hospital, unplanned discharges, readmissions and packages ended after a stay",
+                "Quarterly",
+                "Registered Manager",
+                "Quarterly quality report; commissioners at contract monitoring meetings; each hospital's discharge lead"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls become actions with an owner and deadline in the service improvement plan. This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law, national discharge guidance or commissioner contract terms, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

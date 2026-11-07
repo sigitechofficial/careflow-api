@@ -1,7 +1,8 @@
 import { BadRequestException } from '@nestjs/common';
 import { diskStorage } from 'multer';
 import { existsSync, mkdirSync } from 'fs';
-import { extname, join } from 'path';
+import { extname } from 'path';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 const UPLOAD_SEGMENTS = ['service-users', 'initial-assessments'] as const;
 
@@ -9,7 +10,7 @@ const IMAGE_MIME = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const DOCUMENT_MIME = new Set(['application/pdf', ...IMAGE_MIME]);
 
 export function initialAssessmentUploadRoot(submissionId: string) {
-  return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', ...UPLOAD_SEGMENTS, submissionId);
+  return uploadPath(...UPLOAD_SEGMENTS, submissionId);
 }
 
 /**
@@ -19,7 +20,7 @@ export function initialAssessmentUploadRoot(submissionId: string) {
 export const IA_CONVERSATION_UPLOAD_SEGMENT = 'initial-assessment-conversations';
 
 export function initialAssessmentConversationRoot(submissionId: string) {
-  const root = join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', IA_CONVERSATION_UPLOAD_SEGMENT, submissionId);
+  const root = uploadPath(IA_CONVERSATION_UPLOAD_SEGMENT, submissionId);
   if (!existsSync(root)) mkdirSync(root, { recursive: true });
   return root;
 }

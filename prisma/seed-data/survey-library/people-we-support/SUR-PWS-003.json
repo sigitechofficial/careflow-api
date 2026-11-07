@@ -1,0 +1,574 @@
+{
+  "reference": "SUR-PWS-003",
+  "revision": 1,
+  "title": "Your care and support: annual survey",
+  "audience": "SERVICE_USER",
+  "respondents": "People we support at home; a representative may answer for someone who cannot give their views, even with help",
+  "summary": "Our main yearly survey for everyone we support: overall experience, visit times, being told about delays, visit length, rushed visits, familiar care workers, dignity, fair treatment, culture and beliefs, feeling safe, care planning, the office, our information and raising concerns. Confidential, 16 rated questions, about 10 minutes, by portal, post, phone or visit.",
+  "purpose": "The annual satisfaction survey of the people we support, run by the Deputy Manager under the Compliments, Feedback and Involvement Procedure. It asks the 12 core questions of the quality check in the same words (overall experience, on time, visit length, familiar care workers, care given your way, doing what matters, dignity, fair treatment, culture and beliefs, feeling safe, our information, and telling us if unhappy), so the two can be compared, plus four annual questions: being told about delays, rushed visits, being asked about your care plan and help from the office. Comment boxes after low answers say what went wrong. It gives the yearly satisfaction figure on the quality dashboard, results to compare by branch and year on year, the survey results in the May You said, we did summary, the fairness and culture results for the annual equality review (Equality, Diversity and Human Rights in Care Policy) and people's views on whether our information is usable (Communication and Accessible Information Policy). It evidences Regulation 17(2)(a) and (e) (assessing the quality of people's experience; seeking and acting on feedback), Regulation 16(2) (an accessible system for identifying complaints) and Regulation 9(3) (involving people), and gives people's experience evidence under all five CQC key questions.",
+  "timing": {
+    "when": "Once a year: opens on the first working day of February and closes 4 weeks later, with a reminder after 2 weeks",
+    "recurrence": "YEARLY",
+    "trigger": null,
+    "sentWith": ["SUR-FAM-001"]
+  },
+  "anonymous": false,
+  "allowAnonymousResponses": true,
+  "channels": ["PORTAL", "PAPER", "TELEPHONE", "IN_PERSON"],
+  "estimatedMinutes": 10,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Safeguarding",
+      "Safe and effective staffing",
+      "Monitoring and improving outcomes",
+      "Kindness, compassion and dignity",
+      "Treating people as individuals",
+      "Independence, choice and control",
+      "Person-centred care",
+      "Care provision, integration and continuity",
+      "Providing information",
+      "Listening to and involving people",
+      "Equity in experiences and outcomes",
+      "Learning, improvement and innovation"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know what you think of the care and support you get from us at home. Please think about the last few months. It takes about 10 minutes.\n\nTaking part is up to you, and what you say will not affect your care. If someone helps you, please give your own views; family carers can give theirs separately. Your answers are linked to your name, but your care workers (carers) will not see them. We use them to improve our care and will tell you what we heard and changed.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to check and improve our care. The law expects us to ask for feedback; our legal reason for using your answers is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name so we can put things right or contact you if you ask. Only our managers, Care Coordinators and safeguarding lead see them, never care workers. Reports show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe. To answer without your name, choose this online, cross out the reference number on paper, or tell the person helping you; we then cannot reply to you.\n\nWe keep your answers for 3 years after the survey closes, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them. To do this, or to complain about how we use your information, contact the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care over the last few months. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your visits",
+      "questions": [
+        {
+          "id": "q-ontime",
+          "text": "Do your care workers arrive on time?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "On time means within about half an hour of the time agreed with you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing",
+          "comment": {
+            "prompt": "Please tell us more, for example which visits are late.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-told-late",
+          "text": "If your care worker is going to be late, does someone let you know?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if your care workers have not been more than half an hour late.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Responsive: Care provision, integration and continuity",
+          "showIf": {
+            "question": "q-ontime",
+            "answers": ["Usually", "Sometimes", "Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-staytime",
+          "text": "Do your care workers stay for the time agreed for your visit?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, if your visit is booked for 45 minutes, do they stay that long, unless you ask them to go earlier?",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing",
+          "comment": {
+            "prompt": "Please tell us more, for example which visits are cut short.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-rushed",
+          "text": "Do your care workers have time to help you without rushing?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about whether they can help you at your own pace.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing",
+          "comment": {
+            "prompt": "Please tell us more, for example which visits feel rushed.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-known",
+          "text": "Are you visited by care workers you know?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "We mean your regular care workers, or new ones who have been introduced to you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Care provision, integration and continuity"
+        }
+      ]
+    },
+    {
+      "title": "How you are treated",
+      "questions": [
+        {
+          "id": "q-dignity",
+          "text": "Do your care workers treat you with dignity and respect?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, keeping you covered during personal care and taking care of your home.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Kindness, compassion and dignity",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-yourway",
+          "text": "Do your care workers do things the way you want them done?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, asking you first and listening to how you like things done.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Independence, choice and control"
+        },
+        {
+          "id": "q-culture",
+          "text": "Do your care workers respect your culture and beliefs?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, your religion, your language, the food you eat, how you like to dress, or anything else about who you are. Choose \"Does not apply to me\" if this does not matter to you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Treating people as individuals",
+          "comment": {
+            "prompt": "Please tell us what we could do differently.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-fair",
+          "text": "Do you feel we treat you fairly?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Fairly means giving you care as good as anyone else gets, whatever your age, disability, race, religion, sex or sexuality.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Equity in experiences and outcomes"
+        }
+      ]
+    },
+    {
+      "title": "Feeling safe",
+      "questions": [
+        {
+          "id": "q-safe",
+          "text": "Do you feel safe with your care workers?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "If you do not feel safe, please do not wait for this survey. Phone the office now, or call 999 in an emergency.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safeguarding",
+          "comment": {
+            "prompt": "Please tell us what would help you feel safer.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        }
+      ],
+      "introduction": "You can skip this question if you would rather not answer it."
+    },
+    {
+      "title": "Your care plan",
+      "questions": [
+        {
+          "id": "q-asked-plan",
+          "text": "Do we ask what you want when we plan or review your care?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Your care plan sets out the help you get from us and how you like it to be given. Choose \"Don't know\" if you cannot remember.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "id": "q-matters",
+          "text": "Does our care help you do the things that matter to you?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, staying in your own home, getting up and dressed, or seeing family and friends.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Effective: Monitoring and improving outcomes",
+          "comment": {
+            "prompt": "What would help you do more of the things that matter to you?",
+            "showWhen": ["Rarely", "Never"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Getting in touch with us",
+      "questions": [
+        {
+          "id": "q-office-help",
+          "text": "When you contact our office, do you get the help you need?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes phoning us in the evening or at the weekend. Choose \"Does not apply to me\" if you have not contacted us in the last few months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-information",
+          "text": "Is the information we give you easy for you to use?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, letters, your care plan and your list of visit times. We can give you information in large print, easy read, audio or another language.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Providing information",
+          "comment": {
+            "prompt": "What would make our information easier for you?",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-tell-us",
+          "text": "If you were unhappy with your care, would you feel able to tell us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes making a complaint. Choose \"Don't know\" if you are not sure.",
+          "options": ["Yes, and I know how", "Yes, but I am not sure how", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "What would make it easier to tell us?",
+            "showWhen": ["No"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What could we do better?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Tell us anything that would make your care better.",
+          "evidence": "Well-led: Learning, improvement and innovation"
+        },
+        {
+          "text": "Is there anything your care workers do that you would like us to thank them for?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "We will pass your thanks on to them. You can name them if you wish."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days. We can only do this if we know who you are."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Deputy Manager runs this survey once a year under the Compliments, Feedback and Involvement Procedure. It opens on the first working day of February and closes 4 weeks later, so that results reach the Directors' governance meeting held by mid-May. Send a reminder after 2 weeks to everyone who has not answered.",
+      "Before each survey the Registered Manager approves the questions and the Deputy Manager tests them with at least 3 people we support. The 12 questions marked as core in the purpose above use the same words as the quality check: never reword them, and consult at least 3 people we support or their representatives before changing any question, so results compare across years and with quality checks.",
+      "Councils post their own national survey (the Adult Social Care Survey) to a sample of people whose long-term care they fund or manage, between January and March, so some people will receive both. Say clearly in the covering letter and on the phone that this survey is from us, not the council, and that the two are separate.",
+      "Send it to every person we support, in the format recorded in their care plan under the Communication and Accessible Information Policy: standard print, large print (at least 16 point, or the size the person asks for), easy read, audio, another language, the portal, or by phone or face to face. Prepare the easy read version from this wording each year with pictures and three answers (Always or usually; Sometimes; Rarely or never) plus Don't know, test it with people who use easy read, and report its results in their own table. People whose care plan records dementia or another cognitive impairment may answer the picture survey (SUR-PWS-011) instead, never both.",
+      "On paper, print each comment prompt under its question with the answers it is for (for example \"If you ticked Rarely or Never, please tell us more\"), and after \"Do your care workers arrive on time?\" print \"If you ticked Always, go to the question about staying for the agreed time\". By phone, ask the question about being told of delays only when the person did not answer Always, and read the comment prompt after a low answer, writing down the person's own words.",
+      "Where the person agrees, or cannot give their views even with support, also invite the family carers and representatives recorded in their care plan, using the Family and representative survey (SUR-FAM-001) so that their own views stay separate. If a representative answers this survey for the person, record them in CareFlow's \"Who is answering\" field; their answers are reported separately from people's own answers. A family member who only helps the person read or write records \"the person, with help\".",
+      "Office staff, or a Field Care Supervisor who is not in the person's core care team, help anyone who asks, by phone or at a visit. Care workers never help the people they care for to answer, never collect forms and never ask anyone what they wrote. For people who live alone, have dementia or other cognitive impairment, have communication difficulties or have no family involved, offer a face-to-face visit by a Field Care Supervisor who is not in their core care team.",
+      "By phone or face to face, read each question, its help text and every answer choice exactly as written, slowly, at a time of day that suits the person and never during a care visit; check they can hear you, repeat the choices whenever asked and allow breaks. Ask the feeling safe question only once the person confirms they can talk privately, otherwise arrange another time (save the answers only once the whole survey is done: CareFlow accepts one answer from each person). Where an interpreter is needed, use a professional interpreter, never a family member. Record in CareFlow the channel, the person's agreement to answer by phone and who answered.",
+      "This survey is confidential, not anonymous. Every person may choose to answer without their name; only named answers can be followed up, and no one tries to identify an anonymous answer. Post paper copies with a prepaid envelope addressed to the Deputy Manager and the person's CareFlow reference number on the form; the covering letter explains that the person may cross out the number to answer without their name, and asks who filled in the form: the person, the person with help, or someone else for them. By phone or face to face, ask at the start whether the person wants their answers linked to their name. On the portal or the survey link, people can choose to answer without their name: CareFlow then keeps the answer like an anonymous one, does not ask the contact question and shows only that they have answered. The Deputy Manager enters each paper response in CareFlow surveys on the day it arrives, records who answered, and marks it Anonymous where the number was removed; a phone or face-to-face answer given without a name is entered as Anonymous in the same way.",
+      "Nobody we support is sent more than one survey, including a quality check, in any 4 weeks: check CareFlow's send history before sending. Anything else due for a person in January, such as a quality check or the monthly visit check-in, is done at least 4 weeks before this survey opens, and no check-in is sent in February. A quality check due in February is never missed: complete it with this survey by phone, asking the quality-check-only questions in the same call. Anyone sent another survey in the 4 weeks before this one opens is sent it once 4 weeks have passed, by phone if time is short. If an event survey (for example after a complaint or a hospital stay) falls due for someone already sent this survey, the event survey comes first: make it one phone contact, asking its questions and offering to complete this survey in the same call, and send no reminder for this survey.",
+      "Never report results for a group of fewer than 5 people separately, such as a small branch or care run: combine it with another group. Say in the report when a branch result rests on fewer than 10 responses.",
+      "Who may open individual answers: the Deputy Manager, who runs the survey, office staff who enter or follow up answers, and the Registered Manager. This is set in Who can see the answers: individual responses are limited to the Deputy Manager, the Registered Manager, Care Coordinators and the safeguarding lead, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who enter or follow up answers."
+    ],
+    "actingOnResults": [
+      "The Deputy Manager reads new responses, including every comment box, each working day while the survey is open and acts on the alerts below the same day.",
+      "Within 6 weeks of closing, the Deputy Manager writes the survey report: response rates by branch and by channel (portal, paper, phone, in person); results for each question against target, last year and the other branches; comment themes from the fixed theme list (timekeeping and visit length; continuity; communication and the office; staff attitude, dignity and respect; personal care; medicines; fairness, culture and identity; safety; other); and proposed actions. The satisfaction figure goes on the quality dashboard for the next Monthly Quality and Governance Meeting, and the report reaches the Directors within 3 months of closing, at their governance meeting held by mid-May.",
+      "How to count: the satisfaction figure is the share answering Very good or Good to the overall question, leaving out Don't know (target at least 90%, the quality dashboard indicator). For the other questions report the share answering Always or Usually, leaving out Does not apply to me and Don't know, and for raising concerns the share answering Yes, and I know how. Always show how many people answered each question. The question about being told of delays is asked only of people who did not answer Always to arriving on time: report it with that base and say so, because it is not comparable with years when everyone was asked.",
+      "Our targets are a response rate of at least 50% and at least 90% satisfied. Satisfaction below 90% in any branch, a branch result 10 percentage points or more below the organisation average, or the same negative theme from 3 or more people in one branch in a month needs action: the Registered Manager records the reason and an action in the service improvement plan, and the dashboard escalation rules in the Governance and Quality Assurance Policy apply.",
+      "If fewer than 30% respond, the report says the results may not be representative and the Registered Manager changes the method for next year, such as more phone or face-to-face completion. Check who answered against everyone we support, for example people living alone, people with dementia and people without family, and plan how to reach the groups we heard least from.",
+      "Report people's own answers separately from answers given by a representative or family member, and show the mix of channels, because answers given to an interviewer tend to be more positive. Compare the core questions with the year's quality checks, and compare results only with our own earlier surveys asked the same way; never compare scores with the councils' Adult Social Care Survey, which uses different questions and people.",
+      "The Deputy Manager breaks results down by the characteristics recorded in people's care records, where numbers allow, for the annual equality review completed by 30 April under the Equality, Diversity and Human Rights in Care Policy, including the fairness and culture and beliefs questions and differences between groups. The information question goes into the quarterly quality report under the Communication and Accessible Information Policy.",
+      "Every action goes into the service improvement plan within 5 working days, with one owner, a deadline and the evidence that will show it worked, and is tracked to closure under the Governance and Quality Assurance Policy. Next year's report says whether each change made a difference.",
+      "You said, we did: the May summary, sent within 3 months of the survey closing, includes this survey's results and what we are changing. The Deputy Manager sends it to every person we support in their recorded format, to their representatives and to all staff, displays it in each branch office and publishes it on our website; it identifies no one. The People's Voice group reviews the results and planned changes at its June meeting. Where a person's own answer leads to a change, the Care Coordinator tells them what changed.",
+      "Keep the survey report, action plan and You said, we did summary in the governance records for the life of the organisation plus 6 years, and individual responses for 3 years after the survey closes (Records Management and Retention Policy). For CQC, the report, the per-question results with their numbers, anonymised comment themes and the actions taken are our evidence of seeking and acting on feedback (Regulation 17(2)(e)) and of people's experience under each key question (the evidence label on each question); the Nominated Individual uses them in the annual governance review and any Regulation 17(3) report."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe with your care workers?\" answered Sometimes, Rarely or Never, or any comment suggesting abuse, neglect or that someone is at risk, named or anonymous.",
+        "action": "Treat as a possible safeguarding concern. Call 999 first if anyone is in immediate danger. The Deputy Manager records it in the person's safeguarding record (for an anonymous answer, the words given) and passes it straight to the safeguarding lead, always the same working day it is read. The lead assesses the risk within 1 hour, arranges a private conversation with the person by someone outside their core care team, and refers to the local authority where needed, immediately if the risk is immediate and otherwise the same working day, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. A concern about a member of staff also follows the Managing Allegations Against Staff Procedure.",
+        "rule": {
+          "task": "Possible safeguarding concern: does not always feel safe",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"Do you feel safe with your care workers?\" answered Usually.",
+        "action": "The Care Coordinator contacts the person within 5 working days, once they confirm they can talk privately, to ask what would help them feel safer. Anything suggesting abuse or neglect goes to the safeguarding lead at once.",
+        "rule": {
+          "task": "Ask what would help them feel safer",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Usually"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment expressing dissatisfaction that needs a response, whatever words are used.",
+        "action": "Treat it as a complaint. The Deputy Manager records it in the complaint record the same day it is read; the Registered Manager or Deputy Manager checks and grades it within 1 working day and it is acknowledged within 3 working days, under the Complaints Policy and Procedure. An anonymous complaint is investigated as far as the information allows. If unsure, treat it as a complaint."
+      },
+      {
+        "when": "A comment describing a missed visit.",
+        "action": "The Deputy Manager checks at once that the person is safe now and, if the missed visit is not already recorded, enters it in the incident log the same working day, graded at least Medium, and tells the Registered Manager the same day, under the Missed, Late and Short Visits Procedure. The Registered Manager or Deputy Manager reviews it the same working day and the person is told what happened, with an apology, within 1 working day of that review. The safeguarding lead decides within 1 hour whether it is a safeguarding concern where the person was harmed, fell, missed a time-sensitive medicine, has a High missed-visit risk level or had another missed visit in the previous 4 weeks. Where it caused harm or was a second missed visit in 4 weeks, the Care Coordinator arranges a focused review within 7 days under the Care Plan Review Procedure. It is also handled as a complaint where the person is unhappy about it."
+      },
+      {
+        "when": "A comment describing a medicines problem, a fall, an injury or other harm, or a late, short or rushed visit that caused harm or left essential care undone.",
+        "action": "The Deputy Manager logs it in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy (a medicines problem also under the Medication Errors, Near Misses and Incidents Procedure). It is also handled as a complaint where the person is unhappy about it."
+      },
+      {
+        "when": "Overall experience answered Poor or Very poor, or any other question answered Rarely or Never, or \"If you were unhappy with your care, would you feel able to tell us?\" answered No, with no particular concern described (named answers).",
+        "action": "The Deputy Manager passes it to the Care Coordinator the same working day. The Care Coordinator contacts the person within 5 working days to agree what we will do, records any complaint that emerges the same working day, and records the action in the person's care plan or daily visit notes.",
+        "rule": {
+          "task": "Poor experience: agree what we will do",
+          "if": [
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "q-tell-us",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "\"Do your care workers arrive on time?\", \"If your care worker is going to be late, does someone let you know?\", \"Do your care workers stay for the time agreed for your visit?\", \"Do your care workers have time to help you without rushing?\" or \"Are you visited by care workers you know?\" answered Rarely or Never.",
+        "action": "Within 7 days, as well as contacting the person, the Care Coordinator checks the person's check-in and check-out records, travel time on the run and continuity rate for the last 3 months, using the visits named in any comment, and agrees changes to visit times or the core care team with them, under the Missed, Late and Short Visits Procedure and the Person-Centred Care, Dignity and Respect Policy. Where visits have run 10 or more minutes shorter or longer than planned at 3 or more visits in 2 weeks, or the tasks no longer fit the time, the Care Coordinator reviews the visit length with the person within the same 7 days under the Needs Assessment and Care Planning Policy. Any suggestion that visits were cut short deliberately goes to the Registered Manager the same day.",
+        "rule": {
+          "task": "Check visit records, travel time and continuity",
+          "if": [
+            {
+              "question": "q-ontime",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-told-late",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-staytime",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-rushed",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-known",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueCalendarDays": 7
+        }
+      },
+      {
+        "when": "\"Do we ask what you want when we plan or review your care?\", \"Do your care workers do things the way you want them done?\" or \"Does our care help you do the things that matter to you?\" answered Rarely or Never.",
+        "action": "Within 7 days the Care Coordinator contacts the person and, where the care plan no longer matches their needs or wishes, holds a focused review under the Care Plan Review Procedure.",
+        "rule": {
+          "task": "Care not as they want it: contact and review",
+          "if": [
+            {
+              "question": "q-asked-plan",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-yourway",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-matters",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueCalendarDays": 7
+        }
+      },
+      {
+        "when": "\"Do your care workers treat you with dignity and respect?\", \"Do your care workers respect your culture and beliefs?\" or \"Do you feel we treat you fairly?\" answered Rarely or Never, or a comment describing unfair or degrading treatment.",
+        "action": "The Deputy Manager tells the Registered Manager the same working day, and the Care Coordinator contacts the person within 5 working days. Where discrimination by our staff is described, the Registered Manager decides within 1 hour of being told whether it is a safeguarding concern, under the Equality, Diversity and Human Rights in Care Policy; it is also a complaint graded High under the Complaints Policy and Procedure. Degrading or humiliating treatment is a possible safeguarding concern and goes straight to the safeguarding lead.",
+        "rule": {
+          "task": "Dignity, respect or fairness concern",
+          "if": [
+            {
+              "question": "q-dignity",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-culture",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-fair",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "\"Is the information we give you easy for you to use?\" answered Rarely or Never (named answers).",
+        "action": "The Care Coordinator contacts the person within 5 working days to ask what format, contact method or support would help, records the request the same working day, and puts it in place within 5 working days, under the Communication and Accessible Information Policy.",
+        "rule": {
+          "task": "Agree an information format that works for them",
+          "if": [
+            {
+              "question": "q-information",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"If you were unhappy with your care, would you feel able to tell us?\" answered \"Yes, but I am not sure how\", No or Don't know (named answers).",
+        "action": "Within 5 working days the Care Coordinator sends the How to raise a concern or make a complaint leaflet in the person's recorded format. For No, a Field Care Supervisor who is not in the person's core care team also talks with the person privately about what would make it easier, using any comment they gave, and offers details of the local independent advocacy service.",
+        "rule": {
+          "task": "Send the complaints leaflet",
+          "if": [
+            {
+              "question": "q-tell-us",
+              "answers": ["Yes, but I am not sure how", "No", "Don't know"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Care Coordinator contacts the person within 5 working days, in the way they prefer, and records what was agreed. Nobody in the person's core care team makes this contact. An anonymous answer cannot be followed up; note it in the survey report.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      },
+      {
+        "when": "An answer to \"Is there anything your care workers do that you would like us to thank them for?\", or any other comment praising our service or a named member of staff.",
+        "action": "Record it as a compliment in CareFlow the same working day; the Field Care Supervisor or line manager passes it to each employee named within 5 working days, under the Compliments, Feedback and Involvement Procedure."
+      }
+    ]
+  },
+  "access": {
+    "responses": ["DEPUTY_MANAGER", "REGISTERED_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "results": ["DEPUTY_MANAGER", "REGISTERED_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-SG-002",
+    "POL-CD-013",
+    "POL-GOV-013",
+    "POL-GOV-017",
+    "POL-CD-001",
+    "POL-CD-002",
+    "POL-CD-003",
+    "POL-CD-005",
+    "POL-CD-006",
+    "POL-GOV-007",
+    "POL-MED-014",
+    "POL-SG-007"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(a) and (e): assess, monitor and improve quality, including people's experience; seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 16(2): an accessible system for identifying, receiving and handling complaints",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/16"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9(3)(d), (f) and (g): supporting people to take part in decisions about their care and about how the service is run as it affects their care, with the information they need",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1(2) and (3): presume capacity and take all practicable steps to help a person decide",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "NHS England, Guidance on the submission of GP practice Friends and Family Test data: the overall experience question and its six answer options, used here voluntarily",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2020/02/Guidance-on-the-submission-of-GP-practice-Friends-and-Family-Test-data.pdf"
+    },
+    {
+      "source": "NHS England, Using the Friends and Family Test to improve patient experience (version 2): at least one free-text question with the overall question, and the recommended follow-up \"Please can you tell us why you gave your answer?\"",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2019/09/using-the-fft-to-improve-patient-experience-guidance-v2.pdf"
+    },
+    {
+      "source": "DHSC, Adult social care survey report, England: 2025 to 2026, methodology (councils survey a sample of people receiving long-term support they fund or manage; fieldwork January to March; postal with interviews on request)",
+      "url": "https://www.gov.uk/government/statistics/adult-social-care-survey-report-england-2025-to-2026/adult-social-care-survey-report-england-2025-to-2026-methodology"
+    },
+    {
+      "source": "GOV.UK, Accessible communication formats (easy read; large print at 16 point and above), updated 17 June 2026",
+      "url": "https://www.gov.uk/government/publications/inclusive-communication/accessible-communication-formats"
+    },
+    {
+      "source": "GOV.UK, Information Commission succeeds the ICO as UK's data protection regulator (30 September 2026)",
+      "url": "https://www.gov.uk/government/news/information-commission-succeeds-the-ico-as-uks-data-protection-regulator"
+    }
+  ]
+}

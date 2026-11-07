@@ -18,6 +18,7 @@ import {
   DomJobCancellationRuleDto,
   DomLateVisitZoneAlertDto,
   ServiceUserWeeklyHoursSettingsDto,
+  SupervisionSettingsDto,
 } from './dom-care-settings.dto';
 import { IncidentTypeSettingDto } from './incident-management.dto';
 import { INCIDENT_DEFAULT_STATUSES } from '../incident-management.util';
@@ -27,7 +28,9 @@ import {
 } from './optional-settings.dto';
 import { PreAssessmentChecklistItemDto } from './pre-assessment-settings.dto';
 import { EmployeeVisaTypeDto } from './employee-visa-types.dto';
+import { ReviewSettingsDto } from './review-settings.dto';
 import { ORGANISATION_TIMEZONES } from '../organisation-timezone';
+import { BANK_HOLIDAY_REGIONS } from '../../billing/bank-holiday-regions.util';
 
 const TIME_DISPLAY_FORMATS = ['HH_XX', 'HH_MM'] as const;
 const DATE_DISPLAY_FORMATS = ['DD_MM_YYYY', 'MM_DD_YYYY', 'YYYY_MM_DD'] as const;
@@ -51,14 +54,6 @@ const ACTIONS_DEFAULT_VIEWS = ['TASK_LIST', 'ACTIONS_LIST'] as const;
 const ALLOCATE_EMPLOYEE_BY = ['FLOOR', 'WARD', 'ZONE', 'UNIT'] as const;
 
 export class UpdateOrganisationGeneralSettingsDto {
-  @ApiPropertyOptional({ minimum: 1, maximum: 3650 })
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(3650)
-  reviewCarePlanAfterDays?: number;
-
   @ApiPropertyOptional({ minimum: 1, maximum: 168 })
   @IsOptional()
   @Type(() => Number)
@@ -106,6 +101,14 @@ export class UpdateOrganisationGeneralSettingsDto {
   @MaxLength(64)
   @IsIn(ORGANISATION_TIMEZONES)
   timezone?: (typeof ORGANISATION_TIMEZONES)[number];
+
+  @ApiPropertyOptional({
+    description: 'Bank holidays for working-day timescales (e.g. survey alerts): UK (England and Wales), SCOTLAND or NORTHERN_IRELAND',
+    enum: BANK_HOLIDAY_REGIONS,
+  })
+  @IsOptional()
+  @IsIn(BANK_HOLIDAY_REGIONS)
+  bankHolidayRegion?: (typeof BANK_HOLIDAY_REGIONS)[number];
 
   @ApiPropertyOptional({ enum: DEFAULT_CARER_STATUSES })
   @IsOptional()
@@ -436,6 +439,18 @@ export class UpdateOrganisationGeneralSettingsDto {
   @Max(23)
   domAutoExtendRotaRunHour?: number;
 
+  @ApiPropertyOptional({
+    minimum: 0,
+    maximum: 31,
+    description: 'Most days back Backfill past visits may create (0 = backfill off)',
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(31)
+  domMaxBackfillDays?: number;
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsBoolean()
@@ -505,6 +520,18 @@ export class UpdateOrganisationGeneralSettingsDto {
   @ValidateNested()
   @Type(() => ServiceUserWeeklyHoursSettingsDto)
   serviceUserWeeklyHoursSettings?: ServiceUserWeeklyHoursSettingsDto;
+
+  @ApiPropertyOptional({ type: SupervisionSettingsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SupervisionSettingsDto)
+  supervisionSettings?: SupervisionSettingsDto;
+
+  @ApiPropertyOptional({ type: ReviewSettingsDto })
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ReviewSettingsDto)
+  reviewSettings?: ReviewSettingsDto;
 
   @ApiPropertyOptional({ minimum: 1, maximum: 10080 })
   @IsOptional()

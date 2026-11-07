@@ -37,6 +37,8 @@ import { EmployeeAppDeviceTokenController } from './employee-app-device-token.co
 import { EmployeeAppProfileController } from './employee-app-profile.controller';
 import { EmployeeAppProfileService } from './employee-app-profile.service';
 import { EmployeeComplianceModule } from '../employee-compliance/employee-compliance.module';
+import { PoliciesModule } from '../policies/policies.module';
+import { EmployeeAppPoliciesController } from './employee-app-policies.controller';
 
 @Module({
   imports: [
@@ -52,6 +54,7 @@ import { EmployeeComplianceModule } from '../employee-compliance/employee-compli
     NotificationsModule,
     IncidentsModule,
     EmployeeComplianceModule,
+    PoliciesModule,
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: async (config: ConfigService) => ({
@@ -73,6 +76,7 @@ import { EmployeeComplianceModule } from '../employee-compliance/employee-compli
     EmployeeAppSalaryController,
     EmployeeAppDeviceTokenController,
     EmployeeAppProfileController,
+    EmployeeAppPoliciesController,
   ],
   providers: [
     EmployeeAppAuthService,

@@ -1,4 +1,8 @@
-import { computeAssessmentReviewState, type AssessmentReviewState } from './assessment-review-schedule';
+import {
+  computeAssessmentReviewState,
+  type AssessmentReviewState,
+  type AssessmentScheduleOverrides,
+} from './assessment-review-schedule';
 import { resolveCarePathwayFormName } from './assessment-review-context.util';
 
 export type AssessmentReviewQueueItem = {
@@ -23,6 +27,7 @@ export function buildAssessmentReviewQueueItem(params: {
   latestCompletedAt: Date | null;
   snapshot: Record<string, unknown> | null;
   now?: Date;
+  overrides?: AssessmentScheduleOverrides;
 }): AssessmentReviewQueueItem {
   const review = computeAssessmentReviewState({
     assessmentKey: params.assessmentKey,
@@ -34,6 +39,7 @@ export function buildAssessmentReviewQueueItem(params: {
     lastCompletedAt: params.latestCompletedAt,
     snapshot: params.snapshot,
     now: params.now,
+    overrides: params.overrides,
   });
 
   const queueReasons: string[] = [];

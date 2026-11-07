@@ -1,12 +1,13 @@
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { diskStorage } from 'multer';
 import { incidentAttachmentMaxBytes } from '../incidents/incident-attachment.config';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 /** Pathway documents live under uploads/specialist-pathways, which main.ts blocks from static serving —
  *  access is only via the authenticated, branch-scoped download endpoint. */
 export function pathwayDocumentRoot() {
-  return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'specialist-pathways', 'documents');
+  return uploadPath('specialist-pathways', 'documents');
 }
 
 export const PATHWAY_DOCUMENT_MIME = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf'];

@@ -1,0 +1,469 @@
+{
+  "reference": "SUR-FAM-004",
+  "revision": 1,
+  "title": "Dementia care: your view as a family member",
+  "audience": "PUBLIC",
+  "respondents": "For each person whose care plan records dementia, the family member, friend or representative recorded in People involved as someone who may be told about the person's health, or a verified health and welfare attorney or deputy",
+  "summary": "A yearly September survey (World Alzheimer's Month) asking families what they see of our dementia care: understanding, familiar faces and routines, patience with distress, handling refusals, noticing changes, and involving them in decisions. About 10 minutes.",
+  "purpose": "Families see dementia-specific practice the person may not be able to describe: care workers' understanding of dementia, familiar faces and routines, life history, patience with distress, handling refusals without force, noticing changes, encouraging independence, and involving the family in best interests decisions. The person's own view comes first (the picture survey, SUR-PWS-011), and the two are reported side by side, never combined. Results go to the Registered Manager, into the training plan under the Training and Development Policy (dementia awareness and skills), and into the restrictive practice review, and each answer that needs action is followed up.",
+  "timing": {
+    "when": "Once a year in September (World Alzheimer's Month), open for 4 weeks, and not in the same 4 weeks as another family survey",
+    "recurrence": null,
+    "trigger": null
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "PAPER", "TELEPHONE"],
+  "estimatedMinutes": 10,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "RESPONSIVE"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Involving people to manage risks",
+      "Delivering evidence-based care and treatment",
+      "Consent to care and treatment",
+      "Treating people as individuals",
+      "Care provision, integration and continuity"
+    ]
+  },
+  "introduction": "{{organisation}} would like your view of the care we give your family member who is living with dementia. In this survey, \"your family member\" means the person we support, even if you are their friend or represent them. It takes about 10 minutes.\n\nTaking part is up to you, and what you say will never affect anyone's care. If you write the reference number from your letter, we can follow up your answers; if you leave it blank, we cannot reply to you.\n\nThis survey is not for urgent concerns. If you are worried about your family member's safety, or need help now, phone our office (out of hours, the on-call number in the care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve our dementia care and our training. Our legal reason is our legitimate interest in running a good, safe service.\n\nIf you write your reference number, your answers are linked to you so we can follow them up. Your answers are seen only by our Registered Manager, Deputy Manager, safeguarding lead, Care Coordinators and the office staff who follow them up, never by care workers, and reports show combined family results only. With your family member's agreement, or where it is in their best interests, tips you give us may be added to their care plan. If you tell us someone may be at risk of harm, we will tell our safeguarding lead and may tell the council.\n\nWe keep your answers for 3 years after the survey closes, under our Records Management and Retention Policy. We do not record the internet address or device you used. You can ask to see, correct or delete your information by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please answer about the care your family member gets from us, as you see it. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Understanding dementia",
+      "questions": [
+        {
+          "id": "q-understand",
+          "text": "Do care workers seem to understand how dementia affects your family member?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you are not usually there or have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What do care workers not seem to understand?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Effective: Delivering evidence-based care and treatment"
+        },
+        {
+          "id": "q-known",
+          "text": "Does your family member see care workers they know?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you cannot say.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        },
+        {
+          "id": "q-routine",
+          "text": "Do care workers follow your family member's usual routine?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you are not usually there or have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-life-history",
+          "text": "Do care workers use what they know about your family member's life and interests?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, talking about their past job, family or favourite music. Choose \"Don't know\" if you are not usually there or have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-independence",
+          "text": "Do care workers encourage your family member to do what they can for themselves?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you are not usually there or have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Caring: Treating people as individuals"
+        }
+      ]
+    },
+    {
+      "title": "When things are difficult",
+      "questions": [
+        {
+          "id": "q-patient",
+          "text": "When your family member is upset or confused, are care workers patient with them?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you are not usually there or have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happens.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        },
+        {
+          "id": "q-refusal",
+          "text": "If your family member says no to care, do care workers handle it well?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, trying again later or in a different way, without forcing them. Choose \"Don't know\" if this has not happened or you have not seen it.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Effective: Consent to care and treatment"
+        },
+        {
+          "id": "q-notice",
+          "text": "Do care workers notice when your family member seems unwell or different?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, a new infection, pain or a change in how they manage. Choose \"Don't know\" if you are not usually there or have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what was missed.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Working with you",
+      "questions": [
+        {
+          "id": "q-consulted",
+          "text": "Have you been asked for your views when decisions are made about your family member's care?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No", "No decisions have been needed", "Don't know"],
+          "notCountedOptions": ["No decisions have been needed", "Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["No"]
+          },
+          "evidence": "Effective: Consent to care and treatment"
+        },
+        {
+          "id": "q-need-there",
+          "text": "Do you feel you need to be there during visits to make sure care is done properly?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you live with your family member or are usually there anyway.",
+          "options": ["Yes, often", "Yes, sometimes", "No", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What makes you feel you need to be there?",
+            "showWhen": ["Yes, often", "Yes, sometimes"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-safe",
+          "text": "Do you feel your family member is safe with our care workers?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "You can skip this question. If you are worried about their safety now, do not wait for this survey: phone the office (out of hours, the on-call number). In an emergency, call 999.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what worries you.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        },
+        {
+          "id": "q-tell-us",
+          "text": "If you were unhappy with the care we give, would you feel able to tell us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes making a complaint. Choose \"Don't know\" if you are not sure.",
+          "options": ["Yes, and I know how", "Yes, but I am not sure how", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What would make it easier to tell us?",
+            "showWhen": ["No"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What should care workers know or do to give better care to your family member?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, a phrase that calms them, a favourite radio station, or something not to mention."
+        },
+        {
+          "id": "q-reference",
+          "text": "Please write the reference number from your letter, so we can follow up your answers if needed.",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "If you leave it blank, we cannot reply to you, but we will still act on what you tell us."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of the care workers, will contact you within 5 working days. We can only do this if you gave your reference number."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Each September publish a new copy of this template with an end date 4 weeks later. CareFlow cannot send a survey to family members by name or choose people by diagnosis, so this is a public form: from the care records, list each person whose care plan records dementia and the one family member who may receive it, and send the link by email or text, or a letter with the link, a QR code, a paper copy with a prepaid envelope and a reference number, offering to take answers by phone. Office staff who are not in the person's core care team enter paper and phone answers with Record response (channel Paper or Telephone) on the day. Send at most one reminder by hand.",
+      "Who may receive it: the invitation itself tells the recipient our records show dementia. Send it only to a family member recorded in People involved as someone who may be told about the person's health, with the person's agreement where they can give it, or under the care plan's information-sharing or best interests decision, or to a verified health and welfare attorney or deputy, under the Confidentiality and Information Sharing Policy. Never to a family member who has not been told the diagnosis; the letter never adds other health details. One respondent per person; offer a second form only to someone who meets the same test.",
+      "Never invite after the person's death, anyone the safeguarding lead has restricted or who may be harming the person, or a family member in an open safeguarding enquiry about the person. A family member is sent at most one family survey in any 4 weeks; event surveys (SUR-FAM-002, SUR-FAM-005) come first. Offer the person their own picture survey (SUR-PWS-011) in the annual survey window.",
+      "Many respondents are older spouses who are carers themselves: offer phone completion, read every answer choice aloud, and ask the safety question only when they can talk without the person hearing. Offer large print, translation or an interpreter to match their own communication needs, and signpost dementia and carer support in the covering letter.",
+      "Who may open individual answers: the Registered Manager, the Deputy Manager, the Care Coordinators who follow up and the office staff who enter answers. This is set in Who can see the answers: individual responses are limited to the Registered Manager, the Deputy Manager, Care Coordinators and the safeguarding lead, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who enter answers. By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can publish a survey (\"Surveys\", act): give these to the staff who run the survey and the office staff who enter paper and phone answers."
+    ],
+    "actingOnResults": [
+      "Read every answer the working day it arrives and act under the alerts below, as far as the information allows where no reference number was given. Read every comment for force, locking in, sedation or rough handling.",
+      "How to count: report as family views (dementia), never combined with the person's own answers; set them beside SUR-PWS-011 for the same season. For the frequency questions report the share answering Always or Usually, leaving out Don't know; for needing to be there, No is the good answer: report the share answering No, leaving out Does not apply to me. Never report a group of fewer than 5 separately and flag results resting on fewer than 10; in a small service report themes only.",
+      "Understanding and patience results go to the HR Manager for the training plan drafted by 28 February, under the Training and Development Policy; force or restriction themes go to the restrictive practice review under the Restraint and Restrictive Practice Policy. Results and actions go to everyone asked within 3 months of the survey closing, under the Governance and Quality Assurance Policy. Keep answers for 3 years after the survey closes under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel your family member is safe with our care workers?\" answered Sometimes, Rarely or Never, or any comment describing harm, rough handling, restraint, locking in, or medicines given to sedate.",
+        "action": "Tell the safeguarding lead the same working day; the risk is assessed within 1 hour and referred the same working day where needed, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, the Restraint and Restrictive Practice Policy and, for staff, the Managing Allegations Against Staff Procedure. Nothing is discussed with the family member until the lead decides.",
+        "rule": {
+          "task": "Possible safeguarding concern in dementia care",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"Do you feel your family member is safe with our care workers?\" answered Usually, with a reference number.",
+        "action": "The Care Coordinator contacts the family member within 5 working days to ask what would help, unless the comment needs the safeguarding route above.",
+        "rule": {
+          "task": "Family not fully sure person is safe: ask what would help",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Usually"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment on saying no to care describing care being forced, or any restriction.",
+        "action": "Treat it as a possible unapproved restriction: a safeguarding concern the same working day, under the Mental Capacity Act and Best Interests Policy and the Restraint and Restrictive Practice Policy."
+      },
+      {
+        "when": "\"If your family member says no to care, do care workers handle it well?\" answered Rarely or Never with no force described.",
+        "action": "The Registered Manager checks the care plan's approaches to distress and refusal, and any best interests decision, within 5 working days (our timescale).",
+        "rule": {
+          "task": "Check approaches to refusal and best interests",
+          "if": [
+            {
+              "question": "q-refusal",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Are care workers patient with them?\" answered Rarely or Never.",
+        "action": "The Care Coordinator reviews the approaches to distress in the care plan with the core team within 5 working days and keeps a consistent team and unhurried visits, under the Restraint and Restrictive Practice Policy.",
+        "rule": {
+          "task": "Review approaches to distress with the team",
+          "if": [
+            {
+              "question": "q-patient",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do care workers notice when your family member seems unwell or different?\" answered Rarely or Never.",
+        "action": "The Care Coordinator updates the changes to watch for in the care plan within 5 working days and briefs the team, under the Person-Centred Care, Dignity and Respect Policy.",
+        "rule": {
+          "task": "Update changes to watch for and brief the team",
+          "if": [
+            {
+              "question": "q-notice",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Have you been asked for your views when decisions are made?\" answered No.",
+        "action": "The Registered Manager checks the best interests records within 5 working days and contacts the family member, under the Mental Capacity Act and Best Interests Policy.",
+        "rule": {
+          "task": "Check best interests records and contact family",
+          "if": [
+            {
+              "question": "q-consulted",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do you feel you need to be there during visits?\" answered Yes, often.",
+        "action": "The Care Coordinator arranges this, passing on only the need, never the answer. A Field Care Supervisor makes a private face-to-face quality check with the person within 10 working days and an observed spot check of the core team (our timescale).",
+        "rule": {
+          "task": "Family feels they must be there: quality check",
+          "if": [
+            {
+              "question": "q-need-there",
+              "answers": ["Yes, often"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 10
+        }
+      },
+      {
+        "when": "Understanding or patience answered Rarely or Never by 3 or more families in a branch.",
+        "action": "Add a training action to the service improvement plan within 5 working days and pass the results to the HR Manager for the training plan."
+      },
+      {
+        "when": "Tips or life history about the person in any comment.",
+        "action": "With the person's agreement, or under a best interests decision, add them to What matters to me in the care plan within 5 working days."
+      },
+      {
+        "when": "The overall question Poor or Very poor, or another low rating with no particular concern, with a reference number.",
+        "action": "The Care Coordinator contacts the family member within 5 working days to agree what we will do.",
+        "rule": {
+          "task": "Family rated dementia care poorly: agree what we will do",
+          "if": [
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you feel able to tell us?\" answered No or Yes, but I am not sure how, with a reference number.",
+        "action": "Send the complaints leaflet in the family member's format within 5 working days (our recommendation).",
+        "rule": {
+          "task": "Send the complaints leaflet",
+          "if": [
+            {
+              "question": "q-tell-us",
+              "answers": ["No", "Yes, but I am not sure how"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Dissatisfaction that needs a response.",
+        "action": "Record a complaint the same working day; it is graded within 1 working day and acknowledged within 3 working days, under the Complaints Policy and Procedure."
+      },
+      {
+        "when": "Praise for our service or a named care worker.",
+        "action": "Record it as a compliment the same working day and pass it on within 5 working days."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes, with a reference number.",
+        "action": "Office staff, never the core care team, contact the family member within 5 working days and record what was agreed.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["REGISTERED_MANAGER", "DEPUTY_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "results": ["REGISTERED_MANAGER", "DEPUTY_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-HR-006",
+    "POL-SG-004",
+    "POL-SG-006",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-CD-001",
+    "POL-GOV-016",
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Mental Capacity Act 2005, section 4(7): in deciding best interests, take into account the views of anyone engaged in caring for the person or interested in their welfare",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/4"
+    },
+    {
+      "source": "Alzheimer's Society, Fix Dementia Care: Homecare (2016): 38% of homecare workers had no dementia training, and only 2% of people affected by dementia said workers had enough training",
+      "url": "https://www.housinglin.org.uk/_assets/Resources/Housing/OtherOrganisation/FixDementiaCare_Homecare_report.pdf"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from relevant persons and other persons",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

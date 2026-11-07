@@ -261,7 +261,9 @@ export class MailService {
     const redirectTo = this.config.get<string | undefined>('mail.redirectTo');
     if (redirectTo) {
       const original = (Array.isArray(input.to) ? input.to : [input.to]).join(', ');
-      input = { ...input, to: redirectTo, subject: `[to: ${original}] ${input.subject}` };
+      // MAIL_REDIRECT_TO may list several inboxes, comma-separated.
+      const redirectList = redirectTo.split(',').map((a) => a.trim()).filter(Boolean);
+      input = { ...input, to: redirectList, subject: `[to: ${original}] ${input.subject}` };
     }
     const toList = Array.isArray(input.to) ? input.to : [input.to];
     const to = toList.join(', ');

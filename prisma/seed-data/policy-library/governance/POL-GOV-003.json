@@ -1,0 +1,844 @@
+{
+  "reference": "POL-GOV-003",
+  "revision": 1,
+  "title": "Quality Audit and Monitoring Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we check, on a planned schedule in every branch, that care is safe and our systems work: the annual audit programme, unannounced spot checks of care workers in people's homes, standard audit tools, sampling and RAG scoring, acting at once on immediate risks, action plans and re-audits, and reporting to the Monthly Quality and Governance Meeting and the Directors. For managers, Field Care Supervisors and others who carry out or act on audits and checks.",
+  "keyPoints": {
+    "intro": "What this procedure means for you when you plan, carry out or act on an audit, a spot check or an in-home medicines check.",
+    "points": [
+      "If a check shows a person is at immediate risk, act at once: make the person safe, then phone the Registered Manager or Deputy Manager (the On-call Manager out of hours) before you carry on. Never wait for the audit report.",
+      "Complete every audit on the audit schedule (role tasks in CareFlow) by its due date: monthly audits by the 5th working day of the next month, quarterly audits by the 10th working day after the quarter ends.",
+      "Use the approved audit tool and the stated sample. Choose at least half the sample by risk and the rest at random, and never audit a record you wrote or approved (including a review you carried out), or care on your own caseload.",
+      "Score every standard Met or Not met. Green is 95% or more, Amber 80 to 94%, and Red is below 80% or any critical standard not met.",
+      "Record every Not met as an action with one owner and a deadline: safety-related errors are corrected before the person's next visit, other care record errors within 7 days and staff record gaps within 10 working days.",
+      "A Red result means a focused re-audit of a fresh sample within 1 month. If it is Red again, the Registered Manager tells the Nominated Individual within 2 working days and the area goes on the risk register.",
+      "Field Care Supervisors spot-check every Care Worker and Senior Care Worker, unannounced, at least every 3 months, and every new care worker within 4 weeks of first working without a shadowing colleague.",
+      "At a spot check, score as critical every item the spot check tool marks critical, such as checking in inside the person's home, staying the planned visit length, the end-of-visit safety checks and leaving the key safe closed and the home secure.",
+      "Give the care worker private feedback the same day and record the spot check in CareFlow before the end of your working day. Any critical item not met means retraining and a repeat observation within 4 weeks.",
+      "At every spot check, ask the person privately whether they feel safe and respected and whether care is given the way they want, and pass anything needing action to the Care Coordinator the same working day.",
+      "Use CareFlow reference numbers, never names, in audit summaries and reports."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Senior Carer/Nurse"
+  ],
+  "moduleLinks": [
+    "AUDIT",
+    "CARE_PLAN",
+    "MEDICATION",
+    "VISIT",
+    "TRAINING",
+    "RECRUITMENT",
+    "INFECTION_CONTROL"
+  ],
+  "relatedReferences": [
+    "POL-GOV-002",
+    "POL-GOV-004",
+    "POL-GOV-007",
+    "POL-GOV-009",
+    "POL-HR-005",
+    "POL-MED-001",
+    "POL-IPC-012",
+    "POL-SG-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 Good governance, including 17(1) and 17(2)(a) to (f)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18 Staffing, including 18(2)(a) supervision and appraisal",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18 Notification of other incidents",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Department of Health and Social Care, The Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance, criterion 1",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} checks, on a planned schedule and in every branch, that care is safe and good and our systems work, so that we find problems before anyone outside does. Audits test our records; spot checks and in-home checks test care as it is given in people's homes."
+        },
+        {
+          "p": "The law requires us to operate effective systems to assess, monitor and improve the quality and safety of the service, assess and mitigate risks to people, securely keep accurate, complete and contemporaneous records, and seek and act on feedback (Regulation 17 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). This procedure's frequencies, samples, scores and timescales are our policy, not set by law."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure puts every audit and check our policies require into one schedule, makes results comparable over time and between branches through standard tools, sampling and scoring, and makes sure immediate risks are acted on at once and shortfalls are put right and re-audited until the change has worked."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to every branch and to everyone who plans, carries out, validates or acts on an audit or check."
+        },
+        {
+          "p": "Other documents own: governance meetings, the quality dashboard, the service improvement plan and the independent quality review (Governance and Quality Assurance Policy); the content of the IPC audits (Infection Control Audit and Annual Statement Procedure); supervision, appraisal and how spot check results are used in them (Supervision, Spot Checks and Appraisal Policy); investigating incidents (Incident Reporting, Investigation and Learning Policy); scoring the risk register (Risk Management Policy); and CQC assessments (Inspection Readiness and Working with Regulators Guideline)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Critical standard",
+                "A standard whose failure could directly cause harm or break the law, for example missing allergy information, an unapproved care plan in use, a key safe code written in a record or a missing pre-employment check."
+              ],
+              [
+                "Spot check",
+                "An unannounced observation of a member of staff giving care during a real visit, with the person's agreement, by a Field Care Supervisor (or the Registered Manager or Deputy Manager)."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve the audit programme at their meeting held by mid-May, scrutinise results quarterly and commission the independent health and safety audit and quality review. The Nominated Individual checks monthly that the programme is running, carries out the audits reserved to them and acts on repeated Red results."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns the programme: allocates auditors and tools, keeps the schedule current, validates auditors' work, decides on immediate risks, reviews spot check results monthly and leads the annual review. Where we operate more than one branch, each branch's Registered Manager runs the programme there and the owning Registered Manager compiles organisation-wide results, apart from IPC results, which the IPC lead named by the Directors combines. The Deputy Manager covers in their absence."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager and HR Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out most monthly and quarterly audits, maintains the schedule as role tasks in CareFlow and compiles the monthly audit summary. The HR Manager produces the monthly workforce compliance reports, tells each Field Care Supervisor by the 5th working day of each month which spot checks fall due in the next 4 weeks."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors and Senior Care Workers",
+          "blocks": [
+            {
+              "bullets": [
+                "Care Coordinators complete the weekly checks other documents give them and the monthly boundary exceptions report, carry out the eMAR audits allocated to them and correct findings on their caseload by the deadline.",
+                "Field Care Supervisors carry out spot checks, eMAR audits and in-home medicines checks; authorised Senior Care Workers carry out in-home medicines checks.",
+                "Auditors never alter a record they are auditing; the record's owner corrects it."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The audit programme and schedule",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "How the schedule works",
+          "blocks": [
+            {
+              "p": "The audit year runs from 1 April to 31 March. By 31 May the Registered Manager enters every audit the Directors approved as a CareFlow role task for the auditor's role, with its due date, auditor, tool and sample; until then the previous programme continues. Monthly audits are due by the 5th working day of the following month; quarterly audits by the 10th working day after the quarter ends; annual audits by the end of the month shown. An annual audit goes to the next Directors' governance meeting and into the annual reports at the mid-May meeting."
+            },
+            {
+              "p": "The Deputy Manager reports an overdue audit to the Registered Manager the same day; one more than 10 working days overdue goes to the Nominated Individual and becomes a finding in the service improvement plan. The tables below are the minimum programme; reducing it needs a change to this procedure under the Policy Management and Document Control Policy. The schedule also holds the daily and weekly checks, the IPC checks and every other audit another document sets, with that document's sample, standards and reporting route."
+            }
+          ]
+        },
+        {
+          "heading": "Monthly audits",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Audit",
+                  "Sample",
+                  "By whom",
+                  "Reported to"
+                ],
+                "rows": [
+                  [
+                    "Care records: care plan quality, with the items other documents add; consent and capacity records; risk assessments; the previous 4 weeks' daily visit notes and body maps, including the recorded consent or best interests decision for any photograph",
+                    "10 people (all if fewer), including every package started that month up to that number and at least 3 (all if fewer) with technology-enabled care; 5 completed care plan reviews, at least one triggered",
+                    "Deputy Manager",
+                    "Registered Manager; monthly meeting"
+                  ],
+                  [
+                    "Medicines assessments and reviews",
+                    "5 (all if fewer), including every short-notice start",
+                    "Deputy Manager",
+                    "Registered Manager; monthly meeting"
+                  ],
+                  [
+                    "Full eMAR audit",
+                    "Every person receiving medicines support",
+                    "Care Coordinator or Field Care Supervisor, outside their own caseload",
+                    "Deputy Manager"
+                  ],
+                  [
+                    "Home environment risk assessments",
+                    "5 (all if fewer), including every short-notice start",
+                    "Deputy Manager",
+                    "Health and Safety Meeting"
+                  ],
+                  [
+                    "Infection: care plans; infection reports, by the 3rd working day of the following month",
+                    "5 care plans (all if fewer), covering each group the Infection Control Audit and Annual Statement Procedure lists and increased where needed; every infection report opened",
+                    "Deputy Manager",
+                    "IPC lead, for the infection surveillance review"
+                  ],
+                  [
+                    "Visit monitoring under the Missed, Late and Short Visits Procedure; lone working escalations",
+                    "Every missed visit; 10 visits started more than 30 minutes late; 10 visits 10 or more minutes short; 10 visits without electronic check-in or check-out; every care worker below 90% check-in or check-out; every escalation past the first step",
+                    "Deputy Manager",
+                    "Monthly meeting"
+                  ],
+                  [
+                    "Incident log: timeliness, review, investigation, notifications, duty of candour, actions",
+                    "10 entries (all if fewer), including every incident that caused harm",
+                    "Deputy Manager (Registered Manager for incidents the Deputy Manager investigated)",
+                    "Monthly meeting"
+                  ],
+                  [
+                    "Safeguarding records: timescales and CQC notifications",
+                    "Every record opened",
+                    "Deputy Manager",
+                    "Monthly safeguarding report"
+                  ],
+                  [
+                    "Hazard reports and risk assessment updates",
+                    "Every hazard report",
+                    "Deputy Manager",
+                    "Health and Safety Meeting"
+                  ],
+                  [
+                    "Workforce compliance reports, including acknowledgements of each new major version; document control report; observed hand hygiene and PPE compliance",
+                    "Every employee and document",
+                    "HR Manager; Deputy Manager for document control and hand hygiene",
+                    "Monthly meeting"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Quarterly audits",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Audit",
+                  "Sample",
+                  "By whom",
+                  "Reported to"
+                ],
+                "rows": [
+                  [
+                    "In-home medicines check: stock against the eMAR, labels, storage, expiry dates, controlled drug balances",
+                    "Every person receiving medicines support, at least every 3 months and at every care plan review; monthly for each counted controlled drug",
+                    "Field Care Supervisor or authorised Senior Care Worker",
+                    "Deputy Manager"
+                  ],
+                  [
+                    "Recruitment files against Schedule 3 and the Safer Recruitment Policy",
+                    "10 files of staff appointed in the quarter (all if fewer) and 5 of longer-serving staff",
+                    "Deputy Manager",
+                    "Quarterly governance report"
+                  ],
+                  [
+                    "Supervision and spot check records: discussion, follow-up, re-observation within 4 weeks",
+                    "10 care workers (all if fewer)",
+                    "Registered Manager",
+                    "Quarterly governance report"
+                  ],
+                  [
+                    "Complaints files: response times, investigation, apology, outcome, learning",
+                    "Complaints closed in the quarter, up to 10, chosen by risk",
+                    "Deputy Manager (Nominated Individual for complaints the Deputy Manager handled)",
+                    "Quarterly governance report"
+                  ],
+                  [
+                    "Money records and receipts where staff handle cash",
+                    "5 people (all if fewer)",
+                    "Deputy Manager",
+                    "Registered Manager"
+                  ],
+                  [
+                    "Safeguarding records; accuracy of three dashboard indicators against source records",
+                    "10 records (all if fewer); three indicators",
+                    "Nominated Individual",
+                    "Directors"
+                  ],
+                  [
+                    "Branch office inspection; unannounced lone working test",
+                    "Each branch",
+                    "Deputy Manager",
+                    "Health and Safety Meeting"
+                  ],
+                  [
+                    "Timeliness of RIDDOR reports and CQC notifications",
+                    "Every reportable event, checked as it happens",
+                    "Deputy Manager",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "PPE issued against each care worker's personal care visits",
+                    "Every care worker",
+                    "Care Coordinator",
+                    "IPC lead"
+                  ],
+                  [
+                    "Sponsored workers' records and pay (Right to Work and Sponsored Workers Policy)",
+                    "Every sponsored worker, every 6 months",
+                    "Deputy Manager",
+                    "Registered Manager and Nominated Individual"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Audits set by other documents",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "When",
+                  "Audit or check",
+                  "By whom"
+                ],
+                "rows": [
+                  [
+                    "Monthly",
+                    "Mental Capacity Act records; restrictions approved and every emergency intervention; positive risk-taking plans; everyone with a Medium or High MUST result, swallowing difficulty, thickener or tube feeding; everyone at High risk of or with a pressure ulcer; every fall; every death; every sexual safety incident; every no-reply, no-access or missing person event; every active covert administration plan, controlled drug discrepancy and return record, late or missed time-sensitive dose, medicines incident and pattern of declined doses; 10 cancellations (including every one for a High missed-visit risk level or time-critical visit) and 10 declined-care records; visit record fraud indicators",
+                    "Deputy Manager"
+                  ],
+                  [
+                    "Monthly, by the 5th working day",
+                    "Boundary exceptions report from check-in and check-out and the rota, with a decision on each exception within 5 working days",
+                    "Care Coordinator; Registered Manager decides"
+                  ],
+                  [
+                    "Quarterly",
+                    "Every gifts and hospitality register entry; every connected-person decision; continence and oral care for 10 people; 10 feedback items; key register, access details for 10 people and code changes; invoice trace of 10 visits per branch",
+                    "Deputy Manager"
+                  ],
+                  [
+                    "Quarterly",
+                    "Every candour record, and 5 High or Critical incidents decided not notifiable (all if fewer)",
+                    "Nominated Individual"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Annual audits",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Audit",
+                  "When",
+                  "By whom",
+                  "Reported to"
+                ],
+                "rows": [
+                  [
+                    "Review of this programme; restrictive practice report, including an audit of every behaviour support plan we follow",
+                    "April",
+                    "Registered Manager",
+                    "Directors by mid-May"
+                  ],
+                  [
+                    "Whole process from referral to first care plan review",
+                    "June",
+                    "Registered Manager",
+                    "Directors"
+                  ],
+                  [
+                    "Accessible Information Standard self-assessment",
+                    "June (the first by 31 March 2027)",
+                    "Deputy Manager; checked by the Registered Manager, approved by the Nominated Individual",
+                    "Directors"
+                  ],
+                  [
+                    "Medicines audit against the Medicines Management Policy and NICE guideline NG67",
+                    "September",
+                    "Registered Manager",
+                    "Directors and Nominated Individual"
+                  ],
+                  [
+                    "Anti-bribery and fraud controls audit",
+                    "October",
+                    "A Director named by the chair",
+                    "Directors"
+                  ],
+                  [
+                    "End-to-end audit of 5 recruitments; each agency's written statements and 3 worker files per agency",
+                    "November",
+                    "Nominated Individual; HR Manager",
+                    "Directors; Registered Manager"
+                  ],
+                  [
+                    "Records and data protection: 10 care and 10 staff records, retention, access rights, 5 user accounts against their role, 5 devices against the asset register, paper records; recruitment equality analysis and deletion of expired applicant records",
+                    "December",
+                    "Deputy Manager; HR Manager for recruitment",
+                    "Directors"
+                  ],
+                  [
+                    "Document control audit of 10 documents (all if fewer)",
+                    "January",
+                    "Nominated Individual",
+                    "Directors"
+                  ],
+                  [
+                    "Independent health and safety audit; independent quality review; independent sponsor compliance audit where we sponsor",
+                    "February, reports to the Registered Manager by 31 March",
+                    "External advisers",
+                    "Directors"
+                  ],
+                  [
+                    "Infection prevention and control audit against the 10 criteria of the Code of Practice; annual statement by 30 April",
+                    "March",
+                    "IPC lead with the Nominated Individual",
+                    "Directors"
+                  ],
+                  [
+                    "Sexual harassment risk assessment and its agreed steps",
+                    "Every 12 months and after each trigger",
+                    "Nominated Individual",
+                    "Directors"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Spot checks and observation of practice",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "How often",
+          "blocks": [
+            {
+              "bullets": [
+                "Every Care Worker and Senior Care Worker: at least every 3 months, unannounced, with at least one in every 12 months at a visit before 8am, after 8pm or at a weekend.",
+                "A new care worker: within 4 weeks of first working without a shadowing colleague.",
+                "An agency worker: within 2 weeks of their first visit, then every 3 months.",
+                "After a shortfall, a complaint or a concern about a care worker's practice: within 4 weeks.",
+                "Care Coordinators and Field Care Supervisors who give care: by the Registered Manager or Deputy Manager at least every 6 months."
+              ]
+            },
+            {
+              "p": "Medicines practice, and hand hygiene and PPE, are observed for each care worker at least every 6 months. On a double-up visit both workers are observed. The HR Manager reports a spot check more than 2 weeks overdue to the Registered Manager, who has it done within the following 2 weeks."
+            },
+            {
+              "p": "The person's agreement to spot checks is asked at assessment and recorded in the care plan, or a best interests decision recorded where they cannot decide. The Field Care Supervisor confirms agreement on arrival and observes intimate care only with agreement on that occasion; if the person declines, the check is done at another visit."
+            }
+          ]
+        },
+        {
+          "heading": "What is observed",
+          "blocks": [
+            {
+              "p": "The spot check tool lists the items below and marks as critical those shown and every item the document owning a task names as critical."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Area",
+                  "What is checked",
+                  "Critical items"
+                ],
+                "rows": [
+                  [
+                    "Arrival",
+                    "On time, identity badge against the staff record or agency profile photograph, uniform, bare below the elbows",
+                    "Checked in inside the person's home"
+                  ],
+                  [
+                    "Dignity and choice",
+                    "Respectful greeting, consent asked and refusal respected, choice, privacy (including in intimate care), independence",
+                    "Each item"
+                  ],
+                  [
+                    "Care plan",
+                    "Essential tasks first; visit plan and any best interests, restriction or positive risk-taking plan followed; home copy current; planned visit length stayed",
+                    "Each item"
+                  ],
+                  [
+                    "Personal care",
+                    "Continence and mouth care",
+                    "Bath or shower water checked before use; pressure area care (skin checks, repositioning, equipment) and reporting"
+                  ],
+                  [
+                    "Moving and handling",
+                    "Technique, pre-use equipment checks, pause-and-check, number of workers the care plan requires",
+                    "Each item, where it takes place"
+                  ],
+                  [
+                    "Food and drink",
+                    "Food hygiene, choice, positioning, drinks left within reach",
+                    "Hand washing with soap and water before preparing food; allergen label check; right IDDSI level"
+                  ],
+                  [
+                    "Medicines",
+                    "eMAR checked first, right level of support, recorded at the time",
+                    "Each critical criterion observed from 'The standard' in the Medicines Training and Competency Assessment Procedure"
+                  ],
+                  [
+                    "Infection control and substances",
+                    "Hand hygiene, PPE by task and in order, kit complete; product use and storage",
+                    "Each infection control item; no prohibited or unnamed product, no mixing, nothing left within reach of someone at risk"
+                  ],
+                  [
+                    "Leaving",
+                    "End-of-visit checks in the visit plan",
+                    "Fire checks and controls; any pendant and alarm unit checked; a person with a falls risk assessment left with walking aid, pendant and phone within reach as the care plan sets; key safe closed with code hidden; home secure"
+                  ],
+                  [
+                    "Records",
+                    "Daily visit notes completed before leaving; body maps; money records; work phone locked",
+                    "None"
+                  ],
+                  [
+                    "Safety knowledge",
+                    "Charged phone and alarm; code phrase, Silent Solution, the person's main risks and how to report a concern explained",
+                    "Each item"
+                  ],
+                  [
+                    "Questions",
+                    "What the worker would do if running late, if the person declined an essential task, asked to cancel the next visit or was found on the floor, or in a fire or alarm fault",
+                    "None; briefed before their next visit"
+                  ],
+                  [
+                    "The person's view",
+                    "Asked privately: feeling safe, respected and understood, care given their way, visits as recorded, any request for money or gifts or contact outside visits",
+                    "Not scored against the worker"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Carrying out and recording a spot check",
+          "blocks": [
+            {
+              "steps": [
+                "Before the visit, read the care plan, risk assessments, at least 5 of the worker's daily visit notes from the last 4 weeks and their previous spot check result.",
+                "Arrive during the visit without notice to the worker, knock, show your badge and wait to be let in, then confirm the person's agreement. If the worker has not arrived, phone the Care Coordinator (On-call Manager out of hours) at once, under the Missed, Late and Short Visits Procedure.",
+                "Observe without taking over. If the worker puts the person at risk, stop it, make the person safe and follow the immediate risk steps.",
+                "Speak privately with the person, without family or the worker present unless the person wants them, and pass anything needing action to the Care Coordinator the same working day.",
+                "Give the worker private feedback the same day, after the visit if that will not make them late for their next one, otherwise by phone; the worker may add comments.",
+                "Score each item Met, Not met or Not observed and record it in the supervision and appraisal records before the end of your working day."
+              ]
+            },
+            {
+              "p": "A spot check is satisfactory when every critical item observed is met and no more than two other items are not; otherwise it is a shortfall. Retraining is agreed at the feedback and completed before the worker next does the task where a critical item failed, and the worker is observed again within 4 weeks. A worker who cannot explain how to report a concern is retrained before their next unsupervised visit, and one who cannot explain the code phrase or Silent Solution is re-briefed before their next lone visit. Stricter rules in the Infection Prevention and Control Policy and the Medicines Management Policy also apply. Where practice put a person at risk, the Registered Manager or Deputy Manager decides the same day whether the worker continues that task alone. The Care Coordinator sends an agency worker's shortfall to their agency in writing within 2 working days. Continuing shortfalls go to the Capability and Performance Procedure; possible ill-treatment or neglect to the Safeguarding Adults Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Audit method",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Audit tools",
+          "blocks": [
+            {
+              "p": "Each audit uses its approved audit tool, held in CareFlow Policies as a Form under this procedure and approved under the Policy Management and Document Control Policy and the same in every branch. Each tool lists the standards of the documents it checks, marks as critical every standard they name as critical, and is updated within 1 month of a major change to them. The auditor records each item's CareFlow reference number, the result for each standard and evidence for every Not met."
+            }
+          ]
+        },
+        {
+          "heading": "Sampling",
+          "blocks": [
+            {
+              "bullets": [
+                "Where the schedule states no sample, it is 10 items, or all if fewer.",
+                "At least half is chosen by risk: new packages and short-notice starts; people with a High missed-visit risk level, time-sensitive medicines, a High or Very high residual risk or a hospital discharge in the last month; and people involved in an incident, complaint or safeguarding concern in the last 3 months. The rest are chosen at random.",
+                "Each quarter's samples include every Care Coordinator's caseload and every care run.",
+                "No sampled item is audited in consecutive months except in a re-audit.",
+                "The next scheduled audit after a Red uses twice the usual sample, all if fewer, unless it already covers every item.",
+                "Each branch is sampled and scored separately."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Scoring and RAG rating",
+          "blocks": [
+            {
+              "p": "The score is the standards met across the sample divided by the standards that apply, as a percentage."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Rating",
+                  "When",
+                  "What happens"
+                ],
+                "rows": [
+                  [
+                    "Green",
+                    "95% or more and every critical standard met",
+                    "Shortfalls corrected."
+                  ],
+                  [
+                    "Amber",
+                    "80% to 94% and every critical standard met",
+                    "Shortfalls corrected; failed standards rechecked at the next scheduled audit, within 3 months at the latest."
+                  ],
+                  [
+                    "Red",
+                    "Below 80%, or any critical standard not met",
+                    "Shortfalls corrected; focused re-audit of a fresh sample within 1 month; reported to the next monthly meeting."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "For a monthly audit, the next monthly audit, completed within 1 month of the Red result and checking the failed standards in every item, is the re-audit."
+            }
+          ]
+        },
+        {
+          "heading": "Independence and validation",
+          "blocks": [
+            {
+              "p": "Nobody audits a record they wrote or approved (including a review they carried out), or care on their own caseload. The Registered Manager audits work the Deputy Manager did, approved or decided; the Nominated Individual audits the Registered Manager's. A connected item is replaced by another chosen the same way; where the audit covers every item, the Registered Manager audits it, or the Nominated Individual where the Registered Manager is connected."
+            },
+            {
+              "p": "Every 3 months the Registered Manager re-audits 2 items from each auditor's work, and the Nominated Individual 2 from the Registered Manager's. A difference on any critical standard or of more than 10 percentage points means feedback within 5 working days, the audit repeated by another auditor within 1 month, and the auditor's next two audits checked before results are reported. With more than one branch, one monthly care records audit per branch each year is done by another branch's Deputy Manager."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Immediate risks found during an audit or check",
+      "blocks": [
+        {
+          "p": "An immediate risk is anything likely to harm a person before normal follow-up would put it right, for example an eMAR wrong for a medicine due today, unreported signs of abuse or neglect, or a worker not cleared to work."
+        },
+        {
+          "steps": [
+            "The auditor makes the person safe if with them (999 in an emergency) and phones the Registered Manager or Deputy Manager, or the On-call Manager out of hours, at once, before carrying on. An auditor in the person's home stays until the manager has decided what keeps them safe; the office rearranges any visit this delays.",
+            "The manager decides within 1 hour what will keep the person safe and makes sure it is in place before their next visit, such as correcting the eMAR or care plan, briefing care workers or changing the allocation.",
+            "Where abuse or neglect is possible, the manager follows the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+            "The auditor records the matter in the incident log the same day, for handling under the Incident Reporting, Investigation and Learning Policy or, for a medicines incident, the Medicines Management Policy.",
+            "The Registered Manager decides the same day on CQC notification under the Statutory Notifications to CQC Procedure and on the Duty of Candour Policy, and makes any escalation the Governance and Quality Assurance Policy requires.",
+            "The auditor records the time, who was told and what was done, and scores the item Not met against a critical standard."
+          ]
+        },
+        {
+          "p": "Where the same failing could affect others, such as an error repeated across several eMARs, the Registered Manager makes sure everyone who could be affected is checked within 2 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Action planning and follow-up",
+      "blocks": [
+        {
+          "bullets": [
+            "Individual corrections: every Not met becomes an action on the audit record, owned by the person responsible, normally the Care Coordinator or Field Care Supervisor. Safety-related errors are corrected before the person's next visit, other care record errors within 7 days and staff record gaps within 10 working days. The Deputy Manager checks the evidence before closing the action.",
+            "Service improvement plan: within 5 working days of completing an audit the auditor enters its result, rating and actions. A standard failing in 3 or more items, or also at the previous audit, gets a themed action with one owner, a deadline and the evidence that will show it is done. Overdue actions are escalated under the Governance and Quality Assurance Policy.",
+            "Repeated Red: the Registered Manager tells the Nominated Individual within 2 working days, the area goes on the risk register under the Risk Management Policy, and the audit runs monthly until two consecutive Green or Amber results.",
+            "Learning: the auditor gives the Care Coordinators and Field Care Supervisors concerned their caseload results within 5 working days; the Registered Manager shares themes with staff."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting and oversight",
+      "blocks": [
+        {
+          "p": "Monthly: by the 7th working day the Deputy Manager adds each branch's audit summary to the quality dashboard: audits due and completed, scores, ratings and the previous three results, immediate risks, re-audits, and overdue audits and actions."
+        },
+        {
+          "p": "Quarterly: the quarterly governance report shows each branch's results side by side, four-quarter trends, themes, spot check coverage and re-audit outcomes. Where a branch is Red in an area where the others are Green, or 10 or more percentage points below the organisation average for two consecutive quarters, the Nominated Individual makes a focused branch visit within 1 month."
+        },
+        {
+          "p": "Annually: the Registered Manager's audit programme report for 1 April to 31 March goes to the Directors' governance meeting held by mid-May, showing completion rates, results by area and branch, what changed because of audits, and the proposed programme."
+        }
+      ]
+    },
+    {
+      "heading": "Reviewing the programme",
+      "blocks": [
+        {
+          "p": "Each April the Registered Manager reviews the programme against the year's audit results, incidents, complaints, safeguarding concerns, feedback, the risk register, independent reviews, CQC and commissioner findings, changes in law and guidance, and new services, asking whether any problem reached us from outside that our audits should have found first. The review also checks whether each auditor, especially the Deputy Manager in larger branches, can complete their audits on time, and how often whole-population audits were Red."
+        },
+        {
+          "p": "The proposal adds audits for emerging risks and increases frequency for areas rated Red or declining. Frequency is reduced only for an area Green at four consecutive audits, and never below a frequency another policy sets. The Nominated Individual checks the proposal and the Directors approve it at the mid-May meeting. Between reviews the Registered Manager may add an audit or increase a frequency at once, telling the Nominated Individual within 2 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Audit schedule, completed tools, samples, scores, evidence, actions and validation results",
+                "Schedule: CareFlow role tasks; the rest: governance records, by branch"
+              ],
+              [
+                "Spot checks",
+                "Supervision and appraisal records"
+              ],
+              [
+                "In-home medicines checks",
+                "Audit records; any discrepancy also noted on the person's eMAR"
+              ],
+              [
+                "Immediate risks found during a check",
+                "Incident log or safeguarding records, cross-referenced in the audit record"
+              ],
+              [
+                "Audit summaries and reports",
+                "Governance records"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are kept for the periods in the Records Management and Retention Policy. Auditors open only the records the tool requires, and reports use CareFlow reference numbers, not names."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "This procedure, the audit tools, sampling and scoring",
+                "Everyone who audits",
+                "Before their first audit, then every 12 months at the new-programme briefing; first two audits of each type checked by the Registered Manager or Deputy Manager before reporting"
+              ],
+              [
+                "Observing practice, scoring and giving feedback",
+                "Everyone who carries out spot checks",
+                "Before the first spot check; first two done jointly with the Registered Manager, Deputy Manager or an experienced Field Care Supervisor; observed by the Registered Manager or Deputy Manager every 12 months"
+              ],
+              [
+                "In-home medicines checks",
+                "Authorised Field Care Supervisors and Senior Care Workers",
+                "Before the first check, under the Medicines Training and Competency Assessment Procedure"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Auditors hold current training and, where it applies, competency in the area they audit, recorded in the training and compliance records."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "Target",
+              "How often and by whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Audits completed by their due date",
+                "100%",
+                "Monthly, Deputy Manager",
+                "Monthly meeting"
+              ],
+              [
+                "Spot checks in date",
+                "95%",
+                "Monthly, HR Manager",
+                "Monthly meeting"
+              ],
+              [
+                "Audit actions completed by their deadline",
+                "At least 90%",
+                "Monthly, Registered Manager",
+                "Monthly meeting; Directors quarterly"
+              ],
+              [
+                "Re-audits after a Red result within 1 month",
+                "100%",
+                "Quarterly, Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Validation re-audits matching the original result",
+                "100%",
+                "Quarterly, Registered Manager",
+                "Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or guidance, a serious incident our audits failed to detect, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

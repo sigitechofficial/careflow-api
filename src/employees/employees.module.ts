@@ -6,9 +6,10 @@ import { EmployeeVisitsService } from './employee-visits.service';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { ScheduleLifecycleImpactModule } from '../schedule-lifecycle-impact/schedule-lifecycle-impact.module';
 import { OrganisationGeneralSettingsModule } from '../organisation-general-settings/organisation-general-settings.module';
+import { ComplianceReportsModule } from '../compliance-reports/compliance-reports.module';
 
 @Module({
-  imports: [AuditLogsModule, ScheduleLifecycleImpactModule, OrganisationGeneralSettingsModule],
+  imports: [AuditLogsModule, ScheduleLifecycleImpactModule, OrganisationGeneralSettingsModule, ComplianceReportsModule],
   controllers: [EmployeesController],
   providers: [EmployeesService, EmployeePortalAccountsService, EmployeeVisitsService],
   exports: [EmployeesService, EmployeePortalAccountsService, EmployeeVisitsService],

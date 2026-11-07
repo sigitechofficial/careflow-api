@@ -1,0 +1,843 @@
+{
+  "reference": "POL-GOV-002",
+  "revision": 1,
+  "title": "Governance and Quality Assurance Policy",
+  "documentType": "POLICY",
+  "summary": "How the Directors, the Nominated Individual and the Registered Manager govern the service and assure themselves that care is safe and good: the governance structure and meetings, the monthly quality dashboard and its escalation thresholds, immediate escalation of serious events, the quarterly governance report, the service improvement plan, reports to CQC under Regulation 17(3) and the annual review of governance. For Directors, managers and office staff who produce or use governance information.",
+  "keyPoints": {
+    "intro": "What this policy means for you as a Director, the Nominated Individual or a manager who produces, presents or acts on governance information.",
+    "points": [
+      "Tell the Nominated Individual at once of a Critical incident, an urgent data breach, a CQC site visit or enforcement step, or business continuity activation, and the same day of a High incident, other CQC contact, a commissioner's formal concern or a media enquiry.",
+      "Out of hours the On-call Manager escalates when the Registered Manager and Deputy Manager cannot be reached. If the Nominated Individual cannot be reached within 1 hour, tell the Director named to act for them, and record who was told and when.",
+      "The Deputy Manager produces the monthly quality dashboard from CareFlow by the 7th working day, and the Nominated Individual chairs the Monthly Quality and Governance Meeting by the 10th working day.",
+      "When an indicator crosses its escalation threshold, record the reason and an action in the service improvement plan, and tell the Nominated Individual within 2 working days if you find it between meetings.",
+      "The quarterly governance report reaches the Directors at least 5 working days before their governance meeting, held within 6 weeks of the quarter end. Base it on CareFlow data and audit results, and show each branch separately.",
+      "Every finding from an audit, incident, complaint, safeguarding review, inspection, commissioner visit or feedback goes into the service improvement plan within 5 working days, with one owner, a deadline and the evidence that will show it is done.",
+      "Never close an action you own: the Deputy Manager or the Nominated Individual checks the evidence. Actions over 1 month overdue go to the Nominated Individual; over 3 months, or any overdue safety action, to the Directors and the risk register.",
+      "If CQC asks for a written report on quality and risk, tell the Nominated Individual the same day. The law allows 28 days from the day after receipt; we send it by day 24.",
+      "Stop accepting new packages and tell the Nominated Individual the same day when the rota cannot safely cover existing care, or fewer than 90% of visits in a month started within 30 minutes of the planned time.",
+      "Never name people we support or staff in governance reports or minutes: use CareFlow reference numbers.",
+      "Tell people what changed because of their feedback: individual replies within 5 working days, and a You said, we did summary to people we support and staff every 6 months."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": false,
+  "audience": [
+    "Admin",
+    "Manager"
+  ],
+  "moduleLinks": [
+    "AUDIT",
+    "INCIDENT",
+    "BRANCH"
+  ],
+  "relatedReferences": [
+    "POL-GOV-001",
+    "POL-GOV-003",
+    "POL-GOV-004",
+    "POL-GOV-006",
+    "POL-GOV-007",
+    "POL-GOV-009",
+    "POL-GOV-017",
+    "POL-GOV-023"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 Good governance, including 17(1), 17(2)(a) to (f) and 17(3)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18 Staffing",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 6 Requirement where the service provider is a body other than a partnership (nominated individual)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/6"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 20A Requirement as to display of performance assessments",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/20A"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 22 Offences (failure to comply with Regulations 17(3) and 20A)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/22"
+    },
+    {
+      "source": "Care Quality Commission, Our March update (24 March 2026): draft sector-specific assessment frameworks",
+      "url": "https://www.cqc.org.uk/news/our-march-update"
+    },
+    {
+      "source": "Companies Act 2006, section 248 Minutes of directors' meetings",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/248"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 33 Notification of a personal data breach to the Commission",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/33"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} is governed so that the people we support receive safe, effective, caring and responsive care, and so that the Directors know from evidence, not reassurance, whether that is happening. Good governance means we find problems before the person, their family, a commissioner or CQC does, that every problem leads to an action that is completed and checked, and that the service improves as a result."
+        },
+        {
+          "p": "The law requires us to establish and operate effectively systems that enable us to assess, monitor and improve the quality and safety of the service, including people's experience of it; to assess, monitor and mitigate risks; to keep accurate records; to seek and act on feedback; and to evaluate and improve how we use this information (Regulation 17 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). Our policy is that the Directors hold board-level responsibility, the Nominated Individual supervises the management of the service on their behalf, and every branch follows one cycle of weekly, monthly, quarterly and annual checks, into which the monitoring of every other policy in our library reports."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that:"
+        },
+        {
+          "bullets": [
+            "accountability runs clearly from the Directors to each branch through set meetings;",
+            "leaders review one set of CareFlow indicators against targets and escalation thresholds, and serious events reach them within fixed times;",
+            "findings from every source become actions in one service improvement plan and are shown to have worked;",
+            "people can see what changed because of their feedback, and CQC receives any report it requests within the legal 28 days; and",
+            "the governance system itself is evaluated and improved every year."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to {{organisation}} as a whole, to every branch and service we run, and to everyone who records, produces or acts on governance information, from the Directors to Office staff."
+        },
+        {
+          "p": "Other documents own these subjects: audit tools and the audit schedule (Quality Audit and Monitoring Procedure); risk scoring and the risk register (Risk Management Policy); recording and investigating incidents (Incident Reporting, Investigation and Learning Policy); notifications (Statutory Notifications to CQC Procedure); complaints (Complaints Policy and Procedure); collecting feedback (Compliments, Feedback and Involvement Procedure); CQC assessments and inspectors (Inspection Readiness and Working with Regulators Guideline); cover for an absent Registered Manager (Registered Manager Role and Absence Cover Policy); the fitness of Directors (Fit and Proper Persons (Directors) Policy); and keeping records (Records Management and Retention Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Quality assurance",
+                "The checks that show whether care meets our policies, the regulations and what people want: audits, spot checks, monitoring of CareFlow data and feedback."
+              ],
+              [
+                "Quality dashboard",
+                "The monthly set of indicators in this policy, compiled from CareFlow reports and records for each branch and for {{organisation}} as a whole."
+              ],
+              [
+                "Quarter",
+                "April to June, July to September, October to December, January to March."
+              ],
+              [
+                "Quarterly governance report",
+                "The Registered Manager's report to the Directors for each quarter, made up of the parts listed under Quarterly governance report below, including the quarterly quality report."
+              ],
+              [
+                "Quarterly quality report",
+                "The part of the quarterly governance report on the quality of care, to which the care delivery, capacity, deprivation of liberty and restrictive practice documents report."
+              ],
+              [
+                "Service improvement plan",
+                "The single plan holding every improvement action from every source, with its owner, deadline, status and evidence."
+              ],
+              [
+                "Immediate escalation",
+                "Telling the Nominated Individual or the Directors about a serious event outside the meeting cycle, within the time this policy sets."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors are the provider's board and hold overall responsibility for governance and for the quality and safety of care. They:"
+            },
+            {
+              "bullets": [
+                "approve this policy, the annual audit programme and the priorities of the service improvement plan;",
+                "hold a governance meeting every quarter, challenge the quarterly governance report and minute their decisions;",
+                "review the whole organisation risk register and the horizon scan every quarter, and approve the risk appetite statement and the standing risks at the meeting held by mid-May, as the Risk Management Policy sets out;",
+                "act on immediate escalations, deciding what further action, resource or outside help is needed;",
+                "review finances, contract viability and staffing capacity every quarter, and sign a new contract or accept a block of new work only after the Registered Manager confirms in writing that it can be staffed safely;",
+                "commission the annual independent quality review, and approve the annual governance review and every report sent to CQC under Regulation 17(3)."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The law requires the Nominated Individual to be employed as a director, manager or secretary of {{organisation}} and to be responsible for supervising the management of the regulated activity (Regulation 6). On the Directors' behalf, the Nominated Individual:"
+            },
+            {
+              "bullets": [
+                "chairs the Monthly Quality and Governance Meeting and checks each quarterly governance report before it goes to the Directors, including an accuracy check of three of its indicators against the source records;",
+                "visits each branch at least every 3 months, unannounced at least once a year, talks with care workers and, with their agreement, people we support and their families, in their own homes or by phone, and records findings and actions;",
+                "leads our response to every CQC request for a report or information, and is our main contact with CQC and commissioners on governance;",
+                "receives immediate escalations, tells the Directors where this policy requires, and completes the annual governance review."
+              ]
+            },
+            {
+              "p": "The Directors name one Director each year at their meeting held by mid-May to act for the Nominated Individual whenever the Nominated Individual is absent or cannot be reached within 1 hour. That Director receives immediate escalations, takes the Nominated Individual's decisions under this policy and acts for them on data breaches under the Data Protection Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "As a registered person, the Registered Manager shares legal responsibility for meeting the regulations and leads quality and safety in the branch day to day: chairing the weekly management and staff team meetings, presenting the dashboard and the monthly safeguarding and health and safety reports, writing the quarterly governance report and the annual reports our policies require, keeping the service improvement plan up to date at least monthly, making immediate escalations and deciding when to pause new packages."
+            },
+            {
+              "p": "Where we operate more than one branch, each branch's Registered Manager does this for their branch, and the Registered Manager who owns this policy compiles the quarterly governance report for {{organisation}} as a whole. When the Registered Manager is absent, the Deputy Manager carries out these duties, as the Registered Manager Role and Absence Cover Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager and HR Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager produces the monthly quality dashboard, carries out the audits allocated under the Quality Audit and Monitoring Procedure, checks evidence before actions owned by others are closed, and sends the You said, we did summary. The HR Manager provides the workforce figures for the dashboard by the 5th working day of each month and runs the annual staff survey."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors, On-call Managers and Office staff",
+          "blocks": [
+            {
+              "p": "They record visits, cancellations with reasons, reviews, spot checks and quality checks in CareFlow on the day they happen, because every indicator depends on those records; complete the weekly checks and improvement actions they own on time; and pass any event in the immediate escalation table to the Registered Manager or Deputy Manager at once, the On-call Manager escalating out of hours. One Care Coordinator and one Field Care Supervisor from each branch attend the monthly meeting, in rotation."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Most governance information starts with what care workers record on their work phone during each visit. They check in and out in CareFlow inside the person's home, complete the daily visit notes and eMAR before leaving, and record any incident in the incident log before the end of their shift. Before leaving the visit, from outside the home if they feel unsafe, they phone the office, or the On-call Manager out of hours, about any harm to the person, care that could not be given or any other serious event, calling 999 first in an emergency; the office then makes any escalation this policy requires."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Governance structure and meetings",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Structure",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Forum",
+                  "Chair and members",
+                  "How often",
+                  "Purpose"
+                ],
+                "rows": [
+                  [
+                    "Directors' governance meeting",
+                    "Chair of the Directors; the Directors and the Nominated Individual; each Registered Manager for governance items; the HR Manager for workforce items. Quorate with a majority of the Directors.",
+                    "Quarterly, within 6 weeks of the quarter end",
+                    "Scrutiny of the quarterly governance report; decisions on risk and resources; approvals."
+                  ],
+                  [
+                    "Monthly Quality and Governance Meeting",
+                    "Nominated Individual, or a Director in their absence; each Registered Manager, the Deputy Manager, the HR Manager, and a Care Coordinator and Field Care Supervisor per branch. Quorate with the chair and each branch's Registered Manager or Deputy Manager.",
+                    "Monthly, by the 10th working day",
+                    "The dashboard and monthly reports, escalations and the service improvement plan."
+                  ],
+                  [
+                    "Health and Safety Meeting",
+                    "As the Health and Safety Policy sets out.",
+                    "Quarterly",
+                    "Health and safety performance."
+                  ],
+                  [
+                    "Weekly management meeting",
+                    "Registered Manager; the Deputy Manager, Care Coordinators and Field Care Supervisors. Quorate with the Registered Manager or Deputy Manager and at least one Care Coordinator or Field Care Supervisor.",
+                    "Weekly in each branch",
+                    "Open safeguarding records and incidents, missed and late visits, staffing for the next 2 weeks, new packages, new branch risks and every Very high risk, overdue reviews and actions."
+                  ],
+                  [
+                    "Staff team meeting",
+                    "Registered Manager or Deputy Manager; all the branch's care staff, in paid time.",
+                    "At least every 3 months",
+                    "Learning, changes to practice and staff views. Absent staff receive the notes within 5 working days."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A Directors' governance meeting that is not quorate is rearranged within 2 weeks, and the Nominated Individual takes any decision that cannot wait to the Directors individually for written approval."
+            }
+          ]
+        },
+        {
+          "heading": "Standing agenda",
+          "blocks": [
+            {
+              "p": "Both the monthly meeting and the Directors' governance meeting cover: previous actions and overdue improvement actions; immediate escalations; visit delivery and capacity; incidents; safeguarding; medicines; complaints and feedback; CQC notifications and duty of candour; infection prevention and control; health and safety; workforce, including anonymised themes from speaking-up concerns; audits and document control; new, High and Very high risks and risks above appetite on the risk register, and every High and Very high risk in people's risk assessments with its approval and review dates, under the Risk Assessment and Home Environment Risk Assessment Procedure; regulators, commissioners, safety alerts and changes in law or guidance; and data breaches and cyber security. The Directors also cover finance and contract viability, people's experience, our self-assessment against the five key questions, and approvals due."
+            }
+          ]
+        },
+        {
+          "heading": "Papers, minutes and actions",
+          "blocks": [
+            {
+              "bullets": [
+                "Papers go out at least 5 working days before a Directors' governance meeting and 2 working days before a monthly meeting.",
+                "Minutes record attendance, what was reviewed, the challenge given, decisions, and each action with one owner and a deadline. Monthly minutes are completed within 5 working days; Directors' minutes are drafted within 10 working days, approved at the next meeting and signed by the chair.",
+                "Every action goes into the service improvement plan or, for a risk, the risk register, so there is one place to track it.",
+                "Papers and minutes never name people we support or staff; they use CareFlow reference numbers."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Quality indicators and escalation",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The monthly quality dashboard",
+          "blocks": [
+            {
+              "p": "The Deputy Manager produces the dashboard for each branch and for {{organisation}} as a whole by the 7th working day of each month, from visit check-in and check-out (electronic call monitoring), care plans and risk assessments, the eMAR, the incident log, safeguarding and complaints records, and the staff, training, supervision and acknowledgement records. Each indicator shows the month, the previous 12 months and the target. A figure that cannot be produced because records are missing or late is itself a finding."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Indicator",
+                  "Target",
+                  "Escalate to the Nominated Individual when"
+                ],
+                "rows": [
+                  [
+                    "Missed visits: a planned visit that did not happen and was not cancelled by or with the agreement of the person",
+                    "None",
+                    "Every missed visit goes to the Registered Manager the same day; the Nominated Individual is told the same day (at once if Critical) where the person has a High missed-visit risk level, was harmed or missed a time-sensitive medicine."
+                  ],
+                  [
+                    "Visits started within 30 minutes of the planned time",
+                    "At least 95%",
+                    "Below 95% for two consecutive months; below 90% in any month also pauses new packages."
+                  ],
+                  [
+                    "Visits 10 minutes or more shorter than planned",
+                    "No more than 5%",
+                    "Above 5% in a month."
+                  ],
+                  [
+                    "Visits with electronic check-in and check-out",
+                    "At least 95%",
+                    "Below 90% in a month."
+                  ],
+                  [
+                    "Visits by the person's core care team",
+                    "At least 80%",
+                    "Branch average below 80% for two consecutive months."
+                  ],
+                  [
+                    "Care plan, risk assessment and medicines reviews done by their due date",
+                    "100%",
+                    "Any review more than 1 month overdue, or more than 5% overdue."
+                  ],
+                  [
+                    "Incidents and medicines incidents, by type and harm",
+                    "Every incident logged before the end of the shift; fewer causing harm each year",
+                    "A rise of 50% or more on the previous 3-month average, or the same type of error affecting 3 or more people in a month."
+                  ],
+                  [
+                    "Safeguarding timescales: risk assessed within 1 hour, referral the same working day",
+                    "100%",
+                    "Any timescale missed."
+                  ],
+                  [
+                    "CQC notifications sent without delay",
+                    "100%",
+                    "Any late or missed notification, within 1 working day of finding it; the notification is sent at once."
+                  ],
+                  [
+                    "Complaints answered within the Complaints Policy and Procedure timescales",
+                    "100%",
+                    "Any late response, or 3 or more complaints on one theme in a quarter."
+                  ],
+                  [
+                    "Training in date",
+                    "100% induction; 95% refreshers",
+                    "Any required course below 90%."
+                  ],
+                  [
+                    "Supervisions, spot checks and appraisals in date",
+                    "95%",
+                    "Below 90% in a month."
+                  ],
+                  [
+                    "Policy acknowledgements of each new document and each new major version",
+                    "95% within 14 days; 100% within 28 days",
+                    "As the Policy Management and Document Control Policy sets out."
+                  ],
+                  [
+                    "Workforce stability",
+                    "Sickness absence below 5% of contracted hours; turnover below 30% over 12 months; agency workers below 10% of hours delivered",
+                    "Any target missed."
+                  ],
+                  [
+                    "First-week calls and quality checks; annual satisfaction survey",
+                    "100% on time; at least 90% satisfied (Very good or Good overall, Don't know left out)",
+                    "Any call or check more than 2 weeks overdue; satisfaction below 90%."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "When an indicator crosses its threshold, the Registered Manager records the reason and an action in the service improvement plan and reports both at the monthly meeting. A breach found between meetings is reported to the Nominated Individual within 2 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Capacity and new packages",
+          "blocks": [
+            {
+              "p": "The law requires care to be provided in a safe way, with enough suitably qualified, competent, skilled and experienced staff deployed (Regulations 12(1) and 18(1)). Every new package is accepted only under the conditions in the Needs Assessment and Care Planning Policy. In addition, the Registered Manager stops accepting new packages, and tells the Nominated Individual and the commissioners concerned the same day, when the rota cannot safely cover the care we already provide or fewer than 90% of visits in a month started within 30 minutes of the planned time. New packages restart only when the Nominated Individual agrees that capacity has been restored; the Nominated Individual records the decision in the governance records and reports it to the next monthly meeting. If a commissioner confirms a person has no other safe option, the Registered Manager may accept that package during a pause after confirming in writing that it can be staffed without affecting anyone else's care, and tells the Nominated Individual the same day."
+            }
+          ]
+        },
+        {
+          "heading": "Immediate escalation",
+          "blocks": [
+            {
+              "p": "These events are escalated at any time of day or week:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Event",
+                  "Who tells whom, and when",
+                  "Detail in"
+                ],
+                "rows": [
+                  [
+                    "Medicines incident causing serious harm, referred to safeguarding, notified to CQC or involving the police",
+                    "Registered Manager to the Directors within 24 hours",
+                    "Medicines Management Policy"
+                  ],
+                  [
+                    "Safeguarding concern involving staff, the police, serious injury or death, possible organisational abuse or likely media interest",
+                    "Safeguarding lead to the Nominated Individual within 24 hours",
+                    "Safeguarding Concerns: Reporting, Referral and Enquiry Procedure"
+                  ],
+                  [
+                    "Work-related death, RIDDOR-reportable event, enforcement notice or personal injury claim; an inspector's contact about safety",
+                    "Registered Manager to the Directors within 24 hours; an inspector's contact the same day",
+                    "Health and Safety Policy"
+                  ],
+                  [
+                    "Suspected or confirmed outbreak, death or serious harm from infection possibly linked to our care, or a supply shortage threatening visits",
+                    "IPC lead to the Directors within 24 hours",
+                    "Infection Prevention and Control Policy"
+                  ],
+                  [
+                    "Anyone found working with people we support before being cleared to work",
+                    "Registered Manager to the Nominated Individual within 24 hours",
+                    "Safer Recruitment Policy"
+                  ],
+                  [
+                    "Incident graded Critical, such as a death our care may have contributed to, or High, such as a serious injury to a person we support",
+                    "Registered Manager to the Nominated Individual at once for a Critical incident and the same day for a High incident; the Nominated Individual to the Directors within 24 hours of a Critical incident or a serious injury our care may have contributed to",
+                    "Incident Reporting, Investigation and Learning Policy"
+                  ],
+                  [
+                    "Police called under the lone working escalation steps or about violence or abuse towards staff, or a member of staff physically or sexually assaulted",
+                    "Registered Manager to the Nominated Individual at once for a Critical incident, the same day for a High one, otherwise within 24 hours",
+                    "Lone Working and Staff Personal Safety Policy; Violence and Aggression Towards Staff Policy"
+                  ],
+                  [
+                    "Any CQC contact, including notice of an assessment, a request for a report or information, a site visit, a warning notice or any other enforcement step",
+                    "Whoever receives it to the Registered Manager and the Nominated Individual the same day, and at once for a site visit or enforcement; out of hours the On-call Manager passes it on by 10am the next working day, at once for enforcement. The Nominated Individual tells the Directors within 1 working day",
+                    "This policy; Inspection Readiness and Working with Regulators Guideline"
+                  ],
+                  [
+                    "Contact from another regulator or inspecting body, such as the Home Office or the Information Commission",
+                    "Whoever receives it to the Registered Manager and the Nominated Individual the same day",
+                    "Inspection Readiness and Working with Regulators Guideline"
+                  ],
+                  [
+                    "A risk scored Very high (16 to 25) on a branch or organisation risk register",
+                    "The Registered Manager, or the owner of an organisation risk, to the Nominated Individual the same day; the Nominated Individual to the Directors within 1 working day",
+                    "Risk Management Policy"
+                  ],
+                  [
+                    "Care delivered or managed outside our registration or its conditions",
+                    "Registered Manager to the Nominated Individual the same day; the Nominated Individual to the Directors within 1 working day",
+                    "Statement of Purpose and Registration Procedure"
+                  ],
+                  [
+                    "A commissioner's formal quality concern, suspension of new work, or a default or termination notice",
+                    "Registered Manager to the Nominated Individual the same day",
+                    "This policy"
+                  ],
+                  [
+                    "Personal data breach that may be reportable to the Information Commission (formerly the ICO), or a cyber incident affecting CareFlow",
+                    "The breach lead to the Nominated Individual the same day, and at once for an urgent breach, such as a key safe code or a person's address and visit times reaching someone who may pose a risk, a lost or stolen work phone not confirmed locked, or a suspected cyber attack on CareFlow. The law requires a breach to be reported to the Information Commission without undue delay and, where feasible, within 72 hours of our becoming aware of it, unless it is unlikely to result in a risk to people's rights and freedoms (UK GDPR Article 33)",
+                    "Personal Data Breach Procedure"
+                  ],
+                  [
+                    "Business continuity arrangements activated, or care that cannot be delivered to one or more people",
+                    "Whoever activates the plan or finds the care cannot be delivered, including the On-call Manager, to the Nominated Individual at once; the Nominated Individual to the Directors within 24 hours of an activation, and at once if a priority 1 or 2 visit cannot be delivered or more than one branch is affected",
+                    "Business Continuity and Emergency Planning Policy"
+                  ],
+                  [
+                    "A media enquiry, or a complaint taken to an MP, a councillor or an Ombudsman (the Local Government and Social Care Ombudsman or, for NHS-funded care, the Parliamentary and Health Service Ombudsman)",
+                    "Registered Manager to the Nominated Individual the same day; only the Nominated Individual or a Director speaks to the media",
+                    "This policy; Complaints Policy and Procedure"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Where an event falls under more than one row, or another document sets a shorter timescale for it, the shortest applies. Other documents also set escalations within their own subjects, such as a suspected bribe or a concern about a Registered Manager's fitness, and those apply as well. Out of hours, the On-call Manager escalates when the Registered Manager and Deputy Manager cannot be reached. The person escalating records who was told and when in the event's incident log entry or safeguarding record or, for an event with neither, in the governance records."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Quarterly and annual reporting",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Quarterly governance report",
+          "blocks": [
+            {
+              "p": "The Registered Manager writes the report from the quarter's dashboards, audits and reports; the Nominated Individual checks it before it goes to the Directors. It contains:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Part",
+                  "What it covers",
+                  "Required by"
+                ],
+                "rows": [
+                  [
+                    "Summary",
+                    "Self-assessment against the five key questions, main risks, immediate escalations and decisions needed",
+                    "This policy"
+                  ],
+                  [
+                    "Quarterly quality report",
+                    "Missed, late and short visits, continuity, assessment and care planning, care plan audits, the figures each care delivery document reports, consent, capacity, deprivation of liberty and restrictive practice, feedback and complaints",
+                    "Person-Centred Care, Dignity and Respect Policy and the other care delivery documents; Mental Capacity Act and Best Interests Policy; Deprivation of Liberty in the Community Procedure; Restraint and Restrictive Practice Policy"
+                  ],
+                  [
+                    "Medicines governance report",
+                    "Incidents, audits, trends, training and actions",
+                    "Medicines Management Policy"
+                  ],
+                  [
+                    "Safeguarding report",
+                    "Concerns, referrals, timescales, trends and learning",
+                    "Safeguarding Adults Policy"
+                  ],
+                  [
+                    "Infection prevention and control report",
+                    "Infections, outbreaks, audits and training",
+                    "Infection Prevention and Control Policy"
+                  ],
+                  [
+                    "Health and safety report",
+                    "Indicators, RIDDOR reports, safety audits, and High and Very high risks in people's risk assessments",
+                    "Health and Safety Policy; Risk Assessment and Home Environment Risk Assessment Procedure"
+                  ],
+                  [
+                    "Workforce report",
+                    "Staffing, recruitment file audits, training, supervision, acknowledgements, document control figures, turnover, sickness, agency use and staff feedback",
+                    "Safer Recruitment Policy; Policy Management and Document Control Policy"
+                  ],
+                  [
+                    "Incidents, notifications and candour",
+                    "Incidents by harm and type, investigations on time, CQC notifications and duty of candour",
+                    "Incident Reporting, Investigation and Learning Policy; Duty of Candour Policy"
+                  ],
+                  [
+                    "Data protection section",
+                    "Personal data breaches, rights requests, compliance reviews, cyber security and staff data figures",
+                    "Data Protection Policy and the other information governance documents"
+                  ],
+                  [
+                    "People's experience",
+                    "At least two accounts of a person's experience in the quarter, shared with their agreement and without identifying them, at least one where we fell short and what we changed",
+                    "This policy"
+                  ],
+                  [
+                    "Improvement and risk",
+                    "Progress on the service improvement plan and changes to the risk register",
+                    "This policy; Risk Management Policy"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Annual reports",
+          "blocks": [
+            {
+              "p": "Annual reports cover 1 April to 31 March and are presented at the Directors' governance meeting held by mid-May, including: the annual governance review; the annual safeguarding, health and safety, incident, complaints, restrictive practice and business continuity reports; the IPC statement; the medicines audit; the recruitment report and audit; the audit programme report and document control audit; the equality review and workforce equality report; the annual fitness report; the statement of purpose review; the Data Protection Officer's compliance report; and the bribery and fraud risk assessment. With the independent quality review and the satisfaction survey results, the Directors use them to approve the priorities of the service improvement plan and the audit programme for the year ahead."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing and improving quality and safety",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "How we check quality",
+          "blocks": [
+            {
+              "p": "We combine checks of records with checks of care itself: the audit programme in the Quality Audit and Monitoring Procedure; Field Care Supervisors' spot checks in people's homes, observing care and talking privately with the person; monitoring of CareFlow data; first-week calls, quality checks and the satisfaction survey under the Person-Centred Care, Dignity and Respect Policy; the Nominated Individual's branch visits; and an independent quality review every 12 months by an adult social care quality reviewer with no other role at {{organisation}}, covering the five key questions through conversations with people we support (by phone or a home visit, with their agreement), staff interviews, an anonymous staff questionnaire and record sampling. Nobody audits their own work."
+            },
+            {
+              "p": "The reviewer chooses the people and staff; the Care Coordinator asks each person chosen, in their preferred format and without influence, and never chooses or prepares anyone. The Nominated Individual enters the reviewer's record of each conversation in CareFlow surveys and owns the staff questionnaire there, exporting its results to the reviewer; only the Nominated Individual can open either before the reviewer's report."
+            },
+            {
+              "p": "CQC published draft sector-specific assessment frameworks on 24 March 2026, which keep the five key questions but replace the quality statements with key lines of enquiry. Until CQC confirms that the new adult social care framework applies, our self-assessment uses the current assessment framework, as the Policy Management and Document Control Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Service improvement plan",
+          "blocks": [
+            {
+              "p": "{{organisation}} has one service improvement plan, kept by the Registered Manager in the governance records and showing each branch's actions. Every finding from an audit, spot check, incident investigation, safeguarding learning review, complaint, feedback, branch visit, independent review, CQC assessment, commissioner monitoring, national safety alert or the annual governance review is added within 5 working days of being received. Each action records its source, what will change and the result expected for people we support; one owner; a deadline of no more than 1 month where it addresses a risk to safety or a breach of the regulations, and no more than 3 months otherwise unless the Directors agree longer; its status; and the evidence of completion. Health and safety actions are held in the same plan and are also tracked at the Health and Safety Meeting."
+            },
+            {
+              "p": "The Deputy Manager, or the Nominated Individual for the Deputy Manager's own actions, checks the evidence before an action is closed. An action arising from a CQC assessment, a commissioner's finding or a serious incident is closed only when a re-audit within 3 months shows the change has worked."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Action status",
+                  "What happens"
+                ],
+                "rows": [
+                  [
+                    "Deadline cannot be met",
+                    "The owner tells the Registered Manager before the deadline; the Registered Manager may extend it once, by up to 1 month, recording why."
+                  ],
+                  [
+                    "More than 1 month overdue",
+                    "Reported by the Registered Manager to the monthly meeting with a recovery date."
+                  ],
+                  [
+                    "More than 3 months overdue, or any overdue action addressing a risk to safety or a breach of the regulations",
+                    "Reported by the Nominated Individual to the Directors and added to the risk register until complete."
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Seeking and acting on feedback",
+      "blocks": [
+        {
+          "p": "The law requires us to seek and act on feedback from the people we support, those acting for them and others, to evaluate and improve the service (Regulation 17(2)(e)). Feedback is collected under the Compliments, Feedback and Involvement Procedure and reaches governance through:"
+        },
+        {
+          "bullets": [
+            "the Registered Manager's monthly review of themes from complaints, compliments, quality checks, spot checks and care plan reviews, and the annual satisfaction survey of people we support;",
+            "the annual staff survey run by the HR Manager, team meetings, supervision, and anonymised themes from concerns raised under the Whistleblowing (Speaking Up) Policy; and",
+            "commissioners' contract monitoring, and the surveys of commissioners and professionals that the Deputy Manager runs under the Compliments, Feedback and Involvement Procedure."
+          ]
+        },
+        {
+          "p": "Each survey's results and our actions go to the Directors, and in an accessible summary to everyone asked to take part, within 3 months of the survey closing; for the satisfaction survey that is every person we support, as the Person-Centred Care, Dignity and Respect Policy sets out, while bereaved families receive it only if they ask. A person whose feedback needs action is told within 5 working days what we will do. Every 6 months the Deputy Manager sends a You said, we did summary of changes made because of feedback to the people we support, in the format each person needs, and to all staff."
+        }
+      ]
+    },
+    {
+      "heading": "Reports and information for CQC",
+      "blocks": [
+        {
+          "p": "The law requires us, when CQC asks, to send within 28 days a written report on how, and to what extent, in our opinion we are assessing, monitoring and improving quality and safety and managing risk, with any plans to improve the service (Regulation 17(3)). The 28 days begin on the day after we receive the request, and failing to send the report is a criminal offence (Regulation 22). Counting the day after receipt as day 1, our timetable is:"
+        },
+        {
+          "steps": [
+            "Day of receipt: whoever receives the request tells the Registered Manager and the Nominated Individual; the Registered Manager records the receipt date and legal deadline in the governance records.",
+            "By day 14: the Registered Manager drafts the report from the quarterly governance reports, dashboards, audit results, the service improvement plan, the risk register and feedback, citing the evidence for each statement.",
+            "By day 18: the Nominated Individual checks every statement against the evidence.",
+            "By day 21: the Directors approve it, at a meeting or by a Director's written approval reported to the next meeting.",
+            "By day 24: the Nominated Individual sends it by the route CQC specifies and keeps the report and proof of sending.",
+            "Within 5 working days of sending: every improvement commitment in it is added to the service improvement plan."
+          ]
+        },
+        {
+          "p": "Any other CQC request for information or data, and any action plan CQC asks for after an assessment, is prepared by the Registered Manager, approved by the Nominated Individual and sent at least 1 working day before CQC's deadline, as the Inspection Readiness and Working with Regulators Guideline sets out, with its actions added to the service improvement plan within 5 working days."
+        },
+        {
+          "p": "The law requires our most recent CQC ratings, each with the date it was given, to be displayed legibly and conspicuously at our principal place of business and at any premises where the regulated activity is provided, but not in people's own homes, and on every website we run with CQC's web address and where our latest report can be found there (Regulation 20A). Failing to do so is an offence (Regulation 22), and the law sets no deadline. Our policy is that each branch's rating is displayed in that branch office where visitors can see it. The Registered Manager updates each office display, and the Nominated Individual every website, within 5 working days of a new rating being published, and the Deputy Manager checks the displays at each quarterly branch office inspection."
+        }
+      ]
+    },
+    {
+      "heading": "Evaluating the governance system",
+      "blocks": [
+        {
+          "p": "The law requires us to evaluate and improve how we process governance information (Regulation 17(2)(f)). The Nominated Individual completes an annual governance review for 1 April to 31 March, presented to the Directors by mid-May, which answers:"
+        },
+        {
+          "bullets": [
+            "Did every meeting take place, quorate and minuted on time, and did reports arrive on time?",
+            "Were immediate escalations on time, and did any serious problem reach us first from outside?",
+            "What share of improvement actions was completed on time, and did closed actions work?",
+            "Were the indicators accurate, judged by the quarterly accuracy checks, and do they tell leaders what they need to know?",
+            "What did the independent review, CQC, commissioners, people we support and staff say about how well we are led?",
+            "How do we rate ourselves against the five key questions, and what has changed in the law or CQC's framework?"
+          ]
+        },
+        {
+          "p": "Every gap becomes an action in the service improvement plan, and the Directors approve the review in their minutes. After a CQC rating below Good for any key question, or any enforcement action, the Directors review the governance arrangements within 1 month and receive monthly progress reports from the Nominated Individual until the actions are complete."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Dashboards, monthly meeting papers and minutes, the service improvement plan and its evidence, branch visit records, accuracy checks and the independent and annual governance reviews",
+                "Governance records, by branch",
+                "As the Records Management and Retention Policy sets out"
+              ],
+              [
+                "Directors' meeting minutes, quarterly governance reports and annual reports",
+                "Governance records, with the Directors' papers",
+                "The law requires a company to keep the minutes of its directors' meetings for at least 10 years from the date of the meeting (Companies Act 2006, section 248); we keep them for the life of {{organisation}} plus 6 years"
+              ],
+              [
+                "Reports, information and action plans sent to CQC, with proof of sending",
+                "Governance records",
+                "Life of {{organisation}} plus 6 years"
+              ],
+              [
+                "Immediate escalations",
+                "The incident log entry or safeguarding record of the event or, for an event with neither, the governance records",
+                "With that record"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Only the Directors, the Nominated Individual, the Registered Manager, the Deputy Manager and the HR Manager have access to the governance records, which CareFlow does not hold: they are kept in a restricted governance folder in our cloud file storage under the Information and Cyber Security Policy. Other meeting members receive only the papers and minutes of their own meeting, and the independent reviewer only the records the Nominated Individual provides for the review. Because they use CareFlow reference numbers instead of names, they hold the minimum personal information, in line with the Data Protection Policy."
+        },
+        {
+          "p": "The law requires us to keep securely an accurate, complete and contemporaneous record for each person we support, and the records needed about our staff and the management of the service (Regulation 17(2)(c) and (d)). They are kept, shared and retained under the Records Management and Retention Policy and the Data Protection Policy. Governance checks their quality through the record audits in the Quality Audit and Monitoring Procedure and the dashboard."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "Each Director is briefed by the Nominated Individual on Regulation 17, their governance duties and this policy within 1 month of appointment, and attends a governance update every 12 months on changes in law, CQC's framework and our own lessons.",
+            "The Nominated Individual completes external training on the nominated individual's role and CQC regulation within 3 months of appointment, refreshed every 3 years.",
+            "Registered Managers, the Deputy Manager and the HR Manager are briefed by the Nominated Individual on this policy and on producing evidence-based dashboards and reports from CareFlow before they first produce one, and after each new major version of this policy.",
+            "Care Coordinators, Field Care Supervisors and Office staff learn at the start of their role why accurate same-day recording matters and what must be escalated at once; On-call Managers are taken through the immediate escalation table before their first on-call shift.",
+            "Anyone whose recording errors cause an accuracy check to fail is retrained within 1 month.",
+            "Briefings and courses are recorded in the training and compliance records."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Meetings held, quorate and minuted on time; dashboards and reports on time",
+                "Monthly and quarterly",
+                "Nominated Individual",
+                "Directors in the quarterly governance report"
+              ],
+              [
+                "Every immediate escalation made within its deadline",
+                "At each monthly meeting",
+                "Nominated Individual",
+                "Directors quarterly"
+              ],
+              [
+                "Improvement actions completed on time, target at least 90%, and overdue actions",
+                "Monthly",
+                "Registered Manager",
+                "Monthly meeting; Directors quarterly"
+              ],
+              [
+                "Accuracy of three indicators against source records",
+                "Quarterly",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Effectiveness of the whole governance system",
+                "Annual governance review and independent quality review, every 12 months",
+                "Nominated Individual; independent reviewer",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall produces an action with a named owner and a deadline in the service improvement plan, checked at the next monthly meeting."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or guidance, including CQC's confirmation of its new adult social care assessment framework, a CQC rating below Good or any enforcement action, a serious incident our governance failed to detect, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

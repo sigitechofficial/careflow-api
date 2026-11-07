@@ -5,7 +5,7 @@ import {
   Prisma,
 } from '@prisma/client';
 import { existsSync, mkdirSync } from 'fs';
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -18,6 +18,12 @@ import { CreateCareFormDto } from './dto/create-care-form.dto';
 import { UpdateCareFormDto } from './dto/update-care-form.dto';
 import { SaveCareFormSchemaDto } from './dto/save-care-form-schema.dto';
 import { reviewFrequencyMonthsForCreate } from '../service-user-care-plans/care-plan-review-schedule';
+import {
+  buildSchemaJsonFromPlan,
+  planSchemaSave,
+  type PlannedFieldData,
+} from './form-builder-schema-plan';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 /**
  * Prisma include shape for reading a form for the UI/response. Fields are filtered to
@@ -51,8 +57,7 @@ const FORM_ICON_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image
 const FORM_ICON_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.svg']);
 
 export function formIconUploadRoot(): string {
-  const base = process.env.UPLOAD_BASE_PATH ?? 'uploads';
-  return join(process.cwd(), base, ...FORM_ICON_SEGMENTS);
+    return uploadPath(...FORM_ICON_SEGMENTS);
 }
 
 export function ensureFormIconUploadDir(): string {
@@ -69,12 +74,6 @@ function formIconMaxBytes(): number {
   const explicit = Number(process.env.CARE_FORM_ICON_MAX_BYTES ?? 0);
   if (explicit > 0) return explicit;
   return 2 * 1024 * 1024;
-}
-
-function normalizeFieldKey(value: string | null | undefined): string | null {
-  if (value == null) return null;
-  const trimmed = value.trim().toLowerCase();
-  return trimmed.length > 0 ? trimmed : null;
 }
 
 export function mapField(row: {
@@ -162,25 +161,24 @@ function mapFormDetail(
   };
 }
 
-function buildSchemaJson(sections: SaveCareFormSchemaDto['sections']) {
+/** Prisma needs `Prisma.JsonNull` (not `null`) to clear a nullable Json column. */
+function jsonColumn(
+  value: unknown,
+): Prisma.InputJsonValue | typeof Prisma.JsonNull {
+  return value === null || value === undefined ? Prisma.JsonNull : value;
+}
+
+function fieldWriteData(data: PlannedFieldData) {
   return {
-    sections: sections.map(s => ({
-      title: s.title,
-      description: s.description ?? null,
-      sortOrder: s.sortOrder,
-      fields: s.fields.map(f => ({
-        label: f.label,
-        fieldKey: normalizeFieldKey(f.fieldKey) ?? null,
-        fieldType: f.fieldType,
-        placeholder: f.placeholder ?? null,
-        helpText: f.helpText ?? null,
-        required: f.required ?? false,
-        optionsJson: f.optionsJson ?? null,
-        sortOrder: f.sortOrder,
-      })),
-    })),
+    ...data,
+    optionsJson: jsonColumn(data.optionsJson),
+    validationJson: jsonColumn(data.validationJson),
+    conditionalLogicJson: jsonColumn(data.conditionalLogicJson),
   };
 }
+
+/** Generous ceiling for large care plans (each changed row is one UPDATE). */
+const SAVE_SCHEMA_TRANSACTION = { timeout: 30_000, maxWait: 10_000 };
 
 @Injectable()
 export class FormBuilderService {
@@ -350,40 +348,71 @@ export class FormBuilderService {
       throw new BadRequestException('Form has no editable version');
     }
 
-    const schemaJson = buildSchemaJson(dto.sections);
-
     const after = await this.prisma.$transaction(async tx => {
-      await tx.carePathwayFormSection.deleteMany({
-        where: { formVersionId: versionId },
+      // Read the live rows inside the transaction so the plan matches what we write over.
+      const existingSections = await tx.carePathwayFormSection.findMany({
+        where: { formVersionId: versionId, deletedAt: null },
+        select: { id: true, title: true, description: true, sortOrder: true },
+      });
+      const existingFields = await tx.carePathwayFormField.findMany({
+        where: {
+          deletedAt: null,
+          isActive: true,
+          section: { formVersionId: versionId, deletedAt: null },
+        },
       });
 
-      for (const section of dto.sections) {
-        const createdSection = await tx.carePathwayFormSection.create({
-          data: {
-            formVersionId: versionId,
-            title: section.title.trim(),
-            description: section.description?.trim() || null,
-            sortOrder: section.sortOrder,
-          },
-        });
+      // Throws 400 (rolling back) on stale ids or dangling show-when rules.
+      const plan = planSchemaSave(
+        { sections: existingSections, fields: existingFields },
+        dto,
+      );
 
-        if (section.fields.length) {
-          await tx.carePathwayFormField.createMany({
-            data: section.fields.map(field => ({
-              sectionId: createdSection.id,
-              fieldKey: normalizeFieldKey(field.fieldKey),
-              label: field.label.trim(),
-              fieldType: field.fieldType,
-              placeholder: field.placeholder?.trim() || null,
-              helpText: field.helpText?.trim() || null,
-              required: field.required ?? false,
-              optionsJson: field.optionsJson ?? undefined,
-              sortOrder: field.sortOrder,
-            })),
+      // Sections first so new/moved fields can point at them.
+      for (const section of plan.sections) {
+        if (section.isNew) {
+          await tx.carePathwayFormSection.create({
+            data: { id: section.id, formVersionId: versionId, ...section.data },
+          });
+        } else if (section.changed) {
+          await tx.carePathwayFormSection.update({
+            where: { id: section.id },
+            data: section.data,
           });
         }
       }
 
+      const newFields = plan.fields.filter((f) => f.isNew);
+      if (newFields.length) {
+        await tx.carePathwayFormField.createMany({
+          data: newFields.map((f) => ({ id: f.id, ...fieldWriteData(f.data) })),
+        });
+      }
+      for (const field of plan.fields) {
+        if (field.isNew || !field.changed) continue;
+        await tx.carePathwayFormField.update({
+          where: { id: field.id },
+          data: fieldWriteData(field.data),
+        });
+      }
+
+      // Soft-retire, never delete: rows (and their UUIDs) stay so saved answers keyed
+      // `${sectionId}:${fieldId}` remain resolvable. Same convention as the ID-safe
+      // care-plan appliers — fields are deactivated, sections are soft-deleted.
+      if (plan.retiredFieldIds.length) {
+        await tx.carePathwayFormField.updateMany({
+          where: { id: { in: plan.retiredFieldIds } },
+          data: { isActive: false },
+        });
+      }
+      if (plan.retiredSectionIds.length) {
+        await tx.carePathwayFormSection.updateMany({
+          where: { id: { in: plan.retiredSectionIds } },
+          data: { isActive: false, deletedAt: new Date() },
+        });
+      }
+
+      const schemaJson = buildSchemaJsonFromPlan(plan);
       await tx.carePathwayFormVersion.update({
         where: { id: versionId },
         data: { schemaJson: schemaJson as Prisma.InputJsonValue },
@@ -410,13 +439,23 @@ export class FormBuilderService {
         recordId: id,
         oldValues: auditSnapshot(before),
         newValues: auditSnapshot(updated),
-        metadata: { schemaSaved: true },
+        metadata: {
+          schemaSaved: true,
+          sectionsCreated: plan.sections.filter((x) => x.isNew).length,
+          sectionsUpdated: plan.sections.filter((x) => !x.isNew && x.changed)
+            .length,
+          sectionsRetired: plan.retiredSectionIds.length,
+          fieldsCreated: newFields.length,
+          fieldsUpdated: plan.fields.filter((x) => !x.isNew && x.changed)
+            .length,
+          fieldsRetired: plan.retiredFieldIds.length,
+        },
         ipAddress: meta?.ipAddress,
         userAgent: meta?.userAgent,
       });
 
       return updated;
-    });
+    }, SAVE_SCHEMA_TRANSACTION);
 
     return { message: 'Form structure saved', data: mapFormDetail(after) };
   }

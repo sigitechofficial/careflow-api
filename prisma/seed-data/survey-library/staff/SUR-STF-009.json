@@ -1,0 +1,382 @@
+{
+  "reference": "SUR-STF-009",
+  "revision": 1,
+  "title": "Out-of-hours on-call support",
+  "audience": "EMPLOYEE",
+  "respondents": "A monthly sample of staff who used the on-call service that month, at most once per person in any 3 months",
+  "summary": "A short confidential check after an on-call contact: how fast someone answered, whether the advice was clear, whether on-call did what it promised, whether you felt supported, and whether you ever held back from calling. About 6 minutes.",
+  "purpose": "Out of hours the On-call Manager is the only support a lone care worker has. This survey checks, after a contact, whether staff reached on-call quickly (answered at once or called back within 15 minutes, as the Work-Related Stress and Staff Wellbeing Policy requires), got a clear decision, were treated as a colleague, and whether on-call did what it promised (cover found, call back made), plus whether staff know when to phone 999 or NHS 111 instead and whether anyone puts off calling. Results inform the on-call rota and its limits, refresher training, divert and escalation arrangements, and the lone working risk assessment. The all-staff yearly view of on-call is in the lone working survey (SUR-STF-008).",
+  "timing": {
+    "when": "Each month, to a sample of staff who used on-call that month, within 2 working days of their call where possible; at most once per person in any 3 months",
+    "recurrence": null,
+    "trigger": "An on-call contact, for example an escalation, a missed visit or a distressing event",
+    "contactRule": {"holdBack": true, "countsAsContact": true, "whenHeld": "skip", "reason": "Sampled survey, lowest staff priority: anyone sent another named survey in the last 4 weeks is skipped this time, not sent later"}
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 6,
+  "cqc": {
+    "keyQuestions": ["SAFE", "WELL_LED"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Safe systems, pathways and transitions",
+      "Governance, management and sustainability"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how our out-of-hours on-call support worked for you. Please think about your most recent call to on-call. It takes about 6 minutes, in paid time.\n\nYour answers are linked to your name so we can follow up a missed call or visit. Only the Registered Manager and Deputy Manager see them, never On-call Managers. If you would rather not be named, use our yearly staff surveys, which do not record names, or our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve on-call support and keep lone workers safe. Our legal reason is our legitimate interest in keeping our staff and the people we support safe.\n\nYour answers are linked to your name. They are opened only by the Registered Manager and Deputy Manager, never by On-call Managers; the HR Manager sees combined results only. Reports never show groups of fewer than 5 people. If you tell us someone may be at risk of harm, we must act on it.\n\nWe keep your answers for 1 year after the survey closes, under our Records Management and Retention Policy. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-oncall-overall",
+          "text": "Overall, how would you rate our out-of-hours on-call support?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you have not needed on-call.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Your most recent call",
+      "questions": [
+        {
+          "id": "q-called",
+          "text": "In the last 6 months, have you phoned the on-call number?",
+          "type": "YES_NO",
+          "required": true
+        },
+        {
+          "id": "q-call-about",
+          "text": "What was your most recent call about? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "Running late or a visit change",
+            "Could not get in, or no answer at the door",
+            "The person was unwell, hurt or had fallen",
+            "Medicines",
+            "A worry that someone was at risk of harm",
+            "My own safety",
+            "I was ill or could not work",
+            "A problem with the app or my phone",
+            "Letting you know I got home safely"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us what it was about",
+            "textRequired": true
+          },
+          "showIf": {
+            "question": "q-called",
+            "answers": ["Yes"]
+          }
+        },
+        {
+          "id": "q-speed",
+          "text": "How long did it take to speak to someone?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Someone answered straight away",
+            "Someone called me back within 15 minutes",
+            "Someone called me back after 15 to 30 minutes",
+            "Someone called me back after more than 30 minutes",
+            "Nobody answered or called me back",
+            "I cannot remember"
+          ],
+          "notCountedOptions": ["I cannot remember"],
+          "showIf": {
+            "question": "q-called",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "What happened? Please give the day and rough time if you can.",
+            "showWhen": [
+              "Someone called me back after 15 to 30 minutes",
+              "Someone called me back after more than 30 minutes",
+              "Nobody answered or called me back"
+            ]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-clear-advice",
+          "text": "Did you get clear advice or a clear decision?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if, for example, you were only letting us know you got home.",
+          "options": ["Yes, completely", "Yes, partly", "No", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "showIf": {
+            "question": "q-called",
+            "answers": ["Yes"]
+          },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "q-followed-through",
+          "text": "Did on-call do what they said they would, such as finding cover or calling you back?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if nothing needed doing after the call.",
+          "options": ["Yes", "Partly", "No", "Don't know", "Does not apply to me"],
+          "notCountedOptions": ["Don't know", "Does not apply to me"],
+          "showIf": {
+            "question": "q-called",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "Please tell us what did not happen.",
+            "showWhen": ["Partly", "No"]
+          },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "q-supported-call",
+          "text": "Did you feel supported on the call?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, definitely", "Yes, to some extent", "No"],
+          "showIf": {
+            "question": "q-called",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["No"]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        }
+      ]
+    },
+    {
+      "title": "Knowing when to call",
+      "questions": [
+        {
+          "id": "q-know-who-call",
+          "text": "Do you know when to phone 999, NHS 111 or on-call?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, I am sure", "I am not always sure", "No"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-held-back",
+          "text": "In the last 6 months, was there a time you needed help out of hours but did not phone on-call?",
+          "type": "YES_NO",
+          "required": true,
+          "comment": {
+            "prompt": "What stopped you?",
+            "showWhen": ["Yes"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one thing would make out-of-hours support better for you?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, a second number, a text back when on-call is busy, or a clearer handover to the morning office."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, the Registered Manager or Deputy Manager will contact you within 5 working days. It will not be an On-call Manager."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Registered Manager runs it; there is no all-staff send (the lone working survey, SUR-STF-008, carries the yearly view). CareFlow accepts only one answer from each person per survey, so start one copy of this template each month (for example \"On-call feedback, January 2027\"). From the on-call records, choose a sample of staff who used on-call that month, including anyone after an escalation, a missed visit or a distressing event, and add them with Send or schedule, chosen employees, within 2 working days of their call where possible. Close each copy at the end of the following month.",
+      "It is the lowest priority under the named 4-week rule: CareFlow does not send it to anyone who had another named staff survey in the last 4 weeks (it skips them rather than sending later; anonymous staff surveys do not count). Never send it to the same person more than once in 3 months: CareFlow does not check that. It is done in paid time; paper on request in a sealed envelope to the Registered Manager. Set one reminder after 1 week in Reminders and follow-up; it goes only if the worker has not answered. No telephone mode: the people who would phone are the people being rated.",
+      "Who may open individual answers: the Registered Manager and Deputy Manager only; never On-call Managers or anyone else on the on-call rota, and the HR Manager sees combined results only. This is set in Who can see the answers: individual responses are limited to the Registered Manager and the Deputy Manager, and results to the Registered Manager, the Deputy Manager and the HR Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "The Registered Manager reads each response within 2 working days and acts under the alerts below, matching call times to the on-call timesheet and escalation records.",
+      "How to count: report the share answered straight away or called back within 15 minutes (leaving out \"I cannot remember\"), and the share answering Yes (or Yes, completely, or Yes, definitely) to the other questions, leaving out Does not apply to me and Don't know; for holding back from calling, No is the good answer. Report quarterly to the Health and Safety Meeting, checked against the on-call timesheets and next-morning handovers, never for groups of fewer than 5, and never by named On-call Manager unless 5 or more responses cover them.",
+      "Results inform the on-call rota and limits, refresher training, divert and escalation arrangements and the general lone working risk assessment under the Lone Working and Staff Personal Safety Policy. Keep individual answers for 1 year after each copy closes under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"How long did it take to speak to someone?\" answered Nobody answered or called me back, or called back after 15 to 30 minutes or after more than 30 minutes (our standard is to answer at once or call back within 15 minutes).",
+        "action": "The Registered Manager checks the on-call timesheet, divert and escalation records for that time within 5 working days (library timescale) and speaks to the worker. If a worker was left unsafe or a visit was missed, record it as a lone working incident under the Lone Working and Staff Personal Safety Policy and the Incident Reporting, Investigation and Learning Policy.",
+        "rule": {
+          "task": "On-call slow or no answer: check records",
+          "if": [
+            {
+              "question": "q-speed",
+              "answers": [
+                "Someone called me back after 15 to 30 minutes",
+                "Someone called me back after more than 30 minutes",
+                "Nobody answered or called me back"
+              ]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Did on-call do what they said they would?\" answered No for a call about a visit, a person's health, medicines, a risk of harm or the worker's own safety; or a comment showing a visit was not covered or a person was left at risk.",
+        "action": "The Registered Manager acts the same working day under the Missed, Late and Short Visits Procedure; if a person may have come to harm, it is a safeguarding concern the same day under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. If the worker was left unsafe, it is a lone working incident under the Lone Working and Staff Personal Safety Policy, recorded the same day.",
+        "rule": {
+          "task": "On-call did not follow through on a visit or risk: check",
+          "if": [
+            {
+              "all": [
+                {
+                  "question": "q-followed-through",
+                  "answers": ["No"]
+                },
+                {
+                  "question": "q-call-about",
+                  "answers": [
+                    "Running late or a visit change",
+                    "Could not get in, or no answer at the door",
+                    "The person was unwell, hurt or had fallen",
+                    "Medicines",
+                    "A worry that someone was at risk of harm",
+                    "My own safety"
+                  ]
+                }
+              ]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "A comment describing an unsafe instruction, for example a two-person task alone, staying where unsafe, or medicines outside the plan.",
+        "action": "Record an incident the same working day under the Incident Reporting, Investigation and Learning Policy; the Registered Manager reviews the On-call Manager's decision."
+      },
+      {
+        "when": "\"Did you feel supported on the call?\" answered No, with a comment describing belittling, threats or harassment.",
+        "action": "Tell the Registered Manager the same working day, as a report under the Bullying, Harassment and Sexual Harassment Policy, agreeing with the worker how to proceed.",
+        "rule": {
+          "task": "Not supported on an on-call call: read the comment",
+          "if": [
+            {
+              "question": "q-supported-call",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "A comment describing wrongdoing.",
+        "action": "Handle it as a speaking-up concern under the Whistleblowing (Speaking Up) Policy; the Nominated Individual is case owner where it concerns the Registered Manager, Deputy Manager or HR Manager."
+      },
+      {
+        "when": "\"Do you know when to phone 999, NHS 111 or on-call?\" answered No (a second task is raised for I am not always sure, due in 4 weeks).",
+        "action": "The Registered Manager or Deputy Manager goes over when to phone 999, NHS 111 or on-call with the worker, within 2 weeks for No and within 4 weeks otherwise (library timescales), without passing this survey's answers to the worker's Field Care Supervisor, who may be an On-call Manager.",
+        "rule": {
+          "task": "Does not know when to call 999, 111 or on-call: refresh",
+          "if": [
+            {
+              "question": "q-know-who-call",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 14
+        }
+      },
+      {
+        "when": "\"Do you know when to phone 999, NHS 111 or on-call?\" answered I am not always sure.",
+        "action": "As above, within 4 weeks (library timescale).",
+        "rule": {
+          "task": "Not always sure when to call 999, 111 or on-call: refresh",
+          "if": [
+            {
+              "question": "q-know-who-call",
+              "answers": ["I am not always sure"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 28
+        }
+      },
+      {
+        "when": "\"Was there a time you needed help out of hours but did not phone on-call?\" answered Yes.",
+        "action": "The Registered Manager or Deputy Manager contacts the worker within 5 working days; if the comment shows the worker is distressed or unwell, offer support under the Work-Related Stress and Staff Wellbeing Policy.",
+        "rule": {
+          "task": "Held back from calling on-call: contact the worker",
+          "if": [
+            {
+              "question": "q-held-back",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Registered Manager or Deputy Manager, never an On-call Manager, contacts the worker within 5 working days.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "alertsNeverTo": ["FIELD_CARE_SUPERVISOR", "CARE_COORDINATOR"],
+  "access": {
+    "responses": ["REGISTERED_MANAGER", "DEPUTY_MANAGER"],
+    "results": ["REGISTERED_MANAGER", "DEPUTY_MANAGER", "HR_MANAGER"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-HS-003",
+    "POL-HS-015",
+    "POL-GOV-007",
+    "POL-CD-013",
+    "POL-SG-002",
+    "POL-HR-013",
+    "POL-HR-018",
+    "POL-GOV-006",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety Executive, Lone working: training, supervision and monitoring: you must monitor your lone workers and keep in touch with them, and regularly test these systems",
+      "url": "https://www.hse.gov.uk/lone-working/employer/training-supervision-monitoring.htm"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 3: a suitable and sufficient assessment of risks",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from staff",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

@@ -1,0 +1,383 @@
+{
+  "reference": "SUR-CQC-002",
+  "revision": 1,
+  "title": "Independent quality review: staff questionnaire",
+  "audience": "EMPLOYEE",
+  "respondents": "All employees, including bank staff and managers below the Registered Manager; not agency workers or students",
+  "summary": "The anonymous staff part of the yearly independent quality review: what staff know about safeguarding, capacity, complaints and speaking up; what they see about time at visits, continuity, information, care plans, protective equipment and learning; and how they rate our care. Results go to the reviewer. About 10 minutes.",
+  "purpose": "The Governance and Quality Assurance Policy requires an independent quality review every 12 months by a reviewer with no other role here. This questionnaire is its anonymous staff part: staff tell someone outside the management line what they know, what they see and how they rate our care, across the five key questions. It tests the Registered Manager's quarterly self-assessment (SUR-CQC-003) alongside the reviewer's staff interviews and record sampling. Thirteen shared staff questions let the reviewer compare what staff tell an outsider with what they tell us in our own surveys; a gap is itself a finding. It is never a rehearsal of what to tell an inspector: nobody briefs staff on answers, the knowledge questions give no hints, and nobody asks afterwards what anyone said.",
+  "timing": {
+    "when": "Once a year during the independent quality review: open for 2 weeks from the second Monday of March, in place of the speaking up survey (SUR-STF-010) that year; the March pulse is skipped; never in September",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 10,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Safeguarding",
+      "Learning culture",
+      "Safe and effective staffing",
+      "Safe systems, pathways and transitions",
+      "Medicines optimisation",
+      "Infection prevention and control",
+      "Delivering evidence-based care and treatment",
+      "Consent to care and treatment",
+      "Assessing needs",
+      "Responding to people's immediate needs",
+      "Kindness, compassion and dignity",
+      "Care provision, integration and continuity",
+      "Listening to and involving people",
+      "Freedom to speak up",
+      "Workforce equality, diversity and inclusion",
+      "Shared direction and culture",
+      "Learning, improvement and innovation",
+      "Workforce wellbeing and enablement",
+      "Governance, management and sustainability"
+    ]
+  },
+  "introduction": "An independent reviewer, who does not work for {{organisation}}, is checking the quality of our service, and would like your view. It takes about 10 minutes, in paid working time. It is anonymous: we cannot see who answered, and managers see only combined results, through the reviewer's report. Taking part is your choice. Please think about the last 3 months.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers, through an independent reviewer, to check and improve the quality of our care. Our legal reason is our legitimate interest in running a good, safe service.\n\nThe survey is anonymous: we do not record your name, so your answers cannot be traced to you and we cannot reply. CareFlow records only which branch an answer came from. Please do not write names. Only the Nominated Individual and the independent reviewer see individual answers. A paper form goes sealed to the reviewer, who enters it. Reports show results only for groups of 5 or more people, and comments only for groups of 10 or more. If a comment describes someone at risk, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "closingMessage": "Thank you. Your answers go to the independent reviewer. For your reference: report abuse or neglect by phoning the office or the On-call Manager before you leave the visit; if someone may not be able to make a decision about their care, tell the office the same day; to help someone complain, give them our complaints leaflet or put them in touch with the office; and you can speak up to any manager, our Speaking Up Lead, CQC or Protect.",
+  "sections": [
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "stf-role-group",
+          "text": "Which best describes your main job?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Care worker, senior care worker or field care supervisor", "Office, care coordination, on-call or management role", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"]
+        }
+      ]
+    },
+    {
+      "title": "Keeping people safe",
+      "questions": [
+        {
+          "id": "q-report-abuse-know",
+          "text": "Do you know how to report it if you think someone we support is being abused or neglected?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, I am sure", "I think so", "No"],
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "stf-incidents",
+          "text": "I feel safe to report incidents and mistakes, including my own.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "comment": { "prompt": "What would make it feel safer? Please do not include names.", "showWhen": ["Disagree", "Strongly disagree"] },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "stf-visit-time",
+          "text": "Do you have enough time at visits to give the care people need without rushing?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Think about the last 3 months. Choose \"Does not apply to me\" if you do not make visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": { "prompt": "Which visits are hardest? Please give an area, not an address.", "showWhen": ["Rarely", "Never"] },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-travel-time",
+          "text": "Is there enough time to travel between your visits?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Think about the last 3 months. Choose \"Does not apply to me\" if you do not travel between visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-first-visit-info",
+          "text": "Before you visit someone for the first time, do you have the information you need about them?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not make visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": { "prompt": "What information is missing?", "showWhen": ["Rarely", "Never"] },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "q-medicines-training",
+          "text": "I have the training I need to help people with their medicines safely.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not help people with medicines.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": { "prompt": "What would help?", "showWhen": ["Disagree", "Strongly disagree"] },
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-ppe",
+          "text": "Do you have the gloves, aprons and other protective equipment you need?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not need protective equipment for your work.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": { "prompt": "What runs out?", "showWhen": ["Rarely", "Never"] },
+          "evidence": "Safe: Infection prevention and control"
+        }
+      ]
+    },
+    {
+      "title": "Doing the job well",
+      "questions": [
+        {
+          "id": "stf-training",
+          "text": "My training gives me what I need to do my job well.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "comment": { "prompt": "What training would help you?", "showWhen": ["Disagree", "Strongly disagree"] },
+          "evidence": "Effective: Delivering evidence-based care and treatment"
+        },
+        {
+          "id": "stf-supervision",
+          "text": "Supervision helps me in my work.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not had a supervision with us yet.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": { "prompt": "What would make supervision more useful?", "showWhen": ["Disagree", "Strongly disagree"] },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-capacity-know",
+          "text": "Do you know what to do if you think someone cannot make a decision about their care?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, I am sure", "I think so", "No"],
+          "evidence": "Effective: Consent to care and treatment"
+        },
+        {
+          "id": "q-plan-updated",
+          "text": "When you report a change in someone's needs, is their care plan updated quickly?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not reported a change.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": { "prompt": "Please give an example without names.", "showWhen": ["Rarely", "Never"] },
+          "evidence": "Effective: Assessing needs"
+        },
+        {
+          "id": "q-unwell-advice",
+          "text": "When someone you visit becomes unwell, can you get advice from the office or on-call quickly?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if this has not happened to you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": { "prompt": "What happened? Please do not include names.", "showWhen": ["Rarely", "Never"] },
+          "evidence": "Caring: Responding to people's immediate needs"
+        }
+      ]
+    },
+    {
+      "title": "Caring for people",
+      "questions": [
+        {
+          "id": "q-proud",
+          "text": "I am proud of the care we give.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "comment": { "prompt": "What would make you prouder? Please do not include names.", "showWhen": ["Disagree", "Strongly disagree"] },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "stf-relative",
+          "text": "If a relative of mine needed care at home, I would be happy for us to provide it.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "comment": { "prompt": "Please tell us why. Please do not include names.", "showWhen": ["Disagree", "Strongly disagree"] },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        }
+      ]
+    },
+    {
+      "title": "Listening to people",
+      "questions": [
+        {
+          "id": "q-same-people",
+          "text": "Do you visit the same people regularly, so you get to know them?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not make visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Responsive: Care provision, integration and continuity"
+        },
+        {
+          "id": "q-complaint-know",
+          "text": "If someone you visit was unhappy with their care, would you know how to help them complain?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, I am sure", "I think so", "No"],
+          "evidence": "Responsive: Listening to and involving people"
+        }
+      ]
+    },
+    {
+      "title": "Speaking up and how we are run",
+      "questions": [
+        {
+          "id": "stf-routes",
+          "text": "Who could you go to with a concern about wrongdoing? Choose everyone you know how to contact.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": ["My supervisor, Field Care Supervisor or Care Coordinator", "The Registered Manager, Deputy Manager or HR Manager", "Our Speaking Up Lead (the Nominated Individual)", "The Care Quality Commission (CQC)", "The council's adult safeguarding team", "The police", "Protect (free advice for workers)", "I would not know who to go to"],
+          "exclusiveOptions": ["I would not know who to go to"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-concern-acted",
+          "text": "If I raised a concern about something wrong at work, I am confident we would act on it.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "A concern means something wrong or unsafe at work, such as poor care, abuse, records that are not true, visits cut short or someone being put at risk.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-concern-safe",
+          "text": "If I raised a concern, I am confident I would not be treated worse for it.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, losing hours, getting worse runs or being left out.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-fair",
+          "text": "I am treated fairly at work, whoever I am.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, whatever your age, race, religion, sex, sexuality, disability or background.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "stf-informed",
+          "text": "Does the office keep you informed about things that affect your work?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about the last 3 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Well-led: Shared direction and culture"
+        },
+        {
+          "id": "q-told-learning",
+          "text": "Are you told what we have learned when things go wrong?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Well-led: Learning, improvement and innovation"
+        },
+        {
+          "id": "stf-recommend",
+          "text": "I would recommend working here to a friend.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-care-quality",
+          "text": "Overall, how would you rate the quality of care we give?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": { "prompt": "Please tell us why you gave this answer. Please do not include names.", "showWhen": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"] },
+          "evidence": "Well-led: Governance, management and sustainability"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What are you most proud of about our care?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names."
+        },
+        {
+          "text": "What worries you most about our care?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names. If someone is at risk now, phone the office or the On-call Manager instead."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Nominated Individual runs it for the independent reviewer under the Governance and Quality Assurance Policy, in place of the speaking up survey (SUR-STF-010) that year: it carries that survey's speaking-up and incident target questions word for word. Use Send or schedule with everyone in your branches, repeating yearly from the second Monday of March, kept open 14 days for staff (its end date a few days later, for paper forms to reach the reviewer: see below); skip the March pulse; never in September. CareFlow records the branch of each anonymous answer, never the person. Leave out the Registered Manager (their view is the self-assessment), agency workers and students. CareFlow refuses an anonymous survey that would reach fewer than 5 people.",
+      "No coaching (Inspection Readiness and Working with Regulators Guideline): no team meeting, supervision or message before or during the survey discusses what to say, reminders say only that it is open and anonymous, and nobody asks anyone afterwards what they answered. The knowledge questions have no hints; the correct routes appear only in the closing message, after the answers are sent. The yearly briefing on speaking freely to CQC is held at a different time of year. Set one reminder after 1 week in Reminders and follow-up: on an anonymous survey CareFlow sends it to everyone who has not answered, with no personal link, and never to one person. It is done in paid working time; paper on request, sealed to the reviewer. In the Independent reviewers panel of the period being run (never the repeating survey itself), the Nominated Individual chooses \"Add a reviewer\" and gives the reviewer's name and email (never a staff email: CareFlow refuses it). This makes a CareFlow account with only the \"Independent reviewer\" role, which has no access of its own, and emails the reviewer an invitation to set their own password; the link lasts 72 hours, and it arrives only if the organisation's email is set up. Making the account and giving access need \"Surveys\" (act). CareFlow takes no answers once a survey has closed, so set this survey's end date late enough for the last paper forms to reach the reviewer (for example 3 working days after the 2 weeks). Then give that account access to this survey only, until that end date (never more than 90 days), with no people chosen: on an anonymous survey the reviewer records anonymous answers only. The reviewer signs in at the normal CareFlow login, sees only \"Surveys to record\", enters each paper form with Record response, channel Paper (the account can record Telephone, In person or Paper), and never sees results, counts or other answers. When the review ends, choose End access, then switch the account off (Settings, Users); it can be given access again next year.",
+      "Who may open individual answers: the Nominated Individual only, who reads comments each working day while the survey is open and passes them, and the results, to the reviewer, whose account records answers (Telephone, In person or Paper) but never shows results. This is set in Who can see the answers: individual responses and results are limited to the Nominated Individual, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. The response count shows only to staff with results access, here the Nominated Individual."
+    ],
+    "actingOnResults": [
+      "The reviewer analyses the results by key question for the review report: each shared question against its policy target (concern acted on and not treated worse at least 80%, a route outside the line manager at least 90%, safe to report incidents at least 90%) and against the same question in the latest staff survey (SUR-STF-001) and speaking up survey (SUR-STF-010). A gap of 10 percentage points or more is reported as a finding about trust in our own surveys. Positive means Strongly agree or Agree, Always or Usually, Yes, I am sure, or Very good or Good, leaving out Does not apply to me and Prefer not to say; for routes, count anyone choosing an option other than the first.",
+      "Never show a result for fewer than 5; flag 5 to 9; show the role group breakdown, branch results and comments only for 10 or more; never cross role group with branch; branch speaking-up figures under 3 are reported only at organisation level (Whistleblowing (Speaking Up) Policy). Managers see only combined results, through the review report. Any key question where staff results are clearly worse than the Registered Manager's self-assessment is flagged to the Nominated Individual for challenge.",
+      "The Nominated Individual receives the report; findings go into the service improvement plan within 5 working days, and the Directors receive it with the satisfaction survey results at the governance meeting held by mid-May. Keep individual answers for 1 year after the survey closes; the review report is a governance record (Records Management and Retention Policy)."
+    ],
+    "alerts": [
+      {
+        "when": "Knowing how to report abuse or neglect, what to do about capacity, or how to help someone complain answered No (anonymous: counts only).",
+        "action": "After the survey closes, the Nominated Individual asks the Registered Manager to plan refresher sessions for all staff on that topic within 4 weeks, never aimed at anyone. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": { "task": "Staff unsure of safeguarding, capacity or complaints (anonymous)", "if": [{ "question": "q-report-abuse-know", "answers": ["No"] }, { "question": "q-capacity-know", "answers": ["No"] }, { "question": "q-complaint-know", "answers": ["No"] }], "minimumAnswers": 10, "owner": "NOMINATED_INDIVIDUAL", "dueCalendarDays": 28 }
+      },
+      {
+        "when": "A comment suggesting abuse or neglect of a person we support.",
+        "action": "The Nominated Individual passes it to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure). Nobody tries to identify the writer."
+      },
+      {
+        "when": "A comment describing wrongdoing.",
+        "action": "A speaking-up concern with the Nominated Individual as case owner, because it is anonymous (Compliments, Feedback and Involvement Procedure; Whistleblowing (Speaking Up) Policy)."
+      },
+      {
+        "when": "A comment describing bullying or harassment.",
+        "action": "The Nominated Individual logs it as an anonymous report (Bullying, Harassment and Sexual Harassment Policy)."
+      }
+    ]
+  },
+  "alertsNeverTo": ["REGISTERED_MANAGER"],
+  "access": {"responses": ["NOMINATED_INDIVIDUAL"], "results": ["NOMINATED_INDIVIDUAL"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-GOV-002",
+    "POL-GOV-023",
+    "POL-HR-018",
+    "POL-HS-015",
+    "POL-GOV-006",
+    "POL-GOV-007",
+    "POL-SG-002",
+    "POL-HR-013",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(a) and (e): assess, monitor and improve the quality of services, and seek and act on feedback from staff and others",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

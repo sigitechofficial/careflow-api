@@ -56,6 +56,10 @@ export type HtmlToPdfOptions = {
   format?: 'A4' | 'Letter';
   printBackground?: boolean;
   preferCSSPageSize?: boolean;
+  /** HTML repeated at the foot of every page (Chrome's template: .pageNumber / .totalPages are filled in). */
+  footerTemplate?: string;
+  /** Page margins (CSS lengths); needed with a footer so it has room. */
+  margin?: { top?: string; right?: string; bottom?: string; left?: string };
 };
 
 /** Renders self-contained HTML (inline styles, data-URI images) to a PDF buffer. */
@@ -71,6 +75,10 @@ export async function renderHtmlToPdfBuffer(
       format: options.format ?? 'A4',
       printBackground: options.printBackground ?? true,
       preferCSSPageSize: options.preferCSSPageSize ?? true,
+      ...(options.footerTemplate
+        ? { displayHeaderFooter: true, headerTemplate: '<span></span>', footerTemplate: options.footerTemplate }
+        : {}),
+      ...(options.margin ? { margin: options.margin } : {}),
     });
     return Buffer.from(pdf);
   } finally {

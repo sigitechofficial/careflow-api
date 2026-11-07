@@ -1,0 +1,779 @@
+{
+  "reference": "POL-GOV-010",
+  "revision": 1,
+  "title": "Registered Manager Role and Absence Cover Policy",
+  "documentType": "POLICY",
+  "summary": "Sets out the legal position and accountabilities of each branch's Registered Manager, how we check and keep under review that they are fit for the role, how they are supervised and supported, who covers their duties during short and long absences, the notices CQC and commissioners receive, and what happens when a Registered Manager leaves and a new one is appointed and registered. For the Directors, Nominated Individual, Registered Managers, Deputy Managers and the HR Manager.",
+  "keyPoints": {
+    "intro": "This policy tells the Directors, Nominated Individual, Registered Managers, Deputy Managers and the HR Manager who is in charge of each branch at every moment, and what must happen when the Registered Manager is away or leaves.",
+    "points": [
+      "Every branch always has a named manager in charge. When the Registered Manager is absent, the Deputy Manager acts with their authority; if both are unavailable, the Nominated Individual acts and names a manager for day-to-day running within 1 working day.",
+      "Registered Managers: phone the Nominated Individual by 9am on the first day of any unplanned absence. The Deputy Manager tells Office staff, Care Coordinators and On-call Managers the same day who is acting.",
+      "Before any planned absence of 5 working days or more, write the handover note in the governance records and go through it with the Deputy Manager at least 1 working day before you leave.",
+      "The Registered Manager and Deputy Manager never take planned leave on the same day. Leave of 5 working days or more is booked at least 4 weeks ahead and agreed by the Nominated Individual.",
+      "An absence expected to last 28 days or more is notified to CQC by the Nominated Individual: on the day a planned absence is agreed, within 5 working days of an emergency absence starting, and within 2 working days of the return.",
+      "Within 1 working day of learning of an absence of 28 days or more, the Nominated Individual appoints the acting manager in writing, stating their authority, support and acting allowance.",
+      "Commissioners are told in writing within 5 working days of a CQC notice, staff within 2 working days, and the people we support within 10 working days, of who is managing the branch.",
+      "A Registered Manager resigning gives 3 months' notice. CQC is told before the leaving date, recruitment starts within 5 working days, and the vacancy is risk assessed and entered on the risk register within 5 working days.",
+      "A leaving Registered Manager completes the written handover report at least 10 working days before their last day. Their CareFlow manager access, CQC provider portal account and any Level 1 User role for Home Office sponsorship end on their last day.",
+      "A new Registered Manager applies to CQC for registration within 10 working days of starting and uses the title Manager until CQC confirms registration.",
+      "The Nominated Individual supervises the Registered Manager at least every 2 months and appraises them every 12 months. Any concern that a Registered Manager may no longer be fit for the role goes to the Nominated Individual the same day."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": false,
+  "audience": [
+    "Admin",
+    "Manager",
+    "HR"
+  ],
+  "moduleLinks": [
+    "BRANCH",
+    "HR",
+    "RECRUITMENT"
+  ],
+  "relatedReferences": [
+    "POL-GOV-009",
+    "POL-GOV-012",
+    "POL-GOV-011",
+    "POL-GOV-020",
+    "POL-GOV-002",
+    "POL-GOV-004",
+    "POL-HR-001",
+    "POL-HR-005"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 7 (Requirements relating to registered managers)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/7"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 19 (Fit and proper persons employed)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/19"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 3 (Information required in respect of persons employed or appointed for the purposes of a regulated activity)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/3"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 4 Part 2 (Good character)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/4"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 5 (Fixed penalty offences)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/5"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 5 (Registered manager condition)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/5"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 14 (Notice of absence)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/14"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 15 (Notice of changes)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/15"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 12 and Schedule 3 (Statement of purpose, including the registered manager's details)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/schedule/3"
+    },
+    {
+      "source": "Health and Social Care Act 2008, section 33 (Failure to comply with conditions)",
+      "url": "https://www.legislation.gov.uk/ukpga/2008/14/section/33"
+    },
+    {
+      "source": "Department of Health and Social Care, Care workforce pathway for adult social care: registered manager role category (updated 16 July 2026)",
+      "url": "https://www.gov.uk/government/publications/care-workforce-pathway-for-adult-social-care/registered-manager-role-category"
+    },
+    {
+      "source": "Department of Health and Social Care, Social care blog: Launching the Management and Leadership Code for Health and Social Care (14 April 2026)",
+      "url": "https://socialcare.blog.gov.uk/2026/04/14/launching-the-management-and-leadership-code-for-health-and-social-care/"
+    },
+    {
+      "source": "Skills for Care, Manager induction standards (2023)",
+      "url": "https://www.skillsforcare.org.uk/Support-for-leaders-and-managers/Developing-leaders-and-managers/Manager-induction-standards/Manager-induction-standards.aspx"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} is registered with the Care Quality Commission (CQC) to provide personal care to people in their own homes. Our registration carries a registered manager condition: each branch registered as a location must be managed by a manager whom CQC has registered for it. The Registered Manager is a registered person in their own right and shares with {{organisation}} the legal duty to meet the regulations, including the duty to notify CQC."
+        },
+        {
+          "p": "Our care workers work alone on short scheduled visits, relying on the branch office in office hours and the On-call Manager out of hours, so they must always be able to reach a manager who can decide. Our policy is that every branch always has one named manager in charge, that the Registered Manager is fit, supported and held to account, and that every absence or departure is covered and notified so that visits, safeguarding and statutory decisions never wait for someone who is not there."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Each Registered Manager knows their accountabilities, is fit for the role throughout their employment and is supervised and supported.",
+            "Every absence and vacancy has a named manager in charge with clear authority.",
+            "CQC, commissioners, staff and the people we support are told what the law and our contracts require, on time.",
+            "A new Registered Manager is recruited, registered and inducted without a gap in safe management."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every branch of {{organisation}} registered with CQC as a location for the regulated activity personal care, and to the Directors, the Nominated Individual, each Registered Manager, each Deputy Manager, the HR Manager and any manager appointed to act for or replace a Registered Manager. It covers all absences of a Registered Manager, whatever the reason, including annual leave, sickness, family leave, training, suspension and secondment."
+        },
+        {
+          "p": "It does not cover: the content of CQC notifications about events in people's care (Statutory Notifications to CQC Procedure); registration applications, the statement of purpose and other changes to our registration (Statement of Purpose and Registration Procedure); the fitness of Directors and the Nominated Individual (Fit and Proper Persons (Directors) Policy); recruitment checks in detail (Safer Recruitment Policy and Pre-Employment Checks and DBS Procedure); sick pay and absence management (Sickness Absence Policy); or loss of several managers at once as part of a wider emergency (Business Continuity and Emergency Planning Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Registered Manager",
+                "The manager CQC has registered to manage the regulated activity personal care at a branch's location. Only a person CQC has registered may use this title."
+              ],
+              [
+                "Registered person",
+                "The registered provider ({{organisation}}) and the Registered Manager. Both carry legal duties under the regulations."
+              ],
+              [
+                "Short absence",
+                "An absence of the Registered Manager expected to last, and lasting, less than 28 continuous days."
+              ],
+              [
+                "Notifiable absence",
+                "An absence expected to last, or that has lasted, 28 continuous days or more, whatever the reason."
+              ],
+              [
+                "Acting manager",
+                "The manager the Nominated Individual appoints in writing to manage the branch during a notifiable absence or a vacancy, normally the Deputy Manager."
+              ],
+              [
+                "Vacancy",
+                "The period from a Registered Manager ceasing to manage the branch until CQC registers their successor."
+              ],
+              [
+                "Handover note",
+                "The written summary in the governance records of everything open or due that the covering manager must act on."
+              ],
+              [
+                "Management escalation rota",
+                "The rota shared by the Registered Manager and Deputy Manager, and any manager covering under this policy, so that one of them can be reached whenever an On-call Manager is on duty (Lone Working and Staff Personal Safety Policy)."
+              ],
+              [
+                "Office hours and out of hours",
+                "Office hours are the times the branch office is open, set by the Registered Manager and published in the service user guide and on the daily office rota. Every other time, including weekends and bank holidays, is out of hours, when the On-call Manager covers (Lone Working and Staff Personal Safety Policy)."
+              ],
+              [
+                "Working day",
+                "Monday to Friday, excluding bank holidays in England."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for {{organisation}} meeting the registered manager condition. They approve each Registered Manager's appointment and any interim manager's contract, minute the lead roles the Registered Manager holds, receive reports on absences and vacancies, and decide on applying to register an acting manager. A Director other than the Nominated Individual countersigns the Registered Manager's appraisal."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual supervises the management of the regulated activity on the Directors' behalf and is the Registered Manager's line manager. They chair each Registered Manager's appointment and sign clearance to work; supervise and appraise the Registered Manager; agree their leave; appoint every acting manager in writing and arrange escalation rota cover; give every notice of absence, return and change to CQC and tell commissioners; cover the lead roles when the Registered Manager and Deputy Manager are both unavailable; and lead the response to a fitness concern, a resignation or a vacancy."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager manages the branch day to day as set out in The Registered Manager role, tells the Nominated Individual of every absence as this policy requires, keeps their handover note ready and tells the Nominated Individual the same day of anything that may affect their fitness for the role."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager is the named deputy for the Registered Manager in their branch. They act with the Registered Manager's authority during any absence, within the limits in Short absences, hold the training that lets them do so, and are normally appointed acting manager for a notifiable absence or vacancy. On the first day of any Registered Manager absence they tell Office staff, Care Coordinators and On-call Managers who is acting."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager keeps the Registered Manager's staff record and fitness evidence, runs recruitment of a new Registered Manager, reports overdue Registered Manager supervision or appraisal to the Nominated Individual, issues acting letters and allowances, and closes a leaving Registered Manager's system access."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Office staff, On-call Managers and Care Workers",
+          "blocks": [
+            {
+              "p": "Care Coordinators update the on-call information the same day with the acting manager and the escalation manager for each day of the absence. Office staff pass calls and letters for an absent Registered Manager to the acting manager, and anything from CQC also to the Nominated Individual, the same working day. On-call Managers escalate to the manager on the management escalation rota, never to an absent manager. If that manager does not answer within 15 minutes, the On-call Manager phones the branch's Registered Manager or Deputy Manager who is not absent, unless that was the manager called, then the Nominated Individual; if the Nominated Individual cannot be reached within 1 hour, the Director named to act for them is told."
+            },
+            {
+              "p": "Care workers keep phoning the branch office in office hours and the On-call Manager out of hours, during any absence or vacancy. The office and On-call Manager route every decision that needs a manager to the acting manager or escalation manager, so the advice a care worker needs during a visit never waits for the Registered Manager's return."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The Registered Manager role",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Our arrangements",
+          "blocks": [
+            {
+              "p": "The law requires a registered manager to be fit to manage the regulated activity (regulation 7 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). Failing to comply with the registered manager condition is an offence under section 33 of the Health and Social Care Act 2008, for which CQC may issue fixed penalty notices of 4,000 pounds to the provider and 2,000 pounds to a registered manager (Schedule 5 to the 2014 Regulations). Our arrangements are:"
+            },
+            {
+              "bullets": [
+                "Each branch registered as a location has its own Registered Manager, who manages only that location. A Registered Manager covers another branch only as its acting manager, for no more than 3 months, with the Directors' approval and with that branch's Deputy Manager in post.",
+                "The Registered Manager is a permanent, full-time employee of {{organisation}}, never an agency worker or contractor, and is not also the Nominated Individual or a Director, so that the Nominated Individual can oversee their work independently.",
+                "The Registered Manager works from the branch office and is not allocated a care run. They give care only to observe practice or when business continuity has been activated.",
+                "The Registered Manager is reachable by phone throughout office hours and shares the management escalation rota with the Deputy Manager.",
+                "Each branch has a Deputy Manager. While that post is vacant, the Nominated Individual names in writing, within 5 working days, the manager who deputises.",
+                "On-call Managers are Care Coordinators and Field Care Supervisors with at least 12 months' home care experience with any employer, who have completed all the training the library requires before a first on-call shift and shadowed at least two on-call shifts with an experienced On-call Manager, and whom the Registered Manager has signed off before their first shift, recorded in the training and compliance records (Lone Working and Staff Personal Safety Policy). The Registered Manager or Deputy Manager takes an on-call shift only when the other of them, or a manager covering under this policy, is the escalation manager for it. A Director joins the rota only under the Fit and Proper Persons (Directors) Policy; no other staff take on-call shifts."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Accountabilities and lead roles",
+          "blocks": [
+            {
+              "p": "The Registered Manager is accountable for the day-to-day management of personal care in the branch: assessment and care planning, staffing and the rota, the quality and safety of every visit, compliance with the regulations, statutory notifications, and the branch's governance under the Governance and Quality Assurance Policy. The Directors minute the Registered Manager's appointment to each lead role below. The cover column applies to every absence and matches the owning documents."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Lead role or reserved decision",
+                  "Owning document",
+                  "Cover when the Registered Manager is absent"
+                ],
+                "rows": [
+                  [
+                    "Safeguarding lead",
+                    "Safeguarding Adults Policy",
+                    "Deputy Manager (deputy safeguarding lead), then the Nominated Individual"
+                  ],
+                  [
+                    "Medicines lead",
+                    "Medicines Management Policy",
+                    "Deputy Manager, except approval of covert administration and Level 3 tasks (see Authority of the Deputy Manager)"
+                  ],
+                  [
+                    "IPC lead",
+                    "Infection Prevention and Control Policy",
+                    "Deputy Manager (deputy IPC lead), then the Nominated Individual"
+                  ],
+                  [
+                    "Health and Safety Lead and competent person",
+                    "Health and Safety Policy",
+                    "Deputy Manager, then the Nominated Individual"
+                  ],
+                  [
+                    "CQC notification decisions and submission",
+                    "Statutory Notifications to CQC Procedure",
+                    "Deputy Manager, then the Nominated Individual; never the On-call Manager"
+                  ],
+                  [
+                    "RIDDOR and duty of candour decisions",
+                    "RIDDOR Reporting Procedure and Duty of Candour Policy",
+                    "Deputy Manager, then the Nominated Individual; never the On-call Manager"
+                  ],
+                  [
+                    "Complaint responses at Stage 1",
+                    "Complaints Policy and Procedure",
+                    "Deputy Manager; the Nominated Individual signs responses to complaints the Deputy Manager investigated"
+                  ],
+                  [
+                    "Document owner, branch risk register and service improvement plan",
+                    "Policy Management and Document Control Policy, Risk Management Policy, Governance and Quality Assurance Policy",
+                    "Deputy Manager"
+                  ],
+                  [
+                    "Level 1 User for Home Office sponsorship, while we hold a sponsor licence",
+                    "Right to Work and Sponsored Workers Policy",
+                    "HR Manager"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Fitness for the role",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the law requires",
+          "blocks": [
+            {
+              "p": "A registered manager must be of good character, have the qualifications, competence, skills and experience the role needs, be able by reason of their health, after reasonable adjustments, to do the role, and be able to supply to CQC, or make available, the information in Schedule 3 to the 2014 Regulations (regulation 7). Good character includes any convictions and any removal from a register of health care or social work professionals (Schedule 4, Part 2). As our employee, the Registered Manager is also covered by regulation 19, which requires us to act where an employee no longer meets these requirements and to tell any professional regulator. CQC assesses fitness when it decides a manager's application; we still check it ourselves."
+            }
+          ]
+        },
+        {
+          "heading": "Checks at appointment",
+          "blocks": [
+            {
+              "p": "Every Registered Manager is appointed under the Safer Recruitment Policy and the Pre-Employment Checks and DBS Procedure, with the full Schedule 3 information, an enhanced DBS check with the adults' barred list and the Nominated Individual signing clearance to work. Our person specification and additional checks for this post are:"
+            },
+            {
+              "bullets": [
+                "at least 2 years' experience managing or supervising care staff in adult social care, at least 1 year of it in home care;",
+                "the Level 5 Diploma in Leading and Managing an Adult Care Service, or the earlier Level 5 diploma or an equivalent the Training and Development Policy accepts, or enrolment on the current diploma within 3 months of appointment and completion within 24 months;",
+                "a full history of any previous CQC registration as a manager or provider, with the reason each ended, checked by the HR Manager against the CQC reports for every service the candidate managed in the last 5 years and discussed at interview;",
+                "for a registered nurse or other registered professional, a current registration check with no restriction relevant to the role;",
+                "a reference from the provider of the most recent service the candidate managed, in addition to the references the Safer Recruitment Policy requires."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Keeping fitness under review",
+          "blocks": [
+            {
+              "p": "The HR Manager checks the Registered Manager's DBS Update Service status every 12 months, checks any professional registration every 12 months and at each renewal, and records the annual self-declaration at appraisal, as the Safer Recruitment Policy and the Pre-Employment Checks and DBS Procedure set out. The Nominated Individual reviews progress on the Level 5 diploma, continuing development and health adjustments at each appraisal."
+            },
+            {
+              "p": "A Registered Manager tells the Nominated Individual the same day of any arrest, charge, caution, conviction, police investigation, referral to the DBS or a professional regulator, or health change affecting their ability to do the role. Anyone with information suggesting a Registered Manager may no longer be fit tells the Nominated Individual the same day."
+            },
+            {
+              "steps": [
+                "The Nominated Individual records the concern in the restricted section of the staff record and decides the same day, choosing the least restrictive safe arrangement, whether the Registered Manager continues in the role while it is looked into.",
+                "Where the Registered Manager stops managing the branch, even temporarily, the Deputy Manager acts at once and the arrangements in Absences of 28 days or more apply from the first day.",
+                "An allegation of harm to a person we support follows the Managing Allegations Against Staff Procedure, with the Nominated Individual leading our response. Conduct follows the Disciplinary Policy and Procedure, investigated by an external investigator the Nominated Individual appoints. Competence follows the Capability and Performance Procedure, with the Nominated Individual as case lead and a Director other than the Nominated Individual deciding each formal stage.",
+                "The Nominated Individual tells any professional regulator as regulation 19 requires, and decides any DBS referral, within the timescales in the Staff Fitness Concerns and DBS Referrals Procedure.",
+                "If the Registered Manager ceases to manage the branch, the Nominated Individual gives CQC notice and the vacancy is managed under When the Registered Manager leaves."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Supervision, support and development",
+      "blocks": [
+        {
+          "p": "The Registered Manager is supervised under the Supervision, Spot Checks and Appraisal Policy: one-to-one supervision with the Nominated Individual at least every 2 months for at least 60 minutes, and an appraisal by the Nominated Individual every 12 months, countersigned by another Director. Every supervision covers the branch's dashboard and risks, the Registered Manager's workload and hours, their wellbeing and use of the employee assistance programme, and their development. Where the Registered Manager's average working week exceeds 48 hours over any 4-week period, the Nominated Individual agrees changes within 2 weeks to reduce it."
+        },
+        {
+          "table": {
+            "columns": [
+              "Support",
+              "Our arrangement"
+            ],
+            "rows": [
+              [
+                "Induction",
+                "A written induction plan from the Nominated Individual before the start date, covering the last CQC report and any action plan, the service improvement plan, the risk registers, each commissioner's contract requirements and a meeting with each main commissioner within the first 6 weeks."
+              ],
+              [
+                "Manager induction standards",
+                "A Registered Manager new to the role completes the Skills for Care manager induction standards within 6 months of starting, reviewed at each supervision until complete."
+              ],
+              [
+                "Qualification",
+                "The Level 5 diploma as the Training and Development Policy sets out, with 4 hours' paid study time a month."
+              ],
+              [
+                "Mentoring",
+                "A Registered Manager in their first registered manager post has an external mentor, paid for by {{organisation}}, for their first 12 months, meeting at least monthly."
+              ],
+              [
+                "Peer support",
+                "Skills for Care registered manager membership paid by {{organisation}}, and attendance at the local registered manager network at least 4 times a year in paid time."
+              ],
+              [
+                "Continuing development",
+                "At least 5 days of paid development time a year, agreed at appraisal, including updates on CQC's assessment approach and changes in law."
+              ],
+              [
+                "Wellbeing",
+                "The 24-hour employee assistance programme, an individual stress risk assessment where signs of stress are identified (Work-Related Stress and Staff Wellbeing Policy), and no contact during leave except as set out in Short absences."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Management and Leadership Code for Health and Social Care was launched on 14 April 2026, as the Department of Health and Social Care's social care blog announced. It sets six principles for anyone with leadership or management responsibility (be accountable, be collaborative, be compassionate, be curious, be inclusive and show integrity), supports Skills for Care's updated Leadership Qualities Framework and places no legal duty on us. The registered manager role category of the care workforce pathway (updated 16 July 2026) still describes the code as a draft. At each appraisal the Nominated Individual assesses the Registered Manager against the pathway's registered manager behaviours and the code's six principles and records the resulting actions in their development plan."
+        }
+      ]
+    },
+    {
+      "heading": "Short absences",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Planning leave",
+          "blocks": [
+            {
+              "bullets": [
+                "The Registered Manager and Deputy Manager never take planned leave on the same day. Leave of 5 working days or more is booked at least 4 weeks ahead and agreed by the Nominated Individual, who checks it against the audit and governance calendar and known contract or CQC dates.",
+                "Before any planned absence of 5 working days or more, the Registered Manager writes the handover note and goes through it with the Deputy Manager at least 1 working day before leaving.",
+                "The handover note lists: open safeguarding concerns and enquiries; open incidents and investigations with their deadlines; pending notification, RIDDOR and duty of candour decisions; open complaints; packages starting, changing, suspended or ending; people with a High missed-visit risk level or a current interim safety plan; staffing gaps for the next 2 weeks, including double-handed and time-sensitive medicines visits; workers under interim measures; Very high and High risks; overdue service improvement plan actions; and any CQC, commissioner or Home Office contact expected. It identifies people we support and staff by CareFlow reference number only.",
+                "On the first working day back, the Deputy Manager hands back in a recorded meeting, adding to the note every decision made in the absence."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Unplanned absence",
+          "blocks": [
+            {
+              "p": "A Registered Manager who cannot work phones the Nominated Individual by 9am on the first day, or as soon as they are able, and reports sickness as the Sickness Absence Policy requires. The Deputy Manager takes charge at once, reads the latest weekly management meeting record and any handover note, and tells Office staff, Care Coordinators and On-call Managers the same day. Where the absence may last 5 working days or more, the Nominated Individual agrees priorities with the Deputy Manager by phone the same day and confirms them by email."
+            }
+          ]
+        },
+        {
+          "heading": "Authority of the Deputy Manager",
+          "blocks": [
+            {
+              "p": "During any absence the Deputy Manager carries out all of the Registered Manager's duties, to the same deadlines, including every lead duty another library document gives the Registered Manager and both immediate escalation routes: the Directors within 24 hours of a medicines incident causing serious harm, referred to safeguarding, notified to CQC or involving police; and the Nominated Individual within 24 hours of any safeguarding concern involving staff, police, serious injury or death, possible organisational abuse or likely media interest. The limits are:"
+            },
+            {
+              "bullets": [
+                "Approval of covert administration and Level 3 tasks is never delegated to the Deputy Manager. No covert administration plan starts or changes and medicines are offered openly until the Registered Manager returns, as the Covert Administration of Medicines Policy sets out; a declined medicine is followed up with the prescriber under the Consent, Mental Capacity and Declined Medicines Policy. A new Level 3 task waits for the Registered Manager; where waiting would put the person at risk, the Deputy Manager asks the prescriber or community nursing team to provide the task meanwhile and tells the Nominated Individual the same day.",
+                "Nobody checks, audits or approves their own work. Where the Registered Manager normally checks the Deputy Manager's work, the Nominated Individual does so during the absence.",
+                "Decisions reserved to the Directors or Nominated Individual, such as new contracts, stay with them. A disciplinary, capability or attendance meeting that could end in a final written warning or dismissal is held by the Nominated Individual, and appeals follow the Who acts table in the procedure concerned."
+              ]
+            },
+            {
+              "p": "The absent Registered Manager is not contacted on leave or while sick. The only exception is planned leave, where the Registered Manager has agreed in writing to be phoned by the Deputy Manager or Nominated Individual about a death, a Critical incident or a CQC assessment notice."
+            }
+          ]
+        },
+        {
+          "heading": "Escalation cover and when both managers are unavailable",
+          "blocks": [
+            {
+              "p": "From the day an absence is expected to last, or has lasted, more than 5 working days, the Deputy Manager is not allocated a care run: Care Coordinators reallocate their visits, and they give care only when business continuity has been activated, so that they can be reached throughout office hours. For any absence of more than 5 working days, the Nominated Individual arranges for themselves, or another branch's trained Registered Manager or Deputy Manager, to share the management escalation rota so that the Deputy Manager is never on it for more than 7 consecutive days."
+            },
+            {
+              "p": "If the Registered Manager and Deputy Manager are both unavailable, the Nominated Individual acts as safeguarding lead, IPC lead, Health and Safety Lead and decision-maker for notifications, RIDDOR and the duty of candour, takes the medicines lead duties within the limits in Authority of the Deputy Manager, joins the management escalation rota at once, and names within 1 working day, in writing, the manager responsible for day-to-day running and the rota. If the Nominated Individual is also absent or cannot be reached within 1 hour, the Director named to act for them under the Governance and Quality Assurance Policy takes these steps. The Nominated Individual tells CQC if this leaves the branch unable to deliver visits safely, as the Statutory Notifications to CQC Procedure sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Absences of 28 days or more",
+      "blocks": [
+        {
+          "p": "The law requires written notice to CQC when a registered manager will be absent for 28 continuous days or more: at least 28 days before the absence starts unless CQC agrees a shorter period; within 5 working days of the start of an emergency absence; at once if such an absence has not been notified; and within 7 working days of the return (regulation 14). The notice gives the length of and reason for the absence, how the service will be run, the name, address and qualifications of the person responsible for it, and the arrangements for appointing another person to manage it, including the proposed date of that appointment. Failing to give notice is an offence for the provider and the Registered Manager; CQC may instead issue fixed penalty notices of 1,250 pounds and 625 pounds. Our deadlines are shorter, as the Statutory Notifications to CQC Procedure sets out."
+        },
+        {
+          "table": {
+            "columns": [
+              "Step",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Appoint the acting manager in writing, stating their authority, which of their own duties are reassigned and to whom, the support they will receive and the acting allowance",
+                "Nominated Individual, with the HR Manager",
+                "Within 1 working day of learning of an absence expected to reach 28 days"
+              ],
+              [
+                "Give CQC notice of a planned absence",
+                "Nominated Individual",
+                "The day the absence is agreed, and never later than 28 days before it starts"
+              ],
+              [
+                "Give CQC notice of an emergency absence",
+                "Nominated Individual",
+                "Within 5 working days of the absence starting where it is expected to reach 28 days, or the same working day it becomes clear that an absence first expected to be shorter will reach 28 days"
+              ],
+              [
+                "Enter the absence on the branch risk register",
+                "Acting manager",
+                "Within 5 working days of the absence being known"
+              ],
+              [
+                "Tell each commissioner of the people we support in writing, and any integrated care board funding care",
+                "Nominated Individual",
+                "Within 5 working days of the CQC notice, or sooner where a contract sets a shorter time"
+              ],
+              [
+                "Tell all branch staff by email or text, and at the next staff team meeting",
+                "Acting manager",
+                "Within 2 working days of the appointment"
+              ],
+              [
+                "Write to the people we support and their representatives naming the acting manager and how to contact the branch",
+                "Acting manager",
+                "Within 10 working days of the appointment, in each person's accessible format"
+              ],
+              [
+                "Give CQC notice of the return, and tell commissioners and staff",
+                "Nominated Individual (CQC and commissioners), Registered Manager (staff)",
+                "Within 2 working days of the return"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The acting manager is the Deputy Manager where they have been in post at least 6 months and hold the safeguarding lead, notification and duty of candour training. Otherwise the Nominated Individual appoints another of our Registered Managers or Deputy Managers, or an interim manager recruited and cleared to work under the Safer Recruitment Policy before starting. An acting manager who is not our Deputy Manager is briefed by the Nominated Individual on this policy, the branch's open risks and the management escalation rota before their first day in charge."
+        },
+        {
+          "p": "The acting manager receives an acting allowance of 10% of basic salary for the whole period. The Nominated Individual holds a weekly supervision call with them, visits the branch at least every 2 weeks, reviews the arrangement every 4 weeks and reports it to the next Monthly Quality and Governance Meeting. Approval of covert administration and Level 3 tasks passes to the acting manager only where the appointment letter says so and they have completed the medicines lead and assessor training; otherwise it follows Authority of the Deputy Manager. Covert administration and Level 3 tasks never start out of hours."
+        },
+        {
+          "p": "Where an absence is expected to last more than 6 months, the Nominated Individual asks the Directors within 2 weeks to decide whether to apply to CQC to register the acting manager for the location, under the Statement of Purpose and Registration Procedure. Keeping in touch with the absent Registered Manager follows the Sickness Absence Policy or the Flexible Working and Family Leave Policy."
+        },
+        {
+          "p": "On the Registered Manager's first day back, the Nominated Individual holds a return meeting, agreeing any adjustments or phased return occupational health advises, and the acting manager hands over in a recorded meeting using the handover note. Within 10 working days the Registered Manager reviews every notification, safeguarding and duty of candour decision made during the absence and records any follow-up."
+        }
+      ]
+    },
+    {
+      "heading": "When the Registered Manager leaves",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Resignation and notice",
+          "blocks": [
+            {
+              "p": "The Registered Manager's contract requires 3 months' written notice. The law requires CQC to be told in writing, as soon as reasonably practicable, when a registered manager ceases to manage the regulated activity and when someone else manages it (regulation 15). Our arrangements are:"
+            },
+            {
+              "steps": [
+                "The Nominated Individual acknowledges the resignation in writing within 2 working days and tells the Directors.",
+                "The Nominated Individual gives CQC notice of the leaving date, naming the acting manager, before the Registered Manager stops managing the branch, and within 2 working days where the departure is sudden, such as summary dismissal or ill health.",
+                "Within 5 working days of the resignation, the Nominated Individual completes a vacancy risk assessment covering interim management capacity, the escalation rota, open safeguarding, incidents and complaints, CQC and commissioner actions, the sponsor licence, packages due to start and staff retention, and enters the vacancy on the risk register under the Risk Management Policy.",
+                "Within the same 5 working days, the HR Manager starts recruitment and the Nominated Individual names the acting manager who takes over on the Registered Manager's last day.",
+                "Commissioners, staff and the people we support are told as for a notifiable absence.",
+                "Where interim cover cannot keep existing visits safe, new packages are paused under the Governance and Quality Assurance Policy."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Handover and closing access",
+          "blocks": [
+            {
+              "p": "The leaving Registered Manager writes a handover report at least 10 working days before their last day, using the handover note headings plus every open action with CQC, commissioners, the local authority safeguarding team, HSE and the Home Office, and goes through it with the acting manager and the Nominated Individual. On the last working day:"
+            },
+            {
+              "bullets": [
+                "the Nominated Individual ends the Registered Manager's CQC provider portal account;",
+                "the HR Manager ends their CareFlow manager access, removes them as a Level 1 User where we hold a sponsor licence and reports it as the Right to Work and Sponsored Workers Policy requires, and recovers the ID badge, devices, office keys and any keys to people's homes they hold;",
+                "the transfer of each lead role to the acting manager is recorded for the next Directors' minutes, and document ownership in CareFlow and risk ownership on the risk register are reassigned within 5 working days;",
+                "the HR Manager offers an exit conversation with someone other than the Nominated Individual."
+              ]
+            },
+            {
+              "p": "Before their last day, the leaving Registered Manager applies to CQC to cancel their registration for the location, unless they will manage another of our locations, and the statement of purpose is revised to remove their details and sent to CQC, both under the Statement of Purpose and Registration Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Appointing and registering a new Registered Manager",
+          "blocks": [
+            {
+              "steps": [
+                "The appointment follows the Safer Recruitment Policy: a panel chaired by the Nominated Individual with a Director, a person we support or family carer meeting shortlisted candidates, and the checks in Fitness for the role.",
+                "The Directors approve the appointment and the HR Manager confirms clearance to work, signed by the Nominated Individual.",
+                "The new manager applies to CQC for registration within 10 working days of starting, under the Statement of Purpose and Registration Procedure, with the HR Manager collecting the documents CQC asks for. Until CQC confirms registration they use the title Manager, never Registered Manager.",
+                "Until the new manager has completed safeguarding lead, notification and duty of candour training, the Nominated Individual checks their decisions in those areas the same working day.",
+                "When CQC registers the new manager, the Nominated Individual updates the statement of purpose, tells commissioners within 5 working days and the acting arrangement ends; the HR Manager adds the new manager as a Level 1 User."
+              ]
+            },
+            {
+              "p": "Our target is a new Registered Manager registered by CQC within 6 months of the vacancy starting. The Nominated Individual reports progress on recruitment and registration to every Monthly Quality and Governance Meeting and every Directors' governance meeting until the vacancy ends. If no application has been made to CQC within 3 months of the vacancy starting, the Directors decide at their next meeting how the post will be filled, including applying to register the acting manager."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where",
+              "Kept"
+            ],
+            "rows": [
+              [
+                "Recruitment, Schedule 3 information, fitness checks, self-declarations and fitness concerns",
+                "Staff record (restricted section for DBS, health and fitness concerns)",
+                "Employment plus 6 years"
+              ],
+              [
+                "Supervision and appraisal of the Registered Manager",
+                "Supervision and appraisal records",
+                "Employment plus 6 years"
+              ],
+              [
+                "CQC notices of absence, return and change, and CQC's replies",
+                "Governance records and the notifications register",
+                "Life of the organisation plus 6 years"
+              ],
+              [
+                "Acting appointment letters (with a copy on the acting manager's staff record for employment plus 6 years), handover notes and reports, vacancy risk assessments and letters to commissioners",
+                "Governance records",
+                "Life of the organisation plus 6 years"
+              ],
+              [
+                "Lead role appointments and Directors' decisions on registration",
+                "Directors' minutes",
+                "Life of the organisation plus 6 years"
+              ],
+              [
+                "Training and qualification progress",
+                "Training and compliance records",
+                "Employment plus 6 years"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "The lead role training each owning document sets: safeguarding lead, medicines lead and assessor, IPC lead, IOSH Managing Safely or equivalent, notifications, duty of candour, RIDDOR, sponsor duties",
+                "Registered Manager and Deputy Manager, on the same timescales so the Deputy Manager can act",
+                "As each owning document sets out"
+              ],
+              [
+                "Skills for Care manager induction standards",
+                "Registered Manager new to the role",
+                "Within 6 months of starting"
+              ],
+              [
+                "Level 5 Diploma in Leading and Managing an Adult Care Service",
+                "Registered Manager and Deputy Manager",
+                "Held, or enrolled within 3 months of appointment and completed within 24 months (Training and Development Policy)"
+              ],
+              [
+                "Briefing by the Nominated Individual on this policy, handover notes and acting authority",
+                "Registered Manager, Deputy Manager and HR Manager",
+                "Within 1 month of appointment and within 14 days of each new major version of this policy; the Deputy Manager again before first acting for a notifiable absence"
+              ],
+              [
+                "This policy, CQC notices and cover duties",
+                "Nominated Individual and Directors",
+                "Within 1 month of appointment, within 14 days of each new major version of this policy, and at the annual governance update"
+              ],
+              [
+                "Briefing on the branch, this policy and the management escalation rota",
+                "Any acting or interim manager who is not our Deputy Manager",
+                "Before their first day in charge"
+              ],
+              [
+                "Their duties during a Registered Manager absence, as Roles and responsibilities sets out",
+                "Care Coordinators, Office staff and On-call Managers",
+                "Told by the Deputy Manager on the first day of each absence, with the names of the acting manager and escalation managers"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "This policy is written for the managers who apply it, so it is not acknowledged in CareFlow; those managers are briefed instead, as the table sets out, and each briefing is recorded in the training and compliance records under the Policy Management and Document Control Policy."
+        },
+        {
+          "p": "Each year the Nominated Individual runs a one-hour exercise in each branch with the Deputy Manager and an On-call Manager, testing a sudden Registered Manager absence from the first phone call to the CQC notice. Gaps found become actions in the service improvement plan within 5 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Registered Manager supervision every 2 months and appraisal every 12 months held on time",
+                "Monthly",
+                "HR Manager",
+                "Nominated Individual; workforce figures to the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Every Registered Manager absence of 28 days or more matched to a CQC notice and return notice, with timeliness",
+                "Monthly",
+                "Deputy Manager (Nominated Individual where the Deputy Manager was acting)",
+                "Quality dashboard by the 7th working day"
+              ],
+              [
+                "Handover notes completed for every absence of 5 working days or more, and the escalation rota covered",
+                "Quarterly",
+                "Nominated Individual",
+                "Directors' governance meeting"
+              ],
+              [
+                "Registered Manager fitness file: DBS status, self-declaration, qualification progress and development days",
+                "Every 12 months, at appraisal",
+                "Nominated Individual, countersigned by a Director",
+                "Directors"
+              ],
+              [
+                "Vacancy: recruitment and registration progress",
+                "Monthly until registration",
+                "Nominated Individual",
+                "Monthly Quality and Governance Meeting and Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of CQC notices, return notices and commissioner letters on time, 100% of Registered Manager supervisions and appraisals on time, and a handover note for 100% of absences of 5 working days or more. Any shortfall is reported to the Directors and becomes an action in the service improvement plan."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or CQC guidance on registered managers, a change to the registered manager role category of the care workforce pathway, a late notice to CQC, a period when no manager was in charge, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

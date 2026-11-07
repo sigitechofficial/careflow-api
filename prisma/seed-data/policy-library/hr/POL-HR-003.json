@@ -1,0 +1,756 @@
+{
+  "reference": "POL-HR-003",
+  "revision": 1,
+  "title": "Right to Work and Sponsored Workers Policy",
+  "documentType": "POLICY",
+  "summary": "How we make sure everyone who works for us has the legal right to do that work: initial and follow-up right to work checks, the extension of the Right to Work Scheme from 1 October 2026 to workers, individual contractors and contract chains, avoiding discrimination, and the duties we meet as a licensed sponsor of Skilled Workers. For managers, HR and the office staff who check documents, allocate work or manage sponsored workers.",
+  "keyPoints": {
+    "intro": "These points apply to everyone who checks documents, clears or allocates work, manages agency workers or manages sponsored workers. A missed check or a late report can cost us a civil penalty and our sponsor licence.",
+    "points": [
+      "Nobody does any work for us, including paid induction training or a shadow shift, until a right to work check has been completed by a Home Office method and saved in their staff record.",
+      "Check every person in exactly the same way, whatever their nationality, accent or name; ask about immigration status only to find out whether it limits hours or type of work, and never treat time-limited permission as a reason to refuse someone.",
+      "Anyone with an eVisa is checked through the Home Office online service with a share code beginning with W; a biometric residence permit, a screenshot, a printout or a photo of a document is never acceptable.",
+      "Record every permission expiry date in CareFlow the same day; the HR Manager starts the follow-up 90 days before expiry and completes the new check before permission ends.",
+      "If a document looks false, the photograph does not match the person, or a check shows no right to work, stop, make no accusation and tell the Registered Manager the same working day.",
+      "Care Coordinators must keep students and anyone else with an hours limit within that limit every week, and must never allocate work to a worker the HR Manager has stopped.",
+      "Agency workers may never send a substitute; check their photo ID against the agency profile before their first visit, and every new agency agreement must contain our right to work terms before any worker starts.",
+      "If anyone other than the booked agency worker arrives at a person's home, they must not start the visit; the office, or the On-call Manager out of hours, covers the visit and tells the agency the same day.",
+      "Sponsored workers are paid at least their certificate of sponsorship salary for their guaranteed hours, into their own bank account, whether or not visits are available; we never recover sponsorship costs from them.",
+      "Tell the HR Manager the same day if a sponsored worker misses visits without permission, asks for unpaid leave, or wants to change role, hours, branch or leave us.",
+      "Never share a sponsorship management system log-in or passcode, and never assign a certificate of sponsorship to yourself, a relative or a partner."
+    ]
+  },
+  "reviewFrequencyMonths": 6,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Admin",
+    "Manager",
+    "HR",
+    "Care Coordinator",
+    "Staff Allocation"
+  ],
+  "moduleLinks": [
+    "RECRUITMENT",
+    "HR",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-HR-001",
+    "POL-HR-002",
+    "POL-HR-012",
+    "POL-HR-014",
+    "POL-HR-018",
+    "POL-HR-019",
+    "POL-SG-015",
+    "POL-GOV-020"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Immigration, Asylum and Nationality Act 2006, section 15 (civil penalty for employing a person without the right to work; statutory excuse)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/13/section/15"
+    },
+    {
+      "source": "Immigration, Asylum and Nationality Act 2006, section 21 (offence of knowingly employing an illegal worker)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/13/section/21"
+    },
+    {
+      "source": "Home Office, Code of practice on preventing illegal working: Right to Work Scheme for employers (in force 1 October 2026), civil penalty levels",
+      "url": "https://www.gov.uk/government/publications/illegal-working-penalties-codes-of-practice-for-employers"
+    },
+    {
+      "source": "Border Security, Asylum and Immigration Act 2025, section 48 (Right to Work Scheme extended to worker's contracts, individual sub-contractors and contract chains; in force 1 October 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/31/section/48"
+    },
+    {
+      "source": "Home Office, Employer's guide to right to work checks (1 October 2026)",
+      "url": "https://www.gov.uk/government/publications/right-to-work-checks-employers-guide"
+    },
+    {
+      "source": "Home Office, Code of practice for employers: avoiding unlawful discrimination while preventing illegal working (in force 1 October 2026)",
+      "url": "https://www.gov.uk/government/publications/right-to-work-checks-code-of-practice-on-avoiding-discrimination"
+    },
+    {
+      "source": "Home Office, Workers and Temporary Workers: guidance for sponsors, Part 1: apply for a licence (version 08/26), sections L4 Key Personnel and L6 sponsorship fees",
+      "url": "https://www.gov.uk/government/publications/workers-and-temporary-workers-guidance-for-sponsors-part-1-apply-for-a-licence"
+    },
+    {
+      "source": "Home Office, Workers and Temporary Workers: guidance for sponsors, Part 2: sponsor a worker (version 10/26)",
+      "url": "https://www.gov.uk/government/publications/workers-and-temporary-workers-guidance-for-sponsors-part-2-sponsor-a-worker"
+    },
+    {
+      "source": "Home Office, Workers and Temporary Workers: guidance for sponsors, Part 3: sponsor duties and compliance (version 08/26)",
+      "url": "https://www.gov.uk/government/publications/workers-and-temporary-workers-guidance-for-sponsors-part-3-sponsor-duties-and-compliance"
+    },
+    {
+      "source": "Home Office, Workers and Temporary Workers: Sponsor a Skilled Worker (version 04/26), section SK4 additional requirements for care workers and senior care workers",
+      "url": "https://www.gov.uk/government/publications/sponsor-a-skilled-worker"
+    },
+    {
+      "source": "Home Office, Sponsor guidance Appendix D: keeping records for sponsorship (version 10/26)",
+      "url": "https://www.gov.uk/government/publications/keep-records-for-sponsorship-appendix-d"
+    },
+    {
+      "source": "Department of Health and Social Care, Code of practice for the international recruitment of health and social care personnel in England (updated 27 March 2025)",
+      "url": "https://www.gov.uk/government/publications/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel/code-of-practice-for-the-international-recruitment-of-health-and-social-care-personnel-in-england"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} employs and engages only people who have the legal right to do the work we give them. We check every person before they start and again before any time-limited permission ends, in exactly the same way for everyone, whatever their nationality or background. Our care workers work alone in people's homes, so knowing who they are and that they may lawfully work protects the people we support. Illegal working also exposes workers to exploitation and us to a civil penalty with a starting point of £45,000 per worker, or £60,000 for a repeat breach within 3 years, prosecution and loss of our sponsor licence."
+        },
+        {
+          "p": "While {{organisation}} holds a Skilled Worker sponsor licence, which the Home Office grants on trust, we meet every sponsor duty, report on time and keep the records required. We treat sponsored workers as fairly as every other member of staff: we pay what we promised, never pass sponsorship costs to them, and make sure they know their rights and can raise concerns without fear."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "To establish and keep a statutory excuse against a civil penalty under section 15 of the Immigration, Asylum and Nationality Act 2006 for everyone we employ or engage, including under the extension of the Right to Work Scheme in force from 1 October 2026.",
+            "To carry out checks without unlawful discrimination, following the Home Office code of practice.",
+            "To meet our duties as a licensed sponsor and protect sponsored workers from unfair treatment and exploitation."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to everyone who does work for us personally: employees in every role, bank staff, apprentices, returners, people on a worker's contract, individual contractors and sessional trainers, volunteers, students on placement and agency workers. It also applies to the agencies that supply workers to us. The sponsorship sections apply while we hold a sponsor licence; without one we sponsor nobody and every other section still applies."
+        },
+        {
+          "p": "Identity checks for the DBS application and the other pre-employment checks are in the Pre-Employment Checks and DBS Procedure; recruitment standards, clearance to work and overseas criminal records in the Safer Recruitment Policy; pay for travel time and working hours in the Working Time, Rest Breaks and Travel Time Policy; staff data in the Staff Personal Data and HR Records Policy; and signs of forced labour in the Modern Slavery and Human Trafficking Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Statutory excuse",
+                "Our defence against a civil penalty for employing someone without the right to work: a prescribed check before work started, follow-up checks on time, and no knowledge that the person could not lawfully work."
+              ],
+              [
+                "eVisa and share code",
+                "An eVisa is the Home Office's online record of a person's status. A share code is the 9-character code beginning with W, valid for 90 days, that lets an employer view it."
+              ],
+              [
+                "Employer Checking Service (ECS)",
+                "The Home Office service that verifies a person's right to work where they cannot show it themselves. A Positive Verification Notice gives a statutory excuse for 6 months; a Negative Verification Notice means the person must not work for us."
+              ],
+              [
+                "Extended liability",
+                "Since 1 October 2026, an organisation contracted to provide services to a third party that uses another employer's workers to deliver them may be treated as their employer, unless it meets the Home Office requirements on written terms, substitution and identity verification."
+              ],
+              [
+                "Certificate of sponsorship",
+                "The electronic record we assign through the Home Office sponsorship management system (SMS) so a worker can apply for Skilled Worker permission to work for us."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy, any change to or surrender of the sponsor licence and any subcontracting of care. The Nominated Individual, as Authorising Officer, approves every certificate of sponsorship before it is assigned, reviews every certificate and SMS report monthly, confirms our Key Personnel remain eligible whenever a post changes hands, is told the same day of any compliance visit, civil penalty notice or licence action, and commissions the annual independent sponsor audit."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is accountable day to day, is a Level 1 User covering the HR Manager's absence, approves the role, hours and salary before any certificate is requested, decides every case where a check raises doubt or a worker loses the right to work, and reports false documents and illegal working to the Home Office. The Deputy Manager covers the Registered Manager's other duties when they are absent and carries out the audits in this policy."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager is our Key Contact and primary Level 1 User. They carry out or allocate every check and follow-up check, decide which individual engagements are in scope, prepare certificates, make every SMS report, keep sponsored workers' records and check their pay before every payroll."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff, Care Coordinators, Field Care Supervisors and On-call Managers",
+          "blocks": [
+            {
+              "p": "Office staff trained in document checking act as ID checkers, record each check the same day and pass any doubt to the Registered Manager the same working day; they never decide whether someone may work. Care Coordinators allocate work only to workers marked cleared to work, keep every worker within any limit on hours or type of work, and remove a stopped worker from all visits the same day. They are told the limit, never the person's immigration status. Care Coordinators and Field Care Supervisors tell the HR Manager the same day of any sponsored worker absence or change request, and check agency workers' photo ID before their first visit. On-call Managers check agency profiles out of hours and never accept a substitute worker."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Who we check and when",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Our arrangement"
+            ],
+            "rows": [
+              [
+                "Employees, bank staff, apprentices and returners",
+                "Full check by us before any work, paid or unpaid, including office-based induction training."
+              ],
+              [
+                "People on a worker's contract and individuals engaged personally, such as a sessional trainer",
+                "Full check by us before any work, as the law has required since 1 October 2026. We never engage care staff as self-employed."
+              ],
+              [
+                "An individual running their own business who sells us a service for our own use, such as a plumber",
+                "No check. Before the work starts, the HR Manager records in CareFlow why the person is in business on their own account. If in doubt, we check."
+              ],
+              [
+                "Agency workers",
+                "The agency checks as employer; we meet the extended liability requirements below."
+              ],
+              [
+                "Volunteers",
+                "Full check by us before they start. This is our policy rather than a legal requirement, so that no volunteer breaches their immigration conditions."
+              ],
+              [
+                "Students on placement",
+                "College confirmation under the Safer Recruitment Policy; for a Student visa holder, also our own online check and the education provider's letter confirming that the placement is an integral, assessed part of the course."
+              ],
+              [
+                "Staff transferring to us under TUPE",
+                "Fresh check within 30 calendar days of the transfer, time-limited permission first. The Home Office allows 60 days."
+              ],
+              [
+                "Internal change of role or hours",
+                "No new check unless the worker's permission restricts that work; the HR Manager confirms before the change."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our application form asks every applicant the same two questions: whether they have the right to work in the UK, and whether any condition limits the hours or type of work they may do. Applicants may give a share code. We never ask about nationality or immigration history at interview, and never check some applicants' documents and not others'."
+        },
+        {
+          "p": "The prescribed check is done for every person offered a post, at the identity appointment held within 5 working days of acceptance under the Pre-Employment Checks and DBS Procedure, and saved in the staff record before any work starts. If it cannot be finished, for example while we wait for the ECS, the offer stays open and is reviewed at 6 weeks under the Safer Recruitment Policy. No offer is withdrawn because permission is time-limited, because the person has a document rather than an eVisa, or because an ECS check is needed."
+        }
+      ]
+    },
+    {
+      "heading": "Carrying out the initial check",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Choosing the method",
+          "blocks": [
+            {
+              "p": "The method depends on the person's status. A person with an eVisa can only be checked online; anyone else may choose a manual check rather than a digital one."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Person",
+                  "Method"
+                ],
+                "rows": [
+                  [
+                    "British or Irish citizen with a passport, current or expired, or an Irish passport card",
+                    "Manual check of the original. If the person agrees, a registered digital verification service provider may check a passport that is current or expired by no more than 6 months."
+                  ],
+                  [
+                    "British citizen without a passport",
+                    "Manual check of a UK birth or adoption certificate, or certificate of registration or naturalisation, with an official document showing their name and permanent National Insurance number."
+                  ],
+                  [
+                    "Anyone with an eVisa, including EU Settlement Scheme status",
+                    "Home Office online check. A biometric residence permit, current or expired, is never accepted."
+                  ],
+                  [
+                    "Pending application or appeal with no online proof, Application Registration Card, non-digital Certificate of Application, Crown Dependency status, or long-term resident who arrived before 1988 without documents",
+                    "ECS request. Work starts only once we hold a Positive Verification Notice."
+                  ],
+                  [
+                    "Other documents on the Home Office lists, such as an endorsed passport",
+                    "Manual check of the original."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Online and manual checks",
+          "blocks": [
+            {
+              "p": "For an online check, the checker uses only the Check a job applicant's right to work service on GOV.UK, entering the share code, the person's date of birth and {{organisation}}'s full registered name, and never accepts a screenshot, printout or the person's own view of their status; confirms at the identity appointment that the photograph is the person; notes the date permission ends and every condition on hours or type of work; and saves the PDF of the profile page to the staff record the same day."
+            },
+            {
+              "p": "For a manual check, the checker examines the original documents with the holder present; never accepts a photocopy, scan or photograph, except official digital evidence of a National Insurance number used alongside a listed document; confirms that each document is genuine and unaltered, that photographs and dates of birth match each other and the person, that permission has not expired and that any restriction allows the work; and sees evidence such as a marriage certificate for any change of name. The checker copies every relevant page, for a passport every page showing expiry, nationality, date of birth, signature, photograph and any permission, and records in the staff record at the time that the right to work check was made on that date, with their name. Originals are returned straight away; we never keep anyone's passport."
+            },
+            {
+              "p": "A remote check by live video is used only where the Registered Manager has approved a remote identity check under the Pre-Employment Checks and DBS Procedure, and for a manual check only while we hold the original documents."
+            }
+          ]
+        },
+        {
+          "heading": "Digital checks and the ECS",
+          "blocks": [
+            {
+              "p": "We use a digital verification service only through a provider on the Office for Digital Identities and Attributes register for right to work checks, whose output names that provider and confirms identity verified. The ID checker still meets the person before clearance. The HR Manager submits an ECS request within 1 working day of identifying the need and tells the person; the service aims to reply within 5 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Limits on hours or type of work",
+          "blocks": [
+            {
+              "bullets": [
+                "Students: the HR Manager records the education provider's term dates in the staff record. In term time the Care Coordinator keeps allocated hours, including travel time, within the weekly limit counted Monday to Sunday, and the HR Manager checks each student's hours against visit check-in and check-out records weekly. Full-time hours are allowed only outside term time as the education provider's dates show: before the course starts, in vacations and after it ends.",
+                "Workers sponsored by another employer: employed only where the Immigration Rules allow supplementary employment in that occupation, on their sponsor's letter confirming they still work there, their occupation code and contracted hours, renewed every 6 months. Their work for us never exceeds 20 hours a week or overlaps their sponsored hours.",
+                "Application Registration Card holders: employed only in a role the Positive Verification Notice confirms they may do."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Doubts about a document or identity",
+          "blocks": [
+            {
+              "p": "If a document appears false or altered, does not seem to belong to the person, or the photograph on an online result does not match them, the checker stops, keeps the copies, makes no accusation and tells the Registered Manager the same working day. The person does not start work. The Registered Manager speaks to the person and, if the concern stands, reports it to the Home Office and the police under the Safer Recruitment Policy. Where a check fails for a reason the person cannot control, such as an eVisa error, the HR Manager directs them to the UK Visas and Immigration Resolution Centre and uses the ECS where it applies. We never give immigration advice; we direct people to a solicitor or an adviser regulated by the Immigration Advice Authority."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Follow-up checks and loss of the right to work",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Follow-up schedule",
+          "blocks": [
+            {
+              "p": "To keep our statutory excuse, the law requires a follow-up check on or before the day time-limited permission ends. People with settled status, EU Settlement Scheme status, or British or Irish citizenship need none. Every expiry date, including the end of a Positive Verification Notice, is entered in the training and compliance records on the day of the check, where CareFlow shows it as due."
+            },
+            {
+              "table": {
+                "columns": [
+                  "When",
+                  "Action",
+                  "Who"
+                ],
+                "rows": [
+                  [
+                    "90 days before permission ends",
+                    "Writes to the worker about their plans and the evidence needed, and agrees a date for the check",
+                    "HR Manager"
+                  ],
+                  [
+                    "60 days before, if no reply",
+                    "Raises it with the worker in person and tells the HR Manager the same day",
+                    "Field Care Supervisor"
+                  ],
+                  [
+                    "8 weeks before, for a sponsored worker we will continue to sponsor",
+                    "Assigns the certificate for the extension after Authorising Officer approval",
+                    "HR Manager"
+                  ],
+                  [
+                    "In the last 30 days, and always by the expiry date",
+                    "Completes the follow-up check, using a new share code for an eVisa holder",
+                    "HR Manager or ID checker"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Pending applications",
+          "blocks": [
+            {
+              "p": "A worker who applied to extend before their permission expired keeps their right to work until the application, and any appeal or administrative review, is decided. If their eVisa shows the pending application, an online check gives us a statutory excuse for 6 months. If it does not, and the worker shows evidence such as a Home Office acknowledgement with the date of application, the HR Manager submits an ECS request the same working day; our statutory excuse continues for up to 28 calendar days from the expiry date while we wait, and the worker carries on working. If no Positive Verification Notice has arrived by the 28th day, the worker stops work as set out below. This grace period never applies to a new starter."
+            }
+          ]
+        },
+        {
+          "heading": "When a worker cannot show the right to work",
+          "blocks": [
+            {
+              "steps": [
+                "When a follow-up check cannot be completed by the expiry date and no ECS request is pending, the 28-day period ends without a Positive Verification Notice, or a Negative Verification Notice arrives, the HR Manager tells the Registered Manager the same working day, and the Care Coordinator removes the worker from every visit that day and covers the visits under the Business Continuity and Emergency Planning Policy, telling each person or their family before the visit who is coming instead. If the worker is out on visits, the Care Coordinator (the On-call Manager out of hours) phones them: they start no further visit, leave any visit in progress only once the person is safe, and return any keys we hold to the branch office. The HR Manager suspends their access to visit schedules and key safe codes in CareFlow the same day.",
+                "The Registered Manager and HR Manager meet the worker within 2 working days, explain what has happened and give them a reasonable opportunity to provide evidence; the worker may bring a colleague or trade union representative. If the evidence shows the right to work, a check is recorded, the worker returns to work that day and is paid in full for the time they were stopped.",
+                "If the worker has no right to work, the HR Manager asks for the formal action check in the Whistleblowing (Speaking Up) Policy the same working day as the meeting; the worker stays off all visits while it is made. If the check pauses the case, the HR Manager asks the employment law adviser for advice that day, since continuing to employ them risks a civil penalty. The Registered Manager then confirms in writing within 2 working days of the meeting, or of the employment law adviser's advice if the check pauses the case, that employment ends because continuing would be unlawful. The worker is paid everything owed to their last working day, including accrued holiday, and may appeal in writing to a Director within 5 working days.",
+                "The Registered Manager reports the illegal working to the Home Office the same working day it is confirmed and records the reference number; for a sponsored worker the HR Manager also reports the end of sponsorship. The case goes in the incident log and the Nominated Individual told the same working day."
+              ]
+            },
+            {
+              "p": "The worker is treated with dignity throughout and their information shared only with those who need it. Any sign that they are being controlled or exploited is acted on under the Modern Slavery and Human Trafficking Policy."
+            }
+          ]
+        },
+        {
+          "heading": "A missing or faulty check",
+          "blocks": [
+            {
+              "p": "If an audit finds a worker whose check is missing or was not done as prescribed, they are not allocated further work until the HR Manager completes a compliant check, within 1 working day, and their visits are covered in the same way. A new check protects us only from its own date. The finding is logged in the incident log and reviewed by the Deputy Manager under the Incident Reporting, Investigation and Learning Policy. Where no check at all was made before work started, the Nominated Individual is told within 24 hours, as the Safer Recruitment Policy requires for anyone found working before clearance."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Agency workers and contract chains",
+      "blocks": [
+        {
+          "p": "An employment agency is the employer of the workers it supplies and remains responsible for checking their right to work. The Home Office guide treats a standard agency supply into a hirer's own operations as outside extended liability, but our agency workers deliver care we are contracted to provide to local authorities, the NHS and people who pay for their own care. Our policy is therefore to treat every agency arrangement as within extended liability and to meet the three Home Office requirements, which must be in place before the work starts."
+        },
+        {
+          "bullets": [
+            "Written statement: before any worker starts under an agency agreement made on or after 1 October 2026, the agreement includes a written statement of terms requiring the agency to carry out prescribed checks on every worker it supplies; not to subcontract without our written consent, and to pass the same obligations down; to allow us to audit its checks; to accept suspension or termination where illegal working is found without a statutory excuse, with equivalent terms in its own contracts with workers; and to co-operate with any Home Office investigation, including giving details of every business in the chain. Earlier agreements are amended at renewal or by 31 March 2027, whichever is sooner.",
+            "No substitution: an agency worker may never send someone else. A different worker needs a new agency profile and a new photo ID check before any visit. If anyone other than the booked worker arrives at a person's home, they must not start the visit; whoever learns of it, such as our care worker on a double-handed visit, or the person or their family, phones the office (the On-call Manager out of hours), which covers the visit and tells the agency the same day.",
+            "Identity verification: the Care Coordinator or Field Care Supervisor compares photo ID with the agency profile before the first visit, the worker checks in and out of every visit through CareFlow electronic call monitoring with their own log-in, and Field Care Supervisors confirm identity against the profile photograph at the spot checks in the Supervision, Spot Checks and Appraisal Policy, within 2 weeks of the first visit and then every 3 months.",
+            "Assurance: the annual November audit of 3 worker files per agency under the Safer Recruitment Policy includes the agency's right to work evidence and its compliance with these terms. Agency agreements also contain the modern slavery terms in the Modern Slavery and Human Trafficking Policy, with existing agreements amended on the same timetable, and the same audit checks them, including a Field Care Supervisor's private conversations with at least two of each agency's workers (all of them if fewer)."
+          ]
+        },
+        {
+          "p": "We never subcontract part of a care package to another provider without the Directors' approval and the same written terms."
+        }
+      ]
+    },
+    {
+      "heading": "Sponsoring workers",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Licence management",
+          "blocks": [
+            {
+              "bullets": [
+                "Key Personnel: Authorising Officer, the Nominated Individual; Key Contact, the HR Manager; Level 1 Users, the HR Manager and the Registered Manager. At least one Level 1 User must be an employee who is a settled worker as the sponsor guidance defines; if neither qualifies, the Directors appoint an eligible employee or Director as an additional Level 1 User. We have no Level 2 Users, a role the Home Office is abolishing, and agency workers and contractors are never Key Personnel.",
+                "SMS accounts are personal: each user's mobile number, date of birth and email are kept correct for multi-factor authentication, and log-ins and passcodes are never shared. Each Level 1 User logs in at least monthly, as unused accounts are removed after 12 months, and the HR Manager reads the SMS message board weekly.",
+                "No SMS User assigns a certificate to themselves or their own close relative or partner; where a certificate goes to a close relative or partner of anyone else in {{organisation}}, a sponsor note discloses it."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Who we can sponsor",
+          "blocks": [
+            {
+              "p": "The Immigration Rules change often, so before every certificate the HR Manager reads the current Sponsor a Skilled Worker guidance and records the version checked. At 5 November 2026, care worker and senior care worker roles:"
+            },
+            {
+              "bullets": [
+                "cannot be sponsored for anyone applying from overseas, which has been the case since 22 July 2025; we do not recruit care staff from abroad;",
+                "can be sponsored only for a person in the UK applying for permission to stay who has worked legally for us in that role for at least 3 months before the certificate is assigned, for applications made by 22 July 2028, or who was last granted Skilled Worker permission as a care worker or senior care worker and has held continuous permission since;",
+                "require us to carry on a regulated activity with active CQC registration; every certificate gives our CQC registration number and, as the working location, the branch from which the worker's visits are run;",
+                "require a salary of at least £25,000 a year and £12.82 for every hour worked for a Health and Care visa, or the going rate if higher."
+              ]
+            },
+            {
+              "p": "Other roles are sponsored only if their occupation code is eligible on the date. Every sponsored appointment follows the Code of practice for the international recruitment of health and social care personnel in England, and no candidate is ever charged for recruitment."
+            }
+          ]
+        },
+        {
+          "heading": "Assigning a certificate",
+          "blocks": [
+            {
+              "steps": [
+                "The Registered Manager approves in writing the role, occupation code, a job description matching the duties actually done, guaranteed weekly hours and salary, saved to the staff record.",
+                "The HR Manager confirms the role and worker meet the current rules, and saves the evidence, such as payslips showing 3 months' legal work for us or the previous certificate number, with a current right to work check.",
+                "The Authorising Officer approves the certificate in writing, saved to the staff record.",
+                "A Level 1 User assigns it with the job description, salary, hours, working location, CQC registration number and a statement of how the worker meets the care worker immigration status requirement. We pay the certificate fee and the Immigration Skills Charge.",
+                "The HR Manager gives the worker the certificate number and written contract terms before they apply, and directs them to regulated advice if needed.",
+                "Once permission is granted, the HR Manager completes an online right to work check before the sponsored work starts and records the start date."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Pay, hours and fair treatment",
+          "blocks": [
+            {
+              "bullets": [
+                "Each sponsored worker's contract guarantees the weekly hours used to calculate their certificate salary, paid every pay period whether or not visits are available; no sponsored worker is on zero or variable hours.",
+                "Pay is at least the certificate salary and at least the National Minimum Wage for every hour worked, including travel time, paid only into the worker's own bank account and never in cash. Before each payroll is approved, the HR Manager checks each sponsored worker's gross pay against their certificate and corrects any shortfall in that payroll.",
+                "We never recover the licence fee, certificate fee, Immigration Skills Charge or related administrative costs from a sponsored worker, by deduction or otherwise; the Home Office normally revokes a licence for this. We use no repayment clauses for recruitment, relocation, visa or training costs, and provide no tied accommodation.",
+                "Sponsored workers have the same terms, training, supervision, promotion and benefits as other staff. Suggesting that a worker's visa depends on not complaining is a disciplinary matter under the Disciplinary Policy and Procedure. Before we decide any change to a sponsored worker's sponsorship, such as a change of role, hours, salary or location, or ending sponsorship, the HR Manager asks for the formal action check in the Whistleblowing (Speaking Up) Policy.",
+                "When a certificate is assigned, the HR Manager gives the worker written information on their employment rights, the Grievance Policy and Procedure and the Whistleblowing (Speaking Up) Policy and records this in the staff record; the Field Care Supervisor goes through it again at their first supervision. Sponsored workers complete the confidential welfare questionnaire in the Modern Slavery and Human Trafficking Policy.",
+                "Before agreeing unpaid leave or reduced pay, the HR Manager checks the 4-week limit on such absence in a calendar year and tells the worker in writing what it means for their sponsorship.",
+                "When a sponsored worker misses visits without permission, the worker-safety escalation in the Lone Working and Staff Personal Safety Policy comes first, then the no-contact steps in the Sickness Absence Policy: phone contact the same day and a Field Care Supervisor welfare visit on the second day. The Care Coordinator tells the HR Manager the same day so the days are counted for reporting."
+              ]
+            },
+            {
+              "p": "If our licence is suspended or revoked, the Registered Manager meets each sponsored worker within 2 working days, gives them a letter confirming their employment details, and directs them to regulated advice and to the regional care partnership's support for displaced international care workers. We keep employing them for as long as the law allows."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Sponsor reporting and compliance",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What we report and when",
+          "blocks": [
+            {
+              "p": "The HR Manager makes every Home Office report in the table through the SMS and records the event date, report date, reporter and SMS reference in the worker's staff record. Reports that sponsorship has ended, or of unauthorised absence, include the worker's last known address, phone number and personal email. When a sponsored worker resigns or is told their employment will end, the HR Manager explains in writing within 2 working days what this means for their sponsorship and directs them to regulated immigration advice."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Event",
+                  "Deadline in the sponsor guidance",
+                  "Our deadline"
+                ],
+                "rows": [
+                  [
+                    "Worker has not started within 28 days of the latest of the certificate start date, the date their permission is valid from and the date they were told it was granted",
+                    "10 working days after the 28 days",
+                    "5 working days after the 28 days"
+                  ],
+                  [
+                    "Absent without permission for more than 10 consecutive working days",
+                    "10 working days after the 10th day",
+                    "5 working days after the 10th day"
+                  ],
+                  [
+                    "Absent without pay or on reduced pay for more than 4 weeks in total in a calendar year",
+                    "10 working days",
+                    "5 working days"
+                  ],
+                  [
+                    "Salary reduced, or job title, duties or promotion changed within the same occupation code",
+                    "10 working days; a change outside the code needs a new certificate first",
+                    "Checked before the change; reported within 5 working days"
+                  ],
+                  [
+                    "Normal work location changes, such as a move to another branch",
+                    "10 working days",
+                    "5 working days"
+                  ],
+                  [
+                    "Sponsorship ends: resignation, dismissal, early end of contract, settlement or permission on another route",
+                    "10 working days",
+                    "5 working days"
+                  ],
+                  [
+                    "Suspected breach of the worker's conditions",
+                    "To the Home Office as soon as reasonably practicable",
+                    "The same working day"
+                  ],
+                  [
+                    "Information suggesting involvement in terrorism or crime: a police report, not an SMS report (sponsor guidance Part 3, C1.14)",
+                    "To the police as soon as reasonably practicable",
+                    "To the police the same working day, by the Registered Manager"
+                  ],
+                  [
+                    "Change to our organisation: address, branches, Key Personnel, CQC registration status, ownership, merger, size, insolvency or a relevant conviction",
+                    "20 working days",
+                    "10 working days"
+                  ],
+                  [
+                    "Documents requested on an SMS submission sheet",
+                    "5 working days",
+                    "3 working days"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Sponsored worker records",
+          "blocks": [
+            {
+              "p": "For each sponsored worker the HR Manager keeps in the restricted section of the staff record the documents Appendix D of the sponsor guidance lists: right to work checks; date of entry evidence where we sponsored entry clearance; how they were recruited, including evidence of 3 months' work for us where relied on; payslips and evidence of each payment into their bank account; contract; job description; qualifications and registration; National Insurance number; DBS certificate copy; absence record; evidence of the employment rights information given; and a history of their contact details. Sponsored workers tell the HR Manager of a change of address, phone or email within 5 working days. We can produce any sponsored worker's records within 1 working day of a Home Office request, and any right to work check the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Home Office compliance checks",
+          "blocks": [
+            {
+              "p": "The Home Office may check us on site, announced or not, or remotely, and may interview sponsored workers and recruiting staff. Whoever receives a compliance officer checks their identification and tells the Registered Manager or Deputy Manager at once, who tells the Nominated Individual the same day. We co-operate fully. Interviews with sponsored workers take place at our office or by video; we never take an officer into the home of a person we support without their consent. A manager records what was asked and provided, and the outcome goes to the Directors. Non-compliance can lead to a B-rating (a paid action plan, and no new sponsorship until A-rated again), suspension or revocation, which normally ends our sponsored workers' permission. After a civil penalty for illegal working, revocation is likely, with no new licence until at least 12 months after it is paid in full."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Right to work evidence: online check PDF, document copies with the dated record of the check, digital verification output, ECS notices",
+                "Staff record, with expiry dates in the training and compliance records",
+                "Employment plus 2 years, as the Home Office employer's guide requires, then securely deleted, even where the copies also served the DBS identity check"
+              ],
+              [
+                "Decision that an individual engagement is out of scope",
+                "Staff record set up for that individual",
+                "End of the engagement plus 2 years"
+              ],
+              [
+                "Sponsored worker records and SMS report history",
+                "Restricted section of the staff record",
+                "Throughout sponsorship and 1 year after it ends; items that are also staff, payroll or right to work records are kept for their longer period"
+              ],
+              [
+                "Agency written statements, audits and assurances",
+                "Kept by the HR Manager with the agency agreement",
+                "Life of the agreement plus 6 years"
+              ],
+              [
+                "Documents from our sponsor licence application",
+                "Kept by the HR Manager",
+                "For as long as we hold the licence"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Immigration information is seen only by the HR Manager, the Registered Manager, the Deputy Manager, the Nominated Individual and the ID checker who made the check, under the Staff Personal Data and HR Records Policy and the Records Management and Retention Policy. Nothing is deleted while a Home Office enquiry, claim or appeal is open."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Right to work checks: online, manual and digital checks, the ECS, false documents, imposters and avoiding discrimination, including the Home Office online right to work and document fraud courses",
+                "HR Manager, Office staff who check documents, On-call Managers",
+                "Before a first check",
+                "Every 12 months, and within 2 weeks of a change to the Home Office employer's guide"
+              ],
+              [
+                "Sponsor duties, the SMS, reporting, records and fair treatment of sponsored workers",
+                "Nominated Individual, Registered Manager, Deputy Manager, HR Manager",
+                "Before taking or covering a Key Personnel role",
+                "Every 12 months, plus an HR Manager briefing within 10 working days of any sponsor guidance change that affects our duties"
+              ],
+              [
+                "Hour limits, stopped workers, sponsored worker absence, agency ID checks and no substitution",
+                "Care Coordinators, Field Care Supervisors, On-call Managers",
+                "On starting the role",
+                "Every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager or Deputy Manager checks item by item the first 5 right to work checks of each new checker before those workers are cleared, and anyone whose check fails an audit is retrained before checking again. Training is recorded in the training and compliance records. Everyone in the audience for this policy acknowledges it in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Permissions ending in the next 90 days, overdue follow-up checks, open ECS requests and students' weekly hours",
+                "Weekly",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Certificates assigned, SMS reports against our deadlines, and each sponsored worker's pay against their certificate",
+                "Monthly",
+                "HR Manager, reviewed by the Authorising Officer",
+                "Monthly Quality and Governance Meeting; Directors in the quarterly governance report"
+              ],
+              [
+                "Right to work checks in the quarterly audit of 10 new and 5 longer-serving staff files under the Safer Recruitment Policy, target 100%",
+                "Quarterly",
+                "Deputy Manager",
+                "Registered Manager; quarterly governance report"
+              ],
+              [
+                "Every sponsored worker's records against Appendix D, and their pay records",
+                "Every 6 months",
+                "Deputy Manager",
+                "Registered Manager and Nominated Individual"
+              ],
+              [
+                "Sponsored worker welfare questionnaires and their follow-up",
+                "Every 6 months",
+                "Registered Manager",
+                "Annual safeguarding report and modern slavery statement"
+              ],
+              [
+                "Agency written statements, 3 worker files per agency and private conversations with agency workers",
+                "Annually, in November",
+                "HR Manager, with Field Care Supervisors",
+                "Registered Manager"
+              ],
+              [
+                "Independent sponsor compliance audit run as a mock Home Office visit",
+                "Annually, in February, with the report to the Registered Manager by 31 March",
+                "External adviser commissioned by the Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Offers withdrawn or delayed for right to work reasons, by anonymised ethnicity and nationality",
+                "Annually, in the December recruitment equality analysis",
+                "HR Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The HR Manager subscribes to GOV.UK alerts for the employer's guide, the sponsor guidance and statements of changes to the Immigration Rules, assesses each change within 5 working days and tells the Registered Manager what it means; a change to what we must do is made as an urgent change under the Policy Management and Document Control Policy. Every missed or faulty check and late report goes in the incident log, and every audit shortfall goes into the service improvement plan with an action, owner and deadline that the Registered Manager checks at the next audit."
+        },
+        {
+          "p": "This policy is reviewed every 6 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law, the Immigration Rules or Home Office guidance, a civil penalty or compliance finding, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

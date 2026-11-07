@@ -1,0 +1,229 @@
+{
+  "reference": "SUR-PWS-004",
+  "revision": 1,
+  "title": "Visit times and care workers: monthly check-in",
+  "audience": "SERVICE_USER",
+  "respondents": "People we support who agree to a short monthly call; a family member may answer where the person has asked them to handle contact",
+  "summary": "A short, optional monthly check-in on the things visit monitoring cannot fully show: whether visits feel on time, being told about delays, visit length, familiar care workers and being told when someone different is coming. Named, about 6 minutes.",
+  "purpose": "An early-warning check from people themselves, read each month by branch beside the visit monitoring figures on the quality dashboard. Visit monitoring shows when care workers checked in and out; only the person can say whether visits feel on time to them (including early visits), whether they were told about a delay, whether care workers stayed for the agreed time, whether they know who comes and whether they are told before someone different comes. A gap between the two is the finding: for example, the dashboard shows 96% on time but people say Sometimes, so the planned times may not match what people were promised. It uses the same words as the quality check and the annual survey, so results compare, and supports the Missed, Late and Short Visits Procedure, Regulation 12(2)(a) and (b) (assessing and reducing risks to people's health and safety) and Regulation 17(2)(a) and (e) (monitoring quality, including people's experience; seeking and acting on feedback).",
+  "timing": {
+    "when": "Optional, monthly, to a random sample of about a quarter of the people who agree to it; never to anyone with a quality check, review or other survey in the 4 weeks before or after, and never in February",
+    "recurrence": null,
+    "trigger": null
+  },
+  "anonymous": false,
+  "channels": ["PORTAL", "TELEPHONE"],
+  "estimatedMinutes": 6,
+  "cqc": {
+    "keyQuestions": ["SAFE", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Care provision, integration and continuity",
+      "Providing information",
+      "Listening to and involving people",
+      "Learning, improvement and innovation"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how your visits have gone in the last 4 weeks. It takes about 6 minutes.\n\nTaking part is up to you, and what you say will not affect your care. Your answers are linked to your name so we can sort out anything that is not right. Your care workers (carers) will not see them.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to check your visits and improve our care. The law expects us to ask for feedback; our legal reason for using your answers is our legitimate interest in running a good, safe service.\n\nYour answers are linked to your name so we can put things right. They are seen only by our Registered Manager, Deputy Manager, Care Coordinators and the office staff who follow them up, never by your care workers (carers), and reports show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this check-in closes, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them. To do this, or to complain about how we use your information, contact the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about the last 4 weeks. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your visits in the last 4 weeks",
+      "questions": [
+        {
+          "id": "q-ontime",
+          "text": "Do your care workers arrive on time?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "On time means within about half an hour of the time agreed with you. A visit more than half an hour early, unless you agreed to it, is not on time.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing",
+          "comment": {
+            "prompt": "Please tell us more, for example which visits are late or early.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-told-late",
+          "text": "If your care worker is going to be late, does someone let you know?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if your care workers have not been more than half an hour late.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Responsive: Care provision, integration and continuity",
+          "showIf": {
+            "question": "q-ontime",
+            "answers": ["Usually", "Sometimes", "Rarely", "Never"]
+          },
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-staytime",
+          "text": "Do your care workers stay for the time agreed for your visit?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, if your visit is booked for 45 minutes, do they stay that long, unless you ask them to go earlier?",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing",
+          "comment": {
+            "prompt": "Please tell us more, for example which visits are cut short.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-known",
+          "text": "Are you visited by care workers you know?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "We mean your regular care workers, or new ones who have been introduced to you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Care provision, integration and continuity",
+          "comment": {
+            "prompt": "Please tell us more, for example how often someone new comes.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-told-change",
+          "text": "Are you told before a different care worker comes to you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if only your usual care workers came in the last 4 weeks.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Responsive: Care provision, integration and continuity",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything about your visits you would like to tell us?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, a visit time that does not suit you, or a care worker you would like us to thank.",
+          "evidence": "Well-led: Learning, improvement and innovation"
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "This check-in is optional for the organisation and for each person. Offer it to people who agree to a short monthly call. People at higher risk, such as those who live alone with dementia, have face-to-face quality visits instead.",
+      "Each month duplicate last month's check-in (Duplicate) and name it with the month. The Care Coordinator picks about a quarter of the people who agreed, at random, so each person is asked about once a quarter, and sends it to them with Send or schedule, Chosen people. People with a portal account answer there; office staff who are not in the person's core care team phone the rest and enter the answers with Record response, channel Telephone. Never send it to everyone in a branch: that would ask people every month. People who chose text answers can be sent it by text message with their own link: in each month's copy, tick Text message under Send by in Reminders and follow-up (texts go once the organisation has a text message provider set up). By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can send or open a survey: give these to the staff who make these calls; Care Coordinators can only view surveys unless given them.",
+      "Before each call, check the person's survey history in CareFlow: never call anyone who had, or is due, a quality check, care plan review, call or any other survey in the 4 weeks before or after, under the Compliments, Feedback and Involvement Procedure. When you send, CareFlow holds back anyone who had a survey contact in the last 4 weeks and sends them the check-in on their free day if the copy is still open with 3 or more days left; phone only people it has sent it to. Answers you enter with Record response count as a survey contact, as a send does. CareFlow does not know about care plan reviews or anything due in the next 4 weeks, so this check is still needed. Never run it in February, the annual survey month; make January's calls in the first week of January. Close each month's copy after 7 days.",
+      "Read each question, its help text and every answer choice exactly as written, slowly; check the person can hear you and repeat the choices whenever asked. Reading every choice aloud is why it takes about 6 minutes. A family member may answer where the person has asked them to handle contact; record them in CareFlow's \"Who is answering\" field and report their answers separately.",
+      "The questions use the same words as the quality check and the annual survey: never reword them, so results compare. An easy read card for a quality visit may use three answers for the frequency questions (Always or usually; Sometimes; Rarely or never); report those results in their own table.",
+      "Who may open individual answers: office staff who make or follow up the calls, the Care Coordinator and the managers. This is set in Who can see the answers: individual responses are limited to Care Coordinators, the Registered Manager and the Deputy Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who make or follow up the calls."
+    ],
+    "actingOnResults": [
+      "The Care Coordinator reads answers each working day while the month's copy is open and acts on the alerts below.",
+      "Each month the Deputy Manager reports results by branch beside the visit monitoring figures for the same month: visits started within 30 minutes of the planned time (target at least 95%), visits 10 or more minutes short (no more than 5%), visits by the person's core care team (at least 80%) and the visit monitoring audit's \"person told in time\" result. A gap between what people say and what the records show is the finding to explain at the Monthly Quality and Governance Meeting.",
+      "How to count: report the share answering Always or Usually, leaving out Does not apply to me, and show how many people answered each question. The question about being told of delays is asked only of people who did not answer Always to arriving on time: report it with that base. Never report a group of fewer than 5 people separately, flag results resting on fewer than 10, and never report results by care worker.",
+      "The same negative theme from 3 or more people in one branch in a month needs action: the Registered Manager records the reason and an action in the service improvement plan under the Governance and Quality Assurance Policy.",
+      "Keep individual answers for 3 years after each check-in closes under the Records Management and Retention Policy. For CQC, the monthly results beside the visit monitoring figures evidence monitoring late and missed visits within quality assurance and acting on people's feedback (Regulation 17(2)(a) and (e))."
+    ],
+    "alerts": [
+      {
+        "when": "Any comment suggesting abuse, neglect or that someone is at risk.",
+        "action": "Treat as a possible safeguarding concern. Call 999 first if anyone is in immediate danger. Pass it to the safeguarding lead the same working day; the lead assesses the risk within 1 hour and refers to the local authority where needed, immediately if the risk is immediate and otherwise the same working day, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+      },
+      {
+        "when": "A comment describing a missed visit.",
+        "action": "Check at once that the person is safe now and, if the missed visit is not already recorded, enter it in the incident log the same working day, graded at least Medium, and tell the Registered Manager the same day, under the Missed, Late and Short Visits Procedure."
+      },
+      {
+        "when": "A comment describing harm, a missed medicine or essential care left undone.",
+        "action": "Log it in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy; a medicines problem also follows the Medication Errors, Near Misses and Incidents Procedure."
+      },
+      {
+        "when": "\"Do your care workers arrive on time?\", \"Do your care workers stay for the time agreed for your visit?\" or \"Are you visited by care workers you know?\" answered Rarely or Never.",
+        "action": "Within 7 days the Care Coordinator reviews the person's check-in and check-out records and continuity for the last 4 weeks and contacts the person to agree changes to visit times or the core care team; where visits ran 10 or more minutes shorter or longer than planned at 3 or more visits in 2 weeks, they review the visit length with the person in the same 7 days under the Needs Assessment and Care Planning Policy.",
+        "rule": {"task": "Check visit records and continuity", "if": [{"question": "q-ontime", "answers": ["Rarely", "Never"]}, {"question": "q-staytime", "answers": ["Rarely", "Never"]}, {"question": "q-known", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueCalendarDays": 7}
+      },
+      {
+        "when": "\"If your care worker is going to be late, does someone let you know?\" or \"Are you told before a different care worker comes to you?\" answered Rarely or Never.",
+        "action": "The Care Coordinator calls the person within 5 working days. The Deputy Manager checks the branch's \"person told in time\" result in the monthly visit monitoring audit and whether new care workers are introduced before they visit alone, under the Missed, Late and Short Visits Procedure and the Person-Centred Care, Dignity and Respect Policy.",
+        "rule": {"task": "Not told about lateness or a new care worker", "if": [{"question": "q-told-late", "answers": ["Rarely", "Never"]}, {"question": "q-told-change", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "Overall experience answered Poor or Very poor with no particular concern described, or a comment expressing dissatisfaction that needs a response.",
+        "action": "The Care Coordinator contacts the person within 5 working days. Dissatisfaction that needs a response is a complaint: record it the same working day, grade it within 1 working day and acknowledge it within 3 working days under the Complaints Policy and Procedure. If unsure, treat it as a complaint.",
+        "rule": {"task": "Poor experience: contact the person", "if": [{"question": "q-overall", "answers": ["Poor", "Very poor"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5, "record": "COMPLAINT"}
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff or the Care Coordinator, never a member of the person's core care team, contact the person within 5 working days in the way they prefer and record what was agreed.",
+        "rule": {"task": "Asked to be contacted about their answers", "if": [{"question": "q-contact", "answers": ["Yes"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5, "contactRequest": true}
+      },
+      {
+        "when": "A comment praising our service or a named member of staff.",
+        "action": "Record it as a compliment in CareFlow the same working day; the Field Care Supervisor or line manager passes it to each employee named within 5 working days, under the Compliments, Feedback and Involvement Procedure."
+      }
+    ]
+  },
+  "access": {"responses": ["CARE_COORDINATOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER"], "results": ["CARE_COORDINATOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-CD-013",
+    "POL-GOV-006",
+    "POL-CD-001",
+    "POL-CD-002",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-GOV-007",
+    "POL-GOV-017",
+    "POL-MED-014",
+    "POL-SG-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(a) and (b): assess and do all that is reasonably practicable to mitigate risks to people's health and safety",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(a) and (e): assess, monitor and improve quality, including people's experience; seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "NICE NG21 Home care, recommendations 1.4.7 (telling people in advance if staff will change), 1.4.14 (monitoring missed and late visits within quality assurance) and 1.4.15 (contacting the person if a care worker will be late)",
+      "url": "https://www.nice.org.uk/guidance/ng21"
+    },
+    {
+      "source": "NHS England, Using the Friends and Family Test to improve patient experience (version 2): text message collection, and regular feedback from people who stay with a service",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2019/09/using-the-fft-to-improve-patient-experience-guidance-v2.pdf"
+    }
+  ]
+}

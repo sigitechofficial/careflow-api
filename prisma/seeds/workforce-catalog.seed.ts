@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@prisma/client';
 import { CARE_COMPLIANCE_CATALOG } from '../seed-data/care-compliance-catalog';
 import {
-  DEPRECATED_COMPLIANCE_CODES,
+  RETIRED_COMPLIANCE_CODES,
   WORKFORCE_CERTIFICATION_NAMES,
   WORKFORCE_CERT_VALIDITY_MONTHS,
   WORKFORCE_COMPLIANCE_ADDITIONS,
@@ -95,7 +95,7 @@ async function upsertComplianceType(prisma: PrismaClient, t: WorkforceCompliance
   return prisma.complianceType.create({ data: payload });
 }
 
-async function softRetireComplianceByCode(prisma: PrismaClient, code: string) {
+export async function softRetireComplianceByCode(prisma: PrismaClient, code: string) {
   const row = await prisma.complianceType.findFirst({ where: { code, deletedAt: null } });
   if (!row || !row.isActive) return false;
   const retiredAt = new Date();
@@ -110,6 +110,74 @@ async function softRetireComplianceByCode(prisma: PrismaClient, code: string) {
   return true;
 }
 
+/**
+ * Review types (supervision, appraisal, probation…) and skill / certification intervals.
+ * Runs on every deploy (`prisma db seed`), so it only fills gaps: it creates missing review types,
+ * links an existing same-name type to its code, and sets an interval only where none is set.
+ * Names and intervals an admin changed in Settings are never overwritten.
+ */
+export async function seedWorkforceLookupIntervals(prisma: PrismaClient): Promise<{
+  reviewTypesCreated: number;
+  intervalsFilled: number;
+}> {
+  let reviewTypesCreated = 0;
+  let intervalsFilled = 0;
+
+  for (const rt of WORKFORCE_REVIEW_TYPES) {
+    const existing =
+      (await prisma.reviewType.findFirst({ where: { code: rt.code } })) ??
+      (await prisma.reviewType.findFirst({ where: { name: rt.name } }));
+    if (!existing) {
+      await prisma.reviewType.create({
+        data: {
+          name: rt.name,
+          code: rt.code,
+          description: rt.description ?? null,
+          defaultIntervalDays: rt.defaultIntervalDays,
+          scheduleKind: rt.scheduleKind ?? 'REPEATING',
+          firstDueAfterStartDays: rt.firstDueAfterStartDays ?? null,
+          milestoneDays: rt.milestoneDays ?? [],
+          audience: rt.audience ?? 'ALL_STAFF',
+          isActive: true,
+        },
+      });
+      reviewTypesCreated += 1;
+      continue;
+    }
+    const fill: { code?: string; description?: string; defaultIntervalDays?: number } = {};
+    if (!existing.code) fill.code = rt.code;
+    if (!existing.description && rt.description) fill.description = rt.description;
+    // Only a repeating type with no interval yet gets one; milestone and event types keep theirs.
+    if (existing.scheduleKind === 'REPEATING' && existing.defaultIntervalDays == null && rt.defaultIntervalDays != null) {
+      fill.defaultIntervalDays = rt.defaultIntervalDays;
+      intervalsFilled += 1;
+    }
+    if (Object.keys(fill).length) {
+      await prisma.reviewType.update({ where: { id: existing.id }, data: fill });
+    }
+  }
+
+  for (const [name, months] of Object.entries(WORKFORCE_SKILL_REFRESH_MONTHS)) {
+    if (months == null) continue;
+    const { count } = await prisma.skillType.updateMany({
+      where: { name, defaultRefreshMonths: null },
+      data: { defaultRefreshMonths: months },
+    });
+    intervalsFilled += count;
+  }
+
+  for (const [name, months] of Object.entries(WORKFORCE_CERT_VALIDITY_MONTHS)) {
+    if (months == null) continue;
+    const { count } = await prisma.certificationType.updateMany({
+      where: { name, defaultValidityMonths: null },
+      data: { defaultValidityMonths: months },
+    });
+    intervalsFilled += count;
+  }
+
+  return { reviewTypesCreated, intervalsFilled };
+}
+
 export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<WorkforceSeedResult> {
   const complianceTypeDefs = [
     ...CARE_COMPLIANCE_CATALOG,
@@ -119,6 +187,7 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
 
   const typeByCode: Record<string, string> = {};
   for (const t of complianceTypeDefs) {
+    if (t.code && RETIRED_COMPLIANCE_CODES.includes(t.code)) continue;
     const row = await upsertComplianceType(prisma, t);
     if (t.code) typeByCode[t.code] = row.id;
   }
@@ -139,7 +208,7 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
   }
 
   let retiredComplianceCount = 0;
-  for (const code of DEPRECATED_COMPLIANCE_CODES) {
+  for (const code of RETIRED_COMPLIANCE_CODES) {
     if (await softRetireComplianceByCode(prisma, code)) retiredComplianceCount += 1;
   }
 
@@ -223,9 +292,7 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
   const careArea = workAreaByName['Care'];
   if (careArea) {
     for (const t of CARE_COMPLIANCE_CATALOG) {
-      if (DEPRECATED_COMPLIANCE_CODES.includes(t.code as (typeof DEPRECATED_COMPLIANCE_CODES)[number])) {
-        continue;
-      }
+      if (RETIRED_COMPLIANCE_CODES.includes(t.code)) continue;
       await ensureRequirement(t.code, {
         workAreaId: careArea,
         isMandatory: t.isMandatoryByDefault,
@@ -253,23 +320,7 @@ export async function seedWorkforceCatalog(prisma: PrismaClient): Promise<Workfo
     await upsertCertificationType(prisma, name, WORKFORCE_CERT_VALIDITY_MONTHS[name]);
   }
 
-  for (const rt of WORKFORCE_REVIEW_TYPES) {
-    const payload = {
-      name: rt.name,
-      code: rt.code,
-      description: rt.description ?? null,
-      defaultIntervalDays: rt.defaultIntervalDays,
-      isActive: true,
-      deletedAt: null as Date | null,
-    };
-    const byCode = await prisma.reviewType.findFirst({ where: { code: rt.code } });
-    const byName = byCode ?? (await prisma.reviewType.findFirst({ where: { name: rt.name } }));
-    if (byName) {
-      await prisma.reviewType.update({ where: { id: byName.id }, data: payload });
-    } else {
-      await prisma.reviewType.create({ data: payload });
-    }
-  }
+  await seedWorkforceLookupIntervals(prisma);
 
   const [complianceCount, skillCount, certificationCount, reviewTypeCount] = await Promise.all([
     prisma.complianceType.count({ where: { deletedAt: null, isActive: true } }),

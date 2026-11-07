@@ -1,0 +1,621 @@
+{
+  "reference": "POL-HR-002",
+  "revision": 1,
+  "title": "Pre-Employment Checks and DBS Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "The step-by-step procedure for obtaining, verifying and recording every pre-employment check before a new worker is cleared to work: identity and photograph, DBS checks and existing certificates, references and reasons for leaving care work, employment history, qualifications and registration, health, overseas records and the final clearance review, then keeping DBS, registration and declarations current. For the HR Manager, Office staff who check documents and managers who decide and clear.",
+  "keyPoints": {
+    "intro": "These points apply to everyone who carries out, checks or signs off pre-employment checks. Each check is complete only when the evidence is in the staff record and the person who verified it is named.",
+    "points": [
+      "Nobody shadows, visits or contacts a person we support, or is given a key safe code, until every line of the pre-employment checklist is verified and the Registered Manager or Deputy Manager has recorded cleared to work; there is no partial or temporary clearance.",
+      "Open the checklist and send every reference request within 1 working day of the written acceptance, and hold the identity appointment within 5 working days.",
+      "Check identity face to face at the branch office, with the new starter alone and original documents they bring themselves; a video check needs the Registered Manager's approval and originals are still seen before clearance; never check a relative, partner, friend or household member.",
+      "See the original DBS certificate yourself and check the name, date of birth, level, Adult Workforce and the adults' barred list result against the application; a copy or photograph is never accepted.",
+      "If a DBS certificate or status check shows any information, tell only the Registered Manager, the same working day; only the Registered Manager decides what it means.",
+      "Find referees' contact details yourself, phone the published number to verify any reference not received from an organisational email address or on headed paper, and ask every previous care employer why the job ended.",
+      "Every gap of a calendar month or more needs a written explanation that fits the other evidence; an unexplained gap or a discrepancy stops clearance until the Registered Manager has decided.",
+      "Health questionnaires are read only by the HR Manager and the managers who decide adjustments and clearance; tell Care Coordinators the adjustment needed, never the condition.",
+      "Run Update Service status checks only with the worker's recorded consent; a result showing the certificate is no longer current goes to the Registered Manager the same working day.",
+      "If documents look forged or a check shows the candidate is barred, stop the process and tell the Registered Manager the same working day."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Admin",
+    "Manager",
+    "HR"
+  ],
+  "moduleLinks": [
+    "RECRUITMENT",
+    "HR",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-HR-001",
+    "POL-HR-003",
+    "POL-HR-004",
+    "POL-HR-019",
+    "POL-HR-020",
+    "POL-HS-011",
+    "POL-IPC-009",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 19 (fit and proper persons employed)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/19"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 3 (information required in respect of persons employed)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/3"
+    },
+    {
+      "source": "Equality Act 2010, section 60 (enquiries about disability and health)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/60"
+    },
+    {
+      "source": "Disclosure and Barring Service, ID checking guidelines for Standard/Enhanced DBS check applications from 22 April 2025 (updated 6 October 2026)",
+      "url": "https://www.gov.uk/government/publications/dbs-identity-checking-guidelines/id-checking-guidelines-for-standardenhanced-dbs-check-applications-from-22-april-2025"
+    },
+    {
+      "source": "Disclosure and Barring Service, DBS digital identity verification guidance (updated 6 October 2026)",
+      "url": "https://www.gov.uk/government/publications/dbs-identity-checking-guidelines/dbs-digital-identity-verification-guidance"
+    },
+    {
+      "source": "Disclosure and Barring Service, DBS checks for adult social care roles (updated 17 September 2026)",
+      "url": "https://www.gov.uk/government/publications/dbs-guidance-leaflets/dbs-checks-for-adult-social-care-roles"
+    },
+    {
+      "source": "Disclosure and Barring Service, DBS Update Service employer guide (updated 5 October 2026)",
+      "url": "https://www.gov.uk/government/publications/dbs-update-service-employer-guide/dbs-update-service-employer-guide"
+    },
+    {
+      "source": "GOV.UK, DBS Update Service",
+      "url": "https://www.gov.uk/dbs-update-service"
+    },
+    {
+      "source": "Disclosure and Barring Service, DBS filtering guide (updated 11 September 2026)",
+      "url": "https://www.gov.uk/government/publications/dbs-filtering-guidance/dbs-filtering-guide"
+    },
+    {
+      "source": "Police Act 1997, section 124 (offences: disclosure)",
+      "url": "https://www.legislation.gov.uk/ukpga/1997/50/section/124"
+    },
+    {
+      "source": "Disclosure and Barring Service, Handling of DBS certificate information",
+      "url": "https://www.gov.uk/government/publications/handling-of-dbs-certificate-information/handling-of-dbs-certificate-information"
+    },
+    {
+      "source": "GOV.UK, Report a problem about a criminal record check: dispute a mistake on a certificate",
+      "url": "https://www.gov.uk/report-problem-criminal-record-certificate/dispute-a-mistake"
+    },
+    {
+      "source": "Home Office, Criminal records checks for overseas applicants",
+      "url": "https://www.gov.uk/government/publications/criminal-records-checks-for-overseas-applicants"
+    },
+    {
+      "source": "Home Office, Employer's guide to right to work checks (1 October 2026): retaining copies for employment plus 2 years",
+      "url": "https://www.gov.uk/government/publications/right-to-work-checks-employers-guide"
+    },
+    {
+      "source": "GOV.UK, Report Fraud: new service from City of London Police (4 December 2025)",
+      "url": "https://www.gov.uk/government/news/report-fraud-new-service-from-city-of-london-police"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} completes every pre-employment check fully, in the same way for every person, and verifies what it is told rather than taking it on trust. This procedure sets out the steps we follow, under the Safer Recruitment Policy, from a candidate accepting a conditional offer until a manager records them as cleared to work, and how we keep their checks current afterwards."
+        },
+        {
+          "p": "A check is complete only when the evidence is in the staff record with the verifier's name and date, and anything of concern has a recorded decision. No check is shortened or skipped to fill a rota."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure makes sure that each Schedule 3 item, and each further check the Safer Recruitment Policy requires, is verified and recorded in CareFlow by a named role within a set time, and that DBS information is handled as DBS requires."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone the Safer Recruitment Policy requires us to check: new employees in every role, bank staff, returners, staff moving to a role needing a higher DBS check, and volunteers. For agency workers and students it applies to the confirmations we check from the agency or college, and for contractors to the identity and DBS checks the Safer Recruitment Policy sets for them."
+        },
+        {
+          "p": "It does not cover recruitment before the offer or the standard each check must meet (Safer Recruitment Policy); right to work checks and follow-ups (Right to Work and Sponsored Workers Policy); induction and probation (Induction and Care Certificate Procedure); concerns after appointment and referrals to the DBS or a regulator (Staff Fitness Concerns and DBS Referrals Procedure); driving documents (Driving at Work Policy); or vaccination (Staff Vaccination and Immunisation Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Umbrella body",
+                "The DBS registered body we use to submit and countersign our DBS applications electronically. It also provides our digital and external identity verification services."
+              ],
+              [
+                "ID checker",
+                "The HR Manager, or an Office staff member trained in document checking, who verifies a new starter's identity for the DBS application and the staff record."
+              ],
+              [
+                "Original document",
+                "The physical document itself, an eVisa viewed through the Home Office online service, or a digital PASS card whose QR code has been checked. A photocopy, scan, printout or photograph is never an original."
+              ],
+              [
+                "Option and route",
+                "The option is how documents are viewed: Option One in person; Option Two by live video link with the original documents sent to us; Option Three by live video link with the originals examined later. The route (1, 2 or 3) is the combination of documents used."
+              ],
+              [
+                "Status check",
+                "A free online check through the DBS Update Service, made with the worker's consent, showing whether new information has been recorded since their certificate was issued."
+              ],
+              [
+                "Pre-employment checklist",
+                "The list of checks in the new starter's staff record. Each line shows the evidence uploaded, the outcome, and the name of the person who verified it and the date."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager decides every case of information of concern found by these checks, approves any use of identity Option Two, Option Three or Route 3, agrees adjustments advised by occupational health, signs clearance to work, and acts the same working day on any status check showing that a certificate is no longer current."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out the Registered Manager's duties under this procedure when the Registered Manager is absent or has a conflict of interest, and audits files under the Monitoring and review section."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual reviews the file and signs clearance for Registered Manager and Deputy Manager appointments, and gives the approvals the Safer Recruitment Policy requires when information of concern is relevant to the role."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager owns each new starter's checklist from acceptance to clearance, carries out or allocates each check, chases every outstanding item and presents the completed file for clearance. After appointment the HR Manager runs status checks, registration checks and repeat DBS checks and tracks their due dates in the training and compliance records. The HR Manager never decides on information of concern and never signs clearance."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff",
+          "blocks": [
+            {
+              "p": "Office staff trained in document checking may carry out identity appointments and send reference requests. They never open the restricted section of the staff record and never see DBS certificate content or health information."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Managers",
+          "blocks": [
+            {
+              "p": "Care Coordinators, and the On-call Manager when covering visits out of hours, check that the staff record shows cleared to work before allocating any shadow shift or visit or giving anyone a key safe code."
+            }
+          ]
+        },
+        {
+          "heading": "New starters and employees",
+          "blocks": [
+            {
+              "p": "New starters provide original documents and complete the DBS application honestly within the timescales below. Employees keep their Update Service subscription active, consent to status checks and report the matters listed in the Safer Recruitment Policy before their next shift."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Starting the checks",
+      "blocks": [
+        {
+          "p": "The checks letter sent to the new starter alongside the reference and reason-for-leaving requests lists the documents to bring, the DBS application link, how to join the Update Service, the self-declaration and, if not yet returned, the health questionnaire. The HR Manager updates the new starter at least weekly until clearance."
+        },
+        {
+          "table": {
+            "columns": [
+              "Step",
+              "Timescale",
+              "Who"
+            ],
+            "rows": [
+              [
+                "Checklist opened, checks letter and reference requests sent",
+                "Within 1 working day of written acceptance",
+                "HR Manager"
+              ],
+              [
+                "Identity and right to work appointment",
+                "Within 5 working days of acceptance",
+                "ID checker"
+              ],
+              [
+                "Online DBS application completed",
+                "Within 3 working days of receiving the link",
+                "New starter"
+              ],
+              [
+                "DBS application verified and submitted to the umbrella body",
+                "Within 1 working day of both the identity appointment and the completed application",
+                "HR Manager"
+              ],
+              [
+                "References and reason-for-leaving requests chased",
+                "After 5 and 10 working days; alternative referee requested after 15 working days",
+                "HR Manager"
+              ],
+              [
+                "Health questionnaire reviewed; occupational health referral where needed",
+                "Within 2 working days of receipt",
+                "HR Manager"
+              ],
+              [
+                "Original DBS certificate shown",
+                "Within 5 working days of the new starter receiving it",
+                "New starter"
+              ],
+              [
+                "Clearance review",
+                "Within 1 working day of the complete file being presented",
+                "Registered Manager or Deputy Manager"
+              ],
+              [
+                "Target clearance; review if not complete",
+                "4 weeks from acceptance; joint review at 6 weeks",
+                "HR Manager and Registered Manager"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Identity and photograph",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The identity appointment",
+          "blocks": [
+            {
+              "p": "The same evidence serves the DBS application and the staff record. An ID checker who is a relative, partner or personal friend of the new starter, or lives in their household, hands the appointment to another ID checker."
+            },
+            {
+              "steps": [
+                "Meet the new starter face to face at the branch office (Option One) and examine the original documents in their presence. The new starter attends alone; only a professional interpreter we booked or a supporter agreed as a reasonable adjustment may join, and documents brought by anyone else are not accepted.",
+                "Use Route 1 wherever possible: one Group 1 document, such as a passport or photocard driving licence, plus two further documents from Group 1, 2a or 2b. The guidelines require the documents together to confirm the name and date of birth, and each document type counts only once; our rule is that at least one also shows the current address.",
+                "Check each document: the photograph matches the person; there is no damage, alteration or substitution around the photograph, name or dates; a UK driving licence number matches the name, sex and date of birth; dates are valid; and each Group 2b document is within the validity period the guidelines set.",
+                "Check the names and 5-year address history on the DBS application against the documents and the employment history. Ask about every discrepancy, missing middle name or change of name, and see evidence of the change, such as a marriage certificate or deed poll. Never alter the application without the new starter's agreement.",
+                "With the new starter's consent, take a head-and-shoulders photograph against a plain background. This is the recent photograph Schedule 3 requires and the photograph on the ID badge the care worker shows at every doorstep.",
+                "Scan each document in colour and upload it to the staff record marked original seen, with the date, the ID checker's name, the option and route used and any discrepancy discussed."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Other routes and options",
+          "blocks": [
+            {
+              "p": "Route 2 is used only when the new starter has no Group 1 document: one Group 2a document and two further documents from Group 2a or 2b, plus a pass result from the umbrella body's external identity verification service, which is saved to the staff record; a fail result moves the check to Route 3. Route 3 is used only when Routes 1 and 2 are impossible and the Registered Manager approves. If identity still cannot be established, the umbrella body arranges fingerprint consent and a police station appointment, and the Registered Manager reviews the identity evidence again at clearance."
+            },
+            {
+              "p": "Option Two or Option Three is used only when an in-person appointment is genuinely not practical, for example for a new starter relocating from another part of the country, and only with the Registered Manager's approval. The ID checker records the reasons specific to that person and, for Option Three, records the document details during the call. Whatever option is used, the ID checker meets the new starter in person and examines the original documents before clearance. Our rule is that this is never left to the first day of employment, although the guidelines allow it exceptionally."
+            },
+            {
+              "p": "A new starter may instead use the umbrella body's digital verification service where it is certified for DBS checks at the high level of confidence. The result is saved to the staff record, and the ID checker still meets the new starter and sees the original documents before clearance."
+            }
+          ]
+        },
+        {
+          "heading": "Suspected false identity",
+          "blocks": [
+            {
+              "p": "If a document appears forged or altered, or the person does not match it, the ID checker does not submit the DBS application, keeps the scanned evidence, makes no accusation, and tells the Registered Manager the same working day. The Registered Manager reports it to the police through Report Fraud (which replaced Action Fraud, still named in the DBS guidelines) and to the Home Office, as the Safer Recruitment Policy requires. If the concern arises after submission, the HR Manager tells DBS customer services and the umbrella body the same day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "DBS checks",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Applying",
+          "blocks": [
+            {
+              "p": "The HR Manager applies through the umbrella body at the level set for the role in the Safer Recruitment Policy. For care and management roles the application states the job title as the position, the Adult Workforce, and a check of the adults' barred list. For other roles the HR Manager uses the eligibility decision recorded when the vacancy was approved. We pay the fee. The HR Manager asks the new starter to join the DBS Update Service when they complete the application, using its application reference, or at the latest within 30 days of the certificate's issue date, the deadline DBS sets; we reimburse the annual fee."
+            },
+            {
+              "p": "The HR Manager checks the progress of every open application weekly through the umbrella body. If no certificate has been issued 4 weeks after submission, the HR Manager asks the umbrella body to raise it with DBS and tells the Registered Manager. A DBS Adult First result is never used to start anyone early."
+            }
+          ]
+        },
+        {
+          "heading": "Checking the certificate",
+          "blocks": [
+            {
+              "p": "DBS sends the certificate only to the new starter, who brings the original paper certificate to the HR Manager. The HR Manager checks that the name, date of birth and address match the identity evidence, that the certificate is enhanced, names the position we applied for and the Adult Workforce, includes the adults' barred list result, was issued after our application was submitted and shows no sign of alteration."
+            },
+            {
+              "p": "The HR Manager records the certificate number, issue date and result on the checklist and uploads a copy to the restricted section of the staff record. Where any section shows information, the HR Manager discusses it with nobody else and tells the Registered Manager the same working day. The Registered Manager decides under the Safer Recruitment Policy, after giving the candidate the chance to explain. A barred result means the Registered Manager withdraws the offer and reports the application to the police the same working day."
+            },
+            {
+              "p": "We never ask about, record or take into account a caution or conviction that the DBS filtering rules protect. If a candidate mentions one, the Registered Manager disregards it and it is not written down."
+            },
+            {
+              "p": "A candidate who says information on the certificate is wrong may dispute it with DBS within 3 months of the date on the certificate; the HR Manager gives them the dispute route. We do not clear the candidate while a dispute about information relevant to the decision is open."
+            }
+          ]
+        },
+        {
+          "heading": "Accepting an existing certificate",
+          "blocks": [
+            {
+              "p": "We accept a certificate issued for another employer only when all of the conditions in the Safer Recruitment Policy are met. The HR Manager:"
+            },
+            {
+              "steps": [
+                "completes the identity appointment as for every new starter;",
+                "sees the original certificate in person and confirms that it is an enhanced certificate for the Adult Workforce only, with the adults' barred list result, that we are entitled to the same level and workforce for the role and that the name and date of birth match the identity evidence (one also covering the Child Workforce is not accepted);",
+                "records the worker's written consent to status checks in the staff record;",
+                "runs the status check using the certificate number and the worker's current surname and date of birth, and saves the result to the restricted section;",
+                "accepts the certificate only if the result shows it is still current. Information shown on the certificate itself goes to the Registered Manager as for a new certificate. If the result shows the certificate is no longer current, or the details still do not match after re-entry, a new DBS application is made the same working day and the existing certificate is not relied on."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "References and previous care work",
+      "blocks": [
+        {
+          "p": "The Safer Recruitment Policy sets how many references we need and from whom; we obtain and verify them as follows."
+        },
+        {
+          "steps": [
+            "Find the referee's organisation independently, from its website or published switchboard, and send our standard reference request to an organisational email address. Never rely only on contact details the candidate supplied.",
+            "Accept a reference as received only when it arrives from an organisational email address or on headed paper signed by a named manager or HR officer. Otherwise phone the organisation's published number to confirm that the referee exists, holds that role and sent the reference, and record the call on a dated file note.",
+            "For every previous job in health or social care, or with children or adults at risk, whether or not that employer is a referee, ask the employer to confirm the dates and the reason the job ended. Where the work was through an agency, ask the agency.",
+            "If an employer gives only dates and job title, ask a second contact in that organisation, such as the line manager, for information on conduct. If none is given, obtain a further reference covering conduct from another manager or employer and tell the Registered Manager.",
+            "Compare each reference with the application and the interview record: dates, job titles, reasons for leaving and any concern. Ask the candidate about every discrepancy and pass any unresolved discrepancy or concern to the Registered Manager the same working day.",
+            "Where an employer has closed or does not reply after chasing, record every attempt. An alternative referee never replaces the most recent care employer's reference; without it the candidate is not cleared unless that employer has closed. For earlier care employers, the Registered Manager decides at clearance, on the record, whether the reason for leaving has been verified as far as reasonably practicable."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Employment history and gaps",
+      "blocks": [
+        {
+          "p": "The HR Manager builds a month-by-month timeline in the checklist from the application, references, the 5-year address history, identity documents and qualification dates. Every gap of a calendar month or more must have a written explanation signed by the candidate. Where evidence is available it is checked: study against a certificate or college letter, and periods abroad against the overseas criminal record rule below. Caring, unemployment and similar periods are accepted on the written explanation when it fits the other evidence."
+        },
+        {
+          "p": "A gap that remains unexplained, or an explanation that conflicts with other evidence, is information of concern and goes to the Registered Manager; the candidate is not cleared until it is decided."
+        }
+      ]
+    },
+    {
+      "heading": "Qualifications and professional registration",
+      "blocks": [
+        {
+          "p": "The HR Manager sees the original certificate for every qualification the role requires or the appointment relied on, or obtains confirmation from the awarding body, and uploads the evidence. A Care Certificate or diploma from a previous employer is recorded here; the Induction and Care Certificate Procedure decides how it counts towards induction."
+        },
+        {
+          "p": "For any role that requires professional registration, and for anyone who tells us they hold or have held registration with the Nursing and Midwifery Council, the Health and Care Professions Council or Social Work England, the HR Manager checks the regulator's online register before clearance and saves a dated record. Any condition, suspension, caution or interim order goes to the Registered Manager before clearance. Nobody works in a role requiring registration while their registration has lapsed."
+        }
+      ]
+    },
+    {
+      "heading": "Health and fitness for the role",
+      "blocks": [
+        {
+          "p": "The Equality Act 2010 prevents us asking about health before an offer except for limited purposes, so the health questionnaire is sent with the offer letter and returned in confidence to the HR Manager before the start date."
+        },
+        {
+          "steps": [
+            "The HR Manager reviews the questionnaire within 2 working days of receipt and clarifies any answer with the new starter privately by phone.",
+            "Within the same 2 working days, the HR Manager refers the new starter, with their written consent, to our occupational health provider where an answer suggests a condition that may affect a task intrinsic to the role, such as moving and handling, lone working, night work or driving, where infection history or immunisation needs advice under the Staff Vaccination and Immunisation Policy, or where the new starter asks for adjustments that need advice.",
+            "The Registered Manager agrees any adjustments with the new starter and records them in the restricted section of the staff record. The Care Coordinator and Field Care Supervisor are told only the adjustment, such as no night visits, never the condition.",
+            "The health line of the checklist is complete when the questionnaire has been reviewed and any occupational health advice has been received and acted on."
+          ]
+        },
+        {
+          "p": "Health questionnaire answers and occupational health advice are seen only by the HR Manager, the Registered Manager, the Deputy Manager and, when clearing those two posts, the Nominated Individual. No offer is withdrawn on health grounds without occupational health advice and the Registered Manager's written consideration of reasonable adjustments. Vaccination is not a condition of employment."
+        }
+      ]
+    },
+    {
+      "heading": "Other checks before clearance",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How we carry it out"
+            ],
+            "rows": [
+              [
+                "Overseas criminal record",
+                "Where the Safer Recruitment Policy's overseas rule applies, the HR Manager gives the new starter the Home Office country guidance. The new starter applies to each country and we reimburse the fee. Each certificate must be issued after they last lived there; certificates not in English are professionally translated at our cost. If none can be obtained, the HR Manager records each attempt and the Registered Manager completes the risk assessment and obtains the reference the policy requires."
+              ],
+              [
+                "Right to work",
+                "Checked at the identity appointment, before any work including paid induction training, under the Right to Work and Sponsored Workers Policy."
+              ],
+              [
+                "Driving",
+                "For roles that require driving, licence and business insurance checks under the Driving at Work Policy, completed before any driving duties."
+              ],
+              [
+                "Self-declaration",
+                "Signed in front of the ID checker or HR Manager before clearance, with the worker's written consent to Update Service status checks where they subscribe."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Presenting the file and clearance",
+      "blocks": [
+        {
+          "steps": [
+            "The HR Manager confirms that every line of the checklist is complete, with evidence and the verifier's name and date, and that any information of concern has a recorded decision from the Registered Manager and, where required, the Nominated Individual.",
+            "The HR Manager presents the file to the Registered Manager or Deputy Manager, or to the Nominated Individual for those two posts. The reviewer must not have carried out any of the checks in that file.",
+            "Within 1 working day the reviewer reads the whole file, including how each reference was verified, the timeline and gap explanations, the DBS certificate or status check, and any risk assessment and safeguards.",
+            "The reviewer either records cleared to work with the date in the staff record, or returns the file to the HR Manager listing what is missing.",
+            "The HR Manager tells the new starter and the Care Coordinator the same working day, and confirms the start date and induction plan.",
+            "Any safeguards attached to the appointment are recorded in the staff record and the supervision records and reviewed at the end of probation."
+          ]
+        },
+        {
+          "p": "There is no partial, conditional or temporary clearance. Office-based induction before clearance is allowed only on the conditions in the Safer Recruitment Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Keeping checks up to date",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "When",
+              "Who",
+              "If it cannot be done or shows a concern"
+            ],
+            "rows": [
+              [
+                "Update Service status check",
+                "Every 12 months from the certificate issue date, and when a concern is raised; worker reminded 30 days before their subscription renewal date",
+                "HR Manager, with the worker's recorded consent",
+                "Subscription lapsed: new DBS application within 2 working days at our cost; the worker signs a new self-declaration and continues on the existing certificate meanwhile. Certificate no longer current: as set out below."
+              ],
+              [
+                "New enhanced DBS check for workers not subscribed",
+                "Every 3 years; application started 8 weeks before the third anniversary of issue",
+                "HR Manager",
+                "Overdue: Registered Manager told and the application submitted within 2 working days"
+              ],
+              [
+                "Professional registration",
+                "Every 12 months and on each renewal or revalidation date",
+                "HR Manager",
+                "Lapsed: worker stops work requiring registration the same day and the Care Coordinator reallocates those visits. New condition or sanction: Registered Manager told the same day"
+              ],
+              [
+                "Self-declaration",
+                "Every year at appraisal",
+                "The manager or Field Care Supervisor carrying out the appraisal, under the Supervision, Spot Checks and Appraisal Policy",
+                "Anything declared: Registered Manager told the same working day"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "When a status check shows a certificate is no longer current, the Registered Manager decides the worker's duties the same day on a written risk assessment and speaks to them within 1 working day; the HR Manager requests an early barred list confirmation the same day and submits a new DBS application within 2 working days. Any new certificate after appointment is shown in the original to the HR Manager within 5 working days of receipt and checked as for a new starter. This, other new information about suitability, and a refusal of a new check or of consent to status checks are handled under the Staff Fitness Concerns and DBS Referrals Procedure. If a worker is removed from visits, the Care Coordinator is told only that they are unavailable and reallocates their visits before they are due."
+        },
+        {
+          "p": "Status checks stop when the worker leaves, moves to a role not eligible for the same level and workforce of check, or withdraws consent, as the DBS Update Service rules require."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Check evidence is held in the staff record, with DBS certificate copies, status check and early confirmation results, risk assessments and health information in its restricted section. Retention and access follow the Safer Recruitment Policy, the Staff Personal Data and HR Records Policy and the Records Management and Retention Policy. Scans of documents used for the right to work check are securely deleted at employment plus 2 years, as the Right to Work and Sponsored Workers Policy requires, even where they also served the identity check. The identity check record (document types and numbers, option and route, the reasons for any video or digital check, the date and the ID checker) is kept for employment plus 6 years. Where a candidate does not start after their DBS application was submitted, the identity check record alone is kept for 2 years from submission, the minimum the DBS ID checking guidelines set, and the rest of their record is deleted on the Safer Recruitment Policy timescale. DBS certificate information is never passed to anyone outside the four roles the Safer Recruitment Policy permits. The DBS handling guidance states that passing it to anyone not entitled to receive it is a criminal offence under section 124 of the Police Act 1997; we apply that to every copy and record we hold. When a certificate copy is deleted at the end of employment, only the details the DBS handling guidance allows are kept."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "p": "Before carrying out a first identity check, every ID checker completes our document checking training, which covers the DBS ID checking guidelines, and the umbrella body's ID checker training. The refresher is every 12 months, and within 2 weeks of a change to the DBS ID checking guidelines or the Home Office employer's guide. The first 5 files completed by a new HR Manager or Office staff member are checked item by item as the Safer Recruitment Policy sets out."
+        },
+        {
+          "p": "Everyone in the audience for this procedure acknowledges it in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every open checklist: items past the timescales in this procedure, chased and listed",
+                "Weekly",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Status checks, repeat DBS checks and registration checks due in the next 60 days or overdue",
+                "Monthly, in the recruitment report",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Files against this procedure, including identity options and routes, reference verification, reasons for leaving and status check consent, target 100%",
+                "Quarterly, within the file audit set by the Safer Recruitment Policy",
+                "Deputy Manager",
+                "Registered Manager; quarterly governance report to the Directors"
+              ],
+              [
+                "Compliance queries or audits from the umbrella body or DBS",
+                "When received",
+                "HR Manager",
+                "Registered Manager the same day; answered by the deadline given"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is recorded with an action, an owner and a deadline, and the Registered Manager checks completion at the next audit."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or in DBS or Home Office guidance, a serious incident involving a member of staff, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

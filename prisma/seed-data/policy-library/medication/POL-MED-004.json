@@ -1,0 +1,298 @@
+{
+  "reference": "POL-MED-004",
+  "revision": 1,
+  "title": "Self-Administration of Medicines Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we support people to manage their own medicines safely: the self-administration risk assessment, partial self-administration in the care plan and eMAR, family-managed medicines, lockable storage, the strict rules on leaving doses out, what care workers report, helping people take medicines back, and review.",
+  "keyPoints": {
+    "intro": "Many people we support manage some or all of their own medicines. This tells you what you may and may not do with those medicines, what to look out for and who to tell: the office, or the On-call Manager out of hours.",
+    "points": [
+      "Where the care plan says the person manages a medicine themselves (Level 0), never take it over: do not select, prepare, give or apply it. Give only the support the care plan records for each medicine.",
+      "If the person or a relative asks you to help with a medicine they manage, or the person wants to do more for themselves, do not change what you do. Phone the office: any change must be assessed and agreed first.",
+      "Phone the office before you leave if the person seems unsure what their medicines are for or whether they took them, doses are left over or running out early, or medicines are hidden, stockpiled or taken by someone else.",
+      "If you think the person has taken too much, or talk about taking an overdose, call 999 straight away, stay with them, then phone the office.",
+      "Where the care plan sets a self-administration check, ask the person, or look at the pack with their agreement, and record Self Medicated, noting whether you saw it or were told and when it was taken. Never record Given.",
+      "Before giving a medicine whose timing depends on a dose the person or family gave, such as paracetamol, ask when it was taken, and phone the office if nobody knows. The eMAR shows when it was recorded, not taken.",
+      "If a check shows a dose has not been taken, do not prompt or give it. Record Not Given / Missed with a note and phone the office before you leave.",
+      "Never handle doses in a pill organiser filled by anyone other than the pharmacy, such as the person or their family. Where the care plan says so, you may remind the person to take them; record the reminder in the daily visit notes.",
+      "Never leave a dose out unless the care plan has an approved leave-out arrangement for that medicine. Then leave only that dose as it describes, and record it on the eMAR as Other with the note 'Left out'.",
+      "At the next visit, check whether a left-out dose was taken. If it is still there, or the person cannot say whether they took it, do not give it: seal it for return to the pharmacy and phone the office before you leave.",
+      "Where there is a medicines box, lock it after every use and never share the code. Never lock away a reliever inhaler, angina spray or adrenaline auto-injector the person may need urgently."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["Manager", "Care Coordinator", "Senior Carer/Nurse", "Carer/Domestic"],
+  "moduleLinks": ["MEDICATION", "RISK_ASSESSMENT", "CARE_PLAN", "INITIAL_ASSESSMENT"],
+  "relatedReferences": ["POL-MED-001", "POL-MED-002", "POL-MED-003", "POL-MED-005", "POL-MED-012", "POL-CD-004", "POL-CD-016", "POL-HS-002"],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9 Person-centred care, including 9(3)(a), (b), (d) and (e) designing care with the person and giving them opportunities to manage their own care",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(a), (b), (c) and (g)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 Safeguarding service users from abuse and improper treatment, including 13(4)(b) control or restraint that is not necessary or proportionate",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1 The principles",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), summarising NICE guideline NG67 Managing medicines for adults receiving social care in the community, including focusing assessment on how the person can be supported to manage their own medicines, reasonable adjustments to packaging under the Equality Act 2010 and family-filled compliance aids",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    },
+    {
+      "source": "NICE and SCIE quick guide, Discussing and planning medicines support: a quick guide for home care managers providing medicines support (2018, based on NICE guideline NG67)",
+      "url": "https://bswtogether.org.uk/medicines/wp-content/uploads/sites/3/2018/01/Discussingandplanningmedicinessupportquickguide-1.pdf"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "{{organisation}} believes that people should manage their own medicines whenever they want to and can do so safely, as part of keeping control of their lives. We take on only what a person cannot safely manage, make sure the medicines they keep for themselves are managed safely, and keep looking for ways to hand responsibility back." },
+        { "p": "The law requires us to design care with the person and give them opportunities to manage their own care (Regulation 9 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014), to assess the risks of care and manage medicines safely (Regulation 12), and to assume a person has capacity unless it is established that they lack it, never treating an unwise decision as a lack of capacity (Mental Capacity Act 2005, section 1). NICE guideline NG67 asks providers to focus the medicines assessment on how the person can be supported to manage their own medicines." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "bullets": [
+          "Every medicine a person manages has a recorded self-administration risk assessment with agreed controls.",
+          "Care workers know which medicines are the person's, which we support, and what to report.",
+          "Lockable storage and leaving doses out are used only where necessary and approved.",
+          "People are helped to take back their medicines safely."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This procedure applies to every person we support who manages any of their medicines themselves or with their family (Level 0), or wants to take a medicine back, and to managers, medicines assessors (Care Coordinators, Field Care Supervisors and authorised On-call Managers), Senior Care Workers and Care Workers, including bank and agency workers." },
+        { "p": "It adds the self-administration detail to the Medicines Management Policy and the Assessing Medicines Support Needs Procedure. It does not cover consent, capacity and declined doses (Consent, Mental Capacity and Declined Medicines Policy), setting up and correcting eMAR entries (Medicines Administration Records (MAR and eMAR) Procedure), ordering, collection and disposal where we have those tasks (Ordering, Collecting, Storing and Disposing of Medicines Procedure), or a person's informed choice to accept a risk (Positive Risk-Taking Policy)." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Partial self-administration", "The person manages some medicines (Level 0) while we support others at Level 1, 2 or 3."],
+          ["Family-managed medicine", "A Level 0 medicine that an adult relative or friend orders, prepares or gives by agreement with the person."],
+          ["Self-administration risk assessment", "The individual risk assessment in CareFlow recording, for each medicine the person manages or wants to manage, their abilities, the risks, the controls and how we monitor."],
+          ["Self-administration check", "An agreed check at named visits, recorded on the eMAR, that a Level 0 medicine has been taken, made without handling the medicine."],
+          ["Leave-out arrangement", "An approved exception to our rule that doses are never left out, under which a care worker prepares the next single dose of a named medicine for the person to take later."]
+        ] } },
+        { "p": "Levels of support, pharmacy and named contact have the meanings in the Medicines Management Policy." }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            { "p": "Fund lockable medicines boxes and visit time for checks, and challenge the self-administration figures in the quarterly medicines governance report." }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            { "bullets": [
+              "The Registered Manager is accountable for this procedure as medicines lead. The Registered Manager or Deputy Manager approves before first use every leave-out arrangement and every lockable storage arrangement that limits the person's own access.",
+              "The Registered Manager authorises interim increases in support and decides whether support can continue when a person declines recommended extra support. The Deputy Manager carries out the monthly audits in Monitoring and review."
+            ] }
+          ]
+        },
+        {
+          "heading": "Care Coordinator and Field Care Supervisor",
+          "blocks": [
+            { "bullets": [
+              "As authorised medicines assessors, complete and review self-administration risk assessments, write the medicines section of the care plan, set up self-administration checks and leave-out entries on the eMAR with a second check, and run take-back trials.",
+              "The Care Coordinator arranges aids and lockable storage, acts the same day on every self-administration concern reported to the office, and briefs care workers on changes before their next visit."
+            ] }
+          ]
+        },
+        {
+          "heading": "On-call Manager and Office staff",
+          "blocks": [
+            { "p": "Record calls about self-administered medicines, obtain NHS 111 advice and authorise interim increases in support out of hours, and hand decisions over to the Registered Manager or Deputy Manager by 10am the next working day." }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            { "p": "Never take over a Level 0 medicine, carry out checks and leave-out arrangements exactly as the care plan sets out, and phone the office before leaving about anything in What care workers look out for and report." }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Self-administration as the starting point",
+      "blocks": [
+        { "p": "At every medicines assessment and review, the assessor sets Level 0 for each medicine the person wants to manage and the self-administration risk assessment shows they can manage safely, with aids if needed." },
+        { "p": "Before increasing support because of a practical difficulty, the assessor looks for a change that would let the person carry on. The Care Coordinator asks the pharmacy for easy-open tops, large-print labels or an eye drop aid (NICE NG67 notes that supplying pharmacies and dispensing doctors must make reasonable adjustments to packaging under the Equality Act 2010), asks the prescriber whether the regimen can be simplified or an easier device supplied, and arranges reminder charts or telecare reminders under the Technology-Enabled Care and Telecare Policy." },
+        { "p": "A person with capacity may decide to manage a medicine against our advice. The assessor explains the risks and alternatives and records the decision and agreed controls in a plan approved as the Positive Risk-Taking Policy requires before it is relied on." },
+        { "p": "Where there is reason to doubt the person's capacity to decide this, it is assessed under the Consent, Mental Capacity and Declined Medicines Policy. Capacity is decision-specific: a person who cannot manage tablets may still manage a cream or inhaler, and any best interests decision keeps the medicines they can manage at Level 0." }
+      ]
+    },
+    {
+      "heading": "The self-administration risk assessment",
+      "blocks": [
+        { "p": "An authorised medicines assessor completes the self-administration risk assessment in CareFlow, face to face with the person and their medicines, involving family only with the person's agreement and asking them to show, where safe, what they can do. It is completed at the medicines assessment visit for every medicine the person manages or wants to manage, before the care plan is approved. At a short-notice start it is completed at the first visit only where the assessor has no doubt; otherwise the higher level is set and the assessment is completed at the full home review within 7 days." },
+        { "table": { "columns": ["Area", "What the assessor checks"], "rows": [
+          ["Wishes", "Whether the person wants to manage each medicine, and the aids or reminders they would like."],
+          ["Understanding", "What each medicine is for, how much to take and when, what to do after a missed or extra dose, which side effects to report, and whether they can tell their medicines apart."],
+          ["Memory and routine", "Whether they take doses at the right times with safe gaps (always at least 4 hours between paracetamol-containing doses) and can say afterwards whether they took a dose."],
+          ["Physical ability", "Whether they can read labels, open packs, press tablets out of blisters, measure liquids, use inhalers, drops and patches, apply creams where needed and swallow the medicine."],
+          ["Supply and storage", "Whether they order in time, check what arrives, store medicines safely and in the fridge where required, and keep stopped, out-of-date and other people's medicines separate."],
+          ["Risks", "Confusion; low mood, self-harm or overdose risk; alcohol or drug use; stockpiling; others who may take or misuse the medicines; children or adults at risk in the home; high-risk medicines such as anticoagulants, insulin, opioids or weekly methotrexate; time-sensitive medicines; recent medicines-related falls or admissions."],
+          ["Others involved", "Exactly what family members or friends do, whether anyone fills a pill organiser, and how medicines changes reach the person."]
+        ] } },
+        { "p": "Each risk is rated by the method in the Risk Assessment and Home Environment Risk Assessment Procedure, and a High residual risk is not accepted until its controls are approved as that procedure requires. We do not recommend Level 0 where the residual risk stays Very high; if a person with capacity still chooses it, the Positive Risk-Taking Policy applies. Where a condition in the Assessing Medicines Support Needs Procedure applies, such as a controlled drug, a time-sensitive medicine or unclear directions, the assessor records the GP's or pharmacist's advice before finalising the outcome. The assessor records one outcome for each medicine:" },
+        { "table": { "columns": ["Outcome", "When it is used", "What the care plan records"], "rows": [
+          ["Level 0, report concerns only", "The person manages the medicine well and the risk is Low.", "That the person manages it, where it is kept and the signs to report."],
+          ["Level 0 with a self-administration check", "A missed or wrong dose could cause harm, the risk is Medium or High, or the person has just taken the medicine back.", "The person's agreement to the check, the visits at which it is made, whether the care worker asks or looks at the pack (always the pack where the person cannot reliably say whether they took a dose), what counts as a concern and when it is reviewed."],
+          ["Level 0, family-managed", "An adult relative or friend manages the medicine by agreement with the person; a care plan never relies on a child.", "Who does what, whether and how they tell us when they give doses, and what happens when they are unavailable."],
+          ["Level 1, 2 or 3", "The person cannot manage the medicine safely, even with aids, or does not want to.", "The support set under the Assessing Medicines Support Needs Procedure."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Partial self-administration in the care plan and eMAR",
+      "blocks": [
+        { "p": "The medicines section of the care plan lists every medicine the person takes, including Level 0, family-managed, bought and herbal products, with the level for each, so that interactions and dose intervals can be checked." },
+        { "p": "Every medicine we support at Level 1, 2 or 3 is on the eMAR. A Level 0 medicine is on the eMAR only where the care plan sets a self-administration check, or where its dose times affect a medicine we support, such as paracetamol-containing pain relief the person takes alongside a dose we give. These entries are set up and second-checked like any other under the Medicines Administration Records (MAR and eMAR) Procedure, with How assisted set to Self." },
+        { "p": "Care workers record a self-administered dose as Self Medicated, noting whether they saw it taken or were told and when it was taken, and a dose a family member says they gave as Family Administered, noting the time it was given and who told them. A self-administered dose is never recorded as Given. CareFlow dates these entries by when they are recorded, not when the dose was taken, so the eMAR's last-dose time and 24-hour count are never relied on for them. Where an entry is there because of its dose times, the care worker asks when it was last taken before giving the medicine we support, goes by that time, and phones the office first if nobody can say." },
+        { "p": "Where a check shows a dose has not been taken, the care worker does not prompt or give it, because whether a late dose is safe needs advice; they record Not Given / Missed with a note and phone the office before leaving. The office obtains advice from the pharmacist, GP or NHS 111 straight away, tells the person, or the named contact where the person agrees, and records the advice in the daily visit notes. If a visit with a check is missed or there is no access, the office phones the person to ask whether they took the dose and treats an unconfirmed dose as missed." },
+        { "p": "Medicines in the same pack or the same compartment of a monitored dosage system always have the same level, because one dose cannot be split between the person and the care worker. Where the person manages some medicines and we support others, the Care Coordinator asks the pharmacy to supply them separately." },
+        { "p": "Care workers never handle doses in a pill organiser filled by anyone other than the pharmacy (including a dispensing GP practice). Where the care plan records it, they may remind the person to take their medicines from it; the medicines stay Level 0, and the reminder and whether the person said they took them are recorded in the daily visit notes. Where the person cannot reliably say whether they took them, the arrangement is reviewed within 7 days." }
+      ]
+    },
+    {
+      "heading": "Storage and lockable storage",
+      "blocks": [
+        { "p": "The person decides where their medicines are kept unless this creates a risk. The care plan records the agreed place, out of sight and reach of children and visitors." },
+        { "p": "Lockable storage is agreed where the self-administration risk assessment finds a risk of overdose or self-harm, of a child or confused adult in the home taking the medicines, or of theft, misuse or diversion, or where the person asks for it. {{organisation}} supplies a lockable medicines box free of charge where one is needed and the person has none, within 2 working days of the decision. Meanwhile the Care Coordinator agrees an interim safe arrangement with the person or family and, where there is an overdose risk, asks the GP about smaller supplies." },
+        { "table": { "columns": ["Arrangement", "What is needed before use"], "rows": [
+          ["The person keeps the key or code, to protect the medicines from others", "The person's signed consent under the Consent to Care Policy."],
+          ["The person cannot open the storage themselves and has capacity to agree", "The person's signed consent, and approval by the Registered Manager or Deputy Manager as a restriction under the Restraint and Restrictive Practice Policy."],
+          ["The person cannot open the storage themselves and lacks capacity to agree", "A best interests decision approved by the Registered Manager or Deputy Manager as a restriction before use (by phone where the risk is immediate), and a best interests meeting within 10 working days under the Consent to Care Policy."]
+        ] } },
+        { "p": "Regulation 13(4)(b) forbids acts intended to control or restrain a person that are not necessary to prevent, or proportionate to, a risk of harm. Locking away a person's own medicines restricts their control over their property, so we apply the same test: we lock medicines away only where it is necessary and proportionate, choose the least restrictive arrangement, and stop as soon as it is no longer needed. A medicine the person cannot reach without us is not self-administered and is set at Level 1 or above. An automated dispenser that locks doses away is lockable storage under this section." },
+        { "p": "The care plan names everyone who holds a key or code. Codes are recorded only in the person's home access details in CareFlow and handled like key safe codes under the Key Holding, Key Safes and Access to People's Homes Procedure, never written in the care plan, risk assessments or daily visit notes. Care workers lock the storage after every use and phone the office before leaving if it is found open or damaged, or the key or code has been shared or lost; the Care Coordinator then changes the code or replaces the box within 1 working day, with an interim arrangement meanwhile. Medicines the person may need urgently, such as reliever inhalers, angina sprays, adrenaline auto-injectors and any other the prescriber names, are never locked away from a person who uses them themselves." }
+      ]
+    },
+    {
+      "heading": "Leaving doses out",
+      "blocks": [
+        { "p": "Our rule is that doses are never left out for a person to take later. Before an exception is considered, the assessor records why the alternatives do not work: the prescriber changing the dose time, a visit at the dose time, or the person taking the dose from its pack themselves, which is self-administration and needs no leave-out arrangement. A leave-out arrangement may be agreed only when all of these conditions are met:" },
+        { "steps": [
+          "The person has capacity to agree, has asked for or agreed to the arrangement, and the self-administration risk assessment shows they will take the dose correctly and on time.",
+          "The medicine is not a counted controlled drug under the Controlled Drugs in the Community Procedure, a time-sensitive medicine or a when required medicine, and the prescriber or pharmacist has advised in writing that it can be left, which is recorded in the care plan.",
+          "Nobody else in the home could take the dose by mistake or on purpose.",
+          "Only the next single dose of each named medicine is left, to be taken no later than 6 hours after the visit. Because the care worker prepares it, the medicine is supported at Level 2 and is on the eMAR.",
+          "The Registered Manager or Deputy Manager has approved it in the care plan before first use, and it is included in the notification to the GP practice and pharmacy."
+        ] },
+        { "p": "The care plan states the medicines and doses, the visit at which they are left, where, when the person will take them and what the next care worker checks. At that visit the care worker:" },
+        { "steps": [
+          "Prepares the dose from the pharmacy packaging, checking the six rights as for administration.",
+          "Places it in the lidded pot we supply for the purpose, labelled with the person's name, the medicines and the time to take them, in the agreed place out of sight and reach of others, and reminds the person when to take it.",
+          "Records it on the eMAR with the Other outcome and the note 'Left out', with the time it is to be taken and where it was left, never as Given. A dose left out under an approved arrangement is not a declined or missed dose and, unlike other not-given outcomes, needs no call to the office; office staff mark it reviewed at their eMAR checks."
+        ] },
+        { "p": "At the next visit the care worker asks the person and checks whether the dose has gone, recording what they found in the daily visit notes. If it is still there, someone else has taken it, or the person cannot say whether they took it, the care worker does not give it, seals it for return to the pharmacy as the Consent, Mental Capacity and Declined Medicines Policy describes, and phones the office before leaving. The office treats it as a missed dose and obtains advice from the pharmacist, GP or NHS 111 straight away; where someone else may have taken it, the office also seeks advice for them and records it in the incident log. The Care Coordinator suspends the arrangement, briefs care workers before their next visit and holds a focused review within 7 days. Where the checking visit is missed or there is no access, the office phones the person as for a missed check." }
+      ]
+    },
+    {
+      "heading": "What care workers look out for and report",
+      "blocks": [
+        { "p": "Care workers do not count, tidy or remove a person's Level 0 medicines. They notice and report:" },
+        { "table": { "columns": ["What you notice", "What you do"], "rows": [
+          ["The person has taken too much, is very drowsy or hard to wake after taking medicines, or talks about overdose or self-harm", "Call 999 at once and stay with them, then phone the office."],
+          ["The person is unsure what a medicine is for or whether they took it, or takes medicines at the wrong times; doses are left in packs for days that have passed; medicines run out early, build up, or are found dropped or hidden; medicines are within reach of a child or a confused adult, or a child is helping with them", "Phone the office before you leave. Where a child could reach medicines, ask the person to put them away safely first."],
+          ["New bought, herbal or someone else's medicines, or stopped or out-of-date medicines in use; the person cannot open, read or use a medicine or device; new falls, confusion or side effects", "Phone the office before you leave; call 999 if the person is seriously unwell."],
+          ["Someone else takes, controls or withholds the person's medicines, or shows unusual interest in them", "Phone the office, or the On-call Manager out of hours, before you leave, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."],
+          ["The person asks for more help with a medicine, or wants to do more for themselves", "Phone the office; never take on a task the care plan does not record."]
+        ] } },
+        { "p": "Office staff record each call in the daily visit notes. The Care Coordinator, or the On-call Manager out of hours, acts the same day:" },
+        { "steps": [
+          "Speaks to the person, decides whether the next dose is at risk and obtains advice from the GP, pharmacist or NHS 111 where needed.",
+          "Arranges the interim increase in support in the Medicines Management Policy where the person would be at risk before a review.",
+          "Sets a focused review within 7 days, or before the next visit where the person cannot safely manage the next dose.",
+          "Refers a capacity doubt under the Consent, Mental Capacity and Declined Medicines Policy, possible abuse to the safeguarding lead, and possible self-neglect under the Self-Neglect and Hoarding Procedure."
+        ] },
+        { "p": "Where a person with capacity declines the extra support we recommend, the risk is managed under the Positive Risk-Taking Policy, and the Registered Manager decides within 1 working day whether the rest of the support can continue safely and tells the commissioner in writing." }
+      ]
+    },
+    {
+      "heading": "Helping a person take back their medicines",
+      "blocks": [
+        { "p": "At every medicines review, and whenever the person asks, the reviewer asks whether the person could now manage more for themselves, for example after reablement or recovery from illness. Where they want to, the reviewer:" },
+        { "steps": [
+          "Completes the self-administration risk assessment for the medicines concerned within 10 working days of the request, with the prescriber's or pharmacist's advice where a medicine is high-risk or time-sensitive.",
+          "Agrees a plan with the person, one medicine or group of medicines at a time; the Registered Manager agrees the change in scope with the commissioner by email (for a self-funder, in the service agreement) before it starts, and the Care Coordinator tells the GP practice and pharmacy within 2 working days of the trial starting.",
+          "Sets the medicine at Level 0 with a self-administration check at every visit when it is due, for a trial of at least 14 days, and briefs care workers before their next visit.",
+          "Ends the trial early and returns to the previous level, through the interim arrangement, if a check shows a dose missed or taken wrongly and the person cannot manage it safely.",
+          "At the end of the trial, reviews the checks with the person and sets the ongoing outcome; any eMAR change is second-checked before the next affected dose, and the GP practice and pharmacy are told the outcome within 2 working days."
+        ] }
+      ]
+    },
+    {
+      "heading": "Review of self-administration",
+      "blocks": [
+        { "p": "The self-administration risk assessment, checks, leave-out arrangements and lockable storage are reviewed together with the person's medicines support:" },
+        { "table": { "columns": ["Trigger", "Review completed"], "rows": [
+          ["Medicines support started, then care plan reviews", "6 weeks after the start, at home, then at every care plan review (at least every 6 months)"],
+          ["Residual risk High, or best interests lockable storage", "At least every 3 months while it continues"],
+          ["Change to the person's medicines, return home from hospital, medicines incident, capacity concern, pattern of declined doses, or significant life event such as a bereavement or a family carer stopping", "Within 7 days, at home unless the Assessing Medicines Support Needs Procedure allows a phone review"],
+          ["A sign reported under What care workers look out for and report, a suspended leave-out arrangement, or someone new in the home who could reach the medicines", "Within 7 days, or before the next visit where the next dose is at risk"]
+        ] } },
+        { "p": "After a hospital stay, Level 0 medicines are included in the discharge medicines check under the Medicines Changes, Transfers of Care and Hospital Discharge Procedure, and the self-administration risk assessment is repeated at the review after discharge." }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "table": { "columns": ["Record", "Where it is kept"], "rows": [
+          ["Self-administration risk assessment, ratings, controls and approvals", "The person's risk assessments, linked to the care plan"],
+          ["Each medicine's level and arrangements, key and code holders by name, and professionals' advice", "Medicines section of the care plan"],
+          ["Signed consent, capacity assessments and best interests decisions", "Consent and decisions part of the care plan"],
+          ["Self Medicated, Family Administered, Not Given / Missed and 'Left out' entries", "eMAR, at the time, under the care worker's own log-in"],
+          ["Reminders from family-filled organisers, checks of left-out doses, calls to the office and the advice obtained", "Daily visit notes"]
+        ] } },
+        { "p": "Records are kept for the periods in the Records Management and Retention Policy." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "table": { "columns": ["Training or check", "Who", "When"], "rows": [
+          ["Read and acknowledge this procedure in CareFlow", "Everyone named in Scope", "During induction, and within 14 days of each new major version"],
+          ["Full medicines training covering this procedure (pass mark 80%) and observed competency, including self-administration checks, leave-out arrangements and the related eMAR outcomes", "Everyone who gives medicines support", "Before giving medicines support, then every 12 months"],
+          ["Self-administration risk assessment, within medicines assessor training and the annual assessor update", "Medicines assessors", "Before the first assessment, then every 12 months"]
+        ] } },
+        { "p": "Observed medicines practice spot checks include any self-administration check or leave-out arrangement at the visit, and a shortfall is handled as the Quality Audit and Monitoring Procedure sets out. Taking over a Level 0 medicine, or leaving a dose out without an approved arrangement, is a medicines incident reported under the Medication Errors, Near Misses and Incidents Procedure." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["Check", "How often", "By whom", "Reported to"], "rows": [
+          ["Not Given / Missed results of self-administration checks, and 'Left out' entries without a next-visit check", "Daily, in eMAR exception monitoring", "Office staff and Care Coordinator; On-call Manager out of hours", "Registered Manager where action is needed"],
+          ["Self-administration risk assessments, within the monthly audit of 5 medicines assessments and reviews", "Monthly", "Deputy Manager", "Registered Manager and the Monthly Quality and Governance Meeting"],
+          ["Every leave-out arrangement: conditions met, approved before first use, eMAR and next-visit records complete", "Monthly", "Deputy Manager", "Registered Manager and the Monthly Quality and Governance Meeting"],
+          ["Lockable storage that limits the person's own access, in the monthly review of the restrictive practice register", "Monthly", "Registered Manager", "Quarterly quality report"],
+          ["Incidents and concerns involving self-administered medicines and left-out doses", "Quarterly, in the medicines trend review", "Registered Manager", "Directors and Nominated Individual"],
+          ["Self-administration arrangements against this procedure and NICE NG67", "Every 12 months, in the annual medicines audit", "Registered Manager", "Directors and Nominated Individual"]
+        ] } },
+        { "p": "Our targets are 100% of Level 0 medicines with a current self-administration risk assessment and 100% of leave-out and restrictive storage arrangements approved before first use. CareFlow counts Self Medicated and Family Administered entries as given and 'Left out' entries as not given, so audits read each outcome, never given or not-given totals." },
+        { "p": "This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious medicines incident, an inspection finding, or when monitoring shows our arrangements are not working." }
+      ]
+    }
+  ]
+}

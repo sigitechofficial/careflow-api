@@ -5,6 +5,7 @@ import {
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   PolicyApprovalDecision,
@@ -21,6 +22,7 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
+import { sanitizeOptionalRichTextHtml, sanitizeRichTextHtml } from '../common/utils/rich-text-html.util';
 import { PrismaService } from '../prisma/prisma.service';
 import {
   CreatePolicyDto,
@@ -54,6 +56,7 @@ import {
   writeStoredPolicyFile,
 } from './policy-upload.util';
 import { existsSync } from 'fs';
+import { PolicyAcknowledgementNotificationsService } from './policy-acknowledgement-notifications.service';
 import {
   assertApplicabilityShape,
   assertAudienceShape,
@@ -81,7 +84,20 @@ export class PoliciesService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    @Optional() private readonly acknowledgementNotifications?: PolicyAcknowledgementNotificationsService,
   ) {}
+
+  /** Staff read-and-acknowledge: PENDING rows + "new policy to read" notices. Never fails the publish. */
+  private async notifyStaffToAcknowledge(documentId: string, versionId: string) {
+    if (!this.acknowledgementNotifications) return;
+    try {
+      await this.acknowledgementNotifications.onVersionPublished(documentId, versionId);
+    } catch (err) {
+      this.logger.warn(
+        `Policy ${documentId} published, but staff acknowledgement notifications failed: ${(err as Error).message}`,
+      );
+    }
+  }
 
   private isUnrestricted(user: RequestUser): boolean {
     return user.assignedLocationIds == null;
@@ -146,6 +162,7 @@ export class PoliciesService {
       publishedAt: Date | null;
       publishedById: string | null;
       archivedAt: Date | null;
+      acknowledgementRequired?: boolean;
       createdAt: Date;
       updatedAt: Date;
       applicability?: Array<{
@@ -193,6 +210,7 @@ export class PoliciesService {
       publishedAt: this.toIso(row.publishedAt),
       publishedById: row.publishedById,
       archivedAt: this.toIso(row.archivedAt),
+      acknowledgementRequired: row.acknowledgementRequired ?? false,
       createdAt: this.toIso(row.createdAt) ?? new Date(0).toISOString(),
       updatedAt: this.toIso(row.updatedAt) ?? new Date(0).toISOString(),
       applicability: (row.applicability ?? []).map((item) => ({
@@ -1049,9 +1067,12 @@ export class PoliciesService {
           ...(dto.contentJson !== undefined
             ? { contentJson: dto.contentJson as Prisma.InputJsonValue }
             : {}),
-          ...(dto.contentHtml !== undefined ? { contentHtml: dto.contentHtml } : {}),
+          ...(dto.contentHtml !== undefined ? { contentHtml: sanitizeRichTextHtml(dto.contentHtml) } : {}),
           ...(dto.effectiveDate !== undefined ? { effectiveDate: this.toDateOnly(dto.effectiveDate) ?? null } : {}),
           ...(dto.reviewDate !== undefined ? { reviewDate: this.toDateOnly(dto.reviewDate) ?? null } : {}),
+          ...(dto.acknowledgementRequired !== undefined
+            ? { acknowledgementRequired: dto.acknowledgementRequired }
+            : {}),
           ...(switchToEditor
             ? { fileName: null, mimeType: null, fileSize: null, storagePath: null }
             : {}),
@@ -1257,6 +1278,10 @@ export class PoliciesService {
       ipAddress: meta?.ipAddress,
       userAgent: meta?.userAgent,
     });
+
+    if (result.version.acknowledgementRequired) {
+      await this.notifyStaffToAcknowledge(id, result.version.id);
+    }
 
     return this.mapDocument(result.document, this.mapVersion(result.version));
   }
@@ -1737,6 +1762,7 @@ export class PoliciesService {
       storagePath?: string | null;
       effectiveDate: Date | null;
       reviewDate: Date | null;
+      acknowledgementRequired?: boolean;
     },
     nums: { versionMajor: number; versionMinor: number },
     changeSummary?: string,
@@ -1761,6 +1787,7 @@ export class PoliciesService {
             changeSummary: changeSummary ?? null,
             effectiveDate: source.effectiveDate,
             reviewDate: source.reviewDate,
+            acknowledgementRequired: source.acknowledgementRequired ?? false,
           },
         });
 
@@ -1847,9 +1874,10 @@ export class PoliciesService {
           status: PolicyStatus.DRAFT,
           titleSnapshot: document.title,
           contentJson: dto.contentJson === undefined ? undefined : (dto.contentJson as Prisma.InputJsonValue),
-          contentHtml: dto.contentHtml ?? null,
+          contentHtml: sanitizeOptionalRichTextHtml(dto.contentHtml ?? null),
           effectiveDate: this.toDateOnly(dto.effectiveDate) ?? null,
           reviewDate: this.toDateOnly(dto.reviewDate) ?? null,
+          acknowledgementRequired: dto.acknowledgementRequired ?? false,
         },
       });
 

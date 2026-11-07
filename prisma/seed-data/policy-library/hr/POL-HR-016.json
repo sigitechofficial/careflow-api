@@ -1,0 +1,303 @@
+{
+  "reference": "POL-HR-016",
+  "revision": 1,
+  "title": "Uniform, ID Badges and Dress Code Policy",
+  "documentType": "POLICY",
+  "summary": "How staff are identified and dressed when they work for us: the photo ID badge and showing it at every door, helping people check who is calling, the uniform we issue free and how it is worn and washed, personal presentation for infection control and safety, footwear, and arrangements for religion, disability, pregnancy and other needs. For all employees and the managers who issue uniform and decide requests.",
+  "keyPoints": {
+    "intro": "What you wear and the badge you show tell the people we support that they can safely let you into their home. These rules apply on every visit, from the moment you arrive at a person's door until you leave.",
+    "points": [
+      "Wear your ID badge on your chest where it can be seen on every visit. Show it at the door before you go in, or as soon as you see the person if you let yourself in, even if they know you.",
+      "At the door, say your name, that you are from us and why you are there. Take off sunglasses and hoods, and wait outside if the person wants to phone the office to check.",
+      "Forgot your badge? Phone the office (On-call Manager out of hours) before your first visit so they can phone ahead. Report a lost badge the same day, at once if stolen or lost with keys or a work phone.",
+      "Never lend your badge or uniform to anyone or use them outside work. Return your badge and all branded uniform on your last day.",
+      "Wear a clean uniform every shift and carry a spare top in a sealed bag. Wear uniform only for work and travel to and from work: buying food or a drink on a break is fine, shopping or socialising is not.",
+      "Wash uniform separately from heavily soiled household items at the hottest temperature the fabric allows, at least 60°C, then tumble dry or iron it. Change a soiled top for your spare as soon as you can.",
+      "When giving care be bare below the elbows: no watch, fitness tracker or bracelet, one plain band ring at most, short natural nails with no varnish, gel or false nails, and long hair tied back.",
+      "On visits wear only small plain stud earrings or piercings, keep any necklace under your uniform, never wear a lanyard and avoid strong perfume or aftershave.",
+      "Wear closed, flat, non-slip shoes with wipeable uppers that you can drive in safely. We repay up to £40 towards a pair every 12 months.",
+      "Religious dress and dress needs linked to disability, pregnancy or menopause are welcome: ask your supervisor or the HR Manager. Disability requests follow the Equality, Diversity and Inclusion Policy; other requests are answered within 5 working days.",
+      "Uniform, badges and replacements are free. We never charge you or take money from your pay for them, even if they are lost or not returned.",
+      "Your Field Care Supervisor checks your badge, uniform, nails, jewellery and shoes at every spot check. A first slip is discussed and recorded; a repeat within 6 months goes to the Registered Manager, and misusing a badge or uniform may be gross misconduct."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": true,
+  "audience": ["ALL_EMPLOYEES"],
+  "moduleLinks": ["HR", "EMPLOYEE", "INFECTION_CONTROL", "VISIT"],
+  "relatedReferences": ["POL-IPC-002", "POL-HR-007", "POL-HR-012", "POL-HR-008", "POL-HR-014", "POL-HS-003", "POL-HS-005", "POL-HS-013"],
+  "regulatoryBasis": [
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(h) (assessing the risk of, and preventing, detecting and controlling the spread of, infections)", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12" },
+    { "source": "Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance, criterion 9 (uniform and workwear policies that keep clothing clean, fit for purpose and supportive of hand hygiene)", "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance" },
+    { "source": "UK Health Security Agency, Standard infection control precautions in adult social care (published 28 October 2026): bare below the elbows, hand and wrist jewellery, nails, religious bangles, single-use oversleeves, and uniforms not replacing aprons","url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/standard-infection-control-precautions-in-adult-social-care" },
+    { "source": "NHS England, Uniforms and workwear: guidance for NHS employers (2 April 2020): washing at the hottest temperature the fabric allows (a 10-minute wash at 60°C removes almost all micro-organisms), heavily soiled uniform washed separately, closed shoes, no lanyards in direct care, religious dress and consulting staff", "url": "https://www.england.nhs.uk/wp-content/uploads/2020/04/Uniforms-and-Workwear-Guidance-2-April-2020.pdf" },
+    { "source": "Equality Act 2010, section 19 (indirect discrimination: a rule that disadvantages people sharing a protected characteristic must be a proportionate means of achieving a legitimate aim)", "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/19" },
+    { "source": "Equality Act 2010, section 20 (duty to make reasonable adjustments; the disabled person may not be required to pay any of the cost)", "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20" },
+    { "source": "Government Equalities Office, Dress codes and sex discrimination: what you need to know (May 2018)", "url": "https://www.gov.uk/government/publications/dress-codes-and-sex-discrimination-what-you-need-to-know" },
+    { "source": "Acas, Preventing religion or belief discrimination (dress and appearance rules need a legitimate aim and flexibility for religious needs)", "url": "https://www.acas.org.uk/religion-or-belief-discrimination/preventing-religion-or-belief-discrimination" },
+    { "source": "Health and Safety at Work etc. Act 1974, section 9 (no charge to employees for things provided to meet specific health and safety requirements)", "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/9" },
+    { "source": "Personal Protective Equipment at Work Regulations 1992, regulation 3(2)(a) (ordinary working clothes and uniforms that do not specifically protect the wearer are outside the regulations)", "url": "https://www.legislation.gov.uk/uksi/1992/2966/regulation/3" },
+    { "source": "Personal Protective Equipment at Work Regulations 1992, regulation 4 (suitable protective equipment provided to workers)", "url": "https://www.legislation.gov.uk/uksi/1992/2966/regulation/4" },
+    { "source": "GOV.UK, Calculating the minimum wage: deductions and payments for uniforms, work clothing and protective equipment", "url": "https://www.gov.uk/guidance/calculating-the-minimum-wage/calculating-the-minimum-wage" },
+    { "source": "The Highway Code, rule 97 (drivers should ensure clothing and footwear do not prevent them using the controls correctly)", "url": "https://www.gov.uk/guidance/the-highway-code/rules-for-drivers-and-motorcyclists-89-to-102" },
+    { "source": "GOV.UK, Claim tax relief for your job expenses: uniforms, work clothing and tools", "url": "https://www.gov.uk/tax-relief-for-employees/uniforms-work-clothing-and-tools" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "The people we support open their front doors to our staff many times a day, often alone, sometimes with memory or sight loss, and in a world where doorstep crime targets older and disabled people. {{organisation}} makes sure every member of staff can be recognised and checked before they step inside: everyone carries a photo ID badge, shows it at every door, and wears a uniform that the person, their family and other professionals know." },
+        { "p": "Our dress rules also protect people from infection, keep staff safe when moving and handling people, driving and working alone, and show respect for the homes we enter as guests. We issue what staff need free. Every rule has a stated reason, applies equally whatever a person's sex or gender identity, and is adapted for religion, disability, pregnancy and other needs wherever safety allows." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "bullets": [
+          "Make sure every person we support can identify and check our staff before letting them in, and knows what to do about a stranger claiming to be from us.",
+          "Set out the ID badge and uniform: issue, wearing, washing, replacement, return and cost.",
+          "Set presentation standards for infection prevention, moving and handling, safe driving and lone working, with a fair, quick way to agree dress arrangements for religion, disability and other needs."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This policy applies to every employee of {{organisation}}: care staff on all contract types, including bank staff, Field Care Supervisors, Care Coordinators, On-call Managers, Office staff, the HR Manager and managers. Students on placement follow it in full. Agency workers wear their agency's uniform and photo ID and follow the presentation, footwear and doorstep rules here." },
+        { "p": "Other documents own the related detail: hand hygiene, protective equipment and the full bare below the elbows standard (Standard Infection Control Precautions Procedure); conduct at visits (Staff Code of Conduct); personal alarms, lone worker devices and the code phrase (Lone Working and Staff Personal Safety Policy); vehicles and the high-visibility vest (Driving at Work Policy); access to homes and key safe codes (Key Holding, Key Safes and Access to People's Homes Procedure); and the reasonable adjustments process (Equality, Diversity and Inclusion Policy)." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Bare below the elbows", "Short sleeves or sleeves above the elbow and nothing on the forearms, wrists or hands except one plain band ring and agreed religious or medical items, as the Standard Infection Control Precautions Procedure sets out."],
+          ["Dress arrangement", "An agreed variation to this policy for religion or belief, disability, pregnancy, menopause, gender identity or another personal reason, recorded in the staff record."],
+          ["Badge register", "The ID badge entries in the items issued to each worker in their staff record in CareFlow: badge number, issue date, expiry date (entered as the expected return date), and the return date, or the Lost status with a note of the cancellation date."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Directors and Nominated Individual", "blocks": [
+          { "p": "The Directors approve this policy and fund uniform, badges and the footwear allowance in the annual budget. The Nominated Individual is told within 24 hours of any report that someone has posed as our staff or used our uniform or badge to get into a home, and reports it to the next Directors' meeting." }
+        ] },
+        { "heading": "Registered Manager", "blocks": [
+          { "p": "The Registered Manager owns this policy, approves the uniform design and any change to it after consulting staff, decides every dress arrangement that is not a disability adjustment within 5 working days of the request, decides what happens when a badge is stolen, misused or not returned, and leads the response to any report of impersonation. The Deputy Manager acts in their absence." }
+        ] },
+        { "heading": "HR Manager", "blocks": [
+          { "p": "The HR Manager issues and cancels ID badges and keeps the badge register, buys uniform only in fabrics that can be washed at 60°C, keeps stock in every size including maternity and lighter-weight items, records each issue in the staff record, recovers badges and uniform from leavers, approves footwear and launderette claims, and receives dress arrangement requests." }
+        ] },
+        { "heading": "Care Coordinators, Office staff and On-call Managers", "blocks": [
+          { "p": "They answer identity check calls at once, phone ahead when a worker has no badge or an agency worker is sent, act on impersonation reports as this policy sets out, and reallocate visits when a worker cannot give care safely because of dress." }
+        ] },
+        { "heading": "Field Care Supervisors", "blocks": [
+          { "p": "Field Care Supervisors check badge, uniform and presentation at every spot check, ask the person whether staff show their badge and introduce themselves, discuss any first lapse and record it in the supervision record, and pass dress arrangement requests to the HR Manager within 1 working day." }
+        ] },
+        { "heading": "Every member of staff", "blocks": [
+          { "p": "Everyone carries their badge at work, follows the dress rules for their role, looks after what we issue, reports a lost badge the same day and returns everything when they leave." }
+        ] }
+      ]
+    },
+    {
+      "heading": "ID badges",
+      "blocks": [],
+      "subsections": [
+        { "heading": "What the badge shows", "blocks": [
+          { "p": "Each badge shows the {{organisation}} name and logo, the member of staff's photograph, first name and the first letter of their surname, job title, the branch office phone number, a unique badge number and an expiry date. It never shows a home address, personal phone number, full date of birth or immigration information. Students' badges also say Student. The photograph is the head-and-shoulders photograph taken with consent at the identity appointment under the Pre-Employment Checks and DBS Procedure." }
+        ] },
+        { "heading": "Issue, wearing and renewal", "blocks": [
+          { "bullets": [
+            "The HR Manager issues the badge once the member of staff is recorded as cleared to work and before their first shadow shift; nobody visits a person we support without one.",
+            "Care staff and anyone on a visit wear the badge on its clip at chest height on the outer layer, where it can be seen from arriving at the person's home, whether by car, on foot or by public transport, until leaving it. It is never worn on a lanyard on a visit, because a lanyard swings into the person's face and food and can be grabbed.",
+            "Office staff wear their badge in the branch office and whenever they meet people we support, families or professionals.",
+            "The badge holder is wiped with a detergent wipe at the start of every shift, with the phone, and whenever soiled.",
+            "Badges are valid for 3 years and replaced with a new photograph before expiry. The HR Manager issues a new badge within 5 working days of a change of name, role or significant change in appearance."
+          ] }
+        ] },
+        { "heading": "Forgotten, lost or stolen badges", "blocks": [
+          { "table": { "columns": ["Situation", "What the member of staff does", "What happens next"], "rows": [
+            ["Badge left at home", "Phone the office, or the On-call Manager out of hours, before the first visit. Collect it at the first break if the route allows.", "The office phones each person or their chosen contact before the worker arrives, giving the worker's first name and a description, until the worker has the badge again."],
+            ["Badge lost", "Tell the office the same day.", "The HR Manager cancels the badge in the badge register the same working day and a replacement is issued before the worker's next shift; until it is, the office phones ahead as for a badge left at home."],
+            ["Badge stolen, or lost with keys to people's homes or a work phone", "Phone the office, or the On-call Manager out of hours, at once, report a theft to the police the same day and give the office the crime reference.", "As for a lost badge, and the office applies the Key Holding, Key Safes and Access to People's Homes Procedure and the Personal Data Breach Procedure. The Registered Manager decides the same working day whether to warn the people the worker visits, recorded in the incident log."]
+          ] } }
+        ] },
+        { "heading": "Returning a badge", "blocks": [
+          { "p": "Badges remain our property. The HR Manager recovers the badge, with branded uniform, on the last working day, or the same day as a suspension or dismissal under the Disciplinary Policy and Procedure (by 10am the next working day where the worker was stopped out of hours), and cancels it in the badge register that day. If it is not returned, the HR Manager writes the next working day enclosing a prepaid envelope and asks for it within 5 working days. If it is still missing, the Registered Manager decides within 1 working day whether to tell the police and the people the worker visited in the previous 3 months that the worker no longer works for us; where the worker left after an allegation of harm, theft or dishonesty, the police and those people are always told. Key safe code changes follow the Disciplinary Policy and Procedure. We never deduct pay for a badge or uniform that is not returned." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Helping people check who is at the door",
+      "blocks": [],
+      "subsections": [
+        { "heading": "What people are told", "blocks": [
+          { "p": "The welcome pack explains what our badge and uniform look like, that every worker will show a badge without being asked, that the person may phone the branch office to check any caller using the number in the welcome pack rather than one on a badge, and that they never have to let in anyone they are unsure of. The assessor explains this at the first visit, and the Care Coordinator checks it was understood at the first-week call." }
+        ] },
+        { "heading": "At the door", "blocks": [
+          { "steps": [
+            "Knock or ring and call out, even where you will let yourself in with a key safe or key, and stand where you can be seen through a window or door viewer. If nobody answers, follow the No Reply, No Access and Missing Person Procedure.",
+            "Hold up your badge, or show it as soon as you see the person if you let yourself in, and say your first name, that you are from us and why you are there. Take off sunglasses, hats and hoods so your face can be seen. If you must already be wearing a mask, say so and show your badge close to the window.",
+            "If the person wants to check, wait outside while they phone the office. Never pressure anyone to let you in.",
+            "If the person will not let you in because they are unsure who you are, phone the office (the On-call Manager out of hours) from the doorstep or your car and wait nearby while they phone the person to confirm who you are. If they still decline, the visit is handled as declined under the Visit Cancellations and Refusals of Care Procedure."
+          ] },
+          { "p": "Care Coordinators and Office staff, or the On-call Manager out of hours, answer an identity check call at once, confirm from the CareFlow rota whether that worker is expected, and give the worker's first name and description only to the person or the representative named in the care plan." }
+        ] },
+        { "heading": "People who need a different arrangement", "blocks": [
+          { "p": "At assessment and every care plan review the assessor asks how the person wants to check who is calling, and records the arrangement in the care plan. For a person with sight loss, memory problems, a history of doorstep crime or anxiety about callers, it may include a spoken password agreed with the person or their representative, the worker saying their name and the time of the planned visit, or the office phoning before the first visit of any worker the person has not met. A password is changed the same day it may have become known to anyone outside the core care team. Where an agency worker is sent, the office tells the person or their chosen contact beforehand, giving the worker's first name and agency." }
+        ] },
+        { "heading": "Someone posing as our staff", "blocks": [
+          { "steps": [
+            "When a person, family member or professional reports a caller claiming to be from us whom they do not recognise, the Care Coordinator or Office staff (the On-call Manager out of hours) check the CareFlow rota while still on the phone.",
+            "If the caller is not our worker and is at the person's home, the person is told not to let them in, and the office phones 999 if anyone is in danger or the caller is inside; otherwise the office reports it to the police and Trading Standards the same day.",
+            "The office records it in the incident log the same day and tells the Registered Manager, who raises a safeguarding concern under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure where the person may have been harmed or targeted, checks the same day whether CQC must be notified under the Statutory Notifications to CQC Procedure, and tells the Nominated Individual within 24 hours.",
+            "The Registered Manager decides the same working day whether to warn other people we support in the area and their commissioners, by phone or at visits, and whether badge or uniform design needs to change."
+          ] }
+        ] }
+      ]
+    },
+    {
+      "heading": "Uniform",
+      "blocks": [],
+      "subsections": [
+        { "heading": "What we issue", "blocks": [
+          { "table": { "columns": ["Item", "Issued to", "At the start", "Replacement"], "rows": [
+            ["Short-sleeved tunic or polo shirt, washable at 60°C", "Everyone who gives care, including Field Care Supervisors, Care Coordinators and On-call Managers", "4 tops", "Free when worn, stained, damaged or no longer fitting, within 5 working days of asking, or before the next shift if the worker has no clean top"],
+            ["Trousers, or a skirt or culottes reaching at least the knee for anyone who prefers them", "Care staff", "2", "Free, within 5 working days of asking"],
+            ["Fleece and waterproof jacket", "Care staff", "1 of each", "Free when worn or damaged"],
+            ["Lighter-weight, maternity, and larger or smaller sizes", "Anyone who asks", "As needed", "Within 5 working days of asking"],
+            ["Fob watch", "Anyone who asks", "1", "Free when broken"],
+            ["Disposable oversleeves for religious forearm covering", "Anyone who asks", "Supplied with protective equipment", "Restocked with protective equipment"]
+          ] } },
+          { "p": "Staff may wear their own plain black or navy trousers instead of ours if they choose. Every option is open to every member of staff, whatever their sex or gender identity." }
+        ] },
+        { "heading": "Who wears what", "blocks": [
+          { "table": { "columns": ["Who and when", "What they wear"], "rows": [
+            ["Care Workers and Senior Care Workers on visits and shadow shifts", "Full uniform, ID badge and the footwear in this policy"],
+            ["Field Care Supervisors, Care Coordinators, On-call Managers and managers giving care, covering visits or carrying out spot checks", "Full uniform and ID badge"],
+            ["Managers and assessors at assessments, reviews or meetings in a person's home where they give no care", "Clean, smart workwear and ID badge, with a uniform top in a sealed bag and their kit box in the car in case care is needed"],
+            ["Office staff and managers in the branch office", "Clean, tidy clothes suitable for meeting people we support, families and professionals, and the ID badge"],
+            ["Anyone at practical moving and handling or first aid training", "Clothes that allow free movement and flat, closed shoes"]
+          ] } },
+          { "p": "Clothing worn for work never carries slogans, images or wording that could offend or intimidate, and nothing is pinned to the uniform except the ID badge and badges we issue." }
+        ] },
+        { "heading": "Wearing the uniform", "blocks": [
+          { "bullets": [
+            "A clean uniform is put on at the start of every shift, and a spare top is carried in a sealed bag.",
+            "Uniform is worn only for work and for travel between home and visits. Staff may buy food or drink during a break in the working day, but never go shopping for themselves, socialise or visit a gym in uniform.",
+            "A plain base layer may be worn underneath in cold weather if its sleeves push above the elbow for care. The fleece and jacket are taken off on arrival and kept off the floor, the bed and any surface used for care, or left in the car where the care plan says so.",
+            "During an amber or red heat-health alert staff may wear the lighter-weight top, and may wear a sun hat and sunglasses outdoors, taking them off at the door."
+          ] }
+        ] },
+        { "heading": "Washing and changing", "blocks": [
+          { "p": "Uniform is washed at the hottest temperature the fabric allows and at least 60°C where the label permits, separately from heavily soiled household items, then tumble dried or ironed and stored clean. A top soiled with blood, body fluids or anything the care worker cannot wipe off is changed for the spare as soon as possible, sealed in a bag, taken home and washed on its own. If changing will delay the next visit, the care worker phones the office (the On-call Manager out of hours). Where a person is under extra precautions, staff follow any laundering advice the IPC lead gives under the Transmission-Based Precautions and Outbreak Management Procedure. Staff never wash uniform in a person's home." },
+          { "p": "A member of staff without a washing machine, or one that reaches 60°C, tells the HR Manager. We then reimburse launderette costs on receipt through the expenses claim, or issue extra tops so washing can be done less often, whichever the worker prefers." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Presentation and safety on visits",
+      "blocks": [
+        { "p": "These standards apply in the same way to everyone who visits a person we support." },
+        { "table": { "columns": ["Area", "Our standard", "Why"], "rows": [
+          ["Arms, hands and nails", "Bare below the elbows when giving care: no watch, fitness tracker or bracelet; one plain band ring at most; nails short, clean and natural with no varnish, gel, extensions or false nails; cuts covered with a waterproof dressing. The full standard is in the Standard Infection Control Precautions Procedure.", "Hands and wrists can be cleaned properly, and nothing scratches fragile skin"],
+          ["Hair", "Long hair tied back off the collar and face. Beards and moustaches kept clean and trimmed. Any hair colour or style is acceptable.", "Hair does not touch the person, food or equipment"],
+          ["Earrings and piercings", "Small plain studs or flat retainers only; no hoops, drops or chains. Any necklace, including a religious symbol, is worn inside the uniform.", "Jewellery can be grabbed, catch in equipment or scratch the person during moving and handling"],
+          ["Footwear", "Closed toe and heel, flat (heel no higher than 3 cm), non-slip soles, wipeable uppers without mesh or fabric, and suitable for driving. Free ice grips from 1 November under the Severe Weather and Extreme Temperatures Procedure.", "Safe moving and handling, protection from spills and dropped items, safe control of a car, and cleaning after soiling"],
+          ["Scent", "No strong perfume, aftershave or scented products; staff never arrive smelling of smoke.", "Many people we support have breathing conditions, nausea or sensory needs"],
+          ["Tattoos", "Visible tattoos are acceptable. Any with offensive, violent or discriminatory content are covered, by clothing or, on the forearms during care, a disposable oversleeve.", "People must not feel offended or intimidated in their own home"],
+          ["Valuables", "Expensive jewellery and valuables are left at home. Only the kit box, personal goggles, phone, personal alarm, car keys and items the care plan lists are taken into the person's home.", "Personal safety and infection control"]
+        ] } },
+        { "p": "Where a person asks visitors not to wear outdoor shoes in their home, the assessor agrees an arrangement with them and records it in the care plan: shoes wiped clean on arrival, or a second pair meeting this standard carried in a bag and worn only indoors. A care worker who needs a second pair for this reason may claim up to £40 towards it on receipt, in addition to the yearly footwear allowance. Staff never give care in socks, slippers or bare feet." }
+      ]
+    },
+    {
+      "heading": "Religion, belief, disability and other needs",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Standard arrangements", "blocks": [
+          { "p": "The law forbids a dress rule that puts people sharing a protected characteristic at a particular disadvantage unless it is a proportionate means of achieving a legitimate aim (Equality Act 2010, section 19). Our rules are limited to what infection control, safety and identification require, and the following arrangements apply without any request:" },
+          { "bullets": [
+            "Religious head coverings, such as a hijab, turban, patka or kippah, are plain, secured with no loose ends that can touch the person, and washed or changed daily, or straight away if contaminated.",
+            "Staff who cover their forearms for religious reasons use disposable oversleeves for care, put on for the task, removed and discarded before hand hygiene, and replaced with a new pair for the next task or person.",
+            "A religious bangle, kara or medical alert bracelet is pushed up the forearm and secured during hand hygiene and care.",
+            "Long skirts are allowed where they do not reach the floor or catch on equipment.",
+            "The face is visible at the door so the person can identify the worker, and during care because many people we support lip-read or rely on facial expression. A worker who wears a face veil may wear it while travelling and in the branch office, and always shows their face to the person at the door. They keep it uncovered throughout the visit unless the Registered Manager has agreed, under Agreeing other arrangements, that it may be worn during visits to particular people who do not need to see the worker's face.",
+            "Any other religious article, such as a kirpan, is worn only as agreed under Agreeing other arrangements."
+          ] }
+        ] },
+        { "heading": "Agreeing other arrangements", "blocks": [
+          { "p": "A member of staff who needs a different arrangement asks the HR Manager or their supervisor, who passes it to the HR Manager within 1 working day. Requests linked to a disability or health condition, such as orthopaedic footwear, a compression garment or a sensory need, follow the reasonable adjustments process in the Equality, Diversity and Inclusion Policy, and we meet the full cost (Equality Act 2010, section 20). All other requests, including for religion or belief, are decided by the Registered Manager within 5 working days of the request after speaking with the worker, and are agreed unless no arrangement can meet the infection control, safety or identification need. Where the worker would otherwise be unsafe or at a substantial disadvantage, an interim arrangement is agreed the same day. The decision and reasons are given in writing and recorded in the staff record, and the worker may use the Grievance Policy and Procedure if they disagree." },
+          { "p": "Pregnant staff receive free maternity uniform within 5 working days of asking. Staff experiencing the menopause may have lighter-weight items, extra tops and time to change, as the Equality, Diversity and Inclusion Policy provides. Staff who are transitioning choose the uniform options that suit them and receive a badge in their new name within 5 working days of asking. Nobody is criticised or treated less favourably for asking." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Costs and pay",
+      "blocks": [
+        { "p": "The law requires us to provide protective equipment free to all workers and forbids charging employees for anything provided to meet a specific health and safety requirement (Personal Protective Equipment at Work Regulations 1992, regulation 4; Health and Safety at Work etc. Act 1974, section 9). An ordinary uniform that does not specifically protect the wearer is not protective equipment in law (regulation 3(2)(a)). For minimum wage purposes, a deduction for work clothing the job requires, or a payment the worker makes for it that is not repaid, reduces the worker's pay. Our policy goes further than the law:" },
+        { "bullets": [
+          "Uniform, ID badges, replacements, oversleeves and fob watches are free. We never charge for them or deduct pay for them, including when an item is lost, damaged or not returned, as the Working Time, Rest Breaks and Travel Time Policy also states.",
+          "We repay up to £40 towards one pair of work shoes meeting this policy in any 12 months, from the first day of employment, claimed with a receipt on the expenses claim and paid with expenses under the Working Time, Rest Breaks and Travel Time Policy.",
+          "Any other cost a worker reports having to meet for work clothing is included in the HR Manager's monthly minimum wage check."
+        ] },
+        { "p": "Staff who wash their own uniform may be able to claim tax relief from HM Revenue and Customs for cleaning, repairing or replacing it, for the current and previous 4 tax years. The HR Manager explains how at induction; we do not give individual tax advice." }
+      ]
+    },
+    {
+      "heading": "When standards are not met",
+      "blocks": [
+        { "table": { "columns": ["Situation", "Action"], "rows": [
+          ["A worker cannot give care safely because of dress, such as false or gel nails, a watch or jewellery that will not come off, unsafe footwear or no clean uniform", "The worker phones the office (the On-call Manager out of hours) before the visit. They give no personal care until it is put right; the Care Coordinator, or the On-call Manager out of hours, reallocates the visits or sends the worker home to change, and handles any visit that will be late under the Missed, Late and Short Visits Procedure."],
+          ["A first minor lapse with no effect on care, such as a forgotten badge", "The Field Care Supervisor discusses it with the worker and records it in the supervision record, as the Staff Code of Conduct sets out."],
+          ["A repeat within 6 months, or refusal to follow the policy", "The Field Care Supervisor tells the Registered Manager, who decides whether to use the Disciplinary Policy and Procedure."],
+          ["Lending a badge or uniform, letting someone else use them, altering a badge, or using either to gain entry, money or advantage outside work", "Reported to the Registered Manager the same day and dealt with as possible gross misconduct under the Disciplinary Policy and Procedure, with the police told where a crime may have been committed."]
+        ] } },
+        { "p": "A member of staff who thinks a rule in this policy, or the way it is applied, is unfair or discriminatory raises it with their supervisor or the HR Manager, or under the Grievance Policy and Procedure. Raising it is never held against them." }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "table": { "columns": ["Record", "Where", "Kept for"], "rows": [
+          ["Badge register: badge number, issue, expiry, return or cancellation", "Staff record", "Employment plus 6 years"],
+          ["Uniform and equipment issued and returned", "Staff record", "Employment plus 6 years"],
+          ["Dress arrangements and reasons; disability-related adjustments in the workplace adjustment record", "Staff record, restricted section for any health information", "Employment plus 6 years"],
+          ["Spot check findings and first lapses", "Supervision and appraisal records", "Employment plus 6 years"],
+          ["The person's identity check arrangement and any password", "The person's care plan", "As the Records Management and Retention Policy sets out"],
+          ["Stolen badges, misuse and impersonation reports", "Incident log, and safeguarding records where raised", "As the Incident Reporting, Investigation and Learning Policy sets out"],
+          ["Footwear and launderette claims", "Expenses and payroll records", "6 years from the end of the tax year"]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "bullets": [
+          "Every new starter is taken through this policy during organisational induction in week 1 under the Induction and Care Certificate Procedure, receives their badge and uniform, and practises the doorstep introduction. Bare below the elbows is assessed in the observed hand hygiene and protective equipment competency before lone working.",
+          "Care staff acknowledge this policy in CareFlow before their lone working sign-off and office staff by the end of week 4; after that, everyone acknowledges each new major version within 14 days, and a minor version does not need acknowledging again.",
+          "Care Coordinators, Office staff and On-call Managers are briefed on identity check calls, phoning ahead and impersonation reports before taking calls alone or their first on-call shift, then every 3 years.",
+          "Agency workers and students are taken through the presentation, footwear and doorstep rules at their local induction before their first visit.",
+          "Assessors are briefed on recording identity check arrangements before their first assessment, within their risk assessment training.",
+          "Managers who decide dress arrangements hold the equality in employment training set by the Equality, Diversity and Inclusion Policy."
+        ] }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["What is checked", "How and how often", "By whom", "Reported to"], "rows": [
+          ["Badge, uniform, nails, jewellery, hair and footwear: target 95% of spot checks fully met", "Every spot check; monthly compliance rate", "Field Care Supervisors; Deputy Manager", "Monthly Quality and Governance Meeting"],
+          ["Whether staff show their badge and introduce themselves at the door", "Asked of the person at every spot check", "Field Care Supervisors", "Registered Manager, in the quarterly governance report"],
+          ["Every current worker has an in-date badge and every leaver's badge is returned or cancelled: target 100%", "Quarterly reconciliation of the badge register against current staff and leavers", "HR Manager", "Registered Manager"],
+          ["Uniform requests met and non-disability dress arrangements decided within 5 working days: target 100%", "Monthly", "HR Manager", "Monthly Quality and Governance Meeting"],
+          ["Lost, stolen or misused badges and impersonation reports, with action taken", "Each event; quarterly trends", "Registered Manager", "Nominated Individual; Directors in the quarterly governance report"],
+          ["Staff views of uniform fit and of uniform comfort: target each at least 80% Very good or Good, leaving out Does not apply to me", "May staff health at work survey", "HR Manager", "Directors with the survey results"]
+        ] } },
+        { "p": "Every shortfall goes into the service improvement plan with an owner and a deadline. Before any change to uniform items or dress rules is approved, the Registered Manager consults staff and any recognised trade union for at least 2 weeks. This policy is reviewed every 24 months by the Registered Manager with the HR Manager and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in law or national guidance, a serious incident such as an impersonation, an inspection finding, or when monitoring shows the arrangements are not working." }
+      ]
+    }
+  ]
+}

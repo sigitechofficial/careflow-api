@@ -1,0 +1,673 @@
+{
+  "reference": "POL-GOV-006",
+  "revision": 1,
+  "title": "Compliments, Feedback and Involvement Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we receive, record and share compliments; run first-week calls, quality checks and surveys of people we support, families, staff and professionals; analyse feedback and tell people what changed; involve people in how the service is run; and use testimonials and online reviews lawfully. For all employees.",
+  "keyPoints": {
+    "intro": "Every comment about our care, good or bad, helps us improve. This is what you do when someone praises us, makes a suggestion or tells you how they feel about their care.",
+    "points": [
+      "If what you hear suggests abuse, neglect or that someone is at risk, it is a safeguarding concern first: phone the office or the On-call Manager before you leave the visit and follow the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+      "If someone is unhappy and wants something done about it, it is a complaint, even if they do not use that word. Follow the Complaints Policy and Procedure. If you are unsure, treat it as a complaint.",
+      "Phone every compliment through to the office before the end of your shift, in the person's own words. Bring or send any card or letter to the office within 7 days.",
+      "Office staff record every compliment in CareFlow the same working day. Your Field Care Supervisor or line manager will pass on a compliment about you within 5 working days.",
+      "Phone suggestions and comments from the people we support through to the office the same day. Never promise a change yourself; the Care Coordinator replies within 5 working days.",
+      "Never help a person you care for to fill in our satisfaction survey, never collect a completed survey, and never ask anyone what they wrote. If someone wants help, tell the office and Office staff will arrange it.",
+      "Never post a review of {{organisation}} anywhere, never ask anyone to post one, and never reply to a review online. Only the Nominated Individual or a Director replies publicly.",
+      "Never share compliments, thank-you cards or photos of people we support or their homes on social media or anywhere public. Testimonials are published only with the person's own signed consent.",
+      "Give your own views and ideas in the annual staff survey, at team meetings, in supervision or to your manager. Suggestions are answered in writing within 10 working days.",
+      "Concerns about wrongdoing go through the Whistleblowing (Speaking Up) Policy, and problems with your own employment through the Grievance Policy and Procedure, not through feedback routes."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "AUDIT",
+    "VISIT",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-CD-001",
+    "POL-GOV-013",
+    "POL-HR-005",
+    "POL-HR-018",
+    "POL-HR-009",
+    "POL-CD-006"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(a) and (e) Good governance (people's experience; seek and act on feedback)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9(3)(f) and (g) Person-centred care (involving people in how the service is run, and the information they need to take part)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 7 Conditions for consent",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/7"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 9(2)(a) Explicit consent to processing special category data",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/9"
+    },
+    {
+      "source": "Digital Markets, Competition and Consumers Act 2024, Schedule 20 paragraph 13 (fake and misleading consumer reviews)",
+      "url": "https://www.legislation.gov.uk/ukpga/2024/13/schedule/20"
+    },
+    {
+      "source": "Digital Markets, Competition and Consumers Act 2024 (Commencement No. 2) Regulations 2025 (SI 2025/272), regulation 2 (Schedule 20 in force 6 April 2025)",
+      "url": "https://www.legislation.gov.uk/uksi/2025/272/regulation/2/made"
+    },
+    {
+      "source": "Competition and Markets Authority, Fake reviews: guidance on the prohibition under paragraph 13 of Schedule 20 to the DMCC Act 2024 (CMA208, 4 April 2025)",
+      "url": "https://www.gov.uk/government/publications/fake-reviews-cma208"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} wants to hear what the people we support, their families, our staff and the professionals we work with think of our service, and to act on it. We ask at set points, make feedback easy to give at any time, and tell people what we did."
+        },
+        {
+          "p": "The law requires us to assess, monitor and improve the quality of our service and to seek and act on feedback from the people we support, those acting for them and others (Regulation 17(2)(a) and (e)), and to involve people in decisions about how the service is run as it relates to their care (Regulation 9(3)(f))."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every compliment is recorded, passed to the staff named and used to recognise good work.",
+            "Quality checks and surveys are run the same way in every branch, so results can be compared.",
+            "All feedback reaches the right route, is analysed and acted on, and people are told what changed.",
+            "People help shape the service, and their words are published only with consent."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who works for us, including Directors and bank and agency workers. It covers feedback from people we support, their families and representatives, our employees, commissioners, professionals and the public, however given, including online."
+        },
+        {
+          "p": "It does not cover complaints, safeguarding concerns, incidents or requests to change care, which follow the routing table below, or employees' concerns about wrongdoing, their own employment, bullying or harassment, or health and safety, which follow their own policies."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Compliment",
+                "Praise or thanks, spoken or written, about our service, a team or a named employee, from anyone, including in a survey, a card or an online review."
+              ],
+              [
+                "Suggestion",
+                "An idea or comment about how we could do things better that does not express dissatisfaction needing a response."
+              ],
+              [
+                "Quality check",
+                "A structured conversation with a person we support at least every 3 months, by call or face-to-face visit, as the Person-Centred Care, Dignity and Respect Policy sets out."
+              ],
+              [
+                "Satisfied",
+                "Answering Very good or Good to \"Overall, how was your experience of our service?\" (answers: Very good, Good, Neither good nor poor, Poor, Very poor, Don't know), with Don't know left out of percentages."
+              ],
+              [
+                "Feedback log",
+                "The Deputy Manager's record, in the governance records, of suggestions and general comments, each with its theme, branch, reply and any action."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors receive survey results and quarterly feedback reports and set improvement priorities from them. The Nominated Individual approves every testimonial before publication and replies to online reviews (as may a Director)."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this procedure, reviews all feedback each month for themes, adds actions to the service improvement plan, approves each year's survey questions, chairs the People's Voice group and leads recognition of staff."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager and HR Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager runs the satisfaction and professionals' surveys, keeps the feedback log, prepares the monthly feedback summary and sends the You said, we did summary. The HR Manager runs the staff and job applicant surveys."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Care Coordinators make first-week check calls and quality calls, reply to individual feedback and check weekly for due and overdue calls. Field Care Supervisors carry out face-to-face quality visits, pass on compliments to the care staff they supervise and collect appraisal feedback."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Managers",
+          "blocks": [
+            {
+              "p": "Office staff record compliments and feedback in CareFlow the same working day, route complaints, concerns and requests under the right procedure, and help people complete surveys. The On-call Manager records feedback received out of hours and hands it over by 10am the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "They pass on compliments, suggestions and comments as this procedure sets out and keep feedback confidential."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Receiving feedback and deciding the route",
+      "blocks": [
+        {
+          "p": "Whoever receives feedback listens, thanks the person, never argues or promises an outcome, and chooses the route from the table below. Each part of mixed feedback goes to its own route. If you are unsure whether something is a complaint, treat it as one: the Registered Manager or Deputy Manager confirms the grading within 1 working day under the Complaints Policy and Procedure."
+        },
+        {
+          "table": {
+            "columns": [
+              "What the feedback shows",
+              "Route",
+              "First step and timescale"
+            ],
+            "rows": [
+              [
+                "Possible abuse or neglect, or someone at risk",
+                "Safeguarding Concerns: Reporting, Referral and Enquiry Procedure",
+                "Phone the office or On-call Manager before leaving the visit; 999 in an emergency"
+              ],
+              [
+                "Dissatisfaction that needs a response, whatever words are used",
+                "Complaints Policy and Procedure",
+                "Recorded in the complaint record the same working day; acknowledged within 3 working days"
+              ],
+              [
+                "An accident, error, near miss or harm",
+                "Incident Reporting, Investigation and Learning Policy",
+                "Phoned in before leaving the visit as that policy sets out; incident log before the end of the shift"
+              ],
+              [
+                "A request to change visit times, tasks or care workers",
+                "Person-Centred Care, Dignity and Respect Policy",
+                "Passed to the office the same day; acknowledged by the end of the next working day"
+              ],
+              [
+                "A change in the person's needs or abilities",
+                "Care Plan Review Procedure",
+                "Reported to the office the same day, before leaving the visit if it puts the person at risk; Care Coordinator decides on a review the same working day"
+              ],
+              [
+                "Worry that personal data has been lost, shared wrongly or misused",
+                "Personal Data Breach Procedure",
+                "Phoned to the office or On-call Manager at once, before leaving the visit; Nominated Individual told the same day"
+              ],
+              [
+                "Praise or thanks",
+                "This procedure: compliments",
+                "Recorded the same working day; shared within 5 working days"
+              ],
+              [
+                "A suggestion or comment needing no formal response",
+                "This procedure: feedback log",
+                "Recorded the same working day; reply within 5 working days"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Care workers phone suggestions and comments through to the office the same day. Office staff record a person's suggestion or comment in their daily visit notes the same working day and pass it to the Care Coordinator, who tells the person within 5 working days what we will do, and to the Deputy Manager, who adds it and its theme to the feedback log within 2 working days, then the reply. Suggestions from the public and professionals go straight to the Deputy Manager."
+        },
+        {
+          "p": "No one's care is reduced, changed or delayed because they gave critical feedback, and no one is pressed to give positive feedback. Any employee who treats a person less favourably because of their feedback is dealt with under the Disciplinary Policy and Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Compliments",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Recording a compliment",
+          "blocks": [
+            {
+              "steps": [
+                "A care worker who receives a compliment phones it through to the office before the end of their shift, in the person's own words where possible. Cards and letters are brought or sent to the office within 7 days.",
+                "Office staff, or the On-call Manager out of hours, create a compliment record in CareFlow the same working day: date, who gave it and their relationship to the person, how, about whom and what was said. A card or letter is scanned into the staff record of each employee it names (the governance records if it names no one), and the original is given to the employee or kept in the branch office.",
+                "If a gift or money comes with the compliment, the Gifts, Hospitality, Wills and Legacies Policy applies before anything is accepted."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Sharing compliments and recognising staff",
+          "blocks": [
+            {
+              "p": "Within 5 working days, the Field Care Supervisor (care staff) or line manager (other staff) passes the compliment to each employee named, marks it as shared in CareFlow and adds it to the staff record for their next supervision and appraisal (Supervision, Spot Checks and Appraisal Policy). A compliment about a whole team or branch is read out at the next staff team meeting."
+            },
+            {
+              "p": "At each quarterly staff team meeting the Registered Manager thanks by name the employees complimented that quarter, without identifying the people we support. Each June the Directors present recognition certificates to employees chosen by the Registered Manager and Nominated Individual from the year's compliments and nominations."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Asking the people we support for feedback",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "First-week calls and quality checks",
+          "blocks": [
+            {
+              "p": "First-week check calls and quality checks use standard question sets in CareFlow surveys, recorded on the day with who answered and how. The core questions, asked in the same words in the annual satisfaction survey, cover: the overall experience question defined under Satisfied; whether care workers arrive on time, stay the planned time and are known to the person; whether care is given the way the person wants and helps them do what matters to them; whether they are treated with dignity and respect, feel treated fairly and have their culture, beliefs and identity respected; whether they feel safe with their care workers; whether our information is easy to use; and whether they would feel able to tell us if unhappy, and know how. Quality checks add a few questions, such as whether care workers understand the person. First-week calls use a shorter welcome set."
+            },
+            {
+              "p": "The question about feeling safe is asked only when the person confirms they can talk privately, and otherwise at their next spot check; where the person needs an interpreter, it is asked only through a professional interpreter, never a family member. A first-week call or quality check is never carried out by a member of the person's core care team. The person may involve a family member or representative; where the person cannot give their views even with support, we ask the representative recorded in their care plan and record what we observe of the person's wellbeing."
+            },
+            {
+              "p": "If the person cannot be reached after three attempts at different times of day over 5 working days, the Field Care Supervisor completes the check face to face within the next 10 working days. A person may decline quality checks: the Care Coordinator records the decision in the care plan, offers again at the next care plan review and still invites them to the annual survey. No one we support is sent more than one survey, including a quality check, in any 4 weeks (a due quality check is combined with the other survey or brought forward, never missed), and surveys after an event, such as a complaint, come first; within this limit, a sample of people who agree may get a monthly visit check-in, on the portal or by phone."
+            },
+            {
+              "p": "Dissatisfaction that needs a response is a complaint: whoever hears it records it in the complaint record the same working day under the Complaints Policy and Procedure. Any other answer needing action, such as a low rating with no particular concern, goes to the Care Coordinator the same working day, who contacts the person within 5 working days to agree what we will do and records any complaint that emerges the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Annual satisfaction survey",
+          "blocks": [
+            {
+              "p": "The Deputy Manager runs the satisfaction survey each year from the first working day of February for 4 weeks. We tell people it is separate from the council's yearly Adult Social Care Survey. Before each survey the Registered Manager approves the question set, which includes the core questions, and the Deputy Manager tests it with at least 3 people we support."
+            },
+            {
+              "bullets": [
+                "Every person we support receives the survey in their recorded format, such as large print, easy read, another language, online, or by phone or face to face with a professional interpreter (Communication and Accessible Information Policy). Family carers and representatives recorded in the care plan are sent the family and representative survey, where the person agrees or cannot give their views, to answer in their own right. A representative answers this survey for the person only when the person cannot give their views even with help, recorded in CareFlow's \"Who is answering\" field and reported separately.",
+                "This survey is confidential, not anonymous: answers are linked to the person and can be followed up. A person may choose to answer without their name; we then cannot reply, and no one tries to identify them. Paper forms come with a prepaid envelope to the Deputy Manager, who enters them in CareFlow surveys and reads new responses each working day the survey is open.",
+                "A reminder is sent after 2 weeks. Office staff, or a Field Care Supervisor who is not in the person's core care team, help anyone who asks. Care workers never help the people they care for to complete the survey or collect completed forms, and no employee asks anyone what they wrote.",
+                "Responses are routed as for quality checks: dissatisfaction is recorded as a complaint on the day it is read (an anonymous one investigated as far as it allows), and a comment suggesting abuse or neglect, named or anonymous, goes to the safeguarding lead the same working day."
+              ]
+            },
+            {
+              "p": "Our target is a response rate of at least 50% and at least 90% satisfied. Where fewer than 30% respond, the report says the results may not be representative and the Registered Manager changes the method for the next survey."
+            }
+          ]
+        },
+        {
+          "heading": "Reviews, spot checks and appraisal feedback",
+          "blocks": [
+            {
+              "p": "Feedback given at care plan reviews and in private conversations at spot checks is routed in the same way. Feedback from at least two people we support or their representatives for a care worker's appraisal is collected by the Field Care Supervisor at a quality check or spot check, never by the care worker being appraised."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Feedback from staff",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Route",
+              "How it works",
+              "Who and when"
+            ],
+            "rows": [
+              [
+                "Annual staff survey",
+                "Anonymous online survey in two linked parts, paper on request: the staff survey (whether supervision helps staff in their work and training equips them for their role, each target at least 80%; communication; whether staff would recommend us as a place to work and be happy for a relative to receive our care) and the work pressures check on the six stress areas, including workload, rotas and travel time (Work-Related Stress and Staff Wellbeing Policy). Opens on the first working day of September for 3 weeks.",
+                "HR Manager; target response rate 60%"
+              ],
+              [
+                "Monthly pulse",
+                "Anonymous three-minute survey in the CareFlow app, one question changing monthly; not in April, September, October or November, or in a March when the independent review staff questionnaire runs.",
+                "HR Manager; monthly"
+              ],
+              [
+                "Topic and event surveys",
+                "Anonymous: equality monitoring (February); speaking up (March, or the independent review staff questionnaire in its place); rotas and workload (April, October); health at work (May); feedback on your manager (June); the CareFlow app (July, December); lone working and driving (November). Named: training needs (January); working hours and availability (care staff, August); training and supervision feedback; on-call support; the sponsored worker welfare check, read only by the Registered Manager; after a difficult event and coming back to work after 4 weeks or more off, each about 4 weeks later and read only by the HR Manager.",
+                "HR Manager"
+              ],
+              [
+                "Staff team meetings",
+                "Staff views are a standing item; absent staff can send views in advance.",
+                "Registered Manager or Deputy Manager; at least every 3 months"
+              ],
+              [
+                "Supervision and appraisal",
+                "Views and ideas are asked for and recorded in the supervision and appraisal records.",
+                "Supervisor; at least every 3 months"
+              ],
+              [
+                "Suggestions at any time",
+                "To the worker's supervisor, line manager or the Registered Manager. Passed to the Deputy Manager for the feedback log within 2 working days; written reply with the decision and reasons within 10 working days.",
+                "Registered Manager or the manager who decides"
+              ],
+              [
+                "New starters",
+                "First weeks questionnaire on recruitment, induction and shadowing, sent within 5 working days of lone working sign-off; end of probation questionnaire once probation is confirmed or extended.",
+                "HR Manager"
+              ],
+              [
+                "Leavers",
+                "Confidential exit questionnaire, always offered with an anonymous link as well, and an exit conversation with someone other than the leaver's line manager, offered before the last working day.",
+                "HR Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A survey comment or suggestion describing wrongdoing is a speaking-up concern under the Whistleblowing (Speaking Up) Policy; the Nominated Individual is case owner where it is anonymous. The HR Manager sends job applicants an anonymous survey about applying within 7 days of the hiring decision."
+        }
+      ]
+    },
+    {
+      "heading": "Feedback from professionals and commissioners",
+      "blocks": [
+        {
+          "p": "Professionals' compliments and concerns are routed using the table above, and commissioners' contract monitoring findings go into the service improvement plan within 5 working days."
+        },
+        {
+          "p": "Each February, alongside the satisfaction survey, the Deputy Manager sends an online survey to every commissioner, GP practice, community pharmacy, community health or social work team, advocacy service and community organisation that worked with us in the previous 12 months, asking how well we communicate, follow advice, share information and work in partnership. A commissioner whose contract review falls outside February to April may be asked 6 to 8 weeks before it instead; hospital discharge and reablement teams are asked every 3 months. Results and actions are sent to everyone asked within 3 months of the survey closing."
+        }
+      ]
+    },
+    {
+      "heading": "Involving people in how the service is run",
+      "blocks": [
+        {
+          "p": "At assessment and each care plan review, the assessor asks whether the person would like to be involved, and records the answer and preferred contact method in the care plan. Taking part is always voluntary, can stop at any time and never affects anyone's care."
+        },
+        {
+          "table": {
+            "columns": [
+              "How people are involved",
+              "Arrangement"
+            ],
+            "rows": [
+              [
+                "People's Voice group",
+                "People we support, family carers and representatives meet the Registered Manager in each branch every June and December. The group reviews survey results, the You said, we did summary and planned changes, and its views are reported to the next Monthly Quality and Governance Meeting."
+              ],
+              [
+                "Our documents and information",
+                "At least 3 people we support or representatives are consulted on any change to the welcome pack or survey questions."
+              ],
+              [
+                "Recruitment",
+                "Each year the HR Manager asks the People's Voice group for interview questions for care roles and invites a person we support or family carer to meet shortlisted Registered Manager and Deputy Manager candidates; the interview panel decides under the Safer Recruitment Policy."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "People taking part get papers in their recorded format, support such as an interpreter or a phone or video option, and agreed out-of-pocket expenses repaid within 10 working days of claiming. Taking part is not a volunteer or staff role: participants give no care and see no personal information about anyone else."
+        },
+        {
+          "p": "The welcome pack tells people they can also share their experience directly with CQC and with their local Healthwatch."
+        }
+      ]
+    },
+    {
+      "heading": "Analysing and reporting feedback",
+      "blocks": [
+        {
+          "p": "The Deputy Manager gives every compliment, comment and suggestion a theme from this fixed list: timekeeping and visit length; continuity; communication and the office; staff attitude, dignity and respect; personal care; medicines; fairness, culture and identity; safety; and other."
+        },
+        {
+          "table": {
+            "columns": [
+              "Report",
+              "Content",
+              "Who and when",
+              "Goes to"
+            ],
+            "rows": [
+              [
+                "Monthly feedback summary",
+                "Compliments by branch and team; first-week calls and quality checks on time; quality check satisfaction; themes; suggestions and replies",
+                "Deputy Manager, with the quality dashboard by the 7th working day",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Quarterly feedback section",
+                "Branches side by side with four-quarter trends; staff, new starter and leaver themes; People's Voice views; the accounts of people's experience the Governance and Quality Assurance Policy requires",
+                "Registered Manager, in the quarterly governance report",
+                "Directors"
+              ],
+              [
+                "Survey reports",
+                "Response rates, results against target, previous years and other branches, comment themes and proposed actions",
+                "Deputy Manager or HR Manager, within 6 weeks of closing",
+                "Directors within 3 months of closing"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "These findings trigger action: satisfaction below 90% in any branch; the same negative theme raised by 3 or more people in one branch in a month; a branch whose survey result is 10 percentage points or more below the organisation average; or any first-week call or quality check more than 2 weeks overdue. The Registered Manager records the reason and an action in the service improvement plan, and the dashboard escalation rules in the Governance and Quality Assurance Policy apply."
+        }
+      ]
+    },
+    {
+      "heading": "Acting on feedback and telling people what changed",
+      "blocks": [
+        {
+          "p": "Every action arising from feedback goes into the service improvement plan within 5 working days and is tracked and closed under the Governance and Quality Assurance Policy. Where an individual's feedback leads to a change, the Care Coordinator tells them what has changed."
+        },
+        {
+          "p": "The Deputy Manager sends the You said, we did summary each May, with the satisfaction survey results, and each November, with the staff survey results, to every person we support in their recorded format, their representatives, all staff and the professionals who took part. It is displayed in each branch office and on our website, and identifies no one."
+        }
+      ]
+    },
+    {
+      "heading": "Testimonials, publicity and online reviews",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Using people's words or images",
+          "blocks": [
+            {
+              "p": "Where we rely on consent, the law requires us to show it was given, tell the person they can withdraw it at any time and make withdrawing as easy as giving it (UK GDPR Article 7). Words or images revealing a person's health or care needs are special category data, which we publish only with the person's explicit consent (Article 9(2)(a)). Our policy is:"
+            },
+            {
+              "bullets": [
+                "We use a person's words, name or image publicly only with their signed consent, or consent witnessed by a named second member of staff or person they choose, as the Consent to Care Policy requires. The consent states the exact words, where they will appear, how the person is named (full name, first name, initials or anonymous), any image, and for how long, up to 2 years. The same consent is needed to use a person's story in a report or training.",
+                "Consent must come from the person themselves, never from a representative; where there is any doubt that the person can give it, we do not publish. A relative may give a testimonial about their own experience, with their own signed consent, if it does not identify the person. An employee's words or image are used only with that employee's signed consent.",
+                "Words are never changed except to remove identifying details, and only with the person's agreement. Staff never write, suggest or improve a testimonial.",
+                "The Registered Manager arranges and checks the consent and the Nominated Individual approves the testimonial; only the Nominated Individual or a Director publishes on our website or social media.",
+                "When consent is withdrawn, the testimonial is removed online within 5 working days and left out of any new printed material.",
+                "Testimonials on our website appear with our latest satisfaction survey results, including the share answering Poor or Very poor, a link to our CQC report and a statement that we never write, pay for or reward reviews or testimonials."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Online reviews",
+          "blocks": [
+            {
+              "p": "Since 6 April 2025 the law bans submitting or commissioning fake consumer reviews or reviews that hide an incentive, and publishing reviews misleadingly, such as removing negative ones or giving positive ones more prominence (Digital Markets, Competition and Consumers Act 2024, Schedule 20, paragraph 13). Competition and Markets Authority guidance treats asking staff to review the business as commissioning, and warns that inviting only satisfied customers may mislead. Our policy is:"
+            },
+            {
+              "bullets": [
+                "No Director or employee writes or posts a review of {{organisation}} or of a competitor, or asks a relative, friend or a person we support to post one.",
+                "We never offer anything in return for a review and never ask anyone to change or remove a review. The only invitation to review us on an independent site is the Deputy Manager's, sent to everyone with each You said, we did summary.",
+                "Only the Nominated Individual or a Director replies to an online review, never confirming that anyone receives our care. A positive review from someone we can identify is recorded as a compliment; a negative one from someone we can identify and contact is treated as a complaint, and the public reply only invites private contact."
+              ]
+            },
+            {
+              "p": "Staff never post compliments, thank-you cards, or photos of people we support or their homes on personal social media (Mobile Phones and Social Media Policy)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Compliments, with scanned cards and letters",
+                "Compliment record in CareFlow; the scanned card or letter in the staff record of each employee named, or the governance records",
+                "3 years from receipt; the staff record copy with the staff record"
+              ],
+              [
+                "First-week calls, quality checks and responses to the satisfaction and professionals' surveys",
+                "CareFlow surveys; actions in the person's care plan and daily visit notes",
+                "3 years from the date of the call, check or survey closing"
+              ],
+              [
+                "Individual responses to staff and job applicant surveys",
+                "CareFlow surveys",
+                "1 year after the survey closes"
+              ],
+              [
+                "Suggestions, replies and staff suggestions",
+                "Feedback log in the governance records",
+                "3 years from the reply"
+              ],
+              [
+                "Survey reports, monthly summaries and You said, we did summaries",
+                "Governance records",
+                "Life of {{organisation}} plus 6 years"
+              ],
+              [
+                "Consent for testimonials and images",
+                "Governance records, with the published item",
+                "While the item is used, then 6 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Feedback records hold the minimum personal information needed, under the Data Protection Policy. Reports use reference numbers, never names, and never report a group of fewer than 5; only the roles named in each survey's Who can see the answers setting open its individual answers."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "Telling compliments, suggestions, complaints and safeguarding concerns apart; passing on compliments; confidentiality, social media and online reviews",
+                "At induction, refreshed in the annual person-centred care and dignity refresher"
+              ],
+              [
+                "Care Coordinators and Field Care Supervisors",
+                "Conducting first-week calls and quality checks, asking about safety in private, and following up dissatisfaction",
+                "Before their first call or check; the Deputy Manager reviews each new caller's first two records"
+              ],
+              [
+                "Office staff and On-call Managers",
+                "Recording compliments and feedback and choosing the route",
+                "Before taking calls alone or their first on-call shift"
+              ],
+              [
+                "Deputy Manager and HR Manager",
+                "Survey design, accessible formats, anonymity and analysis",
+                "Briefed by the Nominated Individual before running their first survey"
+              ],
+              [
+                "People we support or family carers taking part in recruitment or the People's Voice group",
+                "Their role, confidentiality and fair treatment",
+                "Before taking part: the HR Manager for recruitment, the Registered Manager for the group"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Field Care Supervisors check at supervision and spot checks that care workers know how to pass on a compliment and tell it from a complaint or concern; anyone who cannot is taken through it at once and rechecked at their next spot check. Training is recorded in the training and compliance records."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "First-week calls and quality checks on time (target 100%) and satisfaction (target at least 90%)",
+                "Monthly",
+                "Deputy Manager, in the quality dashboard",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "10 feedback items (all if fewer): compliments shared within 5 working days, individual replies within 5 working days, staff suggestions answered within 10 working days, correct routing (target 100%)",
+                "Quarterly",
+                "Deputy Manager; Registered Manager for items the Deputy Manager handled",
+                "Quarterly governance report"
+              ],
+              [
+                "Published testimonials: consent current, within 2 years, approved",
+                "Every 12 months, in January",
+                "Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall becomes an action with an owner and a deadline in the service improvement plan. This procedure is reviewed every 12 months, and sooner when needed, under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

@@ -9,7 +9,6 @@ export async function seedOrganisationGeneralSettings(prisma: PrismaClient): Pro
     update: {},
     create: {
       id: DEFAULT_SETTINGS_ID,
-      reviewCarePlanAfterDays: 180,
       handoverReportLastHours: 12,
       archiveServiceUserAfterMonths: 3,
       timeDisplayFormat: 'HH_MM',

@@ -146,14 +146,29 @@ export function resolveRequiredCarersForDay(
   return Math.max(1, base);
 }
 
+/** Hard ceiling for any backfill request; the organisation limit (Settings → Dom Care) is at most this. */
+export const BACKFILL_DAYS_CEILING = 31;
+
+/** Organisation backfill limit as stored (0 = backfill off), kept within 0..BACKFILL_DAYS_CEILING. */
+export function clampOrgMaxBackfillDays(value: number | null | undefined): number {
+  if (value == null || !Number.isFinite(value)) return 14;
+  return Math.min(BACKFILL_DAYS_CEILING, Math.max(0, Math.floor(value)));
+}
+
+/**
+ * Days back one slot may be backfilled: the request, capped by the organisation limit and, when
+ * the slot sets its own Max backfill days (> 0), by that too. A slot left at 0 uses the
+ * organisation limit.
+ */
 export function maxAllowedBackfillDays(
   slotAllowBackfill: number,
   requestBackfillDays: number,
-  globalMax = 14,
+  orgMaxBackfillDays: number,
 ): number {
-  const cap = Math.min(globalMax, Math.max(0, requestBackfillDays));
-  if (slotAllowBackfill <= 0) return 0;
-  return Math.min(cap, slotAllowBackfill);
+  const cap = Math.min(clampOrgMaxBackfillDays(orgMaxBackfillDays), Math.max(0, requestBackfillDays));
+  if (cap <= 0) return 0;
+  const slotCap = Math.max(0, Math.floor(Number(slotAllowBackfill) || 0));
+  return slotCap > 0 ? Math.min(cap, slotCap) : cap;
 }
 
 export function computeGenerationStart(

@@ -1,5 +1,11 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
-import { NotificationModule, NotificationSeverity, NotificationType, Prisma } from '@prisma/client';
+import {
+  NotificationModule,
+  NotificationSeverity,
+  NotificationType,
+  Prisma,
+  ReviewReminderSubject,
+} from '@prisma/client';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
@@ -8,7 +14,10 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { PrismaService } from '../prisma/prisma.service';
 import { listCarePathwayAssessmentCatalogForms } from './assessment-catalogue.util';
 import { IA_ASSESSMENT_TOOL_CATALOGUE } from './assessment-tool-registry';
-import { computeAssessmentReviewState } from './assessment-review-schedule';
+import {
+  computeAssessmentReviewState,
+  listAssessmentReviewSchedules,
+} from './assessment-review-schedule';
 import { validateAssessmentConsentForCompletion } from './assessment-consent.util';
 import {
   resolveCarePathwayFormName,
@@ -26,7 +35,22 @@ import {
   type AssessmentReviewQueueItem,
 } from './assessment-review-queue.util';
 import { NotificationsService } from '../notifications/notifications.service';
-import { resolveManagerUserIds } from '../notifications/resolve-manager-recipients';
+import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import {
+  DEFAULT_REVIEW_SETTINGS,
+  type ReviewSettings,
+} from '../organisation-general-settings/review-settings.util';
+import {
+  claimReviewReminder,
+  completeReviewReminder,
+  releaseReviewReminder,
+  resolveCareTeamUserIds,
+  reviewReminderAlreadySent,
+  reviewReminderKind,
+} from '../review-reminders/review-reminders';
+
+/** Review queue rows read per query (the reminder job pages through all of them). */
+const REVIEW_QUEUE_PAGE = 1000;
 
 const completionUserSelect = {
   id: true,
@@ -50,7 +74,19 @@ export class ServiceUserAssessmentsService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     @Optional() private readonly notifications?: NotificationsService,
+    @Optional() private readonly orgSettings?: OrganisationGeneralSettingsService,
   ) {}
+
+  /** Settings → Reviews & reminders (defaults when the settings service is not wired, e.g. in tests). */
+  private async reviewSettings(): Promise<ReviewSettings> {
+    return this.orgSettings ? this.orgSettings.getReviewSettings() : DEFAULT_REVIEW_SETTINGS;
+  }
+
+  /** Every assessment review schedule in force (built-in values with the organisation's overrides). */
+  async reviewSchedules() {
+    const settings = await this.reviewSettings();
+    return { data: listAssessmentReviewSchedules(settings.assessmentIntervals) };
+  }
 
   private async ensureServiceUser(serviceUserId: string) {
     const su = await this.prisma.serviceUser.findFirst({
@@ -98,6 +134,7 @@ export class ServiceUserAssessmentsService {
       orderBy: { assessmentKey: 'asc' },
     });
 
+    const { assessmentIntervals } = await this.reviewSettings();
     return {
       data: rows.map((row) => {
         const latest = row.completions[0] ? this.mapCompletion(row.completions[0]) : null;
@@ -113,6 +150,7 @@ export class ServiceUserAssessmentsService {
           }),
           lastCompletedAt: latest?.completedAt ?? null,
           snapshot,
+          overrides: assessmentIntervals,
         });
 
         return {
@@ -296,6 +334,7 @@ export class ServiceUserAssessmentsService {
       ...reviewContext,
       lastCompletedAt: created.completedAt,
       snapshot,
+      overrides: (await this.reviewSettings()).assessmentIntervals,
     });
 
     let autoLinkedCarePlans: AutoLinkedCarePlan[] = [];
@@ -501,57 +540,18 @@ export class ServiceUserAssessmentsService {
     locationId?: string;
     overdueOnly?: boolean;
     alertsOnly?: boolean;
+    settings?: ReviewSettings;
+    now?: Date;
   }) {
-    const rows = await this.prisma.serviceUserAssessment.findMany({
-      where: {
-        ...(opts?.serviceUserId ? { serviceUserId: opts.serviceUserId } : {}),
-        serviceUser: {
-          deletedAt: null,
-          ...(opts?.locationId ? { locationId: opts.locationId } : {}),
-        },
-      },
-      include: {
-        serviceUser: {
-          select: {
-            id: true,
-            firstName: true,
-            lastName: true,
-            preferredName: true,
-          },
-        },
-        completions: {
-          orderBy: { completedAt: 'desc' },
-          take: 1,
-          select: { id: true, completedAt: true, snapshot: true },
-        },
-      },
-      orderBy: [{ serviceUserId: 'asc' }, { assessmentKey: 'asc' }],
-      take: 1000,
-    });
-
-    const items = rows.map((row) => {
-      const latest = row.completions[0];
-      const snapshot =
-        latest?.snapshot && typeof latest.snapshot === 'object' && !Array.isArray(latest.snapshot)
-          ? (latest.snapshot as Record<string, unknown>)
-          : null;
-      const su = row.serviceUser;
-      const serviceUserName = su
-        ? (su.preferredName?.trim() ||
-            [su.firstName, su.lastName].filter(Boolean).join(' ').trim()) || null
-        : null;
-
-      return buildAssessmentReviewQueueItem({
-        serviceUserId: row.serviceUserId,
-        serviceUserName,
-        assessmentId: row.id,
-        assessmentKey: row.assessmentKey,
-        assessmentTitle: row.title,
-        latestCompletionId: latest?.id ?? null,
-        latestCompletedAt: latest?.completedAt ?? null,
-        snapshot,
-      });
-    });
+    const { assessmentIntervals } = opts?.settings ?? (await this.reviewSettings());
+    const items: AssessmentReviewQueueItem[] = [];
+    let cursor: string | undefined;
+    for (;;) {
+      const page = await this.reviewQueuePage(opts, cursor);
+      items.push(...page.map((row) => this.toQueueItem(row, assessmentIntervals, opts?.now)));
+      if (page.length < REVIEW_QUEUE_PAGE) break;
+      cursor = page[page.length - 1]!.id;
+    }
 
     const filtered = filterReviewQueueItems(items, {
       overdueOnly: opts?.overdueOnly,
@@ -578,112 +578,122 @@ export class ServiceUserAssessmentsService {
     };
   }
 
-  private async userIdForEmployee(employeeId: string): Promise<string | null> {
-    const emp = await this.prisma.employee.findFirst({
-      where: { id: employeeId, deletedAt: null },
-      include: { personalDetail: { select: { email: true } } },
-    });
-    const email = emp?.personalDetail?.email?.trim();
-    if (!email) return null;
-    const user = await this.prisma.user.findFirst({
-      where: { email: { equals: email, mode: 'insensitive' }, deletedAt: null, isActive: true },
-      select: { id: true },
-    });
-    return user?.id ?? null;
-  }
-
-  private async resolveCareTeamUserIds(serviceUserId: string): Promise<string[]> {
-    const su = await this.prisma.serviceUser.findFirst({
-      where: { id: serviceUserId, deletedAt: null },
-      select: { keyWorkerId: true, namedNurseId: true, locationId: true },
-    });
-    if (!su) return [];
-    const ids = new Set<string>();
-    if (su.keyWorkerId) {
-      const uid = await this.userIdForEmployee(su.keyWorkerId);
-      if (uid) ids.add(uid);
-    }
-    if (su.namedNurseId) {
-      const uid = await this.userIdForEmployee(su.namedNurseId);
-      if (uid) ids.add(uid);
-    }
-    for (const uid of await resolveManagerUserIds(this.prisma, { locationId: su.locationId })) {
-      ids.add(uid);
-    }
-    return [...ids];
-  }
-
-  private async wasReminderSentRecently(
-    serviceUserId: string,
-    assessmentKey: string,
-    reviewStatus: string,
-  ): Promise<boolean> {
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    const rows = await this.prisma.auditLog.findMany({
+  private reviewQueuePage(
+    opts: { serviceUserId?: string; locationId?: string } | undefined,
+    cursor: string | undefined,
+  ) {
+    return this.prisma.serviceUserAssessment.findMany({
       where: {
-        action: AuditAction.ASSESSMENT_REVIEW_REMINDER,
-        createdAt: { gte: since },
+        ...(opts?.serviceUserId ? { serviceUserId: opts.serviceUserId } : {}),
+        serviceUser: {
+          deletedAt: null,
+          isActive: true,
+          ...(opts?.locationId ? { locationId: opts.locationId } : {}),
+        },
       },
-      select: { metadata: true },
-      orderBy: { createdAt: 'desc' },
-      take: 500,
-    });
-    return rows.some((row) => {
-      if (!row.metadata || typeof row.metadata !== 'object') return false;
-      const meta = row.metadata as Record<string, unknown>;
-      return (
-        meta.serviceUserId === serviceUserId &&
-        meta.assessmentKey === assessmentKey &&
-        meta.reviewStatus === reviewStatus
-      );
+      include: {
+        serviceUser: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            preferredName: true,
+          },
+        },
+        completions: {
+          orderBy: { completedAt: 'desc' },
+          take: 1,
+          select: { id: true, completedAt: true, snapshot: true },
+        },
+      },
+      orderBy: { id: 'asc' },
+      take: REVIEW_QUEUE_PAGE,
+      ...(cursor ? { skip: 1, cursor: { id: cursor } } : {}),
     });
   }
 
+  private toQueueItem(
+    row: Awaited<ReturnType<ServiceUserAssessmentsService['reviewQueuePage']>>[number],
+    overrides: ReviewSettings['assessmentIntervals'],
+    now?: Date,
+  ): AssessmentReviewQueueItem {
+    const latest = row.completions[0];
+    const snapshot =
+      latest?.snapshot && typeof latest.snapshot === 'object' && !Array.isArray(latest.snapshot)
+        ? (latest.snapshot as Record<string, unknown>)
+        : null;
+    const su = row.serviceUser;
+    const serviceUserName = su
+      ? (su.preferredName?.trim() || [su.firstName, su.lastName].filter(Boolean).join(' ').trim()) || null
+      : null;
+
+    return buildAssessmentReviewQueueItem({
+      serviceUserId: row.serviceUserId,
+      serviceUserName,
+      assessmentId: row.id,
+      assessmentKey: row.assessmentKey,
+      assessmentTitle: row.title,
+      latestCompletionId: latest?.id ?? null,
+      latestCompletedAt: latest?.completedAt ?? null,
+      snapshot,
+      overrides,
+      now,
+    });
+  }
+
+  /**
+   * Assessment review reminders: one when a review becomes due soon, then one on the first overdue
+   * day and again every `reminderRepeatDays` while overdue (Settings → Reviews & reminders). Each
+   * reminder is claimed in ReviewReminderLog first, so the hourly job and this endpoint never send
+   * the same one twice.
+   */
   async sendReviewReminders(params: {
-    triggeredByUserId: string;
+    triggeredByUserId?: string;
     serviceUserId?: string;
     dryRun?: boolean;
     meta?: RequestAuditMeta;
+    now?: Date;
   }) {
+    const now = params.now ?? new Date();
+    const settings = await this.reviewSettings();
     const queue = await this.reviewQueue({
       serviceUserId: params.serviceUserId,
       alertsOnly: true,
+      settings,
+      now,
     });
 
     let sent = 0;
     let skipped = 0;
-    const preview: Array<{ serviceUserId: string; assessmentKey: string; recipients: string[] }> =
-      [];
+    let alreadySent = 0;
+    const preview: Array<{ serviceUserId: string; assessmentKey: string; kind: string; recipients: string[] }> = [];
 
     for (const item of queue.data) {
-      if (item.review.status !== 'overdue' && item.review.status !== 'due_soon') {
+      const dueDate = item.review.nextReviewDueAt ? new Date(item.review.nextReviewDueAt) : null;
+      const kind = reviewReminderKind(item.review.status, dueDate, now, settings.reminderRepeatDays);
+      if (!kind || !dueDate) {
         skipped += 1;
         continue;
       }
-
-      const alreadySent = await this.wasReminderSentRecently(
-        item.serviceUserId,
-        item.assessmentKey,
-        item.review.status,
-      );
-      if (alreadySent) {
-        skipped += 1;
-        continue;
-      }
-
-      const recipientUserIds = await this.resolveCareTeamUserIds(item.serviceUserId);
-      if (!recipientUserIds.length) {
-        skipped += 1;
-        continue;
-      }
-
-      preview.push({
+      const claim = {
+        subjectType: ReviewReminderSubject.ASSESSMENT,
+        subjectId: item.assessmentId,
         serviceUserId: item.serviceUserId,
-        assessmentKey: item.assessmentKey,
-        recipients: recipientUserIds,
-      });
+        dueDate,
+        kind,
+      };
 
       if (params.dryRun) {
+        if (await reviewReminderAlreadySent(this.prisma, claim)) {
+          alreadySent += 1;
+          continue;
+        }
+        const recipients = await resolveCareTeamUserIds(this.prisma, item.serviceUserId);
+        if (!recipients.length) {
+          skipped += 1;
+          continue;
+        }
+        preview.push({ serviceUserId: item.serviceUserId, assessmentKey: item.assessmentKey, kind, recipients });
         sent += 1;
         continue;
       }
@@ -692,25 +702,28 @@ export class ServiceUserAssessmentsService {
         skipped += 1;
         continue;
       }
+      const recipientUserIds = await resolveCareTeamUserIds(this.prisma, item.serviceUserId);
+      if (!recipientUserIds.length) {
+        skipped += 1;
+        continue;
+      }
+      const logId = await claimReviewReminder(this.prisma, claim);
+      if (!logId) {
+        alreadySent += 1;
+        continue;
+      }
 
-      const statusLabel = item.review.status === 'overdue' ? 'overdue' : 'due soon';
-      const title = `Assessment review ${statusLabel}: ${item.assessmentTitle}`;
-      const message =
-        item.review.status === 'overdue'
-          ? `${item.serviceUserName ?? 'Service user'} — ${item.assessmentTitle} review is overdue. Complete it from the care plan.`
-          : `${item.serviceUserName ?? 'Service user'} — ${item.assessmentTitle} review is due soon. Complete it from the care plan.`;
-
+      const overdue = item.review.status === 'overdue';
+      const statusLabel = overdue ? 'overdue' : 'due soon';
+      const who = item.serviceUserName ?? 'Service user';
       try {
         await this.notifications.notifyUsers({
           recipientUserIds,
           type: NotificationType.ASSESSMENT_DUE_REMINDER,
-          title,
-          message,
+          title: `Assessment review ${statusLabel}: ${item.assessmentTitle}`,
+          message: `${who} — ${item.assessmentTitle} review is ${statusLabel}. Complete it from the care plan.`,
           module: NotificationModule.SERVICE_CARE,
-          severity:
-            item.review.status === 'overdue'
-              ? NotificationSeverity.WARNING
-              : NotificationSeverity.INFO,
+          severity: overdue ? NotificationSeverity.WARNING : NotificationSeverity.INFO,
           recordType: 'ServiceUserAssessment',
           recordId: item.assessmentId,
           metadata: {
@@ -718,37 +731,44 @@ export class ServiceUserAssessmentsService {
             assessmentKey: item.assessmentKey,
             reviewStatus: item.review.status,
             nextReviewDueAt: item.review.nextReviewDueAt,
+            reminderKind: kind,
           },
           createdById: params.triggeredByUserId,
         });
       } catch (err) {
+        await releaseReviewReminder(this.prisma, logId);
         this.logger.warn(`Assessment reminder failed: ${(err as Error).message}`);
         skipped += 1;
         continue;
       }
+      await completeReviewReminder(this.prisma, logId, recipientUserIds);
 
-      await this.audit.logAudit({
-        userId: params.triggeredByUserId,
-        module: AuditModule.SERVICE_USER,
-        action: AuditAction.ASSESSMENT_REVIEW_REMINDER,
-        recordType: 'ServiceUserAssessment',
-        recordId: item.assessmentId,
-        newValues: auditSnapshot({
-          assessmentKey: item.assessmentKey,
-          assessmentTitle: item.assessmentTitle,
-          reviewStatus: item.review.status,
-          nextReviewDueAt: item.review.nextReviewDueAt,
-        }),
-        metadata: {
-          serviceUserId: item.serviceUserId,
-          assessmentKey: item.assessmentKey,
-          reviewStatus: item.review.status,
-          recipientUserIds,
-          nextReviewDueAt: item.review.nextReviewDueAt,
-        },
-        ...params.meta,
-      });
-
+      if (params.triggeredByUserId) {
+        // Manual sends are audited against the person who pressed the button; the job's run is
+        // recorded in JobRun and the reminder itself in ReviewReminderLog.
+        await this.audit.logAudit({
+          userId: params.triggeredByUserId,
+          module: AuditModule.SERVICE_USER,
+          action: AuditAction.ASSESSMENT_REVIEW_REMINDER,
+          recordType: 'ServiceUserAssessment',
+          recordId: item.assessmentId,
+          newValues: auditSnapshot({
+            assessmentKey: item.assessmentKey,
+            assessmentTitle: item.assessmentTitle,
+            reviewStatus: item.review.status,
+            nextReviewDueAt: item.review.nextReviewDueAt,
+          }),
+          metadata: {
+            serviceUserId: item.serviceUserId,
+            assessmentKey: item.assessmentKey,
+            reviewStatus: item.review.status,
+            reminderKind: kind,
+            recipientUserIds,
+            nextReviewDueAt: item.review.nextReviewDueAt,
+          },
+          ...params.meta,
+        });
+      }
       sent += 1;
     }
 
@@ -757,6 +777,7 @@ export class ServiceUserAssessmentsService {
         dryRun: params.dryRun ?? false,
         sent,
         skipped,
+        alreadySent,
         queueTotal: queue.data.length,
         preview: params.dryRun ? preview : undefined,
       },

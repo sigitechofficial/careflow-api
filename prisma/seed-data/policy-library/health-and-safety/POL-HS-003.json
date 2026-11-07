@@ -1,0 +1,762 @@
+{
+  "reference": "POL-HS-003",
+  "revision": 1,
+  "title": "Lone Working and Staff Personal Safety Policy",
+  "documentType": "POLICY",
+  "summary": "How we keep staff safe when they work alone: in people's homes, travelling between visits, on assessment and on-call visits, and in the office or at home. It covers assessing lone working risk, work that is never done alone, personal safety on visits, check-in and check-out monitoring, the timed escalation when a worker cannot be contacted, raising the alarm, support after incidents, training and testing. For all staff.",
+  "keyPoints": {
+    "intro": "Most of your work is done alone. These rules make sure we always know you are safe and can get help quickly if you are not.",
+    "points": [
+      "If you feel unsafe at the door or during a visit, do not go in, or leave at once, even if care is unfinished. Get somewhere safe, then phone the office or On-call Manager. You will never be disciplined for leaving in good faith.",
+      "If you are in danger, call 999; if you cannot speak, cough or tap to answer and, on a mobile, press 55 when asked. If you cannot talk freely, phone the office or On-call Manager and use the code phrase.",
+      "If you need help during a visit but cannot make a call, raise the CareFlow emergency alert and answer when we phone. Raised it by mistake? Phone the office or On-call Manager at once.",
+      "Check in on CareFlow once inside the home and check out when you leave, at every visit. If the app or signal fails, phone the office or On-call Manager with your arrival and departure times.",
+      "If you are 15 minutes late checking in or out and have not phoned us, we phone you. If we still cannot reach you 30 minutes later, we call the police. Answer, or call back as soon as you safely can.",
+      "Start every shift with your work phone fully charged, CareFlow working, the office and On-call numbers saved and your personal alarm. Wear your ID badge where it can be seen. Keep your phone and car keys on you during visits.",
+      "Read the risk assessment before your first visit to anyone and follow every personal safety control. Never do alone a visit that the care plan or the office says needs two people.",
+      "If you are given a lone worker device, carry it switched on and charged at every visit and make a test activation once a month.",
+      "Never make a visit that is not on your CareFlow rota, and never give anyone your home address or personal phone number or tell them where a colleague is working.",
+      "When your last visit ends between 10pm and 7am, phone or text the On-call Manager once home, within 45 minutes of checking out unless a longer time was agreed.",
+      "Phone the office before you leave about any threat, abuse, harassment or anything that made you feel unsafe, and record it in the incident log before your shift ends. We will support you.",
+      "Tell your manager about anything that makes working alone riskier for you, such as a health condition, pregnancy or drowsy-making medicine. Tell the HR Manager within 5 working days if your emergency contact or vehicle changes."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "VISIT",
+    "RISK_ASSESSMENT",
+    "INCIDENT",
+    "EMPLOYEE",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-HS-001",
+    "POL-HS-002",
+    "POL-HS-004",
+    "POL-HS-011",
+    "POL-HS-015",
+    "POL-CD-013",
+    "POL-SG-013",
+    "POL-HR-013"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 2 (employer's duty to ensure, so far as is reasonably practicable, employees' health, safety and welfare, including safe systems of work, information, instruction, training and supervision)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/2"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 3 (suitable and sufficient risk assessment; recording significant findings and any group of employees identified as especially at risk)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 44(1A) (protection from detriment for leaving or refusing to return to serious and imminent danger, or taking appropriate steps to protect oneself or others)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/44"
+    },
+    {
+      "source": "Equality Act 2010, section 40A (employer's duty to take all reasonable steps to prevent sexual harassment of employees; 'all' inserted from 30 October 2026 by the Employment Rights Act 2025, section 20)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40A"
+    },
+    {
+      "source": "Employment Rights Act 2025, section 21 (harassment by third parties: new section 40(1A) to (1C) of the Equality Act 2010; an employer permits third-party harassment if it failed to take all reasonable steps to prevent it; in force 30 October 2026 under S.I. 2026/1065, regulation 3(b))",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/36/section/21"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 18(2)(f) (notification of any incident reported to, or investigated by, the police that occurs while services are provided)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Health and Safety Executive, Protecting lone workers: How to manage the risks of working alone, INDG73(rev4), March 2020",
+      "url": "https://www.hse.gov.uk/pubns/indg73.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Lone working: protect those working alone (definition of a lone worker)",
+      "url": "https://www.hse.gov.uk/lone-working/employer/index.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Lone working: manage the risks of working alone (risks to assess, including medical suitability to work alone)",
+      "url": "https://www.hse.gov.uk/lone-working/employer/manage-the-risks-of-working-alone.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Lone working: stress, mental health and other factors (get medical advice where unsure whether a worker's health condition means they are safe to work alone)",
+      "url": "https://www.hse.gov.uk/lone-working/employer/stress-other-factors.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Lone working: training, supervision and monitoring (keep in touch, confirm workers have returned, regularly test systems and emergency procedures)",
+      "url": "https://www.hse.gov.uk/lone-working/employer/training-supervision-monitoring.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Lone working: violence",
+      "url": "https://www.hse.gov.uk/lone-working/employer/violence.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Managing the risk of violence and aggression in health and social care (home visits assessed beforehand, information exchange, movement plans held by a responsible person who knows what to do if a worker does not call in)",
+      "url": "https://www.hse.gov.uk/healthservices/violence/do.htm"
+    },
+    {
+      "source": "Independent Office for Police Conduct, Silent Solution (making a 999 call from a mobile when unable to speak; press 55 when prompted)",
+      "url": "https://www.policeconduct.gov.uk/node/5035"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Most of our work is done alone. Care workers visit people in their own homes, often early or late in the day, and travel between visits by car, on foot or by public transport. Field Care Supervisors assess people alone, On-call Managers go out to cover visits, and office staff sometimes work alone. Working alone is usually safe, but when something goes wrong there is nobody beside the worker to help."
+        },
+        {
+          "p": "{{organisation}}, as the employer, keeps full responsibility for the health, safety and welfare of everyone who works alone for us and never passes it to the worker. We decide which work is never done alone, know when every lone worker arrives and leaves, act within fixed times when we lose contact, give every lone worker a way to call for help, and train and support them. Nobody who works for us is ever expected to stay in a situation in which they feel unsafe."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy applies the Health and Safety Executive's guidance Protecting lone workers (INDG73) to our service as part of the Health and Safety Policy. It sets the rules for assessing lone working risk, monitoring lone workers, responding when contact is lost, raising the alarm, supporting staff after incidents and testing these arrangements."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee and bank or agency worker who works alone for us: care staff on visits and travelling between them; Field Care Supervisors, Care Coordinators and managers making assessment, review or spot check visits; On-call Managers at home or out on visits; and office staff working alone in a branch office or at home. It covers each working day from setting off for the first visit or task to the confirmed end of the shift. Students and workers under 18 never work alone, under the Safer Recruitment Policy and the Young Workers Procedure."
+        },
+        {
+          "p": "Other documents cover: the risk assessment method (Risk Assessment and Home Environment Risk Assessment Procedure); preventing and managing violence and aggression towards staff (Violence and Aggression Towards Staff Policy); driving and breakdowns (Driving at Work Policy); what the office does for the person when a visit is late or missed (Missed, Late and Short Visits Procedure); a person who does not answer the door (No Reply, No Access and Missing Person Procedure); and severe weather (Severe Weather and Extreme Temperatures Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Lone worker",
+                "Someone who works by themselves without close or direct supervision (HSE definition), including a care worker travelling to or from a double-up visit."
+              ],
+              [
+                "Expected finish time",
+                "The worker's actual check-in time plus the planned length of the visit."
+              ],
+              [
+                "Trigger point",
+                "15 minutes after the expected finish time without a check-out, or 15 minutes after the planned start time without a check-in, where the worker has not phoned the office."
+              ],
+              [
+                "Office hours",
+                "The times the branch office is open, set by the Registered Manager and published in the service user guide and on the daily office rota. Every other time, including weekends and bank holidays, is out of hours."
+              ],
+              [
+                "Monitor",
+                "The member of office staff named on the daily office rota to watch check-ins, check-outs and CareFlow alerts and answer calls from lone workers in office hours; out of hours, the On-call Manager."
+              ],
+              [
+                "Escalation manager",
+                "The Registered Manager or Deputy Manager on the management escalation rota, or a manager covering for them under the Registered Manager Role and Absence Cover Policy, who can be reached by phone whenever an On-call Manager is on duty. If they do not answer within 15 minutes, the On-call Manager phones the branch's other Registered Manager or Deputy Manager who is not absent, then the Nominated Individual, and, if the Nominated Individual cannot be reached within 1 hour, the Director named to act for them."
+              ],
+              [
+                "Code phrase",
+                "A phrase staff learn at induction which, said on a call to the office or On-call Manager, means 'I am in danger and cannot speak freely'. One phrase is used across {{organisation}}, passed on only in person or by phone call and never written down, texted, emailed or put in a care plan."
+              ],
+              [
+                "Lone worker device",
+                "A personal safety device or phone app whose monitoring service is certified to BS 8484 and that, when activated, connects the worker to an alarm receiving centre that can listen in, locate them and call the police."
+              ],
+              [
+                "Night",
+                "10pm to 7am."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy every 12 months and fund what it requires: personal alarms, lone worker devices, power banks, training, realistic travel time and a second worker wherever one is required. The Registered Manager tells the Nominated Individual whenever the police are called under the escalation steps in this policy, and of any physical or sexual assault on staff or police call about violence or abuse towards staff: at once for a Critical incident, the same day for a High one, otherwise within 24 hours, as the Violence and Aggression Towards Staff Policy sets out. The Nominated Individual reviews the response and reports it to the next Directors' meeting."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "As Health and Safety Lead, the Registered Manager is accountable for this policy and:"
+            },
+            {
+              "bullets": [
+                "keeps the general lone working risk assessment up to date and decides which visits are never made alone;",
+                "approves any arrangement that replaces a paired visit, and decides when paired visits after an incident end;",
+                "chooses the lone worker device supplier, issues no device until the supplier is in the register of processors with a contract meeting Article 28 of the UK GDPR and the data protection impact assessment covers it, and keeps the alarm receiving centre's list of our escalation contacts correct;",
+                "sets the code phrase and changes it at least every 12 months, and at once if it may have become known outside our staff. Care Coordinators tell each worker the new phrase in person or by phone call before their next shift and record that they have done so; for 14 days after a change the monitor treats the old phrase as a code phrase too;",
+                "shares the management escalation rota with the Deputy Manager so that one of them can always be reached when an On-call Manager is on duty;",
+                "reviews every lone working incident within the initial review timescale in the Incident Reporting, Investigation and Learning Policy and reports lone working indicators monthly to the Nominated Individual."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager carries out all the Registered Manager's duties under this policy in their absence, reviews every escalation each month against the timescales in this policy, and runs the quarterly tests of the monitoring and alarm arrangements."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators put every visit and every change on the CareFlow rota before it happens, so that monitoring is accurate. They allocate only workers whose training, individual risk assessment and equipment suit the visit, never allocate one worker to a visit that must not be made alone, allocate lone night visits only to workers carrying a lone worker device, and tell allocated workers about any new personal safety risk the same day and before their next visit. They issue personal alarms and lone worker devices and record who holds each one."
+            }
+          ]
+        },
+        {
+          "heading": "Monitors: office staff and On-call Managers",
+          "blocks": [
+            {
+              "p": "The monitor watches check-ins, check-outs and CareFlow alerts continuously while visits are taking place, answers lone workers' calls, follows the escalation steps on time, handles code phrase calls, emergency alerts and device alarms, and records each step. The monitor keeps the CareFlow live visit monitoring screen open, signed in with an account that receives urgent visit alerts (out of hours, on the On-call Manager's device); these alerts appear only on screen and never phone or text anyone. The monitor never tells anyone outside our staff, except the police and emergency services, where a worker is or which visits they are making. The Care Coordinator names the monitor for each part of every office day, so monitoring is never left unattended while visits are scheduled. When the branch office closes, the monitor phones the On-call Manager and hands over any overdue check-in or check-out and any escalation in progress, and the On-call Manager takes over every step from then."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager rota",
+          "blocks": [
+            {
+              "p": "The On-call Manager rota is made up of Care Coordinators and Field Care Supervisors who have at least 12 months' home care experience with any employer, have completed all the training the library requires before a first on-call shift and have shadowed at least two on-call shifts with an experienced On-call Manager. The Registered Manager signs off each one before their first shift, recorded in the training and compliance records. The Registered Manager or Deputy Manager takes an on-call shift only when the other of them, or a manager covering under the Registered Manager Role and Absence Cover Policy, is the escalation manager for it. A Director joins the rota only under the Fit and Proper Persons (Directors) Policy. Senior Care Workers, Care Workers, Office staff, the HR Manager and bank or agency workers never take on-call shifts."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors assess personal safety risks in each home environment risk assessment, check personal safety practice at every spot check and discuss lone working at every supervision. Senior Care Workers show new staff the personal safety controls for each home on shadowing shifts and report any control that is not working to the Field Care Supervisor the same day."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager keeps, in each worker's staff record, their emergency contact, the make, colour and registration of any vehicle they use for work, and a current photograph, which the monitor uses only to protect the worker. These details are collected at induction, confirmed at each annual appraisal and updated within 2 working days of a worker telling us of a change, as the Staff Personal Data and HR Records Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Everyone who works alone",
+          "blocks": [
+            {
+              "p": "Everyone who works alone follows the rules in this policy and the personal safety controls in the risk assessments, carries the equipment we issue, tells their manager about anything that makes working alone riskier for them, and tells the HR Manager within 5 working days of any change to their emergency contact or work vehicle. Their general duties as employees are in the Health and Safety Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing lone working risk",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "General lone working risk assessment",
+          "blocks": [
+            {
+              "p": "The Management of Health and Safety at Work Regulations 1999 require us to assess and manage the risks to lone workers. The Registered Manager keeps a general lone working risk assessment in the risk assessment register, written with the representatives of employee safety and care workers. It covers:"
+            },
+            {
+              "bullets": [
+                "violence, threats and harassment, including sexual harassment, from the people we support, their families, visitors and the public;",
+                "travel on foot, by car and by public transport, including at night and in isolated or rural areas;",
+                "homes with no mobile signal, animals, poor lighting or difficult access;",
+                "tasks one person must never do, and sudden illness or injury with nobody nearby;",
+                "carrying medicines, keys, shopping or a person's money;",
+                "fatigue, isolation and stress;",
+                "office staff alone in the office or at home, and On-call Managers covering visits."
+              ]
+            },
+            {
+              "p": "It records the significant findings and the groups of workers identified as especially at risk, as regulation 3(6) of those Regulations requires, and is reviewed every 12 months and within 7 days after a significant lone working incident or change."
+            }
+          ]
+        },
+        {
+          "heading": "Each home and each visit",
+          "blocks": [
+            {
+              "p": "The home environment risk assessment records the personal safety risks of each home: parking, the route to the door and lighting after dark; mobile signal; the neighbourhood at visit times; animals; weapons; alcohol or drug misuse; and anyone in the household or visiting with a history of aggression or harassment. Before anyone visits, the Care Coordinator asks the referrer, such as the local authority, hospital or GP practice, whether anyone at the address has a history of violence or aggression, the assessor asks the person and their family, and both answers are recorded. Controls are written into the visit plans, and any High or Very high residual risk to staff appears in My care at a glance with what to do, under the Risk Assessment and Home Environment Risk Assessment Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Work never done by one worker alone",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "Arrangement"
+                ],
+                "rows": [
+                  [
+                    "The residual risk to staff from violence, aggression or harassment at the home is rated High",
+                    "Two workers at every visit, or another arrangement approved before the visit as the Risk Assessment and Home Environment Risk Assessment Procedure sets out for a High risk. Very high: the visit does not go ahead as planned; the Registered Manager or Deputy Manager decides a safe alternative the same day, and only the Registered Manager approves lone visits resuming."
+                  ],
+                  [
+                    "A first assessment or first visit where information about the household is missing or suggests a risk of aggression",
+                    "The assessor or first visitor is accompanied by a second member of staff, who may be a care worker."
+                  ],
+                  [
+                    "A worker has been assaulted, threatened with a weapon or sexually harassed at the home",
+                    "Two workers at every visit until the Registered Manager has reviewed the risk assessment and approved the arrangement for future visits."
+                  ],
+                  [
+                    "The home has no mobile signal and no landline the person allows us to use, and the visit is at night",
+                    "Two workers, or another means of calling for help that the Registered Manager approves and records in the care plan."
+                  ],
+                  [
+                    "A task the care plan says needs two workers",
+                    "Never done by one worker, as the Health and Safety Policy requires."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "The individual worker",
+          "blocks": [
+            {
+              "p": "HSE guidance asks employers to consider each person's medical suitability to work alone and to get medical advice where they are unsure. Our arrangements for workers who may be more at risk are:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Worker",
+                  "Our arrangement"
+                ],
+                "rows": [
+                  [
+                    "New care worker",
+                    "Works alone only after shadowing, sign-off under the Induction and Care Certificate Procedure and lone working training. For their first 4 weeks of lone working, never sent alone to a home where the residual risk to staff from violence or aggression is Medium or above."
+                  ],
+                  [
+                    "Agency worker",
+                    "Local induction on this policy, check-in and the code phrase, and a personal alarm, before their first visit; monitored as employees are."
+                  ],
+                  [
+                    "Pregnant worker or new mother",
+                    "Individual risk assessment within 5 working days of telling us, under the New and Expectant Mothers at Work Procedure. Lone night visits, and homes with a Medium or higher residual risk of aggression, only where it allows."
+                  ],
+                  [
+                    "Health condition, disability or medicine that may affect safety when alone",
+                    "Individual risk assessment, with occupational health advice where needed. Adjustments, such as no night visits or a lone worker device, go in the staff record; the Care Coordinator is told only the adjustment."
+                  ],
+                  [
+                    "First language not English",
+                    "Works alone only once the Field Care Supervisor has checked they can give an address and describe an emergency clearly in English to 999 and the office."
+                  ],
+                  [
+                    "After a violent or distressing incident",
+                    "The Registered Manager agrees with them, before their next shift, whether they are ready to work alone. Nobody is required to return to a home where they were harmed."
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Personal safety on visits and when travelling",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Before and between visits",
+          "blocks": [
+            {
+              "bullets": [
+                "Start every shift with your work phone fully charged, CareFlow working and the office and On-call numbers saved, and carry a power bank, which we give you free on request.",
+                "Wear your ID badge where it can be seen, and carry your personal alarm and first aid kit. Leave valuables at home and keep what you carry out of sight.",
+                "Make only the visits on your CareFlow rota, and never swap visits with a colleague unless the office has changed the rota first.",
+                "Never use your phone while driving; pull over safely before calling back, as the Driving at Work Policy requires.",
+                "Park close to the door in a lit place, facing the way you will leave. Walk on lit, busy routes, avoid short cuts after dark and have your keys ready.",
+                "Never give a person we support or their family your home address, personal phone number or social media details, or tell anyone where a colleague is working. Phone them only when the care plan or the office asks you to, from your work phone with your number withheld, as the Mobile Phones and Social Media Policy sets out."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Arriving and during the visit",
+          "blocks": [
+            {
+              "bullets": [
+                "Before you open the key safe or door, look and listen, as the dynamic risk assessment in the Risk Assessment and Home Environment Risk Assessment Procedure requires. If there are raised voices, someone who appears drunk or drugged, a loose dog, a weapon or anything else that makes you feel unsafe, do not go in.",
+                "On a visit that must not be made alone for your safety, never go in before the second worker arrives. Wait somewhere safe, such as your locked car, and phone the office, or the On-call Manager out of hours, if they have not arrived 10 minutes after the planned start. For a task that needs two workers, such as hoisting, the Moving and Handling of People Policy sets out what you do while you wait.",
+                "Inside, keep your phone, car keys and alarm on you, not in a bag in another room, and keep your route to the door clear. Animals are managed under the Animals and Pets in People's Homes Guideline.",
+                "Do not challenge, argue with or restrain anyone. Stay calm, keep your distance and use the skills from your personal safety training to calm the situation."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Leaving an unsafe situation",
+          "blocks": [
+            {
+              "p": "If you feel unsafe at any point, leave, even if the care is unfinished, and get to a safe place such as your locked car or a busy public place. Phone 999 if you are in danger, then phone the office or On-call Manager and speak to a person, and do not go back until the Registered Manager, Deputy Manager or On-call Manager confirms it is safe. If the person will be at risk after you leave, say so; the office or On-call Manager arranges help for them, calling 999 if they are in danger. The law protects workers who leave or refuse to return to serious and imminent danger, and nobody is disciplined, criticised or given fewer hours for leaving a visit in good faith."
+            },
+            {
+              "p": "No member of staff has to tolerate abuse, threats or harassment, including sexual comments or touching. Since 30 October 2026 the Equality Act 2010, as amended by the Employment Rights Act 2025, has required employers to take all reasonable steps to prevent sexual harassment of employees, and made them liable for harassment of employees by third parties, such as the people we support and their families, where they failed to take all reasonable steps to prevent it. Our steps are in the Bullying, Harassment and Sexual Harassment Policy, the Sexual Safety Policy and the Violence and Aggression Towards Staff Policy, and start with every incident being reported."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Check-in, check-out and the end of the shift",
+      "blocks": [
+        {
+          "p": "Visit check-in and check-out in CareFlow tells us when each lone worker arrives at and leaves each home. CareFlow does not follow workers between visits. The rules are:"
+        },
+        {
+          "bullets": [
+            "Every worker checks in once inside the home at every visit, before starting care, and checks out when they leave, including each worker on a double-up visit and managers on assessment, review and spot check visits.",
+            "If the app or phone fails, phone the office or On-call Manager on arrival and when you leave; the monitor records a manual check-in or check-out with the reason.",
+            "Where a home has no mobile signal, the care plan sets the arrangement: the worker uses the person's landline with their agreement, or phones the office from the nearest place with a signal before going in and within 10 minutes of leaving.",
+            "If a visit will run more than 15 minutes past its planned length, phone the office before the expected finish time. Before going out with the person while still checked in, for example to an appointment, phone the office.",
+            "The check-out from the last visit confirms that the shift has ended safely. When the last visit ends at night, the worker also phones or texts the On-call Manager on reaching home, within 45 minutes of checking out unless a longer journey time has been agreed."
+          ]
+        },
+        {
+          "p": "Lone worker devices and their location data are used only to protect staff and investigate incidents, never for routine performance monitoring."
+        }
+      ]
+    },
+    {
+      "heading": "When a worker cannot be contacted",
+      "blocks": [
+        {
+          "p": "The monitor acts at fixed times, counted from the trigger point. A late check-in also affects the person waiting for care, and the office acts for them at the same time under the Missed, Late and Short Visits Procedure."
+        },
+        {
+          "table": {
+            "columns": [
+              "When",
+              "What happens",
+              "Who"
+            ],
+            "rows": [
+              [
+                "Trigger point: 15 minutes after the expected finish time with no check-out, or 15 minutes after the planned start time with no check-in, and no call from the worker",
+                "Phone the worker. If there is no answer, send a text and phone again 5 minutes later. If the worker answers and is safe, record the reason on the visit's check-in/check-out record.",
+                "Monitor"
+              ],
+              [
+                "15 minutes after the trigger point with no contact",
+                "Tell the Registered Manager or Deputy Manager (out of hours, the On-call Manager tells the escalation manager). Phone any double-up colleague, the worker's next person to ask whether they have arrived, and the person at the visit address or their chosen contact, asking only whether the care worker is there. If it is the worker's first visit of the shift, also phone their emergency contact. Ask the alarm receiving centre to locate any lone worker device. Where two staff can get to the address before the next step is due, the manager sends them together; nobody goes alone, and they phone 999 rather than go in if anything suggests danger.",
+                "Monitor and manager"
+              ],
+              [
+                "30 minutes after the trigger point with no contact",
+                "Phone 999 and ask for the police. Give the worker's name, description and photograph, vehicle details, the address and the last known check-in or check-out time and place, and any known risks at the address. Follow police advice, including on telling the worker's emergency contact.",
+                "Registered Manager, Deputy Manager or On-call Manager; the monitor if none of them can be reached at once"
+              ],
+              [
+                "At any time there is a sign of danger: a code phrase, a cut-off call with shouting, a device alarm, an unanswered CareFlow emergency alert, or a report from anyone at the address",
+                "Phone 999 at once, then follow the steps above.",
+                "Monitor"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "When CareFlow alerts the monitor that a worker's phone has left the area of the person's home while they are still checked in, the monitor phones the worker at once, records the reason and lets them continue only once the worker and the person are known to be safe, as the Acceptable Use of IT and Devices Policy sets out. If the worker does not answer, the alert time counts as the trigger point."
+        },
+        {
+          "p": "A worker who misses the first visit of their shift may simply be asleep or unwell, but we never assume so: the steps run as for any other visit, and the person's care is covered under the Missed, Late and Short Visits Procedure."
+        },
+        {
+          "p": "Where a worker's individual risk assessment records a medical risk when working alone, such as epilepsy or diabetes treated with insulin, the steps 15 and 30 minutes after the trigger point are taken at the trigger point and 15 minutes after it, and the monitor asks for an ambulance as well as the police."
+        },
+        {
+          "p": "As soon as the worker is found safe, the monitor stops the escalation, tells the police at once if they have been called, tells everyone else who was contacted, and records the reason contact was lost."
+        },
+        {
+          "p": "Every escalation that goes past the first step is recorded in the incident log as a lone working incident, with the time of each step, the outcome and the reason contact was lost. A worker who forgets to check in or out on 3 or more visits in a calendar month is spoken to by their Field Care Supervisor within 2 weeks, and the discussion is recorded in their supervision record."
+        }
+      ]
+    },
+    {
+      "heading": "Raising the alarm",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Calling 999",
+          "blocks": [
+            {
+              "p": "If you are in immediate danger, call 999 first. If you cannot speak, the police Silent Solution works from a mobile: dial 999, listen to the operator's questions, cough or tap the phone if you can, and press 55 when prompted to be put through to the police. A silent call on its own does not bring help, so press 55 when asked."
+            }
+          ]
+        },
+        {
+          "heading": "The code phrase",
+          "blocks": [
+            {
+              "p": "If you need help but cannot speak freely, for example because someone is listening, phone the office or the On-call Manager and use the code phrase in an ordinary-sounding conversation. The monitor:"
+            },
+            {
+              "steps": [
+                "Keeps the call going calmly, never repeats the code phrase and says nothing that shows an alarm has been raised.",
+                "Asks yes or no questions, such as whether the worker is at their current visit address and whether anyone has a weapon.",
+                "Calls 999 for the police on a second phone while keeping the first call open: office staff ask a colleague to call or use another office phone, and On-call Managers keep a second phone for this throughout their shift.",
+                "Gives the police the address from CareFlow, the worker's details and what has been heard, and keeps listening.",
+                "Tells the Registered Manager or Deputy Manager, or out of hours the escalation manager, and records the event in the incident log."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "The CareFlow emergency alert",
+          "blocks": [
+            {
+              "p": "If you need help during a visit and cannot make a call, raise the emergency alert on the visit in the CareFlow app (call 999 first if you are in immediate danger and can). It works from arrival until you complete the visit, not between visits. It phones nobody: it appears at once on the monitor's CareFlow screen, with your phone's location if the phone can find it. The monitor:"
+            },
+            {
+              "steps": [
+                "Phones you straight away. If you answer and say you are safe without using the code phrase, the monitor records the outcome on the alert.",
+                "Follows the code phrase steps if you use the code phrase.",
+                "Phones 999 for the police at once if you do not answer, giving the visit address and the alert's location, then follows the escalation steps."
+              ]
+            },
+            {
+              "p": "If you raise the alert by mistake, phone the office or On-call Manager at once so that the monitor can close it."
+            }
+          ]
+        },
+        {
+          "heading": "Personal alarms and lone worker devices",
+          "blocks": [
+            {
+              "p": "Every care worker, including bank and agency workers, and every Field Care Supervisor and On-call Manager receives a personal alarm, free of charge, at induction, to attract attention and give a moment to get away. A lone worker device is issued free to any worker who makes night visits alone, whose individual risk assessment requires one, or who visits alone a home where the residual risk to staff from violence or aggression is rated Medium. Holders carry it switched on and charged at every visit and make a test activation once a month; the Care Coordinator checks the supplier's report monthly and follows up any device not tested. When a device alarm is activated, the alarm receiving centre listens in, calls the police where needed and alerts the monitor, who follows the escalation steps."
+            }
+          ]
+        },
+        {
+          "heading": "Illness or injury while alone",
+          "blocks": [
+            {
+              "p": "If you are hurt or become unwell while alone, call 999 if you need emergency help, give yourself first aid from your kit as trained, and phone the office or On-call Manager. First aid follows the First Aid Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Managers, assessors, On-call Managers and office staff",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Our arrangement"
+            ],
+            "rows": [
+              [
+                "Field Care Supervisors, Care Coordinators and managers on visits",
+                "Every assessment, review and spot check visit is on the daily office rota with its address and finish time, and on the CareFlow rota where it is to a person we support, so that it is checked in and out; otherwise the worker phones the monitor on arrival and on leaving. The monitor applies the same escalation steps."
+              ],
+              [
+                "On-call Managers",
+                "Before going out to a visit, the On-call Manager diverts the on-call phone to the escalation manager, tells them the address and expected finish time, checks in and out in CareFlow, and phones them on leaving. The escalation manager monitors and applies the escalation steps until then."
+              ],
+              [
+                "Office staff alone in a branch office",
+                "Tell the On-call Manager on arrival and departure after 6pm or at weekends, as the Health and Safety Policy requires. If departure is not confirmed within 30 minutes of the stated finish time, the On-call Manager phones them and, without contact, applies the escalation steps. The door is kept locked and no visitor is let in without an appointment."
+              ],
+              [
+                "Office staff working at home",
+                "Stay contactable and tell their manager when they start and finish, as the Health and Safety Policy requires; their home working assessment covers working alone."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "After an incident",
+      "blocks": [
+        {
+          "p": "Every incident in which a lone worker is threatened, abused, harassed, assaulted, injured or made to feel unsafe is phoned to the office or On-call Manager before the worker leaves the area and recorded in the incident log before the end of their shift. Then:"
+        },
+        {
+          "steps": [
+            "The office or On-call Manager confirms the worker is safe, sends a colleague or manager to meet them if they are shaken, and reallocates their remaining visits if they should not carry on.",
+            "The Registered Manager or Deputy Manager reviews the incident within the initial review timescale in the Incident Reporting, Investigation and Learning Policy (at once if Critical; the same working day for any assault, police involvement or injury needing more than first aid, by 12 noon the next working day if reported out of hours), and the home environment risk assessment is reviewed before the next visit, with paired visits until then where required.",
+            "The Registered Manager or Deputy Manager offers the worker a debrief within 3 working days and a referral to our occupational health provider, and supports them if they wish to report a crime.",
+            "The Registered Manager decides whether the event is reportable under the RIDDOR Reporting Procedure, whether CQC must be notified under the Statutory Notifications to CQC Procedure (for example an incident reported to the police during a visit), whether it raises a safeguarding concern, and applies the Violence and Aggression Towards Staff Policy where relevant.",
+            "Learning is shared with staff at the next team meeting and reviewed at the quarterly Health and Safety Meeting."
+          ]
+        },
+        {
+          "p": "Because working alone can cause isolation and stress, lone workers are included in team meetings and consultation, and stress is managed under the Work-Related Stress and Staff Wellbeing Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Arrivals, departures, manual check-ins and check-outs, and left-the-home alerts, with reasons",
+                "Visit check-in/check-out in CareFlow, kept with the visit in the person's care record for the period in the Records Management and Retention Policy"
+              ],
+              [
+                "General lone working risk assessment and quarterly test results",
+                "The branch health and safety file"
+              ],
+              [
+                "Lone working incidents, escalations past the first step, code phrase calls, device alarms and emergency alerts not raised by mistake",
+                "The incident log, kept for the period set in the Records Management and Retention Policy"
+              ],
+              [
+                "Alarm recordings and location data held by the lone worker device supplier's alarm receiving centre",
+                "By the supplier, for the period our contract with it sets (the shortest its BS 8484 certified service allows), then deleted; that period is recorded in the register of processors. For an alarm in the incident log, the Registered Manager asks the centre for a copy the same working day and keeps it with that entry; any retention hold is passed to the supplier the same working day, as the Records Management and Retention Policy sets out"
+              ],
+              [
+                "Emergency contact, vehicle details, photograph, individual risk assessments, alarms and devices issued",
+                "The staff record"
+              ],
+              [
+                "Training, code phrase briefings and spot check findings",
+                "Training and compliance records; supervision and appraisal records"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Lone working and personal safety: this policy, check-in, escalation, the code phrase, the CareFlow emergency alert and Silent Solution, warning signs, calming aggression, leaving and travelling safely",
+                "Care staff, Field Care Supervisors, Care Coordinators who make visits, and On-call Managers",
+                "At induction, before the first lone visit",
+                "Every 3 years, and after any violent incident involving the worker"
+              ],
+              [
+                "Monitoring and escalation: watching check-ins, escalation steps, CareFlow alerts, code phrase calls, device alarms and recording",
+                "Office staff who act as monitor, Care Coordinators and On-call Managers",
+                "Before monitoring alone or the first on-call shift, with a walk-through by the Registered Manager or Deputy Manager",
+                "Every 12 months"
+              ],
+              [
+                "Lone worker device use",
+                "Every device holder",
+                "When the device is issued, before first use",
+                "When the device or supplier changes"
+              ],
+              [
+                "Code phrase, given in person or by phone call only",
+                "All staff",
+                "At induction",
+                "Before the next shift after it changes"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At every spot check the Field Care Supervisor checks that the worker carries a charged work phone, personal alarm and any device, wears their ID badge where it can be seen, and can explain the code phrase, the Silent Solution and what they would do if they felt unsafe. A worker who cannot is briefed again before their next lone visit. Basic life support training follows the Health and Safety Policy. Every employee acknowledges this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Check-in and check-out compliance: target 95% of visits checked in and out on the app; any worker below 90% in a month followed up by their Field Care Supervisor",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager in the monthly quality dashboard; Health and Safety Meeting quarterly"
+              ],
+              [
+                "Every escalation past the first step and every emergency alert against the timescales in this policy: target 100% on time",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager; Nominated Individual in the monthly health and safety indicators"
+              ],
+              [
+                "Unannounced test of a code phrase call, an emergency alert or an overdue check-out, at least two of the four each year out of hours. No test brings the police out: the Deputy Manager declares a code phrase test as soon as the monitor shows they recognise the phrase, answers an emergency alert test when phoned, and ends an overdue check-out test before the 999 step; a 999 operator already reached is told at once that it was a test. A failed test means retraining within 2 weeks and a repeat test within 4 weeks",
+                "Quarterly in each branch",
+                "Deputy Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Lone worker device test activations and issue records",
+                "Monthly",
+                "Care Coordinator",
+                "Registered Manager by exception"
+              ],
+              [
+                "Lone working incidents, trends and actions",
+                "Quarterly",
+                "Registered Manager",
+                "Health and Safety Meeting; Directors in the quarterly governance report"
+              ],
+              [
+                "General lone working risk assessment",
+                "Every 12 months, using the annual anonymous lone working survey, and within 7 days after a significant incident",
+                "Registered Manager",
+                "Health and Safety Meeting"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall is given an action, an owner and a deadline in the service improvement plan and tracked at the Health and Safety Meeting until complete. This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, a serious lone working incident, an inspection finding, or when monitoring or testing shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

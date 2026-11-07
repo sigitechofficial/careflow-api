@@ -1,0 +1,315 @@
+{
+  "reference": "SUR-STF-007",
+  "revision": 1,
+  "title": "Rotas, travel time and workload",
+  "audience": "EMPLOYEE",
+  "respondents": "Care staff on the visiting rota, including senior care workers, bank staff, and field care supervisors or on-call managers who cover visits",
+  "summary": "An anonymous deep dive, each April and October, into what most drives turnover and visit quality: rota notice, short-notice changes, hours, travel time and pay, visit time, breaks, gaps, tiredness and continuity. About 9 minutes.",
+  "purpose": "Checks whether the Working Time, Rest Breaks and Travel Time Policy's rules are felt on the ground: the rota by noon on Thursday, changes phoned through, refusing extra visits without penalty, realistic and paid travel time, visit time never cut for travel, breaks, rest, gap and cancellation pay, and stopping when too tired. It gives the detail behind the September travel time and visit time results, the Driving at Work Policy's travel time target for care staff, the Equality, Diversity and Inclusion Policy's fair allocation checks, and the Demands and Control areas of the Work-Related Stress and Staff Wellbeing Policy.",
+  "timing": {
+    "when": "Twice a year, opening on the first working day of April and October for 2 weeks; and 8 weeks after a planned rota change affecting 5 or more staff (never in September, and folded into the April or October run when within 4 weeks of it)",
+    "recurrence": "YEARLY",
+    "trigger": "A planned change to the runs, hours or base of 5 or more staff (optional extra send)"
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 9,
+  "cqc": {
+    "keyQuestions": ["SAFE", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Care provision, integration and continuity",
+      "Workforce equality, diversity and inclusion",
+      "Learning culture"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how your rota, hours and travel are working for you. Please think about the last 3 months. It takes about 9 minutes, in paid working time; never answer while driving. It is anonymous: we cannot see who answered, and our reports never show results for fewer than 5 people. If your pay looks wrong, also tell the HR Manager.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to make rotas, hours and travel work better. Our legal reason is our legitimate interest in being a good employer.\n\nThe survey is anonymous: we do not record your name, so your answers cannot be traced to you. CareFlow records only which branch an answer came from. Please do not write names or addresses. Only the HR Manager and the Registered Manager look at individual answers. Our reports show results only for groups of 5 or more people, and comments and contract-type results only for groups of 10 or more. If a comment tells us someone may be at risk of harm, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-rota-overall",
+          "text": "Overall, how would you rate your rota?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "What is the main problem? Please do not include names.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Your rota",
+      "questions": [
+        {
+          "id": "q-rota-notice",
+          "text": "Do you get your rota in good time to plan your week?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Our rule is that next week's rota is published by 12 noon each Thursday.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-changes",
+          "text": "In the last 3 months, have your visits been changed at short notice, less than 24 hours ahead?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, often", "Yes, sometimes", "No"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-changes-phoned",
+          "text": "When your visits are changed after the rota is published, does someone phone you to tell you?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "showIf": {
+            "question": "q-changes",
+            "answers": ["Yes, often", "Yes, sometimes"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Your hours",
+      "questions": [
+        {
+          "id": "q-hours-wanted",
+          "text": "Do you get the number of hours you want?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["About the right number", "Fewer than I want", "More than I want", "My hours change too much to say"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Fewer than I want", "More than I want", "My hours change too much to say"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-refuse-extra",
+          "text": "I can turn down extra visits without it affecting the hours I am offered later.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you are not offered extra visits.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-shared-fairly",
+          "text": "Extra hours and visits are shared out fairly.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you cannot say.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What seems unfair? Please do not include names.",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        }
+      ]
+    },
+    {
+      "title": "Travel",
+      "questions": [
+        {
+          "id": "stf-travel-time",
+          "text": "Is there enough time to travel between your visits?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not travel between visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Which journeys or times of day are hardest? Please give an area, not an address.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-overrun-paid",
+          "text": "When a journey took over 10 minutes longer than planned, were you paid for the extra time?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Tell the office the same day so the time is paid. Choose \"Does not apply to me\" if this has not happened.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-travel-costs",
+          "text": "Are your travel costs, such as mileage or fares, paid correctly?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have no travel costs.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Your visits and your day",
+      "questions": [
+        {
+          "id": "stf-visit-time",
+          "text": "Do you have enough time at visits to give the care people need without rushing?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not make visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What kind of visits are too short? Do not include names or addresses.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-breaks",
+          "text": "On days when you work more than 6 hours, do you get your planned break?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "A planned break is at least 30 minutes with no visit or travel. Choose \"Does not apply to me\" if you never work more than 6 hours in a day.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-gaps",
+          "text": "Are the gaps between the parts of your working day manageable for you?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, the gap between morning and evening visits. Choose \"Does not apply to me\" if your day has no gaps.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-cancel-paid",
+          "text": "When a visit was cancelled less than 24 hours ahead, were you still paid for it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if none of your visits were cancelled at short notice.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-too-tired",
+          "text": "In the last 3 months, have you felt too tired to work or drive safely?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "If you are too tired, stop and phone the office or the On-call Manager. Your remaining hours that day are paid.",
+          "options": ["Yes, often", "Yes, sometimes", "No"],
+          "comment": {
+            "prompt": "What part of your rota makes you most tired?",
+            "showWhen": ["Yes, often", "Yes, sometimes"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-same-people",
+          "text": "Do you mostly visit the same people, so you get to know them?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Care provision, integration and continuity"
+        }
+      ]
+    },
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "q-contract",
+          "text": "What kind of contract do you have?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "We ask this only to compare groups of 10 or more people. You do not have to answer.",
+          "options": ["Set hours each week", "Zero or variable hours", "Bank", "Not sure", "Prefer not to say"],
+          "notCountedOptions": ["Not sure", "Prefer not to say"]
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one change to your rota would make the biggest difference to you?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or addresses."
+        },
+        {
+          "text": "Is there anything else about your hours, travel or visit times you want us to know?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or addresses."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it. CareFlow cannot repeat a survey twice a year, so keep two copies of this template, one repeating yearly from the first working day of April and one from the first working day of October, each kept open 14 days. Use Send or schedule with everyone in your branches and the job titles of staff who make visits (care workers, senior care workers, and field care supervisors and on-call managers who cover visits). Skip that month's pulse. CareFlow records the branch of each anonymous answer, never the person.",
+      "After a planned change to the runs, hours or base of 5 or more staff, send a one-off copy 8 weeks later to the staff affected, to check the change worked; never in September, and fold it into the April or October run when it falls within 4 weeks of it. CareFlow refuses an anonymous survey that would reach fewer than 5 people.",
+      "It is done in paid working time, never while driving. Set one reminder after 1 week in Reminders and follow-up: on an anonymous survey CareFlow sends it to everyone who has not answered, with no personal link, and never to one person. Paper on request, entered by the HR Manager alone with Record response, recorded as anonymous.",
+      "Who may open individual answers: the HR Manager, who reads comments each working day while the survey is open, and the Registered Manager; never Care Coordinators, who plan the rotas being rated. This is set in Who can see the answers: individual responses are limited to the HR Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "Comments are read each working day while the survey is open. Abuse or neglect goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure); wrongdoing, such as visits deliberately cut short or check-in times falsified, goes to the Registered Manager as a speaking-up concern with the Nominated Individual as case owner because it is anonymous (Whistleblowing (Speaking Up) Policy); harassment is logged by the Nominated Individual as an anonymous report (Bullying, Harassment and Sexual Harassment Policy). Nobody tries to identify the writer.",
+      "How to count: positive means Very good or Good, Strongly agree or Agree, or Always or Usually, leaving out Does not apply to me, Don't know and Not sure. For short-notice changes and feeling too tired, No is the good answer: report the share answering No. Never show a result for fewer than 5; flag 5 to 9; show branch and contract-type results and comments only for groups of 10 or more; never cross branch with contract type.",
+      "Library triggers: travel time or visit time below 80% positive in a branch, or 10 points down, means the Care Coordinators re-check travel planning against the Driving at Work Policy formula and check-in data, and visit lengths, within 1 month; runs found short are changed from the next rota, and visits too short for the care go to care plan review. Any Rarely or Never on overrun pay, travel costs or cancellation pay means the HR Manager audits that pay for the branch in the next pay period and corrects underpayments for everyone affected. 20% or more feeling too tired means the Registered Manager reviews the branch stress risk assessment within 10 working days. Refusing extra visits or fair sharing below 80% is reviewed with the HR Manager's quarterly hours-offered analysis under the Equality, Diversity and Inclusion Policy.",
+      "Changes made go into the next You said, we did summary and team meetings; the October stress discussion groups can explore the results. Keep individual answers for 1 year after the survey closes under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Have you felt too tired to work or drive safely?\" answered Yes, often (anonymous: counts only).",
+        "action": "The Registered Manager reviews the branch stress risk assessment and the rota pattern within 10 working days. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {"task": "Often too tired to work or drive safely (anonymous)", "if": [{"question": "q-too-tired", "answers": ["Yes, often"]}], "owner": "REGISTERED_MANAGER", "dueWorkingDays": 10}
+      },
+      {
+        "when": "Overrun pay, travel costs or cancellation pay answered Rarely or Never (anonymous: counts only).",
+        "action": "The HR Manager audits that pay for the branch in the next pay period and corrects underpayments for everyone affected. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {"task": "Travel or cancellation pay may be wrong: audit", "if": [{"question": "q-overrun-paid", "answers": ["Rarely", "Never"]}, {"question": "q-travel-costs", "answers": ["Rarely", "Never"]}, {"question": "q-cancel-paid", "answers": ["Rarely", "Never"]}], "owner": "HR_MANAGER", "dueWorkingDays": 20}
+      }
+    ]
+  },
+  "alertsNeverTo": ["CARE_COORDINATOR"],
+  "access": {"responses": ["HR_MANAGER", "REGISTERED_MANAGER"], "results": ["HR_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-HR-014",
+    "POL-HS-011",
+    "POL-HS-015",
+    "POL-HR-012",
+    "POL-GOV-006",
+    "POL-HR-018",
+    "POL-HR-013",
+    "POL-SG-002",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "GOV.UK, Calculating the minimum wage: working hours, including travel between assignments for care workers",
+      "url": "https://www.gov.uk/guidance/calculating-the-minimum-wage/working-hours-for-which-the-minimum-wage-must-be-paid"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18: sufficient staff deployed to meet people's needs",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from staff",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

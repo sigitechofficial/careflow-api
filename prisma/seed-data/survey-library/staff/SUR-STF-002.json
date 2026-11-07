@@ -1,0 +1,147 @@
+{
+  "reference": "SUR-STF-002",
+  "revision": 1,
+  "title": "Monthly staff pulse",
+  "audience": "EMPLOYEE",
+  "respondents": "All employees",
+  "summary": "A three-minute anonymous check each month between the bigger staff surveys: how work has been, getting help, travel and visit time, feeling safe, and one rotating question. Not run in April, September, October or November.",
+  "purpose": "An early warning between annual surveys: is work getting harder, are people getting help, do rotas leave enough time, do people feel safe. It gives the HR Manager a monthly line beside the workforce figures the Work-Related Stress and Staff Wellbeing Policy asks for (stress absence, missed breaks, long weeks, turnover), and the Registered Manager a reason to act before problems show up as sickness or leavers. Items 2 to 4 use the shared staff wording, so the pulse trends against the September work pressures check. It carries no policy target: those are measured in September.",
+  "timing": {
+    "when": "Monthly on the first working day, open 7 days, in January, February, March, May, June, July, August and December; not in April, September, October or November, when a longer all-staff survey goes out instead (and not in March in a year when the independent quality review staff questionnaire runs)",
+    "recurrence": null,
+    "trigger": null,
+    "contactRule": {"holdBack": false, "countsAsContact": false, "reason": "Short anonymous monthly pulse that cannot be tracked to a person: exempt (decision of 5 Nov 2026)."}
+  },
+  "anonymous": true,
+  "channels": ["ONLINE"],
+  "estimatedMinutes": 3,
+  "cqc": {
+    "keyQuestions": ["SAFE", "WELL_LED"],
+    "qualityStatements": ["Safe and effective staffing", "Learning culture", "Shared direction and culture"]
+  },
+  "introduction": "{{organisation}}'s monthly pulse: six quick questions about the last 4 weeks. It takes about 3 minutes in paid working time; never answer it while driving or during a visit. It is anonymous: we cannot see who answered, and our reports never show results for fewer than 5 people.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to spot problems early and to make work better. Our legal reason is our legitimate interest in being a good employer.\n\nThe pulse is anonymous: we do not record your name, so your answers cannot be traced to you. CareFlow records only which branch an answer came from. Please do not write names or anything that could identify you or someone else. Only the HR Manager and the Registered Manager look at individual answers. Our reports show results only for groups of 5 or more people, and comments only for groups of 10 or more. If a comment tells us someone may be at risk of harm, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after each month's pulse closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "The last 4 weeks",
+      "questions": [
+        {
+          "id": "q-work-overall",
+          "text": "Overall, how has work been for you in the last 4 weeks?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "What made it hard? Please do not include names.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "stf-support-manager",
+          "text": "When you need help from the office or your manager, do you get it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Think about the last 4 weeks. This includes the On-call Manager out of hours. Choose \"Does not apply to me\" if you have not needed help in this time.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What happened? Please do not include names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-travel-time",
+          "text": "Is there enough time to travel between your visits?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Think about the last 4 weeks. Choose \"Does not apply to me\" if you do not travel between visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-visit-time",
+          "text": "Do you have enough time at visits to give the care people need without rushing?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Think about the last 4 weeks. Choose \"Does not apply to me\" if you do not make visits.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-safe-at-work",
+          "text": "Do you feel safe at work?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about the last 4 weeks. If something has made you feel unsafe, please also tell the office or, out of hours, the On-call Manager, so we can act. This survey cannot tell us who you are.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-informed",
+          "text": "Does the office keep you informed about things that affect your work?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about the last 4 weeks.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Well-led: Shared direction and culture"
+        },
+        {
+          "text": "What is one thing we could fix that would make next month better?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or anything that could identify you or someone else."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it. CareFlow cannot skip months in a repeat or swap a question automatically, so each month the pulse runs, duplicate last month's copy, name it with the month, replace the sixth question with that month's question from the bank below (exact wording), set an end date 7 days after it opens, and use Send or schedule with everyone in your branches for the first working day of the month. Staff answer in the CareFlow app, in My surveys in the CareFlow web app (staff with a web login that matches their staff record), or on paper; invitations to an anonymous survey carry no personal link. Do not run it in April, September, October or November (or March in a year when the independent quality review staff questionnaire runs). CareFlow refuses an anonymous survey that would reach fewer than 5 people. Under the 4-week rule CareFlow neither holds the pulse back nor counts it as a contact: it takes about 3 minutes and is anonymous (library decision).",
+      "Rotating bank (one question a month, always in the sixth place, \"Think about the last 4 weeks.\" in its help text): January, the template's own question \"Does the office keep you informed about things that affect your work?\" (Always to Never). February, \"Do you have the gloves, aprons and other protective equipment you need?\" (Always to Never, then Does not apply to me). March, \"When changes happen at work, are you told in good time?\" (Always to Never). May, \"Does the app work without freezing or closing when you need it?\" (Always to Never, then Does not apply to me: if you do not use the CareFlow app). June, \"Can you switch off from non-urgent work calls and messages outside 8am to 8pm and on your days off?\" (Always to Never). July, \"In hot weather, can you take a cool break when you need one?\" (Always to Never, then Does not apply to me: if there has been no hot weather). August, \"Do you know what is expected of you at each visit or shift?\" (Always to Never; the shared wording, so it trends against the September work pressures check). Uniform fit and comfort are asked in the May uniform survey (SUR-STF-020), never here. December, \"Do you feel safe travelling to visits in snow, ice or flooding?\" (Always to Never, then Does not apply to me: if you have not travelled in bad weather).",
+      "The pulse is done in paid working time, never while driving or during a visit. Set one reminder after 3 days (day 4) in Reminders and follow-up: on an anonymous survey CareFlow sends it to everyone who has not answered, with no personal link, and never to one person. It is exempt from the 4-week rule even though another staff survey is usually also out that month.",
+      "Who may open individual answers: the HR Manager, who reads comments each working day while the pulse is open, and the Registered Manager. This is set in Who can see the answers: individual responses are limited to the HR Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "Comments are read each working day while the pulse is open. Possible abuse or neglect of a person we support goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure); wrongdoing goes to the Registered Manager as a speaking-up concern, with the Nominated Individual as case owner because it is anonymous (Whistleblowing (Speaking Up) Policy); harassment is logged by the Nominated Individual as an anonymous report (Bullying, Harassment and Sexual Harassment Policy). Each is acted on as far as the information allows; nobody tries to identify the writer.",
+      "How to count: positive means Very good or Good, or Always or Usually, leaving out Does not apply to me. Small agencies report a rolling 3-month figure. Never show a result for fewer than 5 people; flag 5 to 9; show breakdowns and comments only for groups of 10 or more. Each month is a separate copy, so the HR Manager adds each month's shared-item results (count and share positive) to a running trend table by hand, and trends them against the September work pressures check; the rotating sixth question is compared only with the same month in other years.",
+      "The Registered Manager reviews the pulse each month with the workforce figures. Library suggestions, not policy targets: any core item 10 percentage points below its rolling 3-month average, or feeling safe below 85% positive, goes on the Monthly Quality and Governance Meeting agenda with an action and owner in the service improvement plan within 5 working days; a fall in travel or visit time means the Care Coordinators check travel planning and visit lengths against check-in data. Comment themes are coded monthly with the fixed theme list; the same theme from 3 or more people in a branch in a month needs an action.",
+      "Pulse themes and the changes made go into the May and November You said, we did summaries. Keep individual answers for 1 year after each pulse closes under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe at work?\" answered Never (anonymous: counts only).",
+        "action": "The Registered Manager reviews it at the monthly review within 5 working days and reminds all staff how to report feeling unsafe. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {"task": "Never feels safe at work (anonymous pulse)", "if": [{"question": "q-safe-at-work", "answers": ["Never"]}], "owner": "REGISTERED_MANAGER", "dueWorkingDays": 5}
+      }
+    ]
+  },
+  "access": {"responses": ["HR_MANAGER", "REGISTERED_MANAGER"], "results": ["HR_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-HS-015",
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-HR-014",
+    "POL-HR-017",
+    "POL-HR-016",
+    "POL-HS-014",
+    "POL-IPC-002",
+    "POL-HR-018",
+    "POL-HR-013",
+    "POL-SG-002",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "DHSC, Work-related quality of life of the adult social care workforce in England in 2025: 60% say they have time to do their job within paid hours and 85% feel safe at work",
+      "url": "https://www.gov.uk/government/publications/work-related-quality-of-life-of-the-adult-social-care-workforce-in-england-in-2025"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from staff",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { buildIaAssessmentCompletions } from './assessment-tool-registry';
 import { computeAssessmentReviewState } from './assessment-review-schedule';
+import { loadReviewSettings } from '../organisation-general-settings/review-settings.util';
 
 type QuestionRow = {
   id: string;
@@ -43,6 +44,9 @@ export async function promoteIaAssessmentsOnSubmit(
     questions: params.questions,
     answers: params.answers,
   });
+
+  if (!completions.length) return;
+  const { assessmentIntervals } = await loadReviewSettings(tx);
 
   for (const completion of completions) {
     const assessment = await tx.serviceUserAssessment.upsert({
@@ -106,6 +110,7 @@ export async function promoteIaAssessmentsOnSubmit(
             assessmentKey: completion.assessmentKey,
             lastCompletedAt: params.submittedAt,
             snapshot: completion.snapshot,
+            overrides: assessmentIntervals,
           });
           return {
             nextReviewDueAt: review.nextReviewDueAt,

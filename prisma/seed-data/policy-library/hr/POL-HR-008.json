@@ -1,0 +1,743 @@
+{
+  "reference": "POL-HR-008",
+  "revision": 1,
+  "title": "Disciplinary Policy and Procedure",
+  "documentType": "POLICY",
+  "summary": "How we deal with misconduct fairly and consistently while protecting the people we support. Following the Acas Code of Practice, it covers informal action, investigation, suspension, hearings, the right to be accompanied, warnings, gross misconduct, dismissal, appeals and referrals to the DBS and regulators. For all employees and the managers who run cases.",
+  "keyPoints": {
+    "intro": "How we deal with concerns about conduct, and what happens if a concern is raised about you. Most matters are settled by a conversation; formal action always follows a fair, recorded process in which you are heard before anything is decided.",
+    "points": [
+      "If you see or suspect misconduct by a colleague at a visit, phone the office, or the On-call Manager out of hours, before you leave the home; on a double-up visit, as soon as you are apart and before your next visit.",
+      "Honest mistakes you report promptly are dealt with through support and learning, not discipline. Hiding a mistake, altering or backdating a record, or pressuring anyone not to report is a disciplinary matter.",
+      "Minor issues are dealt with informally first: your supervisor talks to you, agrees what must change and records it in your supervision record. This is not a warning.",
+      "If your conduct is investigated, you are told in writing what is being looked into, unless the police or local authority ask us to wait, and you always give your account before any decision.",
+      "When asked for a written account, give an honest one within 3 working days. Never discuss a case with witnesses or try to influence what they say.",
+      "Suspension is on full pay and is not a punishment or finding. If stopped while on visits, start no further visit; leave only once the person is safe. While suspended, do not work for us, use CareFlow or contact people we support or their families.",
+      "You may bring a colleague or trade union representative to any investigation meeting, hearing or appeal. You receive at least 5 working days' written notice of a hearing, with the allegations, all the evidence and the most serious possible outcome.",
+      "A first written warning stays live for 6 months and a final written warning for 12 months. Only the Registered Manager, or a more senior manager named in this policy, can dismiss.",
+      "Gross misconduct, such as abuse or neglect, theft, falsifying visit or medicines records, passing on a key safe code, working while impaired, violence or a serious breach of confidentiality, can lead to dismissal without notice for a first offence, after a fair hearing.",
+      "You can appeal any formal outcome by writing to the HR Manager within 5 working days of receiving the outcome letter. A manager who did not hear your case hears the appeal within 10 working days.",
+      "If we dismiss you or remove you from care work, or would have done had you left, because you harmed someone or put them at risk, the law requires us to refer you to the DBS and tell any professional regulator you belong to."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-HR-007",
+    "POL-HR-010",
+    "POL-HR-009",
+    "POL-HR-020",
+    "POL-SG-007",
+    "POL-GOV-007",
+    "POL-HR-018",
+    "POL-HR-013"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Acas Code of Practice on disciplinary and grievance procedures (2015), paragraphs 1 to 31",
+      "url": "https://www.acas.org.uk/acas-code-of-practice-on-disciplinary-and-grievance-procedures/html"
+    },
+    {
+      "source": "Trade Union and Labour Relations (Consolidation) Act 1992, section 207A (adjustment of awards for failure to follow the Acas Code)",
+      "url": "https://www.legislation.gov.uk/ukpga/1992/52/section/207A"
+    },
+    {
+      "source": "Employment Relations Act 1999, section 10 (right to be accompanied)",
+      "url": "https://www.legislation.gov.uk/ukpga/1999/26/section/10"
+    },
+    {
+      "source": "Employment Rights Act 2025, section 25 (unfair dismissal: qualifying period and compensation)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/36/section/25"
+    },
+    {
+      "source": "Employment Rights Act 2025 (Commencement No. 4 and Transitional and Saving Provisions) Regulations 2026 (S.I. 2026/559), regulations 3 and 4 (section 25 in force 1 January 2027; transitional provision by effective date of termination)",
+      "url": "https://www.legislation.gov.uk/uksi/2026/559/regulation/4/made"
+    },
+    {
+      "source": "Employment Rights Act 2025, section 152 (tribunal time limits increased to 6 months, in force 1 October 2026)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/36/section/152"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 19 (fit and proper persons employed), paragraphs (1) and (5)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/19"
+    },
+    {
+      "source": "Safeguarding Vulnerable Groups Act 2006, section 35 (regulated activity provider: duty to refer to the DBS)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/35"
+    },
+    {
+      "source": "Disclosure and Barring Service, Making barring referrals to the DBS",
+      "url": "https://www.gov.uk/guidance/making-barring-referrals-to-the-dbs"
+    },
+    {
+      "source": "Equality Act 2010, section 20 (duty to make reasonable adjustments)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20"
+    },
+    {
+      "source": "Acas, Suspension during a work investigation: the process for suspending someone",
+      "url": "https://www.acas.org.uk/suspension-during-an-investigation/the-process-for-suspending-someone"
+    },
+    {
+      "source": "Acas, Employment Rights Act 2025: changes and dates",
+      "url": "https://www.acas.org.uk/employment-rights-act-2025"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} expects everyone who works for us to meet the standards in the Staff Code of Conduct. Our care workers usually work alone in people's homes, so when conduct falls short the people we support can be harmed. We act promptly on every concern about conduct, protect the people we support first, and treat the employee concerned fairly, consistently and without discrimination."
+        },
+        {
+          "p": "This policy follows the Acas Code of Practice on disciplinary and grievance procedures. Employment tribunals take the Code into account and may increase an award by up to 25% where an employer unreasonably fails to follow it (Trade Union and Labour Relations (Consolidation) Act 1992, section 207A). The law also requires us to take necessary and proportionate action when someone we employ is no longer of good character, competent or able by reason of their health to do their work, and to tell a registered professional's regulator (Regulation 19(5) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014)."
+        },
+        {
+          "p": "Our policy is that honest mistakes reported promptly are dealt with through support and learning, not discipline, and that nothing is decided before the employee has been heard."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that concerns about conduct are dealt with quickly, fairly and consistently, informally where that is enough; that the people we support are protected while a concern is looked into, with safeguarding and police processes first; and that outcomes are recorded and reported to the Disclosure and Barring Service (DBS), regulators and others where the law or our policies require."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee of {{organisation}}, including staff on probation, bank, apprentice, part-time and zero hours staff, and anyone we engage on a worker's contract, whatever their length of service. A Director or the Nominated Individual employed by us is covered as Who acts in a case sets out; their fitness is also assessed under the Fit and Proper Persons (Directors) Policy."
+        },
+        {
+          "p": "It does not cover: agency workers, students and contractors, whose conduct concerns go to their agency, college or employer under the Staff Code of Conduct; shortfalls in skill or performance despite effort (Capability and Performance Procedure); ending employment at the end of probation for performance (Induction and Care Certificate Procedure); sickness absence (Sickness Absence Policy); employees' concerns about their own treatment (Grievance Policy and Procedure); or the safeguarding side of an allegation that a worker harmed someone (Managing Allegations Against Staff Procedure). Action against someone found to have bullied or harassed a colleague under the Bullying, Harassment and Sexual Harassment Policy is taken under this policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Misconduct",
+                "Breaking the Staff Code of Conduct, another of our policies, a lawful and reasonable instruction or a term of employment, through choice, carelessness or disregard."
+              ],
+              [
+                "Gross misconduct",
+                "Misconduct so serious that it destroys the trust needed to continue employing the person, so that it may justify dismissal without notice for a first offence after a fair process."
+              ],
+              [
+                "Working day",
+                "Monday to Friday, excluding bank holidays in England."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and make sure enough trained managers, and a retained employment law adviser, are available for every case to be handled impartially. The Registered Manager tells the Nominated Individual within 1 working day of every suspension and every decision to hold a hearing that could lead to dismissal."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy, decides how each concern is handled, makes the appointments, suspension and hearing decisions this policy gives them, and decides on DBS and regulator referrals under the Staff Fitness Concerns and DBS Referrals Procedure. The Deputy Manager acts for the Registered Manager when they are absent, but a case that could end in a final written warning or dismissal is then heard by the Nominated Individual; where the Registered Manager is involved, Who acts in a case applies."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager advises managers, prepares every letter, tracks every timescale, arranges venues, interpreters, adjustments and companions' paid time off, attends every formal hearing and appeal as adviser and note-taker, and keeps the case file in the staff record. The HR Manager takes advice from our retained employment law adviser before any dismissal hearing, before any suspension passes 4 weeks, and in any case where the employee has made a whistleblowing disclosure or a discrimination complaint. Where the HR Manager is the employee concerned or involved in the events, the employment law adviser gives this support instead."
+            }
+          ]
+        },
+        {
+          "heading": "Supervisors and Care Coordinators",
+          "blocks": [
+            {
+              "p": "The employee's named supervisor under the Supervision, Spot Checks and Appraisal Policy deals with minor matters informally, tells the Registered Manager the same working day about possible misconduct, and supports the employee at supervision after any case ends, whatever the outcome. Care Coordinators reallocate visits when a worker is suspended or restricted, tell the people we support only that their usual worker is unavailable, and never discuss the reason with other staff."
+            }
+          ]
+        },
+        {
+          "heading": "Every employee",
+          "blocks": [
+            {
+              "p": "Every employee co-operates honestly with investigations, gives written accounts when asked, attends meetings they are invited to and keeps cases confidential. Victimising, pressuring or retaliating against anyone who reports a concern or gives evidence, or knowingly making a false allegation, is itself misconduct; a concern raised in good faith that is not upheld never is."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Fair handling",
+      "blocks": [
+        {
+          "bullets": [
+            "No formal action is taken without an investigation and a hearing at which the employee can respond.",
+            "Nobody investigates, hears or decides an appeal if they were involved in the events, are a witness, raised the concern or are related or close to the employee. The employee's own supervisor may investigate but never hears the case or the appeal. Where one investigation also serves the Bullying, Harassment and Sexual Harassment Policy, its investigating officer is never the supervisor of either person and is of the sex the person affected prefers where available. The investigating officer never hears the case, and nobody who investigated or heard the case hears the appeal. Deciding the route, appointing managers or deciding a suspension does not by itself stop the Registered Manager hearing a case or an appeal.",
+            "Before deciding, the hearing manager asks the HR Manager for the anonymised outcomes of similar cases in the previous 3 years.",
+            "We make reasonable adjustments for disabled employees, as the Equality Act 2010, section 20 requires, such as extra breaks, questions in writing or more preparation time. A professional interpreter is provided at our cost where needed; colleagues and relatives are never used as interpreters.",
+            "Meetings take place in paid time, including travel, in a private room at the branch office, never in a person's home, or by video only with the employee's agreement. The Care Coordinator moves the employee's visits so that none is missed or cut short. Nobody records a meeting covertly; audio recording is allowed only by agreement or as a reasonable adjustment.",
+            "Case information is shared only with those who need it, and employees use the evidence they receive only to prepare their case."
+          ]
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Who acts in a case",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Employee concerned",
+                  "Investigating officer",
+                  "Hearing manager",
+                  "Appeal heard by"
+                ],
+                "rows": [
+                  [
+                    "Care Worker or Senior Care Worker",
+                    "Field Care Supervisor, Care Coordinator or Deputy Manager appointed by the Registered Manager",
+                    "Deputy Manager where the most serious possible outcome is a first written warning; otherwise the Registered Manager",
+                    "Registered Manager where the Deputy Manager decided; Nominated Individual where the Registered Manager decided"
+                  ],
+                  [
+                    "Field Care Supervisor, Care Coordinator, Office staff or staff allocation role",
+                    "Deputy Manager",
+                    "Registered Manager",
+                    "Nominated Individual"
+                  ],
+                  [
+                    "HR Manager or Deputy Manager",
+                    "Registered Manager, or an external investigator appointed by the Nominated Individual",
+                    "Nominated Individual",
+                    "A Director other than the Nominated Individual"
+                  ],
+                  [
+                    "Registered Manager",
+                    "External investigator appointed by the Nominated Individual",
+                    "A Director other than the Nominated Individual",
+                    "Another uninvolved Director, or an external HR professional appointed by the Directors where none is available"
+                  ],
+                  [
+                    "Nominated Individual or a Director employed by us",
+                    "External investigator appointed by the other Directors",
+                    "A Director chosen by the other Directors",
+                    "Another uninvolved Director, or an external HR professional appointed by the Directors where none is available"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Where the Registered Manager is the employee concerned, the investigating officer or involved in the events, the Nominated Individual makes the Registered Manager's decisions under this policy; for the Nominated Individual or a Director, the other Directors make them. Where nobody in the table can act independently, the Nominated Individual (the Directors where the Nominated Individual is involved) appoints an external investigator or hearing manager through our employment law adviser within 5 working days."
+            }
+          ]
+        },
+        {
+          "heading": "Unfair dismissal law",
+          "blocks": [
+            {
+              "p": "The law protects employees from unfair dismissal after 2 years' continuous service where the effective date of termination is before 1 January 2027, and after 6 months where it is on or after that date, when the cap on the compensatory award is also removed (Employment Rights Act 2025, section 25). Protection from discrimination and from dismissal for whistleblowing or another automatically unfair reason applies from the first day. Where the effective date of termination, or for other claims the act complained of, is on or after 1 October 2026, most tribunal claims can be brought within 6 months rather than 3 (Employment Rights Act 2025, section 152)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Informal action",
+      "blocks": [
+        {
+          "p": "Minor misconduct is dealt with informally when a conversation is likely to put it right, for example arriving late once without phoning, not wearing an ID badge, or completing a record late with no effect on care. The Staff Code of Conduct sets out how a first minor lapse is recorded."
+        },
+        {
+          "steps": [
+            "The employee's supervisor meets them privately within 5 working days of the matter coming to light, explains the concern, hears the explanation and checks for underlying causes such as health, caring responsibilities, rota pressure or a training gap.",
+            "They agree what must change, any support, such as retraining, a rota change, an occupational health referral or the employee assistance programme, and a review date no more than 8 weeks ahead.",
+            "They record a note of the informal discussion in the supervision record within 2 working days. The employee receives a copy within 5 working days and may add comments.",
+            "If the matter is repeated within 6 months, or has not improved by the review date, the supervisor tells the Registered Manager, who decides whether to start formal action."
+          ]
+        },
+        {
+          "p": "An informal note is not a warning, is never mentioned in a reference and cannot be appealed. In a later formal case it may be referred to only to show that the expected standard had been explained."
+        }
+      ]
+    },
+    {
+      "heading": "When a concern is raised",
+      "blocks": [
+        {
+          "p": "A care worker who sees or suspects misconduct by a colleague at a visit phones the office, or the On-call Manager out of hours, before leaving the home; on a double-up visit, as soon as they are apart and before the next visit. Any manager who learns of possible misconduct tells the Registered Manager, or the Deputy Manager in their absence, the same working day, and at once by phone where a person we support may be at risk. Out of hours they tell the On-call Manager."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Safeguarding and the police come first",
+          "blocks": [
+            {
+              "p": "Where a worker may have abused, neglected or harmed someone, the concern is reported under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure and the Managing Allegations Against Staff Procedure applies. The safeguarding lead decides the same day whether the worker is removed from the person's visits or from all care work. We hold no investigation meeting or disciplinary interview, and tell the worker nothing about the allegation itself, until the local authority and, where involved, the police agree. The disciplinary investigation then runs alongside or after their enquiries, led by an investigating officer, appointed within 2 working days of their agreement, who is not the section 42 enquiry officer, and uses their findings where they agree we may."
+            },
+            {
+              "p": "We do not wait for a criminal trial where our own evidence allows a fair decision, and a decision not to prosecute or an acquittal does not decide our case, because we decide on the balance of probabilities. A charge or conviction for something outside work is not in itself a reason for disciplinary action: the Registered Manager assesses its effect on the employee's suitability under the Staff Fitness Concerns and DBS Referrals Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Deciding the route",
+          "blocks": [
+            {
+              "p": "Within 2 working days of the report, or the same day where anyone may be at risk, the Registered Manager decides on no action, informal action, the Capability and Performance Procedure or a formal investigation under this policy, and records the decision and reasons in the staff record."
+            },
+            {
+              "p": "Where the concern comes from an incident, the Registered Manager first records the answers to the four fair culture questions in the Incident Reporting, Investigation and Learning Policy, and uses this policy only for deliberate harm, reckless conduct, dishonesty including altering or hiding records, impairment through alcohol or drugs, or repeated failure after support. Repeated medicines errors despite retraining go to the Capability and Performance Procedure unless deliberate, reckless or in wilful disregard of our policies."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Suspension and other protective measures",
+      "blocks": [
+        {
+          "p": "We never suspend automatically. The manager first considers, and records, whether a less restrictive measure under the interim measures rules in the Incident Reporting, Investigation and Learning Policy is enough: working only alongside a colleague, stopping a task such as medicines support or handling money, removal from one person's visits, or temporary office duties, with pay for any visits removed. Suspension is used only where continued work could put people at risk, evidence could be interfered with, or gross misconduct is alleged, and no other measure is enough."
+        },
+        {
+          "steps": [
+            "The Registered Manager or Deputy Manager decides (the Registered Manager for the Deputy Manager or HR Manager; the Nominated Individual for the Registered Manager). Out of hours the On-call Manager may stop a worker from all work at once where a person is at risk; the Registered Manager or Deputy Manager confirms or ends this by 10am the next working day. A worker out on visits is phoned by the Care Coordinator (the On-call Manager out of hours), starts no further visit and leaves any visit in progress only once the person is safe.",
+            "The employee is told in person where possible, otherwise by phone, that they are suspended, that this is not a finding or a sanction, and who their named contact is. The HR Manager confirms it in writing within 1 working day, with the reason as far as the police and local authority allow, and the rules below.",
+            "The Care Coordinator (the On-call Manager out of hours) covers the remaining visits so that none is missed or late. The HR Manager removes CareFlow access and recovers the ID badge, work phone, other equipment and any keys held for people we support the same day (by 10am the next working day where the worker was stopped out of hours). Where theft, financial abuse or harm is alleged, or the worker leaves during an investigation or without returning keys, the Care Coordinator offers a code change the same working day to each person whose key safe code the worker knew (where the worker is removed only from one person's visits, that person alone, and any key the worker holds for that home is recovered that day), under the Key Holding, Key Safes and Access to People's Homes Procedure.",
+            "The named contact, normally the HR Manager, contacts the employee at least weekly with progress and offers occupational health and the employee assistance programme.",
+            "The manager who decided reviews the suspension at least every 5 working days, records the review in the staff record and tells the employee. It ends as soon as it is no longer needed; beyond 4 weeks it needs the Nominated Individual's approval, renewed every 4 weeks. A returning employee has a supervision in their first week back."
+          ]
+        },
+        {
+          "p": "Suspension is on full pay with all contractual benefits, including while the employee is unwell. Employees without fixed contracted hours are paid the higher of the hours already rostered for the period and their average weekly paid hours, including travel time, over the previous 12 complete weeks. While suspended the employee does not work for us, contact the people we support or their families, use CareFlow or discuss the case with witnesses; they stay available in normal working hours for meetings and ask the named contact before taking annual leave."
+        }
+      ]
+    },
+    {
+      "heading": "Investigation",
+      "blocks": [
+        {
+          "steps": [
+            "Within 2 working days of deciding on a formal investigation, the Registered Manager appoints the investigating officer and records written terms of reference in the staff record: the allegations, the scope and the completion date.",
+            "Within 2 working days of the appointment, the HR Manager writes to the employee giving the allegations in general terms (unless the police or local authority have asked us to wait), the investigating officer's name, the named contact and the right to be accompanied at investigation meetings.",
+            "The investigating officer gathers the evidence: CareFlow records such as visit check-in and check-out, daily visit notes, the eMAR, the incident log, rotas, training and compliance records and supervision records; written accounts, which staff give within 3 working days of being asked, in paid time; and interviews. Check-in and check-out data is never on its own the basis for a finding: it is read with the rota, travel time between visits and the accounts given.",
+            "Accounts from people we support are obtained only with their agreement, at a place and time they choose, with a relative, friend, advocate or professional interpreter if they wish, and never by anyone they have raised concerns about. Where a person may lack capacity to take part, the Mental Capacity Act and Best Interests Policy applies. People we support are never asked to attend a hearing.",
+            "The employee is invited to an investigation meeting with at least 2 working days' notice and may bring a companion. Notes of every interview go to the person interviewed within 5 working days for comment within a further 5 working days.",
+            "The investigating officer reports to the Registered Manager within 20 working days of appointment, setting out each allegation, the evidence, findings of fact on the balance of probabilities, any explanation or mitigation, and a recommendation: no case to answer, informal action, the Capability and Performance Procedure, or a disciplinary hearing. The report never recommends a sanction.",
+            "If more time is needed, the Registered Manager agrees a new date and records why, and the employee is told in writing before the original date. While an investigation is open the employee receives a written update at least every 10 working days. A pause requested by the police, local authority, Health and Safety Executive or a coroner follows the Incident Reporting, Investigation and Learning Policy.",
+            "Within 3 working days of receiving the report, the Registered Manager decides whether a hearing is needed, and the employee is told in writing within 2 working days of the decision. Where there is no case to answer, any suspension ends that day and the allegation is never mentioned in a reference."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The disciplinary hearing",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Invitation",
+          "blocks": [
+            {
+              "p": "The hearing takes place within 10 working days of the decision to hold one. The HR Manager sends the invitation at least 5 working days beforehand. It contains:"
+            },
+            {
+              "bullets": [
+                "each allegation, with the dates and the CareFlow references of the visits or records concerned;",
+                "whether the allegation is of misconduct or gross misconduct, and the most serious possible outcome, stating plainly where this is dismissal;",
+                "copies of the investigation report and all the evidence the hearing manager will see, with people we support identified by CareFlow reference and other people's personal data removed unless the employee needs it to respond;",
+                "the date, time and venue, and the names of the hearing manager and the HR Manager;",
+                "the right to be accompanied, to present evidence and to call relevant witnesses, whose names the employee gives the HR Manager at least 2 working days before the hearing, with any documents at least 1 working day before;",
+                "how to ask for an adjustment or an interpreter."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Right to be accompanied",
+          "blocks": [
+            {
+              "p": "The law gives every worker invited to a disciplinary hearing or appeal who reasonably asks the right to be accompanied by a fellow worker, an official employed by a trade union or a union representative certified by their union (Employment Relations Act 1999, section 10). If the companion cannot attend, we move the hearing to a reasonable time the employee proposes within 5 working days after the original date. Our policy extends this right to investigation meetings. The companion may put and sum up the employee's case, respond to views expressed and confer with the employee, but may not answer questions for them. Where a disability makes it necessary, the Registered Manager may also agree a supporter, such as a support worker, who is not a witness. With the employee's agreement, the HR Manager tells a full-time official of their union before formal action against a trade union representative."
+            }
+          ]
+        },
+        {
+          "heading": "If the employee cannot attend",
+          "blocks": [
+            {
+              "p": "Sickness does not automatically pause a case. If the employee cannot attend for a reason outside their control, such as illness, the hearing is rearranged once. If they cannot attend again, the HR Manager asks occupational health whether, and with what adjustments, they can take part, and offers a video hearing, a different venue, written submissions or their companion attending for them. If the employee then fails to attend without good reason, the hearing manager may decide on the evidence available and says so in the outcome letter."
+            }
+          ]
+        },
+        {
+          "heading": "At the hearing",
+          "blocks": [
+            {
+              "steps": [
+                "The hearing manager explains the purpose, the allegations and the most serious possible outcome, and checks that the employee has all the evidence and any adjustments they need.",
+                "The investigating officer presents the findings and answers questions.",
+                "The employee responds to each allegation, presents evidence, calls witnesses and gives any explanation or mitigation; the companion may speak for them.",
+                "If further enquiries are needed, the hearing manager adjourns. Any new evidence is shared with the employee, who may comment on it before a decision.",
+                "The hearing manager adjourns to decide, on the balance of probabilities, considering the explanation, any mitigation including health, disability or personal circumstances, the employee's record and any live warnings.",
+                "The HR Manager sends the outcome letter within 5 working days of the hearing, with the notes. It gives the finding on each allegation and the reasons, the outcome and any live period, the improvement expected, the consequences of further misconduct, and how and to whom to appeal."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Disciplinary outcomes",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Outcome",
+              "Normally used when",
+              "Live period",
+              "Who may decide"
+            ],
+            "rows": [
+              [
+                "No formal action, or informal action",
+                "The allegation is not proven, or is proven but minor",
+                "None",
+                "Any hearing manager"
+              ],
+              [
+                "First written warning",
+                "Misconduct is proven and there is no live warning",
+                "6 months",
+                "Deputy Manager, or any more senior hearing manager"
+              ],
+              [
+                "Final written warning",
+                "Further misconduct while a first written warning is live, or a first offence serious enough to justify it, including gross misconduct where mitigation makes dismissal unreasonable",
+                "12 months",
+                "Registered Manager, or a more senior hearing manager"
+              ],
+              [
+                "Dismissal with notice",
+                "Further misconduct while a final written warning is live",
+                "Not applicable",
+                "Registered Manager, or a more senior hearing manager"
+              ],
+              [
+                "Dismissal without notice",
+                "Gross misconduct is proven and dismissal is reasonable in all the circumstances",
+                "Not applicable",
+                "Registered Manager, or a more senior hearing manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where dismissal would be justified, the hearing manager may instead give a final written warning with a move to another role or the removal of a responsibility, such as shadow lead or supervisory duties. A change that reduces pay or alters contract terms needs the employee's written agreement; without it the outcome that would otherwise apply is given."
+        },
+        {
+          "p": "A warning lapses at the end of its live period and is then disregarded in later disciplinary decisions; the HR Manager marks it expired in the staff record that day. An expired warning about conduct towards a person we support may still inform a safeguarding risk assessment or a DBS referral decision, but never increases a sanction. We never use fines, pay deductions, unpaid suspension or reduced hours as a sanction, including through the rota; where an outcome restricts tasks, the Care Coordinator offers other visits to keep the worker's usual hours."
+        },
+        {
+          "p": "A dismissal letter gives the reasons, the termination date, the notice (contractual or statutory minimum, whichever is longer, worked or paid in lieu) or, for gross misconduct, that no notice is given, final pay including accrued holiday, the return of property and the right of appeal. The HR Manager removes CareFlow access on the termination date, and the Care Coordinator offers key safe code changes as for suspension."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Gross misconduct",
+          "blocks": [
+            {
+              "p": "These are examples; the list is not complete. Each allegation is investigated and heard like any other case."
+            },
+            {
+              "bullets": [
+                "Abuse, ill-treatment or wilful neglect of a person we support, including deliberately missing or cutting short visits, and deliberate restraint or covert medicines outside the Restraint and Restrictive Practice Policy and the Covert Administration of Medicines Policy. An emergency intervention reported as that policy requires is not misconduct.",
+                "Theft, fraud or financial abuse, including deliberately breaking the financial rules in the Safeguarding Adults Policy and claiming pay, mileage or expenses not incurred.",
+                "Falsifying a check-in or check-out, eMAR, daily visit note, body map, incident record, timesheet, mileage claim or training record, or altering or hiding a record to cover a mistake.",
+                "Working, driving for work or being on call while impaired, or possessing or supplying illegal drugs at work.",
+                "Violence, threats, serious bullying, harassment, sexual harassment or discrimination against anyone.",
+                "A sexual or romantic relationship with a person we support, or another serious breach of the Professional Boundaries Policy.",
+                "A serious breach of confidentiality or data protection, including posting about people we support, opening records without a work reason, taking, keeping or sharing a photograph, video or recording of a person we support outside CareFlow or without authority, or putting information about a person we support or a colleague into an unapproved artificial intelligence tool or onto a personal device or account.",
+                "Passing on a key safe code, address or visit times, or lending, altering or misusing an ID badge or uniform, including to gain entry, money or advantage.",
+                "Sharing an intimate image of anyone without consent, reaching or sharing illegal, sexually explicit or extremist material on a work device, or deliberately getting round device management, the web filter or another security control.",
+                "Deliberately failing to report abuse, neglect or a serious incident, or victimising or pressuring anyone for reporting or speaking up.",
+                "Deliberately hiding an arrest, charge, police investigation, DBS or regulator referral, licence loss or registration matter that the Staff Code of Conduct requires staff to tell us about.",
+                "Gross negligence, or a serious breach of health and safety rules that puts someone at serious risk, such as moving a person single-handed when their plan requires two workers.",
+                "Obtaining employment with us through deliberately false information, or working while barred from regulated activity.",
+                "Accepting or offering a bribe; asking for or accepting money, gifts or favours from a candidate or colleague for help with a job, visits, a certificate of sponsorship or a reference; or deliberately damaging property."
+              ]
+            },
+            {
+              "p": "Refusing work that an employee believes in good faith is unsafe is never misconduct, as the Health and Safety Policy sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Appeals",
+      "blocks": [
+        {
+          "steps": [
+            "The employee appeals in writing to the HR Manager within 5 working days of receiving the outcome letter, giving the grounds. The HR Manager acknowledges it within 2 working days. A later appeal is accepted where there was good reason for the delay.",
+            "The appeal manager set out in Who acts in a case hears the appeal within 10 working days of receiving it, with at least 5 working days' written notice. The right to be accompanied applies.",
+            "The appeal manager considers whether the procedure was fair, whether the findings were reasonable on the evidence, whether the outcome was proportionate, and any new evidence. Where the original hearing was seriously flawed, they hold a full rehearing.",
+            "The HR Manager sends the outcome in writing within 5 working days of the appeal hearing. The appeal manager may confirm the outcome, replace it with a lesser one or overturn it, but never increase it. The decision is final."
+          ]
+        },
+        {
+          "p": "A dismissal takes effect on the original date while an appeal is pending. If it is overturned, the employee is reinstated with full back pay and unbroken continuous service. An overturned warning is removed from the staff record, with only the appeal outcome kept."
+        }
+      ]
+    },
+    {
+      "heading": "Particular situations",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What we do"
+            ],
+            "rows": [
+              [
+                "The employee raises a grievance during a case",
+                "Where it concerns the process or the people running it, the Registered Manager (the Nominated Individual if the Registered Manager is involved) decides within 2 working days whether to pause the case briefly, replace a manager or deal with both together. Otherwise both proceed under the Grievance Policy and Procedure and this policy."
+              ],
+              [
+                "The employee resigns",
+                "Notice is accepted and key safe code changes are offered as for suspension. Where the concern involves harm or risk to a person or dishonesty, the investigation is completed and a conclusion recorded, so that we can meet our DBS duties, and the employee is invited to take part. References give only facts."
+              ],
+              [
+                "Formal action check, for any employee",
+                "Before the first investigation meeting and every hearing, including an appeal, the HR Manager asks for the formal action check in the Whistleblowing (Speaking Up) Policy: the Nominated Individual, or the chair of the Directors where that policy says, checks the speaking-up log. Where the employee has spoken up, the case goes ahead only once the checker records in the case file that it is unconnected; otherwise it pauses for the employment law adviser's advice."
+              ],
+              [
+                "The employee is sponsored by us",
+                "The same procedure applies. The HR Manager reports a dismissal or resignation to the Home Office through the sponsor management system within 5 working days (the Home Office allows 10) and signposts the employee to an Immigration Advice Authority-regulated adviser."
+              ],
+              [
+                "The concern came from a complaint",
+                "The complaint is answered under the Complaints Policy and Procedure. The complainant is told only that we have acted under our employment procedures, never the outcome for the employee. Where the Bullying, Harassment and Sexual Harassment Policy applies, the colleague affected is told whether each allegation was upheld and whether formal action was taken, never the detail of any sanction."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "External referrals and notifications",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who is told",
+              "When",
+              "By whom"
+            ],
+            "rows": [
+              [
+                "DBS, where the law requires: we remove a worker from regulated activity, or would or might have done had they not left, because of relevant conduct, the harm test or a relevant caution or conviction (Safeguarding Vulnerable Groups Act 2006, section 35)",
+                "Decision recorded when a case ends in dismissal, removal from regulated activity or resignation; referral under the Staff Fitness Concerns and DBS Referrals Procedure without waiting for an appeal",
+                "Registered Manager"
+              ],
+              [
+                "Professional regulator, such as the Nursing and Midwifery Council, where a registered employee no longer meets Regulation 19",
+                "Under the Staff Fitness Concerns and DBS Referrals Procedure",
+                "Registered Manager"
+              ],
+              [
+                "Police, where a crime may have been committed",
+                "The same day the possibility is identified",
+                "Registered Manager or Deputy Manager"
+              ],
+              [
+                "CQC",
+                "Where the Statutory Notifications to CQC Procedure requires it",
+                "Registered Manager"
+              ],
+              [
+                "Commissioner",
+                "Where the contract requires it, within the contract's timescale",
+                "Registered Manager"
+              ],
+              [
+                "Our employment law adviser and insurers, on any Acas early conciliation notification or tribunal claim",
+                "The same working day it is received; whoever receives it passes it to the Nominated Individual at once",
+                "Nominated Individual"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Notes of informal discussions",
+                "Supervision records",
+                "Employment plus 6 years"
+              ],
+              [
+                "Route decisions, terms of reference, suspension decisions and reviews, investigation report and evidence, letters, hearing and appeal notes and outcomes",
+                "Disciplinary case file in the staff record, open only to the HR Manager, Registered Manager, Deputy Manager, Nominated Individual and managers appointed to the case",
+                "Employment plus 6 years"
+              ],
+              [
+                "Where the case concerned an allegation of harm: risk assessments, interim measures, the outcome and reference decisions",
+                "Restricted section of the staff record, under the Managing Allegations Against Staff Procedure",
+                "20 years from closure, even where the case file is kept for a shorter period"
+              ],
+              [
+                "DBS and regulator referral decisions, including decisions not to refer, with the referral and the evidence relied on, including from the case file",
+                "Restricted section of the staff record",
+                "20 years from the referral decision (Staff Fitness Concerns and DBS Referrals Procedure)"
+              ],
+              [
+                "The incident or safeguarding concern that led to the case",
+                "Incident log or safeguarding records",
+                "As the Incident Reporting, Investigation and Learning Policy and the Safeguarding Adults Policy set out"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records identify people we support only by their CareFlow reference. Where the Managing Allegations Against Staff Procedure finds an allegation false or malicious, the HR Manager removes it from the staff record within 5 working days of the outcome; the safeguarding record and incident log keep the finding. Employees may see their case file under the Subject Access and Individual Rights Procedure. Nothing is destroyed while a tribunal claim, safeguarding enquiry, police investigation or DBS case is open or expected."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "The Staff Code of Conduct and this policy, acknowledged in CareFlow",
+                "During organisational induction",
+                "Acknowledged within 14 days of each new major version"
+              ],
+              [
+                "Field Care Supervisors, Care Coordinators, Deputy Manager and Registered Manager who investigate",
+                "Disciplinary investigation: the Acas Code, interviewing, evidence, fairness and bias, and report writing",
+                "Before their first investigation",
+                "Every 3 years"
+              ],
+              [
+                "Deputy Manager, Registered Manager, Nominated Individual and Directors who hear cases or appeals",
+                "Conducting hearings and appeals, decision-making, equality and reasonable adjustments",
+                "Before their first hearing",
+                "Every 3 years"
+              ],
+              [
+                "On-call Managers",
+                "Stopping a worker from all work out of hours and the next-day handover",
+                "Before their first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "HR Manager",
+                "Employment law update",
+                "On appointment",
+                "Every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The HR Manager briefs every investigating officer and hearing manager on any change in employment law affecting this policy within 10 working days of it coming into force."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Open cases, suspensions and their review dates, and timescales against this policy",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager; workforce figures to the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Disciplinary cases by type, branch, stage and outcome, timescales, appeals upheld and external referrals, within the conduct summary set by the Staff Code of Conduct",
+                "Quarterly, anonymised",
+                "Registered Manager",
+                "Nominated Individual; quarterly governance report"
+              ],
+              [
+                "Formal cases and outcomes by protected characteristic and branch, to detect unequal treatment",
+                "Annually",
+                "HR Manager",
+                "Directors"
+              ],
+              [
+                "Audit of closed cases: every dismissal and 5 other formal cases (all if fewer) against each step of this policy",
+                "Annually, in November",
+                "Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Targets: 100% of suspensions reviewed at least every 5 working days; 100% of outcome letters within 5 working days; 100% of appeals heard within 10 working days; at least 90% of investigations completed within 20 working days or an extension agreed before the deadline. When a case closes, the Registered Manager records whether it shows a wider issue, such as a training gap, rota pressure or a closed-culture warning sign, and adds any action to the service improvement plan within 5 working days. Every shortfall against a target also goes into the plan with an owner and a deadline."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, with the HR Manager, and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in employment law or the Acas Code, a tribunal finding or serious incident involving staff conduct, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

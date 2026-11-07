@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { defaultExpiryFromValidity } from '../common/utils/validity-default.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import { CreateEmployeeCertificationDto } from './dto/create-employee-certification.dto';
@@ -26,6 +27,15 @@ export class EmployeeCertificationsService {
 
   async create(userId: string, employeeId: string, dto: CreateEmployeeCertificationDto, meta?: RequestAuditMeta) {
     await this.ensureEmployee(employeeId);
+    // No expiry sent: the type's validity period from the issue date (Settings → Certification types).
+    let expiryDate = dto.expiryDate;
+    if (expiryDate === undefined && dto.issueDate && dto.certificationTypeId) {
+      const type = await this.prisma.certificationType.findFirst({
+        where: { id: dto.certificationTypeId, deletedAt: null },
+        select: { defaultValidityMonths: true },
+      });
+      expiryDate = defaultExpiryFromValidity(dto.issueDate, type?.defaultValidityMonths) ?? undefined;
+    }
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.employeeWorkCertification.create({
         data: {
@@ -33,7 +43,7 @@ export class EmployeeCertificationsService {
           certificationTypeId: dto.certificationTypeId,
           reference: dto.reference,
           issueDate: dto.issueDate,
-          expiryDate: dto.expiryDate,
+          expiryDate,
           notes: dto.notes,
           certificateUrl: dto.certificateUrl,
           createdById: userId,

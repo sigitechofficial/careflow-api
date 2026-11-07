@@ -6,7 +6,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
-  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning", "incidents", "policies", "surveys", "platform"]
+  schemas  = ["public", "identity", "employees", "lookups", "audit", "service_users", "notifications", "scheduling", "care_pathway", "billing", "payroll", "learning", "incidents", "policies", "surveys", "platform", "quality"]
 }
 
 enum DayOfWeek {
@@ -522,7 +522,11 @@ model User {
   deletedUsers User[] @relation("UserDeletedBy")
 
   userRoles         UserRole[]
-  /** Authorization branch membership (distinct from employee employment locations). */
+  /// Surveys this account may record answers on as an independent reviewer (SUR-CQC-001/002).
+  surveyReviewerGrants SurveyReviewerGrant[] @relation("SurveyReviewerGrantUser")
+  /**
+   * Authorization branch membership (distinct from employee employment locations).
+   */
   userLocations     UserLocation[]
   auditLogs         AuditLog[]
   loginHistories    LoginHistory[]
@@ -530,6 +534,8 @@ model User {
   dataAccessLogs    DataAccessLog[]
   exportLogs        ExportLog[]
   reviewedEmployees EmployeeReview[] @relation("EmployeeReviewReviewedBy")
+  supervisionSessionsLed               SupervisionSession[]                  @relation("SupervisionSessionSupervisor")
+  supervisedEmployments                EmployeeEmployment[]                  @relation("EmployeeNamedSupervisor")
   uploadedEmployeeDocuments EmployeeDocument[]
   employeeCompliancesVerified       EmployeeCompliance[]       @relation("EmployeeComplianceVerifiedBy")
   employeeCompliancesRejected      EmployeeCompliance[]       @relation("EmployeeComplianceRejectedBy")
@@ -795,10 +801,15 @@ model RoleTaskTemplate {
   @@schema("identity")
 }
 
-/// One due occurrence of a role task (status tracked per due date).
+/// One due occurrence of a role task (status tracked per due date), or a one-off task raised by
+/// another feature (sourceType / sourceId, e.g. a survey alert) with no template.
 model RoleTask {
   id            String         @id @default(uuid()) @db.Uuid
-  templateId    String         @db.Uuid
+  /// Null for a task raised by another feature (see sourceType).
+  templateId    String?        @db.Uuid
+  /// What raised a task without a template: "SURVEY_ALERT" (surveys.SurveyAlert id in sourceId).
+  sourceType    String?
+  sourceId      String?        @db.Uuid
   roleId        String         @db.Uuid
   locationId    String?        @db.Uuid
   title         String
@@ -813,13 +824,14 @@ model RoleTask {
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
 
-  template RoleTaskTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
+  template RoleTaskTemplate? @relation(fields: [templateId], references: [id], onDelete: Cascade)
   role     Role             @relation(fields: [roleId], references: [id])
   location Location?        @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
   @@unique([templateId, dueDate])
   @@index([roleId, status])
   @@index([dueDate])
+  @@index([sourceType, sourceId])
   @@schema("identity")
 }
 
@@ -974,7 +986,6 @@ enum ComplianceAllocationMode {
 /// Singleton organisation general settings (care rules, time display, etc.).
 model OrganisationGeneralSettings {
   id                                   String                     @id @default(uuid()) @db.Uuid
-  reviewCarePlanAfterDays              Int                        @default(180)
   /// Care plans: when true, only a manager-approved working draft can be published. Off by default.
   carePlanApprovalRequired             Boolean                    @default(false)
   handoverReportLastHours              Int                        @default(12)
@@ -989,6 +1000,9 @@ model OrganisationGeneralSettings {
   /// Carer pay when a holiday falls on a weekend: BOTH (the date and its substitute day, the
   /// behaviour before this setting existed), ACTUAL_DAY or STATUTORY_DAY. Policy decision D-13.
   holidayPremiumBasis                  String                     @default("BOTH")
+  /// Bank holidays for working-day timescales (survey alerts): UK (England and Wales), SCOTLAND or
+  /// NORTHERN_IRELAND (lookups.BankHoliday regions; organisation special days always count).
+  bankHolidayRegion                    String                     @default("UK")
   /// Carer pay: priority per day type ({ CHRISTMAS: 100, ..., ANY: 10 }) when rules for different days
   /// compete; higher wins. Null = the built-in order (most specific day wins).
   payDayTypePriority                   Json?
@@ -1067,6 +1081,8 @@ model OrganisationGeneralSettings {
   domRotaHorizonDays                   Int                        @default(28)
   domRotaHorizonMode                   String                     @default("FIXED_DAYS")
   domAutoExtendRotaRunHour             Int                        @default(12)
+  /// Most days back a manager may create visits for (Backfill past visits). 0 = backfill off.
+  domMaxBackfillDays                   Int                        @default(14)
   domShowWeeklyHours                   Boolean                    @default(true)
   domShowServiceUserName               Boolean                    @default(true)
   /// When true, carers blocked by a service user still appear in schedule pickers (marked, not assignable).
@@ -1083,6 +1099,11 @@ model OrganisationGeneralSettings {
   domCareAllocationRules               Json                       @default("[]")
   /// Service user weekly hours rules (approval, over-limit behaviour, weeks checked). Missing keys use the defaults.
   serviceUserWeeklyHoursSettings       Json                       @default("{}")
+  /// Settings → Supervision (see supervision-settings.util.ts for keys and defaults).
+  supervisionSettings                  Json                       @default("{}")
+  /// Settings → Reviews & reminders: review/expiry windows, assessment intervals and the
+  /// compliance / assessment / care plan reminder jobs (see review-settings.util.ts).
+  reviewSettings                       Json                       @default("{}")
   incidentDetailsEditableMinutes       Int                        @default(60)
   incidentDisplayHours                 Int                        @default(12)
   incidentDefaultStatus                String                     @default("REPORTED")
@@ -1201,6 +1222,9 @@ model Employee {
   convertedCandidates           Candidate[]                     @relation("CandidateConvertedEmployee")
   deviceTokens                  EmployeeDeviceToken[]
   visitPushReceipts             CarerVisitPushReceipt[]
+  supervisionAttendances             SupervisionAttendee[]
+  supervisionActions                 SupervisionAction[]
+  policyAcknowledgements             PolicyAcknowledgement[]
 
   @@index([deletedAt])
   @@schema("employees")
@@ -1607,6 +1631,8 @@ model EmployeeEmployment {
   holidayPayMethod                String?
   guaranteedWeeklyHours           Float?
   individualBaseRate              Float?
+  /// Office user who supervises this carer (gets supervision reminders; default supervisor on new sessions).
+  supervisorUserId                String?   @db.Uuid
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -1617,6 +1643,7 @@ model EmployeeEmployment {
   deletedById String?   @db.Uuid
 
   employee Employee @relation(fields: [employeeId], references: [id])
+  supervisor User?    @relation("EmployeeNamedSupervisor", fields: [supervisorUserId], references: [id], onDelete: SetNull)
 
   workArea          WorkArea?                           @relation(fields: [workAreaId], references: [id])
   role              EmployeeRoleLookup?                 @relation(fields: [roleId], references: [id])
@@ -1634,6 +1661,7 @@ model EmployeeEmployment {
 
   @@index([employeeId])
   @@index([defaultPayCardId])
+  @@index([supervisorUserId])
   @@index([deletedAt])
   @@schema("employees")
 }
@@ -1743,6 +1771,176 @@ model EmployeeReview {
 
   @@index([employeeId])
   @@index([deletedAt])
+  @@schema("employees")
+}
+
+// ─── Supervision & appraisals (CQC Reg 18, NICE QS123) ─────────────────────────────────────────
+// A session is the record of one supervision meeting (agenda notes, actions, signatures). The
+// EmployeeReview row for the same type stays the due-date tracker: completing a session moves its
+// "last done" on. Signed sessions are never edited; corrections are dated addenda.
+
+enum SupervisionFormat {
+  ONE_TO_ONE
+  GROUP
+  OBSERVED_PRACTICE
+  REMOTE
+
+  @@schema("employees")
+}
+
+enum SupervisionSessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  AWAITING_SIGN_OFF
+  COMPLETED
+  CANCELLED
+
+  @@schema("employees")
+}
+
+enum SupervisionActionStatus {
+  OPEN
+  DONE
+  CANCELLED
+
+  @@schema("employees")
+}
+
+enum SupervisionActionOwner {
+  CARER
+  SUPERVISOR
+  MANAGER
+  OTHER
+
+  @@schema("employees")
+}
+
+model SupervisionSession {
+  id                  String                   @id @default(uuid()) @db.Uuid
+  reviewTypeId        String                   @db.Uuid
+  format              SupervisionFormat        @default(ONE_TO_ONE)
+  status              SupervisionSessionStatus @default(SCHEDULED)
+  scheduledAt         DateTime
+  heldAt              DateTime?
+  durationMinutes     Int?
+  location            String?
+  /// Visit observed for an OBSERVED_PRACTICE session (scheduling.ScheduledJob).
+  scheduledJobId      String?                  @db.Uuid
+  supervisorUserId    String                   @db.Uuid
+  summary             String?                  @db.Text
+  /// Shown only with supervision.read_confidential (e.g. health or personal matters).
+  confidentialNotes   String?                  @db.Text
+  supervisorSignature String?                  @db.Text
+  supervisorSignedAt  DateTime?
+  completedAt         DateTime?
+  cancelledAt         DateTime?
+  cancelReason        String?
+  /// Care Pathway form the session is recorded on. `formSnapshot` is the form as it was when the
+  /// session was set up (sections and fields), so editing the form later never changes a record.
+  formId              String?                  @db.Uuid
+  formVersionId       String?                  @db.Uuid
+  formSnapshot        Json?
+  /// Answers keyed `sectionId:fieldId` from the snapshot (the Care Pathway renderer's key).
+  answers             Json                     @default("{}")
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  reviewType ReviewType            @relation(fields: [reviewTypeId], references: [id])
+  supervisor User                  @relation("SupervisionSessionSupervisor", fields: [supervisorUserId], references: [id])
+  form       CarePathwayForm?      @relation("SupervisionSessionForm", fields: [formId], references: [id], onDelete: SetNull)
+  attendees  SupervisionAttendee[]
+  actions    SupervisionAction[]
+  addenda    SupervisionAddendum[]
+
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([supervisorUserId])
+  @@index([formId])
+  @@index([deletedAt])
+  @@schema("employees")
+}
+
+/// One carer in a session (several for GROUP). Each signs (or comments) for themselves.
+model SupervisionAttendee {
+  id         String    @id @default(uuid()) @db.Uuid
+  sessionId  String    @db.Uuid
+  employeeId String    @db.Uuid
+  signature  String?   @db.Text
+  signedAt   DateTime?
+  /// False when the carer does not agree with the record; their comment says why.
+  agrees     Boolean?
+  comment    String?   @db.Text
+
+  session  SupervisionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  employee Employee           @relation(fields: [employeeId], references: [id])
+
+  @@unique([sessionId, employeeId])
+  @@index([employeeId])
+  @@schema("employees")
+}
+
+/// Agreed action for one carer. Open actions carry into that carer's next session.
+model SupervisionAction {
+  id            String                  @id @default(uuid()) @db.Uuid
+  sessionId     String                  @db.Uuid
+  employeeId    String                  @db.Uuid
+  description   String                  @db.Text
+  owner         SupervisionActionOwner  @default(CARER)
+  ownerName     String?
+  dueDate       DateTime?
+  status        SupervisionActionStatus @default(OPEN)
+  completedAt   DateTime?
+  completedNote String?                 @db.Text
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+
+  session  SupervisionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  employee Employee           @relation(fields: [employeeId], references: [id])
+
+  @@index([employeeId, status])
+  @@index([sessionId])
+  @@schema("employees")
+}
+
+/// One reminder sent for one due date (carer + review type + next due + kind), so the job never
+/// sends the same reminder twice, even if it is retried or run by hand. A new starter's first
+/// reminder has no EmployeeReview row yet, so the key does not depend on one.
+model SupervisionReminderLog {
+  id               String   @id @default(uuid()) @db.Uuid
+  employeeReviewId String?  @db.Uuid
+  employeeId       String   @db.Uuid
+  reviewTypeId     String   @db.Uuid
+  dueDate          DateTime
+  /// e.g. DUE_IN_14, DUE_TODAY, OVERDUE_7, ESCALATION
+  kind             String
+  recipientUserIds String[] @db.Uuid
+  carerPushed      Boolean  @default(false)
+  emailed          Boolean  @default(false)
+  sentAt           DateTime @default(now())
+
+  @@unique([employeeId, reviewTypeId, dueDate, kind])
+  @@index([employeeReviewId])
+  @@schema("employees")
+}
+
+/// Dated correction or later note on a signed session (signed content is never edited).
+model SupervisionAddendum {
+  id          String   @id @default(uuid()) @db.Uuid
+  sessionId   String   @db.Uuid
+  text        String   @db.Text
+  createdAt   DateTime @default(now())
+  createdById String   @db.Uuid
+
+  session SupervisionSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
   @@schema("employees")
 }
 
@@ -2084,10 +2282,38 @@ model ComplianceReminder {
 
   employeeCompliance EmployeeCompliance @relation(fields: [employeeComplianceId], references: [id], onDelete: Cascade)
 
+  /// One reminder per record, stage and expiry date (job `compliance-expiry-reminders` claims it first).
+  @@unique([employeeComplianceId, reminderType, dueDate])
   @@index([employeeComplianceId])
   @@index([dueDate])
   @@index([status])
   @@schema("employees")
+}
+
+enum ReviewReminderSubject {
+  CARE_PLAN
+  ASSESSMENT
+
+  @@schema("service_users")
+}
+
+/// A care plan or assessment review reminder that was sent. Claimed before sending (unique per
+/// subject, due date and kind) so each reminder goes out once, whichever job or button sends it.
+model ReviewReminderLog {
+  id               String                @id @default(uuid()) @db.Uuid
+  subjectType      ReviewReminderSubject
+  /// ServiceUserCarePlanInstance id (care plans) or ServiceUserAssessment id (assessments).
+  subjectId        String                @db.Uuid
+  serviceUserId    String                @db.Uuid
+  dueDate          DateTime
+  /// DUE_SOON, or OVERDUE_<n> (n-th overdue reminder, one every `reminderRepeatDays`).
+  kind             String
+  recipientUserIds String[]              @db.Uuid
+  sentAt           DateTime              @default(now())
+
+  @@unique([subjectType, subjectId, dueDate, kind])
+  @@index([serviceUserId])
+  @@schema("service_users")
 }
 
 model EmployeeHoliday {
@@ -2571,6 +2797,8 @@ model VisitStatusReason {
 model SkillType {
   id        String    @id @default(uuid()) @db.Uuid
   name      String    @unique
+  /// Months until a skill needs refreshing. Null = no refresh.
+  defaultRefreshMonths Int?
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -2584,6 +2812,8 @@ model SkillType {
 model CertificationType {
   id        String    @id @default(uuid()) @db.Uuid
   name      String    @unique
+  /// Months a certification stays valid. Null = does not expire.
+  defaultValidityMonths Int?
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
@@ -2624,16 +2854,52 @@ model ComplianceType {
   @@schema("lookups")
 }
 
+enum ReviewScheduleKind {
+  REPEATING
+  MILESTONES
+  EVENT
+
+  @@schema("lookups")
+}
+
+enum ReviewAudience {
+  ALL_STAFF
+  NMC_REGISTRANTS
+
+  @@schema("lookups")
+}
+
 model ReviewType {
-  id        String    @id @default(uuid()) @db.Uuid
-  name      String    @unique
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique
+  /// Stable key for seeded types (e.g. SUPERVISION); null for types an admin adds.
+  code        String?   @unique
+  description String?
+  /// Days from "last done" to "next due" (e.g. 90 for supervision, NICE QS123). Null = no repeat.
+  /// For EVENT types it is the follow-up gap once one has been recorded (e.g. PIP every 14 days).
+  defaultIntervalDays Int?
+  /// How the due date is worked out (review-schedule.util.ts): repeating, milestones after the
+  /// carer's start date, or only when something happens (return to work, performance plan).
+  scheduleKind           ReviewScheduleKind @default(REPEATING)
+  /// REPEATING: first due this many days after the start date (null = the interval).
+  firstDueAfterStartDays Int?
+  /// MILESTONES: days after the start date (e.g. probation 30, 90, 180); done after the last one.
+  milestoneDays          Int[]              @default([])
+  /// Who it applies to (e.g. NMC revalidation: staff with an NMC PIN only).
+  audience               ReviewAudience     @default(ALL_STAFF)
   isActive  Boolean   @default(true)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  reviews EmployeeReview[]
+  /// Care Pathway staff form used for sessions of this type (Settings → Supervision).
+  supervisionFormId String? @db.Uuid
 
+  reviews EmployeeReview[]
+  supervisionForm     CarePathwayForm?     @relation("ReviewTypeSupervisionForm", fields: [supervisionFormId], references: [id], onDelete: SetNull)
+  supervisionSessions SupervisionSession[]
+
+  @@index([supervisionFormId])
   @@schema("lookups")
 }
 
@@ -6906,6 +7172,9 @@ enum NotificationType {
   HR_CANDIDATE_SHORTLISTED
   HR_INTERVIEW_SCHEDULED
   HR_OFFER_ACCEPTED
+  SUPERVISION_DUE
+  POLICY_ACKNOWLEDGEMENT_DUE
+  POLICY_ACKNOWLEDGEMENT_SUMMARY
 
   @@schema("notifications")
 }
@@ -6931,6 +7200,7 @@ enum NotificationModule {
   SECURITY
   SYSTEM
   HR
+  POLICY
 
   @@schema("notifications")
 }
@@ -7111,10 +7381,14 @@ model ScheduleArea {
   id          String   @id @default(uuid()) @db.Uuid
   name        String
   code        String   @unique
-  /** 3-character branch code used in visit references (VIS-[BRANCH]-…). */
+  /**
+   * 3-character branch code used in visit references (VIS-[BRANCH]-…).
+   */
   visitRefCode String?  @unique @db.VarChar(3)
   description String?
-  /** Physical / postal address for this branch. */
+  /**
+   * Physical / postal address for this branch.
+   */
   address     String?
   locationId  String?  @db.Uuid
   zoneId      String?  @db.Uuid
@@ -7124,10 +7398,14 @@ model ScheduleArea {
   incidentMessageUserIds  Json     @default("[]")
   incidentEmailUserIds    Json     @default("[]")
   parentZoneName          String?
-  /** CQC registration of this branch (null for unregistered branches). Stable seed key. */
+  /**
+   * CQC registration of this branch (null for unregistered branches). Stable seed key.
+   */
   cqcLocationId           String?  @unique
   officialCqcName         String?
-  /** Structured postal address (`address` keeps the single-line form shown in the UI). */
+  /**
+   * Structured postal address (`address` keeps the single-line form shown in the UI).
+   */
   addressLine1            String?
   addressLine2            String?
   town                    String?
@@ -7141,7 +7419,9 @@ model ScheduleArea {
   website                 String?
   serviceTypes            String[] @default([])
   regulatedActivities     String[] @default([])
-  /** A branch can have several CQC registered managers. */
+  /**
+   * A branch can have several CQC registered managers.
+   */
   registeredManagers      String[] @default([])
   nominatedIndividual     String?
   cqcRegistrationDate     DateTime? @db.Date
@@ -7151,7 +7431,9 @@ model ScheduleArea {
   timezone                String   @default("Europe/London")
   currency                String   @default("GBP")
   locale                  String   @default("en-GB")
-  /** Set by geocoding (prisma/scripts/geocode-branches.ts); never guessed. */
+  /**
+   * Set by geocoding (prisma/scripts/geocode-branches.ts); never guessed.
+   */
   latitude                Decimal? @db.Decimal(10, 7)
   longitude               Decimal? @db.Decimal(10, 7)
   createdAt   DateTime @default(now())
@@ -8774,6 +9056,9 @@ model CarePathwayForm {
   requiredAssessments CarePlanRequiredAssessment[] @relation("CarePlanRequiredAssessmentCarePlan")
   /// ASSESSMENT forms: care plans that require this assessment.
   requiredByCarePlans CarePlanRequiredAssessment[] @relation("CarePlanRequiredAssessmentAssessment")
+  /// STAFF_FORM forms: review types (supervision, spot check, appraisal…) recorded on this form.
+  supervisionReviewTypes ReviewType[]                  @relation("ReviewTypeSupervisionForm")
+  supervisionSessions    SupervisionSession[]          @relation("SupervisionSessionForm")
 
   @@index([deletedAt])
   @@index([formType])
@@ -13775,6 +14060,9 @@ model PolicyDocument {
   currentVersionId  String?              @db.Uuid
   status            PolicyStatus         @default(DRAFT)
   isCatalogue       Boolean              @default(false)
+  /// Ready-made (catalogue) policy this one was adopted from, and the library revision its content is based on.
+  libraryDocumentId String?              @db.Uuid
+  libraryRevision   Int?
   ownerId           String?              @db.Uuid
   reviewerId        String?              @db.Uuid
   approverId        String?              @db.Uuid
@@ -13789,6 +14077,8 @@ model PolicyDocument {
   primaryCategory PolicyCategory       @relation("PolicyDocumentPrimaryCategory", fields: [primaryCategoryId], references: [id], onDelete: Restrict)
   parent          PolicyDocument?      @relation("PolicyDocumentParent", fields: [parentDocumentId], references: [id], onDelete: SetNull)
   children        PolicyDocument[]     @relation("PolicyDocumentParent")
+  librarySource   PolicyDocument?      @relation("PolicyDocumentLibrarySource", fields: [libraryDocumentId], references: [id], onDelete: SetNull)
+  adoptedCopies   PolicyDocument[]     @relation("PolicyDocumentLibrarySource")
   owner           User?                @relation("PolicyDocumentOwner", fields: [ownerId], references: [id], onDelete: SetNull)
   reviewer        User?                @relation("PolicyDocumentReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
   approver        User?                @relation("PolicyDocumentApprover", fields: [approverId], references: [id], onDelete: SetNull)
@@ -13805,6 +14095,7 @@ model PolicyDocument {
   @@index([reviewerId])
   @@index([approverId])
   @@index([isCatalogue])
+  @@index([libraryDocumentId])
   @@index([deletedAt])
   @@schema("policies")
 }
@@ -13961,23 +14252,32 @@ model PolicyApproval {
   @@schema("policies")
 }
 
+/// A staff member's read-and-acknowledge record for one policy version. Belongs to the employee
+/// (care workers use the Employee App and have no User row).
 model PolicyAcknowledgement {
   id             String                      @id @default(uuid()) @db.Uuid
   versionId      String                      @db.Uuid
-  userId         String                      @db.Uuid
+  employeeId     String                      @db.Uuid
+  /// Web user account that acted, when the action came from the admin web app.
+  userId         String?                     @db.Uuid
   status         PolicyAcknowledgementStatus @default(PENDING)
   viewedAt       DateTime?
   acknowledgedAt DateTime?
+  /// Channel of the latest action: WEB | EMPLOYEE_APP
+  channel        String?                     @db.VarChar(20)
   metadata       Json?
   createdAt      DateTime                    @default(now())
   updatedAt      DateTime                    @updatedAt
 
-  version PolicyVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
-  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  version  PolicyVersion @relation(fields: [versionId], references: [id], onDelete: Cascade)
+  employee Employee      @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  user     User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   @@unique([versionId, userId])
+  @@unique([versionId, employeeId])
   @@index([versionId])
   @@index([userId])
+  @@index([employeeId])
   @@index([status])
   @@schema("policies")
 }
@@ -14023,6 +14323,8 @@ enum SurveyRecipientStatus {
   SENT
   STARTED
   COMPLETED
+  /// Not answered, and the person can no longer be sent it (src/surveys/survey-eligibility.util.ts).
+  LAPSED
 
   @@schema("surveys")
 }
@@ -14070,24 +14372,131 @@ model Survey {
   targetKind  SurveyTargetKind @default(EMPLOYEE)
   status      SurveyStatus     @default(DRAFT)
   isAnonymous Boolean          @default(false)
+  /// Named surveys: each person may choose to answer without their name ("Answer without my name").
+  /// Such a response is stored like an anonymous one (no recipient link, day-only times). Always
+  /// false on anonymous surveys. See migration 20261209090000_survey_respondent_anonymity.
+  allowAnonymousResponses Boolean @default(false)
   opensAt     DateTime?
   closesAt    DateTime?
   publishedAt DateTime?
   locationIds String[]         @default([]) @db.Uuid
   /// Employee job-role (EmployeeRoleLookup) ids to scope an employee survey to. Empty = all roles.
   roleIds     String[]         @default([]) @db.Uuid
-  /// Marks this survey as a reusable template (shown separately; used to start new surveys).
+  /// Marks this survey as a reusable template (a starting point only — never sent, published or answered).
   isTemplate  Boolean          @default(false)
-  /// When to auto-send this survey to employees (scheduled distribution).
+  /// When to auto-send this survey (scheduled distribution). Never set on templates.
   distributeAt DateTime?
   /// When scheduled distribution actually ran (one-shot only).
   distributedAt DateTime?
-  /// When set, each due run clones this survey and sends the clone.
+  /// When set, each due run copies this survey into a new period survey and sends the copy.
   recurrence  SurveyRecurrence?
-  /// Period instance created from a recurring template.
+  /// Period copy created from a recurring survey.
   clonedFromId String?         @db.Uuid
-  /// Public shareable link token — one link for many respondents.
+  /// Period copy: the period it covers ("2026-11", "2026-Q4", "2026-11-05", "2026"). Unique per recurring survey.
+  periodKey   String?
+  /// Recurring survey: each period copy stays open this many days (null = until the next period starts).
+  periodOpenDays Int?
+  /// Recurring survey: first scheduled run; later runs count from it (month-end clamped, operational timezone).
+  recurrenceAnchorAt DateTime?
+  /// Scheduled send: chosen employees (empty = everyone matching locationIds / roleIds).
+  audienceEmployeeIds String[] @default([]) @db.Uuid
+  /// Scheduled send: chosen people we support (empty = everyone in locationIds).
+  audienceServiceUserIds String[] @default([]) @db.Uuid
+  /// Scheduled send: the user who scheduled it (acting user for the background run).
+  scheduledById String?        @db.Uuid
+  /// Scheduled send failed (e.g. no questions, nobody to send to). Not retried until rescheduled.
+  distributionFailedAt DateTime?
+  distributionError    String?
+  /// Public shareable link token — one link for many respondents (PUBLIC surveys only).
   shareToken  String           @unique @default(uuid())
+  /// Ready-made survey owned by CareFlow (Surveys → Ready-made surveys). Always isTemplate as well;
+  /// never listed, counted, sent, scheduled, opened, recorded, shared or answered.
+  isCatalogue Boolean          @default(false)
+  /// Survey library reference (e.g. SUR-PWS-001): on the catalogue survey and on templates adopted from it.
+  libraryReference String?
+  /// Library revision the content is based on (catalogue: current; adopted template: when adopted or last updated).
+  libraryRevision  Int?
+  /// Adopted template: the ready-made (catalogue) survey it came from. Only ever on templates; a ready-made
+  /// survey is adopted at most once as a live template (partial unique index, see migration
+  /// 20261208090000_survey_origin_and_safeguards — not expressible in Prisma).
+  librarySourceId  String?     @db.Uuid
+  /// The template this survey was started from ("Use template"); a duplicate keeps its source's template.
+  /// Surveys started from a ready-made template also keep libraryReference / libraryRevision, and their
+  /// anonymity is then fixed.
+  createdFromTemplateId String? @db.Uuid
+  /// Library details: purpose, timing, channels, cqc, estimatedMinutes, privacyNotice, managerGuidance,
+  /// relatedPolicies, regulatoryBasis, sections (see prisma/seed-lib/survey-library.ts).
+  libraryMeta      Json?
+  /// When the alert rules were first set up (library alerts copied in). Null = not yet; set even
+  /// when there are none, so deleting every rule is kept. See SurveyAlertRule.
+  alertRulesSetUpAt DateTime?
+  /// Who it's for, on top of targetKind (SURVEY_AUDIENCE_GROUPS code, e.g. FAMILIES, CARE_WORKERS,
+  /// NEW_CLIENTS, SEVERAL). Null = not said.
+  audienceGroup      String?
+  /// audienceGroup OTHER: the group in the organisation's words.
+  audienceGroupOther String?
+  /// Staff and service-user surveys: also answerable through one shared link (no person, no
+  /// tracking of who answered). PUBLIC surveys always have their shared link.
+  sharedLinkEnabled Boolean @default(false)
+  /// Shared link: one answer per device. A random marker kept only on the device (never sent with or
+  /// stored against the answer) stops a second answer from the same browser. Off by default.
+  sharedLinkOncePerDevice Boolean @default(false)
+  /// Job applicants are invited by email with one-time links (anonymous public surveys only; one survey
+  /// at a time). Applicants told the outcome from this time on are invited. Null = off.
+  applicantInvitesFrom DateTime?
+  /// Shared links: a raised limit of answers per 10 minutes for a planned sitting (e.g. 300 at a staff
+  /// meeting), until sharedLinkLimitUntil; otherwise the standard limit (src/surveys/survey-link-guard.ts).
+  sharedLinkLimit      Int?
+  sharedLinkLimitUntil DateTime?
+  /// A copy made for each manager (SUR-STF-018): { managerUserIds, pooled, minTeam }. Its team is
+  /// checked again at send / open (survey-manager-copy-team.ts). Null on every other survey.
+  managerCopy Json?
+  /// Section introductions shown under the heading to people answering: { [sectionTitle]: text }.
+  sectionIntros    Json?
+  /// Shown to people after they submit (the closing screen): thanks, what happens next, where to
+  /// get help. Ready-made surveys bring theirs; copies keep it. Null = the standard thank-you only.
+  closingMessage   String? @db.Text
+  /// Who may see this survey's answers (src/surveys/survey-access.ts): { responses, results }, each
+  /// { restricted, ownerKeys, roleIds, userIds }. responses = individual responses and written
+  /// answers; results = the figures. Null = the ready-made default, else everyone with survey access.
+  /// A repeating survey's periods use their source survey's.
+  accessPolicy     Json?
+  /// Library roles an alert from this survey must never go to, because the survey rates them
+  /// (e.g. CARE_COORDINATOR on a survey about the rota). The alert goes to the next role instead.
+  alertNeverRouteTo String[] @default([])
+  /// Fewest written-out responses before any question figures, breakdowns or exports show. Null =
+  /// the ready-made default, else 5 when answers can be given without a name (never below 5 then).
+  reportingThreshold Int?
+  /// Reminders and follow-up (src/surveys/survey-contact-plan.util.ts): { reminders: [{ afterDays }],
+  /// channels, quietStart, quietEnd, weekdaysOnly, call }. Null = no automatic reminders. A repeating
+  /// survey's periods use their source survey's plan.
+  contactPlan      Json?
+  /// The 4-week contact rule (src/surveys/survey-contact-rule.util.ts): { holdBack, countsAsContact, reason }.
+  /// Null = the ready-made default (library timing.contactRule), else both on. Periods use their source's.
+  contactRule      Json?
+  /// Sampling: { percent } (5–100) of the free people each send or period; null = everyone. Periods use their source's.
+  sampling         Json?
+  /// Sent when something happens in the care records (src/surveys/survey-event-triggers.util.ts): { event,
+  /// delayDays, windowDays, exclusions, options, checkFirst, since, ownerKey }. Null = not sent by events.
+  /// Sends go into a month copy (a period, like a repeating survey's) made on demand.
+  eventTrigger     Json?
+  /// A survey about one person we support (family or GP views on their care); found from their record.
+  aboutServiceUserId String?   @db.Uuid
+  /// Scoring for scored tools (src/surveys/survey-scoring.util.ts): { scales: [{ key, label, questionKeys, reversed,
+  /// method, bands }] }. Null = no scores. A repeating survey's periods use their source survey's.
+  scoring          Json?
+  /// Repeats skip these months (1–12, organisation time). Phase 2 part 7.
+  recurrenceSkipMonths Int[] @default([])
+  /// A repeating survey's bank of rotating questions (its own question ids): each period asks one, in turn.
+  rotatingQuestionIds String[] @default([]) @db.Uuid
+  /// Months after closing that answers are kept (null = the ready-made privacy notice's period, else kept).
+  answerRetentionMonths Int?
+  /// When this survey's (or period's) answers were deleted under the retention period.
+  answersDeletedAt DateTime?
+  /// Answers given before this were deleted under the retention period (counted from each answer), the survey still holding later ones.
+  answersDeletedBefore DateTime?
+  /// A copy sent after a Learning training session (training feedback): the session.
+  trainingEventId String? @db.Uuid
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   deletedAt   DateTime?
@@ -14097,14 +14506,42 @@ model Survey {
 
   clonedFrom Survey?  @relation("SurveyClones", fields: [clonedFromId], references: [id], onDelete: SetNull)
   clones     Survey[] @relation("SurveyClones")
+  librarySource Survey?  @relation("SurveyLibrarySource", fields: [librarySourceId], references: [id], onDelete: SetNull)
+  adoptedCopies Survey[] @relation("SurveyLibrarySource")
+  createdFromTemplate Survey?  @relation("SurveyTemplateOrigin", fields: [createdFromTemplateId], references: [id], onDelete: SetNull)
+  startedFromTemplate Survey[] @relation("SurveyTemplateOrigin")
   questions  SurveyQuestion[]
   recipients SurveyRecipient[]
+  responses  SurveyResponse[]
+  pendingResponses SurveyPendingResponse[]
+  alertRules SurveyAlertRule[]
+  alerts     SurveyAlert[]
+  shareLinks SurveyShareLink[]
+  sharedLinkDays SurveySharedLinkDay[]
+  unlinkedAnswerDays SurveyUnlinkedAnswerDay[]
+  reviewerGrants SurveyReviewerGrant[]
+  reminderRuns   SurveyReminderRun[]
+  callAttempts   SurveyCallAttempt[]
+  heldBack       SurveyHeldBack[]
+  eventOccurrences SurveyEventOccurrence[]
+  actions          SurveyAction[]
+  discussions      SurveyDiscussion[]
+  youSaidWeDid     SurveyYouSaidWeDid[]
+  translations     SurveyTranslation[]
+  applicantInvites SurveyApplicantInvite[]
+  applicantsInvited SurveyApplicantInvited[]
 
+  @@unique([clonedFromId, periodKey])
   @@index([targetKind])
   @@index([status])
   @@index([deletedAt])
   @@index([distributeAt])
   @@index([clonedFromId])
+  @@index([isCatalogue])
+  @@index([librarySourceId])
+  @@index([createdFromTemplateId])
+  @@index([aboutServiceUserId])
+  @@index([trainingEventId])
   @@schema("surveys")
 }
 
@@ -14119,6 +14556,26 @@ model SurveyQuestion {
   sortOrder    Int                @default(0)
   config       Json?
   isActive     Boolean            @default(true)
+  /// Period copy: the recurring survey's question this was copied from (results across periods).
+  sourceQuestionId String?        @db.Uuid
+  /// Heading of the section the question sits in (ready-made surveys); consecutive questions share it.
+  sectionTitle String?
+  /// Stable reference for this question within its survey (show-if rules point at it). Kept on copies.
+  key          String?
+  /// SINGLE_SELECT / MULTI_SELECT: an "Other" choice with a text box: { label, textPrompt, textRequired }.
+  otherOption  Json?
+  /// MULTI_SELECT: options that cannot be combined with any other ("None of these"): string[].
+  exclusiveOptions Json?
+  /// SINGLE_SELECT / MULTI_SELECT: options come from a CareFlow list (ETHNICITY, SEXUAL_ORIENTATION,
+  /// GENDER, SEX, LANGUAGE, MARITAL_STATUS; src/surveys/survey-lookup-options.ts), not `options`.
+  optionsFrom  String?
+
+  /// Optional respondent comment box: { prompt, showWhen: string[] | null } (null = always offered).
+  commentConfig Json?
+  /// Ask only when an earlier question's answer is one of a list: { questionKey, answers: string[] }.
+  showIf       Json?
+  /// Grouped answer choices: [{ heading, options }] shown to people answering and reported by group (Phase 2 part 7).
+  optionGroups Json?
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
   deletedAt    DateTime?
@@ -14126,8 +14583,11 @@ model SurveyQuestion {
   survey  Survey         @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   answers SurveyAnswer[]
 
+  // Partial unique (surveyId, key) WHERE deletedAt IS NULL — see migration
+  // 20261208090000_survey_origin_and_safeguards (not expressible in Prisma).
   @@index([surveyId])
   @@index([deletedAt])
+  @@index([sourceQuestionId])
   @@schema("surveys")
 }
 
@@ -14144,26 +14604,58 @@ model SurveyRecipient {
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
   createdById   String?               @db.Uuid
+  /// An unlinked answer being submitted (anonymous survey / "answer without my name"): a random
+  /// token, no time. Taken before the answer is held, cleared when the survey is marked Completed.
+  submitClaim          String?
+  /// When an unfinished claim may be taken again: rounded up to a quarter hour, never the exact time.
+  submitClaimExpiresAt DateTime?
+  /// Reminders sent to this person (never more than 3). remindedAt is the last; day only on anonymous surveys.
+  reminderCount        Int @default(0)
+  /// The row exists only because an answer was recorded or given (not sent). Never a survey contact on an
+  /// anonymous survey (the 4-week rule would otherwise show that the person answered).
+  addedByAnswer        Boolean @default(false)
+  /// The invitation text waits for the end of quiet hours (the survey job sends it, then clears this).
+  invitationTextPending Boolean @default(false)
+  /// An outside person (family, professional, commissioner) sent a named public survey with their own link.
+  externalContactId    String? @db.Uuid
 
   survey   Survey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
   response SurveyResponse?
+  callAttempts SurveyCallAttempt[]
+  externalContact SurveyExternalContact? @relation(fields: [externalContactId], references: [id], onDelete: SetNull)
 
   @@unique([surveyId, employeeId])
+  // Partial unique (surveyId, externalContactId) WHERE externalContactId IS NOT NULL — see migration
+  // 20261216130000_survey_outside_people.
+  @@index([externalContactId, sentAt])
+  // Partial unique (surveyId, serviceUserId) WHERE serviceUserId IS NOT NULL — see migration
+  // 20261201090000_survey_templates_anonymity_recurrence (not expressible in Prisma).
   @@index([surveyId])
   @@index([employeeId])
   @@index([serviceUserId])
   @@index([status])
+  @@index([employeeId, sentAt])
+  @@index([serviceUserId, sentAt])
   @@schema("surveys")
 }
 
 model SurveyResponse {
   id            String   @id @default(uuid()) @db.Uuid
-  recipientId   String   @unique @db.Uuid
+  surveyId      String   @db.Uuid
+  /// The named recipient who answered. Always null on anonymous surveys and shared-link answers,
+  /// so an anonymous answer can never be traced back to a person from the database.
+  recipientId   String?  @unique @db.Uuid
+  /// Branch / job title of the respondent when they answered (group breakdowns only).
+  locationId    String?  @db.Uuid
+  jobTitleId    String?  @db.Uuid
   submittedById String?  @db.Uuid
   /// Service-user surveys: who answered (self / family member / representative).
   respondentRelation SurveyRespondentRelation?
   /// Name of the family member / representative when not answered by the service user.
   respondentName     String?
+  /// Recorded as given by a family member or representative chosen from People involved (their own survey
+  /// contact, decision P10). Never set on an answer not linked to anyone.
+  respondentContactId String?  @db.Uuid
   /// How the answers were collected. Staff-recorded channels (telephone / paper / in person) can be corrected.
   channel            SurveyResponseChannel @default(ONLINE)
   /// Office user who recorded the response (staff-recorded channels only).
@@ -14175,14 +14667,27 @@ model SurveyResponse {
   contactNumber      String?
   contactNotes       String?  @db.Text
   consentGiven       Boolean?
+  /// Alert rules have been checked against this response (set with raw SQL, never moving updatedAt).
+  alertsChecked      Boolean  @default(false)
+  /// Failed alert checks (the sweep stops retrying after a few and reports it).
+  alertCheckFailures Int      @default(0)
+  /// Answered through a shared link (not a person's own link).
+  viaSharedLink      Boolean  @default(false)
+  /// The branch shared link it came through (SurveyShareLink), when one was used.
+  shareLinkId        String?  @db.Uuid
+  /// Response quality flags (FAST; src/surveys/survey-quality.util.ts). Flagged, never removed. Never a time.
+  qualityFlags       String[] @default([])
   submittedAt   DateTime @default(now())
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  recipient SurveyRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  survey    Survey           @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  recipient SurveyRecipient? @relation(fields: [recipientId], references: [id], onDelete: SetNull)
   answers   SurveyAnswer[]
 
+  @@index([surveyId])
   @@index([recipientId])
+  @@index([respondentContactId])
   @@schema("surveys")
 }
 
@@ -14195,6 +14700,13 @@ model SurveyAnswer {
   numberValue     Decimal? @db.Decimal(12, 4)
   selectedOptions Json?
   notes           String?  @db.Text
+  /// Respondent's text when they chose the question's "Other" option.
+  otherText       String?  @db.Text
+  /// Respondent's comment alongside their answer (question's comment box).
+  comment         String?  @db.Text
+  /// Questions whose options come from a CareFlow list: the chosen entries' stable codes (the names
+  /// at the time are in selectedOptions), so renaming or retiring an entry never breaks results.
+  lookupCodes     Json?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -14204,6 +14716,535 @@ model SurveyAnswer {
   @@unique([responseId, questionId])
   @@index([responseId])
   @@index([questionId])
+  @@schema("surveys")
+}
+
+/// A rule that turns answers into work: when a question gets one of the listed answers, a task goes
+/// to a role (identity.RoleTask) with the policy timescale, optionally to start a complaint,
+/// safeguarding concern, incident or compliment. Ready-made surveys bring their library alerts as
+/// rules; organisations change them or add their own. Held on the survey itself (a recurring
+/// survey's periods use their source survey's rules). See src/surveys/survey-alerts.service.ts.
+model SurveyAlertRule {
+  id             String   @id @default(uuid()) @db.Uuid
+  surveyId       String   @db.Uuid
+  /// Stable within the survey and kept on copies ("library-3" for the library's fourth alert).
+  key            String
+  position       Int      @default(0)
+  /// The task's title, e.g. "Feels unsafe with care workers".
+  title          String
+  /// When it fires, in words.
+  whenText       String   @db.Text
+  /// What to do: the task's instructions.
+  actionText     String   @db.Text
+  /// [{ questionKey, answers: string[] }]: fires when any one of them matches.
+  conditions     Json
+  /// Library role (SURVEY_ALERT_OWNERS) the task goes to, through the organisation's setting.
+  ownerKey       String?
+  /// Role chosen for this survey's rule (overrides ownerKey).
+  roleId         String?  @db.Uuid
+  /// Working days to do it in (0 = the same working day).
+  dueWorkingDays Int      @default(0)
+  /// Calendar days to do it in instead (a policy's "within 7 days"); wins over dueWorkingDays.
+  dueCalendarDays Int?
+  /// Tell the role at once (high-priority notification), e.g. safeguarding.
+  urgent         Boolean  @default(false)
+  /// Record to start from the alert: COMPLAINT, COMPLIMENT, SAFEGUARDING or INCIDENT.
+  recordKind     String?
+  /// "Would you like someone to contact you" answered Yes: goes on the contact-me follow-up list.
+  contactRequest Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  /// Ready-made surveys: the library alert this came from (its index in managerGuidance.alerts).
+  libraryAlert   Int?
+  /// Answers linked to no one: raise only if at least this many answered (above the survey's
+  /// reporting threshold), e.g. 10 for abuse, harassment and equality. Null = the threshold.
+  minimumAnswers Int?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  createdById    String?  @db.Uuid
+  updatedById    String?  @db.Uuid
+
+  survey Survey        @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  alerts SurveyAlert[]
+
+  @@unique([surveyId, key])
+  @@index([surveyId])
+  @@schema("surveys")
+}
+
+/// An alert raised by a rule: the work (a RoleTask for the role, whose status is the alert's
+/// status), who owns it, the outcome and any complaint / safeguarding / incident started from it.
+/// Answers linked to no one (anonymous surveys, "answer without my name") raise grouped alerts only
+/// once they are written out in shuffled batches: no response, person, branch (unless the survey has
+/// one branch), written answer or time of day, and createdAt is the day only.
+model SurveyAlert {
+  id               String    @id @default(uuid()) @db.Uuid
+  /// The survey (or period) that was answered.
+  surveyId         String    @db.Uuid
+  ruleId           String?   @db.Uuid
+  /// The named response. Always null for answers linked to no one.
+  responseId       String?   @db.Uuid
+  /// Raised from answers linked to no one (grouped; never names anyone).
+  unlinked         Boolean   @default(false)
+  /// How many answers matched (named: 1).
+  matchCount       Int       @default(1)
+  /// [{ question, answers: string[], count }]
+  matched          Json
+  title            String
+  details          String    @db.Text
+  /// Contact-me follow-up (the person asked to be contacted).
+  contactRequest   Boolean   @default(false)
+  /// The person it is about (named service-user / staff answers only).
+  serviceUserId    String?   @db.Uuid
+  employeeId       String?   @db.Uuid
+  locationId       String?   @db.Uuid
+  roleId           String?   @db.Uuid
+  /// The task (identity.RoleTask); null when no role could be found yet.
+  roleTaskId       String?   @unique @db.Uuid
+  /// The person in the role who is doing it.
+  ownerUserId      String?   @db.Uuid
+  dueDate          DateTime  @db.Date
+  urgent           Boolean   @default(false)
+  /// What happened: CONTACTED, NOT_REACHED, NO_LONGER_NEEDED, ACTIONED.
+  outcomeKind      String?
+  outcome          String?   @db.Text
+  recordKind       String?
+  /// The record started from it: COMPLAINT / COMPLIMENT (FeedbackRecord), SAFEGUARDING, INCIDENT.
+  linkedRecordType String?
+  linkedRecordId   String?   @db.Uuid
+  /// Answers linked to no one: the day only.
+  createdAt        DateTime
+  updatedAt        DateTime  @updatedAt
+  updatedById      String?   @db.Uuid
+
+  survey Survey           @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  rule   SurveyAlertRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+
+  @@unique([ruleId, responseId])
+  @@index([surveyId])
+  @@index([contactRequest])
+  @@index([dueDate])
+  @@schema("surveys")
+}
+
+/// The organisation's role for each library alert owner (e.g. SAFEGUARDING_LEAD → "Registered Manager").
+model SurveyAlertOwnerRole {
+  ownerKey    String   @id
+  roleId      String   @db.Uuid
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  @@schema("surveys")
+}
+
+/// A further shared link for a survey (one per branch, so answers carry the branch). The survey's
+/// own shareToken stays its main link. Turned off (revokedAt) when replaced or no longer wanted.
+model SurveyShareLink {
+  id          String    @id @default(uuid()) @db.Uuid
+  surveyId    String    @db.Uuid
+  token       String    @unique
+  locationId  String?   @db.Uuid
+  label       String?
+  createdAt   DateTime  @default(now())
+  createdById String?   @db.Uuid
+  revokedAt   DateTime?
+  revokedById String?   @db.Uuid
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@schema("surveys")
+}
+
+/// How many answers arrived through a survey's shared links on each day (counts by day only, nothing
+/// else), so Results can warn when they arrive in an unusual burst (possible ballot-stuffing).
+/// Shared-link form tokens already used (survey-link-guard.ts): the token's random part and when it
+/// expires, nothing else (no IP, device or survey). Shared by every API server; expired rows are
+/// cleared by the guard.
+model SurveyLinkFormToken {
+  nonce     String   @id
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@schema("surveys")
+}
+
+/// Answers through each shared link per minute (survey-link-guard.ts), for the per-link limit across
+/// API servers: a hash of the link, the minute and a count, nothing about who answered. Rows older
+/// than the window are cleared by the guard.
+model SurveyLinkRate {
+  linkHash String
+  minute   DateTime
+  answers  Int      @default(0)
+
+  @@id([linkHash, minute])
+  @@index([minute])
+  @@schema("surveys")
+}
+
+model SurveySharedLinkDay {
+  surveyId String   @db.Uuid
+  /// The operational day (date only).
+  day      DateTime @db.Date
+  answers  Int      @default(0)
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@id([surveyId, day])
+  @@schema("surveys")
+}
+
+/// Answers not linked to anyone, counted per survey per day (date only). They get no audit row
+/// each (an exact time would date each answer); the day's count is audited once the day is over.
+model SurveyUnlinkedAnswerDay {
+  surveyId         String    @db.Uuid
+  /// The operational day (date only).
+  day              DateTime  @db.Date
+  answers          Int       @default(0)
+  /// Of those, recorded by staff or an independent reviewer.
+  recorded         Int       @default(0)
+  /// Of those, recorded by an independent reviewer.
+  reviewerRecorded Int       @default(0)
+  /// When the day's count was written to the audit log (null until the day is over).
+  auditedAt        DateTime?
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@id([surveyId, day])
+  @@index([auditedAt, day])
+  @@schema("surveys")
+}
+
+/// An answer not linked to anyone (anonymous survey, or "Answer without my name") waiting to be
+/// written as a SurveyResponse. The person's survey is marked Completed in its own transaction; the
+/// response is written later by the survey job, in shuffled batches (or when the survey / period
+/// closes), so the database never ties the two together (same transaction, row order or time).
+/// Holds no recipient, person, token or IP. See src/surveys/survey-pending-responses.ts and
+/// migration 20261210090000_survey_pending_unlinked_responses.
+/// One reminder run on a survey: how many people were reminded and by which channel. Counts only,
+/// never who. Anonymous surveys: createdAt is the day only. See src/surveys/survey-reminders.service.ts.
+model SurveyReminderRun {
+  id        String   @id @default(uuid()) @db.Uuid
+  surveyId  String   @db.Uuid
+  /// Contact plan step (1-based); null for "Remind now".
+  step      Int?
+  manual    Boolean  @default(false)
+  sentById  String?  @db.Uuid
+  people    Int      @default(0)
+  email     Int      @default(0)
+  app       Int      @default(0)
+  portal    Int      @default(0)
+  text      Int      @default(0)
+  /// Not reminded: no way to reach them (no email, app, portal or mobile number).
+  noContact Int      @default(0)
+  /// Not reminded: they asked not to be contacted about surveys.
+  optedOut  Int      @default(0)
+  createdAt DateTime
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@schema("surveys")
+}
+
+/// A phone call to someone who has not answered a named survey (the call list). Never on anonymous
+/// surveys. outcome: NO_ANSWER, LEFT_MESSAGE, CALL_BACK, DECLINED, WRONG_NUMBER, ANSWERED.
+model SurveyCallAttempt {
+  id          String   @id @default(uuid()) @db.Uuid
+  surveyId    String   @db.Uuid
+  recipientId String   @db.Uuid
+  outcome     String
+  notes       String?  @db.Text
+  calledById  String?  @db.Uuid
+  createdAt   DateTime @default(now())
+
+  survey    Survey          @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  recipient SurveyRecipient @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@index([recipientId])
+  @@schema("surveys")
+}
+
+/// Someone who does not want survey invitations or reminders, on every channel (ALL) or one (EMAIL,
+/// TEXT, APP, PORTAL, PHONE). subjectKind: EMPLOYEE, SERVICE_USER, CONTACT, EXTERNAL.
+/// Someone held back from a survey by the 4-week contact rule (src/surveys/survey-contact-rule.service.ts).
+/// status: HELD (waiting for freeFrom) | SENT (sent on their free day) | OVERRIDDEN (sent anyway, with a reason)
+/// | LAPSED (the survey closed first). Days only. Partial uniques per person per survey: see migration
+/// 20261216100000_survey_contact_rule.
+model SurveyHeldBack {
+  id             String    @id @default(uuid()) @db.Uuid
+  surveyId       String    @db.Uuid
+  employeeId     String?   @db.Uuid
+  serviceUserId  String?   @db.Uuid
+  lastContactOn  DateTime
+  freeFrom       DateTime
+  status         String    @default("HELD")
+  overrideReason String?
+  resolvedById   String?   @db.Uuid
+  resolvedAt     DateTime?
+  createdAt      DateTime  @default(now())
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@index([status, freeFrom])
+  @@schema("surveys")
+}
+
+/// An action raised from survey results (Phase 2 part 6): a question's figure, a theme, an alert, a team discussion
+/// or general. The work is a RoleTask (sourceType SURVEY_ACTION) for the owner role; DONE actions with youSaid /
+/// weDid feed CQC evidence. source QUESTION | THEME | ALERT | DISCUSSION | GENERAL; status OPEN | IN_PROGRESS |
+/// DONE | CANCELLED. sourceLabel is the figure as shown when raised, never answer text.
+model SurveyAction {
+  id            String    @id @default(uuid()) @db.Uuid
+  surveyId      String    @db.Uuid
+  periodId      String?   @db.Uuid
+  source        String    @default("GENERAL")
+  sourceKey     String?
+  sourceLabel   String?
+  discussionId  String?   @db.Uuid
+  title         String
+  detail        String?
+  ownerRoleId   String    @db.Uuid
+  ownerUserId   String?   @db.Uuid
+  roleTaskId    String?   @unique @db.Uuid
+  dueOn         DateTime  @db.Date
+  status        String    @default("OPEN")
+  outcome       String?
+  youSaid       String?
+  weDid         String?
+  evidenceNote  String?
+  locationIds   String[]  @default([]) @db.Uuid
+  completedAt   DateTime?
+  completedById String?   @db.Uuid
+  createdById   String?   @db.Uuid
+  updatedById   String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@index([status, dueOn])
+  @@schema("surveys")
+}
+
+/// When survey results were discussed with a team and what was agreed (Phase 2 part 6). kind TEAM_MEETING |
+/// STAFF_FORUM | SUPERVISION_GROUP | MANAGEMENT_MEETING | CLIENT_OR_FAMILY_MEETING | OTHER.
+model SurveyDiscussion {
+  id           String   @id @default(uuid()) @db.Uuid
+  surveyId     String   @db.Uuid
+  periodId     String?  @db.Uuid
+  heldOn       DateTime @db.Date
+  kind         String
+  attendees    Int?
+  summary      String
+  agreed       String?
+  locationIds  String[] @default([]) @db.Uuid
+  recordedById String?  @db.Uuid
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@schema("surveys")
+}
+
+/// "You said, we did" (Phase 2 part 6): published to the portal, the carer app, a printable letter and / or a public
+/// page. items [{ youSaid, weDid, actionId }]; headline = the overall figure as shown when published, else null.
+/// channels PORTAL | APP | LETTER | PUBLIC; status DRAFT | PUBLISHED | WITHDRAWN; audience = the survey's targetKind.
+model SurveyYouSaidWeDid {
+  id            String    @id @default(uuid()) @db.Uuid
+  surveyId      String    @db.Uuid
+  periodId      String?   @db.Uuid
+  title         String
+  intro         String?
+  items         Json
+  headline      Json?
+  channels      String[]  @default([])
+  status        String    @default("DRAFT")
+  publicToken   String?   @unique
+  locationIds   String[]  @default([]) @db.Uuid
+  audience      String
+  publishedAt   DateTime?
+  publishedById String?   @db.Uuid
+  withdrawnAt   DateTime?
+  createdById   String?   @db.Uuid
+  updatedById   String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@index([status])
+  @@schema("surveys")
+}
+
+/// An outside person a survey can go to (Phase 2 part 4): typed in once, or from a record CareFlow keeps
+/// (People involved, a funder, a pathway professional; read again at each send). The real person for the
+/// 4-week rule. kind FAMILY | PROFESSIONAL | COMMISSIONER | OTHER; sourceType TYPED | SERVICE_USER_CONTACT |
+/// FUNDER | PATHWAY_PROFESSIONAL. Partial unique (sourceType, sourceId) — see migration 20261216130000.
+model SurveyExternalContact {
+  id            String    @id @default(uuid()) @db.Uuid
+  kind          String
+  name          String
+  organisation  String?
+  role          String?
+  email         String?
+  mobile        String?
+  phone         String?
+  sourceType    String    @default("TYPED")
+  sourceId      String?   @db.Uuid
+  /// FAMILY: the person we support they are family or a representative of.
+  serviceUserId String?   @db.Uuid
+  locationIds   String[]  @default([]) @db.Uuid
+  createdById   String?   @db.Uuid
+  updatedById   String?   @db.Uuid
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @default(now()) @updatedAt
+  deletedAt     DateTime?
+
+  recipients SurveyRecipient[]
+  lists      SurveyContactListMember[]
+
+  @@index([kind])
+  @@index([serviceUserId])
+  @@index([deletedAt])
+  @@schema("surveys")
+}
+
+/// A reusable list of outside people (e.g. "GP practices").
+model SurveyContactList {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String
+  description String?
+  locationIds String[]  @default([]) @db.Uuid
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @default(now()) @updatedAt
+  deletedAt   DateTime?
+
+  members SurveyContactListMember[]
+
+  @@schema("surveys")
+}
+
+model SurveyContactListMember {
+  listId    String   @db.Uuid
+  contactId String   @db.Uuid
+  createdAt DateTime @default(now())
+
+  list    SurveyContactList     @relation(fields: [listId], references: [id], onDelete: Cascade)
+  contact SurveyExternalContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([listId, contactId])
+  @@index([contactId])
+  @@schema("surveys")
+}
+
+/// One event from the care records acted on for a survey with an event trigger (Phase 2 part 3): who, the
+/// event day and the due days (days only), and what became of it. Never answers, completion or times.
+/// status WAITING | DUE | BATCH | SENT | HELD | SKIPPED | CANCELLED | EXPIRED | OFFERED.
+model SurveyEventOccurrence {
+  id            String    @id @default(uuid()) @db.Uuid
+  surveyId      String    @db.Uuid
+  event         String
+  /// The record that raised it (and the person), so each event is acted on once per survey.
+  sourceKey     String
+  employeeId    String?   @db.Uuid
+  serviceUserId String?   @db.Uuid
+  eventOn       DateTime
+  dueOn         DateTime
+  lastDay       DateTime
+  status        String    @default("WAITING")
+  /// Why it was skipped, cancelled or not sent (a code, or the user's words).
+  reason        String?
+  /// The month copy it was sent in.
+  sentSurveyId  String?   @db.Uuid
+  resolvedById  String?   @db.Uuid
+  resolvedAt    DateTime?
+  createdAt     DateTime  @default(now())
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@unique([surveyId, event, sourceKey])
+  @@index([status, dueOn])
+  @@index([serviceUserId])
+  @@index([employeeId])
+  @@schema("surveys")
+}
+
+model SurveyContactOptOut {
+  id           String   @id @default(uuid()) @db.Uuid
+  subjectKind  String
+  subjectId    String   @db.Uuid
+  channel      String   @default("ALL")
+  reason       String?
+  recordedById String?  @db.Uuid
+  createdAt    DateTime @default(now())
+
+  @@unique([subjectKind, subjectId, channel])
+  @@schema("surveys")
+}
+
+/// "Unsubscribe from all surveys" link (former people): an opaque random token per message, kept only as its
+/// SHA-256 hash with the person it stands for (subjectKind EMPLOYEE | SERVICE_USER | EXTERNAL | CONTACT).
+model SurveyUnsubscribeToken {
+  id          String    @id @default(uuid()) @db.Uuid
+  tokenHash   String    @unique
+  subjectKind String
+  subjectId   String    @db.Uuid
+  createdAt   DateTime  @default(now())
+  usedAt      DateTime?
+
+  @@index([subjectKind, subjectId])
+  @@schema("surveys")
+}
+
+/// An independent reviewer's permission to record answers on ONE survey (SUR-CQC-001/002): a
+/// temporary login (employees.TemporaryInspector), for a time window inside the login's own, and
+/// only for the people chosen as the sample (none = anonymous recording only, on anonymous surveys).
+/// Never results, other answers, counts or other people. Granting, revoking and every answer recorded
+/// are audited. See src/surveys/survey-reviewers.service.ts.
+model SurveyReviewerGrant {
+  id          String    @id @default(uuid()) @db.Uuid
+  surveyId    String    @db.Uuid
+  /// The reviewer's user account (only role "Independent reviewer", no branch).
+  userId      String    @db.Uuid
+  /// The sample: people we support (or staff) the reviewer may record for. Empty = anonymous only.
+  personIds   String[]  @default([]) @db.Uuid
+  validFrom   DateTime
+  validTo     DateTime
+  createdAt   DateTime  @default(now())
+  createdById String?   @db.Uuid
+  revokedAt   DateTime?
+  revokedById String?   @db.Uuid
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  user   User   @relation("SurveyReviewerGrantUser", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@index([userId])
+  @@schema("surveys")
+}
+
+model SurveyPendingResponse {
+  id          String                @id @default(uuid()) @db.Uuid
+  surveyId    String                @db.Uuid
+  /// SurveyResponse.isAnonymous of the response it becomes (true = answered without a name).
+  isAnonymous Boolean               @default(false)
+  channel     SurveyResponseChannel @default(ONLINE)
+  /// The response's branch, who answered (anonymous surveys only) and its answers.
+  payload     Json
+  /// The day only (start of the operational day), like the response it becomes. No exact time.
+  createdAt   DateTime
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
   @@schema("surveys")
 }
 
@@ -14394,6 +15435,10 @@ model JobRun {
   triggeredById String?   @db.Uuid
   /// 1 for the first run of a period; +1 each time a failed/stale run of the same period is retried
   attempt       Int       @default(1)
+  /// Last sign of life from the process running it (every minute while running). A running row whose heartbeat
+  /// is older than STALE_HEARTBEAT_MS belongs to a process that stopped (restart, deploy, crash): it no longer
+  /// blocks the next run and is marked failed. Null on rows written before heartbeats (the 60-minute rule applies).
+  heartbeatAt   DateTime?
 
   @@unique([jobName, periodKey])
   @@index([jobName, startedAt(sort: Desc)])
@@ -16004,4 +17049,329 @@ model TravelRouteCache {
 
   @@unique([originKey, destinationKey])
   @@schema("scheduling")
+}
+
+// ─── CQC evidence (Quality & compliance → CQC evidence) ─────────────────────────────────────────
+// The CQC framework is versioned data (prisma/seed-data/cqc-framework, prisma/seed-lib/cqc-framework.ts);
+// evidence links to quality statements of a version, so a new framework is re-mapped, not rebuilt.
+
+enum CqcFrameworkStatus {
+  DRAFT
+  ACTIVE
+  RETIRED
+
+  @@schema("quality")
+}
+
+/// Where a piece of evidence came from. SURVEY_RESULT is filled automatically when a survey closes.
+enum CqcEvidenceSourceType {
+  SURVEY_RESULT
+  POLICY
+  AUDIT
+  INCIDENT_LEARNING
+  TRAINING
+  COMPLAINT
+  COMPLIMENT
+  MANUAL
+
+  @@schema("quality")
+}
+
+enum CqcEvidenceStatus {
+  CURRENT
+  SUPERSEDED
+  ARCHIVED
+
+  @@schema("quality")
+}
+
+/// One version of CQC's assessment framework (v1 = single assessment framework). One is ACTIVE.
+model CqcFrameworkVersion {
+  id            String             @id @default(uuid()) @db.Uuid
+  version       Int                @unique
+  code          String
+  title         String
+  status        CqcFrameworkStatus @default(DRAFT)
+  effectiveFrom DateTime?          @db.Date
+  checkedOn     DateTime?          @db.Date
+  note          String?            @db.Text
+  /// Sources the titles were checked against: [{ id, source, url }].
+  sources       Json?
+  /// Hash of the seed file content; the seed skips an unchanged version.
+  contentHash   String
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  keyQuestions CqcKeyQuestion[]
+  statements   CqcQualityStatement[]
+  categories   CqcEvidenceCategory[]
+
+  @@schema("quality")
+}
+
+model CqcKeyQuestion {
+  id                 String   @id @default(uuid()) @db.Uuid
+  frameworkVersionId String   @db.Uuid
+  code               String
+  title              String
+  summary            String   @db.Text
+  displayOrder       Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  frameworkVersion CqcFrameworkVersion   @relation(fields: [frameworkVersionId], references: [id], onDelete: Cascade)
+  statements       CqcQualityStatement[]
+
+  @@unique([frameworkVersionId, code])
+  @@schema("quality")
+}
+
+model CqcQualityStatement {
+  id                 String    @id @default(uuid()) @db.Uuid
+  frameworkVersionId String    @db.Uuid
+  keyQuestionId      String    @db.Uuid
+  code               String
+  title              String
+  /// CareFlow's short summary of what the statement expects (own words, not CQC's text).
+  summary            String    @db.Text
+  /// Other spellings used in survey and policy library metadata ("Medicine optimisation").
+  aliases            String[]  @default([])
+  /// Codes in the previous framework version this statement takes over (re-mapping).
+  mapsFrom           String[]  @default([])
+  /// Title checked against an opened source (false = from a secondary summary only).
+  verified           Boolean   @default(false)
+  displayOrder       Int       @default(0)
+  /// No longer in the seed file (kept because evidence may link to it).
+  retiredAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  frameworkVersion CqcFrameworkVersion    @relation(fields: [frameworkVersionId], references: [id], onDelete: Cascade)
+  keyQuestion      CqcKeyQuestion         @relation(fields: [keyQuestionId], references: [id], onDelete: Cascade)
+  evidenceLinks    CqcEvidenceStatement[]
+
+  @@unique([frameworkVersionId, code])
+  @@index([keyQuestionId])
+  @@schema("quality")
+}
+
+model CqcEvidenceCategory {
+  id                 String    @id @default(uuid()) @db.Uuid
+  frameworkVersionId String    @db.Uuid
+  code               String
+  title              String
+  description        String    @db.Text
+  mapsFrom           String[]  @default([])
+  displayOrder       Int       @default(0)
+  retiredAt          DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  frameworkVersion CqcFrameworkVersion @relation(fields: [frameworkVersionId], references: [id], onDelete: Cascade)
+
+  @@unique([frameworkVersionId, code])
+  @@schema("quality")
+}
+
+/// A piece of evidence kept for CQC, linked to one or more quality statements.
+model CqcEvidence {
+  id             String                @id @default(uuid()) @db.Uuid
+  title          String
+  summary        String?               @db.Text
+  sourceType     CqcEvidenceSourceType
+  /// The source record (e.g. the survey or survey period). Null for manual evidence.
+  sourceId       String?               @db.Uuid
+  /// What the source was called when the evidence was made (e.g. survey title and period).
+  sourceLabel    String?
+  /// Automatic evidence only: "survey:<surveyId>:<statementId>", so a re-capture updates it.
+  sourceKey      String?               @unique
+  /// Evidence category code of the framework (PEOPLES_EXPERIENCE, PROCESSES…).
+  categoryCode   String
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  /// Branches the evidence is about. Empty = the whole organisation.
+  locationIds    String[]              @default([]) @db.Uuid
+  status         CqcEvidenceStatus     @default(CURRENT)
+  reviewDueAt    DateTime?
+  /// Aggregated figures (survey results: counts, rate, headline percentages). Never individual answers.
+  metrics        Json?
+  /// "You said, we did": [{ youSaid, weDid }].
+  actions        Json?
+  notes          String?               @db.Text
+  /// The newer evidence that replaced this one (e.g. the next period of a repeating survey).
+  supersededById String?               @db.Uuid
+  createdById    String?               @db.Uuid
+  updatedById    String?               @db.Uuid
+  archivedAt     DateTime?
+  archivedById   String?               @db.Uuid
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+
+  statements  CqcEvidenceStatement[]
+  attachments CqcEvidenceAttachment[]
+
+  @@index([status])
+  @@index([sourceType, sourceId])
+  @@index([categoryCode])
+  @@index([reviewDueAt])
+  @@schema("quality")
+}
+
+model CqcEvidenceStatement {
+  evidenceId  String   @db.Uuid
+  statementId String   @db.Uuid
+  createdAt   DateTime @default(now())
+
+  evidence  CqcEvidence         @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+  statement CqcQualityStatement @relation(fields: [statementId], references: [id], onDelete: Restrict)
+
+  @@id([evidenceId, statementId])
+  @@index([statementId])
+  @@schema("quality")
+}
+
+/// A file kept with evidence (uploads/cqc-evidence/<evidenceId>/…; downloaded through the API only).
+model CqcEvidenceAttachment {
+  id           String    @id @default(uuid()) @db.Uuid
+  evidenceId   String    @db.Uuid
+  fileName     String
+  mimeType     String
+  sizeBytes    Int
+  storagePath  String
+  uploadedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  evidence CqcEvidence @relation(fields: [evidenceId], references: [id], onDelete: Cascade)
+
+  @@index([evidenceId])
+  @@schema("quality")
+}
+
+/// Quality statements a manager chose for a survey without ready-made (library) statements.
+/// Used when the survey, or each period of a repeating survey, is added to CQC evidence.
+model CqcSurveyStatementChoice {
+  surveyId     String   @id @db.Uuid
+  statementIds String[] @db.Uuid
+  categoryCode String?
+  chosenById   String?  @db.Uuid
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@schema("quality")
+}
+
+/// Last time a closed survey was checked for CQC evidence (so the sweep handles each close once).
+model CqcSurveyCapture {
+  surveyId        String   @id @db.Uuid
+  /// Survey.updatedAt when it was checked; closing it again after re-opening captures again.
+  surveyUpdatedAt DateTime
+  /// CAPTURED, NO_STATEMENTS, NOT_CLOSED or FAILED.
+  outcome         String
+  evidenceCount   Int      @default(0)
+  detail          String?
+  capturedAt      DateTime @default(now())
+
+  @@schema("quality")
+}
+
+/// Phase 3: a survey in another language or easy read. `content` holds the translated texts by what they
+/// translate (see survey-translation.util.ts); answers are always stored in English.
+model SurveyTranslation {
+  id          String    @id @default(uuid()) @db.Uuid
+  surveyId    String    @db.Uuid
+  /// BCP 47 code ("pl", "ur", "pa-Arab" …); easy read is "en-x-easyread".
+  language    String
+  /// DRAFT (staff only) or PUBLISHED (offered to people answering).
+  status      String    @default("DRAFT")
+  content     Json      @default("{}")
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  createdById String?   @db.Uuid
+  updatedById String?   @db.Uuid
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@unique([surveyId, language])
+  @@index([surveyId])
+  @@schema("surveys")
+}
+
+/// Phase 3: a one-time link sent to a job applicant. Only a hash of the link's token is kept, with no
+/// applicant: nobody can tell whose link it was, or whether a given applicant answered. Days only.
+model SurveyApplicantInvite {
+  id        String   @id @default(uuid()) @db.Uuid
+  surveyId  String   @db.Uuid
+  tokenHash String   @unique
+  createdOn DateTime @db.Date
+  /// The last day the link works.
+  expiresOn DateTime @db.Date
+  used      Boolean  @default(false)
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@schema("surveys")
+}
+
+/// Phase 3: a job applicant (employees.Candidate) was invited to a survey, so they are never invited
+/// twice. Never which link was theirs, or whether they answered.
+model SurveyApplicantInvited {
+  id          String   @id @default(uuid()) @db.Uuid
+  candidateId String   @unique @db.Uuid
+  surveyId    String   @db.Uuid
+  invitedOn   DateTime @db.Date
+
+  survey Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+
+  @@index([surveyId])
+  @@schema("surveys")
+}
+
+/// Anonymised sector benchmarks (Phase 3): this agency's choice to share (one row, id "default").
+model SurveyBenchmarkSetting {
+  id               String    @id
+  sharing          Boolean   @default(false)
+  /// The data-sharing agreement accepted (BENCHMARK_AGREEMENT_VERSION), by whom and when.
+  agreementVersion String?
+  agreedById       String?   @db.Uuid
+  agreedAt         DateTime?
+  lastSyncedAt     DateTime?
+  lastSyncError    String?
+  updatedAt        DateTime  @default(now()) @updatedAt
+
+  @@schema("surveys")
+}
+
+/// Sector figures from the benchmark service, per ready-made question (only while sharing).
+model SurveyBenchmarkFigure {
+  id            String   @id @default(uuid()) @db.Uuid
+  reference     String
+  questionKey   String
+  organisations Int
+  median        Int
+  lowerQuartile Int
+  upperQuartile Int
+  receivedAt    DateTime
+
+  @@unique([reference, questionKey])
+  @@schema("surveys")
+}
+
+/// The benchmark service's side: each agency's current figures, by a hash of its key (never its name).
+model SurveyBenchmarkContribution {
+  id              String   @id @default(uuid()) @db.Uuid
+  contributorHash String
+  reference       String
+  questionKey     String
+  /// Share of positive answers, whole per cent.
+  percent         Int
+  /// How many answered: 10-29, 30-99 or 100+.
+  band            String
+  receivedAt      DateTime
+
+  @@unique([contributorHash, reference, questionKey])
+  @@index([reference, questionKey])
+  @@schema("surveys")
 }

@@ -1,0 +1,755 @@
+{
+  "reference": "POL-HR-005",
+  "revision": 1,
+  "title": "Supervision, Spot Checks and Appraisal Policy",
+  "documentType": "POLICY",
+  "summary": "How everyone who works for us receives planned one-to-one supervision, unannounced observation of their practice where they give care, and an annual appraisal with a personal development plan. It sets who supervises whom and how often, what supervision covers, how concerns raised are acted on, how records are kept and shared, support for registered professionals, and how compliance is monitored. For all staff, supervisors and managers.",
+  "keyPoints": {
+    "intro": "Supervision, spot checks and appraisal are how we support you, see your practice and help you develop. This is what they mean for you day to day.",
+    "points": [
+      "Never wait for supervision to report a safeguarding concern, a risk, an accident, or abuse or harassment aimed at you. Phone the office, or the On-call Manager out of hours, before you leave the visit, as our safeguarding and incident policies require.",
+      "You have a one-to-one supervision with your named supervisor at least every 3 months. It is paid working time, held in private, and booked at least 2 weeks ahead. You must attend unless you have a good reason, such as illness or leave.",
+      "Supervision is support, not a disciplinary meeting. Come ready to talk about the people you support, what went well, what worried you, your workload and wellbeing, and any training you need.",
+      "Care Workers and Senior Care Workers are spot checked by a Field Care Supervisor, unannounced, during a real visit at least every 3 months. You get private feedback the same day and can add your own comments to the record.",
+      "If a spot check finds a critical item not met, you have a supervision within 7 days besides retraining and a repeat observation. You may ask for a result to be reviewed within 5 working days of the feedback.",
+      "You receive a copy of each supervision and appraisal record within 5 working days of the meeting. Read it, and if you disagree with anything, add your comments within 5 working days so they are kept with the record.",
+      "What you say in supervision stays between you and the managers who need to know, except where someone may be at risk of harm, there may be misconduct or a crime, or the law requires sharing.",
+      "Your appraisal is held every 12 months. Complete your self-assessment beforehand; you agree your objectives and personal development plan, renew your criminal record self-declaration, confirm your declared interests and answer some private welfare questions.",
+      "If you are struggling with stress, workload, travel, or anything at work or at home affecting you, tell your supervisor at any time. You can also use the free 24-hour confidential employee assistance programme.",
+      "You can ask for an extra supervision at any time; it will be held within 5 working days, or by phone the same day if it is urgent. Out of hours, phone the On-call Manager for immediate support.",
+      "Supervisors: record each supervision in CareFlow within 2 working days, give the worker a copy within 5 working days, and act on safeguarding concerns raised at once."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-HR-004",
+    "POL-HR-006",
+    "POL-HR-010",
+    "POL-GOV-003",
+    "POL-HR-007",
+    "POL-HS-015",
+    "POL-SG-001",
+    "POL-HR-018"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18 Staffing, including 18(2)(a) support, training, professional development, supervision and appraisal, 18(2)(b) further qualifications and 18(2)(c) registered professionals",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Skills for Care, Effective supervision: a practical guide for adult social care managers and supervisors (August 2025)",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Support-for-leaders-and-managers/Managing-people/Supervision/Effective-supervision-guide.pdf"
+    },
+    {
+      "source": "Department of Health and Social Care, The Oliver McGowan code of practice on statutory learning disability and autism training (final from 6 September 2025): learning shared and consolidated through supervision",
+      "url": "https://www.gov.uk/government/publications/oliver-mcgowan-code-of-practice"
+    },
+    {
+      "source": "Health and Safety Executive, Management Standards for work-related stress: the six areas",
+      "url": "https://www.hse.gov.uk/stress/standards/overview.htm"
+    },
+    {
+      "source": "Acas, Performance management: performance reviews and setting objectives",
+      "url": "https://www.acas.org.uk/performance-management"
+    },
+    {
+      "source": "Equality Act 2010, section 20 (duty to make reasonable adjustments)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20"
+    },
+    {
+      "source": "Nursing and Midwifery Council, Revalidation: confirmation",
+      "url": "https://www.nmc.org.uk/revalidation/requirements/confirmation/"
+    },
+    {
+      "source": "Nursing and Midwifery Council, Revalidation: reflective discussion",
+      "url": "https://www.nmc.org.uk/revalidation/requirements/reflective-discussion/"
+    },
+    {
+      "source": "Nursing and Midwifery Council, Revalidation: written reflective accounts",
+      "url": "https://www.nmc.org.uk/revalidation/requirements/written-reflective-accounts/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} gives everyone who works for us regular, planned, one-to-one supervision; unannounced observation of their practice wherever they give care; and an appraisal every year. Our staff mostly work alone in people's homes, so we must see their practice, talk it through and support them with demanding work: this keeps people safe, keeps staff competent and well, and finds problems early."
+        },
+        {
+          "p": "Supervision is protected, paid time to reflect, learn and be supported. It is not a disciplinary meeting, and nothing in an appraisal should come as a surprise, because concerns are raised when they arise."
+        },
+        {
+          "p": "The law requires the people we employ in providing regulated activity to receive the appropriate support, training, professional development, supervision and appraisal they need for their role, to be enabled to obtain further relevant qualifications, and, where they are registered professionals, to be enabled to show their regulator that they continue to meet its professional standards (Regulation 18(2) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). The law does not set how often this happens; the frequencies and timescales in this policy are our policy."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy gives every member of staff a named supervisor and supervision, observation and appraisal at set frequencies, focused on practice, the people we support and wellbeing; makes sure risks raised are acted on at once; and lets us show the Care Quality Commission (CQC), commissioners and the Directors that every worker is supported and competent."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee of {{organisation}} in every role and branch, including bank staff and managers, and to the Nominated Individual's appraisal. Agency workers are supervised and appraised by their agency, as our written agency agreement requires and the HR Manager checks at the annual agency audit under the Safer Recruitment Policy; we spot check them and feed back to the agency. Students on placement are supervised by their education provider and always work alongside our staff."
+        },
+        {
+          "p": "Other documents cover: induction and probation (Induction and Care Certificate Procedure); how spot checks are carried out and scored (Quality Audit and Monitoring Procedure); required training (Training and Development Policy); formal action on performance (Capability and Performance Procedure); misconduct (Disciplinary Policy and Procedure); allegations of harm (Managing Allegations Against Staff Procedure); and stress risk assessments and the employee assistance programme (Work-Related Stress and Staff Wellbeing Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Supervision",
+                "A planned, recorded, one-to-one meeting in paid time between a worker and their named supervisor to reflect on practice, review wellbeing and workload, agree learning and check actions."
+              ],
+              [
+                "Spot check",
+                "An unannounced observation of a member of staff giving care during a real visit, with the person's agreement, by a Field Care Supervisor, the Registered Manager or the Deputy Manager, under the Quality Audit and Monitoring Procedure."
+              ],
+              [
+                "Appraisal",
+                "A yearly review of the worker's performance, values and conduct over the past 12 months, setting objectives and a personal development plan for the next 12."
+              ],
+              [
+                "Personal development plan",
+                "The worker's agreed objectives and learning for the year, each with a date, kept in the supervision and appraisal records and linked to their training and compliance records."
+              ],
+              [
+                "Supervision agreement",
+                "A short written agreement between the worker and their supervisor covering frequency, preparation, recording, confidentiality and its limits, and any adjustments."
+              ],
+              [
+                "Professional supervision",
+                "Supervision of a registered professional, such as a registered nurse, by a member of the same profession, focused on professional practice and the regulator's standards."
+              ],
+              [
+                "Overdue",
+                "A supervision not held within 3 months of the last one (2 months for the Registered Manager), or an appraisal not held within 12 months of the last one."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors fund paid supervision time and enough supervisors to keep caseloads within this policy's limits, and scrutinise compliance quarterly. The Nominated Individual supervises and appraises the Registered Manager. The Directors' choice of appraiser for the Nominated Individual is the chair of the Directors, or the deputy chair where the chair is the Nominated Individual, and the appraisal is held each year alongside the annual fitness review under the Fit and Proper Persons (Directors) Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy and is accountable to CQC for effective supervision. They record a named supervisor for every worker in the staff record within 5 working days of the worker starting or changing role, keep caseloads within the limits below, authorise Senior Care Workers as supervisors in writing, supervise and appraise the Deputy Manager and HR Manager, act on overdue sessions and escalated concerns, and audit supervision and spot check records quarterly. The Deputy Manager covers these duties when the Registered Manager is absent."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager supervises and appraises Field Care Supervisors, Care Coordinators, Office staff and staff allocation roles, observes Field Care Supervisors and Care Coordinators who give care, and countersigns appraisals carried out by Field Care Supervisors."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager keeps every due date in CareFlow, tells each supervisor by the 5th working day of each month which supervisions, spot checks and appraisals fall due in the next 4 weeks, reports anything more than 2 weeks overdue to the Registered Manager, produces the monthly compliance report and books the training agreed."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and supervising Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors hold supervisions and appraisals for their supervisees, carry out spot checks, record each one on time, and act on anything raised as set out in this policy. Senior Care Workers authorised as supervisors hold supervisions for the Care Workers allocated to them and give their views to the Field Care Supervisor who carries out those workers' appraisals."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators roster supervision and appraisal as paid working time with at least 2 weeks' notice, including travel time, and move or cover the worker's visits so that no visit is cut short or missed. They never cancel it to cover visits unless the Business Continuity and Emergency Planning Policy has been activated or the Registered Manager agrees, and they act the same working day on care plan or risk issues passed to them from supervision."
+            }
+          ]
+        },
+        {
+          "heading": "Every member of staff",
+          "blocks": [
+            {
+              "p": "Every member of staff attends and prepares for their supervision and appraisal, reads their records and completes the actions agreed. Supervision is never a reason to delay reporting a safeguarding concern, an accident or a risk."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Who supervises whom and how often",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Role",
+              "Named supervisor and appraiser",
+              "One-to-one supervision",
+              "Observation of practice"
+            ],
+            "rows": [
+              [
+                "Care Worker",
+                "Field Care Supervisor, or a Senior Care Worker authorised as supervisor (appraisal always by the Field Care Supervisor)",
+                "At least every 3 months",
+                "Unannounced spot check at least every 3 months"
+              ],
+              [
+                "Senior Care Worker",
+                "Field Care Supervisor",
+                "At least every 3 months",
+                "Unannounced spot check at least every 3 months"
+              ],
+              [
+                "Any employee in probation",
+                "Their probation reviewer under the Induction and Care Certificate Procedure (the Field Care Supervisor for care staff)",
+                "Probation reviews in weeks 4, 12 and 22, each counting as a supervision; next supervision within 3 months of the week 22 review",
+                "Care staff: spot check within 4 weeks of first working without a shadowing colleague, and a second before the week 22 review"
+              ],
+              [
+                "Field Care Supervisor, Care Coordinator",
+                "Deputy Manager",
+                "At least every 3 months",
+                "Where they give care, observed by the Registered Manager or Deputy Manager at least every 6 months"
+              ],
+              [
+                "Office staff and staff allocation roles",
+                "Deputy Manager",
+                "At least every 3 months",
+                "None"
+              ],
+              [
+                "HR Manager, Deputy Manager",
+                "Registered Manager",
+                "At least every 3 months",
+                "None"
+              ],
+              [
+                "Registered Manager",
+                "Nominated Individual",
+                "At least every 2 months",
+                "None"
+              ],
+              [
+                "Bank staff",
+                "As for their role",
+                "At least every 3 months while they work; if they have not worked for 3 months or more, a supervision and the return checks in the additional supervision table before their next visit",
+                "As for their role"
+              ],
+              [
+                "Agency workers",
+                "Their agency",
+                "Not by us",
+                "Spot check within 2 weeks of their first visit, then every 3 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every care worker's first appraisal is held within 12 months of their start date, and each later appraisal within 12 months of the previous one. The appraisal meeting includes the supervision agenda and counts as the supervision due in that period. Field Care Supervisors plan each care worker's year so that supervisions and spot checks alternate, giving a planned contact about every 6 weeks."
+        },
+        {
+          "p": "Allocation rules:"
+        },
+        {
+          "bullets": [
+            "A Field Care Supervisor has no more than 30 supervisees, and a supervising Senior Care Worker no more than 8 Care Workers. When a caseload would go above the limit, the Registered Manager reallocates within 10 working days.",
+            "A Senior Care Worker is authorised as a supervisor only after passing probation, with at least 12 months' experience in a care role, holding or enrolled on the Level 3 Diploma in Adult Care, and after completing supervision training. They do not supervise other Senior Care Workers.",
+            "Nobody supervises, spot checks or appraises a close relative, partner, close friend or someone they live with, or anyone with whom they have declared a conflict of interest under the Conflicts of Interest Policy, which also sets who supervises and appraises the Registered Manager if they are a close relative or partner of the Nominated Individual.",
+            "A worker may ask the Registered Manager for a different supervisor. The Registered Manager decides within 10 working days, and at once where the request is linked to a complaint of bullying or harassment.",
+            "When a supervisor leaves or will be absent for 4 weeks or more, the Registered Manager names a new supervisor in the staff record within 5 working days. The new supervisor reads the last 12 months of supervision, spot check and appraisal records before the first session."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Supervision meetings",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Planning, attendance and adjustments",
+          "blocks": [
+            {
+              "bullets": [
+                "The next supervision is booked at the end of each one, and the worker is told the date at least 2 weeks ahead with the agenda; either party may add items.",
+                "Each session lasts at least 45 minutes (60 minutes for Field Care Supervisors, Care Coordinators, the HR Manager, the Deputy Manager and the Registered Manager) and is held in a private room at our office or another private place both agree. It is never held in a person's home, in a car or in a public place.",
+                "A video call is used only when the worker agrees and both are somewhere private with cameras on; it is never recorded. At least two supervisions in every 12 months are face to face.",
+                "Supervision, preparation time we set and travel to and from it are paid working time under the Working Time, Rest Breaks and Travel Time Policy. Staff who work only evenings, nights or weekends are offered sessions at times they normally work.",
+                "The worker and supervisor sign a supervision agreement at the week 4 probation review (for existing staff, at the first supervision after this policy is adopted), and review it at every appraisal.",
+                "Where a worker has a disability, we make reasonable adjustments to how supervision and appraisal are held, as the Equality Act 2010 requires: for example the agenda in writing earlier, extra time, a different time of day, or help to read the record. Adjustments are recorded in the supervision agreement."
+              ]
+            },
+            {
+              "p": "If a supervision is cancelled, it is rebooked within 10 working days. A supervisor never cancels two sessions in a row with the same worker. When a supervision is more than 2 weeks overdue, the HR Manager tells the Registered Manager, who makes sure it is held within the following 2 weeks."
+            },
+            {
+              "p": "Attending supervision is part of the job. A worker who misses a session without good reason is rebooked; after a second missed session in a row, the Registered Manager meets them within 10 working days and records the meeting in the supervision records. Continued refusal is dealt with under the Disciplinary Policy and Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "What every supervision covers",
+          "blocks": [
+            {
+              "p": "Supervisors use three reflective questions to talk through real situations: what happened; what it meant for the person and for the worker; and what the worker will do the same or differently. Each supervision covers the items below, recorded under the same headings."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Item",
+                  "What is covered"
+                ],
+                "rows": [
+                  [
+                    "Actions",
+                    "Progress on actions from the last supervision, spot check and appraisal."
+                  ],
+                  [
+                    "The people you support",
+                    "At least one person or visit discussed in depth; changes in needs, health or wishes; anywhere the care plan, risk assessments or eMAR do not match what happens at visits, including visits that regularly overrun or are too short for the tasks."
+                  ],
+                  [
+                    "Feedback on your practice",
+                    "The latest spot check result, compliments, complaints and feedback from people we support, audit findings about the worker's daily visit notes or eMAR entries, and visit check-in and check-out compliance."
+                  ],
+                  [
+                    "Safeguarding",
+                    "A safeguarding question or scenario at every supervision. In every 12 months each worker has a scenario about a child (Safeguarding Children and Young People Policy), gifts, money or wills (Gifts, Hospitality, Wills and Legacies Policy), professional boundaries (Professional Boundaries Policy), sexual safety (Sexual Safety Policy) and domestic abuse (Domestic Abuse Policy); these fill the safeguarding item at supervision, two at one session where needed, and spot checks carry the general safeguarding question. A worker who cannot explain how to report a concern, including in the child scenario, is retrained before their next unsupervised visit; one who cannot answer the gifts, boundaries, sexual safety or domestic abuse scenario is taken through that policy at once and rechecked at the next spot check."
+                  ],
+                  [
+                    "Health, safety and lone working",
+                    "Personal safety, hazards in homes, missed check-ins, and whether the worker has had any abuse, violence or sexual harassment they did not report."
+                  ],
+                  [
+                    "Learning disability and autism",
+                    "How the worker applies their learning disability and autism training. At every supervision for staff who support a person with a learning disability or an autistic person; at least once a year for everyone else."
+                  ],
+                  [
+                    "Wellbeing and workload",
+                    "Hours, rota, travel and breaks, and the six areas in the Health and Safety Executive's Management Standards: demands, control, support, relationships, role and change. The worker is reminded of the employee assistance programme."
+                  ],
+                  [
+                    "Learning",
+                    "Training due or overdue, competency reassessments, progress on qualifications (including the Level 2 Adult Social Care Certificate at every supervision while enrolled) and new learning needs."
+                  ],
+                  [
+                    "Changes",
+                    "Major policy changes since the last supervision, as the Policy Management and Document Control Policy requires, any new major version the worker has not yet acknowledged, and any other change affecting the worker."
+                  ],
+                  [
+                    "Anything else",
+                    "Conduct, professional boundaries, concerns about colleagues or practice, and a reminder of the routes in the Whistleblowing (Speaking Up) Policy."
+                  ],
+                  [
+                    "Agreed actions",
+                    "Each action with one owner and a date."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Managers' and supervisors' supervision also covers their caseload's audit and compliance results, on-call decisions and the risks they manage. Group reflective sessions, for example after a death or serious incident, are recorded in each attendee's supervision records but never replace one-to-one supervision."
+            }
+          ]
+        },
+        {
+          "heading": "Additional supervision",
+          "blocks": [
+            {
+              "p": "An additional supervision, debrief or discussion is held in these situations. It never replaces an investigation, and where a safeguarding enquiry or investigation is open, the supervisor discusses the worker's wellbeing and support only, not the facts under investigation. A debrief is offered, never required, and the worker never has to describe the event. The 4-week check after violence or a distressing event is the Field Care Supervisor's conversation with the worker plus the confidential survey after a difficult event, which the HR Manager sends in the same week and alone reads, because it may include health details."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "What happens",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "Spot check where a critical item was not met",
+                    "Supervision to agree the support plan, in addition to the retraining and re-observation the Quality Audit and Monitoring Procedure requires",
+                    "Within 7 days"
+                  ],
+                  [
+                    "Dignity shortfall that is not a safeguarding concern",
+                    "Supervision, then an unannounced spot check, under the Person-Centred Care, Dignity and Respect Policy",
+                    "Supervision within 7 days; spot check within 4 weeks"
+                  ],
+                  [
+                    "Incident or complaint where the worker's practice may have contributed",
+                    "Supervision once the Registered Manager has decided on safeguarding and investigation",
+                    "Within 7 days of that decision"
+                  ],
+                  [
+                    "Violence or aggression towards the worker",
+                    "Debrief offered, then the 4-week check, under the Violence and Aggression Towards Staff Policy",
+                    "Debrief within 3 working days; 4-week check within 4 weeks"
+                  ],
+                  [
+                    "Death of a person the worker supported, or another distressing event",
+                    "Field Care Supervisor contacts the worker, offers a debrief and makes the 4-week check",
+                    "Contact within 1 working day; debrief within 3 working days; 4-week check within 4 weeks"
+                  ],
+                  [
+                    "Boundary breach or repeated offers of gifts",
+                    "Supervision under the Professional Boundaries Policy or the Gifts, Hospitality, Wills and Legacies Policy",
+                    "Within 7 days of a significant boundary breach; within 2 weeks of a third offer declared in 3 months"
+                  ],
+                  [
+                    "3 or more missed check-ins or check-outs in a calendar month",
+                    "Discussion under the Lone Working and Staff Personal Safety Policy, recorded in the supervision records",
+                    "Within 2 weeks"
+                  ],
+                  [
+                    "Return after 4 weeks or more away",
+                    "Supervision covering changes, the people the worker will visit and any adjustments. After 3 months or more, also medicines reassessment before giving medicines support (Medicines Management Policy), hand hygiene and PPE reassessment before working alone (Infection Prevention and Control Policy), observation before moving and handling without a colleague (Moving and Handling of People Policy), and an unannounced spot check",
+                    "Supervision in the first week back; spot check within 4 weeks"
+                  ],
+                  [
+                    "The worker asks",
+                    "Supervision with their supervisor or, if they prefer, the Deputy Manager. Out of hours the On-call Manager gives immediate support by phone and hands over to the Care Coordinator by 10am the next working day",
+                    "Within 5 working days; by phone the same day if urgent"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Recording and confidentiality",
+          "blocks": [
+            {
+              "bullets": [
+                "The supervisor records each supervision in the supervision and appraisal records in CareFlow within 2 working days, factually and under the standard headings. People we support are identified by their CareFlow reference number, not their name.",
+                "The worker receives a copy within 5 working days of the meeting and may add comments within 5 working days of receiving it. If the worker disagrees with the record, their comments are kept with it, and the supervisor's own manager reviews the disagreement and replies to the worker within 10 working days.",
+                "Health and other sensitive information is kept only in the restricted section of the staff record under the Staff Personal Data and HR Records Policy: the supervisor passes it to the HR Manager the same working day, keeps no copy, and the supervision record notes only that a matter was passed on.",
+                "Supervision records are seen only by the worker, their supervisor and that supervisor's manager, the Registered Manager, the Deputy Manager, the HR Manager, the Nominated Individual when auditing them under the Quality Audit and Monitoring Procedure, and CQC inspectors. After every second supervision (about twice a year) the HR Manager sends each worker a confidential supervision feedback survey; a supervisor sees only the combined results for their own supervisees, and only where 5 or more responded."
+              ]
+            },
+            {
+              "p": "Supervision is confidential, with limits stated in every supervision agreement. The supervisor shares what the worker has said, without their agreement, where a person may be at risk of harm, anyone's health or safety is at risk, there may be misconduct or a crime, a registrant's fitness to practise is in question, or the law requires it. The supervisor tells the worker what will be shared and with whom, unless that would put someone at risk or prejudice a safeguarding or police enquiry. The supervision agreement also tells the worker that these records may be used as evidence under the Capability and Performance Procedure or the Disciplinary Policy and Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Acting on what is raised in supervision",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is raised",
+              "What happens",
+              "Who and when"
+            ],
+            "rows": [
+              [
+                "Possible abuse or neglect of a person",
+                "Reported under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure before the supervision continues; the supervisor records it in the safeguarding records the same day",
+                "Supervisor phones the Registered Manager or Deputy Manager (On-call Manager out of hours) at once"
+              ],
+              [
+                "Information suggesting the worker or a colleague may have harmed a person",
+                "No further questioning in supervision; handled under the Managing Allegations Against Staff Procedure",
+                "Supervisor phones the Registered Manager or Deputy Manager (On-call Manager out of hours) at once"
+              ],
+              [
+                "Care plan, risk assessment, eMAR or planned visit length does not match the person's needs",
+                "Focused review under the Care Plan Review Procedure",
+                "Supervisor tells the Care Coordinator the same working day"
+              ],
+              [
+                "Hazard or personal safety risk in a home",
+                "Home environment risk assessment reviewed",
+                "Supervisor tells the Care Coordinator the same working day; controls in place before the worker's next visit there"
+              ],
+              [
+                "Wrongdoing the worker wants to raise",
+                "The worker is shown the routes in the Whistleblowing (Speaking Up) Policy, including those outside line management",
+                "Supervisor, at the meeting"
+              ],
+              [
+                "Signs of stress, ill health or a need for adjustments",
+                "Individual stress risk assessment under the Work-Related Stress and Staff Wellbeing Policy; occupational health referral with the worker's written consent; adjustments agreed",
+                "Supervisor tells the HR Manager the same working day; HR Manager or Registered Manager completes the individual stress risk assessment within 5 working days; HR Manager makes any referral within 5 working days of consent"
+              ],
+              [
+                "Performance below the standard expected",
+                "Informal support plan: specific actions, training, extra observation and a review date no more than 8 weeks ahead. If it has not worked, the Registered Manager decides whether to extend the informal plan once, by up to 8 weeks, or start the formal stages of the Capability and Performance Procedure",
+                "Supervisor agrees the plan at the meeting; Registered Manager decides within 5 working days of the review"
+              ],
+              [
+                "Possible misconduct, or bullying, harassment or sexual harassment",
+                "Handled under the Disciplinary Policy and Procedure or the Bullying, Harassment and Sexual Harassment Policy",
+                "Supervisor tells the Registered Manager the same working day"
+              ],
+              [
+                "A complaint about pay, hours or conditions the supervisor cannot resolve",
+                "The worker is shown how to use the Grievance Policy and Procedure",
+                "Supervisor, at the meeting"
+              ],
+              [
+                "Training or learning need",
+                "Booked and added to the personal development plan",
+                "HR Manager within 5 working days of the record"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Spot checks and observed practice",
+      "blocks": [
+        {
+          "p": "Spot checks are carried out in the person's home with their agreement, at the frequencies in the table above and on the further occasions the Quality Audit and Monitoring Procedure sets, such as early, late and weekend visits and after a shortfall. Their content, scoring, recording and overdue escalation follow that procedure. This policy sets how the results are used:"
+        },
+        {
+          "bullets": [
+            "The worker receives private feedback the same day, away from the person and their family, after the visit if that will not make them late for their next one and otherwise by phone. It recognises good practice as well as shortfalls, and the worker may add their own comments to the record.",
+            "A worker who disagrees with a result may ask the Registered Manager (the Nominated Individual where the Registered Manager carried out the check) to review it within 5 working days of the feedback. The reviewer replies in writing within 5 working days, and the original result stands until then.",
+            "Every spot check is discussed at the next supervision, and the year's results inform the appraisal.",
+            "For an agency worker, the Care Coordinator sends the result of any shortfall to the agency in writing within 2 working days. Where practice put a person at risk, the Registered Manager (the Deputy Manager in their absence) decides the same day whether the worker continues to work for us and tells the agency that day.",
+            "Competency assessments, such as for medicines or moving and handling, are separate observations under their own procedures, recorded in the training and compliance records and discussed at supervision."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Annual appraisal",
+      "blocks": [
+        {
+          "p": "The appraisal looks back over the year and forward to the next. It is held face to face, lasts at least 60 minutes and is paid working time."
+        },
+        {
+          "steps": [
+            "The HR Manager includes each appraisal in the monthly list of what falls due in the next 4 weeks, and the appraiser books it with at least 2 weeks' notice.",
+            "The worker completes the self-assessment and gives it to the appraiser at least 2 working days before the meeting; the appraiser adds it to the appraisal record in CareFlow. Up to 1 hour of preparation time is paid.",
+            "The appraiser gathers evidence: the year's supervision, spot check and training records; colleagues' views; compliments and complaints; incidents involving the worker's practice; and, for staff who give care, feedback from at least two people we support or their representatives and their check-in and check-out compliance; and, for anyone who line manages staff other than the Registered Manager, their own results from the anonymous June survey of staff feedback on their manager, where 5 or more of their staff responded, used only for their development and never for discipline, capability or pay. Sickness absence is managed under the Sickness Absence Policy, not judged in the appraisal.",
+            "At the meeting they review the year against the job description, the Staff Code of Conduct and our values, and last year's objectives; discuss wellbeing and career aspirations, such as the Level 3 Diploma or the Senior Care Worker role; and agree three to five specific, measurable, achievable, relevant and time-bound objectives and the personal development plan.",
+            "The worker signs the annual criminal record self-declaration under the Safer Recruitment Policy; confirms their declared interests or a nil return under the Conflicts of Interest Policy, any opt-out from the 48-hour weekly limit, and their emergency contact, vehicle details and photograph for lone working monitoring; and reviews the supervision agreement. A registered professional's registration and revalidation dates are confirmed. The appraiser asks privately the welfare questions in the Modern Slavery and Human Trafficking Policy, recording only that they were asked; any answer suggesting exploitation is phoned to the Registered Manager the same day and kept in the restricted section of the staff record.",
+            "The appraiser records one outcome: meets the standard; development needed, with specific support in the personal development plan reviewed at each supervision; or concerns, in which case an informal support plan is agreed with a review no more than 8 weeks ahead, and the Registered Manager decides within 5 working days of that review whether to extend the informal plan once or start the formal stages of the Capability and Performance Procedure.",
+            "The appraiser records the appraisal in the supervision and appraisal records within 5 working days, and the worker receives a copy and may add comments as for supervision. The appraiser's line manager reviews and countersigns it within 10 working days, checking that the evidence supports the outcome; the Registered Manager's appraisal is countersigned by a Director other than the Nominated Individual.",
+            "The HR Manager adds the agreed training to the training and compliance records within 5 working days. Anything disclosed on the self-declaration is passed to the Registered Manager the same working day."
+          ]
+        },
+        {
+          "p": "Objectives are reviewed at every supervision during the year. An appraisal goes ahead while a capability or disciplinary process is open, and refers to that process only by its outcome or stage."
+        }
+      ]
+    },
+    {
+      "heading": "Registered professionals and delegated tasks",
+      "blocks": [
+        {
+          "p": "This section applies to employees registered with the Nursing and Midwifery Council (NMC), the Health and Care Professions Council or Social Work England whose role requires or uses that registration, such as a registered nurse in a management role."
+        },
+        {
+          "bullets": [
+            "Besides line management supervision, each registrant has professional supervision with a member of the same profession at least every 6 months, in paid time. Where nobody in {{organisation}} can provide it, we pay for an external professional supervisor approved by the Registered Manager (the Nominated Individual for the Registered Manager).",
+            "NMC revalidation, every 3 years, requires five written reflective accounts, a reflective discussion with another NMC registrant, and confirmation, by the line manager where possible. The registrant's line manager acts as confirmer, and where no other NMC registrant works for us we arrange one for the reflective discussion.",
+            "The HR Manager reminds each registrant 6 months before their revalidation or renewal date, and their appraisal includes a plan, with paid time, to meet their regulator's requirements.",
+            "The professional supervision record belongs to the registrant, who shares with their line manager anything affecting safety or fitness to practise."
+          ]
+        },
+        {
+          "p": "Care workers who carry out a delegated healthcare activity also receive the training, competency review and clinical oversight agreed with the delegating health professional under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy. Their supervisor checks at supervision that each delegation review is in date."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where in CareFlow"
+            ],
+            "rows": [
+              [
+                "Named supervisor and adjustments; annual self-declaration; health information (restricted section)",
+                "Staff record"
+              ],
+              [
+                "Supervision agreements, supervisions, debriefs, spot checks, appraisals, self-assessments, personal development plans and support plans",
+                "Supervision and appraisal records"
+              ],
+              [
+                "Training and competency assessments",
+                "Training and compliance records"
+              ],
+              [
+                "Safeguarding concerns and incidents raised in supervision",
+                "Safeguarding records or the incident log, cross-referenced in the supervision record"
+              ],
+              [
+                "Allegations against a member of staff, including those raised in supervision",
+                "Safeguarding records, the incident log and the restricted section of the staff record only, never supervision records, under the Managing Allegations Against Staff Procedure"
+              ],
+              [
+                "Acknowledgement of this policy",
+                "Policy acknowledgements"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Supervision, spot check and appraisal records are kept for employment plus 6 years, under the Records Management and Retention Policy. A worker may ask for a copy of any of their records at any time, and requests for personal data are handled under the Subject Access and Individual Rights Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "This policy: what supervision, spot checks and appraisal involve, how to prepare, and confidentiality and its limits",
+                "All employees",
+                "During induction",
+                "Acknowledged within 14 days of each new major version; a minor version does not need acknowledging again"
+              ],
+              [
+                "Supervision skills: reflective conversations, feedback, wellbeing conversations using the Management Standards, recording, confidentiality limits and escalation",
+                "Everyone who supervises, including authorised Senior Care Workers",
+                "Before their first supervision",
+                "Every 3 years"
+              ],
+              [
+                "Appraisal: gathering evidence, setting objectives, personal development plans, fairness and reasonable adjustments",
+                "Everyone who appraises",
+                "Before their first appraisal",
+                "Every 3 years"
+              ],
+              [
+                "Observing practice, scoring and giving feedback",
+                "Everyone who carries out spot checks",
+                "As the Quality Audit and Monitoring Procedure sets out",
+                "As that procedure sets out"
+              ],
+              [
+                "Supervisor-level safeguarding, including the children's module",
+                "Everyone who supervises",
+                "Before their first supervision",
+                "Every 2 years, under the Safeguarding Adults Policy and the Safeguarding Children and Young People Policy"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A new supervisor's first two supervisions are observed by their own manager, with the supervisee's agreement, or otherwise their records are reviewed by that manager before they are shared; their first two appraisals are reviewed before countersignature. Each supervisor is then observed holding a supervision every 12 months, or two of their records are reviewed where the supervisee does not agree. A supervisor whose records fail the quarterly audit twice in 12 months has their next three records reviewed before they are shared."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "Target",
+              "How often and by whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Supervisions, spot checks and appraisals in date, by branch and role",
+                "95%; escalated below 90%",
+                "Monthly, HR Manager",
+                "Registered Manager; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Supervisor caseloads within the limits in this policy",
+                "100%",
+                "Monthly, HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Supervision and spot check records for 10 care workers: depth of discussion, follow-up of shortfalls and actions, re-observation within 4 weeks, records completed within 2 working days and shared within 5",
+                "Green under the Quality Audit and Monitoring Procedure",
+                "Quarterly, Registered Manager",
+                "Quarterly governance report to the Directors"
+              ],
+              [
+                "Anonymised themes from supervision and appraisal: wellbeing, workload, safety, training needs",
+                "Each theme has an action",
+                "Quarterly, Registered Manager",
+                "Quarterly governance report; Health and Safety Meeting"
+              ],
+              [
+                "Staff views of supervision and appraisal in the annual staff survey",
+                "At least 80% say supervision helps them in their work",
+                "Every 12 months, HR Manager",
+                "Directors"
+              ],
+              [
+                "Supervisees' views of each supervisor in the supervision feedback survey, reported only where 5 or more responded",
+                "At least 80% say supervision helps them",
+                "After every second supervision (about twice a year), HR Manager",
+                "Registered Manager; the supervisor's own supervision"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Any result below target is recorded with an action in the service improvement plan under the Governance and Quality Assurance Policy."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, a serious incident in which supervision or observation of practice was a factor, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,733 @@
+{
+  "reference": "POL-IPC-008",
+  "revision": 1,
+  "title": "Staff Infection-Related Illness and Exclusion Policy",
+  "documentType": "POLICY",
+  "summary": "How staff report symptoms of infection, how long they stay away from work for each infection, what happens after contact with infection outside work, how staff at higher risk from infection are protected, and how staff return to work safely. It also sets the pay and absence rules that make honest reporting safe. For every employee, with the duties of the office, HR and the IPC lead.",
+  "keyPoints": {
+    "intro": "Staff who work with an infection can pass it to people who may become seriously ill. These rules apply whenever you, or someone you live with, is unwell with something that could spread.",
+    "points": [
+      "Phone the office (office staff: the Deputy Manager), or the On-call Manager out of hours, as soon as you have symptoms of infection, and at least 2 hours before your first visit. Speak to a person; a text, voicemail or message is never enough.",
+      "If you have diarrhoea or vomiting, do not work until you are well and 48 hours have passed since your last episode, without taking medicine to stop it.",
+      "Do not work with a high temperature, or if you feel unwell with a cough, cold or flu-like illness. Return only when your temperature has gone without paracetamol or ibuprofen and you feel well.",
+      "If you are well enough to work with only a runny nose, sore throat or mild cough, tell the office before your shift and wear a Type IIR mask at every visit until the symptoms have gone.",
+      "After a positive COVID-19 test, stay off for 5 full days after the test day, and until well without a high temperature. For days 6 to 10 wear a Type IIR mask at every visit; you are not sent to people at higher risk.",
+      "Phone in the same way about a rash, yellowing of your skin or eyes, an infected cut or boil, or a diagnosis such as chickenpox, shingles, scabies or impetigo. You are told whether, and for how long, you must stay away.",
+      "If you become unwell during a visit, finish only what cannot safely wait and never leave the person at risk. Phone the office before you leave the home, and do not go into another home or the office.",
+      "Tell the office before your next shift if someone you live with has diarrhoea, vomiting, a respiratory infection or another infection in this policy, or if there is an outbreak at another place you work.",
+      "If you are pregnant, have a weakened immune system or a long-term lung condition, or do not know whether you are immune to chickenpox and measles, tell the HR Manager. Your health details stay confidential.",
+      "Before you return, phone by 12 noon the day before: the Care Coordinator on a working day, the On-call Manager at a weekend or bank holiday. You get visits again only once your return is confirmed; some infections need written clearance first.",
+      "You will never be penalised for reporting symptoms or staying away, and time you are kept off work while well is paid at your normal rate. Knowingly working while excluded is a disciplinary matter."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "HR",
+    "EMPLOYEE",
+    "RECRUITMENT",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-002",
+    "POL-IPC-003",
+    "POL-IPC-007",
+    "POL-IPC-009",
+    "POL-HR-011",
+    "POL-HS-016",
+    "POL-HR-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(h) preventing, detecting and controlling the spread of infections",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Department of Health and Social Care, The Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance (updated 13 December 2022), criterion 10 and Appendix A for adult social care",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Staff health and managing sickness related to infection in adult social care (published 28 October 2026), including Table 1 exclusion periods",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/staff-health-and-managing-sickness-related-to-infection-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Managing suspected infectious diarrhoea and/or vomiting in adult social care (published 28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/managing-suspected-infectious-diarrhoea-andor-vomiting-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency, People with symptoms of a respiratory infection including COVID-19 (updated 10 June 2022)",
+      "url": "https://www.gov.uk/guidance/people-with-symptoms-of-a-respiratory-infection-including-covid-19"
+    },
+    {
+      "source": "Food Standards Agency, Fitness to work: guidance for food business operators and food handlers (published 29 April 2025)",
+      "url": "https://www.gov.uk/government/publications/fitness-to-work/fitness-to-work"
+    },
+    {
+      "source": "Regulation (EC) No 852/2004 on the hygiene of foodstuffs (assimilated law), Annex II Chapter VIII Personal hygiene",
+      "url": "https://www.legislation.gov.uk/eur/2004/852/annex/II/chapter/VIII"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 16 Risk assessment in respect of new or expectant mothers",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/16"
+    },
+    {
+      "source": "Equality Act 2010, section 60 Enquiries about disability and health",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/60"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1 Part 1, paragraphs 1 (employment) and 2 (health or social care purposes, including occupational medicine)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/part/1"
+    },
+    {
+      "source": "UK Advisory Panel for Healthcare Workers Living with Bloodborne Viruses (UKHSA), Integrated guidance on health clearance of healthcare workers and the management of healthcare workers living with bloodborne viruses (hepatitis B, hepatitis C and HIV), April 2024 (page updated 15 January 2025), section 2.4 Non-exposure prone procedures",
+      "url": "https://www.gov.uk/government/publications/bbvs-in-healthcare-workers-health-clearance-and-management"
+    },
+    {
+      "source": "Public Health England, Recommendations for the public health management of gastrointestinal pathogens 2019 (published 31 January 2020), risk groups and exclusion and microbiological clearance for STEC, Shigella and enteric fever",
+      "url": "https://www.gov.uk/government/publications/gastrointestinal-infections-guidance-for-public-health-management"
+    },
+    {
+      "source": "Employment Rights Act 2025, sections 10 (removal of the SSP waiting period) and 11 (SSP lower earnings limit), in force 6 April 2026 (S.I. 2026/373)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/36/section/10"
+    },
+    {
+      "source": "GOV.UK, Statutory Sick Pay: what you'll get",
+      "url": "https://www.gov.uk/statutory-sick-pay/what-youll-get"
+    },
+    {
+      "source": "NHS, Tuberculosis (TB): symptoms",
+      "url": "https://www.nhs.uk/conditions/tuberculosis-tb/"
+    },
+    {
+      "source": "NHS, High temperature (fever) in adults",
+      "url": "https://www.nhs.uk/symptoms/fever-in-adults/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Many of the people we support are older, frail, or living with conditions or treatments that weaken their immunity, and an infection that is mild for a care worker can put them in hospital. Our care workers visit several homes a day, so one worker who works while infectious can spread an infection across a whole care run."
+        },
+        {
+          "p": "{{organisation}} is committed to making it easy and safe for staff to report symptoms of infection, applying one set of exclusion periods based on national guidance, protecting staff who are themselves at higher risk from infection, and bringing staff back only when it is safe. Nobody is penalised for reporting symptoms honestly or for staying away as this policy requires, and staff we keep away from work while they are well do not lose pay."
+        },
+        {
+          "p": "This policy adds the detail on staff illness to the Infection Prevention and Control Policy. It follows the UKHSA guidance Staff health and managing sickness related to infection in adult social care, published on 28 October 2026, and is kept in line with it through the IPC lead's monthly guidance check."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that staff who may be infectious do not visit people we support, handle their food or come into the office; that every manager applies the same exclusion periods and uses staff illness to spot possible outbreaks; that staff at higher risk are protected through an individual risk assessment; that staff return only when an exclusion has ended and any clearance has arrived; that pay and absence rules never give anyone a reason to work while infectious; and that {{organisation}} meets criterion 10 of the Code of Practice on the prevention and control of infections, on managing staff health in relation to infection."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee, including bank staff, office staff and managers, to Directors when they visit homes or the office, and to students on placement and volunteers. Agency workers follow the reporting, exclusion and return rules through the agency agreement; their agency pays them."
+        },
+        {
+          "p": "Owned elsewhere: general sickness reporting, sick pay and absence reviews (Sickness Absence Policy); vaccination (Staff Vaccination and Immunisation Policy); needlestick injuries, bites and splashes (Sharps Safety and Needlestick Injury Procedure); precautions for people we support who are infectious, and outbreak management (Transmission-Based Precautions and Outbreak Management Procedure); pregnancy risk assessment (New and Expectant Mothers at Work Procedure); reporting work-related disease (RIDDOR Reporting Procedure); and hand care technique (Standard Infection Control Precautions Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Exclusion",
+                "A period during which a member of staff must not visit people we support, handle their food or come into the office because they may be infectious. Some exclusions cover only certain tasks, such as food handling or close skin contact."
+              ],
+              [
+                "High temperature",
+                "A temperature above 37.8°C (our policy, the same threshold as the Transmission-Based Precautions and Outbreak Management Procedure; the NHS usually treats 38°C or above as high) or, with no thermometer, feeling hot to the touch on the chest or back, or hot and shivery."
+              ],
+              [
+                "Infection-related absence",
+                "Absence, or restricted duties, because of symptoms of infection, a diagnosed infection, or a contact with infection that this policy requires staff to report."
+              ],
+              [
+                "Excluded while well",
+                "Days when a member of staff feels well enough to work but this policy keeps them away, such as the 48 hours after diarrhoea stops."
+              ],
+              [
+                "Staff at higher risk",
+                "Staff who are pregnant, have a weakened immune system (for example through chemotherapy or medicines that suppress immunity) or a long-term respiratory condition, or do not know whether they are immune to chickenpox and measles, and anyone occupational health advises is at higher risk."
+              ],
+              [
+                "People at higher risk",
+                "People we support whose care plan records a weakened immune system, a long-term respiratory condition or another reason a health professional has given for extra protection from infection."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors fund our external occupational health provider, listed on the Local IPC and Health Protection Contacts sheet, and the pay this policy gives to staff excluded while well. The Nominated Individual acts as IPC lead under this policy when the Registered Manager and Deputy Manager are both unavailable."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (IPC lead)",
+          "blocks": [
+            {
+              "p": "Owns this policy, keeps the exclusion table in line with UKHSA guidance, decides any case the table does not answer, and completes individual risk assessments for staff at higher risk. The Deputy Manager does this when the Registered Manager is absent and carries out the quarterly audit."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "Reviews health questionnaires, makes occupational health referrals, starts individual risk assessments, receives clearance letters, keeps health information in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions), makes sure payroll pays excluded-while-well time correctly, and reports infection-related staff absence to the monthly infection surveillance review and, during an outbreak, the daily outbreak review."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Managers",
+          "blocks": [
+            {
+              "p": "Take symptom calls, apply the exclusion table, reallocate visits before they are due, include staff illness in the daily linked-case check under the Transmission-Based Precautions and Outbreak Management Procedure, and confirm the end of each exclusion before allocating any visit. Out of hours the On-call Manager does this and hands every infection-related absence to the Care Coordinator by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Hold return conversations, check at spot checks that workers follow any temporary restriction such as wearing a mask, and encourage their teams to report symptoms early."
+            }
+          ]
+        },
+        {
+          "heading": "All staff",
+          "blocks": [
+            {
+              "p": "Report symptoms, infections and contacts as this policy requires, stay away for the full exclusion period, never arrange for a colleague to cover a visit privately, and never tell people we support, their families or colleagues why another worker is off. Office staff who take a call from a worker reporting symptoms pass it at once to the Care Coordinator and record only that the worker is unavailable."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Health assessment and occupational health",
+      "subsections": [
+        {
+          "heading": "Before starting work",
+          "blocks": [
+            {
+              "p": "The Equality Act 2010 prevents us asking about health before a job offer except for limited purposes. Every new starter completes a confidential health questionnaire after the offer and before the start date, under the Safer Recruitment Policy and the Pre-Employment Checks and DBS Procedure. For infection it covers current and past infections, immunisation, skin conditions affecting the hands, and time spent living overseas. The HR Manager reviews it within 2 working days of receipt."
+            },
+            {
+              "p": "Where the answers suggest tuberculosis (a cough lasting more than 3 weeks, night sweats, a high temperature or losing weight without trying), the HR Manager refers the new starter to occupational health within the same 2 working days, with their written consent, and the new starter visits nobody until occupational health confirms they may. Questions of immunity, such as to chickenpox and measles, are referred in the same way and acted on under the Staff Vaccination and Immunisation Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Occupational health advice during employment",
+          "blocks": [
+            {
+              "p": "The HR Manager refers a worker to occupational health within 5 working days of their written consent when infection-related absence lasts more than 14 days; after 3 or more infection-related absences in 6 months; when the worker is at higher risk from infection or asks for advice about an infection or immunity; for repeated skin infections such as boils; or when the table requires clearance and the worker's GP has not given it. Where occupational health cannot advise in time, staff seek advice about their own health from their GP, NHS 111 or a community pharmacist, and the IPC lead takes exclusion advice from the community IPC team or the health protection team, as UKHSA guidance sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Screening and blood-borne viruses",
+          "blocks": [
+            {
+              "p": "Staff are not routinely screened for MRSA or other organisms; they are tested only when the health protection team or occupational health advises. The health questionnaire does not ask about blood-borne viruses. National guidance restricts healthcare workers living with hepatitis B, hepatitis C or HIV from exposure prone procedures, where the worker's hands may be hidden inside the body, and says that declining to disclose a blood-borne virus should not affect workers who will not perform them. None of our tasks is exposure prone (our assessment), so a blood-borne virus is never on its own a reason to restrict duties. A worker who tells us is offered confidential occupational health advice, and the information goes no further than the HR Manager, Registered Manager and Deputy Manager without their consent."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting symptoms",
+      "subsections": [
+        {
+          "heading": "What to report and when",
+          "blocks": [
+            {
+              "p": "Staff report the following by phone to a person, as soon as they know, and at least 2 hours before their first visit or office shift where the symptom or diagnosis began before then. A text, voicemail or message is never enough. Care staff phone the office, or the On-call Manager out of hours; if the office does not answer within 15 minutes, they phone the On-call Manager, and if the On-call Manager does not answer within 15 minutes, the Registered Manager or Deputy Manager directly. Office staff, Care Coordinators and the HR Manager phone the Deputy Manager (the HR Manager phones the Registered Manager), or a Care Coordinator if there is no answer within 15 minutes, and the On-call Manager outside office hours. Managers and On-call Managers phone the people the Sickness Absence Policy names. A worker who has not got through still does not go to any visit:"
+            },
+            {
+              "bullets": [
+                "diarrhoea, vomiting, stomach pain or nausea;",
+                "a high temperature, or a new cough, cold, sore throat or flu-like illness, or a positive COVID-19, flu or RSV test;",
+                "a rash, yellowing of the skin or eyes, an infected cut, boil or weeping skin, or an infected nose or throat;",
+                "any infection a doctor, nurse or pharmacist has diagnosed or is treating, such as impetigo, scabies, chickenpox or shingles;",
+                "a contact with infection outside work listed in this policy."
+              ]
+            },
+            {
+              "p": "The Care Coordinator, or the On-call Manager out of hours, applies the exclusion table during the call (a manager who takes the call passes it to them at once) and tells the worker when they may return. The same day they record an infection-related absence entry in the staff record: the symptom group, the date symptoms started and the earliest return date. Infection-related absence is recorded separately from other sickness so that the daily linked-case check and the monthly infection surveillance review can spot links between staff and the people they visit."
+            },
+            {
+              "p": "They reallocate the worker's visits before they are due, giving priority to time-sensitive medicines and people with a High missed-visit risk level. A visit that cannot be covered on time is handled under the Missed, Late and Short Visits Procedure, and the office tells the person, or their chosen contact, that a different care worker is coming, never why. A worker holding a key for a person we support says so on the call; the Care Coordinator arranges for a colleague to collect it from the worker's doorstep without close contact, before the next visit that needs it, and records the handover in the key register the same day, under the Key Holding, Key Safes and Access to People's Homes Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Becoming unwell during a shift",
+          "blocks": [
+            {
+              "steps": [
+                "The worker finishes only what cannot safely wait, such as a time-sensitive medicine, a drink or making the person safe and comfortable, and never leaves a person at risk. They keep close contact to a minimum and wear a Type IIR mask if they have respiratory symptoms.",
+                "They phone the office, or the On-call Manager out of hours, from the home before leaving, and do not go into another home or the office. If they have vomited or had diarrhoea in the home, they clean it up before leaving under the Laundry, Soiled Linen and Spillages Procedure; if they are too unwell, the office sends a colleague to do it.",
+                "Where the person cannot safely be left, or the other worker on a double-handed visit cannot finish it alone under the person's moving and handling plan, the Care Coordinator, or the On-call Manager out of hours, sends another worker at once and the worker stays until they arrive. If the worker is too unwell to wait, the office asks the person's chosen contact to come, and the worker leaves once the contact or the cover worker is there; a worker who is seriously unwell calls 999 for themselves. Before leaving, the worker records in the daily visit notes which tasks were not done, removes their PPE, cleans their hands, checks out and leaves the home secure under the Key Holding, Key Safes and Access to People's Homes Procedure.",
+                "The Care Coordinator, or the On-call Manager, reallocates the remaining visits as above, tells the person or their chosen contact that a different care worker is coming, and arranges a taxi home at our cost where the worker cannot drive safely.",
+                "The same working day, the Care Coordinator lists the people the worker visited in the 7 days before symptoms started and includes them in the daily linked-case check."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "When a worker may have worked while infectious",
+          "blocks": [
+            {
+              "p": "For measles, chickenpox, uncovered shingles, mumps, rubella, whooping cough, tuberculosis, meningococcal disease, invasive group A streptococcal infection, hepatitis A, scabies, or a laboratory-confirmed VTEC (including E. coli O157), shigella, typhoid or paratyphoid infection, the IPC lead phones the health protection team the same working day for advice on whether people the worker visited, and colleagues, need to be told, monitored or offered treatment. Out of hours, the On-call Manager phones the health protection team's out-of-hours service where advice is needed before morning, and always for meningococcal disease, invasive group A streptococcal infection or measles. The advice is recorded in the incident log. People are told only what the health protection team advises, and the worker is not named unless the health protection team requires it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Exclusion periods",
+      "subsections": [
+        {
+          "heading": "Our exclusion table",
+          "blocks": [
+            {
+              "p": "The table follows Table 1 of the UKHSA staff health guidance, which gives the minimum time staff stay away from work, with national guidance on gastrointestinal infections, the fitness-to-handle-food rules of the Food Hygiene Guideline, and our own stricter rules, each marked our policy. It applies to every role. Office staff under exclusion do not come to the office, deliver supplies or visit a home, but may work from home where their role allows and they are well enough."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Symptom or infection",
+                  "Stay away from work until",
+                  "Clearance, restrictions and notes"
+                ],
+                "rows": [
+                  [
+                    "Diarrhoea and/or vomiting, including norovirus and C. difficile",
+                    "Well, and 48 hours have passed since the last episode. The symptoms must have stopped without anti-diarrhoeal medicines such as loperamide (our policy).",
+                    "GP advice if symptoms have not settled within 7 days (our policy). A laboratory-confirmed VTEC (STEC, including E. coli O157), shigella, typhoid or paratyphoid infection: no work until the health protection team confirms return; national guidance often requires care workers to give negative stool samples first."
+                  ],
+                  [
+                    "Stomach pain or nausea without diarrhoea or vomiting",
+                    "No food handling until 48 hours after it stops, unless a GP or occupational health confirms a cause that is not infectious, such as pregnancy (Food Hygiene Guideline).",
+                    "Other duties allowed."
+                  ],
+                  [
+                    "High temperature, from any cause, including flu, RSV and other respiratory infections",
+                    "The temperature has gone without medicines that lower it, such as paracetamol or ibuprofen (our policy), and the worker feels well.",
+                    "Any remaining mild symptoms follow the next row."
+                  ],
+                  [
+                    "Respiratory infection with mild symptoms only (runny nose, sore throat, mild cough), no high temperature, feeling well",
+                    "No absence needed.",
+                    "Type IIR mask at every visit until the symptoms have gone (our policy); not allocated to people at higher risk where another suitable worker is available."
+                  ],
+                  [
+                    "Positive COVID-19 test, with or without symptoms (our policy)",
+                    "5 full days have passed after the day of the test, and the worker has no high temperature and feels well.",
+                    "Days 6 to 10 after the test: Type IIR mask at every visit and not allocated to people at higher risk."
+                  ],
+                  [
+                    "Chickenpox",
+                    "All blisters are dry and crusted and no new ones have appeared, usually about 5 days after the rash started.",
+                    "A worker with a weakened immune system may stay infectious for longer and needs occupational health or GP clearance (our policy)."
+                  ],
+                  [
+                    "Shingles",
+                    "No absence if the rash is fully covered by a dressing and clothing. If it is weeping and cannot be covered: until it is covered or no longer weeping.",
+                    "A worker with a weakened immune system gets occupational health or GP advice before returning. Until the rash has crusted, not allocated to people at higher risk or to a home where someone is pregnant (our policy)."
+                  ],
+                  [
+                    "Measles",
+                    "4 days after the rash appeared (the day it appeared is day 0).",
+                    "IPC lead takes health protection team advice the same working day."
+                  ],
+                  [
+                    "Mumps",
+                    "5 days after swelling of the jaw or neck began.",
+                    "No further restriction once the period has ended."
+                  ],
+                  [
+                    "Rubella (German measles)",
+                    "5 days after the rash appeared (the day it appeared is day 0).",
+                    "IPC lead takes health protection team advice the same working day if the worker visited a home where someone is pregnant."
+                  ],
+                  [
+                    "Scarlet fever or invasive group A streptococcal infection",
+                    "24 hours after starting appropriate antibiotics, and well enough to work.",
+                    "Health protection team advises on contacts where the infection is invasive."
+                  ],
+                  [
+                    "Impetigo",
+                    "48 hours after starting appropriate antibiotics.",
+                    "No food handling until the skin has healed or a GP or occupational health confirms fitness (Food Hygiene Guideline)."
+                  ],
+                  [
+                    "Whooping cough",
+                    "48 hours after starting appropriate antibiotics, or 21 days after the cough started if no antibiotics are taken.",
+                    "Health protection team advises on contacts."
+                  ],
+                  [
+                    "Hepatitis A, or yellowing of the skin or eyes from a cause not yet known",
+                    "Hepatitis A: at least 7 days after jaundice started, or after symptoms started if there is no jaundice. Both: a GP or occupational health confirms fitness (our policy and the Food Hygiene Guideline).",
+                    "Once the cause of yellowing is known, the matching row also applies."
+                  ],
+                  [
+                    "Infected cut, boil or weeping skin, or an infected nose or throat",
+                    "No food handling until healed or a GP or occupational health confirms fitness (Food Hygiene Guideline).",
+                    "Broken or weeping skin on the hands or forearms that cannot be covered with a waterproof dressing also means no personal care until occupational health or the GP confirms it is safe (Standard Infection Control Precautions Procedure)."
+                  ],
+                  [
+                    "MRSA or another resistant organism found on the skin or in the nose, with no infection",
+                    "No absence (our policy).",
+                    "Testing and treatment only on occupational health or health protection team advice. Any infected skin follows the row above."
+                  ],
+                  [
+                    "Scabies",
+                    "No personal care or other close skin contact until 24 hours after the first treatment (our policy, applying UKHSA advice to limit skin contact).",
+                    "Other duties allowed; the household is treated at the same time. Crusted scabies: no work until a health professional confirms return."
+                  ],
+                  [
+                    "Viral meningitis; meningococcal (bacterial) meningitis or septicaemia",
+                    "Viral: recovered. Meningococcal: treated with antibiotics and recovered.",
+                    "Health protection team advises on contacts of meningococcal disease."
+                  ],
+                  [
+                    "Tuberculosis",
+                    "The TB team or health protection team confirms the worker is no longer infectious.",
+                    "Written clearance before return."
+                  ],
+                  [
+                    "Unexplained rash",
+                    "Assessed by a doctor, nurse or pharmacist, who advises on return.",
+                    "Any diagnosis then follows the matching row."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Infections not in the table, and outbreaks",
+          "blocks": [
+            {
+              "p": "A worker with any other infection, or where it is unclear which row applies, does not work with people until the IPC lead has decided, the same working day, on occupational health, community IPC team or health protection team advice. During an outbreak, advice from the health protection team, the community IPC team or occupational health may be stricter than the table, for example longer exclusion, testing, or dedicated care runs, and we follow it. Nobody is asked to work during an exclusion to cover visits: when staff illness threatens visits, the Business Continuity and Emergency Planning Policy applies, and the Registered Manager notifies CQC and commissioners as the Infection Prevention and Control Policy requires."
+            }
+          ]
+        },
+        {
+          "heading": "Respiratory infections and COVID-19",
+          "blocks": [
+            {
+              "p": "UKHSA's adult social care guidance sets no period for a positive COVID-19 test. Because many people we support are at high risk from COVID-19, our policy applies UKHSA's general advice to adults who test positive: stay at home for 5 days after the test and avoid people at higher risk until 10 days after it. Where this would leave a visit to a person at higher risk uncovered, the IPC lead, or the On-call Manager out of hours, decides and records the decision. Staff are not required to test, but report any positive result. The IPC lead's monthly guidance check covers these rules, and any change is made within 2 weeks."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Contact with infection outside work",
+      "blocks": [
+        {
+          "p": "Staff tell the office before their next shift about the contacts below. Where advice is needed, the IPC lead takes it from occupational health or the health protection team the same working day, records it in the restricted section of the staff record and tells the Care Coordinator any restriction and its end date for the infection-related absence entry."
+        },
+        {
+          "table": {
+            "columns": [
+              "Contact",
+              "What the worker does",
+              "What we do"
+            ],
+            "rows": [
+              [
+                "Someone the worker lives with has diarrhoea or vomiting",
+                "Works while well, using soap and water and never hand rub alone, until 48 hours after that person's last episode (Food Hygiene Guideline).",
+                "The Care Coordinator records the restriction and its end date in the infection-related absence entry and checks with the worker before each shift until then; the HR Manager keeps any detail about the household member in the restricted section of the staff record."
+              ],
+              [
+                "Someone the worker lives with has a respiratory infection or a positive COVID-19 test",
+                "Works while well, wearing a Type IIR mask at every visit for 7 days after that person's symptoms started or test was taken (our policy).",
+                "The Care Coordinator records the mask restriction and its end date in the infection-related absence entry."
+              ],
+              [
+                "Close contact with measles, chickenpox, shingles, mumps, rubella, whooping cough, meningococcal disease, invasive group A streptococcal infection, tuberculosis or hepatitis A",
+                "Reports any symptom at once and follows the advice given, such as antibiotics offered to contacts.",
+                "Until advice is received, the worker is not allocated to people at higher risk or to a home where someone is pregnant."
+              ],
+              [
+                "Someone the worker lives with has scabies",
+                "Is treated at the same time as the household, as the GP or pharmacist advises, and reports any itching or rash at once.",
+                "The scabies row of the exclusion table applies if the worker develops symptoms."
+              ],
+              [
+                "An outbreak at another employer, or exclusion by another employer",
+                "Tells the office before their next shift with us.",
+                "The IPC lead decides the same working day whether, and with what restrictions, the worker visits for us during that outbreak."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Staff at higher risk from infection",
+      "blocks": [
+        {
+          "p": "Staff who may be at higher risk tell the HR Manager in confidence. They need not give a diagnosis."
+        },
+        {
+          "steps": [
+            "The HR Manager tells the Care Coordinator the same day, without the reason, that the worker must not be allocated to anyone with a known infection until the assessment is complete.",
+            "The HR Manager starts, and the Registered Manager completes, an individual risk assessment with the worker within 5 working days, or the same day during an outbreak, with occupational health advice where needed. Pregnancy is assessed under the New and Expectant Mothers at Work Procedure, which applies regulation 16 of the Management of Health and Safety at Work Regulations 1999, including risks from infection.",
+            "The assessment records the infections and precautions the worker must avoid, always including people under rash or airborne precautions, what applies during an outbreak, and any vaccination advice under the Staff Vaccination and Immunisation Policy. The Care Coordinator is told the restrictions only.",
+            "The assessment is reviewed at least every 3 months, whenever the worker's health changes, and at the start of any outbreak."
+          ]
+        },
+        {
+          "p": "Restrictions never reduce a worker's hours. The Care Coordinator offers equivalent visits on other care runs; where that is not possible, the worker is paid at their normal rate for the hours lost. A pregnant worker whose risk cannot be avoided is offered suitable alternative work and, if there is none, suspended on full normal pay under the New and Expectant Mothers at Work Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Food handling and skin health",
+      "subsections": [
+        {
+          "heading": "Fitness to handle food",
+          "blocks": [
+            {
+              "p": "In a food business, food law prohibits anyone suffering from a disease likely to be transmitted through food, or with infected wounds, skin infections, sores or diarrhoea, from handling food where there is any likelihood of contamination, and requires them to report it immediately (Regulation (EC) No 852/2004, Annex II Chapter VIII). The Food Standards Agency advises exclusion from open food until 48 hours after diarrhoea or vomiting stops naturally. Whether or not we are registered as a food business, we apply these rules to every food task, with the stricter rules of the Food Hygiene Guideline shown in the exclusion table. When only food tasks are restricted, the Care Coordinator or On-call Manager gives those tasks to another trained care worker before the visit is due, so nobody goes without a meal or drink."
+            }
+          ]
+        },
+        {
+          "heading": "Skin health",
+          "blocks": [
+            {
+              "p": "Healthy hands are essential to safe hand hygiene. We supply every care worker with a personal emollient hand cream, nitrile gloves in their size and any alternative product occupational health advises. Sore, cracked or itchy hands are reported to the Field Care Supervisor before the next shift and managed under the Standard Infection Control Precautions Procedure, with skin health surveillance under the Health and Safety Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Returning to work",
+      "blocks": [
+        {
+          "steps": [
+            "The worker phones by 12 noon on the day before they plan to return: the Care Coordinator on a working day, or the On-call Manager at a weekend or on a bank holiday, who then carries out the Care Coordinator's steps below.",
+            "The Care Coordinator checks the return against the exclusion table: when the last symptom occurred, that any high temperature has gone without medicines, that the worker feels well, when treatment started, and whether clearance is needed.",
+            "Where clearance is needed, the worker sends it to the HR Manager, who tells the Care Coordinator it has arrived; a return that needs clearance is never confirmed out of hours unless the HR Manager has already confirmed it has arrived. A fit note is not needed to return; where one says the worker may be fit for work with changes, the HR Manager and Registered Manager agree the changes before the first visit.",
+            "The Care Coordinator records in the staff record that the exclusion has ended, the date, and any temporary restriction with its end date, such as a mask, no food tasks or no visits to people at higher risk, and tells the worker. No visit is allocated before this record is made.",
+            "After infection-related absence of more than 7 days, or any infection that needed clearance, the Field Care Supervisor holds a return conversation by phone or in person before or at the start of the first shift, covering wellbeing, restrictions, kit and PPE supply, and any training or competency that expired during the absence, which is renewed before the visits it covers.",
+            "A worker away from care work for 3 months or more is reassessed on hand hygiene and PPE before working alone, under the Infection Prevention and Control Policy."
+          ]
+        },
+        {
+          "p": "Any return-to-work interview the Sickness Absence Policy requires takes place alongside the return conversation and never delays a return this policy allows."
+        }
+      ]
+    },
+    {
+      "heading": "Pay and absence recording",
+      "subsections": [
+        {
+          "heading": "What the law requires",
+          "blocks": [
+            {
+              "p": "Since 6 April 2026, when sections 10 and 11 of the Employment Rights Act 2025 came into force, employees who qualify receive Statutory Sick Pay from the first full day they are off sick that they would normally have worked, with no minimum earnings level, for up to 28 weeks. GOV.UK gives the rate as £123.25 a week or 80% of normal weekly earnings, whichever is lower. Contractual sick pay and absence reviews are set by the Sickness Absence Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Our policy",
+          "blocks": [
+            {
+              "bullets": [
+                "Days a worker is too unwell to work are sickness absence, paid under the Sickness Absence Policy and never below Statutory Sick Pay where the worker qualifies.",
+                "Days a worker is excluded while well, or hours lost through a restriction under this policy, are paid at the normal rate for the hours rostered for them when the exclusion began or, if higher, their average weekly paid hours, including travel time, over the 12 complete weeks before it (the same basis as paid suspension under the Disciplinary Policy and Procedure). The Care Coordinator first offers work the worker can safely do, such as e-learning at home.",
+                "Absence from an infection a doctor diagnoses as caught at work is paid at the normal rate, as absence after a sharps or splash exposure is under the Sharps Safety and Needlestick Injury Procedure.",
+                "Infection-related absence required by this policy does not count towards review points under the Sickness Absence Policy, is never judged at appraisal and never leads to fewer hours or shifts. Three or more infection-related absences in 6 months lead only to an occupational health referral.",
+                "The Care Coordinator tells an agency the same working day when we exclude one of its workers, and we never stop booking a worker because they reported symptoms.",
+                "A worker who knowingly works, or hides symptoms, while this policy excludes them puts people at serious risk; the Registered Manager applies the fair culture questions of the Incident Reporting, Investigation and Learning Policy and decides whether to act under the Disciplinary Policy and Procedure."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Infections caught at work",
+      "blocks": [
+        {
+          "p": "A worker who believes they caught an infection at work tells the office, and it is recorded in the incident log. The worker gives the HR Manager any written diagnosis linking the infection to their work within 2 working days, the Registered Manager decides within 1 working day of the diagnosis reaching us whether it is reportable under the RIDDOR Reporting Procedure, and the HR Manager refers the worker to occupational health within 5 working days of their consent. Before the worker returns, the Registered Manager or HR Manager completes an individual risk assessment with them under the Health and Safety Policy. Exposures to blood or body fluids follow the Sharps Safety and Needlestick Injury Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "Retention"
+            ],
+            "rows": [
+              [
+                "Infection-related absence: symptom group, start date, exclusion end date, return confirmation and temporary restrictions",
+                "The staff record, marked as infection-related, visible to the Care Coordinators, On-call Managers and managers who allocate visits and check for linked cases",
+                "Employment plus 6 years"
+              ],
+              [
+                "Health questionnaire, diagnoses, clearance letters, occupational health advice and individual risk assessments",
+                "Restricted section of the staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Skin health surveillance",
+                "Restricted section of the staff record",
+                "40 years from the last entry (Health and Safety Policy)"
+              ],
+              [
+                "Linked cases, outbreak records, infections caught at work and visits made during an exclusion",
+                "The incident log",
+                "10 years from closure, 20 years for serious incidents and incidents involving a person who lacked capacity for the matter (Incident Reporting, Investigation and Learning Policy)"
+              ],
+              [
+                "Training in this policy",
+                "Training and compliance records",
+                "Employment plus 6 years"
+              ],
+              [
+                "Acknowledgements of this policy",
+                "Policy acknowledgements, with each version of this policy",
+                "Life of {{organisation}} plus 6 years (Policy Management and Document Control Policy)"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Staff health information is special category data. We process it to meet our employment and health and safety obligations under Schedule 1 paragraph 1 of the Data Protection Act 2018, with the appropriate policy document kept under the Data Protection Policy, and for occupational health under paragraph 2. Care Coordinators and On-call Managers see only the symptom group, dates and restrictions in the infection-related absence entry, because they need them to allocate visits safely and check for linked cases. Diagnoses and medical evidence are seen only by the HR Manager, the Registered Manager, the Deputy Manager and, for those two posts, the Nominated Individual. People we support and colleagues are never told why a worker is off."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "This policy: what to report, how and when, exclusion periods, contacts outside work, returning to work",
+                "All staff",
+                "Care staff within IPC induction, before working without a shadowing colleague; other staff within IPC awareness training in their first week",
+                "Every 12 months, within the IPC refresher or IPC awareness training"
+              ],
+              [
+                "Taking symptom calls, applying the exclusion table, return checks, confidentiality and pay coding",
+                "Office staff, Care Coordinators, On-call Managers and the HR Manager",
+                "Before taking calls alone or the first on-call shift; the HR Manager within 1 month of appointment",
+                "Every 12 months, within IPC awareness training or the on-call outbreak briefing"
+              ],
+              [
+                "Individual risk assessment for staff at higher risk",
+                "HR Manager, Registered Manager and Deputy Manager",
+                "Before completing a first assessment",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Staff acknowledge this policy in CareFlow by the new-starter deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again. Staff on leave or off sick when a new major version is published acknowledge it within 14 days of returning."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Infection-related staff absence by symptom group, links with people we support, and food-handling restrictions",
+                "Monthly infection surveillance review",
+                "IPC lead, with figures from the HR Manager",
+                "Directors in the quarterly IPC report"
+              ],
+              [
+                "10 infection-related absences, or all if fewer: reported by phone before the shift, correct exclusion, return confirmed and recorded before the first visit, no check-in during the exclusion, pay and absence coded correctly. Target 100%",
+                "Quarterly audit against the staff record and visit check-in/check-out",
+                "Deputy Manager",
+                "IPC lead and the quarterly governance report"
+              ],
+              [
+                "Higher-risk assessments completed on time and reviewed every 3 months; occupational health referrals within 5 working days of consent. Target 100%",
+                "Monthly",
+                "HR Manager",
+                "IPC lead"
+              ],
+              [
+                "Staff who say they could stay off work with symptoms of infection without fear of losing pay or hours. Target at least 90%",
+                "Annual staff survey in September",
+                "HR Manager",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A visit made by a worker during an exclusion is recorded in the incident log the same day by whoever finds it. The IPC lead decides the same day whether people visited need monitoring or health protection team advice, and the Registered Manager decides by the end of the next working day whether anyone was put at risk. The March annual IPC audit tests this policy against criterion 10 of the Code of Practice."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager as IPC lead and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner when UKHSA changes its staff health or respiratory infection guidance, after an outbreak involving staff, a serious incident or an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

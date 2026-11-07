@@ -1,0 +1,709 @@
+{
+  "reference": "POL-HS-007",
+  "revision": 1,
+  "title": "RIDDOR Reporting Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we identify, decide on, report and record work-related deaths, injuries, occupational diseases and dangerous occurrences under RIDDOR 2013: what staff tell the office, who decides, the tests and exemptions applied in people's homes, legal and internal timescales, how reports are made and amended, who else is told, and the records kept. For all staff, with the detail for managers.",
+  "keyPoints": {
+    "intro": "Some accidents and illnesses connected with our work must by law be reported to the Health and Safety Executive. The Registered Manager decides and reports; your part is to tell us quickly and fully so we can meet the deadlines.",
+    "points": [
+      "Phone the office, or the On-call Manager out of hours, before you leave the home about every accident, injury, near miss or equipment failure, including your own injury, and record it in the incident log before your shift ends.",
+      "Tell the office at once if anyone, including the person we support or a visitor, is taken to hospital after an accident during or connected with our visit, and tell us later what treatment they had if you find out.",
+      "If a hoist, stand aid, bath lift or stairlift collapses, overturns or a load-bearing part breaks, make the person safe, tag it DO NOT USE, leave it unrepaired where it is, and ask the person and anyone present not to use or move it.",
+      "After a death or serious injury, call 999, do only what is needed for safety, care and dignity, and leave the scene and any equipment as they are until the Registered Manager, Deputy Manager, On-call Manager or police say otherwise.",
+      "If an injury at work stops you doing your normal duties, including being moved to lighter duties, tell the HR Manager (the office if HR is closed) the same day, and again when you are back to full duties. We must count every day.",
+      "If a doctor tells you in writing that a condition is caused by your work, such as dermatitis or an infection after a needlestick injury, give a copy to the HR Manager within 2 working days.",
+      "Never decide for yourself that something does not need reporting, and never discourage anyone from reporting. A RIDDOR report is not an admission of blame, and nobody is penalised for reporting.",
+      "Agency workers tell both the office and their agency about any injury at work.",
+      "If an inspector from the Health and Safety Executive, the local authority or the Care Quality Commission contacts you about an incident, co-operate and tell the Registered Manager the same day. We give you support and paid time."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INCIDENT",
+    "RISK_ASSESSMENT",
+    "SAFEGUARDING",
+    "AUDIT",
+    "HR"
+  ],
+  "relatedReferences": [
+    "POL-HS-001",
+    "POL-GOV-007",
+    "POL-GOV-009",
+    "POL-IPC-004",
+    "POL-HS-006",
+    "POL-HS-004",
+    "POL-CD-009",
+    "POL-GOV-008"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 2 (interpretation: accident includes non-consensual physical violence to a person at work; work-related accident; diagnosis in writing; consecutive days)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/2"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 3 (responsible person)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/3"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 4 (specified injuries and over-seven-day injuries to workers)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/4"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 5 (injuries to people not at work taken to hospital for treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/5"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 6 (work-related deaths, deaths from occupational exposure to a biological agent, and an employee's death within one year of a reportable injury)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/6"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 8 (occupational diseases)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/8"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 9 (diseases attributed to occupational exposure to a biological agent)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/9"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 12 (records kept for at least three years, including over-three-day injuries)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/12"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, regulation 14 (exemptions for medical treatment and road traffic)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/regulation/14"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, Schedule 1 (reporting procedure: notify without delay, report within 10 days; diseases without delay)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/schedule/1"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, Schedule 2 (dangerous occurrences: paragraph 1 lifting equipment other than accessories for lifting, paragraph 4 electrical incidents causing fire or explosion, paragraph 10 biological agents, paragraph 25 explosion or fire)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/schedule/2"
+    },
+    {
+      "source": "Health and Safety Executive, HSIS1 (rev4) Reporting injuries, diseases and dangerous occurrences in health and social care: guidance for employers (responsible person in domestic premises, falls, sharps, slings, exemptions)",
+      "url": "https://www.hse.gov.uk/pubns/hsis1.pdf"
+    },
+    {
+      "source": "Health and Safety Executive, RIDDOR in health and social care (coding of incidents in people's own homes, updated January 2026)",
+      "url": "https://www.hse.gov.uk/healthservices/riddor.htm"
+    },
+    {
+      "source": "Health and Safety Executive, How to make a RIDDOR report (updated May 2026)",
+      "url": "https://www.hse.gov.uk/riddor/reporting/how-to-make-riddor-report.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Contact HSE (Incident Contact Centre weekday hours; out-of-hours duty officer for work-related deaths)",
+      "url": "https://www.hse.gov.uk/contact/contact.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Who should report (employees wherever they work; agency workers)",
+      "url": "https://www.hse.gov.uk/riddor/reporting/who-should-report.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Amending RIDDOR notifications",
+      "url": "https://www.hse.gov.uk/riddor/reporting/amending-reports.htm"
+    },
+    {
+      "source": "Health and Safety Executive, RIDDOR key definitions",
+      "url": "https://www.hse.gov.uk/riddor/key-definitions.htm"
+    },
+    {
+      "source": "Health and Safety Executive, What records do I need to keep?",
+      "url": "https://www.hse.gov.uk/riddor/what-must-i-keep.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Consultation on proposals for the Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013 (7 April to 7 July 2026; no changes in force)",
+      "url": "https://consultations.hse.gov.uk/hse/proposals-riddor-2013"
+    },
+    {
+      "source": "Health and Safety (Training for Employment) Regulations 1990, regulations 2 and 4 (a person given work experience on a training course is treated as the employee of the immediate provider of that work experience)",
+      "url": "https://www.legislation.gov.uk/uksi/1990/1380/regulation/4"
+    },
+    {
+      "source": "Social Security (Claims and Payments) Regulations 1979, regulation 25 (employers normally employing 10 or more people keep an accident record, which may be electronic, for at least 3 years)",
+      "url": "https://www.legislation.gov.uk/uksi/1979/628/regulation/25"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 18 (notification of serious injuries, abuse and police incidents)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} reports every work-related death, injury, occupational disease and dangerous occurrence that the Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013 (RIDDOR) require, within the legal timescales, and keeps the records the law requires. Failing to report is a criminal offence. Making a report is not an admission of liability, and reports let the Health and Safety Executive (HSE) or the local authority decide whether to investigate."
+        },
+        {
+          "p": "Our staff work in people's homes, where many events look like accidents at work but are not reportable, while some that seem minor are. {{organisation}} therefore has a trained manager decide every case against the same written questions, records the reasons whether or not a report is made, and reports wherever real doubt remains. RIDDOR is separate from CQC notification, safeguarding and the duty of candour; one event may need all of them."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure makes sure that every possibly reportable event reaches a trained manager quickly with the facts, is decided consistently with recorded reasons, is reported, amended and recorded on time, and that everyone who must know is told."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to all employees and bank workers, students on placement and agency workers, and to events affecting the people we support, their families, visitors and contractors where our work is involved. It applies wherever our work happens, including people's homes, the road and our branch offices."
+        },
+        {
+          "p": "It covers only RIDDOR. How every incident is recorded, investigated and learned from belongs to the Incident Reporting, Investigation and Learning Policy; falls by the people we support to the Falls Prevention and Response Procedure; CQC notifications to the Statutory Notifications to CQC Procedure; first aid and emergency department attendance after a needlestick, bite or splash to the Sharps Safety and Needlestick Injury Procedure; equipment failure and the hoist and sling register to the Hoists, Slings and Lifting Equipment Procedure; and abuse or neglect to the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Accident",
+                "A separate, identifiable and unintended event that causes physical injury. It includes non-consensual physical violence to a person at work. Gradual harm, such as back pain from months of repetitive handling, is not an accident."
+              ],
+              [
+                "Work-related",
+                "Arising out of or in connection with work: the way the work was organised, carried out or supervised, the equipment or substances used, or the condition of the place of work contributed. Nobody needs to be at fault."
+              ],
+              [
+                "Worker",
+                "Our employees and bank workers, and students on placement with us, whom the Health and Safety (Training for Employment) Regulations 1990 treat as our employees. A person not at work means the people we support, their families, visitors and the public."
+              ],
+              [
+                "Specified injury",
+                "To a worker: a fracture other than to a finger, thumb or toe; an amputation; an injury likely to cause permanent loss or reduction of sight; a crush injury to the head or torso damaging the brain or internal organs; a burn or scald covering more than 10% of the body or damaging the eyes, breathing or other vital organs; scalping needing hospital treatment; loss of consciousness from a head injury or asphyxia; an enclosed-space injury causing hypothermia or heat illness or needing resuscitation or more than 24 hours in hospital."
+              ],
+              [
+                "Over-seven-day injury",
+                "An accident leaves a worker unable to do their normal work for more than 7 consecutive days, not counting the day of the accident but counting weekends, days the worker was not rostered and days on lighter duties, such as visits with no moving and handling. More than 3 such days is an over-three-day injury, which is recorded but not reported."
+              ],
+              [
+                "Hospital treatment",
+                "Treatment at a hospital for a person taken there directly from the scene by any means. Examinations, X-rays and other diagnostic tests alone are not treatment."
+              ],
+              [
+                "Dangerous occurrence",
+                "A near-miss event listed in Schedule 2 to RIDDOR that could have caused serious harm, whether or not anyone was hurt."
+              ],
+              [
+                "Responsible person",
+                "The person who must report: us as employer for our workers wherever they work and, under HSE guidance for domestic premises, us as the employer in control of the work activity when a person not at work is injured, or a dangerous occurrence happens, in a home in connection with our work."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are told within 24 hours of every reportable event and challenge the quarterly figures. The Nominated Individual decides and reports only when the Registered Manager and Deputy Manager are both unavailable, notifies our insurers and leads on any enforcement action against {{organisation}}."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "As Health and Safety Lead, the Registered Manager acts for {{organisation}} as responsible person: screens events, decides, makes and amends reports, records every decision with reasons, tells the others listed in this procedure and is the single point of contact for inspectors. The Deputy Manager covers all of these duties in the Registered Manager's absence and carries out the checks in the Monitoring and review section."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours the On-call Manager never makes a RIDDOR decision. They phone the escalation manager (the Registered Manager or Deputy Manager on the management escalation rota) at once about any event in the immediate escalation table, make sure the incident log entry is complete, and hand over everything else by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager counts the days a worker cannot do normal work after a work-related accident, checks every fit note and occupational health report for a diagnosis linking a condition to work, obtains agencies' written confirmations, and tells the Registered Manager the same working day when a trigger in this procedure is reached."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors and Office staff",
+          "blocks": [
+            {
+              "p": "Office staff escalate events as the Reporting events to the office section sets out. When facts are missing, such as whether a person received hospital treatment, the Care Coordinator or Field Care Supervisor obtains them within 1 working day from the worker, the person or, with the person's agreement, their family, and adds them to the incident log entry."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reporting events to the office",
+      "blocks": [
+        {
+          "p": "Nobody is discouraged from reporting or penalised for it. Every member of staff follows these steps after any accident, injury, near miss, equipment failure or dangerous event connected with our work:"
+        },
+        {
+          "steps": [
+            "Make the situation safe, give first aid within your training and call 999 if anyone needs emergency help, staying with them as the First Aid Procedure sets out.",
+            "After a death or serious injury, do only what is needed for safety, care and dignity, and leave the scene and any equipment as they are until the Registered Manager, Deputy Manager, On-call Manager or police say otherwise.",
+            "If lifting or other care equipment has failed, tie on a DO NOT USE tag from your kit box and tell the person and anyone present why. Do not repair, move or throw away any part of it, and ask them not to, as the Hoists, Slings and Lifting Equipment Procedure requires.",
+            "Phone the office, or the On-call Manager out of hours, before you leave the home or scene and speak to a person. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly.",
+            "Record the event in the incident log before the end of your shift: who was involved, what happened in order, when and where, the injury and its body location, any equipment (make, model and serial number from the label), witnesses, whether anyone went to hospital and how, and what was done.",
+            "Tell the office about anything you learn later, such as hospital treatment or a change in the injured person's condition. If your own injury stops you doing your normal duties, tell the HR Manager (the office if HR is closed) the same day and again when you return to full duties, and give the HR Manager a copy of any written diagnosis linking a condition to your work within 2 working days. Agency workers also tell their agency."
+          ]
+        },
+        {
+          "p": "Office staff, or the On-call Manager out of hours, pass these events to the Registered Manager or Deputy Manager (the escalation manager out of hours) at once, by phone:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Immediate escalation",
+              "Examples"
+            ],
+            "rows": [
+              [
+                "Any death that may be connected with our work",
+                "A person dies after a fall from a hoist."
+              ],
+              [
+                "A worker's injury that may be a specified injury",
+                "Suspected fracture other than a finger, thumb or toe; serious burn or scald; head injury with any loss of consciousness; eye injury."
+              ],
+              [
+                "Anyone not at work taken to hospital after an accident during or connected with our work",
+                "A person scalded in a bath we were giving; a relative trips over our equipment."
+              ],
+              [
+                "Possible dangerous occurrence",
+                "A hoist, stand aid, bath lift or stairlift collapses, overturns or a load-bearing part fails; an electrical fire in equipment our staff were using; a fire our work may have caused; a sharps injury, bite, scratch or splash from a source known to carry hepatitis B, hepatitis C or HIV."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Deciding whether an event is reportable",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "How the decision is made",
+          "blocks": [
+            {
+              "p": "The Registered Manager screens every incident log entry that records an injury, ill health, a hospital attendance, an equipment failure, an exposure to blood or body fluids, a fire or an electrical incident, and every report from the HR Manager. A death that may be work-related is decided at once, at any hour, by the Registered Manager or Deputy Manager. Any other event in the immediate escalation table is decided the same working day it reaches the office, or by 12 noon on the next working day if reported out of hours; every other event at its initial review under the Incident Reporting, Investigation and Learning Policy, and a report from the HR Manager by the end of the next working day. The questions, in order, are:"
+            },
+            {
+              "steps": [
+                "Was there an accident, a dangerous occurrence or a reportable diagnosis?",
+                "Was it work-related, applying the tests below?",
+                "Does the outcome meet a threshold in the table in the Making the report section?",
+                "Does an exemption apply?"
+              ]
+            },
+            {
+              "p": "The decision is recorded in the management notes of the incident log entry's review as reportable, not reportable or pending, with the reasons and the guidance relied on. A pending decision names the fact awaited, who is obtaining it and the date by which it will be decided. The work-related test is applied honestly: a report is never avoided to protect our record or a member of staff."
+            }
+          ]
+        },
+        {
+          "heading": "Injuries to the people we support and other people not at work",
+          "blocks": [
+            {
+              "p": "An injury to a person not at work is reportable when it results from a work-related accident and the person is taken directly from the scene to hospital for treatment; their death from such an accident is always reportable. Following HSE's health and social care guidance, the Registered Manager checks the care plan and risk assessments to see what care was assessed as needed and whether it was given."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Usually reportable (work-related)",
+                  "Usually not reportable"
+                ],
+                "rows": [
+                  [
+                    "The person is scalded by bath water during care, or slides through or falls from a sling or hoist, for example because the wrong sling size was used.",
+                    "The person falls when alone, the care plan assessed no need for supervision or equipment, and nothing about our equipment, methods or the home contributed."
+                  ],
+                  [
+                    "The person falls during a transfer our staff were assisting, or because care the plan required, such as help to the toilet, was not given.",
+                    "The person is found on the floor with no work-related factor, or chose to get up without the help the care plan offered."
+                  ],
+                  [
+                    "The person's limb is trapped in bed rails our staff raised, or someone trips over our equipment or a hazard our staff created.",
+                    "Self-harm or suicide, which are not accidents; or an assault on the person by someone not at work."
+                  ],
+                  [
+                    "A relative or visitor is injured by equipment our staff were using.",
+                    "Injury arising from medical treatment laid down by a doctor or dentist, such as a reaction to a medicine given as prescribed (the medical treatment exemption). Medicines errors are decided with the external adviser."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Injuries to our workers",
+          "blocks": [
+            {
+              "p": "A slip on an icy path at a person's home, a back injury while helping a person to stand or a scald during a visit is reportable if it causes a specified injury or an over-seven-day injury. Physical violence to a worker by a person we support, a relative or a member of the public is an accident on the same thresholds, as the Violence and Aggression Towards Staff Policy explains. Verbal abuse and threats without physical injury are not reportable, nor is an injury from a dispute between colleagues about a personal matter."
+            },
+            {
+              "p": "Injuries caused by a vehicle moving on a road, such as a collision while driving between visits, are not reportable and are handled under the Driving at Work Policy. They remain reportable where the worker was loading or unloading a vehicle, such as lifting a wheelchair into a car boot, or was hurt by someone who was."
+            },
+            {
+              "p": "The count starts the day after the accident. After an accident on a Monday, if the worker still cannot do full normal work on the Tuesday of the following week, the eighth day, the injury is reportable within 15 days of the accident. The HR Manager checks the worker's status on the fourth and eighth days (the next working day if either falls on a non-working day) and tells the Registered Manager the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Dangerous occurrences",
+          "blocks": [
+            {
+              "p": "The collapse, overturning or failure of any load-bearing part of a hoist, stand aid, bath lift, stairlift or other lifting equipment is a dangerous occurrence under Schedule 2 paragraph 1, whether or not anyone is hurt. Failure of a sling alone is not, because slings are accessories for lifting, although an injury it causes may be reportable. We report a dangerous occurrence that happens in a person's home in connection with our work, such as a hoist our staff were operating. A failure while family or another provider use the equipment without our staff is not ours to report; staff who find it tag it and phone the office, and the Care Coordinator tells the owner and that provider the same working day."
+            },
+            {
+              "p": "We also report an electrical short circuit or overload causing a fire or explosion in equipment our staff were using, where it causes a significant risk of death or puts the equipment out of use for more than 24 hours (paragraph 4); an unintentional fire or explosion connected with our work that stops normal work in a branch office, or our visits to a person's home, for more than 24 hours (paragraph 25); and, as the Sharps Safety and Needlestick Injury Procedure sets out under paragraph 10, a sharps injury from a source known to carry hepatitis B, hepatitis C or HIV and, as our policy, a bite, scratch or splash from such a source or a sharps injury whose source is later found to carry one of these viruses."
+            }
+          ]
+        },
+        {
+          "heading": "Occupational diseases",
+          "blocks": [
+            {
+              "p": "A disease is reportable only when a registered medical practitioner diagnoses it in writing and the worker's job involves the linked work. For care work these are occupational dermatitis (significant or regular exposure to a known skin irritant or sensitiser, such as wet work or glove chemicals), occupational asthma (exposure to a known respiratory sensitiser), cramp of the hand or forearm (prolonged repetitive movement), tendonitis or tenosynovitis of the hand or forearm (physically demanding, frequently repetitive work), and any disease attributed to a biological agent at work, such as tuberculosis, hepatitis B or C or HIV caught from a person we support, including an infection without symptoms. An infection as likely to come from the community, such as flu or COVID-19, is reportable only where work was more likely than not the source. Colonisation, such as with MRSA, and stress are not reportable."
+            },
+            {
+              "p": "A diagnosis or fit note from a nurse, physiotherapist or other non-doctor does not trigger a report. HSE consulted in 2026 on widening who may diagnose and on adding diseases and dangerous occurrences; no change is in force, and we apply RIDDOR 2013 as it stands."
+            }
+          ]
+        },
+        {
+          "heading": "When the answer is unclear",
+          "blocks": [
+            {
+              "p": "The Registered Manager checks HSE's information sheet HSIS1 and HSE's RIDDOR guidance pages first. If doubt remains, they ask our external health and safety adviser the same working day. If doubt still remains, we report. Where facts needed for a 10-day deadline are still missing 5 working days after the event, we report on the information we have and amend the report when the facts are known."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Making the report",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What we report and when",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Event",
+                  "The law requires",
+                  "Our deadline"
+                ],
+                "rows": [
+                  [
+                    "Death of any person from a work-related accident, or of a worker from a biological agent at work; specified injury to a worker; dangerous occurrence; person not at work taken from the scene to hospital for treatment",
+                    "Notify by the quickest practicable means without delay, with a report within 10 days of the incident",
+                    "Reported the same day the decision is made"
+                  ],
+                  [
+                    "Over-seven-day injury to a worker",
+                    "Report within 15 days of the accident",
+                    "Within 2 working days of the eighth day of incapacity, and always within 15 days"
+                  ],
+                  [
+                    "Reportable occupational disease or infection",
+                    "Report without delay on receiving the written diagnosis",
+                    "Within 1 working day of the diagnosis reaching us"
+                  ],
+                  [
+                    "Death of an employee within one year of a reportable injury, whether or not the injury was reported",
+                    "Notify without delay",
+                    "Within 1 working day of our learning of the death"
+                  ],
+                  [
+                    "Over-three-day injury to a worker",
+                    "Record; not reported",
+                    "Recorded in the incident log on the fourth day"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A complete online report made without delay meets both the duty to notify and the duty to report within 10 days."
+            }
+          ]
+        },
+        {
+          "heading": "How the report is made",
+          "blocks": [
+            {
+              "steps": [
+                "Use HSE's online RIDDOR forms: report of an injury (which covers deaths), of a dangerous occurrence or of a case of disease.",
+                "For a death or a specified injury to a worker, the Registered Manager may instead phone HSE's Incident Contact Centre, which takes only these reports, on weekdays from 8.30am to 5pm. After a work-related death outside those hours, the deciding manager also phones HSE's out-of-hours duty officer at once. The numbers are kept in the branch health and safety file.",
+                "Code the incident as HSE directs for care in people's own homes: main industry Government administrative functions, Education, Health; activity Non-residential social work, Elderly, disabled. Use this code whoever was injured, and never Accommodation.",
+                "Give the facts plainly, without opinion or blame. For a blood-borne virus infection the worker need not be named, as HSE allows.",
+                "Add HSE to the incident log entry's external bodies with the RIDDOR reference and date, attach the downloaded copy of the submitted form, and note the time, method and who reported."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Amending a report",
+          "blocks": [
+            {
+              "p": "When new facts change a report, including an investigation finding, a different diagnosis or a later death, the Registered Manager submits a duplicate online form within 2 working days of learning the facts (within 1 working day for a death), resubmitting all the information and starting the description with the words Amendment to Incident Reference Number followed by the reference. Changes to a fatal or specified injury report may instead be phoned to the Incident Contact Centre."
+            }
+          ]
+        },
+        {
+          "heading": "Agency workers and students",
+          "blocks": [
+            {
+              "p": "An agency is normally the legal employer of its workers and reports their injuries. The Registered Manager tells the agency about any injury to its worker the same working day with the facts it needs, and the HR Manager obtains the agency's written confirmation of its decision and any RIDDOR reference within 5 working days and attaches it to the incident log entry. Where the agency confirms that the worker is self-employed, or gives no confirmation by then, the Registered Manager makes any report needed. Our agency agreements state these arrangements. We report injuries to students on placement as injuries to our employees and tell their college the same working day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Telling others",
+      "blocks": [
+        {
+          "p": "A RIDDOR report reaches only HSE or the local authority. The Registered Manager makes sure these are also told:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "When",
+              "How and why"
+            ],
+            "rows": [
+              [
+                "Nominated Individual",
+                "At once for a Critical incident, such as a death, and the same day for a High incident, such as a specified injury",
+                "Under the Incident Reporting, Investigation and Learning Policy."
+              ],
+              [
+                "Care Quality Commission",
+                "Without delay, and within the 24-hour deadlines in that procedure, for a notifiable death, injury, abuse or police incident",
+                "Under the Statutory Notifications to CQC Procedure; a RIDDOR report is not a CQC notification."
+              ],
+              [
+                "Local authority safeguarding team",
+                "Under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure",
+                "Where the injury may result from abuse or neglect, including an act or omission by our staff. The referral is never delayed by the RIDDOR decision."
+              ],
+              [
+                "The person or their representative",
+                "As the Duty of Candour Policy requires",
+                "An apology and an account of what happened, including that HSE has been told."
+              ],
+              [
+                "The injured worker",
+                "Within 5 working days of the report",
+                "That a report was made, why, and what it said about them."
+              ],
+              [
+                "Medicines and Healthcare products Regulatory Agency",
+                "Within 2 working days",
+                "Yellow Card report for an incident involving a hoist, sling, bed rail or other medical device."
+              ],
+              [
+                "Equipment owner, usually the community equipment service or the person",
+                "The same working day",
+                "By the Care Coordinator, under the Hoists, Slings and Lifting Equipment Procedure."
+              ],
+              [
+                "Commissioner, or integrated care board for NHS-funded care",
+                "By the end of the next working day, or sooner where the contract requires",
+                "For a reportable event involving a person they fund."
+              ],
+              [
+                "Insurers",
+                "Within 5 working days, or sooner if the policy requires",
+                "By the Nominated Individual; HSE does not tell insurers."
+              ],
+              [
+                "Representatives of employee safety",
+                "At the quarterly Health and Safety Meeting",
+                "Anonymised details of every report, without personal health information."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Inspectors, investigation and learning",
+      "blocks": [
+        {
+          "p": "When an inspector from HSE, the local authority or CQC contacts anyone about an incident, the Registered Manager is told and tells the Nominated Individual (at once for an enforcement notice) and the Directors the same day. The Registered Manager supplies documents by the inspector's deadline and logs what was supplied. An enforcement notice also goes to the Directors within 24 hours and onto the risk register under the Risk Management Policy. Staff asked for an interview have paid time and may be accompanied by a colleague or representative; for an interview under caution, the Nominated Individual arranges legal advice for {{organisation}} and tells the worker they may take their own."
+        },
+        {
+          "p": "Every reportable event is investigated under the Incident Reporting, Investigation and Learning Policy. For a death, a specified injury or a dangerous occurrence, the Registered Manager involves our external health and safety adviser in the investigation. Equipment involved stays out of use until the Registered Manager agrees."
+        },
+        {
+          "p": "A reportable event found to have been missed or reported late is reported at once, the delay is recorded in the incident log, the Nominated Individual is told within 1 working day and the cause is added to the service improvement plan."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Every RIDDOR decision with reasons, including decisions not to report; each submitted report and amendment, with reference, date, method and reporter; agency confirmations; over-three-day injuries; the ill-health entry for a reportable diagnosis",
+                "The incident log entry; the incident log is our accident book",
+                "The law requires at least 3 years. Our policy is at least 6 years from the event, and as long as the incident log entry is kept under the Incident Reporting, Investigation and Learning Policy"
+              ],
+              [
+                "Written diagnoses; absence and lighter-duty counts after work injuries",
+                "The restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions); the staff record",
+                "Employment plus 6 years, as the Staff Personal Data and HR Records Policy sets"
+              ],
+              [
+                "Inspector contacts and documents supplied",
+                "The branch health and safety file",
+                "6 years from the last contact"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "No record is destroyed while an investigation, inquest, enforcement action or claim is open or expected. These periods match the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Reporting accidents, injuries, absence and diagnoses, preserving scenes and equipment (within health and safety awareness)",
+                "All staff",
+                "At induction",
+                "With the health and safety awareness refresher every 3 years"
+              ],
+              [
+                "RIDDOR decision-making and reporting, delivered by our external health and safety adviser",
+                "Registered Manager, Deputy Manager and Nominated Individual",
+                "Before making a first RIDDOR decision, and within 3 months of appointment",
+                "Every 3 years and within 2 months of any change to RIDDOR"
+              ],
+              [
+                "Calibration: deciding 5 anonymised scenarios against this procedure",
+                "Registered Manager, Deputy Manager and Nominated Individual",
+                "Each year, as part of the independent health and safety audit",
+                "Each year"
+              ],
+              [
+                "What to escalate at once, and what to record",
+                "Office staff and On-call Managers",
+                "Before taking calls alone or the first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "Counting incapacity days, reading fit notes and occupational health reports, agency confirmations",
+                "HR Manager and Care Coordinators",
+                "On starting the role",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Until the RIDDOR decision-making training is complete, a new Registered Manager or Deputy Manager has each decision checked by the external adviser the same working day. A manager who decides two calibration scenarios wrongly is retrained within 1 month."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every incident log entry the Registered Manager must screen has a RIDDOR decision on time; target 100%",
+                "Monthly",
+                "Deputy Manager (Registered Manager for decisions the Deputy Manager made)",
+                "Monthly health and safety indicators to the Nominated Individual"
+              ],
+              [
+                "Work-related injury absences of more than 3 days in the staff record matched against incident log entries and over-seven-day decisions",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Timeliness of every RIDDOR report and CQC notification; target 100% on time",
+                "Every reportable event; quarterly summary",
+                "Deputy Manager",
+                "Nominated Individual"
+              ],
+              [
+                "RIDDOR reports, decisions not to report and trends by type, task, equipment and person",
+                "Quarterly",
+                "Registered Manager",
+                "Health and Safety Meeting and Directors"
+              ],
+              [
+                "5 RIDDOR decisions, including at least 2 decisions not to report, tested for accuracy",
+                "Every 12 months",
+                "External health and safety adviser in the independent audit",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Any wrong or late decision becomes an action in the service improvement plan with an owner and deadline. This procedure is reviewed every 12 months by the Registered Manager, consulting the representatives of employee safety, and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or HSE guidance, including any change arising from HSE's 2026 RIDDOR consultation, a late or missed report, an enforcement action or inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,695 @@
+{
+  "reference": "POL-HS-006",
+  "revision": 1,
+  "title": "Hoists, Slings and Lifting Equipment Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we make sure hoists, slings, stand aids, bath lifts, stairlifts, bed rails and other care equipment in people's homes are examined, maintained, checked and used safely, whoever owns them: the hoist and sling register, examination tracking, pre-use checks, hoisting steps, bed rail checks and faulty equipment. For managers, Care Coordinators and care staff.",
+  "keyPoints": {
+    "intro": "Most of the equipment you use belongs to someone else, but you are the last check before it lifts a person. These rules apply every time you use a hoist, sling, lift or bed rail.",
+    "points": [
+      "Use a hoist, sling, stand aid, bath lift or stairlift only when its label, or the office, confirms a thorough examination within the last 6 months, and only the exact items, sling size and loop or clip settings in the person's moving and handling plan.",
+      "Before every use, check the item as trained: label readable and in date, no damage, fraying, worn or missing parts, battery charged, emergency lowering control in place, and the person's weight within the safe working load of the hoist and the sling.",
+      "When hoisting, pause once the sling is taut and the person's weight is partly taken, and check every attachment point before lifting fully. Lift only as high as needed and never leave anyone alone in a hoist or sling.",
+      "Use only the person's own sling. Never use a sling with an unreadable label, a damp or soiled sling, or a sling and hoist combination the plan does not list as compatible.",
+      "If anything is faulty, overdue or not as the plan says, do not use it. Make the person safe, tie on a DO NOT USE tag, phone the office and stay until they agree what happens next. Log it before your shift ends.",
+      "If a hoist fails with the person raised, use the emergency lowering control as trained, and call 999 if you cannot lower them safely. Never lift the person by hand instead.",
+      "Never repair, adjust or adapt equipment, never carry a hoist up or down stairs, and never use an item until a colleague already signed off on it, or the assessor, has shown it to you in that home.",
+      "Before raising bed rails, check they lock and the mattress fits with no gaps or anything stuffed into them. If the bed or mattress has changed, or the person objects or tries to climb over, do not raise them; phone the office before you leave.",
+      "Tell the office before you leave if an item has been dropped, tipped over, involved in a fall or washed against its label instructions. It is not used again until it has been examined.",
+      "After hoisting, wipe the handles and spreader bar with a detergent wipe, store the hoist as trained and put it on charge where the plan says."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Senior Carer/Nurse",
+    "Carer/Domestic"
+  ],
+  "moduleLinks": [
+    "EQUIPMENT",
+    "RISK_ASSESSMENT",
+    "CARE_PLAN",
+    "TRAINING",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-HS-005",
+    "POL-HS-001",
+    "POL-HS-002",
+    "POL-HS-007",
+    "POL-CD-009",
+    "POL-SG-006",
+    "POL-GOV-007",
+    "POL-GOV-009"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Lifting Operations and Lifting Equipment Regulations 1998, regulation 8 (lifting operations properly planned by a competent person, appropriately supervised and carried out safely)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/2307/regulation/8"
+    },
+    {
+      "source": "Lifting Operations and Lifting Equipment Regulations 1998, regulation 9 (thorough examination: before first use, after installation, at least every 6 months for equipment for lifting persons and lifting accessories, and after exceptional circumstances)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/2307/regulation/9"
+    },
+    {
+      "source": "Lifting Operations and Lifting Equipment Regulations 1998, regulation 10 (reports and defects: equipment not used until a defect is rectified)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/2307/regulation/10"
+    },
+    {
+      "source": "Lifting Operations and Lifting Equipment Regulations 1998, regulation 11 and Schedule 1 (keeping reports; contents of a report of thorough examination)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/2307/regulation/11"
+    },
+    {
+      "source": "Provision and Use of Work Equipment Regulations 1998, regulation 4 (suitability of work equipment)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/2306/regulation/4"
+    },
+    {
+      "source": "Provision and Use of Work Equipment Regulations 1998, regulation 5 (maintenance)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/2306/regulation/5"
+    },
+    {
+      "source": "Provision and Use of Work Equipment Regulations 1998, regulation 9 (training of users and of those who supervise or manage use)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/2306/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(c) and (e) (competent staff; equipment safe for use and used safely)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 15 (equipment clean and properly used; paragraph (3) limits the other requirements for equipment in a person's own home that we did not supply)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/15"
+    },
+    {
+      "source": "Medicines and Healthcare products Regulatory Agency, National Patient Safety Alert NatPSA/2026/005/MHRA: Patient hoists and slings (all types): risk of death and serious harm from falls (issued 16 September 2026; actions due by 16 September 2027)",
+      "url": "https://www.gov.uk/drug-device-alerts/national-patient-safety-alert-patient-hoists-and-slings-all-types-risk-of-death-and-serious-harm-from-falls-natpsa-slash-2026-slash-005-slash-mhra"
+    },
+    {
+      "source": "Medicines and Healthcare products Regulatory Agency, Bed rails: management and safe use",
+      "url": "https://www.gov.uk/guidance/bed-rails-management-and-safe-use"
+    },
+    {
+      "source": "Health and Safety Executive, How the Lifting Operations and Lifting Equipment Regulations apply to health and social care, Health Services Information Sheet No 4 (HSIS4 rev1)",
+      "url": "https://www.hse.gov.uk/pubns/hsis4.pdf"
+    },
+    {
+      "source": "Health and Safety Executive, Getting to grips with hoisting people, Health Services Information Sheet No 3 (HSIS3), including Annex 2 equipment safety checks prior to each use",
+      "url": "https://www.hse.gov.uk/pubns/hsis3.pdf"
+    },
+    {
+      "source": "Health and Safety Executive, Equipment safety in health and social care",
+      "url": "https://www.hse.gov.uk/healthservices/equipment-safety.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Care provided in people's own homes (equipment owned by the person; responsibilities set out in the care contract)",
+      "url": "https://www.hse.gov.uk/healthservices/domiciliary-care.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Safe use of bed rails",
+      "url": "https://www.hse.gov.uk/healthservices/bed-rails.htm"
+    },
+    {
+      "source": "Medicines and Healthcare products Regulatory Agency, Yellow Card scheme (reporting problems with medical devices)",
+      "url": "https://yellowcard.mhra.gov.uk/"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 14 (employees' duties to use equipment in line with training and instructions and to report serious dangers and shortcomings)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/14"
+    },
+    {
+      "source": "Reporting of Injuries, Diseases and Dangerous Occurrences Regulations 2013, Schedule 2, Part 1, paragraph 1 (collapse, overturning or failure of a load-bearing part of lifting equipment, other than an accessory for lifting)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/1471/schedule/2"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} staff use hoists, slings, stand aids, bath lifts, profiling beds and bed rails every day in people's homes, and almost none of it belongs to us. Falls from hoists and slings, and entrapment in bed rails, still cause deaths, usually through worn or wrongly attached parts, mismatched slings or lapsed examinations."
+        },
+        {
+          "p": "{{organisation}} will make sure that every item our staff use is suitable, thoroughly examined, maintained, checked before every use and used only by trained staff as the person's plan and the manufacturer's instructions set out, whoever owns it. We meet the Lifting Operations and Lifting Equipment Regulations 1998 (LOLER) and the Provision and Use of Work Equipment Regulations 1998 (PUWER) for our own equipment, apply the same standard to equipment owned by others, and will have all the actions in National Patient Safety Alert NatPSA/2026/005/MHRA in place by 31 March 2027 (our deadline; the alert's is 16 September 2027)."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure sets out who is responsible for each item, the hoist and sling register, examination tracking, checks before and during use, bed rails and faulty equipment. It adds the equipment detail to the Moving and Handling of People Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who uses, checks, records or manages care equipment for us, including bank and agency workers, in people's homes and our branch offices, whoever owns the equipment. Where they are work equipment, the items in the first two rows below are lifting equipment under LOLER, needing thorough examination at least every 6 months or under a written scheme of examination; other work equipment is covered by PUWER only."
+        },
+        {
+          "table": {
+            "columns": [
+              "Equipment",
+              "Our rule"
+            ],
+            "rows": [
+              [
+                "Mobile, ceiling track and wall-mounted hoists; stand and raising aids; bath hoists and bath lifts; stairlifts and lifting platforms",
+                "Used only with a record of a thorough examination within the last 6 months and a service within the manufacturer's interval"
+              ],
+              [
+                "Slings, including single-patient-use slings, and hoist accessories such as weighing scales",
+                "As for hoists, and only in a combination recorded as compatible in the hoist and sling register"
+              ],
+              [
+                "Profiling beds, riser recliner chairs, standing transfer aids, pillow lifts, lifting cushions and powered mattresses",
+                "Checked before every use and serviced by the owner as the manufacturer requires"
+              ],
+              [
+                "Bed rails, bed grab handles and rail bumpers",
+                "Used only with a health professional's bed rail risk assessment, and checked before every use"
+              ],
+              [
+                "Slide sheets, transfer boards and turntables",
+                "Checked before every use"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Moving and handling assessments, numbers of workers and bariatric care are in the Moving and Handling of People Policy; a person on the floor in the Falls Prevention and Response Procedure; bed rails as a restriction in the Restraint and Restrictive Practice Policy; and cleaning equipment in the Standard Infection Control Precautions Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Thorough examination",
+                "A detailed examination by a competent person to find defects that are or could become dangerous, recorded in a written report. It is not a service or a pre-use check."
+              ],
+              [
+                "Competent person",
+                "Someone with the technical knowledge and practical experience to detect defects in the equipment and judge how serious they are, acting impartially; HSE advises this should not generally be the person who maintains it."
+              ],
+              [
+                "Owner",
+                "The organisation or person who owns or has loaned an item and arranges its examination, servicing, repair and replacement."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this procedure, fund our training equipment and its examination, and decline or renegotiate any package that cannot be delivered safely for lack of suitable equipment. The Nominated Individual receives the equipment indicators and NatPSA/2026/005/MHRA progress monthly and reports them to the Directors quarterly."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is accountable for this procedure and is our senior accountable person for NatPSA/2026/005/MHRA. They keep the hoist and sling register, write to owners who do not book examinations or put defects right, approve interim arrangements, act on safety alerts and make MHRA, RIDDOR and CQC reports. The Deputy Manager covers these duties in their absence, audits the register and reviews equipment failures with the Moving and Handling Lead."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Manager",
+          "blocks": [
+            {
+              "p": "Care Coordinators keep register dates and evidence current, report faults to owners, tell allocated workers about equipment changes and allocate only workers who have been shown the person's equipment. Out of hours the On-call Manager takes fault calls, checks the register, approves interim arrangements and hands over to the Registered Manager or Deputy Manager by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and other moving and handling assessors",
+          "blocks": [
+            {
+              "p": "Assessors record every item and confirm compatibility at assessment, review and whenever equipment changes, agree who is responsible for each item, show workers new equipment, screen bed rails and observe equipment use at spot checks. Senior Care Workers show new workers each person's equipment on shadowing shifts."
+            }
+          ]
+        },
+        {
+          "heading": "Care workers",
+          "blocks": [
+            {
+              "p": "The law requires employees to use equipment in line with their training and instructions and to report serious dangers and shortcomings in safety arrangements. Our policy requires care workers to follow the checks and hoisting steps in this procedure on every visit and report every fault, near miss and change."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Who is responsible for each item",
+      "blocks": [
+        {
+          "p": "HSE advises that equipment a person buys for their own use, or that is loaned solely for use by them, their family or unpaid carers, is not work equipment, so LOLER does not apply to it, although a lender keeps a general duty to provide and maintain it safely. HSE also advises that where our staff must use a person's equipment, the duty to keep them safe rests with us. Our policy is therefore one standard for every item, whoever owns it."
+        },
+        {
+          "table": {
+            "columns": [
+              "Owner",
+              "Who examines and maintains it",
+              "What we do"
+            ],
+            "rows": [
+              [
+                "Community equipment service or the NHS",
+                "The equipment service",
+                "The assessor records the dates from the labels; the Care Coordinator asks the service in writing within 2 working days to confirm them and supply any serial or lot number or end-of-service-life date not shown, and chases any reply not received within 5 working days."
+              ],
+              [
+                "The person or their family, including items bought with a direct payment or personal health budget, or hired",
+                "The person, using a competent provider or the hire company",
+                "Before first use the assessor explains, and the Care Coordinator confirms in writing, that staff can use the item only with a thorough examination within the last 6 months and servicing as the manufacturer requires. If the person cannot arrange this, staff do not use the item, the Registered Manager or Deputy Manager approves an interim arrangement before the next visit needing it, and the Care Coordinator asks the community occupational therapy service the same working day for a loaned alternative."
+              ],
+              [
+                "{{organisation}}: training hoists and slings at our branch offices",
+                "The Registered Manager arranges thorough examination before first use and at least every 6 months by an external competent person, and servicing",
+                "Used for training only while in date; whoever delivers the session checks each item before it starts."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At assessment the assessor agrees with the person, or their representative, who owns, examines, services and repairs each item, and records it in the care plan and the service agreement."
+        }
+      ]
+    },
+    {
+      "heading": "Recording equipment and the hoist and sling register",
+      "blocks": [
+        {
+          "p": "From the item's labels and instructions for use, the assessor records in the equipment details of the person's assessment and care plan in CareFlow: the owner and contact details; type, manufacturer, make and model; a hoist's serial number or a sling's lot number and unique identifier; the safe working load of each item and the person's dated weight; a sling's size and the loop or clip configuration used; the last and next examination and service dates; the end-of-service-life date; and how each hoist, sling and accessory combination was confirmed as compatible."
+        },
+        {
+          "p": "The Care Coordinator enters these details in the hoist and sling register within 2 working days. The register is kept in the branch health and safety file, identifies the person by CareFlow reference number only and lists every compatible combination. Office staff, Field Care Supervisors and On-call Managers can open it at any time, and each person's combination is also in their moving and handling plan, which every allocated worker reads."
+        },
+        {
+          "p": "Compatibility is confirmed only from the manufacturers' instructions for use, including whether the spreader bar takes loops or clips. A combination they do not confirm is not used until the prescriber or equipment service provides a written risk assessment with technical evidence from a qualified person; the Care Coordinator asks for this, or for a compatible sling, the same working day. An item whose examination date, safe working load or identity cannot be found is not used until the owner confirms them in writing. If only the end-of-service-life date is missing, the item may be used while its examination is in date, and the Registered Manager writes to the owner if it is not provided within 10 working days."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "New, replaced and unfamiliar equipment",
+          "blocks": [
+            {
+              "bullets": [
+                "Before a delivery, the Care Coordinator asks the owner to confirm the item has been thoroughly examined or, for a newly installed ceiling track hoist or stairlift, will be examined after installation and before first use.",
+                "No new or replacement item is used until the assessor has recorded it, confirmed compatibility and updated the plan, and the allocated workers have been shown it.",
+                "At a short-notice start or a restart after a hospital stay, the Field Care Supervisor, or the On-call Manager out of hours, records the owner, examination date, safe working load, sling type and size and compatibility source at the first visit, before anyone uses the item, and the rest within 7 days.",
+                "A worker who finds an item or sling not named in the plan does not use it and phones the office. The Care Coordinator or On-call Manager may approve it by phone only if it is the same type and size from the same manufacturer, listed as compatible and in date in the register, and updates the plan the same day.",
+                "At every care plan review the reviewer checks each item's labels and serial or lot numbers against the register."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Examination, servicing and end of service life",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "When",
+              "What happens",
+              "Who"
+            ],
+            "rows": [
+              [
+                "Every week",
+                "Register checked for examination, service and end-of-service-life dates in the next 6 weeks; anything overdue reported to the Registered Manager",
+                "Care Coordinator"
+              ],
+              [
+                "6 weeks before a due date",
+                "Owner asked to confirm a booked date; a person who owns their equipment is reminded in writing",
+                "Care Coordinator"
+              ],
+              [
+                "2 weeks before, no booking confirmed",
+                "Written request to the owner the same working day, copied for loaned equipment to the commissioner",
+                "Registered Manager"
+              ],
+              [
+                "Within 2 working days after an examination or service",
+                "Written evidence obtained; register and risk assessment updated",
+                "Care Coordinator"
+              ],
+              [
+                "Due date passes without evidence",
+                "Item out of use from the next day; allocated workers told the same day; interim arrangement approved as for faulty equipment",
+                "Care Coordinator; Registered Manager or Deputy Manager"
+              ],
+              [
+                "End of service life within 3 months",
+                "Owner asked to replace the item before that date",
+                "Care Coordinator"
+              ],
+              [
+                "End of service life reached",
+                "Not used unless the owner provides a competent person's written risk assessment approving use until a stated date",
+                "Registered Manager decides"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Written evidence of a thorough examination, held with the register, is a copy of the report or the owner's written confirmation of the date, result and next due date. On a visit staff rely on the examiner's dated label on the item; if it is missing, unreadable or out of date, they do not use the item and phone the office. The Care Coordinator, or the On-call Manager out of hours, may confirm by phone that it can be used only when the register holds written evidence of an examination within the last 6 months, records this in the risk assessment and asks the owner to relabel the item."
+        },
+        {
+          "p": "A lifting item past its service date is treated as overdue for examination. Other equipment past its service date, such as a profiling bed, stays in use only while it passes the pre-use check; the Care Coordinator asks the owner to service it the same working day, and if it is not serviced within 4 weeks the Registered Manager decides whether it may stay in use and records why."
+        },
+        {
+          "p": "Where LOLER applies, lifting equipment must be thoroughly examined again after exceptional circumstances liable to jeopardise its safety, and not used after a defect is reported until it is put right. Our policy is that an item is taken out of use, and the Care Coordinator asks the owner the same working day for a thorough examination, when it has been dropped, tipped over, damaged, involved in a fall or failure, repaired or modified, or, for a sling, laundered against its label. Any defect in an examination report puts the item out of use until the owner confirms in writing that it has been put right."
+        },
+        {
+          "p": "When a safety alert, recall or field safety notice names a manufacturer, model or lot number in the register, the Registered Manager acts within 2 working days: identifies every affected item, contacts each owner, tells allocated workers the same day of any instruction and records the action."
+        }
+      ]
+    },
+    {
+      "heading": "Checks before every use",
+      "blocks": [
+        {
+          "p": "Before every use, each worker present checks the item against its instructions for use and this table. If any check fails, the item is not used."
+        },
+        {
+          "table": {
+            "columns": [
+              "Item",
+              "Check"
+            ],
+            "rows": [
+              [
+                "Every item",
+                "It is the item named in the plan; its labels are in date; the person's recorded weight is within the safe working load of the hoist, sling and any accessory; you have been shown it in this home; the person's condition today matches the plan; the floor is clear and the receiving surface is ready with brakes on."
+              ],
+              [
+                "Hoists, stand aids and bath hoists",
+                "Battery charged; no cracks, bent parts, loose fixings or leaks; raise and lower work; emergency stop reset; emergency lowering control present and undamaged; spreader bar hooks, clips and latches present and not worn; castors and legs move freely; a ceiling hoist's tape is not frayed."
+              ],
+              [
+                "Slings",
+                "The person's own sling of the type and size in the plan; label readable, showing safe working load, size and identifier; no fraying, tears, thin areas or broken stitching; loops, clips and buckles undamaged; clean, dry and within its end-of-service-life date."
+              ],
+              [
+                "Bath lifts and stairlifts",
+                "Bath lift battery charged enough to raise the person before they are lowered; seats and belts secure; controls work and no warning lights show."
+              ],
+              [
+                "Beds, chairs, slide sheets and transfer boards",
+                "Controls and cables undamaged and clear of moving parts; brakes on; no tears, cracks or rough edges."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Staff never repair, adjust or adapt equipment, swap parts between items, or use a sling or accessory for another person or with a hoist not listed as compatible."
+        }
+      ]
+    },
+    {
+      "heading": "Using hoists and slings safely",
+      "blocks": [
+        {
+          "p": "LOLER requires every lifting operation to be planned by a competent person, appropriately supervised and carried out safely. The plan is the person's moving and handling plan; supervision is through familiarisation, spot checks and a lead worker at every two-worker hoist. The worker operating the hoist leads, agreeing the steps with their colleague before starting, while the second worker steadies and reassures the person. An agency worker never operates or leads until a Field Care Supervisor has observed them hoisting."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Hoisting steps",
+          "blocks": [
+            {
+              "steps": [
+                "Read the plan, check for changes and check the person is as it describes. Explain what you will do and ask for their agreement.",
+                "Clear the route, brake the receiving bed, chair or commode, set the bed to a safe working height, and complete the pre-use checks.",
+                "Fit the sling as the plan sets, centred, with the same loop or clip configuration on both sides.",
+                "Lower the spreader bar slowly, holding it clear of the person, and attach each loop or clip, checking it is fully seated and any latch is closed.",
+                "Pause-and-check: raise until the sling is taut and the person's weight is partly taken, then stop. Each worker present checks every attachment, the sling position and the person's comfort. If anything is wrong, lower and refit.",
+                "Lift only as high as needed. With a mobile hoist, open the legs to their widest stable position, leave the hoist brakes off unless the instructions say otherwise, and move only the short distance the plan sets, never over steps.",
+                "Lower the person slowly and make sure they are fully supported before detaching the sling.",
+                "Wipe the handles and spreader bar with a detergent wipe, store the hoist with the boom lowered and brakes on, charge it where the plan says, and record the transfer in the daily visit notes."
+              ]
+            },
+            {
+              "p": "Staff never leave a person alone in a hoist or sling, and never carry a hoist up or down stairs. Where a person needs hoisting on two floors, the assessor asks the occupational therapy service for equipment on each floor."
+            }
+          ]
+        },
+        {
+          "heading": "Other lifting equipment",
+          "blocks": [
+            {
+              "bullets": [
+                "Stand aids: used only where the plan records the person can reliably bear weight and take part; if they cannot today, staff do not use it and phone the office.",
+                "Bath hoists and lifts: check the water temperature as the Risk Assessment and Home Environment Risk Assessment Procedure requires, keep oils and creams off seats, and never leave the person in the bath.",
+                "Ceiling track hoists: motor directly above the person before lifting, never pulled by its tape, returned to its charging point after use.",
+                "Stairlifts: staff help a person on and off only where the plan says, fasten the seatbelt first, and never ride on it."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Slings",
+          "blocks": [
+            {
+              "bullets": [
+                "Each person's slings are named in their plan, kept in their home and never used for anyone else.",
+                "The assessor asks the prescriber for at least two slings of each type for anyone hoisted daily, so one is available while the other is laundered.",
+                "Slings are laundered as their label states, by the household or equipment service, or by us only where the care plan says. Single-patient-use slings are never laundered and are replaced by the owner when soiled or damaged.",
+                "If there is no clean, dry, usable sling, staff phone the office before moving the person and give only the care that remains safe, and the Care Coordinator asks the owner for a replacement the same working day."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Bed rails and bed grab handles",
+      "blocks": [
+        {
+          "p": "MHRA advises that rails must suit the person, bed and mattress, be fitted correctly and be reassessed when the bed system changes."
+        },
+        {
+          "bullets": [
+            "Staff use bed rails or grab handles only where a bed rail risk assessment by the health professional who prescribed or supplied them is recorded. For privately bought rails, the Care Coordinator asks the community occupational therapy service for one the same working day; until it is recorded staff do not raise the rails, and the Registered Manager or Deputy Manager agrees an interim arrangement with the person the same day.",
+            "Rails restrict movement, so they are used only with the signed consent of a person with capacity or a best interests decision under the Mental Capacity Act and Best Interests Policy, plus Registered Manager or Deputy Manager approval under the Restraint and Restrictive Practice Policy, and never to stop a person getting out of bed when they want to.",
+            "At assessment and every review the assessor screens the rails against the MHRA dimensions for adult beds: rail top at least 220 mm above the uncompressed mattress, gaps between bars and between rail and mattress platform under 120 mm, the gap between the headboard and the rail end under 60 mm. This is a screen only, because MHRA advises measurements alone do not show a rail is safe; any shortfall or doubt goes to the prescriber the same working day.",
+            "Before raising rails, staff check that fixings are secure and the rails lock, the mattress fits snugly with no gaps, nothing is stuffed into a gap, the mattress or overlay has not changed, and any bumpers are secure and cannot slip.",
+            "A new mattress, overlay or bed, rail damage, the person objecting, climbing or putting limbs through, a change in their condition, or any entrapment or near miss: the worker does not raise the rails and phones the office before leaving; the Care Coordinator asks the prescriber for reassessment the same working day; and the Registered Manager or Deputy Manager, or On-call Manager out of hours, decides the interim arrangement with the person the same day and records it."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Faulty, overdue or unsuitable equipment",
+      "blocks": [
+        {
+          "p": "When any item fails a check, is overdue, does not suit the person or task, or fails during use, the care worker:"
+        },
+        {
+          "steps": [
+            "Does not use it, or stops, and makes the person safe and comfortable where they are. If a hoist fails with the person raised, they use the emergency lowering control and call 999 if they cannot lower the person safely. They never lift the person by hand.",
+            "Ties on a DO NOT USE tag from their kit box and tells the person and anyone present why.",
+            "Does not repair, dismantle or discard the item, keeps any failed part with it, and leaves it as it was where someone was hurt.",
+            "Phones the office, or the On-call Manager out of hours, and stays with the person, beyond the planned visit time if needed, until the office agrees what happens next; the office tells the worker's next visit of any delay.",
+            "Records what was and was not done in the daily visit notes, and the fault in the incident log before the end of the shift."
+          ]
+        },
+        {
+          "table": {
+            "columns": [
+              "What happens next",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Allocated workers told; plan and risk assessment updated",
+                "Care Coordinator, or On-call Manager",
+                "Same day and before the next visit"
+              ],
+              [
+                "Fault reported to the owner for repair or urgent replacement; where the item failed with a person in it or caused injury, the owner is asked to keep it unrepaired until the Registered Manager agrees",
+                "Care Coordinator",
+                "Same working day"
+              ],
+              [
+                "Interim arrangement approved, such as an urgent replacement, a spare compatible sling or care in bed by the assessed number of workers; person, family and, where care changes, commissioner told",
+                "Registered Manager or Deputy Manager, or On-call Manager until confirmed by 10am next working day",
+                "Before the next visit needing the item"
+              ],
+              [
+                "Not repaired or replaced within 24 hours: equipment service and commissioner written to; pressure area care reviewed",
+                "Registered Manager; assessor",
+                "When the 24 hours end"
+              ],
+              [
+                "Incident log entry reviewed",
+                "Registered Manager or Deputy Manager",
+                "By end of the next working day"
+              ],
+              [
+                "Incident or near miss involving a hoist, sling, bed rail or other medical device reported to the MHRA Yellow Card scheme",
+                "Registered Manager",
+                "Within 2 working days"
+              ],
+              [
+                "Failure, or incident causing harm, reviewed for causes and learning",
+                "Deputy Manager with the Moving and Handling Lead",
+                "Within 5 working days"
+              ],
+              [
+                "Repair or replacement confirmed in writing and register updated before reuse",
+                "Care Coordinator",
+                "Within 2 working days of the repair or replacement"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager decides on reports under the RIDDOR Reporting Procedure and the Statutory Notifications to CQC Procedure. Collapse, overturning or failure of a load-bearing part of a hoist is a RIDDOR dangerous occurrence; failure of a sling, an accessory for lifting, is not, though an injury it causes may be reportable. Harm to a person also follows the Incident Reporting, Investigation and Learning Policy and the Duty of Candour Policy. Where staff see a family member or another provider using equipment unsafely, they phone the office before leaving; the Care Coordinator tells the occupational therapy service the same working day, and any suspected neglect is reported as a safeguarding concern under the Safeguarding Adults Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Equipment details with owner, identity, safe working load and dates; bed rail risk assessment",
+                "The person's assessment, care plan and risk assessments in CareFlow"
+              ],
+              [
+                "Method, sling details and compatible combination; consent or best interests decision for bed rails",
+                "The care plan, including its Consent and decisions part"
+              ],
+              [
+                "Hoist and sling register, examination and compatibility evidence, owner correspondence, alert actions",
+                "The branch health and safety file"
+              ],
+              [
+                "Failed checks and care given; faults, near misses and reporting decisions",
+                "The daily visit notes; the incident log"
+              ],
+              [
+                "Training, familiarisation and spot checks",
+                "Training and compliance records; supervision and appraisal records"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Beyond the minimum periods LOLER sets for reports on our own equipment, our policy, under the Records Management and Retention Policy, is to keep register entries and examination evidence for 6 years after our staff last use the item or 11 years from the record's date, whichever is later."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Equipment content of practical moving and handling training: pre-use checks, pause-and-check, compatibility, sling fitting, emergency lowering, moving a hoist safely, bed rail checks and reporting",
+                "Care staff, and other staff who give care",
+                "At induction, before using equipment without a shadowing colleague",
+                "Every 12 months, within the practical refresher"
+              ],
+              [
+                "Familiarisation with each item in each home, including emergency lowering, from a colleague signed off on it or the assessor",
+                "Every worker allocated to the person",
+                "Before being allocated a visit using the item; recorded in training and compliance records",
+                "When replaced by a different model"
+              ],
+              [
+                "The register, date tracking, evidence rules and interim arrangements",
+                "Care Coordinators and On-call Managers",
+                "Before first allocating visits or the first on-call shift",
+                "Every 12 months, with the allocation rules training"
+              ],
+              [
+                "Identifying equipment, labels, compatibility, bed rail screening",
+                "Moving and handling assessors",
+                "In assessor training",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Pre-use checks and pause-and-check are critical items at every spot check where equipment is used, under the Quality Audit and Monitoring Procedure. A worker who uses an item that fails a check, or skips pause-and-check, is retrained before next using that equipment and observed again within 4 weeks."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "10 register entries (all if fewer): examination evidence, compatibility source, plan matching register, end-of-service-life date",
+                "Monthly",
+                "Deputy Manager",
+                "Monthly health and safety indicators"
+              ],
+              [
+                "Hoists or slings used without a current examination record (target none); faults, failures and near misses; MHRA reports on time (target 100%)",
+                "Monthly; trends quarterly",
+                "Registered Manager",
+                "Nominated Individual monthly; Health and Safety Meeting and Directors quarterly"
+              ],
+              [
+                "NatPSA/2026/005/MHRA actions",
+                "Monthly until complete",
+                "Registered Manager",
+                "Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, a new safety alert about hoists, slings or bed rails, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,580 @@
+{
+  "reference": "POL-MED-006",
+  "revision": 1,
+  "title": "Administering and Supporting People with Medicines Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "The step-by-step practice care workers follow at every medicines visit: the checks before each dose, the six rights, prompting and assisting, how to give each formulation from tablets and monitored dosage systems to inhalers, drops, creams and patches, everyday situations such as sleep, illness or a day out, patient information leaflets, and what to watch for and report afterwards.",
+  "keyPoints": {
+    "intro": "This is how you give or support each medicine safely on every visit, working alone in the person's home with the office or On-call Manager a phone call away.",
+    "points": [
+      "Before every dose, read the eMAR, ask if it has already been taken and check the six rights against the label. If anything does not match or you are unsure, give nothing: phone the office and wait with the person for advice.",
+      "Give only the level of support the eMAR shows. At Level 1 you remind, open containers or pass a drink when asked, but never select, take out, measure or apply a dose.",
+      "Ask whether the person is ready before you take any dose out of its packaging. Give it straight from the pharmacy container without touching it, stay until it is swallowed or applied, and record it straight away.",
+      "Never give from a damaged, unlabelled, out-of-date or family-filled container, from a monitored dosage system compartment that is open or looks wrong, or a tablet that has been dropped. Seal a dropped dose for return and phone the office.",
+      "Never crush, split or open a medicine, or mix it into food or drink, unless the eMAR shows the pharmacist's or prescriber's written advice to do so.",
+      "Measure liquids only with the pharmacy's oral syringe or cup. Write the date you open a liquid, drops or cream on its container, and never use it after its use-within date.",
+      "Wear gloves for creams and patches and apply them only where the body map shows. Remove the old patch before putting a new one on a different site, fold it sticky sides together and record both sites.",
+      "If the person is asleep, follow the care plan on waking them. If they are unwell, very drowsy or struggling to swallow, give nothing without advice, and never repeat a vomited or spat-out dose. Phone the office before you leave; 999 if seriously unwell.",
+      "After a dose, watch for side effects. Call 999 for difficulty breathing, swelling of the face or throat, collapse or sudden confusion; phone the office before you leave about a rash, dizziness, a fall or unusual drowsiness.",
+      "For a day out, medicines leave the home only in their pharmacy packs, never decanted, and you note in the daily visit notes what went.",
+      "Where two people in the home take medicines, finish and record one person's medicines before you start the other's, and never give one person's medicine to another.",
+      "If you check in more than 2 hours after a visit's planned start, phone the office before giving any dose. Tell the office the same day about a missing leaflet or an inhaler counter at 20 doses or fewer."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Carer/Domestic",
+    "Senior Carer/Nurse",
+    "Care Coordinator"
+  ],
+  "moduleLinks": [
+    "MEDICATION",
+    "VISIT",
+    "CARE_PLAN"
+  ],
+  "relatedReferences": [
+    "POL-MED-001",
+    "POL-MED-003",
+    "POL-MED-005",
+    "POL-MED-007",
+    "POL-MED-008",
+    "POL-MED-014",
+    "POL-MED-015",
+    "POL-MED-016"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(c) competence, skills and experience and 12(2)(g) the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Rotherham Metropolitan Borough Council, Contracted Home Care and Support Medication Support Guidance (June 2023), sections 4.8, 6.2 and 11.1.2 to 11.2.3, applying NICE guideline NG67 (authorisation and the six rights, checking a dose has not already been given, asking before removing a medicine from its packaging, giving from the supplied container, never giving from a compliance aid filled by the person or family, and keeping a patient information leaflet in the home); its local three-level support model is not adopted, and our levels are those in the Medicines Management Policy",
+      "url": "https://rotherham.gov.uk/downloads/file/3478/rotherham-contracted-home-care-and-support-medication-support-guidance-june-2023"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), summarising NICE guideline NG67 on giving medicines from the original packaging, monitored dosage systems, labels stating the site for topical medicines and the eye for eye drops, and not giving from containers filled by family members",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    },
+    {
+      "source": "The Human Medicines Regulations 2012, regulation 260 Package leaflets",
+      "url": "https://www.legislation.gov.uk/uksi/2012/1916/regulation/260"
+    },
+    {
+      "source": "MHRA Drug Safety Update, Transdermal fentanyl patches: reminder of potential for life-threatening harm from accidental exposure, particularly in children (December 2014)",
+      "url": "https://www.gov.uk/drug-safety-update/transdermal-fentanyl-patches-reminder-of-potential-for-life-threatening-harm-from-accidental-exposure-particularly-in-children"
+    },
+    {
+      "source": "MHRA Drug Safety Update, Emollients: new information about risk of severe and fatal burns with paraffin-containing and paraffin-free emollients (December 2018)",
+      "url": "https://www.gov.uk/drug-safety-update/emollients-new-information-about-risk-of-severe-and-fatal-burns-with-paraffin-containing-and-paraffin-free-emollients"
+    },
+    {
+      "source": "University Hospitals Birmingham NHS Foundation Trust, How to use your eye drops",
+      "url": "https://www.uhb.nhs.uk/services/ophthalmology/glaucoma/how-to-use-your-eye-drops/"
+    },
+    {
+      "source": "NHS, Fentanyl: how and when to use it (heat, folding used patches, returning them to a pharmacy, and a patch stuck to another person)",
+      "url": "https://www.nhs.uk/medicines/fentanyl/how-and-when-to-use-fentanyl/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} gives people the medicines support agreed in their care plan in the same safe, respectful way on every visit, whichever care worker attends. This procedure sets out how our care workers check, prepare, give and record each dose, and what they do when something is not as expected."
+        },
+        {
+          "p": "The law requires care to be provided safely, by people with the competence, skills and experience to do so, with the proper and safe management of medicines (Regulation 12 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). Our steps follow NICE guideline NG67 and apply the Medicines Management Policy at the point of care."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every dose is given only with clear authority, after the six rights are checked and the person has agreed.",
+            "Every formulation is given the same way, with the right equipment.",
+            "Everyday problems are handled safely, side effects are reported, and every dose is recorded at the time."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to every employee who gives medicines support at a visit, including bank and agency workers placed with us and Field Care Supervisors and managers who cover visits, and to the Care Coordinators who set up the instructions care workers follow. It covers Level 1 (prompting and assisting) and Level 2 (administration) as the Medicines Management Policy defines them."
+        },
+        {
+          "p": "Other documents own: the level of support (Assessing Medicines Support Needs Procedure); consent and declined doses (Consent, Mental Capacity and Declined Medicines Policy); self-administration and leave-out arrangements (Self-Administration of Medicines Procedure); covert administration (Covert Administration of Medicines Policy); eMAR outcomes and corrections (Medicines Administration Records (MAR and eMAR) Procedure); when required and time-sensitive medicines (When Required (PRN) Medicines Protocol; Time-Sensitive Medicines Protocol); controlled drug counts (Controlled Drugs in the Community Procedure); and errors (Medication Errors, Near Misses and Incidents Procedure). Injections, insulin, rectal and vaginal medicines, buccal midazolam, medicines through a feeding tube and nebulised medicines are Level 3 tasks, given only under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Monitored dosage system",
+                "A tamper-evident blister pack or sealed pouch filled, sealed and labelled by the pharmacy, with a compartment for each dose time. A pill organiser filled by anyone else is not one."
+              ],
+              [
+                "Use-within date",
+                "The date after which an opened liquid, cream or drops must not be used, worked out from the date opened and the period on the label, leaflet or eMAR."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as medicines lead, is accountable for this procedure, makes sure medicines training covers every formulation in it, and decides the same day, or the Deputy Manager in their absence, whether a care worker whose medicines practice put a person at risk continues medicines visits."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator and Field Care Supervisor",
+          "blocks": [
+            {
+              "p": "When setting up an eMAR entry, the authorised Care Coordinator or Field Care Supervisor records the practical instructions care workers need: the body map for creams and patches, which eye or ear, the use-within period after opening, any gap between products, how the dose is measured and any food or drink instruction. Where the label and leaflet do not answer one of these, they ask the pharmacist and record the answer. The Care Coordinator obtains leaflets, oral syringes and supplies for planned absences, and, before the next visit, briefs the core care team on the side effects to watch for when a medicine is new or changed."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "They give only the support on the eMAR, only for formulations they are signed off for, and phone the office about every concern before leaving the home."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Office staff in office hours, and the On-call Manager outside them, take care workers' calls, obtain advice from the pharmacist, GP or NHS 111 where needed, tell the care worker what to do before they leave, and record the call and advice in the daily visit notes. They tell the Care Coordinator the same working day, or by 10am on the next working day for calls out of hours. While waiting for advice, the care worker stays with the person and carries on with other planned tasks; if no advice comes within 30 minutes after the planned end of the visit, the office arranges an extra visit to act on it. If the person gets worse, the care worker calls 999."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Preparing to give medicines",
+      "blocks": [
+        {
+          "steps": [
+            "Check in, open the person's eMAR and read any changes since your last visit, including any briefing on a new medicine.",
+            "Give time-sensitive medicines first, at the time the eMAR shows. Give other medicines at the point the care plan sets, for example after breakfast where the label says with food.",
+            "Choose a quiet, well-lit place and do not take or make phone calls while preparing or giving medicines, except to the office about that person's medicines or in an emergency.",
+            "Clean your hands as the Standard Infection Control Precautions Procedure sets out. Gloves are not worn for tablets, capsules or liquids unless the care plan or eMAR says so, for example for a cytotoxic medicine.",
+            "Help the person to sit upright, or as their swallowing advice says, with glasses and hearing aids in.",
+            "Where two people in the home receive medicines support, complete and record one person's medicines before taking out the other's. Never give one person's medicine to another, even the same medicine."
+          ]
+        },
+        {
+          "p": "Regular medicines that are not time-sensitive are given at the visit the eMAR schedules them for. If you check in more than 2 hours after the planned start of that visit, phone the office before giving any dose; the office checks the minimum interval and the next dose time and obtains the pharmacist's advice where doses would be too close together."
+        }
+      ]
+    },
+    {
+      "heading": "Giving each dose",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Authority to give",
+          "blocks": [
+            {
+              "p": "A care worker gives a medicine only when it has a second-checked eMAR entry and a care plan level, it is in its pharmacy-labelled container, the label and the eMAR agree (the only exception is an entry showing Directions changed by prescriber, label not yet updated), and the care worker is signed off for that formulation and route. A medicine in the home that is not on the eMAR, such as a newly started antibiotic, is not given: phone the office, which arranges the entry and second check or obtains advice on whether the dose can wait. A care worker not signed off for a formulation due does not give it and phones the office at once, which sends a signed-off worker or obtains advice and says what to record. On a double-handed visit only the allocated, signed-off worker gives and records medicines. We never give doses the care plan leaves to a family member or community nurse. After a hospital or other stay, no dose is given until CareFlow shows the flash message 'Discharge medicines check completed' or the office gives advice for that dose (Medicines Changes, Transfers of Care and Hospital Discharge Procedure)."
+            }
+          ]
+        },
+        {
+          "heading": "The six rights",
+          "blocks": [
+            {
+              "p": "Before every dose, check each right against the pharmacy label and the eMAR. If any check fails, do not give the dose: phone the office, wait for advice and record the outcome."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Right",
+                  "What you check"
+                ],
+                "rows": [
+                  [
+                    "Right person",
+                    "The person's name on the label and the eMAR. Where you have not met the person before, confirm who they are with them or with the office."
+                  ],
+                  [
+                    "Right medicine",
+                    "Name, strength and formulation match; it is in date and, if opened, within its use-within date; the eMAR shows no allergy to it; the container is undamaged with a readable, unaltered label."
+                  ],
+                  [
+                    "Right route",
+                    "The route, and the eye, ear or site, are as both the label and the eMAR state."
+                  ],
+                  [
+                    "Right dose",
+                    "The amount matches. Ask the person whether they have already taken it and check the eMAR, including Family Administered and Self Medicated records and any between-visits record. If a dose seems already taken but is not recorded, do not give it."
+                  ],
+                  [
+                    "Right time",
+                    "The dose is due now, the minimum interval has passed, and label instructions such as before food or at bedtime are met."
+                  ],
+                  [
+                    "Right to decline",
+                    "Tell the person what is due and ask whether they are ready before taking any dose out of its packaging, as the Consent, Mental Capacity and Declined Medicines Policy sets out."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Preparing, giving and recording",
+          "blocks": [
+            {
+              "steps": [
+                "Prepare one person's dose at a time, at the point of giving, straight from the pharmacy container. Never prepare doses in advance or for another care worker to give.",
+                "Never touch tablets or capsules with your hands, and use the measuring device the pharmacy supplied for liquids.",
+                "Stay with the person until the dose is swallowed, inhaled or applied. Never leave a dose out for later unless an approved leave-out arrangement under the Self-Administration of Medicines Procedure applies.",
+                "Record each medicine's outcome on the eMAR straight away, with the actual time and any note the outcome requires.",
+                "Return the medicines to the agreed storage place, locking it where the care plan says with the code from the person's access details in CareFlow, which you never write down or share, and clean your hands."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Prompting and assisting at Level 1",
+      "blocks": [
+        {
+          "p": "At Level 1 the person stays in control and takes the medicine themselves. The care worker may remind them it is due, bring the pharmacy container, open a bottle or carton if asked, read the label aloud and pour a drink. The care worker never selects the medicine, presses a dose out, measures it, or puts it in the person's hand or mouth; that is Level 2, so if the person needs it the care worker phones the office for the level to be reviewed."
+        },
+        {
+          "p": "The care worker reminds once and never presses, watches the person take the medicine and records Given; Already Done where the person says they took it unseen and the pack confirms it; Refused where they say they will not take it; otherwise Not Given / Missed and a call to the office. A care worker who notices the person cannot reliably say whether they have taken a medicine phones the office before leaving, because Level 1 is then unsafe."
+        }
+      ]
+    },
+    {
+      "heading": "Giving different formulations",
+      "blocks": [
+        {
+          "p": "Never crush, split, open or dissolve a medicine, or mix it in food or drink, unless the eMAR shows the pharmacist's or prescriber's written advice for that medicine. If the person cannot take it as supplied, record Not Given / Missed and phone the office."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Tablets and capsules",
+          "blocks": [
+            {
+              "bullets": [
+                "Press the tablet or capsule from its blister, or tip it into the bottle lid, then into a clean medicine pot or the person's hand, without touching it.",
+                "Offer a full glass of water, or another drink the person prefers where the label allows, one tablet at a time if they wish. Where the person's drinks are thickened, use a drink at their prescribed IDDSI level, never thin water.",
+                "Follow label instructions exactly, as the eMAR records them. For example, weekly alendronic acid is taken on an empty stomach with plain water, staying upright as the label states.",
+                "Dissolve dispersible and effervescent tablets in the water the label states. Sublingual and buccal tablets go under the tongue or inside the cheek as the label says and are not swallowed.",
+                "A dropped tablet is never given. Seal it for return to the pharmacy as for a declined dose and give a replacement from the same original pack where there is one, noting this on the eMAR; where there is none, such as in a monitored dosage system, record Not Given / Missed. Phone the office before leaving so the supply can be checked or advice obtained. For a controlled drug, phone the office at once and note the dropped dose with the stock balance."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Monitored dosage systems",
+          "blocks": [
+            {
+              "p": "We give from a monitored dosage system only where a pharmacist has assessed the person's need for one. Check that the compartment is for the right day and time, the seal is intact, and the number and description of tablets match the pharmacy's list on the pack and each medicine on the eMAR; record each medicine separately. If a compartment is open, torn or empty, holds the wrong number of tablets or one you cannot identify, or holds a medicine stopped since the pack was filled, give nothing from it, record Not Given / Missed for each medicine and phone the office before leaving. The office obtains the pharmacist's advice straight away and the Care Coordinator asks the pharmacy the same day for a corrected supply. Never move tablets between compartments, use another day's compartment or reseal one."
+            }
+          ]
+        },
+        {
+          "heading": "Liquids",
+          "blocks": [
+            {
+              "bullets": [
+                "Shake the bottle where the label says. When you open a new bottle, write the date opened on the container without covering the label.",
+                "Measure every dose at eye level with the oral syringe or measuring cup the pharmacy supplied, using an oral syringe for any dose under 5 ml or not a whole number of 5 ml. Never use a household spoon or an injection syringe.",
+                "Use a separate syringe or cup for each liquid, kept with that bottle. Rinse it in warm water and leave it to dry unless the pharmacy's instructions say otherwise, and tell the office when markings are worn or it is cracked.",
+                "A liquid medicine is thickened only on the pharmacist's written advice, and thickened drinks are prepared as the Nutrition and Hydration Policy sets out."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Inhalers and sprays",
+          "blocks": [
+            {
+              "bullets": [
+                "Support the person to use the inhaler as their leaflet, nurse or pharmacist describes: check the device and dose counter, shake a pressurised inhaler where the leaflet says, use the prescribed spacer, and wait between puffs as the leaflet states. Offer a mouth rinse afterwards where the label says, for example after a steroid inhaler.",
+                "Tell the office the same day when the counter shows 20 doses or fewer, so that a supply is ordered, or when the person struggles with the technique; the Care Coordinator asks the pharmacist for an inhaler technique check within 2 working days.",
+                "Give nasal sprays into the nostril the label states, as the leaflet describes. A reliever inhaler or angina spray stays within the person's reach."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Eye, ear and nose drops",
+          "blocks": [
+            {
+              "bullets": [
+                "Check which eye or ear the label and eMAR state; where each eye has its own bottle, use it only for that eye.",
+                "For eye drops, the person tilts their head back; gently pull down the lower lid and let one drop fall inside it without the tip touching the eye, lashes or skin, then the person closes the eye and presses the inner corner for one minute.",
+                "Leave at least 5 minutes between different eye drops in the same eye, and give drops before any eye ointment.",
+                "Give ear drops with the ear uppermost and keep the head tilted for the time the leaflet says. Never put anything into the ear canal.",
+                "Write the date opened on the container and never use drops beyond their use-within date."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Creams, ointments and emollients",
+          "blocks": [
+            {
+              "bullets": [
+                "Wear gloves. Apply each product only to the areas the eMAR and body map show, in the amount stated, such as a thin layer or a number of fingertip units, and never to broken or inflamed skin unless it is prescribed for it. Smooth emollients in the direction of hair growth.",
+                "Use the pump where there is one. For a tub, use a clean single-use spatula supplied by the office, never a gloved finger that goes back into the tub.",
+                "Where two products go on the same area, leave the gap the eMAR shows from the pharmacist's advice, and change gloves between products.",
+                "Phone the office before leaving about broken skin, a new rash or redness that does not fade once pressure is relieved, and report other skin changes the same day, under the Pressure Ulcer Prevention and Skin Integrity Procedure.",
+                "Clothing, bedding and dressings with dried emollient on them, paraffin-free included, catch fire quickly (MHRA). Where the person smokes or uses a naked flame or heater, follow the care plan agreed under the Fire Safety in People's Homes Policy and tell the office the same day if you see them smoking after emollient is applied."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Medicated patches",
+          "blocks": [
+            {
+              "bullets": [
+                "Wear gloves. Using the body map, find and remove the old patch before applying a new one, unless the eMAR states that more than one is worn.",
+                "Fold the used patch sticky sides together and put it in the lidded used-patch container labelled with the person's name, kept with their medicines until returned to a pharmacy under the Ordering, Collecting, Storing and Disposing of Medicines Procedure. Never put a patch in the bin or toilet.",
+                "Apply the new patch to clean, dry, hairless, unbroken skin on a different site, following the rotation the leaflet and eMAR give. Do not touch the sticky side, never cut a patch, and record the new and old sites.",
+                "Keep hot water bottles, heat pads, electric blankets and hot baths away from a pain-relief patch, as its leaflet warns, and tell the office the same day if the person has a high temperature.",
+                "If the patch has fallen off, cannot be found or is stuck to someone else, phone the office before leaving and do not apply another without advice. Remove a patch stuck to another person straight away with gloves and get medical help, calling 999 if they are drowsy or breathing shallowly, especially a child."
+              ]
+            },
+            {
+              "p": "The Care Coordinator provides the used-patch container before the first patch visit and records in the care plan where it is kept. Opioid patches are also counted and returned under the Controlled Drugs in the Community Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Everyday situations",
+      "blocks": [
+        {
+          "p": "The care plan records whether the person is to be woken for their medicines, agreed at assessment with the person and the prescriber's advice. Unless the dose is then given as planned, the care worker phones the office, or the On-call Manager out of hours, before leaving the home."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What the care worker does",
+              "What the office does"
+            ],
+            "rows": [
+              [
+                "The person is asleep",
+                "Where the care plan says to wake them, wake them gently; where it says not to, record Not Given / Missed. Call 999 if they are hard to wake or not responding normally.",
+                "Gets pharmacist, GP or NHS 111 advice on whether the dose can be given later, straight away for a time-sensitive or advice-if-declined medicine and otherwise the same day, and checks the next dose."
+              ],
+              [
+                "The label says before or after food, and the visit timing cannot meet it",
+                "Phone the office before giving that medicine and follow the advice; if it cannot be given, record Not Given / Missed.",
+                "Obtains the pharmacist's advice straight away; the Care Coordinator agrees workable timing with the pharmacist the same day and updates the eMAR."
+              ],
+              [
+                "The person seems unwell, suddenly confused or very drowsy",
+                "Phone before giving any dose. Call 999 if suddenly confused or seriously unwell.",
+                "Obtains GP or NHS 111 advice straight away on which doses to give or hold."
+              ],
+              [
+                "The person has difficulty swallowing",
+                "Do not give the dose or change its form; record Not Given / Missed.",
+                "Care Coordinator contacts the GP or pharmacist the same day about a suitable form and swallowing assessment."
+              ],
+              [
+                "The person vomits soon after a dose, or spits it out",
+                "Never repeat it. Record Partially given, or Nausea / Vomiting if too sick to take it.",
+                "Asks the pharmacist the same day whether anything further is needed."
+              ],
+              [
+                "The person is going out for the day or away overnight",
+                "Medicines go only in their pharmacy-labelled packs, to the person or the adult looking after them; never decant doses into envelopes, pots or organisers. Note in the daily visit notes what went and with whom, and check what comes back.",
+                "Records Absent for each dose with who is responsible. For a planned absence of a night or more, the Care Coordinator asks the GP and pharmacy for a separate labelled supply, at least 5 working days ahead where possible."
+              ],
+              [
+                "A medicine is missing or has run out",
+                "Look in the agreed storage place with the person; record Unavailable.",
+                "Obtains advice on the missed dose straight away and a supply the same day."
+              ],
+              [
+                "A medicine is damaged, out of date, unlabelled or does not match the eMAR",
+                "Do not give it; record Not Given / Missed with what you found and set it aside with the person's medicines.",
+                "Obtains advice straight away and a replacement the same day; logs any dispensing error in the incident log."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A relative cannot change a dose: follow the Consent, Mental Capacity and Declined Medicines Policy. Any error or near miss is reported under the Medication Errors, Near Misses and Incidents Procedure: make the person safe, phone the office at once from the home and enter it in the incident log before the end of the shift."
+        }
+      ]
+    },
+    {
+      "heading": "Patient information leaflets",
+      "blocks": [
+        {
+          "p": "The law requires a package leaflet in the packaging of a medicine unless its information is on the packaging itself (regulation 260 of the Human Medicines Regulations 2012). Our policy is that an up-to-date leaflet for every medicine we support, including each medicine in a monitored dosage system, is kept with the person's medicines, so care workers and the person can check how to take and store it and its side effects."
+        },
+        {
+          "bullets": [
+            "The medicines assessor checks a leaflet is present for each medicine at the medicines assessment, and the Field Care Supervisor or authorised Senior Care Worker checks at every in-home medicines check.",
+            "Care workers check that a new medicine has a leaflet. A missing leaflet is reported to the office the same day; it does not stop a dose that is otherwise safe.",
+            "The Care Coordinator asks the pharmacy for it within 2 working days of the report, and asks for leaflets with every new medicine supplied in a monitored dosage system. Older leaflets are replaced when a new one arrives, and the person is offered the leaflet in a format they can use."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "After giving a dose",
+      "blocks": [
+        {
+          "p": "Before checking out, the care worker makes sure every dose due has an outcome on the eMAR."
+        },
+        {
+          "table": {
+            "columns": [
+              "What you see",
+              "What you do"
+            ],
+            "rows": [
+              [
+                "Difficulty breathing, swelling of the lips, face or throat, collapse, sudden confusion, or the person is very hard to wake",
+                "Call 999 and stay with the person. For a severe allergic reaction, give their own adrenaline auto-injector as the First Aid Procedure sets out. Then phone the office."
+              ],
+              [
+                "A new rash, itching, dizziness, a fall, unusual drowsiness, sickness, diarrhoea, constipation, unusual bruising or bleeding, or signs of low blood sugar",
+                "Follow any care plan instructions, such as a low blood sugar plan, phone the office before you leave and record what you saw in the daily visit notes."
+              ],
+              [
+                "The person says a medicine makes them feel unwell",
+                "Phone the office before you leave. Never stop or change a medicine yourself."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The office obtains advice straight away where the person may need it before the next dose; otherwise the Care Coordinator contacts the GP or pharmacist the same day, records the advice in the care plan and tells the person about the MHRA Yellow Card scheme, submitting a report where the Medication Errors, Near Misses and Incidents Procedure requires."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Dose outcomes, notes, sites and stock balances go on the eMAR at the time, and cream areas and patch sites on the body map, under the Medicines Administration Records (MAR and eMAR) Procedure.",
+            "Calls, advice, medicines that left the home and missing leaflets go in the daily visit notes, and errors, near misses and dispensing errors in the incident log, kept as the Records Management and Retention Policy sets out."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Requirement",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Full medicines training covering every formulation in this procedure, with a knowledge assessment (pass mark 80%)",
+                "Care Workers, Senior Care Workers, Field Care Supervisors and Care Coordinators",
+                "Before giving any medicines support, then every 12 months"
+              ],
+              [
+                "Observed competency in a person's home, recording which formulations the worker is signed off for: tablets and capsules, monitored dosage systems, liquids, inhalers and sprays, drops, creams and patches",
+                "Everyone who gives medicines support",
+                "Before giving that formulation without supervision, then every 12 months"
+              ],
+              [
+                "Reassessment",
+                "The employee concerned",
+                "After an error that reached the person, two recording errors within 3 months, an absence of 3 months or more, or a new medicines system or formulation, before further unsupervised medicines support"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Competency is assessed by authorised assessors under the Medicines Training and Competency Assessment Procedure. Care Coordinators allocate a medicines visit only to care workers whose training is current and who are signed off for every formulation due at that visit. Everyone this procedure applies to reads and acknowledges it in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Observed practice against the critical criteria of the medicines competency assessment, plus no-touch technique, staying until the dose is taken, and patch removal and site",
+                "At least every 6 months for each care worker who gives medicines, within spot checks",
+                "Field Care Supervisor (Registered Manager or Deputy Manager for Field Care Supervisors and Care Coordinators)",
+                "Supervision and appraisal records; shortfalls to the Registered Manager"
+              ],
+              [
+                "In the home: leaflets, dates opened and use-within dates, oral syringes and cups, monitored dosage system packs intact, used-patch container, patch and cream sites against the body map",
+                "At least every 3 months and at every care plan review, within the in-home medicines check",
+                "Field Care Supervisor or authorised Senior Care Worker",
+                "Deputy Manager"
+              ],
+              [
+                "eMAR records against this procedure, including sites and not-given notes",
+                "Monthly, within the full eMAR audit",
+                "Care Coordinator or Field Care Supervisor",
+                "Deputy Manager"
+              ],
+              [
+                "Incidents linked to how doses were prepared or given, by formulation and care worker",
+                "Quarterly, within the medicines trend review",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 95% of observed practice checks in date, 100% of in-home checks finding a leaflet for each medicine or a request made within 2 working days, and no dose given from a damaged, unlabelled, family-filled or out-of-date container. Each of the 8 critical criteria in the staff record's medicines competency assessment that is observed is a critical item at a spot check, scored under the Quality Audit and Monitoring Procedure and followed up under the Medicines Training and Competency Assessment Procedure."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance or an MHRA safety alert, a serious medicines incident, an inspection finding, or when monitoring shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

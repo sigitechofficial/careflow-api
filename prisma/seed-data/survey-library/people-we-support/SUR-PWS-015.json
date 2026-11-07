@@ -1,0 +1,367 @@
+{
+  "reference": "SUR-PWS-015",
+  "revision": 1,
+  "title": "Technology in your care",
+  "audience": "SERVICE_USER",
+  "respondents": "People whose care plan records an alarm, fall detector, sensor, camera, medicines reminder or dispenser, video calling or other care technology; a representative may answer where the person cannot give their views, even with help",
+  "summary": "A yearly check, each November, that care technology helps people and respects their privacy: whether it was their choice, whether they wear their alarm, whether help comes, false alarms, feeling watched, and testing after a phone line change. About 9 minutes.",
+  "purpose": "The annual technology survey named in the Technology-Enabled Care and Telecare Policy's monitoring: whether people feel technology helps them and respects their privacy. It also checks that alarms have been tested since the person's phone line or broadband changed, a live risk while landlines move to digital (by January 2027, says gov.uk). Results go to the Registered Manager, who leads on technology-enabled care, and to the Nominated Individual in the quarterly quality report; monitoring devices also feed restriction reviews under the Restraint and Restrictive Practice Policy. Each answer that needs action is followed up. We do not supply, install, repair or monitor devices: faults go to the telecare service.",
+  "timing": {
+    "when": "Once a year on the first working day of November, open for 4 weeks; the first time as soon as the survey is adopted in November or December 2026",
+    "recurrence": null,
+    "trigger": "The yearly November send to people whose care plan records care technology"
+  },
+  "anonymous": false,
+  "channels": ["PORTAL", "TELEPHONE", "PAPER", "IN_PERSON"],
+  "estimatedMinutes": 9,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING", "WELL_LED"],
+    "qualityStatements": [
+      "Involving people to manage risks",
+      "Safe environments",
+      "Independence, choice and control",
+      "Learning, improvement and innovation"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how your equipment is working for you, such as an alarm you wear, sensors or a medicines reminder. It takes about 9 minutes.\n\nTaking part is up to you, and what you say will not affect your care. Your answers are linked to your name so we can help if something is not working. Your care workers (carers) will not see them.\n\nThis survey is not for urgent concerns. If your alarm is not working today, are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to check your equipment helps you and respects your privacy, and to improve our care. Our legal reason is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name so we can put things right. They are seen only by our Registered Manager, Deputy Manager, Care Coordinators and the office staff who follow them up, never by your care workers (carers), and reports show combined results only. With your agreement, we may pass a problem with your equipment to your telecare service. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this survey, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care over the last few months. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your equipment",
+      "questions": [
+        {
+          "id": "q-tech",
+          "text": "Which of these do you have?",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "helpText": "Choose all that you have.",
+          "options": [
+            "An alarm you wear (pendant or wrist)",
+            "A fall detector",
+            "Sensors, for example on doors or your bed",
+            "A camera or listening device",
+            "A medicines reminder or dispenser",
+            "Video calls with family or friends",
+            "None of these"
+          ],
+          "exclusiveOptions": ["None of these"],
+          "otherOption": {
+            "label": "Something else (please tell us)",
+            "textPrompt": "Please tell us what it is",
+            "textRequired": true
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        },
+        {
+          "id": "q-choice",
+          "text": "Was it your choice to have your equipment?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-tech",
+            "answers": [
+              "An alarm you wear (pendant or wrist)",
+              "A fall detector",
+              "Sensors, for example on doors or your bed",
+              "A camera or listening device",
+              "A medicines reminder or dispenser",
+              "Video calls with family or friends"
+            ]
+          },
+          "comment": {
+            "prompt": "Please tell us more, and how you feel about it.",
+            "showWhen": ["No"]
+          },
+          "evidence": "Caring: Independence, choice and control"
+        },
+        {
+          "id": "q-tech-safe",
+          "text": "Does your equipment help you feel safe at home?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-tech",
+            "answers": [
+              "An alarm you wear (pendant or wrist)",
+              "A fall detector",
+              "Sensors, for example on doors or your bed",
+              "A camera or listening device",
+              "A medicines reminder or dispenser"
+            ]
+          },
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        },
+        {
+          "id": "q-false-alarms",
+          "text": "In the last month, has your equipment gone off by mistake?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, an alarm or sensor calling for help when you did not need it.",
+          "options": ["Yes, often", "Yes, once or twice", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-tech",
+            "answers": [
+              "An alarm you wear (pendant or wrist)",
+              "A fall detector",
+              "Sensors, for example on doors or your bed",
+              "A camera or listening device",
+              "A medicines reminder or dispenser"
+            ]
+          },
+          "comment": {
+            "prompt": "Please tell us what happens.",
+            "showWhen": ["Yes, often", "Yes, once or twice"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-watched",
+          "text": "Does any of your equipment make you feel watched?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, often", "Yes, sometimes", "No", "Don't know"],
+          "showIf": {
+            "question": "q-tech",
+            "answers": ["Sensors, for example on doors or your bed", "A camera or listening device"]
+          },
+          "comment": {
+            "prompt": "Please tell us what worries you.",
+            "showWhen": ["Yes, often", "Yes, sometimes"]
+          },
+          "evidence": "Caring: Independence, choice and control",
+          "notCountedOptions": ["Don't know"]
+        },
+        {
+          "id": "q-video",
+          "text": "Do video calls help you keep in touch with the people who matter to you?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "showIf": {
+            "question": "q-tech",
+            "answers": ["Video calls with family or friends"]
+          },
+          "comment": {
+            "prompt": "What would help?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Independence, choice and control"
+        }
+      ]
+    },
+    {
+      "title": "Your alarm",
+      "introduction": "These questions are about the alarm or fall detector you wear.",
+      "questions": [
+        {
+          "id": "q-wear-alarm",
+          "text": "Do you wear your alarm?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about both day and night.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "showIf": {
+            "question": "q-tech",
+            "answers": ["An alarm you wear (pendant or wrist)", "A fall detector"]
+          },
+          "comment": {
+            "prompt": "What stops you wearing it?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        },
+        {
+          "id": "q-help-came",
+          "text": "In the last 12 months, when you used your alarm, did help come quickly enough?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No", "I have not used it", "Don't know"],
+          "notCountedOptions": ["I have not used it", "Don't know"],
+          "showIf": {
+            "question": "q-tech",
+            "answers": ["An alarm you wear (pendant or wrist)", "A fall detector"]
+          },
+          "comment": {
+            "prompt": "What happened?",
+            "showWhen": ["No"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        },
+        {
+          "id": "q-line-tested",
+          "text": "Has your alarm been tested since your phone line or broadband last changed?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Phone lines across the UK are changing to digital. After a change, some alarms need a new unit or a battery back-up so they still work in a power cut.",
+          "options": ["Yes", "No", "My phone line has not changed", "Don't know"],
+          "notCountedOptions": ["My phone line has not changed", "Don't know"],
+          "showIf": {
+            "question": "q-tech",
+            "answers": ["An alarm you wear (pendant or wrist)", "A fall detector"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-alarm-check",
+          "text": "Before they leave, do your care workers check your alarm is with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, that you are wearing it or it is within reach.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "showIf": {
+            "question": "q-tech",
+            "answers": ["An alarm you wear (pendant or wrist)", "A fall detector"]
+          },
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Involving people to manage risks"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything about your equipment you would like to change?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, a different strap, where something is kept, or who is called when it goes off."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Keep a list of the people whose care plan records care technology (CareFlow cannot yet choose people by their care plan). Each year start a copy from this template (for example \"Technology, November 2027\") and use Send or schedule, Chosen people, for the first working day of November, open for 28 days. The first time, send it as soon as you adopt the survey in November or December 2026, so answers arrive before most landlines are expected to have moved to digital (January 2027). In 2026 it goes before the communication survey (SUR-PWS-016): leave anyone sent this one out of that December run.",
+      "People with a portal account answer in the portal. For everyone else, office staff or a Field Care Supervisor outside the person's core care team phone or visit, or post a copy in their recorded format, and enter the answers with Record response (channel Telephone, In person or Paper). When you send, CareFlow holds back anyone who had a survey contact in the last 4 weeks (a send, or answers entered with Record response, including a quality check) and sends them this survey on their free day if the copy is still open with 3 or more days left; phone, visit or post only to people it has sent it to. CareFlow cannot see care plan reviews, so leave out anyone who had one in the last 4 weeks. A quality check due in November is combined with this call.",
+      "By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can send or open a survey: give these to the staff who make the calls; Care Coordinators can only view surveys unless given them.",
+      "On the phone use the person's own name for devices (\"your red button\"). Read each question and every answer choice aloud; reading the list of equipment is why it takes about 9 minutes. A representative answers only where the person cannot give their views even with help: record them in CareFlow's \"Who is answering\" field and report their answers separately. Use a professional interpreter, never a family member.",
+      "Who may open individual answers: the Care Coordinators and office staff who make or follow up the calls, the Deputy Manager and the Registered Manager. This is set in Who can see the answers: individual responses are limited to Care Coordinators, the Deputy Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who make or follow up the calls."
+    ],
+    "actingOnResults": [
+      "Act on every answer that needs it the same working day, under the alerts below. We never fix devices, recommend a company or hold key safe codes: faults go to the telecare service, with the person's agreement.",
+      "How to count: for the frequency questions report the share answering Always or Usually; for going off by mistake and feeling watched report the share answering No. Leave out Don't know, \"I have not used it\" and \"My phone line has not changed\". Report representatives' answers separately; never report a group of fewer than 5 people separately, and flag results resting on fewer than 10.",
+      "The Deputy Manager collates the results each year with the review answers, as the Technology-Enabled Care and Telecare Policy sets, and the Nominated Individual reviews the technology indicators in the quarterly quality report. Monitoring devices that people did not choose or that make them feel watched go to the restriction reviews under the Restraint and Restrictive Practice Policy. Actions go into the service improvement plan within 5 working days, and each person whose answers need action is told within 5 working days what we will do, under the Governance and Quality Assurance Policy.",
+      "Keep answers for 3 years after the survey closes under the Records Management and Retention Policy. For CQC, the answers and actions show that technology is chosen, working and respectful of privacy (Regulations 9, 12 and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Has your alarm been tested since your phone line or broadband last changed?\" answered No or Don't know.",
+        "action": "Tell the Care Coordinator the same working day; with the person's agreement they ask the telecare service to test the system the same working day and record the result in the care plan. A safety alarm not working and not repaired within 2 working days goes to the Registered Manager, under the Technology-Enabled Care and Telecare Policy.",
+        "rule": {"task": "Alarm not tested since line change: ask for a test", "if": [{"question": "q-line-tested", "answers": ["No", "Don't know"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0, "urgent": true}
+      },
+      {
+        "when": "\"When you used your alarm, did help come quickly enough?\" answered No.",
+        "action": "The Care Coordinator asks the telecare service about the response plan within 5 working days, including its mobile response team where there are fewer than two responders or none who can reach the home within 30 minutes. If harm resulted, log it in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy.",
+        "rule": {"task": "Help slow after alarm: review the response plan", "if": [{"question": "q-help-came", "answers": ["No"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "\"Was it your choice to have your equipment?\" answered No.",
+        "action": "The Care Coordinator speaks with the person alone within 2 working days and holds a focused review within 7 days where they want it removed; a relative's wish never overrides the person's decision. For a monitoring device, the Registered Manager or Deputy Manager reviews its approval as a restriction under the Restraint and Restrictive Practice Policy, and the Care Coordinator updates the deprivation of liberty screen the same working day under the Deprivation of Liberty in the Community Procedure.",
+        "rule": {"task": "Equipment not their choice: speak with them alone", "if": [{"question": "q-choice", "answers": ["No"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 2}
+      },
+      {
+        "when": "\"Does any of your equipment make you feel watched?\" answered \"Yes, often\"; a camera or listening device in a bathroom, toilet or bedroom that the person did not choose; or a device that seems to be used to control or frighten them.",
+        "action": "As for equipment that was not their choice. Where a device may be used to control or frighten the person, or invades their privacy against their wishes, tell the safeguarding lead the same working day; the risk is assessed within 1 hour of the report under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+        "rule": {"task": "Feels watched by equipment: review the device", "if": [{"question": "q-watched", "answers": ["Yes, often"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 2}
+      },
+      {
+        "when": "\"Do you wear your alarm?\" answered Rarely or Never.",
+        "action": "The Care Coordinator contacts the person within 5 working days; where serious harm is possible, agree a plan with them under the Positive Risk-Taking Policy. If the person wants it removed, speak with them within 2 working days and hold a focused review within 7 days.",
+        "rule": {"task": "Rarely wears alarm: talk through the risks", "if": [{"question": "q-wear-alarm", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "\"Before they leave, do your care workers check your alarm is with you?\" answered Rarely or Never.",
+        "action": "Tell the Care Coordinator the same working day; the core team is briefed before their next visit, and the Field Care Supervisor observes the end-of-visit alarm check, a critical item, at the next spot check.",
+        "rule": {"task": "Alarm not checked at end of visits: brief the team", "if": [{"question": "q-alarm-check", "answers": ["Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0}
+      },
+      {
+        "when": "Equipment not helping the person feel safe or video calls not helping (Rarely or Never), going off by mistake \"Yes, often\", or the overall question Poor or Very poor.",
+        "action": "The Care Coordinator contacts the person within 5 working days and raises device issues with the telecare service or at the next full review.",
+        "rule": {"task": "Equipment not helping or poor experience: follow up", "if": [{"question": "q-tech-safe", "answers": ["Rarely", "Never"]}, {"question": "q-video", "answers": ["Rarely", "Never"]}, {"question": "q-false-alarms", "answers": ["Yes, often"]}, {"question": "q-overall", "answers": ["Poor", "Very poor"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "Dissatisfaction that needs a response.",
+        "action": "Record a complaint the same working day; it is graded within 1 working day and acknowledged within 3 working days, under the Complaints Policy and Procedure."
+      },
+      {
+        "when": "Praise for our service or a named care worker.",
+        "action": "Record it as a compliment the same working day and pass it to each employee named within 5 working days."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff contact the person within 5 working days and record what was agreed.",
+        "rule": {"task": "Asked to be contacted about their answers", "if": [{"question": "q-contact", "answers": ["Yes"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5, "contactRequest": true}
+      }
+    ]
+  },
+  "access": {"responses": ["CARE_COORDINATOR", "DEPUTY_MANAGER", "REGISTERED_MANAGER"], "results": ["CARE_COORDINATOR", "DEPUTY_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-CD-019",
+    "POL-SG-006",
+    "POL-SG-005",
+    "POL-SG-004",
+    "POL-CD-016",
+    "POL-HS-013",
+    "POL-SG-002",
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-GOV-007",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "GOV.UK, UK transition from analogue to digital landlines: for most customers the upgrade is expected to be complete by January 2027; telecare on a digital line may not work in a power cut",
+      "url": "https://www.gov.uk/guidance/uk-transition-from-analogue-to-digital-landlines"
+    },
+    {
+      "source": "DHSC, Digital working in adult social care: What Good Looks Like: respect that digital will not be appropriate for everyone, and empower people to use technologies that may improve their wellbeing",
+      "url": "https://www.gov.uk/government/publications/digital-working-in-adult-social-care-what-good-looks-like/digital-working-in-adult-social-care-what-good-looks-like-for-local-authorities-and-care-providers"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12: safe care and treatment, including the safe use of equipment",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

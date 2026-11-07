@@ -1,9 +1,10 @@
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { diskStorage } from 'multer';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 export function photoUploadRoot() {
-  return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'service-users', 'photos');
+  return uploadPath('service-users', 'photos');
 }
 
 export function photoMaxBytes() {

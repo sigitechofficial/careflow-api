@@ -1,0 +1,638 @@
+{
+  "reference": "POL-IPC-002",
+  "revision": 1,
+  "title": "Standard Infection Control Precautions Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How every member of staff cleans their hands, uses respiratory and cough hygiene, chooses, puts on, takes off and disposes of personal protective equipment, and keeps care equipment and care surfaces clean on every visit, for every person, whether or not an infection is known. It is the procedure care workers follow day to day and the standard managers observe at spot checks.",
+  "keyPoints": {
+    "intro": "These precautions protect the people we support, their families and you on every visit, whether or not anyone is known to have an infection. Follow them every time, in every home.",
+    "points": [
+      "Clean your hands when you arrive and before you leave, before and after touching the person, before a clean task, food or medicines, after body fluids, after taking off PPE, and after handling waste, laundry or the person's equipment.",
+      "Use hand rub on visibly clean hands and rub until dry, at least 20 seconds. Use liquid soap and water for 40 to 60 seconds when hands are dirty, after body fluids, or when the person has diarrhoea, vomiting or C. difficile.",
+      "Never skip or rush hand hygiene or a PPE change because you are running late; phone the office instead.",
+      "When giving care, be bare below the elbows: no watch, one plain band ring at most, short natural nails with no varnish, gel or false nails, hair tied back, and cuts covered with a waterproof dressing.",
+      "Before every task, think about what you could touch or be splashed with, and wear the PPE your care plan and this procedure's PPE table require. Do not wear gloves for social contact, serving meals or giving tablets unless the care plan says so.",
+      "Put on PPE in this order: clean hands, apron, mask, eye protection, gloves. Take it off in this order, cleaning your hands after each item: gloves, apron, eye protection, mask.",
+      "Change gloves and apron between people and between tasks for the same person. Never wash gloves, use hand rub on them, double glove, or wear PPE out of the home.",
+      "Catch coughs and sneezes in a tissue, bin it and clean your hands. If you work with a runny nose, sore throat or mild cough, tell the office before your shift and wear a Type IIR mask at every visit.",
+      "Where the care plan gives you the task, clean and then disinfect the person's commode, urinal or bedpan after every use, and record it in the daily visit notes.",
+      "Report sore, cracked or itchy hands to your Field Care Supervisor before your next shift. Never skip hand hygiene because your hands are sore; we supply any different products occupational health advises.",
+      "Never start personal care without gloves, an apron and a way to clean your hands. If you run out during a visit, give only care needing no PPE, phone the office before you leave the home and follow its instructions.",
+      "If PPE fails, a product seems faulty or you are running short, phone the office before your next visit, keep the box of any faulty product, and record it in the incident log before your shift ends."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "VISIT",
+    "TRAINING",
+    "EQUIPMENT"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-003",
+    "POL-IPC-004",
+    "POL-IPC-005",
+    "POL-IPC-006",
+    "POL-IPC-012",
+    "POL-HS-009",
+    "POL-HR-016"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(e) safe equipment and 12(2)(h) preventing, detecting and controlling the spread of infections",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Standard infection control precautions in adult social care (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/standard-infection-control-precautions-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Staff health and managing sickness related to infection in adult social care (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/staff-health-and-managing-sickness-related-to-infection-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Tuberculosis (TB) guidance for adult social care settings (28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/tuberculosis-tb-guidance-for-adult-social-care-settings"
+    },
+    {
+      "source": "Department of Health and Social Care, Guide to donning (putting on) and doffing (removing) PPE (non-AGP) in adult social care settings (updated 1 February 2024)",
+      "url": "https://www.gov.uk/government/publications/ppe-guide-for-non-aerosol-generating-procedures/guide-to-donning-putting-on-and-doffing-removing-ppe-non-agp-in-adult-social-care-settings-text-only-version"
+    },
+    {
+      "source": "NHS England, National infection prevention and control manual for England, Chapter 1 Standard infection control precautions",
+      "url": "https://www.england.nhs.uk/national-infection-prevention-and-control-manual-nipcm-for-england/"
+    },
+    {
+      "source": "Department of Health and Social Care, The Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance (updated 13 December 2022), criterion 9",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "source": "Control of Substances Hazardous to Health Regulations 2002, regulation 7 (prevention or control of exposure; suitable personal and respiratory protective equipment)",
+      "url": "https://www.legislation.gov.uk/uksi/2002/2677/regulation/7"
+    },
+    {
+      "source": "Health and Safety Executive, Respiratory protective equipment: fit testing basics",
+      "url": "https://www.hse.gov.uk/respiratory-protective-equipment/fit-testing-basics.htm"
+    },
+    {
+      "source": "Medicines and Healthcare products Regulatory Agency, The Yellow Card scheme: guidance for healthcare professionals, patients and the public (updated 24 July 2025)",
+      "url": "https://www.gov.uk/guidance/the-yellow-card-scheme-guidance-for-healthcare-professionals-patients-and-the-public"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Infection is often present before anyone knows about it. {{organisation}} therefore uses the same standard infection control precautions for every person we support, on every visit, whatever their known infection status. Hand hygiene, respiratory hygiene, correctly chosen personal protective equipment (PPE) and clean care equipment, used every time, stop most infections passing between people, households and staff."
+        },
+        {
+          "p": "This procedure sets out how our staff carry out those precautions in people's own homes, where care workers work alone on short scheduled visits. When they need advice they phone the branch office, or the On-call Manager out of hours; \"the office\" in this procedure means both. It applies the firm rules in the Infection Prevention and Control Policy and carries the same authority. {{organisation}} supplies all PPE and hand hygiene products free of charge and gives staff the time, training and supervision to use them properly."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure makes sure that every member of staff cleans their hands at the right moments with the right product and technique, uses respiratory hygiene, chooses, puts on and takes off PPE safely and keeps care equipment and surfaces clean, and that the Registered Manager can show the precautions are used consistently."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to everyone who works for us and gives care or enters a person's home, including bank and agency workers and students on placement. Office staff follow the hand hygiene and respiratory hygiene sections. It owns our arrangements for hand hygiene, respiratory and cough hygiene and PPE. Other standard precautions are covered as follows:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Standard precaution",
+              "Where it is covered"
+            ],
+            "rows": [
+              [
+                "Assessing infection risk; kit contents, stock and shortages",
+                "Infection Prevention and Control Policy"
+              ],
+              [
+                "Care equipment and care surfaces",
+                "This procedure, with the Hazardous Substances (COSHH) Procedure for products we supply"
+              ],
+              [
+                "Linen, laundry and blood and body fluid spillages",
+                "Laundry, Soiled Linen and Spillages Procedure"
+              ],
+              [
+                "Waste, including used PPE",
+                "Waste Management in People's Homes Procedure"
+              ],
+              [
+                "Sharps and exposure to blood or body fluids",
+                "Sharps Safety and Needlestick Injury Procedure"
+              ],
+              [
+                "Extra precautions for a known or suspected infection, and outbreaks",
+                "Transmission-Based Precautions and Outbreak Management Procedure"
+              ],
+              [
+                "Uniform issue, wearing and washing",
+                "Uniform, ID Badges and Dress Code Policy; the infection control essentials are in this procedure"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Alcohol-based hand rub",
+                "Hand rub with at least 60% alcohol meeting the hygienic hand rub standard (EN 1500). It works only on visibly clean hands and does not reliably kill norovirus or C. difficile spores."
+              ],
+              [
+                "Type IIR mask",
+                "A fluid-resistant surgical mask that protects the wearer's nose and mouth from splashes and droplets. It is not a respirator."
+              ],
+              [
+                "FFP3 respirator",
+                "A tight-fitting mask that filters airborne particles. It protects only when fit tested to the wearer."
+              ],
+              [
+                "Medium-risk equipment",
+                "Equipment in contact with mucous membranes or contaminated with blood or body fluids, such as a commode pan, urinal, bedpan or thermometer. It is cleaned and then disinfected."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors fund free PPE and hand hygiene products, visit lengths that allow hand hygiene and PPE changes, and training time. The Nominated Individual checks the observed compliance rate and stock position in each quarterly IPC report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (IPC lead)",
+          "blocks": [
+            {
+              "p": "The Registered Manager approves the PPE and hand hygiene products we buy, decides any PPE beyond this procedure on community IPC team or health protection team advice, and acts on the monthly compliance figures. The Deputy Manager covers in their absence and compiles the monthly figures."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator",
+          "blocks": [
+            {
+              "p": "The Care Coordinator records in each care plan the PPE for each task, the person's hand hygiene support, who cleans which equipment and with what product; issues kit to new and agency workers before their first visit; and allocates visits only to staff whose competency is current."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors observe hand hygiene, PPE and kit at every spot check, act on reported skin problems and record results in supervision and appraisal records. They, and Senior Care Workers authorised in writing as assessors by the Registered Manager, carry out competency checks and correct poor practice when they see it."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers, Office staff and HR Manager",
+          "blocks": [
+            {
+              "p": "Care Workers follow this procedure on every visit and report skin problems, PPE failures and shortages. Office staff check deliveries against the product standards below and issue stock. The HR Manager arranges occupational health referrals and FFP3 fit testing and tracks training dates."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Hand hygiene",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "When to clean your hands",
+          "blocks": [
+            {
+              "bullets": [
+                "On arrival, before touching anything else, and as the last thing before you leave.",
+                "Before touching the person, and after touching them or their surroundings, such as the bed, commode or walking aid.",
+                "Before a clean task, such as catheter or stoma care, eye drops or a dressing, and before preparing food or handling medicines.",
+                "Immediately after contact, or possible contact, with blood or body fluids.",
+                "Before putting on gloves, and after taking off gloves or any other PPE.",
+                "After handling waste, used linen or the person's equipment, after touching a pet, after using your phone during a visit, and after coughing, sneezing or using the toilet."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Hand rub or soap and water",
+          "blocks": [
+            {
+              "p": "Running late is never a reason to skip or shorten hand hygiene or a PPE change; staff phone the office instead. Hand rub is used on visibly clean hands. Liquid soap and warm running water must be used instead when hands are visibly dirty, after contact with body fluids, and whenever the person has diarrhoea, vomiting or a known or suspected C. difficile or norovirus infection. Where there is no running water, staff remove dirt with a detergent hand wipe, use hand rub and wash at the first opportunity."
+            },
+            {
+              "p": "Staff use the soap from their kit, never the person's bar soap, and dry their hands with paper towels or kitchen roll, never the person's fabric towels. Soap is issued in sealed portable pump bottles that are never topped up or refilled. A hand rub without alcohol is used only where the IPC lead has approved it in writing for a named worker after a risk assessment that confirms with the manufacturer that the product meets the hand rub standards in this procedure; the approval is kept in the staff record."
+            }
+          ]
+        },
+        {
+          "heading": "Technique",
+          "blocks": [
+            {
+              "steps": [
+                "Push up sleeves and anything on the wrists as Bare below the elbows requires.",
+                "Washing: wet hands with warm water and apply one pump of soap. Hand rub: apply enough to cover both hands, usually one full pump.",
+                "Rub palm to palm; the back of each hand with the other palm, fingers interlaced; palm to palm with fingers interlaced; then the backs of the fingers against the opposite palm.",
+                "Rub each thumb clasped in the opposite hand, then the fingertips of each hand in the opposite palm, then each wrist.",
+                "Hand rub: keep rubbing until completely dry, at least 20 seconds and usually 20 to 30; never wipe it off. Washing: rinse, dry completely with a paper towel and turn off the tap with it. The whole wash takes 40 to 60 seconds."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Supporting the person",
+          "blocks": [
+            {
+              "p": "Care workers offer, and where needed help, the person to clean their hands before eating, after using the toilet or commode, after coughing or sneezing and whenever their hands are dirty, as recorded in the care plan. If the person asks whether a care worker has cleaned their hands, the care worker thanks them and cleans their hands again in front of them."
+            }
+          ]
+        },
+        {
+          "heading": "Mobile phones",
+          "blocks": [
+            {
+              "p": "Phones are wiped with a detergent wipe at the start of every shift and straight away if contaminated."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Bare below the elbows and skin care",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Dress for hand hygiene",
+          "blocks": [
+            {
+              "p": "When giving care, staff must be bare below the elbows: short sleeves or sleeves pushed above the elbow; no watch, fitness tracker, bracelet or hand jewellery except one plain band ring, moved up the finger during hand hygiene (a fob watch or phone is used to tell the time); nails short and clean, not visible beyond the fingertip from the palm side, with no varnish, gel, extensions or false nails; long hair tied back; and cuts or broken skin covered with a waterproof dressing, changed when wet or soiled."
+            }
+          ]
+        },
+        {
+          "heading": "Religious and cultural needs",
+          "blocks": [
+            {
+              "p": "A religious bangle, kara or medical alert bracelet may be worn pushed up the forearm and secured there during hand hygiene and care. Staff who cover their forearms for religious reasons are issued disposable oversleeves: put on for the task, removed and discarded before hand hygiene, and replaced for the next task or person. Religious headwear is washed or changed daily, straight away if contaminated, with loose ends secured away from the person. The Registered Manager agrees any other arrangement with the worker within 5 working days of the worker asking, without lowering the standard of hand hygiene, and records it in the staff record."
+            }
+          ]
+        },
+        {
+          "heading": "Protecting your skin",
+          "blocks": [
+            {
+              "p": "Damaged skin carries more bacteria and is harder to clean. Every care worker is issued a personal tube of emollient hand cream free of charge, used at breaks and at the end of each shift; communal tubs are never used."
+            },
+            {
+              "steps": [
+                "A worker with sore, red, cracked, itchy or weeping skin on the hands or wrists tells their Field Care Supervisor before their next shift, and keeps cleaning their hands as this procedure requires.",
+                "The Field Care Supervisor checks the skin, records it in the staff record and tells the HR Manager the same day; the HR Manager refers the worker to our occupational health provider within 5 working days.",
+                "The office supplies any alternative product occupational health advises, such as a different hand rub, a soap substitute or accelerator-free nitrile gloves, before the worker's next shift after the advice arrives.",
+                "Broken or weeping skin that cannot be covered with a waterproof dressing means no personal care until occupational health or the worker's GP confirms it is safe; the Care Coordinator reallocates their visits or arranges other duties."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Respiratory and cough hygiene",
+      "blocks": [
+        {
+          "bullets": [
+            "Cover your nose and mouth with a tissue when you cough, sneeze or blow your nose, put it straight in the waste bag and clean your hands. With no tissue, use the crook of your elbow. Keep your hands away from your face during care.",
+            "Help the person to do the same: keep tissues and a waste bag within reach, help them clean their hands, and handle used tissues or sputum pots with gloves.",
+            "When the person has a suspected or confirmed respiratory infection, open a window during and after care if the person agrees and it is safe and secure, and close it before you leave if the person cannot do so and wants it closed.",
+            "Ask for a fan to be switched off during care when the person has respiratory symptoms, and during wound or catheter care, unless it is needed for their comfort or safety; never point a fan at the person's face, body or an open wound."
+          ]
+        },
+        {
+          "p": "Staff with a high temperature, or who feel unwell, do not work, under the Staff Infection-Related Illness and Exclusion Policy. A care worker well enough to work with only a runny nose, sore throat or mild cough tells the office before their shift and wears a Type IIR mask at every visit until the symptoms have gone; where another suitable worker is available, the Care Coordinator does not allocate them to people at higher risk from infection, such as those receiving chemotherapy."
+        }
+      ]
+    },
+    {
+      "heading": "Personal protective equipment",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Choosing PPE for the task",
+          "blocks": [
+            {
+              "p": "PPE is chosen by assessing each task, not worn out of habit. Before each task the care worker considers what they could touch or be splashed with and wears what the care plan states or, where it says nothing more, what this table requires. If unsure, they phone the office before starting."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Task",
+                  "Gloves",
+                  "Apron",
+                  "Type IIR mask and eye protection"
+                ],
+                "rows": [
+                  [
+                    "Social contact, help with walking or dressing, serving food or drink, giving oral medicines (unless the care plan or eMAR says gloves are needed, for example for cytotoxic medicines), writing notes",
+                    "No",
+                    "No",
+                    "No"
+                  ],
+                  [
+                    "Washing intact skin, not genital or perianal areas",
+                    "No",
+                    "Yes",
+                    "No"
+                  ],
+                  [
+                    "Washing genital or perianal areas, toileting, continence care, emptying commodes, urinals or catheter bags",
+                    "Yes",
+                    "Yes",
+                    "Where splashing is possible"
+                  ],
+                  [
+                    "Applying creams, ointments or medicated patches",
+                    "Yes",
+                    "Where clothing may touch the person",
+                    "No"
+                  ],
+                  [
+                    "Mouth or denture care, catheter or stoma care, care of broken skin",
+                    "Yes",
+                    "Yes",
+                    "Where splashing is possible"
+                  ],
+                  [
+                    "Person vomiting or coughing heavily, or a risk of spraying",
+                    "Yes",
+                    "Yes; a long-sleeved disposable gown if an apron will not cover the splash",
+                    "Yes"
+                  ],
+                  [
+                    "Handling soiled linen or waste, cleaning the person's equipment, care-plan cleaning tasks",
+                    "Yes",
+                    "Yes",
+                    "Eye protection where splashing is possible, and always with our chlorine product; a mask gives no protection against fumes (Hazardous Substances (COSHH) Procedure)"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A person with a known or suspected infection may need more, as their care plan sets out under the Transmission-Based Precautions and Outbreak Management Procedure. Sterile gloves are used only for aseptic tasks under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Gloves and aprons",
+          "blocks": [
+            {
+              "bullets": [
+                "We use only powder-free nitrile examination gloves meeting the medical glove standard (EN 455) and, as our purchasing choice, the standard for protection against chemicals (EN ISO 374-1), stocked in at least four sizes; latex and vinyl gloves are not used.",
+                "Put gloves on immediately before the task and take them off as soon as it ends. Change them between people, between tasks on the same person (for example between continence care and preparing food) and straight away if torn.",
+                "Never double glove, wash gloves or use hand rub on them, and never touch your phone, belongings or face while wearing them.",
+                "If a glove tears during contact with blood or body fluids, remove it, wash your hands with soap and water and check your skin; contamination of broken skin is an exposure under the Sharps Safety and Needlestick Injury Procedure.",
+                "A disposable apron is used for each person and each task and disposed of straight after it; a uniform never replaces an apron. Long-sleeved disposable gowns are held at the office. Where the care plan shows a gown may be needed, the Care Coordinator issues gowns to each allocated care worker before their first visit; at an unexpected need, the care worker uses an apron, completes essential care and phones the office, which gets gowns to them before the next visit."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Masks and eye protection",
+          "blocks": [
+            {
+              "bullets": [
+                "A Type IIR mask must fully cover the nose, mouth and chin, with the nose band moulded to the face. Never touch the front or pull it under the nose or chin. It is single use: changed at the end of the task or visit, when damp or contaminated, and whenever taken off, and never worn between homes.",
+                "Transparent masks are used for people who rely on lip-reading or facial expression. The Care Coordinator records the need in the care plan and makes sure the person's core care team carries them; if none is available, staff use writing or other aids and phone the office.",
+                "Goggles or a visor are worn wherever splashes to the eyes are possible; prescription glasses are not eye protection. Each care worker has personal-issue reusable goggles that fit over glasses, cleaned before and after every use with a detergent wipe then a disinfectant wipe, as the manufacturer directs, and always before leaving the home, and carried in a clean bag in the kit box. Disposable visors are single use."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Respirators (FFP3)",
+          "blocks": [
+            {
+              "p": "Fit-tested FFP3 respirators are worn for suspected or confirmed infectious tuberculosis of the lungs or throat from the time a health professional suspects it, as UKHSA's TB guidance for adult social care sets out (the IPC lead contacts the local TB specialist service the same day), and otherwise only when the community IPC team or health protection team advises them after a risk assessment. The IPC lead records the reason in the person's care plan and risk assessments. Only the care workers the IPC lead names as FFP3 users under the Transmission-Based Precautions and Outbreak Management Procedure visit while respirators are needed. The HR Manager arranges a fit test by a competent fit tester through our occupational health provider before a worker first wears one, whenever the model or size changes or the worker's face shape changes, and at least every 2 years for workers the IPC lead names as possible users. Workers fit check the respirator every time they put it on. Facial hair must not cross the seal: a worker who keeps a beard is offered a powered respirator hood, or the Care Coordinator allocates another trained worker."
+            }
+          ]
+        },
+        {
+          "heading": "Putting on and taking off PPE",
+          "blocks": [
+            {
+              "p": "Put PPE on in the home, immediately before the task:"
+            },
+            {
+              "steps": [
+                "Clean your hands.",
+                "Put on the apron, or gown where needed, and tie it at the waist.",
+                "Put on the mask and mould the nose band.",
+                "Put on eye protection.",
+                "Put on gloves."
+              ]
+            },
+            {
+              "p": "Take PPE off in the home as soon as the task ends, without touching the contaminated outer surfaces, and put each item straight into the waste bag as you remove it:"
+            },
+            {
+              "steps": [
+                "Peel off the first glove from the wrist and hold it in the gloved hand; slide a finger of the bare hand under the second glove and peel it off over the first. Clean your hands.",
+                "Break the apron or gown ties and fold it inwards, contaminated side inside. Clean your hands.",
+                "Step at least 1 metre away from the person, or into another room, and remove eye protection by the side arms or strap. Clean your hands.",
+                "Remove the mask by the ear loops or ties. Clean your hands.",
+                "Tie the waste bag and dispose of it as the Waste Management in People's Homes Procedure requires."
+              ]
+            },
+            {
+              "p": "PPE is never worn out of the home, into the car or to the next visit."
+            }
+          ]
+        },
+        {
+          "heading": "Product standards",
+          "blocks": [
+            {
+              "p": "Office staff check every delivery before it goes into stock: UKCA or CE marking on all PPE; Type IIR masks to EN 14683; eye protection to EN 166; gloves marked to both EN 455 and EN ISO 374-1; hand rub of at least 60% alcohol meeting EN 1500. Failed products are quarantined and the IPC lead is told the same day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Care equipment and care surfaces",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Cleaning equipment",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Equipment",
+                  "What staff do"
+                ],
+                "rows": [
+                  [
+                    "Single use, marked with a crossed-out 2 or the words single use: gloves, aprons, masks, wipes",
+                    "Use once for one person, then dispose of it."
+                  ],
+                  [
+                    "Single-person use: the person's own sling, washing bowl, nebuliser mask",
+                    "Keep it in the person's home for them only; clean after each use as the manufacturer directs."
+                  ],
+                  [
+                    "Medium-risk: commode pan, urinal, bedpan, thermometer",
+                    "After every use, clean with detergent and warm water or a detergent wipe, rinse and dry, then disinfect with the product named in the care plan, as its label directs; or use a combined detergent and disinfectant product."
+                  ],
+                  [
+                    "Other equipment in the home: hoist, standing aid, walking aid, bed rails",
+                    "Wipe hand-contact points with a detergent wipe after use and when visibly dirty; disinfect after contact with body fluids. If an item is faulty, do not use it: make the person safe, tie on a DO NOT USE tag from your kit box and phone the office before leaving; the Care Coordinator tells the owner the same working day (Health and Safety Policy)."
+                  ],
+                  [
+                    "Our kit box",
+                    "Keep it closed and open it only with clean hands; clean inside and out at least weekly and whenever soiled. Personal goggles are cleaned as set out under Masks and eye protection."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Staff take into a home only their kit box, personal goggles, phone, personal alarm, car keys and items the care plan lists. The kit box is placed on a clean, dry surface or a paper towel, never on the floor or a bed. Staff record equipment cleaning they carry out in the daily visit notes. Equipment that family members, district nurses or another agency also use is cleaned before our staff use it as well as after. People who use a hoist have their own sling, laundered as its label states; single-patient-use slings are never laundered (Hoists, Slings and Lifting Equipment Procedure)."
+            }
+          ]
+        },
+        {
+          "heading": "Care surfaces and cleaning tasks",
+          "blocks": [
+            {
+              "p": "Household cleaning remains the household's responsibility unless the care plan gives a task to us. Before a care task, staff clean the surface they will use, such as a table for a dressing, with a detergent wipe, and ask, with the person's agreement, for pets to be kept out of the room during a clean task such as catheter care or a dressing. For care-plan cleaning tasks they work from clean to dirty and top to bottom, use separate cloths for the toilet and bathroom and for the kitchen, clean with detergent first and then use bleach or disinfectant where the care plan says so, made up exactly as the label directs. They use only products we supply or household products the care plan names, never mix products or decant them into unlabelled containers, and phone the office before using any other product. Where the home's condition prevents these precautions, the Infection Prevention and Control Policy applies."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Uniform",
+      "blocks": [
+        {
+          "p": "Uniform is issued and replaced free of charge under the Uniform, ID Badges and Dress Code Policy. For infection control, staff wear a clean uniform every shift and carry a spare top in a sealed bag. A top soiled with blood or body fluids is changed for the spare as soon as possible, sealed in a bag, taken home and washed on its own; the worker phones the office if this will delay their next visit. Uniform is washed separately from heavily soiled household items at the hottest temperature the fabric allows, at least 60°C where the label permits, then tumble dried or ironed, and never in a person's home. It is worn only for work and travel between home and visits as that policy sets out, with closed, clean, wipeable shoes."
+        }
+      ]
+    },
+    {
+      "heading": "Reporting problems",
+      "blocks": [
+        {
+          "p": "Staff never start personal care without gloves, an apron and a means of hand hygiene to hand. A care worker who runs out during a visit gives any care that needs no PPE, phones the office before leaving the home and follows the Care Coordinator's or On-call Manager's instructions for getting supplies or another care worker to the person. Staff phone the office before their next visit when PPE fails, gloves are not available in their size, supplies run low or a product causes a reaction, and record each IPC breach, PPE failure, near miss or shortage in the incident log before the end of their shift. Where a product seems faulty, such as gloves from one box that keep tearing or a mask that will not stay in place, the care worker stops using that box, keeps it with its batch number and returns it to the office. The Care Coordinator reviews each report by the end of the next working day, arranges replacement supplies and passes product problems to the IPC lead; reports that are also staff injuries, near misses or hazards are reviewed by the Registered Manager or Deputy Manager under the Health and Safety Policy. The IPC lead reports a faulty glove, mask or other medical device to the MHRA through the Yellow Card scheme within 2 working days, quarantines the batch, tells the supplier and records the report with the incident log entry."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "PPE for each task, hand hygiene support, equipment cleaning responsibilities and products, and transparent mask needs: the person's care plan and risk assessments.",
+            "Equipment cleaning done and hygiene advice given: daily visit notes.",
+            "IPC breaches, PPE failures, product problems, Yellow Card reports and shortages: the incident log.",
+            "Skin problems, occupational health advice and alternative products: the staff record.",
+            "Training, competency checks and FFP3 fit tests: training and compliance records; spot check observations: supervision and appraisal records; acknowledgement of this procedure: policy acknowledgements."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "p": "Frequencies are those in the Infection Prevention and Control Policy: IPC induction and an observed hand hygiene and PPE competency check before working alone, both renewed every 12 months, and IPC awareness for office staff within the first week. Induction covers every part of this procedure, with practical hand hygiene checked under an ultraviolet light box and a full PPE put-on and take-off."
+        },
+        {
+          "p": "The competency check is observed on a real visit by a trained assessor and covers bare below the elbows, every hand hygiene moment, the choice of product and full technique, PPE choice, order of putting on and taking off, disposal, cleaning the person's equipment, and what the worker would do if PPE failed or ran out. Every item must be met to pass. A worker who fails is coached at the time and re-observed within 4 weeks, with reassessment and no lone working where the Infection Prevention and Control Policy requires it. Staff acknowledge this procedure in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Hand hygiene, bare below the elbows, PPE use, kit and equipment cleaning",
+                "Every spot check; each care worker at least every 6 months",
+                "Field Care Supervisors",
+                "Deputy Manager"
+              ],
+              [
+                "Observed compliance rate: observations passed in full; target 95%",
+                "Monthly",
+                "Deputy Manager",
+                "IPC lead; Directors in the quarterly IPC report"
+              ],
+              [
+                "PPE issued to each care worker compared with their personal care visits, to find under-use",
+                "Quarterly",
+                "Care Coordinator",
+                "IPC lead"
+              ],
+              [
+                "Care plans state PPE per task, hand hygiene support and equipment cleaning",
+                "Within the monthly care plan infection audit",
+                "Deputy Manager",
+                "IPC lead"
+              ],
+              [
+                "Breaches, PPE failures, product problems and skin referrals",
+                "Monthly surveillance review",
+                "IPC lead",
+                "Directors in the quarterly IPC report"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "If the monthly compliance rate falls below 90%, or the same failure appears in three or more observations in a month, the IPC lead sets an action plan within 2 weeks, such as team retraining, extra spot checks or a product change. The content of the IPC audit tools is set in the Infection Control Audit and Annual Statement Procedure; each completed tool is kept as an audit record under the Quality Audit and Monitoring Procedure."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager as IPC lead, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, an outbreak or serious infection-related incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

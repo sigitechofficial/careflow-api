@@ -1,0 +1,261 @@
+{
+  "reference": "POL-MED-015",
+  "revision": 1,
+  "title": "Delegated Healthcare Activities and Specialised Medicines Tasks Policy",
+  "documentType": "POLICY",
+  "summary": "When {{organisation}} accepts a healthcare task delegated by a registered health professional, such as insulin by pen, medicines and feeds through a gastrostomy tube, rectal medicines, bowel care or buccal midazolam, and how named care workers are trained, signed off, allocated, supervised and reviewed. Covers the conditions before a task starts, clinical responsibility, the visit, escalation, consent, change and withdrawal. For managers, coordinators and care staff.",
+  "keyPoints": {
+    "intro": "Delegated (Level 3) tasks are healthcare tasks a health professional has trained you to do for one named person. These are the rules every time you do one. Out of hours, phone the On-call Manager instead of the office.",
+    "points": [
+      "Only carry out a delegated task if you are named in the person's delegated task plan and signed off by the health professional for that person and task. Otherwise never attempt it, even if talked through it by phone.",
+      "Follow the written instructions exactly. Never calculate or change a dose, skip or add a step, or use equipment differently. If anything is not as the plan describes, or a dose window has closed, stop, make the person safe and phone the office.",
+      "Never accept a change to a delegated task from a relative, a colleague or a phone call. A change applies only once the Care Coordinator has updated the plan from the professional's written instructions and briefed you.",
+      "Never draw up an injection, inject except from a pre-filled pen or safety syringe, touch syringe driver or insulin pump settings, or use a nasogastric tube. If a feeding tube comes out, never put it back: cover the site, keep the tube, phone the office.",
+      "Ask the person before every task. If they decline, never press them; you may offer once more later in the visit. Record Refused on the eMAR, or the decline in the daily visit notes, and phone the office before you leave.",
+      "Give a rescue medicine such as buccal midazolam only if named for it, as the emergency plan says; otherwise call 999 for any seizure. Always call 999 for a first or unusually long seizure (over 5 minutes if unknown), no recovery, injury or breathing difficulty.",
+      "For a low blood sugar, follow the hypo plan. If the person cannot swallow safely, give nothing by mouth, use the recovery position and call 999; call 999 too if they are not improving after a second treatment.",
+      "Record every delegated task at the time, with the checks the plan asks for, such as the blood glucose reading or the injection site on the body map.",
+      "Use the sharps container at the point of use and never recap a needle. If you are injured, follow the Sharps Safety and Needlestick Injury Procedure at once.",
+      "If you do not feel confident or safe to do the task, do not do it: phone the office. You will never be blamed for saying so.",
+      "Your sign-off lasts as long as the professional sets, never more than 12 months, and is renewed when the device or method changes, after 3 months without doing the task for that person, or after an incident."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["Manager", "Care Coordinator", "Senior Carer/Nurse", "Carer/Domestic", "Staff Allocation"],
+  "moduleLinks": ["MEDICATION", "TRAINING", "CARE_PLAN", "RISK_ASSESSMENT", "EMPLOYEE"],
+  "relatedReferences": ["POL-MED-001", "POL-MED-006", "POL-MED-008", "POL-MED-016", "POL-IPC-004", "POL-IPC-010", "POL-CD-007", "POL-HS-008"],
+  "regulatoryBasis": [
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(c) staff competence and 12(2)(i) working with other providers", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12" },
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18 Staffing", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18" },
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11 Need for consent", "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11" },
+    { "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 1, paragraph 1 Personal care and paragraph 4 Treatment of disease, disorder or injury", "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/1" },
+    { "source": "The Human Medicines Regulations 2012, regulation 214(2) Parenteral administration of prescription only medicines", "url": "https://www.legislation.gov.uk/uksi/2012/1916/regulation/214" },
+    { "source": "The Misuse of Drugs Regulations 2001, regulation 7 Administration of drugs in Schedules 2, 3, 4 and 5", "url": "https://www.legislation.gov.uk/uksi/2001/3998/regulation/7" },
+    { "source": "Skills for Care, Delegated healthcare activities: the guiding principles (first published May 2023, updated November 2024)", "url": "https://www.skillsforcare.org.uk/Support-for-leaders-and-managers/Managing-a-service/Delegated-healthcare-activities/The-guiding-principles.aspx" },
+    { "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), summarising NICE guideline NG67 Managing medicines for adults receiving social care in the community (March 2017), including delegation of medicines tasks that need specific skills", "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf" },
+    { "source": "Nursing and Midwifery Council, The Code, section 11: Be accountable for your decisions to delegate tasks and duties to other people", "url": "https://www.nmc.org.uk/standards/code/read-the-code-online/" },
+    { "source": "NHS, What to do if someone has a seizure (fit): when to call 999", "url": "https://www.nhs.uk/conditions/what-to-do-if-someone-has-a-seizure-fit/" },
+    { "source": "NHS, Low blood sugar (hypoglycaemia)", "url": "https://www.nhs.uk/conditions/low-blood-sugar-hypoglycaemia/" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "Some people we support need healthcare tasks that a nurse or other health professional would otherwise carry out, such as insulin by pen, feeds and medicines through a gastrostomy tube, rectal medicines or buccal midazolam. When a registered health professional delegates such a task to trained care workers, the person can receive it at home, at the times that suit them, from people they know. {{organisation}} accepts a delegated task only when it is safe, lawful and agreed in writing, for one named person and named care workers, with the health professional keeping clinical oversight." },
+        { "p": "The law requires care to be provided safely by staff with the competence, skills and experience to do so, and with the training and supervision their work needs (regulations 12(2)(c) and 18 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). NICE guideline NG67 says a medicines task needing specific skills should be delegated only where health and social care have agreed locally that a care worker will provide it, the person or their attorney consents, responsibilities are agreed and recorded, and the care worker is trained and assessed as competent. We apply these conditions to every delegated task, follow the Skills for Care guiding principles, and add this detail to the Level 3 rules in the Medicines Management Policy. Timescales are our policy unless stated as law." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "bullets": [
+          "We accept only tasks a registered professional delegates in writing for a named person, and decline in writing any task we cannot carry out safely.",
+          "Clinical decisions stay with the professional, and everyone knows what they are responsible for.",
+          "Only care workers signed off for that person and task carry it out, and they know what to do when something goes wrong.",
+          "Every delegation is reviewed, changed or ended safely, and audited."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This policy applies to every employee who plans, allocates, carries out or checks a delegated task, and to every person we support who receives one at home. It covers each task in 'Tasks we accept', whether or not it involves a medicine, and catheter or stoma care where the professional or local NHS arrangement treats it as delegated; the Registered Manager decides that with the professional under the Catheter Care and Continence Hygiene Protocol. Agency workers never carry out delegated tasks for us; students may observe but never carry them out." },
+        { "p": "Covered elsewhere: device tasks (Catheter Care and Continence Hygiene Protocol); Level 2 medicines support (Administering and Supporting People with Medicines Procedure); emergency use of a person's own adrenaline auto-injector (First Aid Procedure); home oxygen (Fire Safety in People's Homes Policy); and anticipatory medicines and syringe drivers, which stay with the community nursing team (End of Life Care Policy). A delegated task is never combined with covert administration." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": { "columns": ["Term", "Meaning"], "rows": [
+          ["Delegated task (Level 3)", "A healthcare task a registered health professional is responsible for and passes, with written instructions, to care workers they have trained and signed off, for one named person."],
+          ["Delegating professional", "A registered nurse, doctor or other professional on a statutory register, such as a dietitian, in the NHS team, or NHS-commissioned service such as a home enteral feeding nurse service, responsible for that part of the person's care. A healthcare assistant, relative, previous provider or training company cannot delegate."],
+          ["Delegation agreement", "The written agreement signed by the delegating professional and the Registered Manager, kept in the person's care plan in CareFlow."],
+          ["Delegated task plan", "The professional's written step-by-step instructions, held in the person's care plan."],
+          ["Named care worker", "A Care Worker, Senior Care Worker or Field Care Supervisor named in the delegation agreement and signed off for that person and task."],
+          ["Sign-off", "Written confirmation by the delegating professional, or a registered colleague in their team, after watching the worker carry out the task for that person, that the worker is competent, with an expiry date."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Directors and Nominated Individual", "blocks": [
+          { "p": "The Directors approve this policy and fund the training and visit time delegated tasks need. Before we accept a type of task for the first time, and at each annual renewal, the Nominated Individual confirms in writing with our insurer that our liability insurance covers it; the Registered Manager keeps the list of covered task types. The Nominated Individual is told the same day when a new task has to wait for the Registered Manager or a delegation is withdrawn because it is unsafe." }
+        ] },
+        { "heading": "Registered Manager and Deputy Manager", "blocks": [
+          { "p": "The Registered Manager, as medicines lead, owns this policy and alone decides whether to explore or decline a request, signs delegation agreements, approves the task risk assessment and the care plan containing a delegated task or a change of task, device or method, approves training providers and decides on withdrawal. These decisions are never delegated to the Deputy Manager; an acting manager makes them only as the Registered Manager Role and Absence Cover Policy allows. In the Registered Manager's absence they wait; where waiting would put the person at risk, the Deputy Manager asks the prescriber or community nursing team to provide the task meanwhile and tells the Nominated Individual the same day. The Deputy Manager may suspend a delegation and carries out the monthly audits." }
+        ] },
+        { "heading": "Care Coordinator and Field Care Supervisor", "blocks": [
+          { "p": "The Care Coordinator prepares each delegation as 'Before a delegated task starts' sets out, allocates only named care workers, briefs them on every change and runs the weekly check. The Field Care Supervisor completes the task risk assessment with the professional's input and observes named care workers at spot checks, but never signs off competence for a delegated task, even when they hold a professional registration." }
+        ] },
+        { "heading": "Named care workers", "blocks": [
+          { "p": "Named care workers carry out only the tasks they are signed off for, exactly as written; record each task at the time; phone the office about anything outside the plan; keep their sign-off in date; and say when they cannot carry out a task safely." }
+        ] },
+        { "heading": "Office staff, On-call Manager and HR Manager", "blocks": [
+          { "p": "Office staff, and the On-call Manager out of hours, take calls, obtain advice, arrange cover only with named care workers or the community nursing team and record every call and piece of advice in the daily visit notes; they never start or change a delegated task. The HR Manager records each sign-off in the training and compliance records, warns the Care Coordinator 8 weeks before it expires and reports overdue sign-offs to the Registered Manager monthly." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Tasks we accept",
+      "blocks": [
+        { "p": "We accept only these tasks, and only when every condition in 'Before a delegated task starts' is met." },
+        { "table": { "columns": ["Task", "Named care workers may", "They never"], "rows": [
+          ["Insulin and other injections", "Give insulin or another prescribed medicine from a pre-filled pen, or a subcutaneous injection from a pre-filled syringe with a safety device (such as a blood-thinning injection), at the dose on the eMAR.", "Draw up from a vial or ampoule; load a cartridge into a reusable pen; mix or reconstitute, including glucagon kits; give an intramuscular or intravenous injection; calculate or adjust a dose."],
+          ["Blood glucose monitoring", "Do a finger-prick test with a single-use lancet, or read the person's flash or continuous glucose monitor, where the plan requires it.", "Insert or apply a sensor; operate or change insulin pump settings."],
+          ["Rescue medicines for seizures", "Give buccal midazolam from a pre-filled oral syringe, or rectal diazepam, when the emergency plan's criteria are met.", "Give any dose, or a second dose, in circumstances the plan does not describe."],
+          ["Feeding tubes", "Give feeds, water flushes and medicines through an established gastrostomy or jejunostomy tube; care for the site; start and stop a feed pump at the rate set in the plan.", "Insert, replace, reposition or check the position of any tube; use a nasogastric tube; change pump settings; give parenteral nutrition."],
+          ["Rectal and vaginal medicines and bowel care", "Give suppositories, enemas, pessaries and vaginal creams; carry out digital rectal stimulation and manual evacuation.", "Continue once a stop sign in the plan appears."],
+          ["Nebulised medicines", "Give a prescribed nebule through the person's own nebuliser and clean it as the plan says.", "Add another medicine, change the dose or adjust oxygen flow."],
+          ["Wound care", "Apply dressings and skin care the nurse has planned, using aseptic non-touch technique; add a CareFlow body map photograph of the wound for the nurse where the Consent to Care Policy allows.", "Touch a dressing that is not delegated; pack or debride a wound; take swabs; photograph a wound on their own phone, or without consent or a best interests decision recorded in CareFlow."]
+        ] } },
+        { "p": "We never accept: inserting or removing a cannula or needle; taking blood from a vein; syringe drivers or anticipatory medicines; inserting, removing, changing or repositioning a catheter or feeding tube; using a nasogastric tube; deflating a catheter balloon; intermittent catheterisation; flushing a catheter; bladder washouts or catheter maintenance solutions; clamping catheter tubing; taking a urine sample from a catheter or drainage bag; stoma irrigation; tracheostomy care, suction or ventilation; home dialysis; or any task where the professional will not give written instructions, train, sign off and keep oversight, or where deciding whether or how much to give needs judgement that cannot be written as plain criteria. The Registered Manager declines these in writing with the reason." }
+      ]
+    },
+    {
+      "heading": "Before a delegated task starts",
+      "blocks": [
+        { "steps": [
+          "Request. Whoever receives a request (from a professional, discharge team, commissioner, the person or family) passes it to the Care Coordinator, who records it in the care plan the same working day. Meanwhile the professional's team or the family continues the task.",
+          "Decision. Within 2 working days the Registered Manager decides whether to explore the task, or declines it in writing with the reason to the professional, the commissioner and the person.",
+          "Agreement with health and the commissioner. Where the integrated care board or council has a local delegation agreement or framework, we follow it and the Registered Manager keeps a copy. The Registered Manager agrees the task and the visit time it needs with the commissioner (the council, or the integrated care board for NHS Continuing Healthcare) by email, or in the service agreement for a person who pays for their own care or uses a direct payment. A visit that includes a delegated task is planned for at least 30 minutes; if the commissioner will not agree that time, the Registered Manager declines the task in writing.",
+          "Delegation agreement. The Care Coordinator checks and records the professional's registration on their regulator's public register (such as the Nursing and Midwifery Council or Health and Care Professions Council). The professional and the Registered Manager sign the delegation agreement, which the Care Coordinator adds to the person's care plan in CareFlow.",
+          "Consent. The person gives signed consent under the Consent to Care Policy, or a verified attorney for health and welfare or deputy with that authority does. Where the person lacks capacity and nobody holds that authority, a best interests decision is made with the professional under the Mental Capacity Act and Best Interests Policy and recorded in the care plan.",
+          "Instructions. The delegated task plan is in the care plan; for medicines through a feeding tube, so is the pharmacist's written advice on each medicine's form, crushing and flushes; for a rescue medicine or insulin, so is the emergency plan the First Aid Procedure requires. Each medicine is set up on the eMAR from its label and the plan, flagged Level 3 and second-checked.",
+          "Risk. The Field Care Supervisor completes the task risk assessment, with the sharps task risk assessment where sharps are used, and the Registered Manager approves it.",
+          "Equipment. Everything the task needs, including a prescribed sharps container and the safer sharps the Sharps Safety and Needlestick Injury Procedure requires, is in the home, and the care plan records who supplies and reorders it, such as the GP and community pharmacy, the home enteral feeding company or the community equipment service.",
+          "Named care workers. At least three are signed off for the person and task, or two where the task happens no more than once a week.",
+          "Approval. The Registered Manager approves the care plan in CareFlow, confirming each step. The Care Coordinator tells the GP practice and pharmacy within 2 working days."
+        ] },
+        { "p": "A delegated task never starts out of hours, at a short-notice start or on the day of discharge until every step is complete; until then the community nursing team provides it. Where a discharge plan includes a task not yet in place, the Registered Manager tells the ward and the care transfer hub or commissioner the same day, before discharge." },
+        { "p": "The delegation agreement records the tasks delegated and anything related that is not; the professional's name, profession, registration number, team, in-hours contact and out-of-hours route; each party's responsibilities; training and sign-off arrangements; the plan version; that changes come only in writing; who supplies equipment; a review date no more than 12 months ahead; and how the arrangement ends. The delegated task plan records each step; dose, timing and any time-sensitive window; checks before the task with the action for each result; equipment, hygiene and PPE; positioning, privacy and preferences; expected effects; warning signs and whom to call; what to do if the task cannot be done; and who else carries out the task and how they record it." }
+      ]
+    },
+    {
+      "heading": "Clinical responsibility and getting advice",
+      "blocks": [
+        { "table": { "columns": ["Delegating professional", "{{organisation}}", "Named care worker"], "rows": [
+          ["Decides whether the task can be delegated and to whom; assesses and plans treatment; writes and updates instructions; trains and signs off; monitors, reviews and advises; takes the task back when it can no longer be delegated safely.", "Decides whether we can accept safely; provides named care workers and enough visit time; allocates, supervises and audits; keeps records; tells the professional of changes we notice.", "Accountable for their own actions; does only what they are signed off for, as written; records each task; reports anything outside the plan; declines a task they cannot do safely."]
+        ] } },
+        { "p": "Section 11 of the Nursing and Midwifery Council Code makes a nurse accountable for the decision to delegate, for delegating only within the other person's competence and for making sure they are supervised and supported. Care workers never decide whether the task is needed, the dose, whether to act outside the plan's written criteria, how to deal with a problem the plan does not cover, or whether to stop or change the task, and they never teach or supervise a relative in the task, which stays with the professional. The office obtains these clinical decisions: from the professional's team in working hours, otherwise from the out-of-hours route in the agreement or NHS 111, recording the adviser's name, role and the time in the daily visit notes. Advice covers that visit only; a change to the task waits for written instructions. Anyone calls 999 in an emergency." },
+        { "p": "Paragraph 4 of Schedule 1 to the 2014 Regulations makes treatment of disease, disorder or injury a regulated activity when provided by or under the supervision of a health care professional, or a team which includes one. We are registered for personal care only (Statement of Purpose and Registration Procedure): the treatment is provided under the supervision of the NHS professional, no health care professional we employ provides or supervises it, and an employee with a professional registration never delegates or signs off competence for us. Before that would change, the Nominated Individual asks CQC in writing whether further registration is needed, and nothing changes until any registration CQC requires is granted." },
+        { "p": "Regulation 214(2) of the Human Medicines Regulations 2012 prohibits anyone other than an appropriate practitioner from parenterally administering a prescription only medicine to another person, which includes injecting it, unless acting in accordance with an appropriate practitioner's directions. Regulation 7 of the Misuse of Drugs Regulations 2001 allows any person to give a patient a Schedule 2, 3 or 4 controlled drug, such as midazolam, in accordance with the directions of a doctor, dentist or other prescriber the regulation names. Our policy applies this to every delegated medicine, including insulin: we give it only as the label and the delegated task plan direct." }
+      ]
+    },
+    {
+      "heading": "Allocating named care workers",
+      "blocks": [
+        { "bullets": [
+          "The Care Coordinator allocates a visit with a delegated task only to a named care worker whose sign-off for that person and task is in date. Insulin and other time-sensitive medicines also follow the Time-Sensitive Medicines Protocol.",
+          "If the allocated named care worker cannot attend, the Care Coordinator (On-call Manager out of hours) sends another named care worker, who may be a Field Care Supervisor or Senior Care Worker signed off for that person and task, or asks the community nursing team to carry out the task, and tells the person. Nobody else carries out the task, even if talked through it by phone.",
+          "For a person with a rescue medicine plan, named care workers are allocated to every visit wherever possible; any other worker is briefed by phone beforehand that they call 999 for a seizure and never give the rescue medicine.",
+          "When named care workers will fall below the minimum, the Care Coordinator asks the professional for training within 1 working day; if the gap cannot be prevented, the Registered Manager tells the professional and commissioner within 1 working day and agrees cover."
+        ] }
+      ]
+    },
+    {
+      "heading": "Carrying out a delegated task",
+      "blocks": [
+        { "steps": [
+          "Before the visit, read the delegated task plan in CareFlow, including any change since your last visit.",
+          "On arrival, check the person is as usual (for any warning sign, follow 'When something is not right' first), that the eMAR, label and plan match, that any dose or task given by family or a community nurse since the last visit is recorded where the plan says, that the equipment is present, in date and working, and that the sharps container has space below the fill line.",
+          "Tell the person what you are going to do and ask their consent. Give privacy, position them as the plan says, clean your hands and put on the PPE required. For wound care, tube feeding or any aseptic task, follow the hygiene rules for delegated tasks in the Catheter Care and Continence Hygiene Protocol.",
+          "Carry out the checks the plan requires, such as a blood glucose reading, and act on the result only as the plan states.",
+          "Carry out the task exactly as written. If anything differs or you are unsure, stop, make the person safe and phone the office before carrying on.",
+          "Dispose of sharps at once under the Sharps Safety and Needlestick Injury Procedure.",
+          "Record at the time: medicines, feeds and dressings on the eMAR with the correct outcome; readings, results and other tasks in the eMAR note or daily visit notes as the plan directs; injection sites on the CareFlow body map.",
+          "Before leaving, check the person is safe and the equipment clean and stored, and tell the office the same day if supplies are low or the sharps container is half full."
+        ] }
+      ],
+      "subsections": [
+        { "heading": "Insulin and injections", "blocks": [
+          { "p": "Check the pen is the person's own and that the insulin name and strength match the eMAR exactly, as several insulins have similar names. Use a new needle each time and rotate sites as the plan says. A variable dose is given only where the person with capacity chooses it, or the plan sets the exact dose for each reading range; care workers never calculate a dose. If the person will not eat a meal the insulin depends on, or a reading is outside the plan's ranges or not covered by it, phone the office before giving the dose. If the care worker will be late, or the dose window has closed, the Time-Sensitive Medicines Protocol applies, and they never give a late or double dose on their own judgement." }
+        ] },
+        { "heading": "Rescue medicines", "blocks": [
+          { "p": "The emergency plan, from the epilepsy nurse, neurologist or GP, describes the seizures, when to give the rescue medicine, the dose, whether a second dose may follow, and when to call 999. The medicine is kept where the plan says, never locked away, with a copy of the emergency plan for the ambulance crew, and both go with the person when they leave home with us. When the criteria are met it is given without delay and the time noted. Midazolam is a counted controlled drug (Controlled Drugs in the Community Procedure); in an emergency it is counted once the person is safe, before the care worker leaves, not before the dose." },
+          { "p": "The care worker calls 999 as the plan directs and, following NHS advice and the First Aid Procedure, always for a first seizure, a seizure lasting longer than usual or longer than 5 minutes when the usual length is not known, the person not regaining full consciousness or having another seizure before recovering, a serious injury, or difficulty breathing after the seizure. They stay until the person recovers or the crew takes over, then phone the office." }
+        ] },
+        { "heading": "Feeding tubes and bowel care", "blocks": [
+          { "p": "Medicines go through a tube only in the form the pharmacist has advised in writing, each separately, never added to the feed, with flushes as the plan says. A tube that comes out is never put back: the care worker covers the site with a clean dressing, keeps the tube and phones the office before leaving, and the office contacts the community nursing or enteral feeding team at once, or NHS 111 if that team cannot be reached, as the Nutrition and Hydration Policy sets out. Bowel care follows a plan from the community, continence or spinal injury nurse, respecting the person's preferred gender of care worker. For a person with a spinal cord injury the plan covers autonomic dysreflexia: a sudden pounding headache, flushing or sweating above the injury means stop, sit the person upright, follow the plan and call 999 if the signs do not settle quickly." }
+        ] }
+      ]
+    },
+    {
+      "heading": "When something is not right",
+      "blocks": [
+        { "p": "The care worker phones the office, or the On-call Manager out of hours, and if nobody answers within 15 minutes phones the Registered Manager or Deputy Manager directly. While waiting for a call back, the care worker stays with the person up to 30 minutes after the planned end of the visit, in paid time, and the office covers their next visit; after that the office arranges an extra visit or a nurse." },
+        { "table": { "columns": ["What you notice", "What you do", "What the office does"], "rows": [
+          ["Unconscious, struggling to breathe, collapse, swelling of the face or throat, or a seizure meeting the 999 rule", "Call 999, follow the emergency plan, stay with the person, then phone the office.", "Tells the professional and named contact the same day; incident log entry."],
+          ["Blood glucose below 4 mmol/L, or signs such as sweating, shaking or confusion", "Follow the hypo plan and the First Aid Procedure. If the person cannot swallow safely, give nothing by mouth, use the recovery position and call 999; call 999 too if they are not improving after a second treatment. Phone the office before leaving.", "Gets advice from the diabetes or community nursing team, or NHS 111, before the next insulin dose."],
+          ["A reading or problem the plan does not cover, an equipment fault, a blocked tube or missing supplies", "Do not continue. Make the person safe and phone the office at once.", "Gets advice from the professional's team, the out-of-hours route or NHS 111; arranges a nurse or extra visit."],
+          ["No reply or no access at a visit with a delegated task, or you will be late for it", "Follow the No Reply, No Access and Missing Person Procedure. If you will be late, phone the office once parked, as the Missed, Late and Short Visits Procedure sets out; for a time-critical visit, such as insulin, phone about any lateness.", "Sends another named care worker or asks the community nursing team to provide the task; tells the professional the same day if it was not done."],
+          ["Coughing, choking or breathing difficulty during a tube feed", "Stop the feed, sit the person upright, call 999 if the difficulty continues, then phone the office.", "Contacts the enteral feeding or community nursing team the same day."],
+          ["A sore, red, swollen, bleeding or leaking site, a new swallowing problem or new confusion", "Phone the office before leaving.", "Tells the professional the same day; focused review within 7 days."],
+          ["A task done by someone not signed off, a wrong dose or step, or a sharps injury", "Make the person safe, call 999 if needed, phone the office at once; incident log before the end of your shift.", "Medicines incident graded at least Medium under the Medication Errors, Near Misses and Incidents Procedure."]
+        ] } }
+      ]
+    },
+    {
+      "heading": "Consent, declining and raising concerns",
+      "blocks": [
+        { "p": "Regulation 11 requires consent for care and treatment and, where a person aged 16 or over lacks capacity, action in line with the Mental Capacity Act 2005. Signed consent at the start never replaces asking at every task. A person may decline at any time: the care worker never presses them, may offer once more later in the same visit while any dose is still within its time window, records Refused on the eMAR (or the decline in the daily visit notes for a task with no eMAR entry) and phones the office before leaving. Insulin and anti-epileptic medicines carry an advice-if-declined flag, so the office obtains advice the same day and before the next dose under the Consent, Mental Capacity and Declined Medicines Policy. Where the person withdraws consent to the arrangement, the Care Coordinator speaks to them and tells the professional the same working day, and the Registered Manager decides with the professional within 1 working day how the task will be provided." },
+        { "p": "A care worker who believes a task cannot be done safely, or does not feel confident, does not carry it out and phones the office, and is never criticised for it. The Registered Manager reviews every such concern by the end of the next working day and raises any change needed with the professional. Concerns not acted on can be raised under the Whistleblowing (Speaking Up) Policy." }
+      ]
+    },
+    {
+      "heading": "Change, review, suspension and withdrawal",
+      "blocks": [
+        { "bullets": [
+          "Changes come only as a written instruction from the prescriber or the delegating professional; a verbal instruction is never accepted. A change of dose or time is handled the same working day under the Medicines Changes, Transfers of Care and Hospital Discharge Procedure, which defines a written instruction, with the eMAR second-checked before the next affected dose. A change of task, device or method needs an updated plan approved by the Registered Manager and new sign-offs before it is used. Named care workers are briefed on every change before their next visit.",
+          "After any hospital stay, the task resumes only when the professional confirms in writing that the plan still applies or supplies a new one, and the discharge medicines check is complete; until then the community nursing team provides it.",
+          "If the professional leaves, the Care Coordinator asks the team the same working day to name a successor, confirmed in writing within 10 working days; otherwise the Registered Manager writes to the team manager and commissioner.",
+          "The Care Coordinator reviews each delegation with the person, named care workers and professional 4 weeks after the first task and at every care plan review. The professional reviews it by the date in the agreement, at least every 12 months; the Care Coordinator requests this in writing 4 weeks ahead and chases weekly once overdue.",
+          "A focused review takes place within 7 days after a change in the person's condition, task, dose or equipment, a hospital admission, an incident, a pattern of declines, a concern from anyone, or named care workers falling below the minimum."
+        ] },
+        { "p": "The Registered Manager or Deputy Manager suspends a delegation at once where the written instructions are missing or out of date, no in-date named care worker is available, no professional can be contacted for oversight, the person withdraws consent, or an incident shows that carrying on could cause harm. The community nursing team is asked to provide the task, and the person and commissioner are told the same working day. Only the Registered Manager restarts it." },
+        { "p": "For a planned withdrawal, the Registered Manager gives the professional, commissioner and person at least 28 days' written notice with the reason, and we continue until someone else takes the task over. Where continuing would put the person at risk, the Registered Manager phones the professional the same day, asks the community nursing team to provide the task from its next due time, tells the commissioner the same day and confirms it all in writing." }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        { "bullets": [
+          "Care plan: requests, decisions, the delegated task plan, pharmacist advice, reviews, and consent or the best interests decision. Person's documents: the signed agreement and registration check. Risk assessments: the task and sharps task risk assessments.",
+          "eMAR, daily visit notes and the CareFlow body map: each task and its checks. Incident log: every delegated task incident.",
+          "Training and compliance records: each sign-off with the person's CareFlow reference, task, expiry date and the professional's name and registration number; the signed sign-off record is kept in the staff record.",
+          "Retention follows the Records Management and Retention Policy."
+        ] }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "table": { "columns": ["Training", "Who", "When"], "rows": [
+          ["Delegated tasks awareness: Level 3, what staff never do, the 999 rule for rescue medicines, raising concerns", "All care staff", "Within full medicines training, then every 12 months"],
+          ["Prerequisites: medicines training and observed competency for the formulations involved, delegated sharps training for sharps tasks, IPC training for aseptic tasks, basic life support", "Named care workers", "In date before person-specific training starts"],
+          ["Person-specific and task-specific training, signed off by the professional after watching the task at the person's home", "Named care workers", "Before carrying out the task alone; renewed as the professional sets and at least every 12 months, on a change of device or method, after 3 months or more without doing the task for that person, and after an incident or critical spot check finding"],
+          ["Delegation pathway: requests, agreements, plans, allocation, review and withdrawal", "Registered Manager, Deputy Manager, Care Coordinators, Field Care Supervisors", "Before first involvement, then every 2 years"],
+          ["Calls about delegated tasks and arranging cover", "Office staff and On-call Managers", "Within eMAR monitoring training, then every 12 months"]
+        ] } },
+        { "p": "Training is given by the professional, their team or a provider they name in writing and the Registered Manager approves under the Training and Development Policy; only the professional or a registered colleague in their team signs off. After the HR Manager's 8-week warning, the Care Coordinator asks the professional in writing for reassessment within 5 working days; if no date is set 2 weeks before expiry, the Registered Manager writes to the team manager and tells the commissioner. Expired sign-off means the worker is not allocated the task. Every employee this policy applies to acknowledges it in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again." },
+        { "p": "Field Care Supervisors observe each named care worker carrying out a delegated task at least every 6 months, within the observed medicines practice spot check. Critical items: doing only what the plan says, the pre-task checks, hand hygiene and sharps safety, the correct record and escalation. A critical item not met means same-day feedback, the professional told the same working day, and no further delegated task by that worker until signed off again. Assessment detail is in the Medicines Training and Competency Assessment Procedure." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": { "columns": ["Check", "How often", "By whom", "Reported to"], "rows": [
+          ["Agreement and review dates, sign-off expiries and the number of named care workers per person", "Weekly", "Care Coordinator", "Deputy Manager; gaps to the Registered Manager the same day"],
+          ["Every visit with a delegated task checked against training records for an in-date named care worker", "Monthly", "Deputy Manager", "Registered Manager and Monthly Quality and Governance Meeting"],
+          ["Audit of every active delegation (10 chosen by risk, including all new ones, when more than 10): agreement, consent, plan version, risk assessment, eMAR set-up, records and escalations", "Monthly", "Deputy Manager", "Registered Manager and Monthly Quality and Governance Meeting"],
+          ["Incidents, declines, suspensions, withdrawals and overdue reviews or sign-offs", "Quarterly", "Registered Manager", "Quarterly medicines governance report to the Directors and Nominated Individual"],
+          ["Arrangements with each commissioner and community health team that delegates to us, within the annual medicines audit", "Every 12 months", "Registered Manager", "Directors and Nominated Individual"]
+        ] } },
+        { "p": "Targets: 100% of delegated tasks by in-date named care workers; 100% of delegations with a signed agreement, current plan and the Registered Manager's approval before the first task; 100% of sign-offs and reviews in date; no delegated task started out of hours. Every shortfall produces an action with a named owner and deadline." },
+        { "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, such as NICE NG67 or the Skills for Care guiding principles, a serious incident, an inspection finding, or when monitoring shows our arrangements are not working." }
+      ]
+    }
+  ]
+}

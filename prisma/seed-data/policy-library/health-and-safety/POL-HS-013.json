@@ -1,0 +1,602 @@
+{
+  "reference": "POL-HS-013",
+  "revision": 1,
+  "title": "Key Holding, Key Safes and Access to People's Homes Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How our staff get into people's homes: agreeing access, keeping key safe codes and keys secure, entering and leaving safely, and responding to lost keys, compromised codes, failed key safes and break-ins, including on hospital admission, at the end of a service and after a death. For everyone who visits homes or handles access details.",
+  "keyPoints": {
+    "intro": "Every visit starts and ends at someone's front door. These rules keep the people we support safe from theft and harm and protect you from allegations.",
+    "points": [
+      "Use a key safe code or key only for visits on your CareFlow rota. Never write a code down, text, email or photograph it, or tell it to anyone, including family and colleagues not on the visit, except fire or ambulance crews in an emergency.",
+      "Wear your ID badge where it can be seen. Knock or ring and call out your name before you go in, even when you use a key safe, and call out again once inside.",
+      "Shield the keypad, then put the key back in the key safe and scramble the code as soon as you have unlocked the door, unless you need the key to lock it when you leave. Never leave a key in the door.",
+      "Before you leave, do the end-of-visit checks and secure the door as the care plan says, always so the person can open it from inside unless the plan records an approved restriction. Put the key back, close the key safe and scramble the code.",
+      "If the key safe is empty, the code or key does not work or you cannot get in, phone the office or On-call Manager from the doorstep and follow the No Reply, No Access and Missing Person Procedure. Never force your way in.",
+      "If nobody answers and the door is open or unlocked, phone the office before you go in, and go in only if the office agrees.",
+      "If you see signs of a break-in, do not go in. Get somewhere safe, call 999 if someone may be inside or the person may be hurt, then phone the office.",
+      "Phone the office at once if you lose a key, take one away by mistake, find a key safe broken or think a code may be known by someone who should not know it; report a key safe found open before you leave.",
+      "Never hide a key outside, copy it or leave it in a car. Take one home only when it is signed out to you, and return it by the end of the next working day after your last visit with it.",
+      "If you give the code to fire or ambulance crews in an emergency, tell the office straight afterwards so that the code can be changed.",
+      "Never agree to be a personal key holder for anyone we support or use a code or key outside a rostered visit. Never give a code to a relative, visitor or caller who asks for it; pass the request to the office."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "VISIT",
+    "CARE_PLAN",
+    "INITIAL_ASSESSMENT",
+    "SAFEGUARDING",
+    "INCIDENT"
+  ],
+  "relatedReferences": [
+    "POL-SG-013",
+    "POL-HS-003",
+    "POL-HS-010",
+    "POL-HS-002",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-GOV-015",
+    "POL-CD-013"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 (safe care and treatment), paragraphs (1) and (2)(b)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 (safeguarding service users from abuse and improper treatment), including theft, misuse or misappropriation of property in paragraph (6)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 10 (dignity and respect), paragraph (2)(a) privacy",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/10"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17 (good governance), paragraphs (2)(b) and (2)(c)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 32 (security of processing)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/32"
+    },
+    {
+      "source": "UK General Data Protection Regulation, Article 33 (notification of a personal data breach to the Information Commission, as amended from 30 September 2026)",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/article/33"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 5 (acts in connection with care or treatment)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/5"
+    },
+    {
+      "source": "Care Act 2014, section 47 (protecting property of adults being cared for away from home)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/47"
+    },
+    {
+      "source": "Police and Criminal Evidence Act 1984, section 17(1)(e) (entry without warrant to save life or limb or prevent serious damage to property)",
+      "url": "https://www.legislation.gov.uk/ukpga/1984/60/section/17"
+    },
+    {
+      "source": "Health and Safety Executive, Protecting lone workers: How to manage the risks of working alone (INDG73, revision 4, 2020)",
+      "url": "https://www.hse.gov.uk/pubns/indg73.htm"
+    },
+    {
+      "source": "Secured by Design (police security initiative), accredited product search, category Key Safes, Safes and Secure Enclosures",
+      "url": "https://www.securedbydesign.com/member-companies/product-category-search"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} is trusted with access to the homes of the people we support, often because they cannot get to the door themselves. A code or key in the wrong hands exposes a person to theft, abuse and harm; a failed access arrangement can leave them without care. The locks, key safe and keys belong to the person or their landlord. We use them only as the person, or someone with legal authority for them, has agreed and only for rostered visits, keep them secure and leave every home as secure as we found it."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure makes sure every person has a tested access arrangement before their first visit, only staff who need codes or keys have them, every home is entered and left the same safe way, and losses, security incidents and service endings are dealt with on time."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to all employees, bank and agency workers, students and volunteers who visit homes or handle access details. It covers every way we get in: the person or their household opening the door, key safes, keys we hold, communal entrance codes, fobs and intercoms, and keypad or smart locks. Related matters are covered elsewhere:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Matter",
+              "Document"
+            ],
+            "rows": [
+              [
+                "No answer, being unable to get in, a missing person, and asking police or ambulance to force entry",
+                "No Reply, No Access and Missing Person Procedure"
+              ],
+              [
+                "Late and missed visits, and electronic call monitoring",
+                "Missed, Late and Short Visits Procedure"
+              ],
+              [
+                "Arriving to smoke, fire or a sounding smoke alarm",
+                "Fire Safety in People's Homes Policy"
+              ],
+              [
+                "Personal safety at the door and during visits",
+                "Lone Working and Staff Personal Safety Policy"
+              ],
+              [
+                "Lockable medicines box codes, handled like key safe codes",
+                "Self-Administration of Medicines Procedure"
+              ],
+              [
+                "Locking a person in, taking their keys or stopping them going out",
+                "Consent to Care Policy; Restraint and Restrictive Practice Policy"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Access details",
+                "The person's home and access details in CareFlow: how staff get in, where the key safe is, step-by-step access instructions and the code, held only in the key safe code field."
+              ],
+              [
+                "Scramble",
+                "After closing a key safe, clearing or turning its buttons or dials so the code cannot be read."
+              ],
+              [
+                "Key held by us",
+                "A key to a person's home that we keep in the branch office and sign out to named staff."
+              ],
+              [
+                "Key holder",
+                "A relative, friend or neighbour the person has chosen to hold a key, recorded in the People involved part of the care plan."
+              ],
+              [
+                "Compromised code",
+                "A code that may be known to someone not entitled to it, for example because it was written down, seen, overheard, sent in a message or held on a lost device."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors keep public liability insurance that covers keys we hold and lock replacement after their loss; the Nominated Individual confirms this with the insurer at each renewal."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this procedure (the Deputy Manager covers in their absence), approves every key holding arrangement, decides on lock changes after a loss or security incident, controls which roles can open people's records in CareFlow, which show codes and reviews access incidents under the Incident Reporting, Investigation and Learning Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators",
+          "blocks": [
+            {
+              "p": "Care Coordinators keep access details current, arrange code changes on time and run the key register."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "As assessors, Field Care Supervisors (and Care Coordinators who assess) agree, test and record the access arrangement."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours the On-call Manager takes access calls, makes the decisions given here to the Care Coordinator or Registered Manager that cannot wait, and hands each over to the Registered Manager or Deputy Manager by 10am the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager and Office staff",
+          "blocks": [
+            {
+              "p": "The HR Manager removes CareFlow access on an employee's last day, or the day of a suspension (by 10am the next working day where the worker was stopped out of hours), and recovers any keys they hold. Office staff named by the Registered Manager issue and receive keys and check at the close of each working day that keys due back are back."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Care workers follow this procedure at every visit and phone the office at once about any access problem, loss or security concern."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Agreeing access at assessment",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Choosing the arrangement",
+          "blocks": [
+            {
+              "p": "At the assessment, or the first visit of a short-notice start, the assessor agrees with the person how staff will get in at every visit time, including early morning, late evening and when the person is unwell, considering whether they can reach the door safely and in time, any falls risk on the way, memory, hearing and sight, and who else lives in or visits the home. We use, in order of preference:"
+            },
+            {
+              "steps": [
+                "The person, or someone who lives with them, opening the door, where they can do so reliably and safely at every visit time.",
+                "A key safe.",
+                "A key held by us, only where a key safe cannot be fitted or used (for example the landlord refuses, there is no suitable wall or the person declines one) or until one is fitted. The Registered Manager approves each arrangement before we take a key; out of hours the On-call Manager may approve it, confirmed or changed by the Registered Manager or Deputy Manager by 10am the next working day."
+              ]
+            },
+            {
+              "p": "A key holder coming to open the door is never relied on for routine visits; key holders are the back-up if the agreed arrangement fails. Communal entrance codes, fobs and intercoms are described door by door in the access instructions. Keypad and smart lock codes are handled exactly as key safe codes, and staff never install a lock's app on a personal phone."
+            }
+          ]
+        },
+        {
+          "heading": "Key safes",
+          "blocks": [
+            {
+              "p": "We never buy, supply or fit key safes. The person, their family or landlord, or a local authority, home improvement or telecare service provides one. Where the person cannot arrange this, the Care Coordinator asks the commissioner or local service in writing within 2 working days and agrees an interim arrangement, usually a key held by us, before the first visit."
+            },
+            {
+              "p": "We advise a key safe accredited by Secured by Design, the police security initiative, fixed to a solid wall in a lit place, out of direct view from the street where possible and reachable without stretching or kneeling. We advise tenants to ask their landlord's permission and everyone to tell their home insurer. The person or key holder chooses a code of at least 4 digits that is not a date of birth, house number, simple sequence or a code used elsewhere. The key safe holds only the door key, with no label showing the address. Before the first visit the assessor checks that the key safe opens and locks and the key works in the door."
+            }
+          ]
+        },
+        {
+          "heading": "Agreement, capacity and authority",
+          "blocks": [
+            {
+              "p": "The assessor records in the Consent and decisions part of the care plan the person's agreement to the arrangement, to our staff knowing the code or holding a key, and to anyone else who may be given the code. Where the person may lack capacity for this decision, the assessor assesses it under the Mental Capacity Act and Best Interests Policy; a verified attorney or deputy with authority decides, or otherwise the assessor makes a best interests decision, consulting family, which the Registered Manager or Deputy Manager approves before use. No access arrangement may lock a person in or stop them leaving unless approved as a restriction under the Restraint and Restrictive Practice Policy."
+            },
+            {
+              "p": "Where we hold keys, the person or representative signs a key holding agreement giving the number of keys, what they open, their tag number, who may use them and how they will be returned, and keeps a copy."
+            }
+          ]
+        },
+        {
+          "heading": "Recording",
+          "blocks": [
+            {
+              "p": "The assessor enters the access details in CareFlow before leaving the visit, typing the code straight into the key safe code field, never on paper. Apart from the business continuity access file, a code is never written in any other record, including the care plan's home copy, or in a rota, referral, email or message; one found there is a critical audit failure under the Quality Audit and Monitoring Procedure. For a package starting on the day of hospital discharge, the Care Coordinator confirms access with the person, family or ward before the first visit."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Keeping codes and keys secure",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Who may know a code",
+          "blocks": [
+            {
+              "p": "Codes are known only to care workers allocated to the person and to the Registered Manager, Deputy Manager, Care Coordinators, Field Care Supervisors, On-call Managers and Office staff named by the Registered Manager. In the CareFlow app, care workers see access details only for people assigned to them or on their rota for the next 14 days, and can be signed in on only one device at a time. Nobody receives a code before their staff record shows them cleared to work."
+            },
+            {
+              "p": "Staff never write a code down, store it in a phone, photograph it, put it in a message or voice note, say it where others can hear, tell it to the person's visitors or use it outside a rostered visit, and never agree to be a personal key holder, as the Professional Boundaries Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Passing a code on",
+          "blocks": [
+            {
+              "bullets": [
+                "When CareFlow is unavailable, or an agency worker has no CareFlow access, the office (On-call Manager out of hours) phones the worker on the number in their staff record or agency booking, gives the code by voice just before the visit and notes the call, never the code, in the daily visit notes. During an outage the code comes from the business continuity access file, opened only during an activation under the Business Continuity and Emergency Planning Policy and each opening noted in the incident log.",
+                "We never pass a code to a relative, another provider or a professional; the person or their representative does. The one exception is a named team, such as the district nursing team, that the person has agreed in writing may have it: the Care Coordinator phones the team back on its main number, gives the code by voice and records this in the People involved part of the care plan.",
+                "In an emergency the care worker on the scene may give the code to fire or ambulance crews, and tells the office straight afterwards. Office staff or the On-call Manager give a code to an emergency service only after ending the call and phoning the service back through 999 or on a number they have found themselves, and confirming the incident.",
+                "Any other request, including from police when there is no emergency, goes to the Registered Manager or Deputy Manager, who decides and records the reason."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Keys held by us",
+          "blocks": [
+            {
+              "bullets": [
+                "We hold the fewest keys needed, normally no more than two per home. Staff never copy a key; the person or family has copies made and hands them over against a signed receipt.",
+                "Keys are kept in a locked key cabinet in the branch office that only the Registered Manager, Deputy Manager, Care Coordinators and named Office staff can open, each on its own ring with a numbered tag showing no name, address or postcode. The link between tag and home is held only in the access details and the key register.",
+                "Every issue and return is entered in the key register in the branch office: tag number, date and time, and the names and signatures of the worker and the issuing staff member. A key is issued only to a named care worker on the rota for that person, for no more than 7 days at a time, and passes between two workers only where the Care Coordinator arranges it and records it in the register that day.",
+                "A signed-out key stays on the worker, separate from their own keys, is kept out of sight at home overnight and is never left in a vehicle, lent or handed to anyone else.",
+                "Keys return to the branch office by the end of the next working day after the worker's last rostered visit with them, and before any leave or the end of employment. When a worker holding a key reports sick, the Care Coordinator collects it before the next visit that needs it.",
+                "A key not back by the end of the next working day after it was due is treated as lost.",
+                "When a branch office moves, or another of our branches takes over people's care when a branch closes, every key is moved and signed in at the receiving office before the old one closes."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Changing a code",
+          "blocks": [
+            {
+              "p": "The person, family or key holder changes the code, never by or through anyone who may be responsible for abuse of the person; where none can in time, a Field Care Supervisor or Care Coordinator does so with the person's agreement. The new code goes into CareFlow at once; the Care Coordinator updates the access file the same working day and tells every allocated worker before their next visit that it has changed, never what it is. Where the risk is immediate and the code cannot be changed in time, the key is removed, with the person's agreement, and held by us until it is. We ask the person and family to phone the office before our next visit whenever they change the code; Office staff type it straight into CareFlow during the call."
+            },
+            {
+              "table": {
+                "columns": [
+                  "When",
+                  "Who arranges it",
+                  "Timescale"
+                ],
+                "rows": [
+                  [
+                    "Code given to the emergency services",
+                    "Care Coordinator, with the person or key holder",
+                    "By the end of the next working day"
+                  ],
+                  [
+                    "Code compromised",
+                    "Care Coordinator (On-call Manager out of hours)",
+                    "Person told the same day; changed by the end of the next working day, or the same day if someone suspected of a crime may know it"
+                  ],
+                  [
+                    "Break-in, entry by someone not entitled, missing property, or a tampered key safe or door",
+                    "Care Coordinator (On-call Manager out of hours)",
+                    "The same day"
+                  ],
+                  [
+                    "A worker who knew the code is found to be barred, is removed from the person's visits, suspended or dismissed where theft, financial abuse or harm is alleged, or leaves during an investigation or without returning keys",
+                    "Care Coordinator",
+                    "Change offered the same working day to each person whose code they knew; any key they hold for the home recovered that day"
+                  ],
+                  [
+                    "An alleged domestic abuser who does not live at the home may know the code",
+                    "Care Coordinator, with the person or their chosen key holder",
+                    "Change offered the same working day, as the Domestic Abuse Policy sets out"
+                  ],
+                  [
+                    "The person or representative asks",
+                    "Care Coordinator",
+                    "The same day if they are worried about security, otherwise within 5 working days"
+                  ],
+                  [
+                    "Routine change",
+                    "Field Care Supervisor",
+                    "Offered at a care plan review at least every 12 months"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Entering and leaving the home",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Arriving",
+          "blocks": [
+            {
+              "steps": [
+                "Before you arrive, read the access details and check the care plan for changes. Wear your ID badge where it can be seen.",
+                "Look and listen before you open the key safe or door, as the Lone Working and Staff Personal Safety Policy requires. If you feel unsafe, do not go in; phone the office.",
+                "Knock or ring, call out your name and that you are from {{organisation}}, and wait for an answer as the No Reply, No Access and Missing Person Procedure sets out. If they come to the door, show your badge; anyone may phone the office to check who you are.",
+                "If nobody comes, shield the keypad with your body while you open the key safe, and unlock the door.",
+                "Put the key back, close the key safe and scramble the code before you go in. If you need the key to lock the door when you leave, keep it on you, never in the door or on a table.",
+                "Go in, call out again and check in on CareFlow. Close the door behind you, leaving it open or on the latch only if the person asks."
+              ]
+            },
+            {
+              "p": "Answer the door during a visit only if the person asks, and never let in anyone they do not want or expect."
+            }
+          ]
+        },
+        {
+          "heading": "Leaving",
+          "blocks": [
+            {
+              "steps": [
+                "Complete the end-of-visit checks in the Fire Safety in People's Homes Policy, including the person's phone, pendant and walking aid within reach.",
+                "Leave windows and other doors as the care plan says, never closing or locking them against the wishes of a person who can decide.",
+                "Lock the front door as the care plan says, always in a way the person can open from inside, unless the care plan records a restriction approved under the Restraint and Restrictive Practice Policy.",
+                "Push the door to check it is shut and locked.",
+                "Put the key back, close the key safe, scramble the code and check the key safe is locked.",
+                "Check out on CareFlow and phone the office about any access or security problem."
+              ]
+            },
+            {
+              "p": "On a two-worker visit, the worker who leaves last locks up and puts the key back. If a person who can make the decision asks you to leave the home differently from the care plan, for example unlocked for a visitor, do as they ask, record it in the daily visit notes and phone the office before you leave; the Care Coordinator updates the care plan or discusses the risk with them within 5 working days. If you realise after leaving that you still have a key or did not secure the home, phone the office at once and go back, or let the office send someone."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Problems at the door",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What you find",
+              "What you do",
+              "What the office does"
+            ],
+            "rows": [
+              [
+                "The key safe is empty, the code or key does not work, the door is bolted or chained, or nobody answers",
+                "Phone the office or On-call Manager from the doorstep, wait somewhere safe and follow the No Reply, No Access and Missing Person Procedure. Never force entry, climb in, or ask anyone else to break in.",
+                "Checks the check-out record to see whether the last worker kept the key or left it inside, contacts key holders and applies the No Reply, No Access and Missing Person Procedure."
+              ],
+              [
+                "The key safe is open, its code showing, a key in the door, or the door unlocked when it should not be, and nothing else is wrong",
+                "If nobody answers an open or unlocked door, phone the office and go in, calling out, only if it agrees. Otherwise secure it, check the person is well, carry on with the visit, phone the office before you leave and record a hazard in the incident log before the end of your shift.",
+                "The Care Coordinator finds from check-out records who last visited and their Field Care Supervisor discusses it with them within 5 working days. A code left showing is treated as compromised."
+              ],
+              [
+                "Signs of a break-in, such as a forced door, broken window or a stranger inside",
+                "Do not go in. Get somewhere safe and call 999 for the police if someone may still be inside, and for an ambulance if the person may be hurt. Then phone the office. Touch nothing you do not need to.",
+                "Follows the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure; code changed the same day."
+              ],
+              [
+                "The person has been locked in by someone else, or their keys have been taken",
+                "Leave the door so they can open it from inside, unless the care plan records an approved restriction, and phone the office before you leave.",
+                "A safeguarding concern; the Registered Manager or Deputy Manager takes the urgent route in the Deprivation of Liberty in the Community Procedure, and the Care Coordinator refers to the fire and rescue service the same working day under the Fire Safety in People's Homes Policy."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Only the emergency services force entry; police may enter without a warrant to save life or limb (Police and Criminal Evidence Act 1984, section 17(1)(e))."
+        }
+      ]
+    },
+    {
+      "heading": "Lost keys, failed key safes and security incidents",
+      "blocks": [
+        {
+          "p": "Each event is phoned to the office (On-call Manager out of hours) at once and recorded by the worker in the incident log before the end of their shift."
+        },
+        {
+          "table": {
+            "columns": [
+              "Event",
+              "Response",
+              "Timescale"
+            ],
+            "rows": [
+              [
+                "A key held by us, or a key from a key safe, is lost or stolen",
+                "The Registered Manager or Deputy Manager (On-call Manager out of hours) decides with the person or representative whether the lock is changed, and arranges it. It is always changed where the key was stolen or lost with anything that could link it to the address.",
+                "Person told and decision made the same day; lock changed the same day where it must be"
+              ],
+              [
+                "A key safe is damaged or will not lock",
+                "The worker takes the key out, never hides it outside, and phones before leaving. The office has the key brought to the branch office or a key holder and asks the owner to repair or replace the key safe.",
+                "Owner asked the same working day"
+              ],
+              [
+                "A device showing CareFlow, or any record with codes and addresses, is lost or stolen",
+                "Handled under the Personal Data Breach Procedure. Codes on it are treated as compromised unless the Registered Manager (out of hours, the escalation manager under that procedure) confirms the device was locked and its CareFlow access removed before it could be used.",
+                "Reported at once; decision on codes the same day"
+              ],
+              [
+                "Property is missing or someone not entitled has entered",
+                "The safeguarding lead decides within 1 hour under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and applies the Managing Allegations Against Staff Procedure if staff may be involved.",
+                "Code changed the same day"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where a key or code was lost or compromised through our staff's error, we pay for the locksmith and any replacement key safe. The Registered Manager decides on CQC notification under the Statutory Notifications to CQC Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Hospital admission, ending the service and death",
+      "blocks": [
+        {
+          "bullets": [
+            "Hospital admission or time away: the Care Coordinator (On-call Manager out of hours) confirms the same day with the person or representative who will look after the home and keys. Staff enter an empty home only for a task the Care Coordinator has agreed with the person or representative and recorded; a visit only to feed and water a pet also needs the Registered Manager's or On-call Manager's authority under the Animals and Pets in People's Homes Guideline.",
+            "Where a person admitted to hospital, or placed in a care home by the local authority, cannot protect their belongings or pets, nobody else can, and they are at risk of loss or damage, the Care Coordinator asks the local authority the same day to protect their movable property (Care Act 2014, section 47). Before care restarts, the Care Coordinator confirms the access details are still correct.",
+            "When a service ends, including when a branch closes, keys held by us are returned within 5 working days to the person, their attorney, deputy or representative, against a signature, and the code is removed from CareFlow within 5 working days of the last visit. The ending letter advises changing the code. Keys go to a new provider only on the person's or representative's written request, against that provider's signature.",
+            "After a death, keys are returned against a signature to the executor or administrator, or until one is known to the next of kin in the People involved part of the care plan, the code is removed from CareFlow within 5 working days, and the family is advised to change it, as the End of Life Care Policy sets out. Where nobody can be found, the Registered Manager tells the local authority within 1 working day and we keep the keys locked away until it advises."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "How staff get in, key safe location, access instructions and the code",
+                "Access details in CareFlow, with the code only in the key safe code field; the continuity copy in the business continuity access file"
+              ],
+              [
+                "Agreement, capacity and best interests decisions",
+                "Consent and decisions part of the care plan"
+              ],
+              [
+                "Key issues and returns, monthly counts, receipts and key holding agreements",
+                "Key register in the branch office, kept for 6 years after the person's service ends"
+              ],
+              [
+                "Lost keys, compromised codes, failed key safes, break-ins and the code changes that followed",
+                "Incident log, and safeguarding records where a concern is raised"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Other retention follows the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "Care staff learn this procedure at induction before their first shadow visit, including push-button and dial key safes, and refresh it every 3 years with health and safety awareness training.",
+            "Office staff, Care Coordinators and On-call Managers are trained on the key register, phoned code requests and the response to losses and compromised codes before handling keys or calls alone or their first on-call shift, then every 12 months in the emergency calls briefing.",
+            "Assessors learn to agree, test and record access within risk assessment training and the annual assessor update.",
+            "At every spot check the Field Care Supervisor observes arriving and leaving. A key safe left open or showing its code, or a home left insecure, is a critical item under the Quality Audit and Monitoring Procedure.",
+            "A first lapse is discussed in supervision; a repeat within 6 months goes to the Registered Manager to decide on disciplinary action. Writing down, sharing or misusing a code is reported to the Registered Manager, who decides the same day how it is handled under the Managing Allegations Against Staff Procedure."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "bullets": [
+            "Care Coordinator: monthly key count against the register and a weekly check that every code change due was made on time.",
+            "Field Care Supervisor: access details confirmed at every care plan review and spot check; at quality checks people are asked whether staff knock, call out, show their badge and leave the home secure.",
+            "Deputy Manager, quarterly: key register against the cabinet; access details for 10 people, checking they are current and that no code appears outside the key safe code field and the access file, which is checked as encrypted and refreshed on time; every code change in the quarter against its timescale; and the CareFlow user list and care workers' app access, checking that leavers lost access on their last day and only the roles named here can open people's records. Target 100% for each, reported to the Registered Manager and the Health and Safety Meeting.",
+            "Registered Manager: quarterly trends in lost keys, compromised codes, key safes left open and break-ins to the Health and Safety Meeting and the Directors."
+          ]
+        },
+        {
+          "p": "The Registered Manager reviews this procedure every 12 months, and the Directors approve it, under the Policy Management and Document Control Policy; sooner after a change in law or guidance, a serious incident, an inspection finding or monitoring showing it is not working."
+        }
+      ]
+    }
+  ]
+}

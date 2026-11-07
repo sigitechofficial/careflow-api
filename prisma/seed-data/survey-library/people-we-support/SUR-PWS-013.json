@@ -1,0 +1,458 @@
+{
+  "reference": "SUR-PWS-013",
+  "revision": 1,
+  "title": "Personal care, privacy and dignity",
+  "audience": "SERVICE_USER",
+  "respondents": "People whose care plan includes help with washing, dressing, using the toilet, continence or mouth care; a representative may answer where the person cannot give their views, even with help",
+  "summary": "Asks people who get help with washing, dressing and using the toilet whether care workers ask first, keep it private, follow their preferences, go at their pace, keep them safe and use gloves, aprons and clean hands. About 9 minutes.",
+  "purpose": "Personal care is intimate, given alone, and where dignity, consent and sexual safety are most at stake. This survey turns the Personal Care, Continence and Oral Care Procedure and the Sexual Safety Policy into questions people can answer: asking first, privacy, the preferred sex of care worker, doing things their way and at their pace, doing what they can for themselves, being offered the toilet, feeling safe, and hand hygiene, gloves and aprons. It is the annual personal care, privacy and dignity survey the Sexual Safety Policy uses to measure whether people feel safe and respected during personal care. Results go to the Registered Manager's 3-monthly meeting with the Dignity Champions, to spot check planning and to the quarterly quality report, and each answer that needs action is followed up.",
+  "timing": {
+    "when": "For a new package, about 4 weeks after the first quality check (about 4 months in); about 6 weeks after personal care is added to an existing package; then once a year, never in February, September or the person's October or November survey month",
+    "recurrence": null,
+    "trigger": "A new package with personal care reaching its first quality check, or personal care added to an existing package; and the yearly repeat"
+  },
+  "anonymous": false,
+  "channels": ["PORTAL", "TELEPHONE", "IN_PERSON", "PAPER"],
+  "estimatedMinutes": 9,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING"],
+    "qualityStatements": [
+      "Safeguarding",
+      "Infection prevention and control",
+      "Consent to care and treatment",
+      "Kindness, compassion and dignity",
+      "Treating people as individuals",
+      "Independence, choice and control"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how our help with washing, dressing and using the toilet is going for you. Some questions are personal. You can skip any question or stop at any time. It takes about 9 minutes.\n\nTaking part is up to you, and what you say will not affect your care. Your answers are linked to your name so we can put things right. Your care workers (carers) will not see them.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to make sure your personal care is safe and respectful and to improve our care. Our legal reason is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name so we can put things right. They are seen only by our Registered Manager, Deputy Manager, safeguarding lead, Care Coordinators and the office staff who follow them up, never by your care workers (carers); reports show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this survey, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care over the last few months. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your privacy",
+      "questions": [
+        {
+          "id": "q-pc-ask",
+          "text": "Do your care workers ask you before they start helping you wash, dress or use the toilet?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Effective: Consent to care and treatment"
+        },
+        {
+          "id": "q-pc-private",
+          "text": "Do your care workers keep your personal care private?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "For example, closing doors and curtains, and keeping you covered. You can skip this question.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us what happens.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-pref",
+          "text": "Would you prefer a man or a woman to help with your personal care?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "You can skip this question.",
+          "options": ["A woman", "A man", "I do not mind", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-pref-met",
+          "text": "Does a care worker of the sex you prefer help you with personal care?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "showIf": {
+            "question": "q-pref",
+            "answers": ["A woman", "A man"]
+          },
+          "comment": {
+            "prompt": "Please tell us more, including whether we asked you first.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        },
+        {
+          "id": "q-pc-culture",
+          "text": "Do your care workers respect your culture or religion when they help you?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, washing in running water, modesty or covering your hair. Choose \"Does not apply to me\" if this does not matter to your care.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What should we do differently?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        }
+      ]
+    },
+    {
+      "title": "Doing it your way",
+      "questions": [
+        {
+          "id": "q-pc-yourway",
+          "text": "Do your care workers help you in the way you like?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, the order you like things done in.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Independence, choice and control"
+        },
+        {
+          "id": "q-pc-yourself",
+          "text": "Do your care workers let you do the things you can still do for yourself?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Independence, choice and control"
+        },
+        {
+          "id": "q-rushed",
+          "text": "Do your care workers have time to help you without rushing?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about help with washing and dressing.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "What gets missed or rushed?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        }
+      ]
+    },
+    {
+      "title": "Comfort and safety",
+      "questions": [
+        {
+          "id": "q-pc-safe",
+          "text": "Do you feel safe when your care workers help you with personal care?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "For example, when they help you wash, or move you in and out of the bath or bed. You can skip this question. If you feel unsafe, please phone the office now; do not wait for this survey. In an emergency, call 999.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "What would help you feel safer?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-pc-toilet",
+          "text": "Do your care workers offer to help you use the toilet?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not need help with the toilet.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-pc-gloves",
+          "text": "Do your care workers wear gloves and an apron for your personal care?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you cannot see or remember.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Infection prevention and control"
+        },
+        {
+          "id": "q-pc-hands",
+          "text": "Do your care workers wash or clean their hands before and after helping you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "With soap and water or hand gel. Choose \"Don't know\" if you cannot see or remember.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Infection prevention and control"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What would make your personal care better?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, the water temperature, the order things are done in, or equipment such as a shower chair."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Ask it about 4 weeks after the first quality check for a new package (about 4 months in), in the new-package order (night care SUR-PWS-019, then this survey, then meals and drinks SUR-PWS-012, each at least 4 weeks after the person's last survey), or about 6 weeks after personal care is added to an existing package. Then ask it once a year, spread across the year, never in February (annual survey), September or the person's October or November survey month.",
+      "CareFlow cannot yet choose people by their care plan tasks. Keep a list of the people with personal care and when this survey is due, and send it to each person with Send or schedule, Chosen people, in a running copy of this template (for example \"Personal care, spring\"); you can schedule it for the date it is due. People with a portal account answer there; for the rest, phone or visit, or post a copy in their recorded format, and enter the answers with Record response on the day (channel Telephone, In person or Paper). When you send, CareFlow holds back anyone who had a survey contact in the last 4 weeks (a send, or answers entered with Record response, including a quality check) and sends them this survey on their free day if the copy is still open with 3 or more days left; phone, visit or post only to people it has sent it to. CareFlow cannot see care plan reviews, so leave out anyone who had one in the last 4 weeks.",
+      "By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can send or open a survey: give both permissions to the office staff and Field Care Supervisors who make these calls; Care Coordinators can only view surveys unless given them.",
+      "The call or visit is made by office staff or a Field Care Supervisor outside the person's core care team, never a care worker who visits the person. Before the first question, ask \"Is anyone with you who can hear?\". Ask the privacy and feeling safe questions only once the person confirms they can talk privately; otherwise leave them unanswered, note \"not asked: not private\", and the Field Care Supervisor asks them privately at the next spot check. Introduce the topic plainly: some questions are about washing and using the toilet, and the person can stop at any time; note \"stopped early\" if they do.",
+      "Read each question, its help text and every answer choice exactly as written; reading every choice aloud is why it takes about 9 minutes. For people living with dementia or another cognitive impairment, ask face to face with the Field Care Supervisor, using pictures and the easy read answers (Always or usually; Sometimes; Rarely or never) plus Don't know. Use a professional interpreter, never a family member, and offer one of the person's preferred sex for this topic.",
+      "A representative answers only where the person cannot give their views even with help: record them in CareFlow's \"Who is answering\" field and report their answers separately. The preference question is a closed list on purpose: the sex of the care worker is the one care worker preference the Equality, Diversity and Human Rights in Care Policy allows; any other request is handled under that policy.",
+      "Who may open individual answers: the Registered Manager, the Deputy Manager, and the Care Coordinators and office staff who make or follow up the calls; never Dignity Champions, who see combined results only. This is set in Who can see the answers: individual responses are limited to the Registered Manager, the Deputy Manager, Care Coordinators and the safeguarding lead, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who make or follow up the calls; never Dignity Champions."
+    ],
+    "actingOnResults": [
+      "Act on every answer that needs it the same working day, under the alerts below. Read every comment for words such as rough, hurt, touched, wet or left, even where the answer itself looks fine.",
+      "How to count: for the frequency questions report the share answering Always or Usually, leaving out Does not apply to me and Don't know, and the preferred-sex question only for people who stated a preference. Always show how many people answered; report representatives' answers separately; never report a group of fewer than 5 people separately, and flag results resting on fewer than 10.",
+      "The Registered Manager takes combined results to the 3-monthly meeting with the Dignity Champions under the Person-Centred Care, Dignity and Respect Policy; Dignity Champions see combined results only, never individual answers. Consent, privacy, gloves and hand hygiene results shape spot check planning under the Quality Audit and Monitoring Procedure, and the feeling safe result is the Sexual Safety Policy's measure of whether people feel safe and respected during personal care. Results go into the quarterly quality report; actions go into the service improvement plan within 5 working days, and each person whose answers need action is told within 5 working days what we will do, under the Governance and Quality Assurance Policy.",
+      "Keep answers for 3 years after the survey closes under the Records Management and Retention Policy. For CQC, the answers and actions evidence dignity, consent, safeguarding and infection prevention as people experience them (Regulations 10, 11, 12, 13 and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe when your care workers help you with personal care?\" answered Sometimes, Rarely or Never; or any comment about being hurt, handled roughly, touched in a way that upset them, sexual comments or behaviour by a care worker, or being left wet or soiled.",
+        "action": "Tell the safeguarding lead the same working day; call 999 first if anyone is in immediate danger. The lead assesses the risk within 1 hour of the report and refers to the local authority immediately if the risk is immediate, otherwise the same working day, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, the Managing Allegations Against Staff Procedure for allegations against staff, and the Sexual Safety Policy. Where moving is the problem, the assessor reviews the moving and handling plan before the next visit if it is unsafe, otherwise within 7 days, under the Moving and Handling of People Policy.",
+        "rule": {
+          "task": "Possible safeguarding concern: does not always feel safe during personal care",
+          "if": [
+            {
+              "question": "q-pc-safe",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "Asking first or keeping personal care private answered Rarely or Never.",
+        "action": "Tell the Registered Manager the same working day; they decide whether it is a safeguarding concern. Record dissatisfaction as a complaint the same working day, and the Field Care Supervisor observes consent and privacy, both critical items, at the care workers' next spot check, under the Personal Care, Continence and Oral Care Procedure.",
+        "rule": {
+          "task": "Consent or privacy in personal care not kept",
+          "if": [
+            {
+              "question": "q-pc-ask",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-pc-private",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "\"Does a care worker of the sex you prefer help you with personal care?\" answered Sometimes, Rarely or Never, or the comment says we did not ask first.",
+        "action": "Tell the Care Coordinator the same working day: they record the preference in the care plan if it is missing, check that allocations follow it on every visit, and contact the person within 5 working days, under the Sexual Safety Policy. Record a complaint if the person is unhappy.",
+        "rule": {
+          "task": "Preferred sex of care worker not kept",
+          "if": [
+            {
+              "question": "q-pref-met",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "\"Do your care workers offer to help you use the toilet?\" answered Rarely or Never.",
+        "action": "The Care Coordinator contacts the person within 5 working days; where the person needs the toilet more often than visits allow, they write to the commissioner within 2 working days asking for the visit pattern to be reviewed, under the Personal Care, Continence and Oral Care Procedure.",
+        "rule": {
+          "task": "Not offered help with the toilet",
+          "if": [
+            {
+              "question": "q-pc-toilet",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do your care workers have time to help you without rushing?\" answered Rarely or Never.",
+        "action": "Within 7 days the Care Coordinator contacts the person and checks visit durations; where visits run 10 or more minutes shorter or longer at 3 or more visits in 2 weeks, visit length is reviewed with the person in the same 7 days, under the Needs Assessment and Care Planning Policy.",
+        "rule": {
+          "task": "Rushed during personal care: check visit durations",
+          "if": [
+            {
+              "question": "q-rushed",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueCalendarDays": 7
+        }
+      },
+      {
+        "when": "Gloves and apron or hand hygiene answered Rarely or Never.",
+        "action": "Tell the Care Coordinator the same working day; they ask the Field Care Supervisor, passing on only that need, to observe hand hygiene and PPE at the care workers' next spot check, with feedback and retraining under the Standard Infection Control Precautions Procedure.",
+        "rule": {
+          "task": "Gloves, apron or hand hygiene missed: observe at spot check",
+          "if": [
+            {
+              "question": "q-pc-gloves",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-pc-hands",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Doing things your way, doing things for yourself or culture and religion answered Rarely or Never, or the overall question Poor or Very poor, with no particular concern.",
+        "action": "Tell the Care Coordinator the same working day; they contact the person within 5 working days to agree what we will do, under the Compliments, Feedback and Involvement Procedure.",
+        "rule": {
+          "task": "Personal care not as they want it: agree what we will do",
+          "if": [
+            {
+              "question": "q-pc-yourway",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-pc-yourself",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-pc-culture",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment describing discrimination by our staff.",
+        "action": "Tell the Registered Manager the same working day; they decide within 1 hour of being told whether it is a safeguarding concern, under the Equality, Diversity and Human Rights in Care Policy, and it is a complaint graded High under the Complaints Policy and Procedure."
+      },
+      {
+        "when": "Dissatisfaction that needs a response.",
+        "action": "Record a complaint the same working day; it is graded within 1 working day and acknowledged within 3 working days, under the Complaints Policy and Procedure."
+      },
+      {
+        "when": "Praise for our service or a named care worker.",
+        "action": "Record it as a compliment the same working day and pass it to each employee named within 5 working days."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff contact the person within 5 working days and record what was agreed.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["REGISTERED_MANAGER", "DEPUTY_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "results": ["REGISTERED_MANAGER", "DEPUTY_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-CD-010",
+    "POL-SG-010",
+    "POL-CD-001",
+    "POL-CD-002",
+    "POL-CD-005",
+    "POL-HS-005",
+    "POL-IPC-002",
+    "POL-GOV-003",
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 10: dignity and respect, including privacy",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/10"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11: need for consent",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13: safeguarding service users from abuse and improper treatment",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Safety Executive, Moving and handling in health and social care: take action to prevent or minimise the risk of injury",
+      "url": "https://www.hse.gov.uk/healthservices/moving-handling/index.htm"
+    }
+  ]
+}

@@ -16,7 +16,7 @@ import {
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -27,9 +27,10 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ServiceUserInitialAssessmentService } from './service-user-initial-assessment.service';
 import { PatchServiceUserInitialAssessmentDto } from './dto/patch-service-user-initial-assessment.dto';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 function pictureUploadRoot() {
-  return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', 'service-users', 'initial-assessment', 'pictures');
+  return uploadPath('service-users', 'initial-assessment', 'pictures');
 }
 
 function pictureMaxBytes() {

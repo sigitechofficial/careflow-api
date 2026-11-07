@@ -1,0 +1,246 @@
+{
+  "reference": "SUR-STF-014",
+  "revision": 1,
+  "title": "Using the CareFlow app",
+  "audience": "EMPLOYEE",
+  "respondents": "Mobile app users: care workers, senior care workers, field care supervisors and on-call managers",
+  "summary": "An anonymous check, each July and December and for new users, on whether the CareFlow app helps or gets in the way on visits: reliability, no signal, the care plan, check-in, medicines, notes, messages, readability, help, and knowing what it records. About 7 minutes.",
+  "purpose": "Asks the people who use the CareFlow app on visits whether it helps them give care or gets in the way: reliability, working with no signal, finding the care plan, checking in and out, recording medicines and notes, rota messages, readability, training and getting help. It also checks two things the policies require staff to know: what the app records about them at check-in and check-out (the Acceptable Use of IT and Devices Policy target, at least 90%), and how to raise the emergency alert (the Lone Working and Staff Personal Safety Policy). Results guide requests to the IT support provider and the CareFlow supplier, training, device replacement and clearer care plans.",
+  "timing": {
+    "when": "Twice a year, opening on the first working day of July and of December for 2 weeks; for new users, about 8 weeks after their first visit using the app, sent in batches of 5 or more; optionally 4 to 6 weeks after a major app change",
+    "recurrence": "YEARLY",
+    "trigger": "About 8 weeks after a worker's first check-in in the app (batched)"
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 7,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING", "WELL_LED"],
+    "qualityStatements": [
+      "Medicines optimisation",
+      "Safe and effective staffing",
+      "Workforce wellbeing and enablement",
+      "Learning, improvement and innovation",
+      "Governance, management and sustainability"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how the CareFlow app works for you on visits, so we can fix what gets in the way. Please think about the last month. It takes about 7 minutes; answer between visits or at the end of a shift, in paid time, never during a visit. It is anonymous: this survey does not record your location and your answers are not linked to your account.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve how the app works for staff and to plan training. Our legal reason is our legitimate interest in running a safe service.\n\nThe survey is anonymous: we do not record your name or location, so your answers cannot be traced to you. CareFlow records only which branch an answer came from. Please do not write names, addresses or anything about the people you visit. Only the HR Manager looks at individual answers. Our reports show results only for groups of 5 or more, and comments only for groups of 10 or more. We share only combined results with the CareFlow supplier, and only if we choose to.\n\nWe keep individual answers for 1 year after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-app-overall",
+          "text": "Overall, how would you rate the CareFlow app for doing your work?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What is the main problem?",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Well-led: Learning, improvement and innovation"
+        }
+      ]
+    },
+    {
+      "title": "Using the app on visits",
+      "questions": [
+        {
+          "id": "stf-app-reliable",
+          "text": "Does the app work without freezing or closing when you need it?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-no-signal",
+          "text": "When you have no signal, can you still do what you need in the app?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have always had signal.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What could you not do? Please do not include addresses or names.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-care-plan",
+          "text": "Can you quickly find what you need in a person's care plan?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-check-in",
+          "text": "Is it easy to check in and out?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-medicines-record",
+          "text": "Is it clear how to record medicines in the app?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not help people with medicines.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-notes-time",
+          "text": "Can you write your visit notes in the time you have at each visit?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you do not write visit notes.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-rota-messages",
+          "text": "Does the app tell you about changes to your visits in good time?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-readable",
+          "text": "Can you read the screens easily, for example the text size?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "comment": {
+            "prompt": "What would help?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Getting help and staying safe",
+      "questions": [
+        {
+          "id": "q-app-training",
+          "text": "Did your training show you everything you need to use the app?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Partly", "No"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-app-help",
+          "text": "When you have a problem with the app, do you get help quickly?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not needed help.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "stf-careflow-records",
+          "text": "Do you know what CareFlow records about you when you check in and out, and why?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Partly", "No"],
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "q-alert-know",
+          "text": "Do you know how to raise the emergency alert in the app?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Not sure", "No"],
+          "evidence": "Safe: Safe and effective staffing",
+          "helpText": "The emergency alert is the SOS alert in the app, for when you need urgent help during a visit."
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one change would make the app better for you?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names, addresses or anything about the people you visit. To report a fault now, phone the office."
+        },
+        {
+          "text": "Is there anything in the app that slows you down during a visit?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names, addresses or anything about the people you visit. To report a fault now, phone the office."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it. CareFlow cannot repeat a survey twice a year, so keep two copies of this template, one repeating yearly from the first working day of July and one from the first working day of December (closing before Christmas), each kept open 14 days. Use Send or schedule with everyone in your branches and the job titles that use the app on visits (care workers, senior care workers, field care supervisors and on-call managers); office web users are not sent it. CareFlow records the branch of each anonymous answer, never the person. Set one reminder after 1 week in Reminders and follow-up: on an anonymous survey CareFlow sends it to everyone who has not answered, with no personal link, and never to one person.",
+      "New users: keep a running copy for new users and, about 8 weeks after a worker's first check-in, add them with Send or schedule, chosen employees. CareFlow refuses an anonymous send that reaches fewer than 5 people, so wait until 5 or more new users are due and send them together; skip anyone who had the first weeks survey (SUR-STF-003) or the end of probation survey (SUR-STF-004) in the last 4 weeks. Report the new-user copy only once 10 answers have built up, with no dates shown. Optionally, send a one-off copy 4 to 6 weeks after a major app change.",
+      "Staff answer in the app between visits or at the end of a shift, in paid time, never during a visit. Paper only on request for someone who cannot use the app at all, which is itself a finding; the HR Manager enters it alone with Record response, recorded as anonymous. Decide whether combined results are shared with the CareFlow supplier; never share individual answers.",
+      "Who may open individual answers: the HR Manager only. This is set in Who can see the answers: individual responses are limited to the HR Manager, and results to the HR Manager and the Registered Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "Comments are read each working day while the survey is open and sorted into themes (reliability, no signal, care plan, check-in, medicines, notes, visit change notifications, readability, support); agency issues and supplier issues are separated before anything is passed on. A comment describing a data security problem, such as a shared log-in, a personal phone used for work or a lost phone not reported, cannot be traced: the Nominated Individual repeats the rules to all staff and reviews the CareFlow access report under the Acceptable Use of IT and Devices Policy and the Personal Data Breach Procedure. A comment describing wrongdoing, such as faked check-ins, goes to the Registered Manager as a speaking-up concern with the Nominated Individual as case owner; the daily check-in exception review is checked.",
+      "How to count: positive means Very good or Good, Always or Usually, or Yes, leaving out Does not apply to me and Don't know. Never show a result for fewer than 5; flag 5 to 9; comments only for 10 or more. Knowing what CareFlow records is reported against the 90% target with the September result.",
+      "Library triggers: knowing what CareFlow records below 90% Yes means the Registered Manager re-briefs monitoring at the next team meeting and Field Care Supervisors cover it at spot checks within 3 months; \"Not sure\" about the emergency alert above 10% means every care worker's alert knowledge is checked at their next spot check and the next quarterly unannounced test is an emergency alert test; medicines recording Rarely or Never above 10% means the Registered Manager compares medicines recording errors in the incident log and arranges a refresher; reliability or no-signal Rarely or Never above 20% means the Nominated Individual raises it with the IT support provider and CareFlow supplier within 10 working days and checks device age and updates. Actions go into the service improvement plan within 5 working days of the report.",
+      "Results go back to staff in the November You said, we did summary and a short in-app note of what was fixed. Keep individual answers for 1 year after the survey closes under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you know how to raise the emergency alert in the app?\" answered No (anonymous: counts only).",
+        "action": "The HR Manager asks the Deputy Manager to make the next quarterly unannounced test an emergency alert test and asks Field Care Supervisors to check every care worker's alert knowledge at their next spot check, starting within 2 weeks (library timescale), under the Lone Working and Staff Personal Safety Policy. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Someone does not know the emergency alert (anonymous)",
+          "if": [
+            {
+              "question": "q-alert-know",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueCalendarDays": 14
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["HR_MANAGER"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-GOV-018",
+    "POL-GOV-019",
+    "POL-HS-003",
+    "POL-MED-005",
+    "POL-MED-016",
+    "POL-GOV-015",
+    "POL-GOV-006",
+    "POL-HR-018",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Skills for Care, Empowering care through technology: the vital role of digital skills in adult social care (2024)",
+      "url": "https://www.skillsforcare.org.uk/news-and-events/blogs/empowering-care-through-technology-the-vital-role-of-digital-skills-in-adult-social-care"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from staff",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

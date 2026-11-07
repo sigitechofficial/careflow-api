@@ -187,6 +187,20 @@ describe('MailService — MAIL_REDIRECT_TO safety net', () => {
     );
   });
 
+  it('sends to every inbox in a comma-separated redirect, and only those', async () => {
+    acsOk();
+    const svc = makeService({
+      mode: 'acs',
+      acsEndpoint: 'https://x',
+      from: 'a@b.test',
+      redirectTo: ' one@example.test , two@example.test ,',
+    });
+    await svc.send({ to: 'client@real.test', subject: 'Survey', text: 't' });
+    const msg = beginSend.mock.calls[0][0];
+    expect(msg.recipients.to).toEqual([{ address: 'one@example.test' }, { address: 'two@example.test' }]);
+    expect(msg.content.subject).toBe('[to: client@real.test] Survey');
+  });
+
   it('leaves recipients alone when no redirect is configured (production)', async () => {
     acsOk();
     const svc = makeService({

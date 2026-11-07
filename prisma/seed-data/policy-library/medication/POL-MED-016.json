@@ -1,0 +1,719 @@
+{
+  "reference": "POL-MED-016",
+  "revision": 1,
+  "title": "Medicines Training and Competency Assessment Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How {{organisation}} trains care staff in medicines support, tests their knowledge, observes and signs off their competence in people's homes before they give medicines alone, keeps competence current each year and after errors or absence, and links competence to the allocation of medicines visits. For managers, assessors, HR, coordinators and all care staff.",
+  "keyPoints": {
+    "intro": "You give medicines support only while your medicines training and observed competency are in date, and only for the medicines and formulations you are signed off for. This is how you get signed off and stay signed off.",
+    "points": [
+      "Never give, prompt or apply any medicine on your own until the Registered Manager or Deputy Manager has approved your observed competency in CareFlow. Before then, once you have passed the knowledge assessment, you give medicines only with a signed-off colleague beside you.",
+      "If a visit includes a medicine or formulation you are not signed off for, do not give it: phone the office (the On-call Manager out of hours) at once and carry on with your other tasks until told what to do. Never swap medicines visits.",
+      "Pass the medicines knowledge assessment: at least 80% overall and every one of the five critical safety questions correct. If you fail, you will get help and another attempt.",
+      "Your training and competency last 12 months. Check your dates in CareFlow and attend the refresher and annual observation booked for you; the HR Manager reminds you 30 days before expiry. Expired means no medicines visits.",
+      "You are reassessed before giving medicines alone again after an error that reached a person, two recording errors in 3 months or 3 months or more away from work. A new formulation, device or system is observed the first time you use it.",
+      "Assessors watch you at real visits, with the person's agreement. Work as you always do; the assessor stops you before a dose if something is about to go wrong.",
+      "If you do not feel confident with a medicine, a device or the eMAR, say so to the office or your Field Care Supervisor. You will be supported, never blamed.",
+      "Covert doses and delegated (Level 3) tasks need their own sign-off for that person. Never do one unless you are named and signed off.",
+      "Never do someone else's training or assessment, share answers or sign another person's record. It is misconduct."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "HR",
+    "Care Coordinator",
+    "Senior Carer/Nurse",
+    "Carer/Domestic",
+    "Staff Allocation"
+  ],
+  "moduleLinks": [
+    "TRAINING",
+    "MEDICATION",
+    "EMPLOYEE",
+    "HR",
+    "AUDIT"
+  ],
+  "relatedReferences": [
+    "POL-MED-001",
+    "POL-MED-006",
+    "POL-MED-014",
+    "POL-MED-015",
+    "POL-MED-009",
+    "POL-HR-004",
+    "POL-HR-006",
+    "POL-GOV-003"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, 12(2)(c) competence and 12(2)(g) proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18 Staffing, 18(1) and 18(2)(a) training, supervision and appraisal",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Skills for Care, Medicines competency assessment guide for adult social care settings (resource C): assessment methods, minimum of one and good practice of three direct observations, roles of assessor and manager",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Support-for-leaders-and-managers/Managing-a-service/Prevention-in-social-care/Medicines-management-resources/C-Medicines-competency-assessment-guide.pdf"
+    },
+    {
+      "source": "Skills for Care, Quality assurance checklist for medicines training processes in adult community settings (resource G), setting out NICE NG67 recommendation 1.11.1",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Support-for-leaders-and-managers/Managing-a-service/Prevention-in-social-care/Medicines-management-resources/G-QA-meds-checklist-for-training-in-community-settings.pdf"
+    },
+    {
+      "source": "Skills for Care, Medicines management resources (resource B Checklist for medicines management training in adult social care, resources D and E medicines competency assessment records)",
+      "url": "https://www.skillsforcare.org.uk/Support-for-leaders-and-managers/Managing-a-service/Prevention-in-social-care/Medicines-management-resources.aspx"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024): training and competence, summarising NICE NG67 Managing medicines for adults receiving social care in the community",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} allows nobody to give medicines support alone until they have been trained, have passed a knowledge assessment and have been observed and signed off as competent in a person's own home. Our care workers give medicines alone with no colleague to check their work, so competence is proven before they go and kept up to date."
+        },
+        {
+          "p": "The law requires that people providing care have the qualifications, competence, skills and experience to do so safely, that medicines are managed properly and safely, and that staff receive the training, supervision and appraisal their duties need (regulations 12(2)(c), 12(2)(g) and 18(2)(a) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). NICE guideline NG67 (recommendation 1.11.1) recommends robust processes for training, competency assessment including direct observation, and an annual review of each care worker's knowledge, skills and competencies. We follow the Skills for Care medicines competency assessment guide. Numbers and timescales in this procedure are our policy unless stated as law."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Nobody gives medicines support, sets up eMAR entries or assesses others without in-date training and sign-off, and only competent workers are allocated medicines visits.",
+            "Every assessor applies the same standard, and reassessment follows errors, absence and change promptly and fairly."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to every employee with a medicines role in the table below, including bank staff, agency workers placed with us and managers who cover visits, and to everyone who trains or assesses others in medicines. Students and volunteers never give medicines support. Family members and informal carers who give medicines under the care plan are not trained or assessed by us, and never sign off a worker's competence."
+        },
+        {
+          "p": "Covered elsewhere: induction and lone working sign-off (Induction and Care Certificate Procedure); other training, training pay and expired training (Training and Development Policy); spot checks (Quality Audit and Monitoring Procedure); responding to a medicines error (Medication Errors, Near Misses and Incidents Procedure); formal performance action (Capability and Performance Procedure); and how professionals sign off Level 3 tasks (Delegated Healthcare Activities and Specialised Medicines Tasks Policy). Emergency use of a person's own adrenaline auto-injector is taught under the First Aid Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Observed competency",
+                "Direct observation by a competency assessor of the worker giving medicines support at a real visit, with structured questions on situations not seen (the professional discussion), recorded as the medicines competency assessment in the worker's CareFlow staff record."
+              ],
+              [
+                "Formulation group",
+                "One of the seven groups a worker is signed off for: tablets and capsules; monitored dosage systems; liquids; inhalers and sprays; eye, ear and nose drops; creams; patches."
+              ],
+              [
+                "Competency assessor",
+                "A Field Care Supervisor, authorised Senior Care Worker, Deputy Manager or Registered Manager who has completed medicines competency assessor training. Different from a medicines assessor, who assesses a person's medicines support needs under the Assessing Medicines Support Needs Procedure."
+              ],
+              [
+                "Sign-off",
+                "Approval of an observed competency by the Registered Manager or Deputy Manager in the training and compliance records, after which the worker may give that support alone."
+              ],
+              [
+                "In date",
+                "Knowledge assessment passed, and observed competency approved, within the last 12 months."
+              ],
+              [
+                "The office",
+                "The branch office (Office staff and Care Coordinators) in office hours; the On-call Manager out of hours."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this procedure and fund paid medicines training and assessor time. The Nominated Individual receives the quarterly medicines governance report and acts on any training figure below target."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "As medicines lead, the Registered Manager owns this procedure; approves trainers and providers; authorises competency assessors, eMAR users and Senior Care Workers' extra medicines duties in writing; approves sign-offs; and decides on restrictions and reassessment after errors."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "Approves sign-offs and observes assessors in the Registered Manager's absence, and carries out the monthly allocation check and the quarterly competency records audit."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "Keeps every medicines training, assessment and sign-off date accurate in the training and compliance records; books training; tells the worker and Care Coordinator 30 days before any of them expires (8 weeks for a delegated task sign-off); and produces the expiry reports."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and staff allocation roles",
+          "blocks": [
+            {
+              "p": "Allocate medicines visits only as 'Allocating medicines visits' sets out, release workers for training and assessment, and book observed visits with the person's agreement."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and competency assessors",
+          "blocks": [
+            {
+              "p": "Carry out observed competency assessments, annual reviews and reassessments to the standard in this procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Attend training and assessments, give only the support and formulations they are signed off for, and say when they do not feel confident. Doing someone else's training or assessment, sharing answers or signing another person's record is misconduct under the Disciplinary Policy and Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Medicines training by role",
+      "blocks": [
+        {
+          "p": "Every requirement below is recorded in the training and compliance records, delivered in paid time and, where it involves practical skills, taught face to face. From the day a requirement lapses, the employee does not carry out that task, duty or rota role until it is renewed; lapsed medicines awareness follows the Training and Development Policy."
+        },
+        {
+          "table": {
+            "columns": [
+              "Training or sign-off",
+              "Who",
+              "Before",
+              "Renewed"
+            ],
+            "rows": [
+              [
+                "Medicines awareness: levels of support, what staff must never do, reporting concerns",
+                "All employees",
+                "End of week 1 of induction",
+                "Every 3 years for staff who do not give medicines support"
+              ],
+              [
+                "Full medicines training and knowledge assessment",
+                "Care Workers, Senior Care Workers, Field Care Supervisors, Care Coordinators, and any manager or On-call Manager who covers visits",
+                "Any medicines support, even supervised",
+                "Every 12 months (refresher and knowledge assessment)"
+              ],
+              [
+                "Observed competency, by formulation group",
+                "Everyone who gives medicines support",
+                "Giving that formulation alone",
+                "Every 12 months by annual review"
+              ],
+              [
+                "Counted controlled drugs: counting and recording a running balance, observed within observed competency",
+                "Everyone who gives medicines support",
+                "Giving a counted controlled drug alone",
+                "Every 12 months"
+              ],
+              [
+                "Person-specific covert administration sign-off",
+                "Named care workers",
+                "The first covert dose for that person, and when the method changes",
+                "Every 12 months"
+              ],
+              [
+                "Delegated (Level 3) task sign-off by the delegating professional",
+                "Named care workers",
+                "Carrying out the task alone",
+                "As the professional sets, at least every 12 months"
+              ],
+              [
+                "eMAR set-up and change competency, including verbal instructions and the discharge medicines check",
+                "Authorised eMAR users (Care Coordinators, Field Care Supervisors, Deputy Manager, Registered Manager, On-call Managers); the second-check part for Senior Care Workers authorised to second-check, and the verbal instructions part for those authorised to receive them",
+                "Any eMAR entry, second check, verbal instruction or discharge check; for On-call Managers, the first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "eMAR corrections and recording on behalf",
+                "Care Coordinators, Deputy Manager, Registered Manager, On-call Managers; Office staff for recording on behalf only",
+                "Doing either for the first time",
+                "Every 12 months"
+              ],
+              [
+                "eMAR monitoring and downtime, including medicines incident calls, controlled drug discrepancy calls, late time-critical visits, urgent supplies, covert and delegated task calls",
+                "Office staff and On-call Managers",
+                "Monitoring alone or the first on-call shift",
+                "Every 12 months"
+              ],
+              [
+                "Time-critical visit allocation",
+                "Care Coordinators and staff allocation roles",
+                "Allocating a time-critical visit",
+                "Every 12 months"
+              ],
+              [
+                "Ordering medicines",
+                "Care Coordinators and anyone who places orders",
+                "The first order",
+                "Every 12 months"
+              ],
+              [
+                "Medicines assessor training and update",
+                "Care Coordinators, Field Care Supervisors and On-call Managers",
+                "Any medicines assessment, and joining the on-call rota",
+                "Every 12 months, with the refresher"
+              ],
+              [
+                "In-home medicines checks",
+                "Field Care Supervisors and authorised Senior Care Workers",
+                "The first check: training by the Registered Manager or Deputy Manager, then the first check done jointly with the Deputy Manager or an experienced Field Care Supervisor",
+                "Every 12 months, with the refresher"
+              ],
+              [
+                "Covert administration pathway",
+                "Registered Manager, Deputy Manager, Care Coordinators, Field Care Supervisors",
+                "Preparing or reviewing a covert plan",
+                "Every 2 years"
+              ],
+              [
+                "Delegation pathway",
+                "Registered Manager, Deputy Manager, Care Coordinators, Field Care Supervisors",
+                "First involvement in a delegation",
+                "Every 2 years"
+              ],
+              [
+                "Controlled drug discrepancy checks and police, CQC and accountable officer reporting",
+                "Registered Manager, Deputy Manager, Care Coordinators, On-call Managers",
+                "Checking a first discrepancy, or the first on-call shift",
+                "Every 3 years"
+              ],
+              [
+                "Medicines incident investigation (contributory factors framework)",
+                "Registered Manager, Deputy Manager, investigating Care Coordinators and Field Care Supervisors",
+                "The first medicines investigation",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The medicines document that owns each task sets the content of its specialist course."
+        }
+      ]
+    },
+    {
+      "heading": "Full medicines training and knowledge assessment",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Content",
+          "blocks": [
+            {
+              "p": "Full medicines training is at least 6 hours face to face and is completed in week 1 of induction, before any shadow shift that includes medicines. The yearly refresher is at least 3 hours face to face. Both cover:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Topic",
+                  "What the worker learns"
+                ],
+                "rows": [
+                  [
+                    "Our framework",
+                    "The Medicines Management Policy, Levels 0 to 3, what a care worker never does, and how to phone the office or On-call Manager."
+                  ],
+                  [
+                    "Giving medicines safely",
+                    "The six rights; consent before a dose leaves its packaging; original packs and monitored dosage systems; each formulation group, including oral syringes and inhaler technique; thickened drinks at the prescribed IDDSI level; hygiene; dropped doses."
+                  ],
+                  [
+                    "Declines and capacity",
+                    "Offering again within the window, never forcing, choosing the right eMAR outcome, the advice-if-declined flag and capacity concerns."
+                  ],
+                  [
+                    "The eMAR",
+                    "Each outcome and when to use it, recording at the time under your own log-in, working offline and the back-up MAR sheet (two blank sheets issued at training)."
+                  ],
+                  [
+                    "Special medicines",
+                    "When required and time-sensitive medicines; counted controlled drugs; self-administration checks and left-out doses; bought medicines; covert administration and delegated tasks (awareness)."
+                  ],
+                  [
+                    "Supply and storage",
+                    "New-supply checks, storage, fridge readings, stock checks, collection and returns."
+                  ],
+                  [
+                    "When things go wrong",
+                    "Errors and near misses, side effects and the Yellow Card scheme, 999 signs, safeguarding signs such as missing or misused medicines, and our fair culture."
+                  ],
+                  [
+                    "Learning",
+                    "Changes to our procedures and lessons from medicines incidents, audits and complaints in the last 12 months (refresher)."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The practical session uses pharmacy-labelled demonstration packs of every formulation group. The trainer checks the content against the Skills for Care Checklist for medicines management training in adult social care when a course is approved and every 12 months."
+            }
+          ]
+        },
+        {
+          "heading": "Knowledge assessment",
+          "blocks": [
+            {
+              "p": "The assessment is taken at the end of the session under the trainer's supervision. It has at least 25 questions, including scenarios and calculations. The five critical safety questions test measuring a liquid dose, applying a minimum gap and 24-hour maximum, working out a controlled drug running balance, choosing the outcome for a declined dose, and acting when the label and eMAR differ. Every critical question must be correct, whatever the overall score. The trainer records the result within 2 working days."
+            },
+            {
+              "p": "A worker who fails discusses the wrong answers with the trainer and resits within 10 working days. Further failures follow the Training and Development Policy. A new worker gives no medicines support, even supervised, until the assessment is passed. An existing worker who fails the refresher assessment keeps medicines visits only until their current sign-off expires, and none from the day they fail a critical question, with removed visits paid as the Medication Errors, Near Misses and Incidents Procedure sets out. Where difficulty reading labels or the eMAR in English is the cause, the HR Manager arranges the support in the Training and Development Policy, and the worker is not signed off until they read both accurately."
+            }
+          ]
+        },
+        {
+          "heading": "Prior learning",
+          "blocks": [
+            {
+              "p": "An experienced starter's medicines certificate from another employer or provider, completed within the last 12 months and seen in the original by the HR Manager, replaces the knowledge content of full medicines training until 12 months from its completion date. It never replaces our 3-hour face-to-face session on our procedures, the practical skills and the eMAR, our knowledge assessment or our observed competency."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Observed competency assessment",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Before sign-off",
+          "blocks": [
+            {
+              "p": "After passing the knowledge assessment, a new worker gives medicines on shadow shifts only beside a shadow lead who is signed off for that formulation. The shadow lead checks each dose before it is given, records it on the eMAR under their own log-in with the note 'Given by trainee under supervision', and records the practice in the training and compliance records."
+            }
+          ]
+        },
+        {
+          "heading": "Number of observations",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Worker",
+                  "Direct observations before sign-off"
+                ],
+                "rows": [
+                  [
+                    "New to care",
+                    "At least three, on at least two different days, including one morning visit"
+                  ],
+                  [
+                    "Experienced route starter, returner after 3 months or more, agency worker",
+                    "At least two"
+                  ],
+                  [
+                    "Annual review",
+                    "At least one"
+                  ],
+                  [
+                    "Reassessment after a trigger",
+                    "At least one, including the medicine, formulation or task involved"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Each observation covers all the medicines support at a real visit, with the person's agreement (or a best interests decision where they cannot decide) recorded in their care plan and confirmed on arrival. A formulation group is signed off only once the assessor has seen the worker give it at a real visit; it is never signed off by simulation. Where a group cannot be seen during the observations, the Care Coordinator arranges for the assessor to attend the first visit at which the worker gives it. The new-supply check is observed on a real delivery or, where none arrives, on the supply in use checked as if new. The Skills for Care guide sets a minimum of one direct observation, three as good practice."
+            }
+          ]
+        },
+        {
+          "heading": "Carrying out an observation",
+          "blocks": [
+            {
+              "steps": [
+                "The Care Coordinator books the assessor as an extra person at the visit; the worker leads the visit and the assessor never counts as the second worker on a double-handed visit.",
+                "Before the visit, the assessor reads the person's medicines section of the care plan and eMAR.",
+                "The assessor watches without helping and stops the worker before any dose that would be wrong or unsafe, then makes the person safe and phones the office as the Medication Errors, Near Misses and Incidents Procedure requires.",
+                "The assessor scores each criterion in the medicines competency assessment in CareFlow as met or not met, with what they saw.",
+                "After the visit, away from the person, the assessor holds the professional discussion: at least five scenarios relevant to the worker's visits, always including a declined dose, an error and an eMAR outage.",
+                "The assessor gives feedback the same day and records the observation in the training and compliance records before the end of their working day, identifying the person only by CareFlow reference.",
+                "After the final observation the assessor recommends sign-off, listing each formulation group and the counted controlled drug item. The Registered Manager or Deputy Manager approves or queries it within 2 working days. Medicines visits are allocated alone only once approval shows in CareFlow."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "The standard",
+          "blocks": [
+            {
+              "p": "The medicines competency assessment in CareFlow follows the Skills for Care medicines competency assessment record. The worker must meet every critical criterion; any critical criterion not met means not yet competent:"
+            },
+            {
+              "bullets": [
+                "checks the six rights against the label and eMAR before each dose;",
+                "asks consent before removing a dose from its packaging and responds correctly to a decline;",
+                "gives only from the pharmacy-labelled pack or monitored dosage system, and never from a damaged, unlabelled or family-filled container;",
+                "prepares and gives each formulation correctly, including measuring liquids with the oral syringe;",
+                "records each dose at the time, under their own log-in, after it is taken, with the correct outcome and note;",
+                "counts and records a controlled drug balance before and after the dose, where one is due;",
+                "cleans hands and uses PPE correctly;",
+                "phones the office when the eMAR, label, stock or person is not as expected."
+              ]
+            },
+            {
+              "p": "Other criteria, such as explaining what each medicine is for, privacy, the new-supply check and leaving medicines stored as the care plan says, may be met by the end of the observations; no more than two may remain not met at sign-off, with an action agreed. New starters are expected to be signed off by the end of week 4 with their lone working sign-off. Not signed off by the end of week 6 means a written plan from the Registered Manager or probation action under the Induction and Care Certificate Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Not yet competent",
+          "blocks": [
+            {
+              "p": "The worker is told the same day what was not met. Within 2 working days the assessor agrees a development plan and the next observation takes place within 10 working days. A new worker not yet competent at a second assessment meets the Registered Manager within 5 working days to agree a support plan or probation action. An existing worker not yet competent at an annual review has no medicines visits for the formulation or support concerned from that day until signed off again, with pay protected as the Medication Errors, Near Misses and Incidents Procedure sets out; a second failure is handled under the Capability and Performance Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Keeping competency current",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Annual review",
+          "blocks": [
+            {
+              "p": "Every 12 months each worker completes refresher training with the knowledge assessment and an annual review of observed competency, a separate observation from any spot check, scheduled in the 8 weeks before expiry. The assessor also reviews the worker's last two medicines spot checks and their medicines incidents, recording errors and eMAR audit findings from the last 12 months."
+            },
+            {
+              "p": "Formulation groups seen at the annual observation are renewed. Other groups are renewed through the professional discussion where the eMAR shows the worker gave them in the last 12 months with no spot check or incident concern. A group the worker has not given in the last 12 months lapses and is observed again at the first visit that includes it."
+            }
+          ]
+        },
+        {
+          "heading": "Observed medicines practice spot checks",
+          "blocks": [
+            {
+              "p": "Between annual reviews, a Field Care Supervisor (the Registered Manager or Deputy Manager for Field Care Supervisors and Care Coordinators who give care) observes each worker's medicines practice at least every 6 months during a spot check, scored under the Quality Audit and Monitoring Procedure. Each critical criterion in 'The standard' that is observed is a critical item. Each named worker is also observed giving a covert dose, and doing each Level 3 task, at least every 6 months, with the critical items and shortfall response set in those tasks' own policies."
+            }
+          ]
+        },
+        {
+          "heading": "Reassessment",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Trigger",
+                  "Reassessment"
+                ],
+                "rows": [
+                  [
+                    "An error by the worker that reached the person; two recording errors within 3 months; a dose given over a limit or without guidance; a late or missed time-sensitive dose caused by their practice; a medicine given against a refusal or covertly without a plan",
+                    "Within 5 working days of the Registered Manager's decision or of retraining being completed, and before further unsupervised medicines support"
+                  ],
+                  [
+                    "Critical item not met at a spot check",
+                    "Retraining before the worker next gives that support and re-observation within 4 weeks. Where a person was put at risk, the Registered Manager or Deputy Manager decides the same day whether the worker continues medicines visits, and reassessment is completed before that support alone"
+                  ],
+                  [
+                    "3 months or more away from work",
+                    "The 3-hour refresher (full medicines training if theirs has expired), knowledge assessment and two observations before any medicines support"
+                  ],
+                  [
+                    "A new formulation, device, monitored dosage system or eMAR system",
+                    "Observation at the first visit where the worker uses it"
+                  ],
+                  [
+                    "A concern from supervision, a complaint or the Registered Manager",
+                    "As the Registered Manager decides, within 10 working days"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "While a reassessment is pending, the least restrictive measure decided under the Medication Errors, Near Misses and Incidents Procedure applies. A failed reassessment means further training and a second reassessment within 10 working days; a second failure is handled under the Capability and Performance Procedure, or at a probation review for a worker still in probation."
+            }
+          ]
+        },
+        {
+          "heading": "Agency workers",
+          "blocks": [
+            {
+              "p": "Before an agency worker's first medicines visit, the agency confirms in writing that the worker completed practical medicines training and an observed competency assessment within the last 12 months, and a Field Care Supervisor gives a 1-hour session on our levels, eMAR outcomes and escalation, sets our knowledge assessment and completes the two observations. Agency workers never give covert doses or carry out delegated tasks. After a medicines error, an agency worker is reassessed as the Medication Errors, Near Misses and Incidents Procedure sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Person-specific and specialist sign-offs",
+      "blocks": [
+        {
+          "bullets": [
+            "Covert administration: before a named worker's first covert dose for a person, a Field Care Supervisor or Care Coordinator explains the approved plan and observes a covert dose, recorded as a person-specific sign-off with an expiry date 12 months ahead; it is repeated when the method changes. The worker must already be signed off for the formulation. Spot checks and expiry warnings follow the Covert Administration of Medicines Policy.",
+            "Delegated (Level 3) tasks: only the delegating professional or a registered colleague in their team signs off a named worker, after observing the task at the person's home. We make sure the prerequisites are in date (medicines training, competency for the formulations involved, basic life support and, for sharps tasks, delegated sharps training) and record each sign-off and its renewal as that policy sets out. No employee of ours signs off a delegated task.",
+            "eMAR set-up and change competency: before authorisation (for an On-call Manager, before their first on-call shift), the user sets up, changes and ends at least three entries, and second-checks at least three, observed by the Registered Manager or Deputy Manager; a Senior Care Worker authorised to second-check completes the three observed second checks. The annual renewal includes one observed set-up (Senior Care Workers excepted) and one second check. The first two discharge medicines checks are reviewed as the Medicines Changes, Transfers of Care and Hospital Discharge Procedure requires."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Allocating medicines visits",
+      "blocks": [
+        {
+          "p": "CareFlow's training and compliance records are the only source used to decide who can give medicines support. A Care Coordinator or staff allocation role allocates a visit with medicines support, and the On-call Manager covers a visit out of hours, only to a worker whose records show:"
+        },
+        {
+          "bullets": [
+            "full medicines training and the knowledge assessment in date;",
+            "an approved observed competency in date for every formulation group due at that visit, and the counted controlled drug item where a counted controlled drug is due;",
+            "an in-date person-specific sign-off for any covert dose or delegated task;",
+            "no restriction on that medicine, formulation or person."
+          ]
+        },
+        {
+          "p": "On a double-handed visit, the worker who gives and records the medicines must meet these conditions; the other worker never does either. Time-critical visits also follow the daily cover check in the Time-Sensitive Medicines Protocol. Before a worker's training or competency expires, the Care Coordinator removes their medicines visits from the expiry date. Care workers never swap medicines visits; the office makes every change and checks sign-offs first."
+        },
+        {
+          "p": "A care worker who finds a medicine or formulation due that they are not signed off for does not give it and phones the office at once, then carries on with the other planned tasks while waiting, as the Medicines Management Policy sets out. The office sends a signed-off worker, or gets advice on the late dose, records the call in the daily visit notes and tells the worker what to record on the eMAR: nothing while a signed-off worker is on the way, otherwise Not Given / Missed with the reason. Medicines support given with missing, expired or restricted competency is entered in the incident log the same day by whoever finds it; the Registered Manager decides by the end of the next working day whether anyone was put at risk."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Training and compliance records: attendance, knowledge assessment scores, each medicines competency assessment, sign-offs with formulation groups and expiry dates, person-specific and delegated sign-offs, authorisations, and restrictions with start and end dates.",
+            "Staff record: development and support plans, authorisation letters and signed delegated task sign-offs. Supervision and appraisal records: medicines spot checks and discussions.",
+            "Incident log: medicines incidents and any visit given with missing or expired competency.",
+            "Training records are kept for employment plus 6 years under the Training and Development Policy."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Role",
+              "Requirement"
+            ],
+            "rows": [
+              [
+                "Medicines trainers",
+                "Approved in writing by the Registered Manager; hold at least the Level 3 Award in Education and Training, current medicines competency, and a medicines trainer course or a pharmacy or nursing registration; observed delivering by the Registered Manager or Deputy Manager every 12 months. External providers are approved and rechecked under the Training and Development Policy, preferring one with Skills for Care Endorsement."
+              ],
+              [
+                "Competency assessors",
+                "Assessor training by the Registered Manager or an approved trainer before the first assessment; first two assessments joint with the Registered Manager, Deputy Manager or an experienced assessor; observed assessing by the Registered Manager or Deputy Manager every 12 months; annual standardisation meeting; assessor training renewed every 3 years. An assessor's own competency must be in date for every group they assess."
+              ],
+              [
+                "Senior Care Workers as assessors",
+                "Authorised in writing by the Registered Manager only after probation, 12 months in a care role and holding or enrolled on the Level 3 Diploma in Adult Care."
+              ],
+              [
+                "All employees",
+                "Acknowledge this procedure in CareFlow by the deadline in the Induction and Care Certificate Procedure (new starters), within 14 days of starting a role it covers, and within 14 days of each new major version, not a minor one."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "No assessor assesses a relative, partner, close friend or anyone with a declared conflict of interest. Field Care Supervisors, Care Coordinators and assessing Senior Care Workers are assessed by the Deputy Manager or Registered Manager, who assess each other. An assessor whose records fail two audits in 12 months, or who signs off a worker later found not competent, has their next two assessments checked by the Registered Manager before approval."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Expiring and expired medicines training, competency and sign-offs",
+                "Weekly (Monday list) and monthly report",
+                "HR Manager",
+                "Care Coordinators; Registered Manager"
+              ],
+              [
+                "Every medicines visit in the month checked against the training and compliance records",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager and Monthly Quality and Governance Meeting"
+              ],
+              [
+                "10 competency records (half by risk, including every reassessment) for evidence, critical criteria, approval and timescales",
+                "Quarterly",
+                "Deputy Manager",
+                "Registered Manager; quarterly medicines governance report"
+              ],
+              [
+                "Each assessor observed assessing; assessor standardisation",
+                "Every 12 months",
+                "Registered Manager",
+                "Directors and Nominated Individual in the annual medicines audit"
+              ],
+              [
+                "Training and competency compliance, reassessments, restrictions and learner evaluation",
+                "Quarterly",
+                "Registered Manager",
+                "Directors and Nominated Individual in the quarterly medicines governance report"
+              ],
+              [
+                "This procedure, within the annual medicines audit against NICE NG67",
+                "Every 12 months, in September",
+                "Registered Manager",
+                "Directors and Nominated Individual"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Targets: 100% of medicines visits by workers in date and signed off for everything due; 100% of new workers signed off before giving medicines alone; 100% of reassessments within their timescales; 100% of assessors observed every 12 months; at least 95% of medicines refreshers and annual reviews completed before expiry."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious medicines incident, an inspection finding, or when monitoring shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

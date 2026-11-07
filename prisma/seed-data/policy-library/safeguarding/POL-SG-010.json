@@ -1,0 +1,707 @@
+{
+  "reference": "POL-SG-010",
+  "revision": 1,
+  "title": "Sexual Safety Policy",
+  "documentType": "POLICY",
+  "summary": "How we keep the people we support safe from sexual abuse and exploitation, protect our staff from sexual harassment and sexualised behaviour by the people we support, their families and visitors, give intimate care with consent and dignity, and respect people's rights to relationships, sexuality and gender identity in their own homes. For all employees.",
+  "keyPoints": {
+    "intro": "You give intimate care alone in people's homes. These rules keep the people you support safe, keep you safe, and tell you what to do the moment something sexual happens or worries you.",
+    "points": [
+      "If you feel unsafe, leave at once, even if care is unfinished, and go somewhere safe such as your locked car. Call 999 if anyone is in danger, then phone the office or On-call Manager. You will never be blamed for leaving.",
+      "If a person behaves sexually during care, stop the task, cover them, say calmly that it is not acceptable, leave the room if you need to, and phone the office or On-call Manager before you leave the area.",
+      "Report every sexual comment, touch, request, exposure or showing of sexual material, even if it seemed minor or caused by illness, and any time you felt at risk. Record it in the incident log, with the words used, before your shift ends.",
+      "If a person tells you about sexual abuse, or you see signs of it, listen without questioning them, never photograph injuries as evidence, and phone before you leave. Do not wash them or change clothes or bedding unless health or dignity requires it.",
+      "Before every intimate care task, explain what you will do and ask for the person's agreement. Close doors and curtains, keep them covered, ask others to leave unless the person wants them there, and follow their recorded preference about the sex of their care worker.",
+      "Respect people's relationships, sexuality and gender identity: use the name and pronouns in the care plan, knock and wait, give couples privacy and never judge, joke or gossip. Tell the office if a relationship seems unwanted, pressured or exploitative.",
+      "Never decide for yourself whether a person can consent to sex. Never arrange or pay for sexual services, buy sexual products, help with sexual activity or watch sexual material with anyone; tell the office about any such request.",
+      "If you see images that may show the sexual abuse of a child, do not touch, copy or forward them. Leave them where they are and phone the office before you leave so that the police can be told.",
+      "After a sexual incident you can stop work for the rest of that day with pay, your Field Care Supervisor calls you within 1 working day, you are offered a debrief and free counselling, and you never have to go back to that home.",
+      "You can report to the office, your Field Care Supervisor, the HR Manager, the Registered Manager or the Nominated Individual, without giving your name if you prefer. Report harassment by a colleague under the Bullying, Harassment and Sexual Harassment Policy."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "SAFEGUARDING",
+    "INCIDENT",
+    "CARE_PLAN",
+    "HR"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-002",
+    "POL-SG-009",
+    "POL-SG-004",
+    "POL-SG-011",
+    "POL-HR-013",
+    "POL-HS-004",
+    "POL-CD-010"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13(1) to (3) and (6)(a) (abuse includes any behaviour towards a service user that is an offence under the Sexual Offences Act 2003)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 10 (dignity and respect: privacy and autonomy)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/10"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18(1) and (2)(e) and (f) (notification of abuse, allegations of abuse and incidents reported to or investigated by the police)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Sexual Offences Act 2003, section 74 (consent: agreement by choice with the freedom and capacity to make that choice)",
+      "url": "https://www.legislation.gov.uk/ukpga/2003/42/section/74"
+    },
+    {
+      "source": "Sexual Offences Act 2003, section 30 (sexual activity with a person with a mental disorder impeding choice)",
+      "url": "https://www.legislation.gov.uk/ukpga/2003/42/section/30"
+    },
+    {
+      "source": "Sexual Offences Act 2003, section 38 (care workers: sexual activity with a person with a mental disorder)",
+      "url": "https://www.legislation.gov.uk/ukpga/2003/42/section/38"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 27(1)(b) (no decision on consenting to sexual relations may be made on a person's behalf)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/27"
+    },
+    {
+      "source": "A Local Authority v JB [2021] UKSC 52, paragraphs 94 and 121 (capacity to engage in sexual relations includes understanding that the other person must be able to consent and must consent before and throughout)",
+      "url": "https://caselaw.nationalarchives.gov.uk/uksc/2021/52"
+    },
+    {
+      "source": "Equality Act 2010, section 26(2) and (3) (sexual harassment: unwanted conduct of a sexual nature, and less favourable treatment for rejecting or submitting to it)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/26"
+    },
+    {
+      "source": "Equality Act 2010, section 40A (duty to take all reasonable steps to prevent sexual harassment of employees; in force 26 October 2024, 'all' inserted from 30 October 2026 by the Employment Rights Act 2025, section 20, under S.I. 2026/1065)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40A"
+    },
+    {
+      "source": "Equality Act 2010, section 40B (power to specify reasonable steps to prevent sexual harassment; inserted from 30 October 2026 by the Employment Rights Act 2025, section 22)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40B"
+    },
+    {
+      "source": "Equality Act 2010, section 40(1A) to (1C) (employer must not permit a third party to harass an employee; in force 30 October 2026 under the Employment Rights Act 2025, section 21)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 43B(1)(da) (disclosure tending to show sexual harassment has occurred, is occurring or is likely to occur; inserted from 6 April 2026 by the Employment Rights Act 2025, section 23, under S.I. 2026/323)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/43B"
+    },
+    {
+      "source": "Department of Health and Social Care, Care and support statutory guidance, chapter 14 Safeguarding, types of abuse: sexual abuse",
+      "url": "https://www.gov.uk/government/publications/care-act-2014-supporting-implementation/care-and-support-statutory-guidance"
+    },
+    {
+      "source": "Care Quality Commission, Single assessment framework, Safe: Safeguarding quality statement (subtopic: sexual safety and empowerment)",
+      "url": "https://www.cqc.org.uk/guidance-regulation/providers/assessment/single-assessment-framework/safe/safeguarding"
+    },
+    {
+      "source": "Acas, Preventing sexual harassment (updated 30 October 2026: all reasonable steps, risk assessment, third parties, reporting routes including anonymous reporting, training)",
+      "url": "https://www.acas.org.uk/sexual-harassment/steps-for-employers-to-prevent-sexual-harassment"
+    },
+    {
+      "source": "NHS, Help after rape and sexual assault (sexual assault referral centres, forensic examination and preserving evidence)",
+      "url": "https://www.nhs.uk/live-well/sexual-health/help-after-rape-and-sexual-assault/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Our care workers give intimate care to adults in their own homes, usually alone and behind a closed door. Many of the people we support may find it hard to refuse or to tell anyone what has happened, and our staff work alone in homes we do not control. {{organisation}} takes responsibility for both sides of sexual safety."
+        },
+        {
+          "p": "{{organisation}} will protect the people we support from sexual abuse, harassment and exploitation by anyone, including our own staff, and will take all reasonable steps to prevent sexual harassment of our staff, whether by colleagues or by the people we support, their families and visitors, as the Equality Act 2010 requires. Every concern is reported and acted on, whoever is involved and whatever the cause."
+        },
+        {
+          "p": "Being safe does not mean being denied a private life. The people we support have the same rights as anyone else to relationships, intimacy, sexual expression, sexual orientation and gender identity, and we respect them without judgement."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that:"
+        },
+        {
+          "bullets": [
+            "intimate care is given only with agreement and in private;",
+            "staff recognise and report sexual abuse and exploitation of the people we support;",
+            "staff know what to do when anyone behaves sexually towards them, and are protected whatever the cause;",
+            "we meet our legal duties to prevent sexual harassment of our employees, including by third parties;",
+            "questions of consent and capacity go to those with power to decide them;",
+            "everyone affected is supported."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to the Directors, the Nominated Individual, managers, office and care staff, bank and agency workers, students and volunteers, at visits, on call, travelling and in the branch office. It covers every adult we support and anyone in their household whose sexual safety is affected by our work. It adds the sexual safety arrangements to these documents and does not repeat them:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Related matter",
+              "Document"
+            ],
+            "rows": [
+              [
+                "Reporting, referring and following up any safeguarding concern",
+                "Safeguarding Concerns: Reporting, Referral and Enquiry Procedure"
+              ],
+              [
+                "Relationships between staff and the people we support or their households, and the offences that apply to care workers",
+                "Professional Boundaries Policy"
+              ],
+              [
+                "Sexual harassment by a colleague and the complaint process between staff",
+                "Bullying, Harassment and Sexual Harassment Policy"
+              ],
+              [
+                "Allegations that a member of staff has sexually abused or harassed a person",
+                "Managing Allegations Against Staff Procedure"
+              ],
+              [
+                "Violence and abuse towards staff, the staged response and ending a service",
+                "Violence and Aggression Towards Staff Policy"
+              ],
+              [
+                "Sexual violence between partners or family members",
+                "Domestic Abuse Policy, with the response steps in this policy"
+              ],
+              [
+                "Children in the household and any concern about a child",
+                "Safeguarding Children and Young People Policy"
+              ],
+              [
+                "How intimate care tasks are carried out and signed off",
+                "Personal Care, Continence and Oral Care Procedure"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Sexual abuse",
+                "As the Care and support statutory guidance describes it: rape, sexual assault, indecent exposure, sexual harassment, inappropriate looking or touching, sexual teasing or innuendo, sexual photography, subjection to pornography or witnessing sexual acts, and sexual acts the adult has not consented to or was pressured into. Much of it involves no physical contact."
+              ],
+              [
+                "Sexual exploitation",
+                "Using a person's dependence, loneliness or lack of understanding to obtain sexual activity, images or contact, often in exchange for money, affection, drugs, alcohol or attention, in person or online."
+              ],
+              [
+                "Sexual harassment",
+                "Unwanted conduct of a sexual nature that has the purpose or effect of violating a person's dignity or creating an intimidating, hostile, degrading, humiliating or offensive environment for them (Equality Act 2010, section 26(2))."
+              ],
+              [
+                "Sexualised behaviour",
+                "Sexual words or actions by a person we support, whether deliberate or arising from a condition such as dementia, a brain injury or a mental illness, or from a medicine."
+              ],
+              [
+                "Intimate care",
+                "Personal care involving the genital, anal or breast areas or the undressed body, including washing, continence, catheter and stoma care, applying creams and dressing."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and fund its steps, including second workers, lone worker devices, training and the employee assistance programme. The Nominated Individual is the board-level lead for preventing sexual harassment of staff: they approve the sexual harassment risk assessment each year, receive anonymous reports, are told the same day of any sexual assault, on staff or on a person we support, and of any police call about sexual harassment of staff (at once if it is graded Critical), as the Incident Reporting, Investigation and Learning Policy sets out, and within 24 hours of any other sexual safety concern involving our staff or the police, and report trends to the Directors quarterly."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is our sexual safety lead as part of their safeguarding lead role. They decide on every sexual safety concern and on referrals, notifications and the staged response, keep the sexual harassment risk assessment, approve controls for people whose behaviour puts staff at risk, and make sure everyone affected is supported. The Deputy Manager acts when the Registered Manager is absent or involved."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager helps keep the sexual harassment risk assessment, keeps training records, arranges occupational health and counselling referrals, and acts under the Disciplinary Policy and Procedure on any report that a worker has been treated less favourably for reporting or for rejecting sexual conduct."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors and On-call Managers",
+          "blocks": [
+            {
+              "p": "Care Coordinators meet recorded intimate care preferences on every rota, gather risk information before the first visit, brief workers and change rotas the same day after an incident. Field Care Supervisors record privacy and relationship wishes in the care plan, assess sexualised behaviour in the behaviour and aggression risk assessment, observe consent and privacy at spot checks, and ask at every supervision about unreported harassment. Out of hours the On-call Manager makes the immediate safety decisions and hands over by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Every care worker gives intimate care as this policy sets out, respects people's private lives, and reports every sexual safety concern and every incident of sexual behaviour towards them. Senior Care Workers model good practice on shadow visits and support colleagues who report."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Intimate care, consent and dignity",
+      "blocks": [
+        {
+          "bullets": [
+            "The care plan records how the person likes intimate care given, the words they use for parts of the body, anything that makes them anxious, and their preference about the sex of the care worker, met on every visit under the Person-Centred Care, Dignity and Respect Policy and the Equality, Diversity and Human Rights in Care Policy. If sudden absence prevents this, the office phones the person before the visit to agree an alternative; intimate care is never given against the preference unless the person agrees on that occasion.",
+            "Before every intimate task the care worker explains what they will do and asks for agreement in the way the person communicates. Agreement to one task is not agreement to the next. If the person says no, pulls away or seems distressed, the worker stops, offers again later in the visit and reports a refusal as the Visit Cancellations and Refusals of Care Procedure sets out.",
+            "Doors and curtains are closed, the person is kept covered except for the part being washed or dressed, and family and visitors are asked to leave unless the person wants them there. Children always leave the room. Shadowing workers and students attend only with the person's agreement on that occasion, under the Consent to Care Policy.",
+            "During intimate care, care workers use a phone only to call for help or to take a CareFlow body map photograph or video as the Consent to Care Policy allows, never of intimate areas unless the care plan records this as clinically necessary and agreed, with the person kept covered. They take no other photograph, video or recording, and dictate a voice note only of their own account, away from the person or with them aware.",
+            "An erection or other sign of arousal during washing or continence care is usually an involuntary response, not sexual behaviour. The worker stays calm, covers the person, gives them a few minutes or moves to another task, and continues when they are ready. It is reported only if it comes with sexual remarks, touching or requests."
+          ]
+        },
+        {
+          "p": "Two workers attend, and both are present for intimate care, where the behaviour and aggression risk assessment rates the risk of sexualised behaviour towards staff as High (unless the Registered Manager or Deputy Manager has approved another arrangement that still provides a second person for intimate care); after any sexual harassment or assault of a worker at the home, until the Registered Manager approves future arrangements; and where the Registered Manager has agreed it after repeated unfounded allegations, under the Managing Allegations Against Staff Procedure. A family member is never used as the second person to protect our staff. Neither worker goes in or starts care alone: the first to arrive waits somewhere safe, such as their locked car, and phones the office or On-call Manager if the second worker has not arrived 10 minutes after the planned start, as the Lone Working and Staff Personal Safety Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Relationships, sexuality and identity",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Respecting people's private lives",
+          "blocks": [
+            {
+              "p": "Regulation 10 requires us to respect people's privacy and autonomy. Staff never comment on, joke about or discuss a person's relationships, sexual life, sexual orientation or gender identity, and never let their own beliefs affect the care they give."
+            },
+            {
+              "bullets": [
+                "With the person's agreement, the care plan records their partner and how the partner is involved, the name and pronouns they use, and privacy wishes, such as times a partner stays. Sexual orientation and gender identity are recorded only with agreement and only where they affect care.",
+                "Staff knock and wait before entering a bedroom or bathroom. If the person is with a partner, the worker asks whether to come back, and phones the office if waiting would delay essential care such as a time-sensitive medicine. The Care Coordinator moves visit times where the rota allows to give couples privacy.",
+                "If a person asks for help with sexual health or contraception, the Care Coordinator offers within 5 working days to help them contact their GP or a sexual health clinic.",
+                "Lawful private viewing of sexual material is the person's choice; staff ask for it to be turned off or put away while they are in the room. Deliberately showing it to staff is sexual harassment."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Capacity and consent to sexual relations",
+          "blocks": [
+            {
+              "p": "In law a person consents only if they agree by choice and have the freedom and capacity to make that choice (Sexual Offences Act 2003, section 74). Nobody can consent to sexual relations on another person's behalf or make a best interests decision about it (Mental Capacity Act 2005, section 27), and our staff never assess or decide whether a person can consent to sex. The Supreme Court has held that this capacity includes understanding that the other person must be able to consent and must consent before and throughout (A Local Authority v JB, 2021). Sexually touching a person who, because of a mental disorder, lacks the capacity to choose or cannot communicate a choice is an offence by anyone who knows or could reasonably be expected to know this (Sexual Offences Act 2003, section 30). Sexual activity by a care worker with a person with a mental disorder whom they care for in connection with that disorder is a separate offence even if the person seems to agree (section 38); the Professional Boundaries Policy sets out the rules for our staff."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "What happens"
+                ],
+                "rows": [
+                  [
+                    "Any sign that a person who may lack capacity is involved in sexual activity, or that sexual activity is unwanted, pressured or in exchange for something",
+                    "Safeguarding concern phoned before the worker leaves the home. The safeguarding lead decides within 1 hour and refers to the local authority the same working day, and to the police where a crime may have been committed."
+                  ],
+                  [
+                    "A person who may lack capacity starts a new relationship, with no sign yet of sexual activity or harm",
+                    "The worker tells the office the same day. Within 2 working days the Care Coordinator writes to the commissioner (for a person who pays for their own care, the local authority) with our observations and the person's views, asking for a capacity assessment and support."
+                  ],
+                  [
+                    "A long-standing couple where one partner's capacity is declining",
+                    "We do not assume abuse or try to keep them apart. Distress, injury, fear of the partner or signs of unwanted sexual contact are reported as a safeguarding concern."
+                  ],
+                  [
+                    "A person with capacity chooses a relationship others think unwise",
+                    "We respect the choice and report only signs of coercion, exploitation, fear or harm."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Requests we do not meet",
+          "blocks": [
+            {
+              "p": "Our staff never help with sexual activity, never arrange, contact, pay for or transport a person to sexual services, never buy or handle sexual products or material for a person, and never watch sexual material with them. Such a request is declined kindly and reported to the office the same day; within 5 working days the Care Coordinator talks with the person about other lawful ways to meet the need, such as an advocate, a sexual health service or family, and records it in the care plan. A request suggesting exploitation or a lack of capacity is phoned through as a safeguarding concern before the worker leaves."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Sexual abuse and exploitation of the people we support",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Recognising it",
+          "blocks": [
+            {
+              "p": "Regulation 13 treats any behaviour towards a person we support that is an offence under the Sexual Offences Act 2003 as abuse. The person responsible may be a partner, relative, visitor, another professional, another person we support, someone online or one of our own staff. As well as the signs in the Safeguarding Adults Policy, staff watch for:"
+            },
+            {
+              "bullets": [
+                "distress, fear or new resistance during intimate care, or sexualised language or behaviour that is new for the person;",
+                "someone who insists on being present for intimate care, or watches, films or photographs the person;",
+                "a person pressured online or by phone to send intimate images, threatened with images unless they pay, or asked for money by a new online partner;",
+                "new 'friends' who visit when family are away, bring alcohol or drugs, stay overnight or seem to control the person."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "What happens",
+          "blocks": [
+            {
+              "p": "Staff follow the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, including its rules on disclosures and preserving evidence: they do not wash the person or change clothes or bedding unless health or dignity requires it, follow the police advice the office obtains on eating, drinking and using the toilet, and never photograph or film an injury or the scene as evidence: they record marks on the body map of their Safeguarding Concern incident in CareFlow and leave evidence gathering to the police and the local authority. For sexual abuse the safeguarding lead also:"
+            },
+            {
+              "bullets": [
+                "tells the police whenever a sexual offence may have been committed, following the person's wish not to involve the police only where they have capacity, nobody else is at risk and no member of staff is implicated;",
+                "where an assault may have happened in the last 7 days, acts at once so forensic evidence is not lost: phones the police straight away where they are to be told, and in every case makes sure the person is offered the nearest sexual assault referral centre, which can examine them and store evidence while they decide whether to report;",
+                "reviews both people's risk assessments and care plans the same day where the person who may be responsible is another person we support or lives in the home, and continues both people's care;",
+                "applies the Managing Allegations Against Staff Procedure from the first hour where a member of our staff may be responsible;",
+                "reports online sexual exploitation and image-based threats to the police and the local authority, dealing with any money lost as financial abuse;",
+                "notifies CQC within 24 hours of the local authority referral, or of the report if it is not referred, under the Statutory Notifications to CQC Procedure."
+              ]
+            },
+            {
+              "p": "A care worker who sees images that may show the sexual abuse of a child does not touch, copy or forward them and phones the office before leaving. The Registered Manager reports it to the police the same day, at once if a child may be in danger, under the Safeguarding Children and Young People Policy."
+            }
+          ]
+        },
+        {
+          "heading": "People who may pose a sexual risk to others",
+          "blocks": [
+            {
+              "p": "Before the first visit the Care Coordinator asks the referrer about any known risk of sexual harm from the person or anyone in the household, including police, probation or multi-agency public protection arrangements, and records the answer in the initial assessment. Where such arrangements apply, the Registered Manager contacts the police or probation officer responsible, through the referrer where needed, before the next visit, agrees how risks to staff and others, including visiting children, are managed, and records the controls in the risk assessment only, never the copy of the care plan kept in the home."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Preventing sexual harassment of staff",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Our legal duties",
+          "blocks": [
+            {
+              "p": "The Equality Act 2010 requires employers to take all reasonable steps to prevent sexual harassment of their employees in the course of their employment (section 40A). The duty to take reasonable steps began on 26 October 2024 and became a duty to take all reasonable steps on 30 October 2026. A breach can be enforced by the Equality and Human Rights Commission, and an employment tribunal that upholds a sexual harassment claim can increase the compensation (section 124A). Since 30 October 2026 regulations may also specify steps that count as reasonable (section 40B); none had been made by November 2026, and the government has said they will follow later. From the same date an employer has also been liable for harassment of its employees by third parties, meaning anyone other than us and our employees, such as a person we support or their relative, where it failed to take all reasonable steps to prevent it (section 40(1A) to (1C)). This covers sexual harassment and harassment related to age, disability, gender reassignment, race, religion or belief, sex or sexual orientation (section 26). Treating a worker less favourably because they rejected or submitted to sexual conduct is also harassment (section 26(3)). Since 6 April 2026 a worker's disclosure tending to show that sexual harassment has happened, is happening or is likely to happen can be a protected disclosure under whistleblowing law (Employment Rights Act 1996, section 43B(1)(da)), and staff who report it are protected under the Whistleblowing (Speaking Up) Policy."
+            },
+            {
+              "p": "Harassment is judged by its effect as well as its purpose, so sexual behaviour caused by dementia or another condition can still harass a worker. Staff receive the same protection whatever the cause; the person receives care review, not sanctions."
+            }
+          ]
+        },
+        {
+          "heading": "Sexual harassment risk assessment",
+          "blocks": [
+            {
+              "p": "The Registered Manager, with the HR Manager, keeps one organisation-wide sexual harassment risk assessment in the risk assessment register, covering sexual harassment by colleagues and by third parties. It is our only harassment risk assessment: under the Equality, Diversity and Inclusion Policy it also covers third-party harassment related to any protected characteristic, and under the Bullying, Harassment and Sexual Harassment Policy bullying and harassment between colleagues. It covers lone and intimate care visits, night and late visits, double-handed visits, travel, on call, the branch office, phone and online contact, and workers at greater risk, such as young, new, agency and sponsored workers and those who may face harassment linked to their sex, sexual orientation or gender identity. It lists every step considered, whether it is in place, and why any step was judged not reasonable. It is reviewed every 12 months; within 7 days after any sexual harassment or assault of staff, and after any other harassment by a third party that reaches stage 2 of the staged response; within 1 month of any change in law or guidance on reasonable steps, including regulations under section 40B; within 1 month of incidents or the staff survey showing a new risk; and within 1 month after any upheld formal complaint of bullying or harassment between colleagues and after every pattern review under the Bullying, Harassment and Sexual Harassment Policy."
+            }
+          ]
+        },
+        {
+          "heading": "The steps we take",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Step",
+                  "How we do it"
+                ],
+                "rows": [
+                  [
+                    "Clear expectations",
+                    "The welcome pack and service agreement say that sexual comments, touching, requests, exposure or showing sexual material to staff are sexual harassment, may be reported to the police and, where deliberate, may lead to the service being changed or ended. The assessor explains this at the first visit."
+                  ],
+                  [
+                    "Risk information",
+                    "Before the first visit the referrer, the person and the family are asked about any history of sexual behaviour towards staff, alongside the questions on violence in the Lone Working and Staff Personal Safety Policy."
+                  ],
+                  [
+                    "Individual assessment and briefing",
+                    "Sexualised behaviour is rated in the behaviour and aggression risk assessment. At Medium or above the Care Coordinator phones every worker, including bank and agency workers and On-call Managers, before their first visit and records the briefing on the risk assessment."
+                  ],
+                  [
+                    "Help when alone",
+                    "Personal alarms, the code phrase and lone worker devices as the Lone Working and Staff Personal Safety Policy sets out."
+                  ],
+                  [
+                    "Controls at visits",
+                    "At Medium, no worker in their first 4 weeks of lone working visits alone, and lone visits are made with a lone worker device; at High, two workers, as set out in Intimate care, consent and dignity. Consistent, introduced workers and visit times when a particular visitor is not present."
+                  ],
+                  [
+                    "Choice",
+                    "A worker who has been sexually harassed or assaulted is removed from that person's visits the same day unless they ask to return, without loss of hours."
+                  ],
+                  [
+                    "Several ways to report",
+                    "The office or On-call Manager, the Field Care Supervisor, the HR Manager, the Registered Manager or the Nominated Individual. A worker who does not want to give their name may phone or write to the Nominated Individual, whose details are on the Local Safeguarding Contacts sheet."
+                  ],
+                  [
+                    "Training and culture",
+                    "Training as set out below; a question on unreported harassment at every supervision and in the annual staff survey; anonymised learning at team meetings."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "We do not respond to a person's behaviour by sending only workers of one sex: that would move the burden onto staff because of their sex, and the Equality, Diversity and Human Rights in Care Policy allows allocation by sex only for the person's own needs. Controls apply to the visit, and any worker may ask not to visit that person."
+            }
+          ]
+        },
+        {
+          "heading": "Reporting and recording",
+          "blocks": [
+            {
+              "p": "Staff report every sexual comment, joke, request, touch, exposure, showing of sexual material and sexual call, text or online message, however minor and whatever the cause, and every time they felt at sexual risk even if nothing happened, which is recorded as a near miss. Each goes in the incident log before the end of the shift, with what happened and the exact words used, never labels such as 'inappropriate'. Under our policy a sexual assault on anyone is graded at least High in the incident log, because the harm is likely to last 28 days or more. A worker never replies to a sexual call, text or online message: they end any call, keep the messages and tell the office the same day, and the Registered Manager or Deputy Manager asks for the content to be removed and decides on police involvement, as the Violence and Aggression Towards Staff Policy sets out. The Nominated Individual records an anonymous report in the incident log without the reporter's name and passes it to the Registered Manager within 1 working day, unless it concerns the Registered Manager, when the Nominated Individual deals with it themselves."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Responding to sexualised behaviour towards staff",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "During the visit",
+          "blocks": [
+            {
+              "steps": [
+                "Stop the task, cover the person and step out of reach, keeping your route to the door clear.",
+                "Say calmly and clearly that the behaviour is not acceptable, for example: 'Please stop. I am here to help you wash, and I will carry on when you are ready.' Do not laugh, argue or shame the person.",
+                "If the person stops and you feel safe, continue the essential care using the approaches in the care plan. If they do not stop, leave the room; if they touch you sexually again, threaten you or you feel unsafe, leave the home at once, even if care is unfinished. Nobody is blamed or disciplined for leaving in good faith.",
+                "If the person is exposed at the door or has sexual material playing when you arrive, ask them to cover up or turn it off. If they refuse, do not go in, or leave, and go somewhere safe such as your locked car.",
+                "Before you leave the area, from outside the home if you feel unsafe, phone the office or On-call Manager and speak to a person; if nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. Say whether the person is safe, what care is still due and whether the home and key safe were secured. Do not go back in, even to finish care or secure the home, until the Registered Manager, Deputy Manager or On-call Manager says it is safe. Call 999 first if you have been assaulted or anyone is in danger.",
+                "Check out on CareFlow, or tell the office the time you left. Record what happened in the incident log, and the care given and not given in the daily visit notes, before the end of your shift."
+              ]
+            },
+            {
+              "p": "The office or On-call Manager phones the person or their chosen contact at once, arranges any essential care still due, such as a time-sensitive medicine, by sending two workers or another safe arrangement under the Missed, Late and Short Visits Procedure, and has an unsecured home made secure under the Key Holding, Key Safes and Access to People's Homes Procedure. The Care Coordinator or On-call Manager taking the call checks that the worker is safe and fit to go on to their next visit."
+            }
+          ]
+        },
+        {
+          "heading": "After the visit",
+          "blocks": [
+            {
+              "bullets": [
+                "The On-call Manager, Registered Manager or Deputy Manager decides before the next visit how it takes place; after sexual harassment or assault, two workers attend until the Registered Manager approves future arrangements.",
+                "The Field Care Supervisor reviews the behaviour and aggression risk assessment before the next visit after harassment or assault, and within 7 days after any other sexualised behaviour.",
+                "New or worse behaviour can be caused by delirium, infection, a brain injury or a medicine, including some medicines for Parkinson's disease. The Care Coordinator, or the On-call Manager out of hours, contacts the GP or NHS 111 the same day. The Care Coordinator asks the GP or specialist team for advice in writing within 2 working days of a second incident within 4 weeks, or sooner if the approaches in the care plan are not working, and within the same 2 working days asks the commissioner to review the package if a second worker is needed.",
+                "Within the initial review timescale in the Incident Reporting, Investigation and Learning Policy (at once if Critical; the same working day for Medium or High, by 12 noon the next working day if reported out of hours; otherwise by the end of the next working day), the Registered Manager or Deputy Manager reviews the incident and decides whether the behaviour is condition-related or deliberate, assessing capacity under the Mental Capacity Act and Best Interests Policy where in doubt.",
+                "Condition-related behaviour leads to a care plan review, specialist help and controls, never a warning. Deliberate sexual harassment starts at stage 2 of the staged response in the Violence and Aggression Towards Staff Policy, a written warning within 5 working days; a deliberate sexual assault is stage 3, where the service may be changed, suspended or ended.",
+                "Where the behaviour could affect anyone else, such as a family carer, a neighbour, another agency's staff or a child, the safeguarding lead decides within 1 hour whether it is a safeguarding concern. The Registered Manager or Deputy Manager decides what is shared with another agency whose staff visit the person, as the Violence and Aggression Towards Staff Policy sets out.",
+                "The same steps apply when a relative, visitor or anyone else in the home behaves sexually towards a worker. Their behaviour is treated as deliberate unless a condition explains it, and the Registered Manager or Field Care Supervisor speaks with the person we support alone first, because they may also be at risk."
+              ]
+            },
+            {
+              "p": "A worker who is sexually assaulted decides whether to report it to the police and is told how to contact the police and the nearest sexual assault referral centre; if they ask, the Registered Manager or Deputy Manager reports it for them the same day. If they decide not to and others remain at risk, the Registered Manager gives the police the information needed without naming the worker. An incident reported to the police during our care is notified to CQC under the Statutory Notifications to CQC Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Support after an incident",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The person we support",
+          "blocks": [
+            {
+              "p": "Care continues without interruption. The safeguarding lead, or a manager the person chooses, talks with them privately about what they want to happen and keeps them informed as far as they wish. With their agreement, the Care Coordinator helps them contact their GP, a sexual assault referral centre, an independent sexual violence adviser or a specialist support service. Where they wish, the Care Coordinator allocates same-sex care workers from the next visit while the Registered Manager approves the arrangement within 5 working days, any worker they do not want is removed at once, and the care plan records any new wishes about intimate care."
+            }
+          ]
+        },
+        {
+          "heading": "Our staff",
+          "blocks": [
+            {
+              "p": "A worker who experiences sexual harassment or assault is never blamed and never loses hours. They receive the support in the Violence and Aggression Towards Staff Policy, including the choice to stop for the rest of that day with their visits covered and rostered hours paid, a call from the Field Care Supervisor within 1 working day and from the Registered Manager or Deputy Manager before their next shift, a debrief within 3 working days, free counselling through our employee assistance programme and the right never to return to the home. Where possible the debrief is with a manager of the sex the worker prefers. Anyone who treats a worker less favourably for reporting faces the Disciplinary Policy and Procedure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where in CareFlow"
+            ],
+            "rows": [
+              [
+                "Intimate care preferences, sex of care worker, privacy and relationship wishes, name and pronouns",
+                "The person's care plan"
+              ],
+              [
+                "Sexualised behaviour, controls, briefings and information from police or probation",
+                "The behaviour and aggression risk assessment, never the copy of the care plan kept in the home"
+              ],
+              [
+                "Concerns about sexual abuse or exploitation of a person, decisions, referrals and notifications",
+                "Safeguarding records, with a linked incident log entry"
+              ],
+              [
+                "Sexual harassment or assault of staff, near misses and anonymous reports",
+                "The incident log, restricted to the Registered Manager, Deputy Manager, Nominated Individual and investigation lead"
+              ],
+              [
+                "Staged response letters and agreements",
+                "Attached to the incident log entry and noted in the Reviews part of the care plan"
+              ],
+              [
+                "The sexual harassment risk assessment",
+                "The risk assessment register"
+              ],
+              [
+                "Debriefs and occupational health advice for staff",
+                "Supervision records and the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions)"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Records are kept under the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Sexual safety: consent and privacy in intimate care, recognising sexual abuse and exploitation, responding to sexualised behaviour, rights to relationships and identity, reporting",
+                "Care Workers and Senior Care Workers",
+                "At induction, before working without a shadowing colleague",
+                "Every 12 months, in the safeguarding refresher"
+              ],
+              [
+                "Sexual harassment: what it is, our duty, how to report and how reporters are protected, with the bullying and harassment content set by the Bullying, Harassment and Sexual Harassment Policy",
+                "All employees, including Office staff and Directors",
+                "Within the first week",
+                "Every 12 months, in the safeguarding refresher"
+              ],
+              [
+                "Responding to sexual safety incidents: supporting a person or worker, evidence, police and sexual assault referral centres, condition-related and deliberate behaviour, the staged response",
+                "Registered Manager, Deputy Manager, Field Care Supervisors, Care Coordinators and On-call Managers",
+                "Within 3 months of appointment and before the first on-call shift",
+                "Every 3 years"
+              ],
+              [
+                "Sexual harassment risk assessment",
+                "Registered Manager, HR Manager and Nominated Individual",
+                "Before the first review or approval",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Seeking consent and protecting privacy during intimate care is a critical item at every spot check where intimate care is observed. At least once every 12 months the safeguarding scenario at a worker's supervision is about sexual safety, as the Supervision, Spot Checks and Appraisal Policy sets out; a worker who cannot say what they would do is taken through this policy at once and rechecked at the next spot check. Staff acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every sexual safety incident and concern against this policy's timescales: target 100%",
+                "Monthly, with the safeguarding and violence and aggression record checks",
+                "Deputy Manager (Registered Manager for cases the Deputy Manager led)",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Trends by type, source, condition-related or deliberate, address, worker and time, including near misses and anonymous reports",
+                "Quarterly",
+                "Registered Manager",
+                "Nominated Individual; Directors; Health and Safety Meeting for staff incidents"
+              ],
+              [
+                "Sexual harassment risk assessment reviewed on time with agreed steps in place",
+                "Every 12 months and after each trigger",
+                "Nominated Individual",
+                "Directors"
+              ],
+              [
+                "Whether staff have experienced or witnessed sexual harassment, reported it and know how to: target at least 90% know how to report",
+                "Annual staff survey in September",
+                "HR Manager",
+                "Directors"
+              ],
+              [
+                "Whether people feel safe and respected during personal care",
+                "Annual personal care, privacy and dignity survey and 3-monthly quality checks",
+                "Deputy Manager and Care Coordinators",
+                "Registered Manager"
+              ],
+              [
+                "Training compliance: 100% induction, 95% refreshers in date",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The annual safeguarding report to the Directors includes a sexual safety section. Every shortfall goes into the service improvement plan with an owner and a deadline."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law, regulations or statutory guidance, including on the steps employers must take to prevent sexual harassment, a serious sexual safety incident, a Safeguarding Adults Review involving us, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

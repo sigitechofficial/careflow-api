@@ -56,6 +56,7 @@ import {
 import { computeBodyMapOutstandingGaps } from './body-map-gaps.util';
 import { buildBodyMapCqcPdf } from './body-map-cqc-pdf.util';
 import { mapBodyMapVideo } from './body-map-video.util';
+import { uploadBasePath } from '../common/utils/upload-path.util';
 
 const PHOTO_SEGMENTS = ['body-map', 'photos'] as const;
 
@@ -239,7 +240,7 @@ export class BodyMapService {
 
   private photoUploadRoot(): string {
     const base = this.config.get<string>('app.uploadBasePath', 'uploads');
-    return join(process.cwd(), base, ...PHOTO_SEGMENTS);
+    return join(uploadBasePath(base), ...PHOTO_SEGMENTS);
   }
 
   private photoPublicUrl(fileName: string): string {

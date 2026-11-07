@@ -2,6 +2,7 @@ import {
   applyCarePlanPersonalisationTokens,
   type CarePlanPersonalisationContext,
 } from '../../care-plan-text/care-plan-text.util';
+import { sanitizeRichTextHtml } from '../../common/utils/rich-text-html.util';
 import { factsheetCodesForCarePlan } from './care-plan-factsheet-attachments';
 import { CONDITION_FACTSHEET_BY_CODE } from './condition-factsheets.data';
 
@@ -31,7 +32,10 @@ export function resolveCarePlanFactsheets(
     const def = CONDITION_FACTSHEET_BY_CODE.get(code);
     if (!def) continue;
 
-    const contentHtml = applyCarePlanPersonalisationTokens(def.contentHtml, personalisation);
+    // The factsheet HTML is ours, but the names put into it are typed by users.
+    const contentHtml = sanitizeRichTextHtml(
+      applyCarePlanPersonalisationTokens(def.contentHtml, personalisation),
+    );
     const title = applyCarePlanPersonalisationTokens(def.title, personalisation);
     const summary = applyCarePlanPersonalisationTokens(def.summary, personalisation);
 

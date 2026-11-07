@@ -1,0 +1,338 @@
+{
+  "reference": "SUR-STF-019",
+  "revision": 1,
+  "title": "Your working hours and availability",
+  "audience": "EMPLOYEE",
+  "audienceGroup": "CARE_WORKERS",
+  "respondents": "Care staff on the rota (care workers, senior care workers and Field Care Supervisors who do visits), on any contract",
+  "summary": "A yearly, named update of the hours you want, the days and times you can work, split shifts, travel, other paid work and interest in guaranteed hours, so your Care Coordinator can plan your rota around you. It is not a flexible working request. About 6 minutes.",
+  "purpose": "The Work-Related Stress and Staff Wellbeing Policy says recorded availability is respected, and the Equality, Diversity and Inclusion Policy compares hours offered with hours of availability given; both depend on availability being up to date. This survey refreshes each worker's working pattern once a year so Care Coordinators can act person by person, and gives totals for planning: hours wanted but not offered, gaps in early, evening, night and weekend cover, and how many people want guaranteed hours, ahead of the Employment Rights Act 2025 guaranteed hours duty. The anonymous rota survey (SUR-STF-007) measures how the rota feels; this one records what each worker wants.",
+  "timing": {
+    "when": "Once a year, opening on the first working day of August for 3 weeks; also before any rota redesign, but not within 4 weeks of the August send or another named staff survey",
+    "recurrence": "YEARLY",
+    "trigger": "A planned rota redesign (optional one-off copy)"
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "PAPER", "IN_PERSON"],
+  "estimatedMinutes": 6,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING", "WELL_LED"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Workforce wellbeing and enablement",
+      "Workforce equality, diversity and inclusion"
+    ]
+  },
+  "introduction": "Each year {{organisation}} asks care staff when they can work and how many hours they want, so your Care Coordinator can plan your rota around you. It takes about 6 minutes, in paid time. Your answers are linked to your name. Telling us you want fewer hours, no split shifts or no weekends will never be held against you, and nothing about your contract changes unless you agree. This is not a flexible working request: to change your contracted hours or pattern, ask the HR Manager.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to plan your rota and our staffing. Our legal reasons are managing your work under your employment contract and our legitimate interest in planning the rota.\n\nYour answers are linked to your name. They are seen by the Care Coordinators who plan your rota and by the HR Manager. Your updated availability is kept in your staff record. Reports show combined results only, never for groups of fewer than 5 people.\n\nWe keep your answers for 1 year after the survey closes, under our Records Management and Retention Policy. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Your hours",
+      "questions": [
+        {
+          "id": "q-hours-wanted",
+          "text": "How many hours a week would you like to work?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Hours means paid hours, including travel time between visits. We never ask anyone to work more than 48 hours a week on average unless they choose to.",
+          "options": ["Fewer than 8", "8 to 15", "16 to 23", "24 to 31", "32 to 39", "40 to 48", "More than 48", "Not sure"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-hours-fit",
+          "text": "Are you getting the hours you want at the moment?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "No, I want more hours", "No, I want fewer hours"],
+          "comment": {
+            "prompt": "Please tell us more, for example which days you could add or drop.",
+            "showWhen": ["No, I want more hours", "No, I want fewer hours"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-guaranteed",
+          "text": "Would you like a contract with a set number of guaranteed hours each week?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Nothing changes unless you agree. Telling us helps us plan which contracts we can offer.",
+          "options": ["Yes", "No, I prefer flexible hours", "I already have guaranteed hours", "Not sure, I would like to talk about it"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-guaranteed-hours",
+          "text": "How many guaranteed hours a week would you want?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Fewer than 8", "8 to 15", "16 to 23", "24 to 31", "32 to 39", "40 to 48", "Not sure"],
+          "showIf": {
+            "question": "q-guaranteed",
+            "answers": ["Yes"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "When you can work",
+      "questions": [
+        {
+          "id": "q-days-early",
+          "text": "On which days could you work early morning visits (about 7am to 10am)?",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "helpText": "Choose the days you could usually work at each time. If you have a limit on your hours, such as for study or a visa, we will always keep within it.",
+          "options": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "None of these days"],
+          "exclusiveOptions": ["None of these days"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-days-lunch",
+          "text": "On which days could you work late morning and lunchtime visits (about 10am to 2pm)?",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "None of these days"],
+          "exclusiveOptions": ["None of these days"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-days-teatime",
+          "text": "On which days could you work afternoon and teatime visits (about 2pm to 6pm)?",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "None of these days"],
+          "exclusiveOptions": ["None of these days"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-days-evening",
+          "text": "On which days could you work evening visits (about 6pm to 10pm)?",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "None of these days"],
+          "exclusiveOptions": ["None of these days"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-nights",
+          "text": "On which nights could you work night shifts?",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "helpText": "Night shifts include night visits, waking nights (staying awake at the person's home all night) and sleep-ins (sleeping at the person's home and getting up if they need help). Only answer if you work nights or would like to. Before anyone first works nights, we give them a private health questionnaire.",
+          "options": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday", "None of these days"],
+          "exclusiveOptions": ["None of these days"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-split-shifts",
+          "text": "Would you work split shifts, such as a morning run and an evening run on the same day?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Saying No will not reduce the hours we offer you.",
+          "options": ["Yes", "Sometimes", "No"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Travel and other work",
+      "questions": [
+        {
+          "id": "q-travel-mode",
+          "text": "How do you usually travel between visits? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": ["Car", "Walking", "Bicycle", "Bus or train", "Lift from someone else"],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-areas",
+          "text": "Which areas or towns can you work in?",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "For example, the towns or postcodes you can reach easily."
+        },
+        {
+          "id": "q-other-job",
+          "text": "Do you have another paid job as well as this one?",
+          "type": "YES_NO",
+          "required": true,
+          "helpText": "You do not need to say where.",
+          "comment": {
+            "prompt": "About how many hours a week? We count these hours to keep you within the working time limit.",
+            "showWhen": ["Yes"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything else about your hours or rota you would like us to know?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "For example, a regular commitment on one day, or a change coming up. Please do not include the names of people we support."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, your Care Coordinator will contact you within 5 working days. To change your contracted hours or pattern formally, you can make a flexible working request to the HR Manager, from your first day."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it with the Care Coordinators. Use Send or schedule with the job titles of care staff on the rota (care workers, senior care workers, and Field Care Supervisors who do visits), repeating yearly from the first working day of August, kept open 21 days. Staff answer in the CareFlow app or by the personal link in their email. Set one reminder after 2 weeks in Reminders and follow-up; it goes only to those who have not answered. Leave out new starters who answered SUR-STF-003 in the last 4 weeks: their availability was taken at recruitment. Contract type, start date and any limit on hours come from the staff record and are never asked.",
+      "Before a rota redesign, send a one-off copy of this template with the same audience, but not within 4 weeks of the August send or another named staff survey (event surveys come first under the named 4-week rule). It is done in paid time. Anyone who prefers can answer with their Care Coordinator or at supervision, or on paper; the Care Coordinator or HR Manager enters it with Record response. Explain split shifts, sleep-ins and waking nights if asked; never ask why someone's availability is limited.",
+      "Who may open individual answers: the HR Manager and the Care Coordinators who plan rotas in the worker's branch. This is set in Who can see the answers: individual responses are limited to the HR Manager and Care Coordinators, and results to the HR Manager, Care Coordinators and the Registered Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "The Care Coordinator reads each response within 5 working days. Any change from the worker's recorded availability (days and times, nights, split shifts, travel, areas) is confirmed with the worker and entered in their working pattern in CareFlow by hand before the next rota is published (library timescale; CareFlow does not copy survey answers into the working pattern). Recorded availability is respected, and extra visits outside contracted hours may be refused without any effect on hours offered later (Work-Related Stress and Staff Wellbeing Policy; Working Time, Rest Breaks and Travel Time Policy).",
+      "Totals for planning, by branch, day and time of day, never for groups under 5: hours wanted against hours offered; cover available in each time band against visits needing cover; split shifts; travel; other paid work; guaranteed hours wanted. Any time band or day with too few people available goes to the Registered Manager for recruitment and rota planning; 20% or more wanting more hours while vacancies are advertised is reported to the Directors (library triggers). The HR Manager uses hours of availability given in the quarterly hours analysis under the Equality, Diversity and Inclusion Policy, which reports only groups of 5 or more.",
+      "Guaranteed hours: the Registered Manager reports the totals and what can be offered to the Directors within 6 weeks of closing. Make no individual promise: the guaranteed hours duty is not yet in force and, when it is, offers will follow hours actually worked.",
+      "Keep answers for 1 year after the survey closes, under the Records Management and Retention Policy; the updated working pattern stays in the staff record."
+    ],
+    "alerts": [
+      {
+        "when": "\"Are you getting the hours you want?\" answered No, I want more hours.",
+        "action": "The Care Coordinator acknowledges it with the worker within 5 working days (library timescale), offers suitable hours as they arise in the priority order set in the Equality, Diversity and Inclusion Policy, and records each offer; the HR Manager includes the worker in the quarterly hours-offered analysis.",
+        "rule": {
+          "task": "Wants more hours: agree days and record offers",
+          "if": [
+            {
+              "question": "q-hours-fit",
+              "answers": ["No, I want more hours"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Are you getting the hours you want?\" answered No, I want fewer hours.",
+        "action": "The Care Coordinator contacts the worker within 5 working days (library timescale). Where fewer hours means changing contracted hours, the HR Manager explains the flexible working route; a meeting within 10 working days of a request, under the Flexible Working and Family Leave Policy.",
+        "rule": {
+          "task": "Wants fewer hours: contact the worker",
+          "if": [
+            {
+              "question": "q-hours-fit",
+              "answers": ["No, I want fewer hours"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Guaranteed hours answered Yes or Not sure, I would like to talk about it.",
+        "action": "The HR Manager adds the worker to the guaranteed hours review list and, for Not sure, offers a conversation within 10 working days (library timescale). No individual promise is made.",
+        "rule": {
+          "task": "Guaranteed hours interest: add to review list",
+          "if": [
+            {
+              "question": "q-guaranteed",
+              "answers": ["Yes", "Not sure, I would like to talk about it"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 10
+        }
+      },
+      {
+        "when": "Any night chosen.",
+        "action": "The HR Manager checks whether the worker has a night work health questionnaire from the last 12 months; if not, they give the confidential questionnaire before the next night shift is rostered (referring to occupational health where an answer raises a concern), and tell the Care Coordinator only whether the worker is fit for night work (Working Time, Rest Breaks and Travel Time Policy).",
+        "rule": {
+          "task": "Nights offered: check night work health questionnaire",
+          "if": [
+            {
+              "question": "q-nights",
+              "answers": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do you have another paid job?\" answered Yes.",
+        "action": "The HR Manager checks the declared other work and the 17-week working time average within 5 working days (library timescale), under the Working Time, Rest Breaks and Travel Time Policy.",
+        "rule": {
+          "task": "Other paid job declared: check working time",
+          "if": [
+            {
+              "question": "q-other-job",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment that hours or runs are allocated unfairly.",
+        "action": "The Care Coordinator gives a written explanation within 5 working days under the Equality, Diversity and Inclusion Policy, and explains the grievance route."
+      },
+      {
+        "when": "A comment suggesting discrimination, harassment, or pressure to opt out of the 48-hour limit or skip breaks.",
+        "action": "The Registered Manager the same working day (Bullying, Harassment and Sexual Harassment Policy for harassment; same day is a library choice for the others, which the Working Time, Rest Breaks and Travel Time Policy forbids)."
+      },
+      {
+        "when": "A comment suggesting risk to a person we support, or wrongdoing.",
+        "action": "Risk goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure); wrongdoing is a speaking-up concern under the Whistleblowing (Speaking Up) Policy."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The worker's Care Coordinator contacts them within 5 working days.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {"responses": ["HR_MANAGER", "CARE_COORDINATOR"], "results": ["HR_MANAGER", "CARE_COORDINATOR", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-HR-014",
+    "POL-HR-015",
+    "POL-HS-015",
+    "POL-HR-012",
+    "POL-HR-003",
+    "POL-HR-013",
+    "POL-SG-002",
+    "POL-HR-018",
+    "POL-GOV-006",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Employment Rights Act 2025, Part 1, section 1: right to guaranteed hours for zero hours and low hours workers (timing to be set by regulations)",
+      "url": "https://www.legislation.gov.uk/ukpga/2025/36/introduction"
+    },
+    {
+      "source": "Department for Business and Trade, Plan to Make Work Pay and Employment Rights Act: timeline update: timings for guaranteed hours and reasonable notice will be updated following consultation",
+      "url": "https://www.gov.uk/government/publications/implementing-the-plan-to-make-work-pay-and-employment-rights-act/plan-to-make-work-pay-and-employment-rights-act-timeline-update"
+    },
+    {
+      "source": "Department for Business and Trade consultation, Make Work Pay: ending one-sided flexibility (closed 25 August 2026): guaranteed hours offers would reflect hours worked in a reference period",
+      "url": "https://www.gov.uk/government/consultations/make-work-pay-ending-one-sided-flexibility-reforms-of-zero-hours-and-similar-contracts"
+    }
+  ]
+}

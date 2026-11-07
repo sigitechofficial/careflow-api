@@ -16,8 +16,14 @@ export type WorkforceRequirementDef = {
 export type WorkforceReviewTypeDef = {
   name: string;
   code: string;
+  /** REPEATING: days between reviews. EVENT: follow-up gap once one is recorded. */
   defaultIntervalDays: number | null;
   description?: string;
+  /** Defaults to REPEATING (see employee-review-schedule.util.ts). */
+  scheduleKind?: 'REPEATING' | 'MILESTONES' | 'EVENT';
+  firstDueAfterStartDays?: number;
+  milestoneDays?: number[];
+  audience?: 'ALL_STAFF' | 'NMC_REGISTRANTS';
 };
 
 function cat(c: keyof typeof ComplianceCategory): ComplianceCategory {
@@ -356,14 +362,20 @@ export const DEPRECATED_COMPLIANCE_CODES = [
   'SUPERVISION_CONCERN',
 ] as const;
 
-/** Patch canonical legacy rows after upsert (NICE QS123: supervision evidence every 3 months). */
+/**
+ * Supervision, appraisal and probation are tracked by the review schedule (WORKFORCE_REVIEW_TYPES,
+ * Staff reviews), not as compliance documents. The compliance board fills its SUPVSN / APPRSL /
+ * PROB columns from the reviews instead.
+ */
+export const REVIEW_TRACKED_COMPLIANCE_CODES = ['SUPERVISION', 'ANNUAL_APPRAISAL', 'PROBATION'] as const;
+
+/** Compliance document types that are retired and must never be re-created or re-activated by a seed. */
+export const RETIRED_COMPLIANCE_CODES: readonly string[] = [...DEPRECATED_COMPLIANCE_CODES, ...REVIEW_TRACKED_COMPLIANCE_CODES];
+
+/** Patch canonical legacy rows after upsert. */
 export const WORKFORCE_COMPLIANCE_PATCHES: Partial<
   Record<string, Pick<WorkforceComplianceDef, 'defaultValidityMonths' | 'hasExpiry' | 'name'>>
-> = {
-  SUPERVISION: { defaultValidityMonths: 3, hasExpiry: true, name: 'Supervision' },
-  ANNUAL_APPRAISAL: { defaultValidityMonths: 12, hasExpiry: true },
-  PROBATION: { defaultValidityMonths: 6, hasExpiry: true },
-};
+> = {};
 
 export const WORKFORCE_SKILL_NAMES = [
   'Dementia Care',
@@ -592,6 +604,14 @@ export const WORKFORCE_CERT_VALIDITY_MONTHS: Partial<
   'Safeguarding lead certificate': 24,
 };
 
+/**
+ * Review types and when they are due. Sources: NICE QS123 statement 6 (home care workers:
+ * practice-based supervision at least every 3 months), CQC Regulation 18 (supervision and
+ * appraisal, no set frequency), Skills for Care (more supervision during induction; Care
+ * Certificate guided time about 12 weeks), NMC (revalidation every 3 years). Probation milestones
+ * follow common UK employer practice (1, 3 and 6 months). Admins change all of this in
+ * Settings → Supervision → Review types.
+ */
 export const WORKFORCE_REVIEW_TYPES: WorkforceReviewTypeDef[] = [
   {
     name: 'Supervision',
@@ -608,62 +628,82 @@ export const WORKFORCE_REVIEW_TYPES: WorkforceReviewTypeDef[] = [
   {
     name: 'Probation Review',
     code: 'PROBATION_REVIEW',
-    defaultIntervalDays: 30,
-    description: 'Skills for Care — monthly 1:1 during probation; sign-off at 6 months',
+    defaultIntervalDays: null,
+    scheduleKind: 'MILESTONES',
+    milestoneDays: [30, 90, 180],
+    description: 'Reviews 1, 3 and 6 months after the start date (common UK probation practice)',
   },
   {
     name: 'Induction Check-in',
     code: 'INDUCTION_CHECKIN',
-    defaultIntervalDays: 7,
-    description: 'Week-one supervision and Care Certificate planning',
+    defaultIntervalDays: null,
+    scheduleKind: 'MILESTONES',
+    milestoneDays: [7, 14, 21, 28],
+    description: 'Weekly in the first four weeks (Skills for Care: more supervision during induction)',
   },
   {
     name: 'Care Certificate Sign-off',
     code: 'CARE_CERTIFICATE_SIGNOFF',
-    defaultIntervalDays: 84,
-    description: 'Target completion ~12 weeks from start',
+    defaultIntervalDays: null,
+    scheduleKind: 'MILESTONES',
+    milestoneDays: [84],
+    description: 'Once, about 12 weeks after starting (Skills for Care guided time)',
   },
   {
     name: 'Clinical Supervision',
     code: 'CLINICAL_SUPERVISION',
-    defaultIntervalDays: 28,
-    description: 'Registered professionals — typically 4–6 weekly',
+    defaultIntervalDays: 90,
+    audience: 'NMC_REGISTRANTS',
+    description: 'Staff with an NMC PIN; at least every 3 months (no NMC-set frequency)',
   },
   {
     name: 'NMC Revalidation Discussion',
     code: 'NMC_REVALIDATION_DISCUSSION',
-    defaultIntervalDays: 365,
-    description: 'Annual appraisal can host reflective discussion; revalidation every 36 months',
+    defaultIntervalDays: 1095,
+    audience: 'NMC_REGISTRANTS',
+    description: 'Staff with an NMC PIN; NMC revalidation every 3 years (reflective discussion)',
   },
   {
     name: 'Return to Work Review',
     code: 'RETURN_TO_WORK',
     defaultIntervalDays: null,
+    scheduleKind: 'EVENT',
     description: 'After extended sickness, injury, or suspension',
   },
   {
     name: 'Performance Improvement Plan',
     code: 'PERFORMANCE_IMPROVEMENT',
     defaultIntervalDays: 14,
-    description: 'PIP check-ins during formal improvement plan',
+    scheduleKind: 'EVENT',
+    description: 'PIP check-ins every 14 days while a formal improvement plan is open',
   },
   {
     name: 'Phone & Social Media Agreement',
     code: 'PHONE_SOCIAL_MEDIA',
     defaultIntervalDays: 365,
-    description: 'Employment policy agreement renewal',
+    firstDueAfterStartDays: 7,
+    description: 'Signed in the first week, then renewed yearly (provider policy)',
   },
   {
     name: 'Team Meeting / Reflection',
     code: 'TEAM_MEETING',
-    defaultIntervalDays: 30,
-    description: 'Group reflection and incident learning',
+    defaultIntervalDays: null,
+    scheduleKind: 'EVENT',
+    description: 'Group reflection and incident learning (recorded when held; not chased per carer)',
   },
   {
     name: 'Whistleblowing Awareness',
     code: 'WHISTLEBLOWING_AWARENESS',
     defaultIntervalDays: 365,
-    description: 'Annual policy awareness confirmation',
+    firstDueAfterStartDays: 7,
+    description: 'Explained in the first week, then confirmed yearly (provider policy)',
+  },
+  {
+    name: 'Spot Check (Observed Practice)',
+    code: 'SPOT_CHECK',
+    defaultIntervalDays: 90,
+    firstDueAfterStartDays: 30,
+    description: 'Observation of a care visit: first within a month of starting, then every 3 months',
   },
 ];
 

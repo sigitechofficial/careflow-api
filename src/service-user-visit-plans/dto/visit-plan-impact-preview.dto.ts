@@ -18,12 +18,12 @@ export class GenerateVisitPlanSchedulePreviewQueryDto extends GenerateVisitPlanS
   @IsUUID()
   declare scheduleAreaId?: string | null;
 
-  @ApiPropertyOptional({ minimum: 0, maximum: 14 })
+  @ApiPropertyOptional({ minimum: 0, maximum: 31, description: 'Also limited by Settings → Dom Care' })
   @IsOptional()
   @Transform(({ value }) => (value === undefined || value === null || value === '' ? undefined : Number(value)))
   @IsInt()
   @Min(0)
-  @Max(14)
+  @Max(31)
   declare backfillDays?: number;
 
   @ApiPropertyOptional({ default: false })

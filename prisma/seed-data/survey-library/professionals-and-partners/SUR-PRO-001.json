@@ -1,0 +1,415 @@
+{
+  "reference": "SUR-PRO-001",
+  "revision": 1,
+  "title": "Feedback from health and social care professionals",
+  "audience": "PUBLIC",
+  "audienceGroup": "PROFESSIONALS",
+  "respondents": "Community and district nurses, social workers and care managers, occupational therapists and physiotherapists, specialist and palliative care nurses, and mental health and learning disability teams who worked with us in the last 12 months",
+  "summary": "A short yearly survey for community health and social care professionals: how well we communicate, follow your advice, share information and work in partnership, whether we tell you about changes and safety concerns in good time, and, for nurses who delegate healthcare tasks to us, how we carry them out. About 6 minutes.",
+  "purpose": "The Compliments, Feedback and Involvement Procedure has the Deputy Manager survey the community health and social work teams we work with each February, asking how well we communicate, follow advice, share information and work in partnership. Those four themes, the overall rating and the closing questions use the same wording in every professionals' survey, so they can be reported together across professional groups and year on year. The results are our feedback from partners for CQC, find working-relationship problems early, and feed the annual governance review; results and actions go back to everyone asked within 3 months of closing.",
+  "timing": {
+    "when": "Once a year, on the first working day of February with the satisfaction survey, open 4 weeks",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": false,
+  "channels": ["ONLINE"],
+  "estimatedMinutes": 6,
+  "cqc": {
+    "keyQuestions": ["EFFECTIVE", "RESPONSIVE", "SAFE", "WELL_LED"],
+    "qualityStatements": [
+      "How staff, teams and services work together",
+      "Care provision, integration and continuity",
+      "Safe systems, pathways and transitions",
+      "Safeguarding",
+      "Medicines optimisation",
+      "Partnerships and communities"
+    ]
+  },
+  "introduction": "{{organisation}} would like your view of how we work with you and the people we both support. It takes about 6 minutes and works on a phone. Taking part is up to you. Please do not name anyone we support. If you write the reference number from our email, we know which team answered and can follow up; if you leave it blank, we will still act on what you tell us.\n\nThis survey is not for urgent concerns. If you are worried about someone's safety, or need us now, phone our office (out of hours, our on-call number). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve how we work with professionals and the care we give. Our legal reason is our legitimate interest in running a good, safe service.\n\nThis survey is not anonymous. We ask your role, and if you write the reference number or give your details, your answers are linked to your team or to you so we can follow them up. In a small area, a role and a team may identify you. Only our Registered Manager and Deputy Manager look at individual answers. Reports show combined results only, for groups of 5 or more. If you tell us someone may be at risk of harm, we will tell our safeguarding lead and may tell the council.\n\nWe keep your answers for 3 years after the survey closes, under our Records Management and Retention Policy. You can ask to see, correct or delete your information, or object to our using it, by contacting our office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "q-pro-role",
+          "text": "Which best describes your role?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "District or community nurse",
+            "Social worker or care manager",
+            "Occupational therapist or physiotherapist",
+            "Specialist nurse or palliative care team",
+            "Mental health or learning disability team"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us your role",
+            "textRequired": true
+          }
+        }
+      ]
+    },
+    {
+      "title": "How we work with you",
+      "questions": [
+        {
+          "id": "pro-communicate",
+          "text": "How well do we communicate with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, how easy we are to reach and how quickly we reply. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        },
+        {
+          "id": "pro-follow-advice",
+          "text": "How well do we follow the advice you give us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, moving and handling plans, wound care, or eating and drinking advice. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Effective: How staff, teams and services work together"
+        },
+        {
+          "id": "pro-share-info",
+          "text": "How well do we share information with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, whether what we tell you about people is accurate, complete and on time. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "pro-partnership",
+          "text": "How well do we work in partnership with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, working together to help people stay at home or at the end of life. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        }
+      ]
+    },
+    {
+      "title": "Keeping people safe and well",
+      "questions": [
+        {
+          "id": "q-tell-changes",
+          "text": "Do we tell you promptly when someone's health or needs change?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        },
+        {
+          "id": "q-raise-concerns",
+          "text": "Do we raise concerns about people's safety in good time?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-dignity-seen",
+          "text": "From what you see, do our care workers treat people with dignity and respect?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what you saw. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safeguarding"
+        }
+      ]
+    },
+    {
+      "title": "Healthcare tasks you delegate to us",
+      "introduction": "These questions are for nurses who delegate healthcare tasks to our care workers.",
+      "questions": [
+        {
+          "id": "q-delegated-as-written",
+          "text": "Do our care workers carry out the healthcare tasks you delegate to them exactly as your written instructions say?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "For example, insulin from a pre-filled pen, feeds through a gastrostomy tube or wound care that you have trained and signed off named care workers to do. Choose Does not apply to me if you have not delegated a task to us, or Don't know if you have not seen it done.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me", "Don't know"],
+          "notCountedOptions": ["Does not apply to me", "Don't know"],
+          "showIf": {
+            "question": "q-pro-role",
+            "answers": ["District or community nurse", "Specialist nurse or palliative care team"]
+          },
+          "comment": {
+            "prompt": "What happened? Please do not name anyone we support.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        },
+        {
+          "id": "q-delegated-signoff",
+          "text": "When our care workers need training, sign-off or reassessment for a delegated task, do we arrange it with you in good time?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose Does not apply to me if you have not delegated a task to us, or Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me", "Don't know"],
+          "notCountedOptions": ["Does not apply to me", "Don't know"],
+          "showIf": {
+            "question": "q-pro-role",
+            "answers": ["District or community nurse", "Specialist nurse or palliative care team"]
+          },
+          "comment": {
+            "prompt": "What would help? Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Medicines optimisation"
+        }
+      ]
+    },
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "pro-overall",
+          "text": "Overall, how would you rate us as a care provider to work with?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What is the main reason for your rating?",
+            "showWhen": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one thing would make working with us easier or better?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not name anyone we support."
+        },
+        {
+          "id": "q-reference",
+          "text": "Please write the reference number from our email, so we know which team answered.",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "If you leave it blank, we will still act on what you tell us, but we cannot reply to your team."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, our Registered Manager or Deputy Manager will contact you within 5 working days, through your organisation's main number. We can only do this if you give your details below."
+        },
+        {
+          "id": "q-contact-details",
+          "text": "Your name, organisation and a work phone number or email.",
+          "type": "TEXT",
+          "required": false,
+          "showIf": {
+            "question": "q-contact",
+            "answers": ["Yes"]
+          }
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Deputy Manager runs it under the Compliments, Feedback and Involvement Procedure, alongside the satisfaction survey. CareFlow cannot yet send a survey to named people outside the organisation, so this is a public form: each year publish a new copy of this template on the first working day of February with an end date 4 weeks later, and email the link to each team.",
+      "In January, build the list from the last 12 months of care records and partner contacts: community nursing, social work, therapy, specialist, palliative care, mental health and learning disability teams. Not GP practices or community pharmacies (they get SUR-PRO-004 instead, never both in a year), commissioners (SUR-PRO-002), hospital discharge and reablement teams (SUR-PRO-003) or advocates and community organisations (SUR-PRO-005). Leave out teams sent SUR-PRO-003 in the last 4 weeks. Send one email per team to the team or practice manager's inbox, asking them to forward it to clinicians, with a reference number for that team; keep the list of reference numbers with the invitations, because a public form cannot tell us who answered.",
+      "CareFlow cannot send reminders for a public form: after 2 weeks, email one reminder to every team on the list that has not yet given its reference number in an answer. The survey is not anonymous, and the role question is required; name and organisation are asked only from those who want to be contacted.",
+      "Who may open individual answers: the Deputy Manager and the Registered Manager. This is set in Who can see the answers: individual responses are limited to the Deputy Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "Read each response the working day it arrives and act under the alerts below. Phone professionals back only through their organisation's main number, found independently, never a number given in an answer (Confidentiality and Information Sharing Policy). With no reference number or contact details, act on the information given and record it; never try to identify who answered.",
+      "How to count: positive means Very good or Good, or Always or Usually, leaving out Don't know and Does not apply to me. Report by role band only where a band has 5 or more answers; otherwise report all professionals together. The four shared items (communicate, follow advice, share information, work in partnership) and the overall rating are also reported pooled with the commissioners', medicines partners' and advocates' surveys (SUR-PRO-002, 004 and 005) as the professionals' result. Compare year on year only.",
+      "The Deputy Manager writes the report within 6 weeks of closing: responses by role band, each question, comment themes and actions, with actions in the service improvement plan within 5 working days. It goes to the Directors within 3 months and into the annual governance review (Governance and Quality Assurance Policy). Results and actions go to everyone asked within 3 months of closing, and the May You said, we did summary goes to everyone on the list, because the public form cannot tell us who took part.",
+      "Keep answers for 3 years after the survey closes, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "A comment raising a concern about the safety of someone we support, or possible abuse or neglect.",
+        "action": "Tell the safeguarding lead the same working day; call 999 first if anyone is in immediate danger. The lead decides within 1 hour and refers the same working day where needed, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. If the professional gave a reference number or details, phone back through their organisation's main number."
+      },
+      {
+        "when": "Delegated tasks not carried out exactly as written: Sometimes, Rarely or Never.",
+        "action": "The Registered Manager reviews it by the end of the next working day: checks sign-offs, allocations and the delegated task plans for that team's people, suspends any delegation that is not safe, and, where the team can be identified, raises any change needed with the delegating professional, under the Delegated Healthcare Activities and Specialised Medicines Tasks Policy. Any incident found goes in the incident log the same day.",
+        "rule": {
+          "task": "Delegated tasks not done as written: review",
+          "if": [
+            {
+              "question": "q-delegated-as-written",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 1,
+          "urgent": true
+        }
+      },
+      {
+        "when": "Training, sign-off or reassessment for delegated tasks not arranged in good time: Rarely or Never.",
+        "action": "The Deputy Manager checks sign-off expiry dates and the 8-week reassessment requests within 5 working days, and makes sure no worker with an expired sign-off is allocated the task (Delegated Healthcare Activities and Specialised Medicines Tasks Policy).",
+        "rule": {
+          "task": "Delegated task sign-off delays: check expiries",
+          "if": [
+            {
+              "question": "q-delegated-signoff",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Communicate, follow advice, share information or partnership answered Poor or Very poor, or telling you about changes or raising safety concerns answered Rarely or Never.",
+        "action": "Where a reference number or organisation is given, the Registered Manager contacts the team lead within 5 working days through the organisation's main number. In every case the actions go into the service improvement plan within 5 working days (Compliments, Feedback and Involvement Procedure).",
+        "rule": {
+          "task": "Professional rated how we work as poor: follow up",
+          "if": [
+            {
+              "question": "pro-communicate",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-follow-advice",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-share-info",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-partnership",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "q-tell-changes",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-raise-concerns",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Overall rating Poor or Very poor.",
+        "action": "Where a reference number or organisation is given, the Registered Manager phones the team lead within 5 working days through the organisation's main number.",
+        "rule": {
+          "task": "Professional rated us poor overall: call team lead",
+          "if": [
+            {
+              "question": "pro-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment expressing dissatisfaction that needs a response, for example about a person's care.",
+        "action": "Record it as a complaint the same day and acknowledge it within 3 working days where the professional can be contacted, under the Complaints Policy and Procedure; a professional may complain on a person's behalf."
+      },
+      {
+        "when": "A comment about a medicines problem.",
+        "action": "Record it in the incident log the same working day under the Medication Errors, Near Misses and Incidents Procedure, and review any change under the Medicines Changes, Transfers of Care and Hospital Discharge Procedure."
+      },
+      {
+        "when": "A compliment about a team or care worker.",
+        "action": "Record it the same working day and pass it on within 5 working days (Compliments, Feedback and Involvement Procedure)."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Deputy Manager or Registered Manager contacts them within 5 working days, through their organisation's main number.",
+        "rule": {
+          "task": "Professional asked to be contacted",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {"responses": ["DEPUTY_MANAGER", "REGISTERED_MANAGER"], "results": ["DEPUTY_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-016",
+    "POL-GOV-013",
+    "POL-GOV-005",
+    "POL-SG-002",
+    "POL-MED-015",
+    "POL-MED-014",
+    "POL-MED-013",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from relevant persons and other persons on the services provided",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Department of Health and Social Care, Hospital discharge and community support guidance: sufficient and accurate information, and agreed pathways for raising concerns",
+      "url": "https://www.gov.uk/government/publications/hospital-discharge-and-community-support-guidance/hospital-discharge-and-community-support-guidance"
+    },
+    {
+      "source": "Skills for Care, Delegated healthcare activities: the guiding principles (co-developed with DHSC and CQC): safe, person-centred delegation by a registered health professional to trained, signed-off care workers",
+      "url": "https://www.skillsforcare.org.uk/Support-for-leaders-and-managers/Managing-a-service/Delegated-healthcare-activities/The-guiding-principles.aspx"
+    }
+  ]
+}

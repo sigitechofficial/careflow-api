@@ -1,0 +1,461 @@
+{
+  "reference": "SUR-PWS-011",
+  "revision": 1,
+  "title": "Your care in pictures (dementia-friendly)",
+  "audience": "SERVICE_USER",
+  "respondents": "People we support whose care plan records dementia or another cognitive impairment, face to face with a Field Care Supervisor outside their core care team, in place of the annual survey",
+  "summary": "The annual survey as a face-to-face conversation with picture cards and three faces, so people living with dementia give their own view. It uses the annual survey's words, so answers compare. About 20 minutes, with breaks as needed.",
+  "purpose": "The accessible, interviewer-led format of the annual satisfaction survey (SUR-PWS-003) for people living with dementia or another cognitive impairment, so they give their own view instead of a family member answering for them, as the Compliments, Feedback and Involvement Procedure and the Mental Capacity Act's presumption of capacity require. It asks the annual survey's core questions in the same words with a three-point picture scale, so results join the February results as their own group and show whether people with dementia have the same experience as others (Equity in experiences and outcomes). It also triggers follow-up for each person, and includes the two questions the Equality, Diversity and Human Rights in Care Policy requires in every annual survey.",
+  "timing": {
+    "when": "Once a year in the annual survey window (the first working day of February, for 4 weeks), in place of the annual survey; at a time of day the person is at their best, never during a care visit",
+    "recurrence": null,
+    "trigger": "The February annual survey, for each person whose care plan records dementia or another cognitive impairment"
+  },
+  "anonymous": false,
+  "channels": ["IN_PERSON"],
+  "estimatedMinutes": 20,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Safeguarding",
+      "Safe and effective staffing",
+      "Monitoring and improving outcomes",
+      "Kindness, compassion and dignity",
+      "Treating people as individuals",
+      "Independence, choice and control",
+      "Care provision, integration and continuity",
+      "Providing information",
+      "Listening to and involving people",
+      "Equity in experiences and outcomes"
+    ]
+  },
+  "introduction": "I am from {{organisation}}. I would like to ask what you think of your care. I will show you some pictures and three faces. You can point to a face or tell me. It takes about 20 minutes, and we can stop for a break at any time.\n\nThere are no right or wrong answers. You can tell me anything, good or bad. What you say will not affect your care, and your care workers (carers) will not see your answers.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to check your care is right for you and to improve our service. Our legal reason is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name so we can put things right. They are seen only by our Registered Manager, Deputy Manager, safeguarding lead, Care Coordinators and Field Care Supervisors, never by your care workers (carers), and reports show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after the survey closes, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Read all six answers and show the three faces: Very good and Good under the happy face, Neither good nor poor under the middle face, Poor and Very poor under the sad face. If the person only points to a face, record Good, Neither good nor poor or Poor, and write \"pointed to face\" in the comment. Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your visits",
+      "questions": [
+        {
+          "id": "q-ontime",
+          "text": "Do your care workers arrive on time?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Show the clock card, then the three faces. You can ask: \"Do they come when you expect them?\" Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely or never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-staytime",
+          "text": "Do your care workers stay for the time agreed for your visit?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Show the clock card again. You can ask: \"Do they stay long enough, or do they leave early?\" Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely or never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-rushed",
+          "text": "Do your care workers have time to help you without rushing?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "You can ask: \"Do they take their time with you, or do they hurry?\" Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely or never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-known",
+          "text": "Are you visited by care workers you know?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Show the faces card of people. You can ask: \"Do you know the people who come to help you?\" Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely or never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        }
+      ]
+    },
+    {
+      "title": "How you are treated",
+      "questions": [
+        {
+          "id": "q-yourway",
+          "text": "Do your care workers do things the way you want them done?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Show the washing, dressing or meal card that matches the person's care. You can ask: \"Do they help you the way you like?\" Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["Rarely or never"]
+          },
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "id": "q-matters",
+          "text": "Does our care help you do the things that matter to you?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Show the home, garden or family card. You can ask: \"Do we help you do the things you enjoy?\" Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What would help you do more of the things that matter to you?",
+            "showWhen": ["Rarely or never"]
+          },
+          "evidence": "Effective: Monitoring and improving outcomes"
+        },
+        {
+          "id": "q-dignity",
+          "text": "Do your care workers treat you with dignity and respect?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Ask only when the person is alone with you and says it is all right to talk; otherwise leave it blank. You can ask: \"Are they polite to you? Do they keep you covered and private?\" Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely or never"]
+          },
+          "evidence": "Caring: Kindness, compassion and dignity"
+        },
+        {
+          "id": "q-fair",
+          "text": "Do you feel we treat you fairly?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "You can ask: \"Do we treat you as well as anyone else?\" Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely or never"]
+          },
+          "evidence": "Responsive: Equity in experiences and outcomes"
+        },
+        {
+          "id": "q-culture",
+          "text": "Do your care workers respect your culture and beliefs?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Show the faith, food and family card. You can ask: \"Do they respect the things that matter to you, like your faith, your food or how you like to be called?\" Choose \"Does not apply to me\" if the person says nothing like this matters to their care, and \"Don't know\" if they cannot say.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Does not apply to me", "Don't know"],
+          "notCountedOptions": ["Does not apply to me", "Don't know"],
+          "comment": {
+            "prompt": "Please tell us what we could do differently.",
+            "showWhen": ["Rarely or never"]
+          },
+          "evidence": "Caring: Treating people as individuals"
+        }
+      ]
+    },
+    {
+      "title": "Feeling safe",
+      "questions": [
+        {
+          "id": "q-safe",
+          "text": "Do you feel safe with your care workers?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Ask only when the person is alone with you and says it is all right to talk; otherwise leave it blank and ask at their next spot check. Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What would help you feel safer?",
+            "showWhen": ["Sometimes", "Rarely or never"]
+          },
+          "evidence": "Safe: Safeguarding"
+        }
+      ]
+    },
+    {
+      "title": "Information and telling us",
+      "questions": [
+        {
+          "id": "q-information",
+          "text": "Is the information we give you easy for you to use?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Show the person's own list of visit times or care folder. You can ask: \"Can you read and use this?\" Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Always or usually", "Sometimes", "Rarely or never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What would make our information easier for you?",
+            "showWhen": ["Rarely or never"]
+          },
+          "evidence": "Responsive: Providing information"
+        },
+        {
+          "id": "q-tell-us",
+          "text": "If you were unhappy with your care, would you feel able to tell us?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Show the Yes, No and question mark cards. You can ask: \"If something was wrong, would you tell us?\" Choose \"Don't know\" if the person cannot say or does not want to.",
+          "options": ["Yes", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What would make it easier to tell us?",
+            "showWhen": ["No"]
+          },
+          "evidence": "Responsive: Listening to and involving people"
+        }
+      ]
+    },
+    {
+      "title": "What you noticed (for the interviewer)",
+      "introduction": "Fill this in after the conversation. It is your own observation, reported separately and never counted as the person's answer.",
+      "questions": [
+        {
+          "id": "q-observed",
+          "text": "How did the person seem during the conversation?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "In the comment, write what you saw and heard, not what you think it means: for example, \"smiled when talking about Jane\" or \"looked at the door when asked about feeling safe\". Note any question you put in the person's own words, and if you stopped early, why.",
+          "options": ["Relaxed and content", "Mixed", "Worried or upset", "Could not tell"],
+          "comment": {
+            "prompt": "What did you notice?"
+          }
+        },
+        {
+          "id": "q-could-answer",
+          "text": "How many questions could the person answer?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This tells the reader how far to rely on the answers. Choose \"Some of them\" if the person stopped early.",
+          "options": ["All of them", "Some of them", "None today"]
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "Is there anything you would like to change about your care?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Write the person's own words, for example \"more tea\" or \"the same girl in the morning\"."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If the person says Yes, someone from our office, not one of their care workers, will contact them within 5 working days. A family member is told only if the person agrees."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Use this survey instead of the annual survey (SUR-PWS-003) for people whose care plan records dementia or another cognitive impairment, never both, and never in place of a quality check: quality checks need the full quality check questions. Presume each person can give their own view and take every practicable step to help them, under the Mental Capacity Act; a diagnosis of dementia is not by itself a reason to ask someone else. Only if the person cannot give their view even with the cards may a representative answer the annual survey for them, recorded in \"Who is answering\" and reported separately.",
+      "This is a face-to-face conversation, so it is recorded, not sent, and CareFlow cannot choose people by diagnosis. Before the February window the Deputy Manager lists the people it is for from their care plans, starts a copy from this template (for example \"Pictures survey, February\") and uses Open for responses. The Field Care Supervisor enters each conversation with Record response the same day: channel In person, and \"Who is answering\" The service user. Because the annual survey goes to the whole branch, tell the person and their family that this conversation replaces it, and do not post, phone or hand them the annual survey as well.",
+      "By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can open a survey for responses: give both permissions to the Field Care Supervisors who hold these conversations; Care Coordinators can only view surveys unless given them.",
+      "Who: a Field Care Supervisor outside the person's core care team, trained in using the cards; never a care worker who visits the person. Before the visit, check the person's survey history in CareFlow: this conversation is their survey contact for 4 weeks either side, so no quality check, monthly check-in, appraisal feedback (SUR-PWS-020) or other survey in that time. A quality check due in February is done in early January.",
+      "Pictures: CareFlow cannot show pictures on questions or answers, so print A5 cards in high contrast: three faces (happy, middle, sad), a question mark card for Don't know, Yes and No cards, and topic cards named in each question's help text (clock, people's faces, washing, dressing or meal, home, garden or family, faith, food and family). Commission or draw original pictures, or use a licensed symbol library you already hold; never copy Talking Mats symbols or the Adult Social Care Survey easy read.",
+      "The visit: at a time of day the person is at their best (the care plan records when), never during a care visit, with glasses and hearing aids in. The conversation takes about 20 minutes, with each card shown and every answer read aloud; allow 40 minutes for the visit, with settling in and breaks. Explain simply, for example \"I'd like to ask what you think of your care workers. Is that all right?\", and accept a no or the person turning away: record their agreement, or the decision not to go ahead, in the care plan notes. Show one card at a time and repeat the question with the card each time. You may put a question in the person's own words (the help text suggests how): note that you did. Use a professional interpreter only, never a family member.",
+      "Ask in this order if the person tires: overall, feeling safe, dignity and telling us first, then the rest. Stop if the person is tired or distressed. If you will try another day within the window, close without saving and note it on your visit list, because CareFlow accepts only one answer from each person; otherwise save what was answered and choose \"Some of them\". Family may stay for the start if the person wants, but ask the dignity and feeling safe questions only when the person is alone with you and says it is all right to talk; otherwise leave them blank and ask at the next spot check. The family's own view goes in the family survey (SUR-FAM-001).",
+      "Never reword the questions in CareFlow: they use the annual survey's words and question ids, so results compare question by question.",
+      "Who may open individual answers: the Field Care Supervisors who hold the conversations, the Care Coordinators who follow up, the Deputy Manager and the Registered Manager. This is set in Who can see the answers: individual responses are limited to Field Care Supervisors, the Deputy Manager, the Registered Manager, Care Coordinators and the safeguarding lead, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "How to count: satisfaction is the share answering Very good or Good to the overall question, leaving out Don't know. For the picture questions report the share answering Always or usually, leaving out Don't know and Does not apply to me, and for telling us the share answering Yes. Report these results in their own table in the February results, next to the annual survey's easy read results, and compare with the five-point results only through the mapping (Always or Usually = Always or usually; Sometimes = Sometimes; Rarely or Never = Rarely or never). Never count the interviewer's observation as the person's answer.",
+      "Read the answers alongside \"How many questions could the person answer?\": answers given by someone who answered some of them are still their view, and are reported with the base shown. Never report a group of fewer than 5 people separately, and flag results resting on fewer than 10.",
+      "The Deputy Manager reports these results with the annual survey to the Directors and, in an accessible summary with pictures, to everyone asked within 3 months of the survey closing, under the Governance and Quality Assurance Policy. Compare them with everyone else's results: a worse experience for people living with dementia goes to the annual equality review under the Equality, Diversity and Human Rights in Care Policy, with an action in the service improvement plan.",
+      "Tell each person whose answers need action what we will do within 5 working days, in a way they understand, and with their agreement their representative too. Keep the answers for 3 years after the survey closes under the Records Management and Retention Policy. For CQC, these conversations show that people living with dementia are asked for their own view and that their experience is compared with others' (Regulation 17(2)(e) and 9(3))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe with your care workers?\" answered Sometimes or Rarely or never; any sign of fear, an injury or an allegation; or \"Worried or upset\" linked to the person's care.",
+        "action": "Tell the safeguarding lead the same working day; call 999 first if anyone is in immediate danger. The lead assesses the risk within 1 hour of the report and refers to the local authority immediately if the risk is immediate, otherwise the same working day, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure (and the Managing Allegations Against Staff Procedure if it is about a member of staff).",
+        "rule": {
+          "task": "Possible safeguarding concern: does not always feel safe",
+          "if": [
+            {
+              "question": "q-safe",
+              "answers": ["Sometimes", "Rarely or never"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "A comment on dignity, fairness or culture and beliefs that describes rough, degrading or discriminatory treatment.",
+        "action": "Tell the Registered Manager the same working day; they decide within 1 hour of being told whether it is a safeguarding concern, under the Equality, Diversity and Human Rights in Care Policy. Discrimination by our staff is a complaint graded High under the Complaints Policy and Procedure."
+      },
+      {
+        "when": "Any picture question answered Rarely or never, or the overall question Poor or Very poor, with no particular concern.",
+        "action": "Tell the Care Coordinator the same working day; they contact the person (and, with the person's agreement, their representative) within 5 working days to agree what we will do, under the Compliments, Feedback and Involvement Procedure.",
+        "rule": {
+          "task": "Low answers: contact the person to agree what we will do",
+          "if": [
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "q-ontime",
+              "answers": ["Rarely or never"]
+            },
+            {
+              "question": "q-staytime",
+              "answers": ["Rarely or never"]
+            },
+            {
+              "question": "q-rushed",
+              "answers": ["Rarely or never"]
+            },
+            {
+              "question": "q-known",
+              "answers": ["Rarely or never"]
+            },
+            {
+              "question": "q-yourway",
+              "answers": ["Rarely or never"]
+            },
+            {
+              "question": "q-matters",
+              "answers": ["Rarely or never"]
+            },
+            {
+              "question": "q-dignity",
+              "answers": ["Rarely or never"]
+            },
+            {
+              "question": "q-fair",
+              "answers": ["Rarely or never"]
+            },
+            {
+              "question": "q-culture",
+              "answers": ["Rarely or never"]
+            },
+            {
+              "question": "q-information",
+              "answers": ["Rarely or never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A missed visit, a medicines problem, a fall or any harm in any comment.",
+        "action": "Log it in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy, and the Missed, Late and Short Visits Procedure or the Medication Errors, Near Misses and Incidents Procedure where they apply."
+      },
+      {
+        "when": "Dissatisfaction that needs a response.",
+        "action": "Record a complaint the same working day; the Registered Manager or Deputy Manager grades it within 1 working day and it is acknowledged within 3 working days, under the Complaints Policy and Procedure."
+      },
+      {
+        "when": "\"How many questions could the person answer?\" answered None today, and no family member or representative is involved.",
+        "action": "The Care Coordinator records it in the care plan; the reviewer considers an independent advocate at the next review and, where the person may qualify for a Care Act advocate, asks the local authority in writing within 2 working days, under the Person-Centred Care, Dignity and Respect Policy.",
+        "rule": {
+          "task": "Could not answer: check for a representative or advocate",
+          "if": [
+            {
+              "question": "q-could-answer",
+              "answers": ["None today"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "Praise for our service or a named care worker.",
+        "action": "Record it as a compliment the same working day and pass it to each employee named within 5 working days."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff contact the person within 5 working days, face to face or in the way their care plan says they communicate best, and record what was agreed.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["FIELD_CARE_SUPERVISOR", "DEPUTY_MANAGER", "REGISTERED_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "results": ["FIELD_CARE_SUPERVISOR", "DEPUTY_MANAGER", "REGISTERED_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-CD-001",
+    "POL-CD-005",
+    "POL-CD-006",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-GOV-005",
+    "POL-GOV-007",
+    "POL-CD-013",
+    "POL-MED-014",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(a) and (e): assess, monitor and improve quality, including people's experience; seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9(3)(d), (f) and (g): supporting people to take part in decisions about their care and about how the service is run as it affects their care, with the information they need",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 1(2) and (3): presume capacity and take all practicable steps to help a person decide",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Joseph Rowntree Foundation, Talking Mats help involve people with dementia and their carers in decision-making (Murphy, Oliver and Cox, 2010): a three-point picture scale helped people with early and moderate dementia give their views",
+      "url": "https://content.iriss.org.uk/careandsupport/assets/docs/2_talking-mats-summary.pdf"
+    }
+  ]
+}

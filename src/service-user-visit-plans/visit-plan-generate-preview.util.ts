@@ -23,6 +23,8 @@ type PreviewParams = {
   fromDate: Date;
   toDate: Date;
   backfillDays: number;
+  /** Organisation limit (Settings → Dom Care); 0 = backfill off. */
+  orgMaxBackfillDays: number;
   /** Only generate days strictly before fromDate (rota start catch-up). */
   backfillOnly?: boolean;
   enabledSlots: SlotWithRelations[];
@@ -48,9 +50,10 @@ export async function previewGenerateScheduleFromPlan(
   const dayMs = 86400000;
   const backfillOnly = params.backfillOnly === true && params.backfillDays > 0;
   const clampToSlot = !backfillOnly;
-  const maxSlotBackfillDays = Math.min(
-    14,
-    Math.max(0, ...params.enabledSlots.map((s) => Math.floor(Number(s.allowBackfillDays) || 0))),
+  const orgMax = params.orgMaxBackfillDays;
+  const maxSlotBackfillDays = Math.max(
+    0,
+    ...params.enabledSlots.map((s) => maxAllowedBackfillDays(s.allowBackfillDays, orgMax, orgMax)),
   );
 
   const rangeStart = new Date(params.fromDate);
@@ -109,7 +112,7 @@ export async function previewGenerateScheduleFromPlan(
 
     if (isBackfillDay) {
       const anySlotAllowsBackfill = params.enabledSlots.some((slot) => {
-        const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, params.backfillDays);
+        const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, params.backfillDays, orgMax);
         if (allowed <= 0) return false;
         const slotStart = computeGenerationStart(
           params.fromDate,
@@ -128,7 +131,7 @@ export async function previewGenerateScheduleFromPlan(
     for (const slot of params.enabledSlots) {
       let extendBefore = 0;
       if (isBackfillDay) {
-        const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, params.backfillDays);
+        const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, params.backfillDays, orgMax);
         if (allowed <= 0) continue;
         const slotStart = computeGenerationStart(
           params.fromDate,

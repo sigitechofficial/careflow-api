@@ -1,0 +1,692 @@
+{
+  "reference": "POL-HR-007",
+  "revision": 1,
+  "title": "Staff Code of Conduct",
+  "documentType": "POLICY",
+  "summary": "The standards of behaviour expected of everyone who works for us, at visits, in the office, online and outside work where it affects suitability. Based on the national Code of Conduct for Healthcare Support Workers and Adult Social Care Workers, it covers conduct during visits, honest recording, fitness for work including alcohol, drugs and medicines, what staff must tell us and declare, other work, and how breaches are handled and referred. For all employees.",
+  "keyPoints": {
+    "intro": "How to behave at work, in people's homes and online. Breaches are disciplinary matters and may be reported to the police, the DBS or a regulator.",
+    "points": [
+      "Treat every person with dignity, kindness and respect, follow their care plan and never rush, shout at, mock, handle roughly, restrict or neglect anyone. Ill-treatment or wilful neglect by a paid care worker is a crime.",
+      "Phone the office, or the On-call Manager out of hours, before you leave the home about any safeguarding concern, accident, mistake or essential task you could not do, and be honest.",
+      "Check in on arrival and out on leaving, inside the person's home, with your own log-in. Never record a visit, task, time or medicine that did not happen, and never share your log-in.",
+      "Make only the visits on your CareFlow rota and never bring anyone with you. Once parked, phone the office as soon as you know you will be over 15 minutes late or need to stay over 15 minutes beyond the planned time.",
+      "Never work, drive for work or go on call while affected by alcohol or drugs. Drink no alcohol in the 8 hours before a shift or on-call period, and none at work, including breaks.",
+      "If a medicine warns about drowsiness or driving, or a new medicine or dose may affect you, tell the HR Manager or your Field Care Supervisor (On-call Manager out of hours) before your next shift. Never give your medicines to anyone.",
+      "Never smoke or vape during a visit or on the person's property, use your personal phone at visits only for an urgent matter, and when driving never hold a phone or make or take calls, even hands-free.",
+      "Never use a person's PIN, bank card or online banking, never borrow, lend, buy or sell, and accept gifts only as the Gifts, Hospitality, Wills and Legacies Policy allows. Phone the office before leaving about any request to break these rules.",
+      "Tell the Registered Manager or HR Manager before your next shift (24 hours at most) if you are arrested, charged, cautioned, convicted, investigated by police or children's social care, referred to the DBS or a regulator, or lose your driving licence.",
+      "Tell the HR Manager in writing before starting other paid work, including private work for anyone we support, and the Care Coordinator before visiting anyone you already know, such as a relative, friend or neighbour.",
+      "Keep information about the people we support confidential and never post about them or their homes. Unless you knew them before their care began, never give them your personal contact details.",
+      "Report a colleague's unsafe or poor conduct to your manager or under the Whistleblowing (Speaking Up) Policy; you will not be penalised."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "HR",
+    "EMPLOYEE",
+    "SAFEGUARDING",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-SG-009",
+    "POL-SG-008",
+    "POL-HR-008",
+    "POL-HR-020",
+    "POL-GOV-022",
+    "POL-HR-017",
+    "POL-HR-016",
+    "POL-HR-018"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Skills for Care and Skills for Health, Code of Conduct for Healthcare Support Workers and Adult Social Care Workers in England (2013): the seven standards and guidance statements",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Support-for-leaders-and-managers/Managing-people/Code-of-conduct/Code-of-Conduct.pdf"
+    },
+    {
+      "source": "Skills for Care, Code of Conduct (the Code is voluntary but seen as a sign of good practice)",
+      "url": "https://www.skillsforcare.org.uk/Support-for-leaders-and-managers/Managing-people/Code-of-Conduct.aspx"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 19 (fit and proper persons employed), paragraphs (1) and (5)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/19"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 20 (duty of candour)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/20"
+    },
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 7 (general duties of employees at work)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/7"
+    },
+    {
+      "source": "Criminal Justice and Courts Act 2015, section 20 (ill-treatment or wilful neglect by a care worker)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/2/section/20"
+    },
+    {
+      "source": "Safeguarding Vulnerable Groups Act 2006, section 35 (regulated activity provider: duty to refer to the DBS)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/47/section/35"
+    },
+    {
+      "source": "Working Time Regulations 1998, regulation 4 (maximum weekly working time and written opt-out)",
+      "url": "https://www.legislation.gov.uk/uksi/1998/1833/regulation/4"
+    },
+    {
+      "source": "Employment Rights Act 1996, section 27A (exclusivity terms in zero hours contracts unenforceable)",
+      "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/27A"
+    },
+    {
+      "source": "Road Traffic Act 1988, section 4 (driving when unfit through drink or drugs)",
+      "url": "https://www.legislation.gov.uk/ukpga/1988/52/section/4"
+    },
+    {
+      "source": "Health and Safety Executive, Managing drug and alcohol misuse at work: develop a policy",
+      "url": "https://www.hse.gov.uk/alcoholdrugs/develop-policy.htm"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} supports adults in their own homes, usually with one member of our staff alone with the person, trusted with their personal care, medicines, keys, money and private lives. How each of us behaves is therefore part of the care we give. This code sets the standard of behaviour expected of everyone who works for us."
+        },
+        {
+          "p": "The code is built on the seven standards of the national Code of Conduct for Healthcare Support Workers and Adult Social Care Workers in England. The national Code is voluntary; {{organisation}} has adopted it, and the rules in this policy are conditions of working for us. A breach is dealt with under the Disciplinary Policy and Procedure and, where the law or safety requires, reported outside the organisation."
+        },
+        {
+          "p": "The law requires us to employ only people of good character who are competent and fit for their work, and to act when someone no longer meets those requirements (Regulation 19 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). Every employee must also take reasonable care for their own and others' health and safety and co-operate with us on it (Health and Safety at Work etc. Act 1974, section 7). We help staff meet this code through induction, supervision and an open culture in which mistakes are reported and learned from, not hidden."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets out in one place how staff must behave, our rules on fitness for work, what staff must tell us and by when, and how breaches are handled and referred. It also gives the people we support and their families a clear standard to judge us by: anyone we support may have a copy, in an accessible format, within 10 working days of asking."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This code applies to every employee of {{organisation}} in every role and branch, including bank staff, apprentices and staff on probation. Directors and the Nominated Individual follow it whenever they act for us; their fitness for their roles is also covered by the Fit and Proper Persons (Directors) Policy. Agency workers, students on placement and contractors who visit homes or handle personal data follow its rules on visits, recording, fitness for work, confidentiality and boundaries, as our agreements with their agency, college or employer require."
+        },
+        {
+          "p": "It applies at work, meaning rostered hours, on-call periods, travel between visits, training and supervision, and any time a person wears our uniform or ID badge. It applies outside work where conduct involves the people we support, their families or colleagues, or calls into question a person's suitability for care work."
+        },
+        {
+          "p": "This code states the headline rules and names the documents that hold the detail: professional relationships with the people we support (Professional Boundaries Policy); gifts (Gifts, Hospitality, Wills and Legacies Policy); a person's money (Handling Money, Property and Shopping Procedure); interests (Conflicts of Interest Policy); uniform and ID badges (Uniform, ID Badges and Dress Code Policy); driving (Driving at Work Policy); phones and social media (Mobile Phones and Social Media Policy); and treatment of colleagues (Bullying, Harassment and Sexual Harassment Policy). Investigating a breach is covered by the Disciplinary Policy and Procedure, and allegations that a worker harmed someone by the Managing Allegations Against Staff Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "National Code",
+                "The Code of Conduct for Healthcare Support Workers and Adult Social Care Workers in England, published by Skills for Care and Skills for Health in 2013, which sets seven standards of conduct."
+              ],
+              [
+                "Misconduct",
+                "Breaking this code or another of our policies through choice, carelessness or disregard. A shortfall in skill or knowledge despite trying is a capability matter, not misconduct."
+              ],
+              [
+                "Impaired",
+                "Unable to work or drive safely, or with sound judgement, because of alcohol, illegal drugs, psychoactive substances, a prescribed or bought medicine, extreme tiredness or illness."
+              ],
+              [
+                "Other paid work",
+                "Any paid work outside {{organisation}}, as an employee, agency or bank worker, self-employed person, personal assistant or company director, including another care job."
+              ],
+              [
+                "Connected person",
+                "A person we support, or a member of their household, whom a worker knew before being allocated to them, such as a relative, friend, neighbour or former partner, as the Professional Boundaries Policy defines."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this code and model it in how they lead. The Nominated Individual handles any concern about the Registered Manager's conduct and reviews the quarterly summary of conduct matters, making sure the Directors see any pattern that suggests a closed culture or wider problem."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this code and makes sure every employee receives, understands and acknowledges it. The Registered Manager decides on each declaration of other paid work or an interest within 5 working days of it being recorded, and on each connected person within 2 working days under the Professional Boundaries Policy, decides what happens after a suspected impairment, decides whether a breach is handled informally, as capability or as misconduct, and decides on external referrals. The Deputy Manager does this when the Registered Manager is absent or connected to the matter."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager sends this code with every written job offer, records declarations of other paid work and interests made to them in the staff record on the day they are received, tracks acknowledgements, arranges occupational health referrals, and makes sure every agency agreement, placement agreement and contract requires the people supplied to follow this code."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Managers",
+          "blocks": [
+            {
+              "p": "Care Coordinators record connected-person declarations in the staff record the same working day. Care Coordinators and On-call Managers never allocate a worker to a person they are connected to unless the Registered Manager has agreed it, add hours a worker has declared elsewhere when planning or changing rotas, act at once on a report that a worker may be impaired, and pass any other conduct concern to the Registered Manager or Deputy Manager the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors, and Senior Care Workers authorised to supervise, check conduct at every spot check and supervision, deal with a first minor lapse as this code sets out, and tell the Registered Manager the same working day about possible misconduct."
+            }
+          ]
+        },
+        {
+          "heading": "Every member of staff",
+          "blocks": [
+            {
+              "p": "Every member of staff follows this code, asks their supervisor when unsure what it requires, tells us what it says they must tell us, co-operates honestly with investigations, audits and CQC inspections, and reports conduct by a colleague that could harm a person or breach this code."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Our standards",
+      "blocks": [
+        {
+          "p": "The seven standards of the national Code are the foundation of this policy. This is what each means for anyone working for {{organisation}}."
+        },
+        {
+          "table": {
+            "columns": [
+              "National standard",
+              "What it means here"
+            ],
+            "rows": [
+              [
+                "1. Be accountable by making sure you can answer for your actions or omissions",
+                "Do only the tasks in your job description and the person's care plan that you have been trained and signed off to do. Follow our policies and the lawful, reasonable instructions of your managers. Tell the office straight away if you cannot do something safely, and own up at once to any mistake."
+              ],
+              [
+                "2. Promote and uphold the privacy, dignity, rights, health and wellbeing of people who use services and their carers",
+                "Use the person's preferred name, ask for consent before each task, give personal care in private and at the person's pace, and respect their home and choices. Never rush, shout at, ignore, mock, handle roughly, restrict or neglect anyone. Ill-treatment or wilful neglect by a paid care worker is a criminal offence (Criminal Justice and Courts Act 2015, section 20)."
+              ],
+              [
+                "3. Work in collaboration with your colleagues",
+                "Treat colleagues with courtesy, arrive on time for double-handed visits, pass on what the next worker needs to know in the daily visit notes, and support new workers on shadow shifts. Work with family carers, district nurses and other agencies who visit the person as the care plan sets out, and tell the office when what they do affects the care. Never bully, harass, belittle or undermine a colleague."
+              ],
+              [
+                "4. Communicate in an open and effective way",
+                "Be truthful in everything you say and record. When something goes wrong, tell the office at once so that the Registered Manager can meet our duty of candour (Regulation 20) under the Duty of Candour Policy. With a person, speak a language they understand, including when talking to a colleague, unless the person asks otherwise."
+              ],
+              [
+                "5. Respect a person's right to confidentiality",
+                "Share information about a person only with those who need it for their care or as the Confidentiality and Information Sharing Policy allows. Never discuss people we support outside work, never post about them, and never write down or pass on a key safe code."
+              ],
+              [
+                "6. Strive to improve quality through continuing professional development",
+                "Complete required training on time with your own log-in, take part in supervision, spot checks and appraisal, and use feedback to improve your practice."
+              ],
+              [
+                "7. Uphold and promote equality, diversity and inclusion",
+                "Treat every person and colleague fairly and never give poorer or delayed care because of who someone is. Never promote your religious or political beliefs to the people we support or try to influence how they vote. Challenge and report discrimination by anyone."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Conduct during visits",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Getting there and arriving",
+          "blocks": [
+            {
+              "bullets": [
+                "Make only the visits on your CareFlow rota, never swap, move or add a visit unless the office has changed the rota first, and use a key safe code or key only for a rostered visit, as the Key Holding, Key Safes and Access to People's Homes Procedure sets out.",
+                "Arrive at the planned time, never more than 30 minutes early unless the office has agreed it with the person. Once safely parked, phone the office, or the On-call Manager out of hours, as soon as you know you will be more than 15 minutes late, or at all late for a time-critical visit. The office, not you, contacts the person, under the Missed, Late and Short Visits Procedure.",
+                "Drive safely and within the law, as the Driving at Work Policy sets out: never hold a phone or other device while driving, and make or take no calls, even hands-free, until you have parked with the engine off.",
+                "Wear clean uniform and your ID badge where it can be seen, and knock or ring and call out before you go in, even when you use a key safe.",
+                "If nobody answers or you cannot get in, never just leave: phone the office, or the On-call Manager out of hours, within 5 minutes of arriving and follow the No Reply, No Access and Missing Person Procedure."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "In the person's home",
+          "blocks": [
+            {
+              "p": "You are a guest in the person's home, and the Person-Centred Care, Dignity and Respect Policy sets out how to behave as one. In addition, every member of staff on a visit must:"
+            },
+            {
+              "bullets": [
+                "stay for the planned length of the visit and carry out the care plan, essential tasks first; if the person asks you to leave early, complete any essential task they agree to, record their request in the daily visit notes, and phone the office before you leave if an essential task was not done;",
+                "if the person's needs or an emergency mean you must stay more than 15 minutes beyond the planned time, phone the office, or the On-call Manager out of hours, before the expected finish so that your next visits are covered, and never stay on to socialise;",
+                "never smoke or vape during a visit or anywhere on the person's property, or in a vehicle while a person we support or a colleague is in it;",
+                "never use the person's phone, toilet, food, car, internet or other belongings without their permission, or for your own purposes;",
+                "keep your personal phone silent and out of sight, using it only for an urgent personal matter after making the person safe and telling them, and never use it to photograph, film or record anyone or anything in the home;",
+                "take body map photographs, or video where the care plan records a clinical reason, only in the CareFlow app on your work phone when the person's consent or a best interests decision is recorded in CareFlow, and never to gather evidence of suspected abuse; use CareFlow voice notes only to dictate your own account, with nobody else speaking; and never record a conversation, call or visit, as the Mobile Phones and Social Media Policy sets out;",
+                "never bring anyone with you, including children, partners, friends or pets, and never take a person anywhere the care plan does not say;",
+                "never sleep during a visit or a waking night (on a sleep-in, sleep only in the sleeping period and room agreed under the Working Time, Rest Breaks and Travel Time Policy), and before you leave, secure the home as the care plan says, return any key to the key safe and scramble the code."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Recording visits honestly",
+          "blocks": [
+            {
+              "p": "Visit records keep people safe and are used to pay staff and to invoice commissioners and people who pay for their own care. Every record must be true."
+            },
+            {
+              "bullets": [
+                "Check in when you arrive and check out when you leave, inside the person's home, with your own CareFlow log-in. If check-in or check-out fails, phone the office, or the On-call Manager out of hours, at the time so that the actual times and the reason are recorded.",
+                "Record care, medicines and what you noticed in the daily visit notes and the eMAR at the time, before you check out.",
+                "Never check in or out for someone else, from outside the home or for a visit that did not happen, and never share your log-in or let anyone use CareFlow on your device.",
+                "Never record a task, medicine, time or visit that did not happen, never alter or delete a record to hide a mistake, and claim only the hours, mileage and expenses you actually incurred."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Boundaries, money, gifts and private work",
+          "blocks": [
+            {
+              "p": "The Professional Boundaries Policy, the Gifts, Hospitality, Wills and Legacies Policy and the Handling Money, Property and Shopping Procedure set the full rules. The headline rules are:"
+            },
+            {
+              "bullets": [
+                "Never start a sexual or romantic relationship with a person we support (gross misconduct) or a member of their household (a serious breach of the Professional Boundaries Policy). Unless you knew them before their care began, never give them your personal contact details or visit them when you are not rostered.",
+                "Never know or use a person's PIN, card or online banking, withdraw cash for them, borrow, lend, buy or sell, act as their attorney, deputy, appointee or executor, or witness their will.",
+                "Never ask for or accept money, a gift or any other benefit except as the Gifts, Hospitality, Wills and Legacies Policy allows, and never sell anything to the people we support or their families.",
+                "If you already know a person on your rota or someone in their household, as a relative, friend, neighbour or former partner, tell the Care Coordinator before any visit, or phone the office, or the On-call Manager out of hours, before you start care if you only realise at the door. The Care Coordinator records it and the Registered Manager decides whether you support them.",
+                "A request involving a person's money, property, will or legal documents, or any sexual behaviour, pressure or possible risk to the person, is a safeguarding concern: phone the office, or the On-call Manager out of hours, before you leave the home. Decline other requests that test these rules, such as for your phone number, kindly, note them in the daily visit notes and tell the office the same day."
+              ]
+            },
+            {
+              "p": "Staff never ask for, encourage or arrange private work, paid or unpaid, with a person we support, a person they supported in the last 12 months, or anyone in their household; doing so is a serious breach of the Professional Boundaries Policy. If asked, for example to work as a personal assistant paid through a direct payment, tell them to contact the office and tell the office yourself the same day. We do not ban other work (see Other paid work and working time), so if you decide to accept, tell the HR Manager in writing before you start: you will not be allocated to that person from the next rota, and the Registered Manager decides the same working day whether the arrangement raises a safeguarding concern, such as where the person may lack capacity to agree to it or may be under pressure."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Conduct at work and outside work",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Colleagues and speaking for us",
+          "blocks": [
+            {
+              "p": "Staff treat each other with courtesy in person, by phone and in messages, follow lawful and reasonable instructions, and raise disagreement at supervision or under the Grievance Policy and Procedure, never by refusing care. Only the Nominated Individual or a Director speaks to the media or replies publicly online for us; a journalist's approach is passed to the office, which tells the Nominated Individual the same day. Phones, messaging and social media are used only as the Mobile Phones and Social Media Policy allows."
+            }
+          ]
+        },
+        {
+          "heading": "Outside work",
+          "blocks": [
+            {
+              "p": "What staff do in their own time is their own business unless it involves the people we support, their families or colleagues, or calls into question their suitability for care work, such as a criminal offence or abusive, discriminatory or threatening behaviour, including online. Contact with the people we support outside visits is covered by the Professional Boundaries Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Our property and systems",
+          "blocks": [
+            {
+              "p": "Staff look after equipment we provide, such as PPE, personal alarms, lone worker devices and ID badges, report a loss to the office the same day, or at once if it was stolen or lost with keys to people's homes, and return everything when they leave. They use CareFlow only for work, never open the record of a person they do not support unless their role requires it, and report a lost device or possible data breach at once under the Personal Data Breach Procedure. Theft, fraud and bribery are handled under the Anti-Bribery and Fraud Prevention Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Fitness for work",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Alcohol, drugs and medicines",
+          "blocks": [
+            {
+              "p": "The law makes it an offence to drive or be in charge of a vehicle when unfit through drink or drugs (Road Traffic Act 1988, section 4). Our staff drive between homes and give personal care and medicines alone, so our rules go further:"
+            },
+            {
+              "bullets": [
+                "Never come to work, drive for work or go on call while impaired, whatever the cause.",
+                "Drink no alcohol in the 8 hours before a shift or on-call period, and none at work, including breaks. If you may still be affected by earlier drinking, phone the office instead of working.",
+                "Never possess, use, share or sell illegal drugs or psychoactive substances at work, in a person's home or in a vehicle used for work. The Registered Manager reports possession or supply at work to the police.",
+                "Never take or use anything belonging to a person we support, including their alcohol or medicines; this is theft and a safeguarding concern.",
+                "If a medicine you take, prescribed or bought, warns about drowsiness or driving, or a new medicine or a change of dose may affect you, tell the HR Manager or your Field Care Supervisor before your next shift, or the On-call Manager if the office is closed. You need to say how it may affect your work, not what it is for.",
+                "Carry only the doses of your own medicines you need for the shift, in their original packaging, kept on you or locked out of sight in your vehicle. Never leave them in a person's home and never give, offer or recommend them to anyone.",
+                "If you are too tired or unwell to work safely, phone the office before your shift. Infection symptoms are reported and managed under the Staff Infection-Related Illness and Exclusion Policy."
+              ]
+            },
+            {
+              "p": "When told about a medicine that may affect someone's work, the HR Manager and the Registered Manager decide before the worker's next shift whether they work normally or with interim changes, such as no driving or no lone visits; out of hours the On-call Manager decides for that shift and the Registered Manager confirms or changes it by the end of the next working day. The HR Manager refers the worker to our occupational health provider within 5 working days of their consent. We do not carry out drug or alcohol testing."
+            }
+          ]
+        },
+        {
+          "heading": "When someone may be impaired at work",
+          "blocks": [
+            {
+              "steps": [
+                "Anyone who believes they or a colleague may be impaired at work, for example from the smell of alcohol, slurred speech, unsteadiness or unusual behaviour, phones the office or the On-call Manager at once. If anyone is in immediate danger, call 999 first. Confusion, slurred speech or unsteadiness can also be a medical emergency, such as a stroke or low blood sugar: call 999 if the worker seems unwell. If you are on a double-handed visit with the worker, make the person safe, do not do any task that needs two workers on your own, and stay with the person until the office tells you what happens next.",
+                "The Care Coordinator, or the On-call Manager out of hours, stops the worker from working at once, reallocates their remaining visits, High missed-visit risk visits first, under the Missed, Late and Short Visits Procedure, and tells the Registered Manager or Deputy Manager (the escalation manager out of hours).",
+                "The worker must not drive. The Care Coordinator or On-call Manager arranges for them to get home safely at our cost and, if the worker insists on driving while appearing unfit, tells the police at once.",
+                "The Care Coordinator or On-call Manager arranges a welfare call or visit the same day to every person the worker visited that shift, checking that the care and medicines recorded were given correctly, and records the event in the incident log the same day. If anyone may have been harmed or put at risk, it is reported under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+                "The Registered Manager or Deputy Manager meets the worker by the end of the next working day, and always before they work again. The manager hears their account, decides whether and on what terms they return, offers occupational health and the employee assistance programme, and decides whether to investigate under the Disciplinary Policy and Procedure."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Help with alcohol or drug problems",
+          "blocks": [
+            {
+              "p": "We treat alcohol and drug dependency as a health condition. A worker who tells us about a problem before it leads to an incident at work is offered a confidential meeting with the HR Manager within 5 working days, an occupational health referral within 5 working days of consent, our free 24-hour confidential employee assistance programme, and time off for treatment under the Sickness Absence Policy. Temporary changes to duties, such as no driving, lone visits or medicines support, are set by the Registered Manager on a written risk assessment and reviewed at least every 4 weeks. Nobody is disciplined for asking for help; action may still follow misconduct, working while impaired or not keeping to agreed changes."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What you must tell us",
+      "blocks": [
+        {
+          "p": "We can act on Regulation 19 only if staff tell us when something may affect their fitness or suitability. Not telling us about any matter in the first three rows is a disciplinary matter."
+        },
+        {
+          "table": {
+            "columns": [
+              "What has happened",
+              "Who you tell",
+              "When"
+            ],
+            "rows": [
+              [
+                "You are arrested, charged, cautioned, convicted or under police investigation, referred to the DBS or a professional regulator, or police or children's social care investigate your conduct towards a child",
+                "Registered Manager or HR Manager",
+                "Before your next shift, and within 24 hours at most"
+              ],
+              [
+                "You lose your driving licence or are disqualified, where your role involves driving",
+                "Registered Manager or HR Manager",
+                "Before your next shift, and within 24 hours at most"
+              ],
+              [
+                "A condition, sanction or fitness to practise referral affects your professional registration, such as with the Nursing and Midwifery Council",
+                "Registered Manager",
+                "The same day"
+              ],
+              [
+                "You get penalty points, a medical condition you must tell the DVLA about, or a change to your business motor insurance",
+                "HR Manager",
+                "Before you next drive for work"
+              ],
+              [
+                "Your permission to work in the UK changes or is about to end",
+                "HR Manager",
+                "The same day you know"
+              ],
+              [
+                "A health condition, injury or medicine may affect how you work safely",
+                "HR Manager or your Field Care Supervisor; the On-call Manager if the office is closed",
+                "Before your next shift"
+              ],
+              [
+                "You are pregnant",
+                "HR Manager, in writing",
+                "As soon as you are ready; your risk assessment is completed within 5 working days of you telling us"
+              ],
+              [
+                "You plan to start or change any other paid work, including private work for a person we support or supported in the last 12 months",
+                "HR Manager, in writing",
+                "Before you start it"
+              ],
+              [
+                "You know a person you may visit, or someone in their household, from before: a relative, partner or former partner, friend, neighbour or someone you have worked for privately",
+                "Care Coordinator, who records it in your staff record",
+                "Before any visit to that person; if you only realise at the door, phone the office, or the On-call Manager out of hours, before you start care"
+              ],
+              [
+                "You start a relationship with a relative or representative of a person you support who does not live with them, or have another interest that could conflict with your work, such as a close relationship with a colleague you supervise, allocate, audit or pay",
+                "HR Manager",
+                "Within 5 working days of it arising"
+              ],
+              [
+                "Anyone asks you to break a rule on a person's money, property, will or legal documents",
+                "The office, or the On-call Manager out of hours, as a safeguarding concern",
+                "Before you leave the home"
+              ],
+              [
+                "A person or family asks you to work privately or offers you a gift or money",
+                "The office",
+                "The same day; before you leave the home if offered a loan, property, or cash or a gift worth over £50, as the Gifts, Hospitality, Wills and Legacies Policy sets out"
+              ],
+              [
+                "Your address, phone number or emergency contact changes, or you change the vehicle you use for work",
+                "HR Manager",
+                "Within 5 working days; for a vehicle, its insurance, MOT and tax evidence before you use it for work"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Safeguarding concerns, accidents, mistakes and essential tasks not done are always phoned to the office, or the On-call Manager out of hours, before you leave the home."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Other paid work and working time",
+          "blocks": [
+            {
+              "p": "We do not stop staff working elsewhere or make it depend on our consent; for workers on zero hours contracts the law makes such a term unenforceable (Employment Rights Act 1996, section 27A), and we take the same approach for everyone. Declarations let us manage conflicts and safe working hours."
+            },
+            {
+              "bullets": [
+                "The HR Manager records each declared job in the staff record: employer, type of work and average weekly hours. The Registered Manager decides within 5 working days whether it creates a conflict that needs managing, such as work for a provider supporting the same people, and records any agreed arrangement.",
+                "The law limits working time to an average of 48 hours a week, normally over 17 weeks, unless the worker has agreed in writing to opt out (Working Time Regulations 1998, regulation 4). Care Coordinators add hours declared elsewhere and keep every worker within the Working Time, Rest Breaks and Travel Time Policy: within the 48-hour average unless the worker has signed an opt-out, and never more than 60 hours of working time in a rota week, opt-out or not, unless the Registered Manager agrees otherwise in writing while business continuity arrangements are in use.",
+                "If we sponsor your visa, check with the HR Manager before taking any other work, because your visa conditions limit it.",
+                "You confirm your other paid work and interests each year at your appraisal, with your criminal record self-declaration."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Breaches of the code",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "How breaches are handled",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "How we respond"
+                ],
+                "rows": [
+                  [
+                    "A first minor lapse with no effect on care, such as forgetting an ID badge or arriving late once without phoning",
+                    "The Field Care Supervisor discusses it with the worker promptly and records it in the supervision record. A repeat within 6 months goes to the Registered Manager, who decides whether to use the Disciplinary Policy and Procedure."
+                  ],
+                  [
+                    "Practice falls short through a gap in skill or knowledge despite the worker trying",
+                    "Retraining, supervision and re-observation, then the Capability and Performance Procedure if it continues."
+                  ],
+                  [
+                    "Deliberate, reckless or repeated breach",
+                    "Investigated under the Disciplinary Policy and Procedure."
+                  ],
+                  [
+                    "Possible abuse, neglect or harm to a person",
+                    "Reported at once as a safeguarding concern. The safeguarding lead decides the same day whether the worker is removed from the person's visits or all care work, and the Managing Allegations Against Staff Procedure applies."
+                  ],
+                  [
+                    "Breach by an agency worker, student or contractor",
+                    "The Care Coordinator tells the agency, college or employer in writing within 2 working days. Where a person was put at risk, the Registered Manager decides the same day whether the worker continues with us and tells the agency that day."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Gross misconduct",
+          "blocks": [
+            {
+              "p": "The Disciplinary Policy and Procedure holds the full list. Under this code, gross misconduct includes: abuse, ill-treatment or wilful neglect of a person, including deliberately missing or cutting short visits; falsifying a check-in or check-out, eMAR, daily visit note, timesheet, mileage claim or training record; theft, fraud or financial abuse; working, driving for work or being on call while impaired, or possessing or supplying illegal drugs at work; a sexual or romantic relationship with a person we support; a serious breach of confidentiality; violence, threats, serious bullying, harassment or discrimination; and deliberately hiding a matter in the first three rows of What you must tell us."
+            }
+          ]
+        },
+        {
+          "heading": "Reporting outside {{organisation}}",
+          "blocks": [
+            {
+              "p": "The Registered Manager decides on external reports under the Staff Fitness Concerns and DBS Referrals Procedure, which sets the steps and timescales. The law requires us to refer a worker to the Disclosure and Barring Service when we remove them from regulated activity, or would or might have done so had they not left, because we think they have engaged in relevant conduct, may harm a child or vulnerable adult or put them at risk of harm, or have committed an offence that leads to barring (Safeguarding Vulnerable Groups Act 2006, section 35), and to tell a registered professional's regulator when they no longer meet Regulation 19 (Regulation 19(5)). The police, the local authority and CQC are told as that procedure sets out."
+            },
+            {
+              "p": "Staff who report a colleague's conduct in good faith are protected under the Whistleblowing (Speaking Up) Policy. Pressuring, bullying or victimising anyone for reporting or being a witness is itself a breach of this code."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept",
+              "How long"
+            ],
+            "rows": [
+              [
+                "Acknowledgement of this code",
+                "Policy acknowledgements in CareFlow",
+                "Under the Policy Management and Document Control Policy"
+              ],
+              [
+                "Declarations of other paid work, interests and connected persons, and the Registered Manager's decisions",
+                "Staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Health or medicines information a worker gives us, risk assessments and occupational health advice",
+                "Restricted section of the staff record",
+                "Employment plus 6 years"
+              ],
+              [
+                "Informal discussions of minor lapses",
+                "Supervision records",
+                "Employment plus 6 years"
+              ],
+              [
+                "Suspected impairment at work",
+                "Incident log, with the outcome in the staff record",
+                "Under the Records Management and Retention Policy"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Investigations, outcomes and external referrals are kept as the Disciplinary Policy and Procedure and the Staff Fitness Concerns and DBS Referrals Procedure set out. Records about a worker's conduct identify people we support only by their CareFlow reference."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "Every new starter is taken through this code during organisational induction in their first week under the Induction and Care Certificate Procedure. Care staff acknowledge it in CareFlow before their lone working sign-off and office staff by the end of week 4; after that, everyone acknowledges each new major version within 14 days, and a minor version does not need acknowledging again.",
+            "Agency workers are taken through the key points at their local induction before their first visit.",
+            "Supervisors raise any conduct matter at the worker's next supervision, and each appraisal reviews the year against this code. At every spot check the Field Care Supervisor observes conduct, including ID badge and uniform, punctuality, check-in and check-out in the home, phone use and respect for the person and their home, and follows up any shortfall under the Supervision, Spot Checks and Appraisal Policy.",
+            "Care Coordinators, Field Care Supervisors and On-call Managers are briefed by the Registered Manager or Deputy Manager on the impairment steps, declarations and minor lapses before their first supervision or on-call shift, and every 3 years."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Acknowledgement of each new major version of this code: target 95% within 14 days, 100% within 28 days; new starters by their induction deadline",
+                "Monthly acknowledgement report",
+                "HR Manager",
+                "Registered Manager; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Every declaration of other paid work or an interest has a recorded decision within 5 working days, and rostered plus declared hours stay within the 48-hour average for workers without an opt-out and within 60 hours in every rota week for everyone, apart from written business continuity exceptions: target 100%",
+                "Quarterly check of staff records and rotas",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Conduct observed at spot checks and discussed in supervision",
+                "Quarterly audit of the supervision and spot check records of 10 care workers",
+                "Registered Manager",
+                "Quarterly governance report"
+              ],
+              [
+                "Conduct matters by type and branch: minor lapses, disciplinary cases, suspected impairment, managed declarations and external referrals, with any closed-culture warning signs",
+                "Quarterly anonymised summary",
+                "Registered Manager",
+                "Nominated Individual; Directors in the quarterly governance report"
+              ],
+              [
+                "Staff understanding: target at least 90% saying they know what this code expects of them",
+                "Annual staff survey",
+                "HR Manager",
+                "Directors with the survey results"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall goes into the service improvement plan with an owner and a deadline. This code is reviewed every 24 months by the Registered Manager, with the HR Manager, and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in law or national guidance (including any revision of the national Code), a serious incident involving staff conduct, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

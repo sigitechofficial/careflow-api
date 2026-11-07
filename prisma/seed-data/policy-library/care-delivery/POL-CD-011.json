@@ -1,0 +1,723 @@
+{
+  "reference": "POL-CD-011",
+  "revision": 1,
+  "title": "End of Life Care Policy",
+  "documentType": "POLICY",
+  "summary": "How we support people approaching the end of their life in their own homes: recognising and reporting decline, offering advance care planning, adapting care in the last weeks and days with GPs and community nurses, respecting faith, culture and personal wishes, what staff do when a person dies, and how we support families and our own staff. It applies to everyone who works for us.",
+  "keyPoints": {
+    "intro": "This policy tells you how to care for a person who is approaching the end of their life, what to do if they die while you are there, and how we will support you.",
+    "points": [
+      "Check My care at a glance at the start of every visit for the end of life plan, whether the death is expected, the DNACPR or ReSPECT status, who to phone and where any anticipatory medicines are kept.",
+      "If the death is recorded as expected with a DNACPR decision or ReSPECT recommendation against CPR, and you find the form, do not call 999. Phone the community nurse or GP named in the care plan (NHS 111 when closed), then the office.",
+      "Call 999 if the death was not expected, there is no form, there is any injury or anything that worries you, or you are not sure the person has died. Follow the call handler, then phone the office.",
+      "After a death, leave syringe drivers, tubes, catheters, dressings, equipment and medicines as they are, stay until someone takes over from you, and record what happened in the daily visit notes and the incident log before the end of your shift.",
+      "If the person is in pain, breathless, agitated, being sick or distressed, phone the office during the visit and wait for the call back, up to 30 minutes after the planned end of the visit.",
+      "Never give, move, open or sign for anticipatory (just in case) medicines, and never adjust, silence, switch off or disconnect a syringe driver. If it alarms, leaks or comes apart, phone the office at once.",
+      "If the person cannot swallow their medicines safely or is too drowsy, do not give them: record the matching not-given outcome on the eMAR and phone the office before you leave.",
+      "Give comfort care as the care plan sets out: mouth care at every visit, repositioning as agreed with the nurse, and food and drink only as the person wants and can safely swallow.",
+      "Tell the office the same day if a person is sleeping more, eating or drinking much less, weaker, more confused or more breathless. Phone before you leave the home if the change is sudden.",
+      "If a person wants to talk about dying or their wishes, listen, do not advise, and tell the office the same day so a trained colleague can follow it up. Never help anyone end their life.",
+      "After a death your Field Care Supervisor will contact you within 1 working day and offer a debrief within 3 working days. If you need the rest of that day's visits covered, tell the office: the rest of that day's rostered hours are paid."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "CARE_PLAN",
+    "INITIAL_ASSESSMENT",
+    "VISIT",
+    "MEDICATION",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-CD-012",
+    "POL-CD-004",
+    "POL-CD-003",
+    "POL-CD-015",
+    "POL-CD-005",
+    "POL-HS-008",
+    "POL-GOV-009",
+    "POL-MED-001"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9 (person-centred care)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 16 (notification of death of service user)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/16"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 25 (validity and applicability of advance decisions)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/25"
+    },
+    {
+      "source": "Care Act 2014, section 10 (assessment of a carer's needs for support)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/10"
+    },
+    {
+      "source": "Suicide Act 1961, section 2 (encouraging or assisting suicide)",
+      "url": "https://www.legislation.gov.uk/ukpga/Eliz2/9-10/60/section/2"
+    },
+    {
+      "source": "Public Health (Control of Disease) Act 1984, section 46 (burial and cremation by local authorities)",
+      "url": "https://www.legislation.gov.uk/ukpga/1984/22/section/46"
+    },
+    {
+      "source": "Births and Deaths Registration Act 1953, section 16 (information concerning death; five days from the registrar being notified, as amended from 9 September 2024)",
+      "url": "https://www.legislation.gov.uk/ukpga/Eliz2/1-2/20/section/16"
+    },
+    {
+      "source": "Department of Health and Social Care, An overview of the death certification reforms (medical examiner system in force from 9 September 2024)",
+      "url": "https://www.gov.uk/government/publications/changes-to-the-death-certification-process/an-overview-of-the-death-certification-reforms"
+    },
+    {
+      "source": "Department of Health and Social Care, NHS continuing healthcare Fast Track Pathway Tool",
+      "url": "https://www.gov.uk/government/publications/nhs-continuing-healthcare-fast-track-pathway-tool"
+    },
+    {
+      "source": "Social Care Institute for Excellence, Dignity in care: a dignified death",
+      "url": "https://www.scie.org.uk/providing-care/dignity-in-care/death/"
+    },
+    {
+      "source": "Hospice UK, Care after death (5th edition, version 5.2, updated October 2025)",
+      "url": "https://www.hospiceuk.org/publications-and-resources/care-after-death"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Many people want to be cared for, and to die, at home: comfortable, with the people who matter to them and in the way they choose. {{organisation}} supports people to do this. We recognise and report decline early, offer everyone approaching the end of life the chance to plan ahead, adapt care quickly as needs change, work closely with their GP, community nurses and palliative care teams, and treat the person with dignity before and after death."
+        },
+        {
+          "p": "{{organisation}} makes sure care workers know exactly what to do when a person dies, and that families and staff are supported."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets who does what, and by when, from recognising that a person may be approaching the end of life to the support we give families and staff after a death."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to everyone who works for us, including bank and agency workers, students and volunteers, and to every adult we support, however their care is funded, from the time they may be in the last year of life until our involvement ends after their death."
+        },
+        {
+          "p": "Owned elsewhere: DNACPR decisions and ReSPECT plans (DNACPR and ReSPECT Protocol); advance decisions and verifying legal authority (Consent to Care Policy); capacity and best interests (Mental Capacity Act and Best Interests Policy); emergencies and resuscitation (First Aid Procedure); medicines (Medicines Management Policy); hospital stays (Hospital Admission and Discharge Procedure); CQC notifications (Statutory Notifications to CQC Procedure). Diagnosing dying, symptom control, injections, syringe drivers and verifying death are for the GP, community nurses and palliative care teams, never our staff."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Approaching the end of life",
+                "Likely to die within the next 12 months, including people with advanced incurable conditions, increasing frailty, or a condition that puts them at risk of dying from a sudden crisis."
+              ],
+              [
+                "Last weeks of life",
+                "A health professional, the person or their family has told us the person may have weeks to live."
+              ],
+              [
+                "Expected death",
+                "A death the GP or community nurse has told us is expected, recorded in My care at a glance with the professional's name and the date."
+              ],
+              [
+                "Advance care planning",
+                "A voluntary conversation about what matters to the person and how they want to be cared for if they become less well or unable to decide, recorded and shared as they agree."
+              ],
+              [
+                "End of life plan",
+                "The part of the care plan for the last weeks and days of life: comfort care, wishes, who to phone, and what to do when the person dies."
+              ],
+              [
+                "Anticipatory medicines",
+                "Injectable medicines prescribed in advance and kept in the home so a community nurse can treat symptoms quickly, sometimes called just in case medicines."
+              ],
+              [
+                "Verification of death",
+                "Confirming that a person has died, done by a doctor, a registered nurse trained to verify expected deaths, or a paramedic. Certifying the cause of death is for a doctor, a medical examiner or the coroner, never our staff."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for {{organisation}} providing safe, compassionate end of life care, keep rota capacity to increase visits at short notice and fund this policy's training. The Nominated Individual scrutinises end of life care in the quarterly quality report and leads any duty of candour notification after a death under the Duty of Candour Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on end of life care (the Deputy Manager covers in their absence), decides on new end of life referrals and interim increases in support, makes the decisions and notifications after a death, writes to bereaved families and reviews end of life care themes every quarter."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Deputy Manager completes after-death reviews, checks every death against this policy each month, invites bereaved families to give feedback and keeps the branch information on local hospice, carer and bereavement support up to date."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Care Coordinators act on reported decline, arrange advance care planning, keep the end of life plan and visit pattern current, liaise with the GP, community nursing team, commissioner and family, protect continuity, and complete the steps after a death. Field Care Supervisors hold advance care planning conversations and reviews, check end of life practice at spot checks, and contact and debrief care workers after a death."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Senior Care Workers and Care Workers give care as the end of life plan sets out, report changes and symptoms, listen when people want to talk about dying, follow this policy when a person dies, and record what happens in the daily visit notes."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager, Office staff and HR Manager",
+          "blocks": [
+            {
+              "p": "Office staff, and the On-call Manager out of hours, contact the community nursing team, GP or NHS 111 straight away when a symptom is reported, arrange extra visits and cover, and start the steps after a death. Office staff pass every call about a death to the Registered Manager or Deputy Manager at once, and the On-call Manager phones the escalation manager at once, as the Statutory Notifications to CQC Procedure requires. The HR Manager keeps end of life training records and reminds staff of the employee assistance programme after a death."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "What the law requires and what is our policy",
+      "blocks": [
+        {
+          "bullets": [
+            "Regulation 9 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires care that meets the person's needs and reflects their preferences, planned and reviewed with them and the people they want involved.",
+            "An advance decision refusing life-sustaining treatment must be in writing, signed and witnessed, and state that it applies even if life is at risk (Mental Capacity Act 2005, section 25). We never judge validity; we record it and tell health professionals under the Consent to Care Policy.",
+            "We must notify CQC of a death that happens while we are providing care, or that has or may have resulted from our care (Care Quality Commission (Registration) Regulations 2009, regulation 16).",
+            "Since 9 September 2024 every death not investigated by a coroner is reviewed by a medical examiner. A doctor who attended the person during life normally completes the medical certificate of cause of death, the medical examiner sends it to the registrar, and the death must be registered within 5 days of the registrar being notified (Births and Deaths Registration Act 1953, section 16).",
+            "Encouraging or assisting suicide is a criminal offence (Suicide Act 1961, section 2). No law allowing assisted dying is in force in England.",
+            "A local authority must arrange the funeral of a person who dies in its area where no other suitable arrangements are being made (Public Health (Control of Disease) Act 1984, section 46).",
+            "A family carer who may need support is entitled to a carer's assessment from the local authority (Care Act 2014, section 10).",
+            "A clinician may fast-track a person whose condition is deteriorating rapidly and who may be entering a terminal phase for NHS continuing healthcare (Fast Track Pathway Tool)."
+          ]
+        },
+        {
+          "p": "Everything else in this policy is our policy, informed by NICE guidance on end of life care (NG142) and the last days of life (NG31), SCIE guidance on a dignified death and Hospice UK's Care after death guidance."
+        }
+      ]
+    },
+    {
+      "heading": "Recognising that a person may be approaching the end of life",
+      "blocks": [
+        {
+          "p": "Care workers record in the daily visit notes, and tell the office the same day, signs such as: sleeping much more or spending more time in bed; becoming weaker or less able to do things; eating or drinking much less, weight loss or new difficulty swallowing; more falls, infections, breathlessness, pain or confusion; or the person saying they feel they are dying or asking to talk about the future. A sudden change is phoned to the office before the care worker leaves and handled under the First Aid Procedure."
+        },
+        {
+          "p": "On a report of gradual decline, the Care Coordinator (On-call Manager out of hours, handing over by 10am the next working day):"
+        },
+        {
+          "steps": [
+            "Contacts the GP practice within 2 working days, with the person's agreement or in their best interests, describing the changes and asking the GP to review the person and consider them for the practice's palliative or supportive care register.",
+            "Arranges a focused review under the Care Plan Review Procedure, or the full review within 2 working days that procedure requires where the person may be in the last weeks of life.",
+            "Arranges for advance care planning to be offered."
+          ]
+        },
+        {
+          "p": "At every care plan review the reviewer also asks: would we be surprised if this person died in the next 12 months? Where the answer is no, the reviewer records it and the Care Coordinator raises it with the GP within 2 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Advance care planning",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Offering the conversation",
+          "blocks": [
+            {
+              "p": "The Care Coordinator arranges for advance care planning to be offered within 10 working days of the GP or community nurse telling us the person is approaching the end of life, the person or their family asking, a care worker reporting that the person wants to talk about the future, or a reviewer identifying the need. It is also offered at the assessment of anyone with a life-limiting condition, and early to anyone with a diagnosis likely to affect capacity, such as dementia, while they can still take part."
+            },
+            {
+              "p": "A Field Care Supervisor, Care Coordinator, Deputy Manager or Registered Manager trained in advance care planning holds the conversation at a time the person chooses, with anyone they want present and a professional interpreter where needed. Where the GP, community nurse or hospice already leads advance care planning, we contribute to theirs rather than starting another. The person may decline or stop at any time; we record this and offer again only at the next full review or if they raise it. Groups often missed, such as people with dementia or a learning disability, people from minority communities, LGBT+ people and people with no family, are offered it in the same way, with communication support and advocacy as the Consent to Care Policy provides."
+            }
+          ]
+        },
+        {
+          "heading": "What we record and share",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Wish or document",
+                  "Where it is recorded"
+                ],
+                "rows": [
+                  [
+                    "What matters most, preferred place of care and of death, who they want with them, faith and cultural wishes, and wishes for after death and their funeral, in their own words",
+                    "What matters to me, as an advance statement"
+                  ],
+                  [
+                    "Advance decision to refuse treatment; health and welfare attorney or deputy, verified under the Consent to Care Policy",
+                    "Consent and decisions and People involved; status and location in My care at a glance"
+                  ],
+                  [
+                    "DNACPR decision or ReSPECT plan and where the form is kept",
+                    "My care at a glance, under the DNACPR and ReSPECT Protocol"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "Wishes are recorded on the day and a copy given to the person in their format within 5 working days. With their agreement, the Care Coordinator sends a summary to the GP practice and community nursing team within 2 working days for their records and any local shared care record. The summary is kept with the home copy of the care plan unless the person chooses otherwise, and goes with them on any hospital admission under the Hospital Admission and Discharge Procedure."
+            },
+            {
+              "p": "Our staff never draft an advance decision, decide on resuscitation or treatment, or witness an advance decision or lasting power of attorney; a person wanting to refuse treatment in advance is referred to their GP the same working day. A person who asks about ending their life is listened to without judgement and is never helped or advised to do so. The care worker tells the office the same day and the Registered Manager makes sure the GP knows within 1 working day; any risk of self-harm is handled at once under the Safeguarding Adults Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Reviewing the plan",
+          "blocks": [
+            {
+              "p": "The advance care plan is reviewed at every full care plan review, at the home review within 7 days of a hospital discharge and whenever needs change. If the person tells a care worker their wishes have changed, the care worker records it and tells the office the same day; the Care Coordinator updates the care plan the same working day and tells the GP practice within 2 working days."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Planning care for the last weeks and days of life",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The end of life plan",
+          "blocks": [
+            {
+              "p": "At the full review held within 2 working days of being told the person may be in the last weeks of life, the reviewer writes the end of life plan with the person, their family as the person wishes and the community nursing team. It is approved before the next visit and records:"
+            },
+            {
+              "bullets": [
+                "comfort care at each visit, including mouth care and the repositioning frequency agreed with the community nurse;",
+                "the person's wishes from the advance care plan;",
+                "which community nursing team, out-of-hours nursing or palliative care advice line, GP practice and hospice are involved, and who the family phones between visits;",
+                "whether anticipatory medicines are in the home and where they are kept, and whether a syringe driver is in use;",
+                "how community and out-of-hours nurses get in between our visits, a key safe code being passed on only as the Key Holding, Key Safes and Access to People's Homes Procedure allows;",
+                "whether the death is expected, the DNACPR or ReSPECT status and where the form is kept, and what the care worker does if the person dies."
+              ]
+            },
+            {
+              "p": "My care at a glance is updated at the same time and every rostered care worker is told about the plan before their next visit. The reviewer also rechecks the missed-visit contingency, and a person in the last days of life always has a High missed-visit risk level, set by the Care Coordinator the same day we learn this. Where death is expected but there is no DNACPR decision or ReSPECT plan, the Care Coordinator raises it with the GP within 2 working days under the DNACPR and ReSPECT Protocol. The Care Coordinator then checks with the person or family at least weekly that the plan still meets their needs, holding a focused review whenever it does not."
+            }
+          ]
+        },
+        {
+          "heading": "Visits, continuity and funding",
+          "blocks": [
+            {
+              "p": "Where more or longer visits or two care workers are needed, the Care Coordinator agrees the change with the person and asks the commissioner the same working day. Where the person would otherwise be at risk, the Registered Manager (On-call Manager out of hours) authorises interim extra support at once, confirmed with the commissioner as the Care Plan Review Procedure sets out. A self-funder or direct payment holder, or their representative, agrees the change and any new charge in writing before it starts unless care would otherwise be missed, and then the same working day. Where the condition is deteriorating rapidly, the Care Coordinator asks the GP or community nurse the same working day to consider a Fast Track referral for NHS continuing healthcare."
+            },
+            {
+              "p": "Once the end of life plan is approved, the Care Coordinator allocates only the core care team wherever possible and phone-briefs any other care worker before the visit. A care worker who has not completed end of life care training is not allocated alone to a person in the last days of life. Visits to a person in the last days of life are never shortened to make up time. Where the moving and handling method is no longer safe, the focused review is held before the next visit, and the Care Coordinator asks the community nursing team or occupational therapist the same working day for equipment such as a profiling bed or pressure-relieving mattress."
+            }
+          ]
+        },
+        {
+          "heading": "New end of life referrals",
+          "blocks": [
+            {
+              "p": "A referral for end of life care, including a fast-track discharge home from hospital or a hospice, is decided by the Registered Manager or Deputy Manager within 4 hours of receipt in office hours, and by the On-call Manager out of hours where the start cannot wait. Accepted packages follow the short-notice start rules in the Needs Assessment and Care Planning Policy, with the end of life plan in the initial care plan. Where we cannot staff the package safely we say so the same day, so that the commissioner can find another provider."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Care at each visit in the last weeks and days",
+      "blocks": [
+        {
+          "p": "Phoning the office means speaking to Office staff or the Care Coordinator, or the On-call Manager out of hours. A care worker unsure what to do phones a Senior Care Worker or the Care Coordinator, or the On-call Manager out of hours, before acting."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Comfort and dignity",
+          "blocks": [
+            {
+              "p": "Care workers check the end of life plan at the start of every visit, speak to the person and explain what they are doing even when the person seems unresponsive, and give care at the person's pace. They:"
+            },
+            {
+              "bullets": [
+                "give mouth care at every visit as the community nurse advises, with a soft toothbrush and water and a lip moisturiser (water-based where oxygen is in use), never foam-headed mouth swabs;",
+                "offer food and drink only as the person wants and only when they are awake, sitting up as far as they can and able to swallow, never pressing them;",
+                "help the person change position as the plan sets, balancing comfort with skin care under the Pressure Ulcer Prevention and Skin Integrity Procedure;",
+                "keep the person clean, dry and comfortable, and leave a drink, call bell or phone within reach where they can use them."
+              ]
+            },
+            {
+              "p": "Falling appetite and thirst are expected as a person dies. Once the GP or community nurse has confirmed this and it is recorded in the end of life plan, the intake escalation thresholds in the Nutrition and Hydration Policy no longer apply. Care workers still record what the person takes, and the office tells the community nursing team the same day about new coughing or choking on drinks, a dry or sore mouth that care does not relieve, or a family's worry about eating and drinking."
+            }
+          ]
+        },
+        {
+          "heading": "Medicines, anticipatory medicines and syringe drivers",
+          "blocks": [
+            {
+              "p": "Care workers give medicines on the eMAR while the person can swallow them safely. When the person cannot swallow safely or is too drowsy, the dose is not given, the matching not-given outcome is recorded and the office is phoned before the care worker leaves. The Care Coordinator asks the GP or community nurse the same day which medicines continue, stop or are given another way, and an authorised eMAR user updates the eMAR before the next dose as the Medicines Management Policy sets out."
+            },
+            {
+              "p": "Anticipatory medicines and syringe drivers are the community nursing team's responsibility. Our staff never give, open, move, count, return or sign for anticipatory medicines, and never touch the controls of, adjust, silence, switch off, disconnect or re-site a syringe driver; when helping the person move, they keep the driver and its line secure so it is not pulled. If anticipatory medicines are missing, or look opened or disturbed outside a nurse's visit, the care worker touches nothing and phones the office before leaving; the office tells the community nursing team the same day and asks them to account for them, as the Controlled Drugs in the Community Procedure sets out."
+            }
+          ]
+        },
+        {
+          "heading": "Symptoms and changes",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "What the care worker sees",
+                  "What happens"
+                ],
+                "rows": [
+                  [
+                    "New or worse pain, breathlessness, restlessness, nausea or vomiting, noisy breathing, distress, or no urine passed for 8 hours",
+                    "Care worker phones the office during the visit. The office or On-call Manager contacts the community nursing team or out-of-hours advice line straight away and phones back. The care worker waits up to 30 minutes after the planned end of the visit; later advice means the office arranges a nurse visit or extra visit. The family is told."
+                  ],
+                  [
+                    "Syringe driver alarming, leaking or disconnected, or the site red or swollen",
+                    "Care worker phones the office at once without touching the controls or line. The office contacts the community nursing team straight away."
+                  ],
+                  [
+                    "A sudden event that is not part of the expected dying, such as a fall with injury, choking, heavy bleeding or a burn",
+                    "999 under the First Aid Procedure, telling the call handler about the end of life plan and the DNACPR or ReSPECT status, then the office."
+                  ],
+                  [
+                    "The person appears to be in the last hours of life",
+                    "Care worker phones the office, which contacts the family or named contact and the community nursing team at once. The Registered Manager, Deputy Manager or On-call Manager decides straight away whether the care worker stays, paid, until a family member or nurse arrives; the office covers their later visits."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A person with capacity may change their mind about where they want to be cared for, including asking to go to hospital, and family may call 999 at any time. We respect this and tell the crew about the person's wishes and plan."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Spiritual, cultural and personal wishes",
+      "blocks": [
+        {
+          "p": "We never assume a person's beliefs from their background, and give equal respect to people with no religion. The advance care plan and end of life plan record, in the person's words, what matters before, at and after death, such as prayers, music or a faith leader's visit; who may touch or wash the person after death and whether family or a faith community will do this; positioning, clothing or religious items that must stay with the person; and the partner, friends and chosen family they want involved, whatever the legal relationship. Where the person's faith requires a quick burial, the Care Coordinator tells the GP when death is expected so the doctor and medical examiner can plan for it. Care workers follow these wishes where safe and tell the office where they cannot. Same-sex care on religious or dignity grounds is arranged under the Equality, Diversity and Human Rights in Care Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Supporting families and carers",
+      "blocks": [
+        {
+          "p": "With the person's agreement we involve family as they wish, record in the care plan what family do and what we do, and keep them informed. When the end of life plan is written, the Care Coordinator explains to the family, in their format, what to expect as a person dies, who to phone between our visits and what to do if the person dies when we are not there; offers, with their agreement, to ask the local authority for a carer's assessment within 2 working days; and gives the branch information on local hospice, carer and bereavement support, including support for children in the household."
+        },
+        {
+          "p": "Care workers refer questions about prognosis to the nurse or GP, and tell the office the same day if a family carer seems exhausted or unable to cope."
+        }
+      ]
+    },
+    {
+      "heading": "When a person dies",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Expected death",
+          "blocks": [
+            {
+              "p": "Where My care at a glance records that the death is expected and a DNACPR decision or ReSPECT recommendation against CPR is in place, and the care worker finds the form, or the copy the care plan names, in the home:"
+            },
+            {
+              "steps": [
+                "Check the person is not breathing and does not respond. If there is any doubt that the person has died, call 999 and follow the First Aid Procedure.",
+                "Note the time you found the person and, if anyone present knows, when they were last seen alive.",
+                "Phone the community nursing team or GP named in the care plan (NHS 111 when they are closed) to ask for the death to be verified, then phone the office or the On-call Manager.",
+                "Leave the syringe driver, catheter, tubes, dressings, equipment and medicines as they are. Do not switch off an air mattress.",
+                "Protect the person's dignity: close doors and curtains, cover them with a sheet to the shoulders and, if family present agree and the person's recorded wishes allow, close their eyes and lay them flat with one pillow.",
+                "Stay with the person and support any family present until a family member or other responsible adult, the professional verifying the death, or another member of our staff takes over. The office covers your later visits and, if nobody has arrived within 1 hour, sends a Field Care Supervisor, Senior Care Worker or the On-call Manager to take over.",
+                "Record what you found, the times, who you phoned and who arrived in the daily visit notes, and the death in the incident log, before the end of your shift."
+              ]
+            },
+            {
+              "p": "Where nobody else lives there, the office agrees with the next of kin who will meet the funeral director. Staff give keys or the key safe code only as the Key Holding, Key Safes and Access to People's Homes Procedure allows, and where nobody remains in the home, the last of our staff to leave locks it and scrambles the key safe."
+            },
+            {
+              "p": "After verification, and only where the verifying professional raises no concern, care workers may help the nurse or family with personal care after death if the family wants this and it fits the person's recorded wishes and faith. Infection precautions continue until the person is handed over, as the Transmission-Based Precautions and Outbreak Management Procedure sets out. Jewellery is removed only at the family's request and recorded. The family chooses the funeral director; staff never recommend one."
+            }
+          ]
+        },
+        {
+          "heading": "Unexpected death or any concern",
+          "blocks": [
+            {
+              "p": "If the death was not recorded as expected, no DNACPR or ReSPECT form is found, there is any injury, or anything about the death or the home worries the care worker, they call 999, follow the First Aid Procedure and phone the office. They move nothing except as the call handler instructs, leave the scene as it is until the police or a manager say otherwise, and stay until the ambulance crew or police release them. The office sends a Field Care Supervisor, Senior Care Worker or the On-call Manager to support them, arriving within 1 hour. A death found on gaining entry after no reply follows the No Reply, No Access and Missing Person Procedure, then this section."
+            }
+          ]
+        },
+        {
+          "heading": "After the death",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Action",
+                  "Who",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "Death recorded in the incident log, stating whether it was expected and any concern about care",
+                    "The care worker present or who found the person; for a death we are told about, Office staff (On-call Manager out of hours)",
+                    "Before the end of the care worker's shift; a death we are told about, the same working day (out of hours, before the 10am handover)"
+                  ],
+                  [
+                    "Initial review: an expected death with no concern needs no investigation; any concern is graded and investigated under the Incident Reporting, Investigation and Learning Policy",
+                    "Registered Manager or Deputy Manager",
+                    "The same working day, or by 12 noon the next working day after an out-of-hours death; at once by phone where our care may have contributed"
+                  ],
+                  [
+                    "CQC notification decided and submitted; LeDeR notified for an adult with a learning disability or an autistic adult",
+                    "Registered Manager, Deputy Manager or escalation manager",
+                    "As the Statutory Notifications to CQC Procedure and the Incident Reporting, Investigation and Learning Policy set out"
+                  ],
+                  [
+                    "Nominated Individual told where our care may have contributed; duty of candour considered",
+                    "Registered Manager",
+                    "At once by phone"
+                  ],
+                  [
+                    "Remaining visits cancelled; each core care team member told personally by phone, never only by a rota change or message",
+                    "Care Coordinator (On-call Manager out of hours)",
+                    "The same day, before the care worker's next shift"
+                  ],
+                  [
+                    "Commissioner, other agencies visiting the person, the community equipment service and the telecare provider told",
+                    "Care Coordinator",
+                    "The same working day, or by 12 noon the next working day after an out-of-hours death"
+                  ],
+                  [
+                    "GP practice and pharmacy told that medicines support has ended; eMAR entries ended by an authorised eMAR user",
+                    "Care Coordinator",
+                    "Within 2 working days"
+                  ],
+                  [
+                    "Medicines left as they are; staff never remove or dispose of any medicine, even if the family ask",
+                    "Care workers",
+                    "At the time"
+                  ],
+                  [
+                    "Family told the medicines must go back to a pharmacy and never be used by anyone else (anticipatory medicines are for the community nursing team); where nobody can return them, the pharmacy, GP practice or community nursing team asked how they will be removed and the answer recorded; last balance of each counted controlled drug recorded in the care plan",
+                    "Care Coordinator",
+                    "The same working day, or by 12 noon the next working day after an out-of-hours death"
+                  ],
+                  [
+                    "Keys we hold returned to the executor or next of kin against a signature, key safe code removed from CareFlow and the family advised to change it",
+                    "Care Coordinator",
+                    "Within 5 working days, under the Key Holding, Key Safes and Access to People's Homes Procedure"
+                  ],
+                  [
+                    "Next of kin or executor told about any animals in the home, and the RSPCA contacted if nobody takes responsibility",
+                    "Care Coordinator",
+                    "The same day, under the Animals and Pets in People's Homes Guideline"
+                  ],
+                  [
+                    "Our papers collected from the home, only with the agreement of the executor, administrator or next of kin and never while the police or coroner ask for the home to be left untouched",
+                    "Field Care Supervisor",
+                    "Within 5 working days, under the Records Management and Retention Policy"
+                  ],
+                  [
+                    "Family phoned to offer condolences, explain the return of equipment, keys and any money held, and give bereavement support information",
+                    "Care Coordinator or Field Care Supervisor",
+                    "Within 2 working days"
+                  ],
+                  [
+                    "Condolence letter to the family",
+                    "Registered Manager",
+                    "Within 5 working days"
+                  ],
+                  [
+                    "Local authority told where nobody can be found to arrange the funeral",
+                    "Registered Manager",
+                    "Within 1 working day of finding there is nobody"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A death we are told about that happened when we were not there follows the same steps, and Office staff also note it in the daily visit notes. Visits cancelled because the person has died are never charged. Records requested by a coroner, medical examiner or the police are sent by their deadline, or within 2 working days where none is set. Gifts and keepsakes follow the Gifts, Hospitality, Wills and Legacies Policy, and money held for the person the Handling Money, Property and Shopping Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "After-death review and family feedback",
+          "blocks": [
+            {
+              "p": "For every person who dies while receiving our care, including during a hospital stay while their package is suspended, the Deputy Manager (Registered Manager where the Deputy Manager was involved) completes an after-death review within 20 working days, recorded in the Reviews part of the care plan. It checks whether advance care planning was offered, whether wishes, including preferred place of death, were known and met, whether changes and symptoms were reported and acted on in time, continuity, staff support and the family's experience. Learning goes into the service improvement plan within 5 working days."
+            },
+            {
+              "p": "Between 6 and 8 weeks after the death, the Deputy Manager writes once to the family, in their format, inviting feedback on our care. Feedback is handled under the Compliments, Feedback and Involvement Procedure; a concern is handled as a complaint or, where it suggests abuse or neglect, under the Safeguarding Adults Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Supporting staff",
+      "blocks": [
+        {
+          "bullets": [
+            "A care worker present at or finding a death is offered cover for the rest of that day's visits. The rest of that day's rostered hours are paid, and a worker who should not drive goes home by taxi at our cost, as the Work-Related Stress and Staff Wellbeing Policy sets out.",
+            "The Field Care Supervisor contacts each core care team member within 1 working day and offers a debrief within 3 working days, with the employee assistance programme, as the Supervision, Spot Checks and Appraisal Policy sets out.",
+            "Where several staff were close to the person, or the death was sudden or difficult, the Registered Manager offers a group reflective session within 4 weeks.",
+            "Staff attend funerals only as the Gifts, Hospitality, Wills and Legacies Policy allows, and visit a person in hospital or a hospice only as the Professional Boundaries Policy allows.",
+            "Supervision covers the emotional impact of end of life care, and signs of stress are acted on under the Work-Related Stress and Staff Wellbeing Policy."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Decline, symptoms, comfort care and the events of a death are recorded in the daily visit notes; the advance care plan, end of life plan and after-death review in the care plan, summarised in My care at a glance; medicines in the eMAR; the death and notification decision in the incident log; and debriefs in supervision and appraisal records. After a death no record is deleted or altered except by a dated, recorded correction, and records are kept under the Records Management and Retention Policy, and longer while an inquest, investigation, safeguarding enquiry or complaint is open or expected."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "End of life care: recognising dying, comfort and mouth care, talking with dying people and families, faith and cultural practices, what to do when a person dies, and looking after yourself",
+                "Care staff",
+                "Within 6 months of starting, then every 3 years, under the Training and Development Policy"
+              ],
+              [
+                "This policy, including the steps when a person dies",
+                "All employees",
+                "At induction, for care staff before working without a shadowing colleague; acknowledged in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version (a minor version does not need acknowledging again)"
+              ],
+              [
+                "Advance care planning conversations and end of life plans",
+                "Field Care Supervisors, Care Coordinators, Deputy Manager and Registered Manager",
+                "Before their first conversation, then every 3 years; first two conversations held jointly with, or checked by, the Registered Manager or Deputy Manager"
+              ],
+              [
+                "Symptom calls, expected and unexpected deaths, and the steps after a death",
+                "Office staff, Care Coordinators and On-call Managers",
+                "Within the emergency calls briefing in the First Aid Procedure: before taking calls alone or the first on-call shift, then every 12 months"
+              ],
+              [
+                "Leading end of life care, after-death reviews and supporting bereaved families and staff",
+                "Registered Manager and Deputy Manager",
+                "Within 6 months of appointment, then every 3 years"
+              ],
+              [
+                "The person's end of life plan",
+                "Each care worker allocated to the person",
+                "Phone briefing by the Care Coordinator before their next visit after the plan is approved or changed"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "At spot checks for people with an end of life plan, the Field Care Supervisor observes mouth care, repositioning and communication, and asks the care worker what they would do if the person died during the visit. A care worker who cannot answer is briefed before their next visit to that person."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Advance care planning offered and recorded, end of life plan and My care at a glance current, for people approaching the end of life",
+                "Monthly audit of 10 care plans; target 100%",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Every death: steps after the death, staff contact and debrief, family call and letter, after-death review, against this policy's timescales",
+                "Monthly check of every death; target 100%",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Weekly checks with people in the last weeks of life",
+                "Weekly check of due and overdue items",
+                "Care Coordinator",
+                "Weekly management meeting"
+              ],
+              [
+                "Deaths, preferred place of death met where known, advance care planning offered, family feedback and learning from after-death reviews",
+                "Quarterly",
+                "Registered Manager",
+                "Quarterly quality report to the Nominated Individual and Directors"
+              ],
+              [
+                "End of life training in date (target 95%)",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, including any change in the law on assisted dying, a serious incident, an inspection finding, or when monitoring or family feedback shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

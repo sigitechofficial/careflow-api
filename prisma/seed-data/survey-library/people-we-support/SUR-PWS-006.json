@@ -1,0 +1,363 @@
+{
+  "reference": "SUR-PWS-006",
+  "revision": 1,
+  "title": "After your complaint",
+  "audience": "SERVICE_USER",
+  "audienceGroup": "MADE_A_COMPLAINT",
+  "respondents": "A person we support who made a complaint themselves, in the fourth week after our final response; an advocate or interpreter may help",
+  "summary": "The question set for the follow-up call after a complaint: how well we dealt with it, how easy it was to complain, whether we kept you informed and explained the outcome, whether agreed changes were made and whether you have been treated differently since. Named, about 8 minutes, by phone.",
+  "purpose": "The question set for the follow-up call the Complaints Policy and Procedure requires within 4 weeks of the final response to a complaint the person made themselves. It checks, from the complainant's side, that agreed changes have been made, that the person has not been treated differently because they complained, and how well we handled the complaint: how easy it was to complain, whether help was offered, whether we took it seriously, kept them informed and explained what we found, and whether the outcome put things right. It does not re-open the complaint. Results feed \"complainants' views of handling\" in the quarterly governance report and the annual complaints report, and evidence Regulation 16 (an accessible, effective complaints system), Regulation 17(2)(e) (seeking and acting on feedback) and the CQC quality statements on listening to and involving people and on learning.",
+  "timing": {
+    "when": "In the fourth week after the final response to the complaint, as the follow-up call. Not while a Stage 2 review, Ombudsman, safeguarding, police or legal matter is open; not for anonymous complaints or complaints made by someone else; not after the person's death",
+    "recurrence": null,
+    "trigger": "The final response to a complaint the person made themselves",
+    "contactRule": {"holdBack": false, "countsAsContact": true, "reason": "Complaint follow-up set by the complaints policy: event surveys come first, so it goes on time."}
+  },
+  "anonymous": false,
+  "channels": ["TELEPHONE", "IN_PERSON", "PAPER"],
+  "estimatedMinutes": 8,
+  "cqc": {
+    "keyQuestions": ["RESPONSIVE", "WELL_LED"],
+    "qualityStatements": ["Listening to and involving people", "Equity in experiences and outcomes", "Learning, improvement and innovation"]
+  },
+  "introduction": "{{organisation}} is calling to check how things are since we answered your complaint. We are not re-opening your complaint: we want to know whether we did what we said and how we dealt with it, so we can get better. It takes about 8 minutes.\n\nTaking part is up to you, and what you say will not affect your care. Your answers go to the managers who oversee complaints, not to your care workers (carers) or the people your complaint was about.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to check that your complaint led to the changes we agreed and to improve how we deal with complaints. Our legal reason for using your answers is our legitimate interest in running a good, safe service.\n\nYour answers are linked to your name so we can put things right. Like your complaint, they are kept apart from your care record; they are seen only by our Registered Manager and Deputy Manager, never by care workers. Reports show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this call, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them. To do this, or to complain about how we use your information, contact the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about our service as a whole, not only your complaint. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your complaint",
+      "questions": [
+        {
+          "id": "q-handling",
+          "text": "Overall, how well did we deal with your complaint?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        },
+        {
+          "id": "q-easy",
+          "text": "How easy was it to make your complaint?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very easy", "Easy", "Neither easy nor difficult", "Difficult", "Very difficult", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "What made it difficult?",
+            "showWhen": ["Difficult", "Very difficult"]
+          }
+        },
+        {
+          "id": "q-help-offered",
+          "text": "If you needed help to make your complaint, were you offered it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, someone to write it down for you, an interpreter, an advocate, or information in large print or easy read.",
+          "options": ["Yes", "No", "I did not need help"],
+          "evidence": "Responsive: Equity in experiences and outcomes",
+          "comment": {
+            "prompt": "What help would have made it easier?",
+            "showWhen": ["No"]
+          },
+          "notCountedOptions": ["I did not need help"]
+        },
+        {
+          "id": "q-seriously",
+          "text": "Did you feel we took your complaint seriously?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Partly", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "Please tell us why.",
+            "showWhen": ["Partly", "No"]
+          }
+        },
+        {
+          "id": "q-informed",
+          "text": "While we were looking into your complaint, did we keep you up to date?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if we answered your complaint quickly and there was nothing to update you on.",
+          "options": ["Yes", "Partly", "No", "Does not apply to me", "Don't know"],
+          "notCountedOptions": ["Does not apply to me", "Don't know"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Partly", "No"]
+          }
+        },
+        {
+          "id": "q-explained",
+          "text": "Did we explain clearly what we found out?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Sometimes we can only share what we found in general terms, for example to protect someone else's privacy.",
+          "options": ["Yes", "Partly", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "What was not clear?",
+            "showWhen": ["Partly", "No"]
+          }
+        },
+        {
+          "id": "q-put-right",
+          "text": "Did the outcome put things right for you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Partly", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Well-led: Learning, improvement and innovation",
+          "comment": {
+            "prompt": "What still needs to be put right?",
+            "showWhen": ["Partly", "No"]
+          }
+        },
+        {
+          "id": "q-changes-made",
+          "text": "Have we made the changes we said we would?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Partly", "No", "We did not agree any changes", "Don't know"],
+          "notCountedOptions": ["We did not agree any changes", "Don't know"],
+          "evidence": "Well-led: Learning, improvement and innovation",
+          "comment": {
+            "prompt": "What has not been done?",
+            "showWhen": ["Partly", "No"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Since your complaint",
+      "questions": [
+        {
+          "id": "q-treated",
+          "text": "Since your complaint, has the way we treat you changed?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Making a complaint should never make your care worse.",
+          "options": ["It is better", "It is the same", "It is worse", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Equity in experiences and outcomes",
+          "comment": {
+            "prompt": "Please tell us what has changed.",
+            "showWhen": ["It is worse"]
+          }
+        },
+        {
+          "id": "q-tell-us",
+          "text": "If you were unhappy with your care, would you feel able to tell us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes making a complaint. Choose \"Don't know\" if you are not sure.",
+          "options": ["Yes, and I know how", "Yes, but I am not sure how", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "What would make it easier to tell us?",
+            "showWhen": ["No"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What could we have done better when dealing with your complaint?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "This is about how we dealt with your complaint, not the complaint itself.",
+          "evidence": "Well-led: Learning, improvement and innovation"
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers and not the person who looked into your complaint, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "These questions are the follow-up call the Complaints Policy and Procedure requires within 4 weeks of the final response. Make the call in the fourth week after the final response: the Stage 1 response where no review was asked for, or the Stage 2 final response. CareFlow cannot yet start a survey from the complaint record, so the person handling the complaint diary sets a reminder for the call when the final response is sent. The library exempts this survey from the 4-week rule, because the Complaints Policy and Procedure sets the call's date and it comes before other surveys. The answers you record count as a survey contact, so for the next 4 weeks CareFlow holds back its other sends to the person and sends each on their free day if it is still open.",
+      "Never send or make this call while a Stage 2 review, Ombudsman investigation, safeguarding enquiry, police matter or legal claim is open; for an anonymous complaint; for a complaint made by a relative, representative, professional or advocate (relatives and representatives have the family version, SUR-FAM-005); where the person has asked for no further contact or has a contact restriction; or after the person's death.",
+      "The Care Coordinator makes the call, or office staff where the Care Coordinator investigated the complaint; never the investigator and never anyone the complaint was about. Phone the person, or visit if they prefer; enter the answers with Record response, channel Telephone or In person (open the survey for responses first). Where the person prefers, send a printed copy in their recorded format and enter it the day it comes back. If the person's care has ended, the call still goes ahead, and the survey can be sent to them by name within 3 months of their service end date with no reason needed: CareFlow emails their own link to the personal email on their record, never through the portal. Every invitation and reminder to someone whose care has ended carries \"unsubscribe from all surveys\": it stops every survey message to them for good, staff cannot undo it, and replying STOP to a text does the same. Recording answers needs the \"Record survey responses\" responsibility, and opening a survey for responses needs \"Surveys\" (act): give these to the Care Coordinators and office staff who make these calls (by default only managers and admins can record survey answers, and only managers can open a survey for responses).",
+      "Open with: \"We are not re-opening your complaint. We want to know how we dealt with it, so we can get better.\" Explain that answers go to the managers who oversee complaints, not the people involved. Read each question, its help text and every answer choice exactly as written; reading every choice aloud is why it takes about 8 minutes. Advocates and interpreters may be present; record who answered in CareFlow's \"Who is answering\" field. Use a professional interpreter, never a family member unless the person chooses this after being offered one.",
+      "Who may open individual answers: only staff who hold the complaints permission, following the complaint record's restriction. This is set in Who can see the answers: individual responses are limited to the Registered Manager and the Deputy Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the roles that hold the complaints permission, and no one else.",
+      "This call takes priority over the monthly visit check-in and other event surveys: CareFlow does not know the call's date in advance, so before the call check the person's survey history and leave them out of anything else due in the 4 weeks before it. A quality check due in the same 4 weeks is asked after these questions in the same call, never skipped."
+    ],
+    "actingOnResults": [
+      "The person making the call passes any answer that needs action to the Registered Manager the same working day, and the alerts below apply.",
+      "How to count: report the share answering Very good or Good to how well we dealt with the complaint, leaving out Don't know, and the share answering Yes to the other questions, leaving out Does not apply to me, \"We did not agree any changes\" and Don't know. Always show how many people answered. Split results by the complaint's outcome (upheld, partly upheld, not upheld), taken from the complaint record, because satisfaction depends strongly on the outcome.",
+      "Numbers are small: report quarterly by branch in the governance report as \"complainants' views of handling\" and in the annual complaints report to the Directors, combining any group of fewer than 5 and flagging results resting on fewer than 10.",
+      "Keep individual answers for 3 years after the call under the Records Management and Retention Policy. For CQC, the follow-up calls, the views of handling and the actions taken evidence an accessible, effective complaints system and learning from complaints (Regulation 16 and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Since your complaint, has the way we treat you changed?\" answered \"It is worse\", or any comment suggesting the person has been treated less favourably for complaining.",
+        "action": "Tell the Registered Manager the same working day and record it as a new complaint the same working day under the Complaints Policy and Procedure. An employee who treats a person less favourably because of a complaint is dealt with under the Disciplinary Policy and Procedure. If care has been reduced or withheld, pass it to the safeguarding lead the same working day; the lead assesses the risk within 1 hour.",
+        "rule": {
+          "task": "Treated worse since complaining: record a new complaint",
+          "if": [
+            {
+              "question": "q-treated",
+              "answers": ["It is worse"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "\"Have we made the changes we said we would?\" answered Partly or No.",
+        "action": "The Registered Manager checks the complaint's actions in the service improvement plan within 5 working days, completes overdue actions, and tells the person what will be done and by when, under the Complaints Policy and Procedure and the Governance and Quality Assurance Policy.",
+        "rule": {
+          "task": "Complaint changes not made: check the actions",
+          "if": [
+            {
+              "question": "q-changes-made",
+              "answers": ["Partly", "No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Did the outcome put things right for you?\" answered No, or a comment asking for the complaint to be looked at again.",
+        "action": "If it is within 20 working days of the Stage 1 response, or the Nominated Individual accepts a later request for a good reason, treat it as a Stage 2 request and acknowledge it within 3 working days. After a Stage 2 final response, send the Ombudsman's details again in the person's recorded format within 5 working days.",
+        "rule": {
+          "task": "Outcome did not put things right: consider Stage 2",
+          "if": [
+            {
+              "question": "q-put-right",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 3,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "A comment raising a new matter of dissatisfaction, or overall experience answered Poor or Very poor with a new concern.",
+        "action": "Record a new complaint the same working day; it is graded within 1 working day and acknowledged within 3 working days under the Complaints Policy and Procedure. Overall experience Poor or Very poor with no particular concern: the Care Coordinator contacts the person within 5 working days. If unsure, treat it as a complaint."
+      },
+      {
+        "when": "\"How easy was it to make your complaint?\" answered Difficult or Very difficult, \"If you needed help to make your complaint, were you offered it?\" answered No, or \"While we were looking into your complaint, did we keep you up to date?\" answered No.",
+        "action": "The Registered Manager reviews the complaint record within 5 working days against the policy's timescales (acknowledgement within 3 working days, updates at least every 10 working days, help to put a complaint into words) and records any learning in the service improvement plan.",
+        "rule": {
+          "task": "Review how the complaint was handled",
+          "if": [
+            {
+              "question": "q-easy",
+              "answers": ["Difficult", "Very difficult"]
+            },
+            {
+              "question": "q-help-offered",
+              "answers": ["No"]
+            },
+            {
+              "question": "q-informed",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Any comment suggesting abuse or neglect.",
+        "action": "Treat as a possible safeguarding concern. Call 999 first if anyone is in immediate danger. Pass it to the safeguarding lead the same working day; the lead assesses the risk within 1 hour and refers to the local authority where needed, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+      },
+      {
+        "when": "\"If you were unhappy with your care, would you feel able to tell us?\" answered \"Yes, but I am not sure how\", No or Don't know.",
+        "action": "The Deputy Manager owns this follow-up, because answers to this survey are limited to the managers. Within 5 working days send the How to raise a concern or make a complaint leaflet in the person's recorded format. For No, also offer the details of the local independent advocacy service.",
+        "rule": {
+          "task": "Send the complaints leaflet",
+          "if": [
+            {
+              "question": "q-tell-us",
+              "answers": ["Yes, but I am not sure how", "No", "Don't know"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Someone who was not involved in the investigation and is not in the person's core care team contacts the person within 5 working days in the way they prefer, and records what was agreed.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      },
+      {
+        "when": "A comment praising our service or a named member of staff.",
+        "action": "Record it as a compliment in CareFlow the same working day; the line manager passes it to each employee named within 5 working days, under the Compliments, Feedback and Involvement Procedure."
+      }
+    ]
+  },
+  "access": {
+    "responses": ["REGISTERED_MANAGER", "DEPUTY_MANAGER"],
+    "results": ["REGISTERED_MANAGER", "DEPUTY_MANAGER"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": ["POL-GOV-005", "POL-GOV-006", "POL-GOV-002", "POL-GOV-017", "POL-SG-002", "POL-HR-008"],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 16: receiving and acting on complaints through an accessible system",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/16"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Parliamentary and Health Service Ombudsman, Local Government Ombudsman and Healthwatch England, My expectations for raising concerns and complaints (summary, 2014): a user-led framework for measuring complaint handling from the complainant's side",
+      "url": "https://www.ombudsman.org.uk/sites/default/files/Summary_A_user-led_vision_for_%20raising_concerns%20_and_complaints.pdf"
+    },
+    {
+      "source": "NICE NG21 Home care, recommendations 1.4.5 and 1.4.6: tell people how to complain, in writing or in person, and how to escalate a complaint to the commissioner and the Ombudsman",
+      "url": "https://www.nice.org.uk/guidance/ng21"
+    }
+  ]
+}

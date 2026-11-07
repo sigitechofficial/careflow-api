@@ -27,6 +27,8 @@ import {
   parseServiceUserWeeklyHoursSettings,
   type ServiceUserWeeklyHoursSettings,
 } from './service-user-weekly-hours-settings.util';
+import { parseSupervisionSettings, type SupervisionSettings } from './supervision-settings.util';
+import { parseReviewSettings, type ReviewSettings } from './review-settings.util';
 import {
   DEFAULT_WEEKLY_HOURS_RULE_OPTIONS,
   parseDomCareAllocationRules,
@@ -57,6 +59,7 @@ import {
   type EmployeeVisaType,
 } from './employee-visa-types.util';
 import { parseRotaHorizonMode } from '../service-user-visit-plans/visit-plan-rolling-rota.util';
+import { clampOrgMaxBackfillDays } from '../service-user-visit-plans/visit-plan-slot-carer-resolve.util';
 import {
   DEFAULT_ORGANISATION_TIMEZONE,
   isOrganisationTimezone,
@@ -73,7 +76,6 @@ const DEFAULT_SETTINGS_ID = '00000000-0000-4000-8000-000000000002';
 
 const CREATE_DEFAULTS = {
   id: DEFAULT_SETTINGS_ID,
-  reviewCarePlanAfterDays: 180,
   handoverReportLastHours: 12,
   archiveServiceUserAfterMonths: 3,
   timeDisplayFormat: 'HH_MM' as const,
@@ -83,13 +85,13 @@ const CREATE_DEFAULTS = {
 
 type SettingsRow = {
   id: string;
-  reviewCarePlanAfterDays: number;
   handoverReportLastHours: number;
   incidentCandourOverdueDays: number | null;
   archiveServiceUserAfterMonths: number;
   timeDisplayFormat: string;
   dateDisplayFormat: string;
   timezone?: string | null;
+  bankHolidayRegion?: string | null;
   defaultCarerStatus: string;
   sendEmailWhenEmployeeActive: boolean;
   allowMultipleRoles: boolean;
@@ -144,6 +146,7 @@ type SettingsRow = {
   domRotaHorizonDays: number;
   domRotaHorizonMode: string;
   domAutoExtendRotaRunHour: number;
+  domMaxBackfillDays: number;
   domShowWeeklyHours: boolean;
   domShowServiceUserName: boolean;
   domShowBlockedCarersInSchedule: boolean;
@@ -158,6 +161,8 @@ type SettingsRow = {
   domCareShiftDefinitions: unknown;
   domCareAllocationRules: unknown;
   serviceUserWeeklyHoursSettings: unknown;
+  supervisionSettings: unknown;
+  reviewSettings: unknown;
   incidentDetailsEditableMinutes: number;
   incidentDisplayHours: number;
   incidentDefaultStatus: string;
@@ -218,7 +223,6 @@ function toIso(updatedAt: Date | string): string {
 function mapRow(row: SettingsRow, lateVisitBranches?: DomLateVisitBranch[]) {
   return {
     id: row.id,
-    reviewCarePlanAfterDays: row.reviewCarePlanAfterDays,
     handoverReportLastHours: row.handoverReportLastHours,
     incidentCandourOverdueDays: row.incidentCandourOverdueDays,
     archiveServiceUserAfterMonths: row.archiveServiceUserAfterMonths,
@@ -227,6 +231,8 @@ function mapRow(row: SettingsRow, lateVisitBranches?: DomLateVisitBranch[]) {
     timezone: isOrganisationTimezone(row.timezone ?? '')
       ? row.timezone!
       : DEFAULT_ORGANISATION_TIMEZONE,
+    /** Bank holidays for working-day timescales: UK (England and Wales), SCOTLAND or NORTHERN_IRELAND. */
+    bankHolidayRegion: row.bankHolidayRegion ?? 'UK',
     defaultCarerStatus: row.defaultCarerStatus,
     sendEmailWhenEmployeeActive: row.sendEmailWhenEmployeeActive,
     allowMultipleRoles: row.allowMultipleRoles,
@@ -287,6 +293,7 @@ function mapRow(row: SettingsRow, lateVisitBranches?: DomLateVisitBranch[]) {
     domRotaHorizonDays: row.domRotaHorizonDays,
     domRotaHorizonMode: parseRotaHorizonMode(row.domRotaHorizonMode),
     domAutoExtendRotaRunHour: row.domAutoExtendRotaRunHour,
+    domMaxBackfillDays: row.domMaxBackfillDays,
     domShowWeeklyHours: row.domShowWeeklyHours,
     domShowServiceUserName: row.domShowServiceUserName,
     domShowBlockedCarersInSchedule: row.domShowBlockedCarersInSchedule,
@@ -310,6 +317,10 @@ function mapRow(row: SettingsRow, lateVisitBranches?: DomLateVisitBranch[]) {
     serviceUserWeeklyHoursSettings: parseServiceUserWeeklyHoursSettings(
       row.serviceUserWeeklyHoursSettings as Parameters<typeof parseServiceUserWeeklyHoursSettings>[0],
     ),
+    supervisionSettings: parseSupervisionSettings(
+      row.supervisionSettings as Parameters<typeof parseSupervisionSettings>[0],
+    ),
+    reviewSettings: parseReviewSettings(row.reviewSettings as Parameters<typeof parseReviewSettings>[0]),
     incidentDetailsEditableMinutes: row.incidentDetailsEditableMinutes,
     incidentDisplayHours: row.incidentDisplayHours,
     incidentDefaultStatus: parseIncidentDefaultStatus(row.incidentDefaultStatus),
@@ -349,13 +360,13 @@ function buildUpdateData(
     if (value !== undefined) data[key] = value;
   };
 
-  set('reviewCarePlanAfterDays', dto.reviewCarePlanAfterDays);
   set('handoverReportLastHours', dto.handoverReportLastHours);
   set('incidentCandourOverdueDays', dto.incidentCandourOverdueDays);
   set('archiveServiceUserAfterMonths', dto.archiveServiceUserAfterMonths);
   set('timeDisplayFormat', dto.timeDisplayFormat);
   set('dateDisplayFormat', dto.dateDisplayFormat);
   set('timezone', dto.timezone);
+  set('bankHolidayRegion', dto.bankHolidayRegion);
   set('defaultCarerStatus', dto.defaultCarerStatus);
   set('sendEmailWhenEmployeeActive', dto.sendEmailWhenEmployeeActive);
   set('allowMultipleRoles', dto.allowMultipleRoles);
@@ -422,6 +433,7 @@ function buildUpdateData(
   set('domRotaHorizonDays', dto.domRotaHorizonDays);
   set('domRotaHorizonMode', dto.domRotaHorizonMode);
   set('domAutoExtendRotaRunHour', dto.domAutoExtendRotaRunHour);
+  set('domMaxBackfillDays', dto.domMaxBackfillDays);
   set('domShowWeeklyHours', dto.domShowWeeklyHours);
   set('domShowServiceUserName', dto.domShowServiceUserName);
   set('domShowBlockedCarersInSchedule', dto.domShowBlockedCarersInSchedule);
@@ -448,6 +460,14 @@ function buildUpdateData(
   if (dto.serviceUserWeeklyHoursSettings !== undefined) {
     data.serviceUserWeeklyHoursSettings = parseServiceUserWeeklyHoursSettings(
       dto.serviceUserWeeklyHoursSettings as unknown as Prisma.JsonValue,
+    );
+  }
+  if (dto.reviewSettings !== undefined) {
+    data.reviewSettings = parseReviewSettings(dto.reviewSettings as unknown as Prisma.JsonValue);
+  }
+  if (dto.supervisionSettings !== undefined) {
+    data.supervisionSettings = parseSupervisionSettings(
+      dto.supervisionSettings as unknown as Prisma.JsonValue,
     );
   }
   set('incidentDetailsEditableMinutes', dto.incidentDetailsEditableMinutes);
@@ -582,6 +602,15 @@ export class OrganisationGeneralSettingsService {
     return row?.appSettingSingleDeviceLoginCareApp ?? false;
   }
 
+  /** Bank holiday region for working-day timescales (UK = England and Wales). */
+  async getBankHolidayRegion(): Promise<string> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: { bankHolidayRegion: true },
+    });
+    return row?.bankHolidayRegion || 'UK';
+  }
+
   /** Operational IANA timezone for schedules / ECM / calendar "today". */
   async getOperationalTimezone(): Promise<string> {
     const row = await this.prisma.organisationGeneralSettings.findUnique({
@@ -589,6 +618,33 @@ export class OrganisationGeneralSettingsService {
       select: { timezone: true },
     });
     return getOperationalTimeZone(row?.timezone);
+  }
+
+  /** Settings → Supervision (defaults when never saved). */
+  async getSupervisionSettings(): Promise<SupervisionSettings> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: { supervisionSettings: true },
+    });
+    return parseSupervisionSettings(row?.supervisionSettings);
+  }
+
+  /** Settings → Reviews & reminders (defaults when never saved). */
+  async getReviewSettings(): Promise<ReviewSettings> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: { reviewSettings: true },
+    });
+    return parseReviewSettings(row?.reviewSettings);
+  }
+
+  /** Most days back Backfill past visits may create (Settings → Dom Care); 0 = backfill off. */
+  async getMaxBackfillDays(): Promise<number> {
+    const row = await this.prisma.organisationGeneralSettings.findUnique({
+      where: { id: DEFAULT_SETTINGS_ID },
+      select: { domMaxBackfillDays: true },
+    });
+    return clampOrgMaxBackfillDays(row?.domMaxBackfillDays);
   }
 
   /** Over care: records the first day it is taken back when nothing saved one yet. */

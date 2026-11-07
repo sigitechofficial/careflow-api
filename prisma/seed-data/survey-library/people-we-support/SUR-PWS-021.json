@@ -1,0 +1,460 @@
+{
+  "reference": "SUR-PWS-021",
+  "revision": 1,
+  "title": "Your life and how our support helps",
+  "audience": "SERVICE_USER",
+  "respondents": "People we support, asked at their needs assessment, their 6-week review and each scheduled care plan review; a family member may help, or answer where the person cannot give their views even with support",
+  "summary": "CareFlow's own quality-of-life measure: nine short questions about the person's life now, built on the wellbeing areas in the Care Act 2014, scored so changes show from one review to the next, with what our support helps with most. Named, about 8 minutes.",
+  "purpose": "Shows whether people's lives are going well, not only whether they like our care, and whether that changes while we support them. The nine life questions follow the areas of wellbeing in section 1 of the Care Act 2014 (control over day-to-day life, personal care and feeling comfortable, food and drink, home, physical and mental wellbeing, feeling safe, being treated as a person who matters, people and relationships, and spending time on things that matter), worded by CareFlow on its standard Always to Never scale. It is not ASCOT or the Adult Social Care Survey and uses none of their questions or scoring. Each answer scores 1 (Never) to 5 (Always); the quality-of-life score is the average of the nine, with three part scores (daily living; safe and valued; people and things you enjoy). Asked at the needs assessment, the 6-week review and each scheduled review, it gives each person's starting point and change over time, feeds their care plan outcomes, and evidences outcomes for CQC (Regulation 9 person-centred care and Regulation 17(2)(a) and (e)) and for commissioners.",
+  "timing": {
+    "when": "During the person's needs assessment before care starts (where they agree), at the 6-week review, and at each scheduled care plan review (at least every 6 months); asked as part of that visit, not as a separate contact",
+    "recurrence": null,
+    "trigger": "A needs assessment, 6-week review or scheduled care plan review visit",
+    "contactRule": {
+      "holdBack": false,
+      "countsAsContact": false,
+      "reason": "It is asked during the person's assessment or care plan review visit, which sets its timing, so it is part of that visit rather than a separate contact."
+    }
+  },
+  "anonymous": false,
+  "channels": ["IN_PERSON", "TELEPHONE", "PAPER", "PORTAL"],
+  "estimatedMinutes": 8,
+  "cqc": {
+    "keyQuestions": ["EFFECTIVE", "CARING", "RESPONSIVE", "SAFE", "WELL_LED"],
+    "qualityStatements": [
+      "Monitoring and improving outcomes",
+      "Assessing needs",
+      "Independence, choice and control",
+      "Person-centred care",
+      "Kindness, compassion and dignity",
+      "Safeguarding",
+      "Learning, improvement and innovation"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how your life is going and how our support helps. It takes about 8 minutes. We ask the same questions at your reviews, so we can see what is getting better and what is not.\n\nTaking part is up to you, and what you say will not affect your care. There are no right or wrong answers. Your care workers (carers) will not see your answers.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to plan your support with you and to improve our care. Our legal reason is our legitimate interest in giving good, safe care; some questions are about your health, which the law lets care providers use to provide care.\n\nYour answers are linked to your name so we can add what matters to you to your care plan. Only our managers, Care Coordinators, Field Care Supervisors and safeguarding lead see them, never care workers. Reports show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after the survey closes, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them: contact the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about the last few months. Choose \"Don't know\" if you are not sure, or if your care has not started yet.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your day",
+      "introduction": "These questions are about your life now, not only about our care. Please think about the last few weeks.",
+      "questions": [
+        {
+          "id": "q-life-choice",
+          "text": "Do you decide how you spend your day?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, when you get up, what you wear, what you eat and when you go to bed.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Independence, choice and control",
+          "comment": {
+            "prompt": "What gets in the way?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-life-comfort",
+          "text": "Do you feel clean and comfortable?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about washing, your clothes, your teeth and your skin.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Person-centred care",
+          "comment": {
+            "prompt": "What would help?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-life-food",
+          "text": "Do you have food and drinks you enjoy when you want them?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about meals, snacks and drinks, including when nobody is with you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Person-centred care",
+          "comment": {
+            "prompt": "What would help?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-life-home",
+          "text": "Is your home as clean and comfortable as you would like?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about warmth, tidiness and being able to move around your home.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe environments",
+          "comment": {
+            "prompt": "What would help?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-life-wellbeing",
+          "text": "Do you feel well in yourself?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about both your body and your mood, for example pain, tiredness, worry or feeling low.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Effective: Supporting people to live healthier lives",
+          "comment": {
+            "prompt": "Would you like to tell us more?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Feeling safe and valued",
+      "questions": [
+        {
+          "id": "q-life-safe",
+          "text": "Do you feel safe in your home?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about everyone who comes into your home, as well as falls, fire or being on your own.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safeguarding",
+          "comment": {
+            "prompt": "Please tell us what makes you feel unsafe.",
+            "showWhen": ["Usually", "Sometimes", "Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-life-valued",
+          "text": "Do the people who help you make you feel you matter?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "This means anyone who helps you, such as care workers, family or friends.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Kindness, compassion and dignity",
+          "comment": {
+            "prompt": "Would you like to tell us more?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "People and things you enjoy",
+      "questions": [
+        {
+          "id": "q-life-people",
+          "text": "Do you see or speak to people you like as often as you want?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "This can be in person, on the phone or online.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Treating people as individuals",
+          "comment": {
+            "prompt": "Who would you like to see or speak to more?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-life-time",
+          "text": "Do you spend your time doing things you enjoy?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "This can be anything that matters to you, such as a hobby, going out, your faith or helping others.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Caring: Independence, choice and control",
+          "comment": {
+            "prompt": "What would you like to do more of?",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "How our support helps",
+      "questions": [
+        {
+          "id": "q-support-helps",
+          "text": "How much does our support help you to live the way you want?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if your care has not started yet.",
+          "options": ["A lot", "Quite a lot", "A little", "Not at all", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Effective: Monitoring and improving outcomes",
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        },
+        {
+          "id": "q-more-help",
+          "text": "Which parts of your life would you most like more help with?",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "helpText": "Choose all that apply.",
+          "options": [
+            "Deciding how I spend my day",
+            "Feeling clean and comfortable",
+            "Food and drinks",
+            "My home",
+            "Feeling well in myself",
+            "Feeling safe at home",
+            "Feeling I matter",
+            "Seeing or speaking to people",
+            "Doing things I enjoy",
+            "None of these"
+          ],
+          "exclusiveOptions": ["None of these"],
+          "evidence": "Effective: Assessing needs"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one thing would make the biggest difference to your life?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "It does not have to be something we do.",
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days. We can only do this if we know who you are."
+        }
+      ]
+    }
+  ],
+  "scoring": {
+    "scales": [
+      {
+        "key": "quality-of-life",
+        "label": "Quality of life score",
+        "questions": ["q-life-choice", "q-life-comfort", "q-life-food", "q-life-home", "q-life-wellbeing", "q-life-safe", "q-life-valued", "q-life-people", "q-life-time"],
+        "method": "MEAN",
+        "bands": [
+          { "from": 1, "label": "Several parts of life need attention" },
+          { "from": 3, "label": "Some parts of life need attention" },
+          { "from": 4, "label": "Most parts of life going well" }
+        ]
+      },
+      {
+        "key": "daily-living",
+        "label": "Daily living",
+        "questions": ["q-life-choice", "q-life-comfort", "q-life-food", "q-life-home", "q-life-wellbeing"],
+        "method": "MEAN",
+        "bands": [
+          { "from": 1, "label": "Needs attention" },
+          { "from": 3, "label": "Partly met" },
+          { "from": 4, "label": "Going well" }
+        ]
+      },
+      {
+        "key": "safe-and-valued",
+        "label": "Feeling safe and valued",
+        "questions": ["q-life-safe", "q-life-valued"],
+        "method": "MEAN",
+        "bands": [
+          { "from": 1, "label": "Needs attention" },
+          { "from": 3, "label": "Partly met" },
+          { "from": 4, "label": "Going well" }
+        ]
+      },
+      {
+        "key": "people-and-enjoyment",
+        "label": "People and things you enjoy",
+        "questions": ["q-life-people", "q-life-time"],
+        "method": "MEAN",
+        "bands": [
+          { "from": 1, "label": "Needs attention" },
+          { "from": 3, "label": "Partly met" },
+          { "from": 4, "label": "Going well" }
+        ]
+      }
+    ]
+  },
+  "managerGuidance": {
+    "howToRun": [
+      "This is CareFlow's own quality-of-life measure, built on the wellbeing areas in the Care Act 2014. It is not ASCOT or the Adult Social Care Survey: never add their questions or call the score an ASCOT score. Never change the wording of the nine life questions or their answers, so scores compare between reviews and between people.",
+      "Keep one copy open for each half-year (for example \"Your life and our support, April to September 2027\"), started from this template and closing at the end of the half-year, so results can be reported. The assessor asks it at the needs assessment where the person agrees (choose \"Does not apply to me\" or \"Don't know\" for the questions about our care), and the Field Care Supervisor or Care Coordinator carrying out the review asks it at the 6-week review and at each scheduled review, entering the answers with Record response, channel In person (Telephone where the review is held by phone). The person may read it on paper or answer in the portal before the visit instead.",
+      "It is part of the visit, so it never counts towards the 4-week contact rule, but ask it only once per visit. Ask before talking through the care plan, so answers are the person's own view. Never ask it with one of the person's regular care workers present, and give the person time: read each question and every answer aloud, and use the easy read, large print or translated version where their communication needs say so.",
+      "Where someone else helps or answers, record who in \"Who is answering\". A family member answering for the person gives their view of the person's life, which is often lower or higher than the person's own: compare a person's scores only between answers given the same way, and never ask a family member where the person can answer with support. Where the person cannot give their views even with support, record what you observe of their wellbeing in the review instead, under the Mental Capacity Act and Best Interests Policy.",
+      "Results show from 5 answers. Never report a branch or group of fewer than 5 people separately, flag results resting on fewer than 10, and never report results by care worker."
+    ],
+    "actingOnResults": [
+      "At the review, the reviewer compares the person's answers with their last ones in their survey history, talks about any part of life that has gone down or is answered Sometimes, Rarely or Never, and agrees with the person what will change. Anything agreed goes into the care plan as an outcome the person wants, with who does what, under the Needs Assessment and Care Planning Policy and the Care Plan Review Procedure. Some things are not ours to fix (for example loneliness or housing): agree with the person whether to refer or signpost them, such as to a social prescriber, their GP, a befriending service or the council, and record it.",
+      "Each half-year the Registered Manager reports the average quality-of-life score and part scores, the share answering Always or Usually to each life question, the answers to \"How much does our support help you to live the way you want?\" and the most chosen parts of life where people want more help, with how many answered. Compare people's 6-week and later reviews with their assessment, and each half-year with the last, at the Monthly Quality and Governance Meeting and in the quarterly governance report under the Governance and Quality Assurance Policy.",
+      "A part of life answered Rarely or Never by 3 or more people in a branch in a half-year, or an average score going down 2 half-years running, needs an action in the service improvement plan.",
+      "Tell people what changed through \"You said, we did\" under the Compliments, Feedback and Involvement Procedure. Keep individual answers for 3 years after each half-year copy closes, under the Records Management and Retention Policy. The scores are evidence of monitoring and improving outcomes for CQC and for commissioners' outcome reporting; share only combined results outside the organisation."
+    ],
+    "alerts": [
+      {
+        "when": "\"Do you feel safe in your home?\" answered Sometimes, Rarely or Never, or any comment suggesting abuse, neglect or that someone is at risk.",
+        "action": "Treat as a possible safeguarding concern. Call 999 first if anyone is in immediate danger. The person who asked the questions tells the safeguarding lead the same working day. The lead assesses the risk within 1 hour, arranges a private conversation with the person by someone outside their core care team where it was not already private, and refers to the local authority where needed, immediately if the risk is immediate and otherwise the same working day, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. A risk from falls, fire or being alone is also reviewed under the Positive Risk-Taking Policy.",
+        "rule": {
+          "task": "Possible safeguarding concern: does not always feel safe at home",
+          "if": [
+            {
+              "question": "q-life-safe",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"Do you feel safe in your home?\" answered Usually.",
+        "action": "The Care Coordinator contacts the person within 5 working days, once they confirm they can talk privately, to ask what would help them feel safer, and updates the care plan's risk assessment. Anything suggesting abuse or neglect goes to the safeguarding lead at once.",
+        "rule": {
+          "task": "Ask what would help them feel safer at home",
+          "if": [
+            {
+              "question": "q-life-safe",
+              "answers": ["Usually"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do you feel clean and comfortable?\", \"Do you have food and drinks you enjoy when you want them?\" or \"Is your home as clean and comfortable as you would like?\" answered Rarely or Never.",
+        "action": "The Care Coordinator reviews the care plan with the person within 2 working days: whether visits, tasks or times need to change, and whether there are signs of self-neglect (Self-Neglect and Hoarding Procedure) or of weight loss or dehydration (Nutrition and Hydration Policy). Where our care was not given as planned, it is also logged as an incident.",
+        "rule": {
+          "task": "Basic needs not met: review the care plan",
+          "if": [
+            {
+              "question": "q-life-comfort",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-life-food",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-life-home",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "\"Do you feel well in yourself?\" answered Rarely or Never.",
+        "action": "The Care Coordinator talks with the person within 2 working days about pain, mood and health, and with their agreement tells their GP or the health professional involved in their care. Where they mention thoughts of harming themselves, act the same day: call 999 if they are in immediate danger, otherwise contact their GP or the NHS 111 mental health option with them, and tell the safeguarding lead.",
+        "rule": {
+          "task": "Does not feel well: talk about health and mood",
+          "if": [
+            {
+              "question": "q-life-wellbeing",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "\"Do the people who help you make you feel you matter?\" answered Rarely or Never.",
+        "action": "The Care Coordinator asks the person within 5 working days, privately, who makes them feel this way. A concern about our care workers is handled as a complaint under the Complaints Policy and Procedure, and any sign of abuse or neglect, including by family, goes to the safeguarding lead the same working day.",
+        "rule": {
+          "task": "Does not feel they matter: ask privately",
+          "if": [
+            {
+              "question": "q-life-valued",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"How much does our support help you to live the way you want?\" answered Not at all, or a comment expressing dissatisfaction that needs a response.",
+        "action": "Treat dissatisfaction as a complaint: the Deputy Manager records it the same day it is read and it is acknowledged within 3 working days, under the Complaints Policy and Procedure. Otherwise the Care Coordinator agrees with the person within 5 working days what support would help, and reviews the care plan.",
+        "rule": {
+          "task": "Our support does not help: agree what would",
+          "if": [
+            {
+              "question": "q-support-helps",
+              "answers": ["Not at all"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Care Coordinator contacts the person within 5 working days, in the way they prefer, and records what was agreed. Nobody in the person's core care team makes this contact.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["CARE_COORDINATOR", "FIELD_CARE_SUPERVISOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER", "SAFEGUARDING_LEAD"],
+    "results": ["CARE_COORDINATOR", "FIELD_CARE_SUPERVISOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-CD-001",
+    "POL-CD-002",
+    "POL-CD-003",
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-GOV-017",
+    "POL-SG-002",
+    "POL-SG-004",
+    "POL-SG-012",
+    "POL-CD-007",
+    "POL-CD-016"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Care Act 2014, section 1: the general duty to promote an individual's wellbeing, and the areas of wellbeing it lists",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/1"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9: person-centred care that meets people's needs and reflects their preferences",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(a) and (e): assess, monitor and improve quality, including people's experience; seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    }
+  ]
+}

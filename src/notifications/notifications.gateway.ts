@@ -18,6 +18,8 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { NotificationsService } from './notifications.service';
 import { corsOrigin } from '../config/cors-origins.util';
+import { stripSecretFields } from '../common/security/secret-fields';
+import { isReviewerOnly } from '../common/auth/independent-reviewer';
 
 @WebSocketGateway({
   namespace: '/notifications',
@@ -39,7 +41,8 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
   ) {}
 
   emitNotificationNew(userId: string, payload: Record<string, unknown>) {
-    this.server.to(`user:${userId}`).emit('notification:new', payload);
+    // Socket frames skip the HTTP response interceptor, so strip credential columns here as well.
+    this.server.to(`user:${userId}`).emit('notification:new', stripSecretFields(payload));
   }
 
   emitNotificationRead(userId: string, payload: { id: string; readAt: string }) {
@@ -78,6 +81,14 @@ export class NotificationsGateway implements OnGatewayConnection, OnGatewayDisco
       }
       const ctx = await this.usersService.getAuthContext(payload.sub);
       if (!ctx) {
+        client.disconnect(true);
+        return;
+      }
+      // An independent reviewer's account (only role "Independent reviewer") never gets the
+      // notifications socket: notifications are staff traffic and the account reaches nothing but
+      // "Surveys to record". Fail closed: roles we can't read are refused too.
+      if (!Array.isArray(ctx.roles) || isReviewerOnly(ctx.roles)) {
+        this.logger.warn('Socket connect rejected: independent reviewer account (or roles unreadable)');
         client.disconnect(true);
         return;
       }

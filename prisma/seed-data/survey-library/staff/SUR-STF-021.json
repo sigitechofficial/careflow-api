@@ -1,0 +1,309 @@
+{
+  "reference": "SUR-STF-021",
+  "revision": 1,
+  "title": "Driving and travelling for work",
+  "audience": "EMPLOYEE",
+  "respondents": "All staff who travel for work (care workers, senior care workers, Field Care Supervisors and On-call Managers who drive out), whether they drive, walk, cycle or use buses or trains",
+  "summary": "Part 2 of the yearly November safety survey, before winter: whether you feel you have to rush or answer the phone while driving, vehicle checks and winter kit, parking, public transport delays, collisions and near misses and whether they were reported, saying no to unsafe journeys in bad weather, and high-visibility vests. Anonymous. About 6 minutes.",
+  "purpose": "Road travel is often the biggest physical risk a care worker faces. The Driving at Work Policy's monitoring checks paperwork and travel time but cannot hear whether workers feel pushed to rush or to answer the phone at the wheel, whether they check their vehicles, or whether near misses go unreported. This anonymous survey asks those things before winter and is the care workers' yearly input to the review of the general travelling and driving risk assessment, which the policy says is written with care workers. It does not repeat the lone working survey's travel safety items (SUR-STF-008, Part 1), the rota survey's travel time item (SUR-STF-007) or heat on the road (SUR-STF-020).",
+  "timing": {
+    "when": "Once a year, opening on the first working day of November for 2 weeks, as Part 2 of the lone working survey (SUR-STF-008)",
+    "recurrence": "YEARLY",
+    "trigger": null,
+    "sentWith": ["SUR-STF-008"]
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 6,
+  "cqc": {
+    "keyQuestions": ["SAFE", "CARING", "WELL_LED"],
+    "qualityStatements": [
+      "Safe environments",
+      "Learning culture",
+      "Workforce wellbeing and enablement",
+      "Governance, management and sustainability"
+    ]
+  },
+  "introduction": "This is Part 2 of {{organisation}}'s yearly survey about your safety at work, for staff who travel. It helps make your journeys safer this winter and takes about 6 minutes, in paid time, and it is anonymous. To report a collision or near miss, use the incident log. If your vehicle is unsafe or you are too tired to drive, do not drive: phone the office or the On-call Manager.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to make travel for work safer and to review our driving risk assessment. Our legal reason is our legitimate interest in keeping our staff safe.\n\nThe survey is anonymous: we do not record your name, so your answers cannot be traced to you. CareFlow records only which branch an answer came from. Please do not write names or addresses. Only the HR Manager looks at individual answers. Our reports show results only for groups of 5 or more people, and comments and branch results only for groups of 10 or more. If a comment tells us someone may be at risk of harm, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "closingMessage": "Thank you. A reminder: if you break down, get to a safe place away from traffic first. After a collision, stop, make the scene safe, call 999 if anyone is hurt and give your details to anyone with good reason to ask (if you cannot, report it to the police within 24 hours). Then phone the office or the On-call Manager before you drive on. We will cover your visits and, if you should not drive, pay for a taxi home.",
+  "sections": [
+    {
+      "title": "How you travel",
+      "questions": [
+        {
+          "id": "q-travel",
+          "text": "How do you travel between visits most of the time?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "If you do both, choose the one you do most. Think about your journeys for work in the last 12 months, unless a question says otherwise.",
+          "options": ["I drive a car, van, motorbike or moped", "I walk, cycle or use buses or trains"]
+        }
+      ]
+    },
+    {
+      "title": "Driving",
+      "introduction": "These questions are for staff who mostly drive between visits.",
+      "questions": [
+        {
+          "id": "q-rush",
+          "text": "Have you felt you had to rush on the road to get to visits on time?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, often", "Yes, sometimes", "No"],
+          "showIf": {
+            "question": "q-travel",
+            "answers": ["I drive a car, van, motorbike or moped"]
+          },
+          "comment": {
+            "prompt": "Which runs or times of day? Please give an area, not an address.",
+            "showWhen": ["Yes, often", "Yes, sometimes"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-calls-driving",
+          "text": "Have you felt you were expected to answer work calls or messages while driving?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes hands-free calls.",
+          "options": ["Yes, often", "Yes, sometimes", "No"],
+          "showIf": {
+            "question": "q-travel",
+            "answers": ["I drive a car, van, motorbike or moped"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-vehicle-checks",
+          "text": "Before your first journey each day, do you check your lights, tyres, windows and warning lights?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "showIf": {
+            "question": "q-travel",
+            "answers": ["I drive a car, van, motorbike or moped"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-winter-kit",
+          "text": "Does your vehicle have the winter kit we ask for, such as an ice scraper, torch and warm coat?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "Some of it", "No"],
+          "showIf": {
+            "question": "q-travel",
+            "answers": ["I drive a car, van, motorbike or moped"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-parking",
+          "text": "Can you find somewhere legal and safe to park near the homes you visit?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "showIf": {
+            "question": "q-travel",
+            "answers": ["I drive a car, van, motorbike or moped"]
+          },
+          "comment": {
+            "prompt": "Which areas are hardest? Please do not give addresses.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-collision-steps",
+          "text": "Do you know what to do if you have a collision while driving for work?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, I am sure", "I think so", "No"],
+          "showIf": {
+            "question": "q-travel",
+            "answers": ["I drive a car, van, motorbike or moped"]
+          },
+          "evidence": "Safe: Safe environments"
+        }
+      ]
+    },
+    {
+      "title": "Walking, cycling and public transport",
+      "introduction": "This question is for staff who mostly walk, cycle or use buses or trains for work.",
+      "questions": [
+        {
+          "id": "q-transport-delays",
+          "text": "Have bus or train delays made you late for visits?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Does not apply to me if you do not use buses or trains for work.",
+          "options": ["Yes, often", "Yes, sometimes", "No", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "showIf": {
+            "question": "q-travel",
+            "answers": ["I walk, cycle or use buses or trains"]
+          },
+          "comment": {
+            "prompt": "Which routes or times? Please give an area, not an address.",
+            "showWhen": ["Yes, often", "Yes, sometimes"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Everyone",
+      "questions": [
+        {
+          "id": "q-road-incident",
+          "text": "In the last 12 months, have you had a collision or near miss while travelling for work?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "A near miss is something that nearly caused harm, such as nearly being hit by a vehicle, nearly hitting someone, or slipping on ice without being hurt.",
+          "options": ["Yes, a collision", "Yes, a near miss", "Yes, both", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-road-reported",
+          "text": "Did you report it to us?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes, every time", "Yes, some of the time", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "showIf": {
+            "question": "q-road-incident",
+            "answers": ["Yes, a collision", "Yes, a near miss", "Yes, both"]
+          },
+          "comment": {
+            "prompt": "What stopped you reporting it?",
+            "showWhen": ["Yes, some of the time", "No"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-weather-refuse",
+          "text": "If snow, ice, flooding or high wind made a journey unsafe, would you feel able to say no to it?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Not sure", "No"],
+          "comment": {
+            "prompt": "What would make it easier to tell us?",
+            "showWhen": ["Not sure", "No"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-hi-vis",
+          "text": "Do you have the free high-visibility vest we give to drivers and cyclists?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose Does not apply to me if you only walk or use buses or trains. If you need one, ask the HR Manager.",
+          "options": ["Yes", "No", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-travel-overall",
+          "text": "Overall, how well do we help you travel safely for work?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer. Please do not include names or addresses.",
+            "showWhen": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one change would make your journeys for work safer?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or addresses."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it with the Registered Manager as Part 2 of the lone working survey (SUR-STF-008): use Send or schedule with the job titles of staff who travel for work (care workers, senior care workers, Field Care Supervisors and On-call Managers who drive out), repeating yearly from the first working day of November, kept open 14 days, the same window as Part 1. Tell staff in one message that both parts are open. Staff answer in the CareFlow app, in My surveys in the CareFlow web app (staff with a web login that matches their staff record), or on paper; invitations to an anonymous survey carry no personal link. Like every anonymous staff survey, neither part holds anyone back under the 4-week rule or counts as a survey contact; the two are also linked in the library, so they never hold each other back. CareFlow cannot open Part 2 when Part 1 is finished. Office staff who never travel for work are not sent it. Skip November's pulse. CareFlow records the branch of each anonymous answer, never the person; it refuses an anonymous survey that would reach fewer than 5 people.",
+      "It is done in paid working time. Paper on request, in a sealed envelope to the HR Manager, who enters it alone with Record response, recorded as anonymous. Set one reminder after 1 week in Reminders and follow-up, as for Part 1: on an anonymous survey CareFlow sends it to everyone who has not answered, with no personal link, and never to one person. Walking, cycling and public transport are grouped in one answer because a branch may have only one or two cyclists or walkers; never split them.",
+      "Who may open individual answers: the HR Manager only, who reads comments each working day while the survey is open. This is set in Who can see the answers: individual responses are limited to the HR Manager, and results to the HR Manager and the Registered Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Care Coordinators and On-call Managers, whose phone contact with drivers is asked about, never open them."
+    ],
+    "actingOnResults": [
+      "How to count: driving questions use people shown them (drivers) as the base; report near-miss reporting only when 5 or more people were shown it. Positive means Always or Usually, Yes, Yes, I am sure, Yes, every time, or Very good or Good; for rushing, calls while driving and public transport delays, No is the good answer and Yes, often the concern. Leave out Does not apply to me and Prefer not to say. Never show a result for fewer than 5; flag 5 to 9; branch results and comments only for 10 or more.",
+      "Library triggers: in any branch, 10% or more of drivers answering Yes, often to rushing or calls while driving means the Registered Manager reviews travel time planning and how the office contacts drivers within 1 month and re-briefs Care Coordinators and On-call Managers that nobody phones a driver expecting an immediate answer (Driving at Work Policy). Reporting No or Yes, some of the time from more than a quarter of those with a collision or near miss means a near-miss reporting reminder and a simpler reporting route in the service improvement plan (Incident Reporting, Investigation and Learning Policy). Feeling able to say no in bad weather answered No or Not sure by more than 10% means the severe weather briefing is reinforced before December (Severe Weather and Extreme Temperatures Procedure). Vehicle checks or winter kit below 80% positive means a winter vehicle check reminder at November supervisions and spot checks, and the annual vehicle look prioritised.",
+      "The HR Manager reports within 6 weeks of closing. The Registered Manager uses the results in the yearly review of the general travelling and driving risk assessment, written with care workers, and at the Health and Safety Meeting; winter actions are completed before the end of December. Results go in the annual health and safety report to the Directors and the November You said, we did summary, or a short winter update sooner. Keep individual answers for 1 year after the survey closes, and reports for the life of the organisation plus 6 years, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Have you felt you were expected to answer work calls or messages while driving?\" answered Yes, often (anonymous: counts only).",
+        "action": "The Registered Manager reminds Care Coordinators, On-call Managers and office staff within 5 working days that nobody phones a driver expecting an immediate answer, under the Driving at Work Policy. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Drivers expected to take calls (anonymous): re-brief office",
+          "if": [
+            {
+              "question": "q-calls-driving",
+              "answers": ["Yes, often"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you feel able to say no to an unsafe journey?\" answered No (anonymous: counts only).",
+        "action": "The Registered Manager repeats to all travelling staff within 5 working days that nobody will be pressured or penalised for refusing a journey they judge unsafe, under the Severe Weather and Extreme Temperatures Procedure, and checks how the office handles refusals. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Staff feel unable to refuse unsafe journeys (anonymous)",
+          "if": [
+            {
+              "question": "q-weather-refuse",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment describing a collision or serious near miss that may not have been reported.",
+        "action": "The Registered Manager sends all drivers a reminder of the reporting route within 5 working days (library timescale), under the Incident Reporting, Investigation and Learning Policy."
+      },
+      {
+        "when": "A comment suggesting abuse or neglect of a person we support, wrongdoing, or harassment.",
+        "action": "Abuse or neglect goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure). Wrongdoing is a speaking-up concern with the Nominated Individual as case owner because it is anonymous (Whistleblowing (Speaking Up) Policy). Harassment is logged by the Nominated Individual as an anonymous report (Bullying, Harassment and Sexual Harassment Policy). Nobody tries to identify the writer."
+      }
+    ]
+  },
+  "alertsNeverTo": ["CARE_COORDINATOR"],
+  "access": {"responses": ["HR_MANAGER"], "results": ["HR_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-HS-011",
+    "POL-HR-014",
+    "POL-HS-003",
+    "POL-HS-014",
+    "POL-GOV-007",
+    "POL-GOV-006",
+    "POL-SG-002",
+    "POL-HR-018",
+    "POL-HR-013",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety Executive, Employers: driving and riding safely for work: assess the journey, the driver and the vehicle; the law applies to workers' own vehicles used for work; consult your workers",
+      "url": "https://www.hse.gov.uk/roadsafety/employer/index.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Plan and manage journeys: do not put drivers under pressure to exceed safe speeds or complete journeys in exceptionally difficult weather; report all work-related road incidents and near misses",
+      "url": "https://www.hse.gov.uk/roadsafety/employer/plan-manage-journeys.htm"
+    }
+  ]
+}

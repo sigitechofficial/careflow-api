@@ -1,0 +1,501 @@
+{
+  "reference": "SUR-STF-001",
+  "revision": 1,
+  "title": "Annual staff survey",
+  "audience": "EMPLOYEE",
+  "respondents": "Every employee: care staff on contracted, variable, bank and zero hours, office staff, Care Coordinators, Field Care Supervisors and On-call Managers",
+  "summary": "The anonymous September staff survey, Part 1 of two linked parts: recommending us, being valued, supervision, training, breaks, fairness, speaking up, bullying and harassment, and knowing where to go. Part 2 is the work pressures check. About 12 minutes.",
+  "purpose": "The main yearly measure of culture, support and fairness, and the measuring tool many policies name for their targets: supervision helps (Supervision, Spot Checks and Appraisal Policy) and training equips (Training and Development Policy), each at least 80%; speaking up (Whistleblowing (Speaking Up) Policy); treated fairly (Equality, Diversity and Inclusion Policy); bullying and harassment experienced, witnessed, reported and handled fairly; safe to report incidents; breaks; grievances; domestic abuse; the code of conduct; social media and contact outside hours; what CareFlow records; sickness support; family and caring responsibilities; and staying off with infection. It runs every September with the work pressures check (SUR-STF-012) as Part 2, which carries the six stress areas, workload, travel time and rest, so this part does not repeat them.",
+  "timing": {
+    "when": "Once a year, opening on the first working day of September for 3 weeks, with the work pressures check (SUR-STF-012) as Part 2 of the same invitation",
+    "recurrence": "YEARLY",
+    "trigger": null,
+    "sentWith": ["SUR-STF-012"]
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 12,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Learning culture",
+      "Safe and effective staffing",
+      "Supporting people to live healthier lives",
+      "Freedom to speak up",
+      "Workforce equality, diversity and inclusion",
+      "Capable, compassionate and inclusive leaders",
+      "Shared direction and culture"
+    ]
+  },
+  "introduction": "This is Part 1 of {{organisation}}'s yearly staff survey; Part 2 follows straight after. It takes about 12 minutes, and you can do it in paid working time. It is anonymous: we cannot see who answered, and our reports never show results for fewer than 5 people.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to understand what it is like to work here and to improve it. Our legal reason is our legitimate interest in being a good employer.\n\nThe survey is anonymous: we do not record your name, so your answers cannot be traced to you. CareFlow records only which branch an answer came from. Please do not write names or anything that could identify you or someone else. Only the HR Manager and the Registered Manager look at individual answers. Our reports show results only for groups of 5 or more people, and comments only for groups of 10 or more. If a comment tells us someone may be at risk of harm, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after the survey closes, and the reports for longer, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Working here",
+      "questions": [
+        {
+          "id": "stf-recommend",
+          "text": "I would recommend working here to a friend.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Shared direction and culture"
+        },
+        {
+          "id": "stf-relative",
+          "text": "If a relative of mine needed care at home, I would be happy for us to provide it.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "comment": {
+            "prompt": "Please tell us why. Please do not include names.",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Well-led: Shared direction and culture"
+        },
+        {
+          "id": "stf-intention",
+          "text": "Where do you see yourself in 12 months' time?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Still working here",
+            "Working in another home care service",
+            "Working in a care home or other social care service",
+            "Working in the NHS or other health care",
+            "Working outside health and care",
+            "Studying or training",
+            "Retired",
+            "Taking a break from work",
+            "Don't know"
+          ],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What would make you more likely to stay?",
+            "showWhen": [
+              "Working in another home care service",
+              "Working in a care home or other social care service",
+              "Working in the NHS or other health care",
+              "Working outside health and care",
+              "Studying or training",
+              "Retired",
+              "Taking a break from work"
+            ]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-valued",
+          "text": "I feel valued for the work I do.",
+          "type": "LIKERT",
+          "required": false,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        }
+      ]
+    },
+    {
+      "title": "Support",
+      "questions": [
+        {
+          "id": "stf-supervision",
+          "text": "Supervision helps me in my work.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not had a supervision with us yet.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would make supervision more useful?",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "stf-training",
+          "text": "My training gives me what I need to do my job well.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "comment": {
+            "prompt": "What training would help you?",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-informed",
+          "text": "Does the office keep you informed about things that affect your work?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about the last 3 months.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Well-led: Shared direction and culture"
+        },
+        {
+          "id": "stf-breaks",
+          "text": "On days when you work more than 6 hours, do you get your planned break?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Think about the last 3 months. A planned break is at least 30 minutes with no visit or travel. Choose \"Does not apply to me\" if you never work more than 6 hours in a day.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "stf-sick-support",
+          "text": "If you have been off sick, did we support you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Think about the last 12 months, while you were off and when you came back.",
+          "options": ["Yes", "Partly", "No", "I have not been off sick in the last 12 months"],
+          "notCountedOptions": ["I have not been off sick in the last 12 months"],
+          "evidence": "Effective: Supporting people to live healthier lives"
+        },
+        {
+          "id": "stf-family-support",
+          "text": "I am supported with my family and caring responsibilities.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have no family or caring responsibilities.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "stf-infection-off",
+          "text": "If I had signs of an infection, I could stay off work without worrying about losing pay or hours.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "Fairness and speaking up",
+      "questions": [
+        {
+          "id": "stf-fair",
+          "text": "I am treated fairly at work, whoever I am.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, whatever your age, race, religion, sex, sexuality, disability or background.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "stf-incidents",
+          "text": "I feel safe to report incidents and mistakes, including my own.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "stf-concern-acted",
+          "text": "If I raised a concern about something wrong at work, I am confident we would act on it.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "A concern means something wrong or unsafe at work, such as poor care, abuse, records that are not true, visits cut short or someone being put at risk.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-concern-safe",
+          "text": "If I raised a concern, I am confident I would not be treated worse for it.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, losing hours, getting worse runs or being left out.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-routes",
+          "text": "Who could you go to with a concern about wrongdoing? Choose everyone you know how to contact.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "My supervisor, Field Care Supervisor or Care Coordinator",
+            "The Registered Manager, Deputy Manager or HR Manager",
+            "Our Speaking Up Lead (the Nominated Individual)",
+            "The Care Quality Commission (CQC)",
+            "The council's adult safeguarding team",
+            "The police",
+            "Protect (free advice for workers)",
+            "I would not know who to go to"
+          ],
+          "exclusiveOptions": ["I would not know who to go to"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-grievance-fair",
+          "text": "If I raised a grievance, I am confident it would be handled fairly.",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "A grievance is a formal complaint about how you are treated at work, for example about your pay, hours or a manager's decision.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        }
+      ]
+    },
+    {
+      "title": "Bullying and harassment",
+      "introduction": "These questions help us check that our steps to prevent harassment are working. You do not have to answer the questions about what has happened to you or what you have seen.",
+      "questions": [
+        {
+          "id": "stf-bh-experienced",
+          "text": "In the last 12 months, has any of these happened to you at work? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": false,
+          "helpText": "Bullying is offensive, frightening or insulting behaviour, or misuse of power, that upsets, humiliates or harms you. Harassment is unwanted behaviour linked to who you are, such as your race, religion, sex, sexuality, disability or age. Sexual harassment is unwanted sexual comments, messages, looks or touching.",
+          "options": [
+            "Bullying by a colleague or manager",
+            "Harassment by a colleague or manager",
+            "Sexual harassment by a colleague or manager",
+            "Abuse or harassment from a person we support, their family or visitors",
+            "Sexual harassment from a person we support, their family or visitors",
+            "None of these",
+            "Prefer not to say"
+          ],
+          "exclusiveOptions": ["None of these", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "stf-bh-reported",
+          "text": "Did you report it to us?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes, all of it", "Yes, some of it", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "showIf": {
+            "question": "stf-bh-experienced",
+            "answers": [
+              "Bullying by a colleague or manager",
+              "Harassment by a colleague or manager",
+              "Sexual harassment by a colleague or manager",
+              "Abuse or harassment from a person we support, their family or visitors",
+              "Sexual harassment from a person we support, their family or visitors"
+            ]
+          },
+          "comment": {
+            "prompt": "What stopped you reporting it? Please do not include names.",
+            "showWhen": ["Yes, some of it", "No"]
+          },
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-bh-witnessed",
+          "text": "In the last 12 months, have you seen a colleague being bullied, harassed or sexually harassed at work?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "stf-bh-know",
+          "text": "Do you know how to report bullying, harassment or sexual harassment?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Not sure", "No"],
+          "evidence": "Well-led: Freedom to speak up"
+        },
+        {
+          "id": "stf-bh-fair",
+          "text": "If I reported bullying or harassment, I am confident it would be handled fairly.",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree"],
+          "evidence": "Well-led: Freedom to speak up"
+        }
+      ]
+    },
+    {
+      "title": "Knowing where to go",
+      "questions": [
+        {
+          "id": "stf-know-checklist",
+          "text": "Which of these do you know? Choose all that apply.",
+          "type": "MULTI_SELECT",
+          "required": true,
+          "options": [
+            "How to raise a grievance about how I am treated at work",
+            "How to report a concern about domestic abuse",
+            "How to get support if I experience domestic abuse",
+            "What our staff code of conduct expects of me",
+            "What I may and may not post about work on social media",
+            "That I do not have to answer non-urgent work calls or messages outside 8am to 8pm or on my days off",
+            "None of these"
+          ],
+          "exclusiveOptions": ["None of these"],
+          "evidence": "Well-led: Shared direction and culture"
+        },
+        {
+          "id": "stf-careflow-records",
+          "text": "Do you know what CareFlow records about you when you check in and out, and why?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Partly", "No"],
+          "evidence": "Well-led: Shared direction and culture"
+        }
+      ]
+    },
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "stf-role-group",
+          "text": "Which best describes your main job?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": [
+            "Care worker, senior care worker or field care supervisor",
+            "Office, care coordination, on-call or management role",
+            "Prefer not to say"
+          ],
+          "notCountedOptions": ["Prefer not to say"]
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What is the best thing about working here?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or anything that could identify you or someone else."
+        },
+        {
+          "text": "What one change would most improve your working life here?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or anything that could identify you or someone else."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it under the Compliments, Feedback and Involvement Procedure. Use Send or schedule with everyone in your branches (no job title filter), repeating yearly, first period on the first working day of September, kept open for 21 days; schedule the work pressures check (SUR-STF-012) for the same moment, and tell staff in one message that it is Part 1 and Part 2 of one survey. Skip the September pulse. Staff answer in the CareFlow app, in My surveys in the CareFlow web app (staff with a web login that matches their staff record), or on paper; invitations to an anonymous survey carry no personal link; CareFlow records the branch of each anonymous answer, never the person, so branch is never asked.",
+      "Both parts are done in paid working time (a library decision, following the HSE advice to let staff complete surveys at work): say how to record the time, and offer 20 minutes at a team meeting or in the office. Paper on request: a sealed envelope to the HR Manager, who enters it alone with Record response, recorded as anonymous. Keep wording plain for staff with English as a second language; offer a translated version or an interpreter-read group session, never a manager reading answers for someone.",
+      "Set two reminders in Reminders and follow-up, one after 1 week and one after 2 weeks: on an anonymous survey CareFlow sends them to everyone who has not answered, with no personal link, and never to one person. Never chase individuals. CareFlow refuses an anonymous survey that would reach fewer than 5 people. The target response rate is 60%; below 50% the results are indicative only.",
+      "Who may open individual answers: the HR Manager, who reads comments each working day while the survey is open, and the Registered Manager. This is set in Who can see the answers: individual responses are limited to the HR Manager and the Registered Manager, and results to the HR Manager, the Registered Manager and the Nominated Individual, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. CareFlow's own branch breakdown appears once the survey closes and combines branches with fewer than 5 answers; reports use the stricter rule of 10 or more for breakdowns and comments."
+    ],
+    "actingOnResults": [
+      "Comments are read each working day while the survey is open. A comment suggesting abuse or neglect of a person we support goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure). A comment describing wrongdoing is handled as a speaking-up concern by the Registered Manager under the Compliments, Feedback and Involvement Procedure, with the Nominated Individual as case owner because it is anonymous, under the Whistleblowing (Speaking Up) Policy. A comment describing bullying or harassment is logged by the Nominated Individual as an anonymous report, and the Registered Manager decides within 5 working days what action is possible, under the Bullying, Harassment and Sexual Harassment Policy. Nobody tries to identify the writer.",
+      "How to count: positive means Strongly agree or Agree, or Always or Usually, leaving out Does not apply to me, Don't know and Prefer not to say. For the routes question, report the share choosing any option except the first; for the checklist, report each option as its own share. Targets: supervision 80%, training 80%, breaks 80%, treated fairly 80%, incidents 90%, concern acted on 80%, not treated worse 80%, a route outside the line manager 90%, know how to report harassment 90%, harassment handled fairly 80%, grievance handled fairly 80%, grievance known 80%, both domestic abuse items 90%, code of conduct 90%, both social media and contact items 90%, CareFlow records known 90%, sickness support 80%, family support 80%, staying off with infection 90%.",
+      "Never show a result for fewer than 5 people; flag 5 to 9; show breakdowns (branch, role group) and comments only for groups of 10 or more; never cross two breakdowns. The HR Manager writes the report within 6 weeks of closing; any target missed gets an action with an owner in the service improvement plan within 5 working days of the report. Speaking-up results below target in a branch with no concerns raised in 12 months lead to a Nominated Individual review within 10 working days; a new risk shown by the harassment questions means the harassment risk assessment is reviewed within 1 month. Results go to the Directors within 3 months of closing and into the November You said, we did summary, which identifies no one.",
+      "Keep individual answers for 1 year after the survey closes and reports for the life of the organisation plus 6 years, under the Records Management and Retention Policy. For CQC, the results and actions evidence a learning, open and fair culture (Regulation 17(2)(e) and 18)."
+    ],
+    "alerts": [
+      {
+        "when": "Bullying or harassment experienced, by a colleague or by a person we support or their household (anonymous: counts only).",
+        "action": "The Registered Manager reviews what action is possible within 5 working days under the Bullying, Harassment and Sexual Harassment Policy. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Bullying or harassment reported (anonymous): review",
+          "if": [
+            {
+              "question": "stf-bh-experienced",
+              "answers": [
+                "Bullying by a colleague or manager",
+                "Harassment by a colleague or manager",
+                "Abuse or harassment from a person we support, their family or visitors"
+              ]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5,
+          "minimumAnswers": 10
+        }
+      },
+      {
+        "when": "Sexual harassment experienced, from anyone (anonymous: counts only).",
+        "action": "The Registered Manager, with the HR Manager, reviews the sexual harassment risk assessment within 1 month under the Sexual Safety Policy. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Sexual harassment reported (anonymous): review risk assessment",
+          "if": [
+            {
+              "question": "stf-bh-experienced",
+              "answers": [
+                "Sexual harassment by a colleague or manager",
+                "Sexual harassment from a person we support, their family or visitors"
+              ]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 28,
+          "minimumAnswers": 10
+        }
+      },
+      {
+        "when": "Bullying or harassment not reported to us (anonymous: counts only).",
+        "action": "The Registered Manager repeats the reporting routes at team meetings and in the next staff briefing within 1 month. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Harassment not reported (anonymous): repeat the routes",
+          "if": [
+            {
+              "question": "stf-bh-reported",
+              "answers": ["Yes, some of it", "No"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueCalendarDays": 28,
+          "minimumAnswers": 10
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER", "NOMINATED_INDIVIDUAL"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-HR-005",
+    "POL-HR-006",
+    "POL-HR-018",
+    "POL-HR-012",
+    "POL-HR-013",
+    "POL-SG-010",
+    "POL-GOV-007",
+    "POL-HR-014",
+    "POL-HR-009",
+    "POL-SG-011",
+    "POL-HR-007",
+    "POL-HR-017",
+    "POL-GOV-019",
+    "POL-HR-011",
+    "POL-HR-015",
+    "POL-IPC-008",
+    "POL-HS-015",
+    "POL-SG-002",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "DHSC, Work-related quality of life of the adult social care workforce in England in 2025: 25% plan to leave as soon as they find another job; stress and burnout, low income and not feeling valued are the main reasons",
+      "url": "https://www.gov.uk/government/publications/work-related-quality-of-life-of-the-adult-social-care-workforce-in-england-in-2025"
+    },
+    {
+      "source": "Health and Safety Executive, Management Standards Indicator Tool user manual: ensure anonymity; allow staff to complete surveys in work time; a response rate over 60% is desirable",
+      "url": "https://www.hse.gov.uk/stress/assets/docs/indicatortoolmanual.pdf"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from staff",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18: staff receive appropriate support, training and supervision",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Equality Act 2010, section 40A (inserted by the Worker Protection (Amendment of Equality Act 2010) Act 2023): an employer must take reasonable steps to prevent sexual harassment of its employees",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40A"
+    }
+  ]
+}

@@ -147,6 +147,7 @@ export enum AuditAction {
   SERVICE_USER_VISIT_PLAN_REACTIVATED = 'service_user_visit_plan_reactivated',
   SERVICE_USER_VISIT_PLAN_ENDED = 'service_user_visit_plan_ended',
   SERVICE_USER_VISIT_PLAN_SCHEDULE_GENERATED = 'service_user_visit_plan_schedule_generated',
+  SERVICE_USER_VISIT_PLANS_AND_ROTA_CLEARED = 'service_user_visit_plans_and_rota_cleared',
   SERVICE_USER_INITIAL_ASSESSMENT_UPDATED = 'service_user_initial_assessment_updated',
   INITIAL_ASSESSMENT_TEMPLATE_CREATED = 'initial_assessment_template_created',
   INITIAL_ASSESSMENT_TEMPLATE_UPDATED = 'initial_assessment_template_updated',
@@ -496,6 +497,69 @@ export enum AuditAction {
   SURVEY_RESPONSE_SUBMITTED = 'survey_response_submitted',
   SURVEY_RESPONSE_RECORDED = 'survey_response_recorded',
   SURVEY_RESPONSE_UPDATED = 'survey_response_updated',
+  SURVEY_ALERT_RULE_CREATED = 'survey_alert_rule_created',
+  SURVEY_ALERT_RULE_UPDATED = 'survey_alert_rule_updated',
+  SURVEY_ALERT_RULE_DELETED = 'survey_alert_rule_deleted',
+  SURVEY_ALERT_RULES_RESTORED = 'survey_alert_rules_restored',
+  SURVEY_ALERT_OWNER_ROLE_SET = 'survey_alert_owner_role_set',
+  SURVEY_ALERT_RAISED = 'survey_alert_raised',
+  SURVEY_ALERT_UPDATED = 'survey_alert_updated',
+  SURVEY_LINKS_COPIED = 'survey_links_copied',
+  SURVEY_LINK_RENEWED = 'survey_link_renewed',
+  SURVEY_SHARE_LINK_CREATED = 'survey_share_link_created',
+  SURVEY_SHARE_LINK_TURNED_OFF = 'survey_share_link_turned_off',
+  SURVEY_RESULTS_EXPORTED = 'survey_results_exported',
+  SURVEY_PAPER_COPY_PRINTED = 'survey_paper_copy_printed',
+  SURVEY_SECTION_UPDATED = 'survey_section_updated',
+  SURVEY_ACCESS_UPDATED = 'survey_access_updated',
+  SURVEY_CONTACT_PLAN_UPDATED = 'survey_contact_plan_updated',
+  SURVEY_REMINDERS_SENT = 'survey_reminders_sent',
+  SURVEY_INVITATION_TEXTS_SENT = 'survey_invitation_texts_sent',
+  SURVEY_CALL_RECORDED = 'survey_call_recorded',
+  SURVEY_CONTACT_OPT_OUT_CHANGED = 'survey_contact_opt_out_changed',
+  /** The 4-week contact rule or sampling changed on a survey. */
+  SURVEY_CONTACT_RULE_CHANGED = 'survey_contact_rule_changed',
+  /** People held back by the 4-week rule sent a survey anyway, with a reason (counts only). */
+  SURVEY_CONTACT_RULE_OVERRIDDEN = 'survey_contact_rule_overridden',
+  /** People held back by the 4-week rule not sent a survey at all, with a reason (counts only). */
+  SURVEY_HELD_BACK_NOT_SENT = 'survey_held_back_not_sent',
+  /** A survey's event trigger switched on, changed or off. */
+  SURVEY_EVENT_TRIGGER_CHANGED = 'survey_event_trigger_changed',
+  /** Event sends checked by staff: sent, not sent, or offered (counts and reason only). */
+  SURVEY_EVENT_SEND_DECIDED = 'survey_event_send_decided',
+  /** Survey contact stopped after a death was recorded (counts only). */
+  SURVEY_CONTACT_STOPPED_AFTER_DEATH = 'survey_contact_stopped_after_death',
+  /** A copy of a survey made for each manager (SUR-STF-018), plus any pooled smaller-teams copy. */
+  SURVEY_MANAGER_COPIES_CREATED = 'survey_manager_copies_created',
+  /** An independent reviewer given (or no longer given) the right to record answers on one survey. */
+  SURVEY_REVIEWER_GRANTED = 'survey_reviewer_granted',
+  SURVEY_REVIEWER_REVOKED = 'survey_reviewer_revoked',
+  /** An independent reviewer's account made (only role Independent reviewer; they choose their own password). */
+  SURVEY_REVIEWER_ACCOUNT_CREATED = 'survey_reviewer_account_created',
+  /** An independent reviewer recorded an answer (never the answers themselves in the audit). */
+  SURVEY_REVIEWER_RESPONSE_RECORDED = 'survey_reviewer_response_recorded',
+  /** A survey's answers not linked to anyone, counted for one finished day (no row per answer: the date only). */
+  SURVEY_UNLINKED_ANSWERS_COUNTED = 'survey_unlinked_answers_counted',
+  /** Scoring scales set, changed or removed on a survey. */
+  SURVEY_SCORING_CHANGED = 'survey_scoring_changed',
+  /** The built-in safeguarding-words alert switched on or off (with the reason). */
+  SURVEY_SAFEGUARDING_WORDS_CHANGED = 'survey_safeguarding_words_changed',
+  /** Survey actions (Phase 2 part 6): titles and dates only, never answers. */
+  SURVEY_ACTION_CREATED = 'survey_action_created',
+  SURVEY_ACTION_UPDATED = 'survey_action_updated',
+  SURVEY_ACTION_CLOSED = 'survey_action_closed',
+  SURVEY_DISCUSSION_RECORDED = 'survey_discussion_recorded',
+  SURVEY_YOU_SAID_WE_DID_SAVED = 'survey_you_said_we_did_saved',
+  SURVEY_YOU_SAID_WE_DID_PUBLISHED = 'survey_you_said_we_did_published',
+  SURVEY_YOU_SAID_WE_DID_WITHDRAWN = 'survey_you_said_we_did_withdrawn',
+  /** Phase 2 part 7: repeat months, rotating question, answer retention, grouped answers (settings, never answers). */
+  SURVEY_PLATFORM_SETTINGS_CHANGED = 'survey_platform_settings_changed',
+  /** Answers deleted under the retention period (counts only). */
+  SURVEY_ANSWERS_DELETED_RETENTION = 'survey_answers_deleted_retention',
+  /** Phase 3: a survey's translation (another language or easy read) saved, imported, published, withdrawn or deleted (counts only). */
+  SURVEY_TRANSLATION_CHANGED = 'survey_translation_changed',
+  SURVEY_APPLICANT_INVITES_CHANGED = 'survey_applicant_invites_changed',
+  SURVEY_BENCHMARK_SHARING_CHANGED = 'survey_benchmark_sharing_changed',
   FEEDBACK_RECORDED = 'feedback_recorded',
   FEEDBACK_UPDATED = 'feedback_updated',
   FEEDBACK_STATUS_CHANGED = 'feedback_status_changed',
@@ -601,4 +665,27 @@ export enum AuditAction {
   VISIT_ATTENDANCE_TIMES_CORRECTED = 'visit_attendance_times_corrected',
   PAY_EVALUATION_FAILURE_RETRIED = 'pay_evaluation_failure_retried',
   PAY_EVALUATION_FAILURE_DISMISSED = 'pay_evaluation_failure_dismissed',
+
+  SUPERVISION_SESSION_CREATED = 'supervision_session_created',
+  SUPERVISION_SESSION_UPDATED = 'supervision_session_updated',
+  SUPERVISION_SESSION_SIGNED = 'supervision_session_signed',
+  SUPERVISION_SESSION_COMPLETED = 'supervision_session_completed',
+  SUPERVISION_SESSION_CANCELLED = 'supervision_session_cancelled',
+  SUPERVISION_ADDENDUM_ADDED = 'supervision_addendum_added',
+  SUPERVISION_ACTION_ADDED = 'supervision_action_added',
+  SUPERVISION_ACTION_UPDATED = 'supervision_action_updated',
+  SUPERVISION_FORM_ASSIGNED = 'supervision_form_assigned',
+  SUPERVISION_SCHEDULE_UPDATED = 'supervision_schedule_updated',
+  SUPERVISION_SUPERVISOR_ASSIGNED = 'supervision_supervisor_assigned',
+
+  CQC_EVIDENCE_CREATED = 'cqc_evidence_created',
+  CQC_EVIDENCE_UPDATED = 'cqc_evidence_updated',
+  CQC_EVIDENCE_ARCHIVED = 'cqc_evidence_archived',
+  CQC_EVIDENCE_ATTACHMENT_ADDED = 'cqc_evidence_attachment_added',
+  CQC_EVIDENCE_ATTACHMENT_REMOVED = 'cqc_evidence_attachment_removed',
+  CQC_EVIDENCE_EXPORTED = 'cqc_evidence_exported',
+  CQC_EVIDENCE_CAPTURED_FROM_SURVEY = 'cqc_evidence_captured_from_survey',
+
+  VISIT_CREATION_SCRIPT_STARTED = 'visit_creation_script_started',
+  VISIT_CREATION_SCRIPT_FINISHED = 'visit_creation_script_finished',
 }

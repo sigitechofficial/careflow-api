@@ -1,0 +1,347 @@
+{
+  "reference": "SUR-STF-020",
+  "revision": 1,
+  "title": "Your health at work",
+  "audience": "EMPLOYEE",
+  "respondents": "All staff, including bank staff and managers",
+  "summary": "An anonymous yearly check on physical health at work: aches and pains and whether they are reported, moving and handling equipment and second workers, toilets and cool breaks on the road, uniform fit and comfort, health-related changes, menopause support, the flu vaccine letter and time for health appointments. About 7 minutes.",
+  "purpose": "Physical health at work is measured nowhere else in the library: the work pressures check (SUR-STF-012) covers stress and the September staff survey (SUR-STF-001) covers support when off sick. This survey finds under-reported aches and pains, missing equipment and second workers, poor access to toilets and cool breaks, and gaps in health adjustments and menopause support, for the moving and handling and stress risk assessments and the service improvement plan. It carries the Uniform, ID Badges and Dress Code Policy's target that at least 80% are satisfied with uniform fit and comfort, and feeds the gender equality action plan in the workforce equality report. It never asks about anyone's conditions, pregnancy or vaccination.",
+  "timing": {
+    "when": "Once a year in May, opening after the May pulse closes, for 3 weeks",
+    "recurrence": "YEARLY",
+    "trigger": null
+  },
+  "anonymous": true,
+  "channels": ["ONLINE", "PAPER"],
+  "estimatedMinutes": 7,
+  "cqc": {
+    "keyQuestions": ["CARING", "SAFE", "WELL_LED"],
+    "qualityStatements": [
+      "Workforce wellbeing and enablement",
+      "Safe and effective staffing",
+      "Safe environments",
+      "Workforce equality, diversity and inclusion"
+    ]
+  },
+  "introduction": "{{organisation}} wants to know how work affects your physical health, to make it safer. It takes about 7 minutes, in paid time. It is anonymous: we cannot see who answered. Please do not describe your health in a way that could identify you. If work causes you pain, tell your Field Care Supervisor before your next shift. For changes because of your health, including menopause, speak to your supervisor or the HR Manager.\n\nThis survey cannot be used to raise a concern, because we cannot see who answered. To raise a concern, speak to any manager or our Speaking Up Lead, or use our Whistleblowing (Speaking Up) Policy.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to keep staff safe and well at work. Our legal reason is our legitimate interest in meeting our duties as an employer.\n\nThe survey is anonymous: we do not record your name, so we cannot trace or reply to you. CareFlow records only your branch. Only the HR Manager looks at individual answers. Reports show results only for groups of 5 or more people, and comments only for groups of 10 or more. If a comment tells us someone may be at risk of harm, we will act on it as far as we can.\n\nWe keep individual answers for 1 year after the survey closes, under our Records Management and Retention Policy. To ask about how we use information, contact the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "stf-role-group",
+          "text": "Which best describes your main job?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Think about the last 3 months, unless a question says otherwise.",
+          "options": [
+            "Care worker, senior care worker or field care supervisor",
+            "Office, care coordination, on-call or management role",
+            "Prefer not to say"
+          ],
+          "notCountedOptions": ["Prefer not to say"]
+        }
+      ]
+    },
+    {
+      "title": "Your body at work",
+      "questions": [
+        {
+          "id": "q-pain",
+          "text": "In the last 3 months, have you had aches or pains that you think were caused by your work?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, in your back, neck, shoulders, wrists or knees.",
+          "options": ["Yes, often", "Yes, sometimes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-pain-told",
+          "text": "Did you tell your Field Care Supervisor or the office about the pain?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes, every time", "Sometimes", "No", "Prefer not to say"],
+          "notCountedOptions": ["Prefer not to say"],
+          "showIf": {
+            "question": "q-pain",
+            "answers": ["Yes, often", "Yes, sometimes"]
+          },
+          "comment": {
+            "prompt": "What stopped you telling us?",
+            "showWhen": ["Sometimes", "No"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-mh-equipment",
+          "text": "Do you have the equipment you need to help people move safely?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Does not apply to me if you do not help people to move.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What equipment is missing? Please do not include names or addresses.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe environments"
+        },
+        {
+          "id": "q-second-worker",
+          "text": "When a care plan says two workers are needed, does the second worker arrive?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Does not apply to me if you have not had visits that need two workers.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What happens when they do not arrive? Please do not include names or addresses.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          },
+          "evidence": "Safe: Safe and effective staffing"
+        }
+      ]
+    },
+    {
+      "title": "On the road",
+      "questions": [
+        {
+          "id": "q-toilet",
+          "text": "During your working day, can you get to a toilet when you need one?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Does not apply to me if you work only at the office.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would help? For example, a gap in your run near the office.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-cool-breaks",
+          "text": "In hot weather, can you take the cool breaks you need?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Think about last summer. Choose Does not apply to me if you work only at the office.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would help in hot weather?",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-health-appointments",
+          "text": "Can you get time off for your own health appointments, such as with your GP or dentist?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose Does not apply to me if you have not needed any.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Your uniform",
+      "questions": [
+        {
+          "id": "q-uniform-fit",
+          "text": "How well does your uniform fit you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Does not apply to me if you do not wear our uniform.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would fit better? We have other sizes, maternity and lighter-weight tops.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-uniform-comfort",
+          "text": "How comfortable is your uniform to work in?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Does not apply to me if you do not wear our uniform.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What makes it uncomfortable?",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        },
+        {
+          "id": "q-uniform-enough",
+          "text": "Do you have enough uniform tops to wear a clean one every shift?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Replacement tops are free. Ask the HR Manager.",
+          "options": ["Yes", "No", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe environments"
+        }
+      ]
+    },
+    {
+      "title": "Support for your health",
+      "questions": [
+        {
+          "id": "q-health-changes",
+          "text": "If you asked us for changes at work because of your health, did you get them?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Think about the last 12 months. For example, a different run, help with lifting, different uniform, or changes for a health condition, disability, pregnancy or the menopause.",
+          "options": ["Yes, all of them", "Some of them", "No", "I have not asked for any", "Prefer not to say"],
+          "notCountedOptions": ["I have not asked for any", "Prefer not to say"],
+          "comment": {
+            "prompt": "What changes did you need? Please do not include anything that could identify you.",
+            "showWhen": ["Some of them", "No"]
+          },
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-menopause-support",
+          "text": "Do you know how to get support at work for menopause symptoms?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Everyone can answer this, because you may want to help a colleague. You do not need a diagnosis to ask for support.",
+          "options": ["Yes", "Not sure", "No"],
+          "evidence": "Well-led: Workforce equality, diversity and inclusion"
+        },
+        {
+          "id": "q-flu-letter",
+          "text": "Did you get our letter about a free flu vaccine last autumn?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "We do not ask whether you had the vaccine. That is your choice. Choose Does not apply to me if you joined us after last autumn or you do not visit people.",
+          "options": ["Yes", "No", "Not sure", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Safe: Safe environments"
+        }
+      ]
+    },
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-health-overall",
+          "text": "Overall, how well do we look after your health at work?",
+          "type": "LIKERT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer.",
+            "showWhen": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"]
+          },
+          "evidence": "Caring: Workforce wellbeing and enablement"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What one change would most help your health at work?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not include names or anything that could identify you."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it under the Compliments, Feedback and Involvement Procedure. Use Send or schedule with everyone in your branches, including bank staff and managers, repeating yearly from the working day after the May pulse closes, kept open 21 days. Staff answer in the CareFlow app, in My surveys in the CareFlow web app (staff with a web login that matches their staff record), or on paper; invitations to an anonymous survey carry no personal link; CareFlow records the branch of each anonymous answer, never the person, so branch is never asked. CareFlow refuses an anonymous survey that would reach fewer than 5 people.",
+      "It is done in paid working time. Paper on request, in a sealed envelope to the HR Manager, who enters it alone with Record response, recorded as anonymous, and destroys the form after entry. Set one reminder after 2 weeks in Reminders and follow-up: on an anonymous survey CareFlow sends it to everyone who has not answered, with no personal link, and never to one person. Never add questions about health conditions, disability, pregnancy or vaccination: answers would identify people in small teams.",
+      "Who may open individual answers: the HR Manager only, who reads comments each working day while the survey is open. This is set in Who can see the answers: individual responses are limited to the HR Manager, and results to the HR Manager and the Registered Manager, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "How to count: positive means Always or Usually, Very good or Good, Yes, all of them, Yes, every time, or Yes, leaving out Does not apply to me, I have not asked for any and Prefer not to say. For aches and pains, report the share answering Yes, often or Yes, sometimes, and, of those, the share who told us every time. Report health changes only if 5 or more people chose one of the first three answers. Never show a result for fewer than 5; flag 5 to 9; show the role group breakdown, branch results and comments only for 10 or more; never cross role group with branch; never show a comment that could identify someone's health.",
+      "Uniform target (Uniform, ID Badges and Dress Code Policy): fit and comfort each at least 80% Very good or Good; below 80% means an action in the service improvement plan within 5 working days of the report. The HR Manager writes the report within 6 weeks of closing; the Health and Safety Meeting in June agrees actions with the Registered Manager (Health and Safety Lead); results go to the Directors and into the November You said, we did summary, or sooner for quick fixes such as uniform sizes.",
+      "Library triggers: aches and pains Yes, often from more than 10% of care staff, or more than a quarter of those with pain not telling us every time, means a review of the moving and handling risk assessment and a reminder of the reporting route (Moving and Handling of People Policy). Second worker Always below 90% means the Registered Manager checks double-handed visit delivery in CareFlow. Knowing how to get menopause support below 80% Yes means menopause support goes into the gender equality action plan (Equality, Diversity and Inclusion Policy). Toilet or cool breaks below 80% positive means planned gaps near toilets in the rota and the hot weather arrangements in the Severe Weather and Extreme Temperatures Procedure are reviewed. Any item 10 percentage points worse than last year gets an action.",
+      "Keep individual answers for 1 year after the survey closes and reports for the life of the organisation plus 6 years, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"When a care plan says two workers are needed, does the second worker arrive?\" answered Rarely or Never (anonymous: counts only).",
+        "action": "The Registered Manager checks double-handed visit delivery across the branch in CareFlow within 5 working days and acts on any visit delivered single-handed, under the Moving and Handling of People Policy. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Second worker not arriving (anonymous): check visits",
+          "if": [
+            {
+              "question": "q-second-worker",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do you have the equipment you need to help people move safely?\" answered Never (anonymous: counts only).",
+        "action": "The Registered Manager checks moving and handling equipment against care plans in the branch and reminds all staff how to report missing equipment, within 5 working days. The survey is anonymous: act on the pattern, never try to identify who answered.",
+        "rule": {
+          "task": "Moving equipment never available (anonymous): check",
+          "if": [
+            {
+              "question": "q-mh-equipment",
+              "answers": ["Never"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment describing an unsafe moving and handling situation, or missing equipment, at a team or area that can be identified.",
+        "action": "The Registered Manager checks the relevant risk assessments and care plans and reminds all staff of the reporting route within 5 working days (library timescale)."
+      },
+      {
+        "when": "A comment suggesting abuse or neglect of a person we support, wrongdoing, or harassment.",
+        "action": "Abuse or neglect goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure). Wrongdoing is a speaking-up concern with the Nominated Individual as case owner because it is anonymous (Whistleblowing (Speaking Up) Policy). Harassment is logged by the Nominated Individual as an anonymous report (Bullying, Harassment and Sexual Harassment Policy). Nobody tries to identify the writer."
+      }
+    ]
+  },
+  "access": {"responses": ["HR_MANAGER"], "results": ["HR_MANAGER", "REGISTERED_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-HS-015",
+    "POL-HR-011",
+    "POL-HR-012",
+    "POL-HS-005",
+    "POL-HS-016",
+    "POL-HS-014",
+    "POL-IPC-009",
+    "POL-HR-016",
+    "POL-HR-014",
+    "POL-GOV-006",
+    "POL-SG-002",
+    "POL-HR-018",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety Executive, Health monitoring for musculoskeletal disorders: encourage workers to report symptoms as early as possible; people usually recover completely if the problem is spotted early",
+      "url": "https://www.hse.gov.uk/msd/health-monitoring.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Welfare at work (INDG293): toilet, washing, rest and eating facilities are necessary for the well-being of employees",
+      "url": "https://www.hse.gov.uk/pubns/indg293.htm"
+    },
+    {
+      "source": "Manual Handling Operations Regulations 1992, regulation 4: avoid hazardous manual handling where reasonably practicable, and assess and reduce the risk of injury where it cannot be avoided",
+      "url": "https://www.legislation.gov.uk/uksi/1992/2793/regulation/4"
+    },
+    {
+      "source": "Equality Act 2010, section 20: the duty to make reasonable adjustments for disabled workers (menopause and pregnancy support also engage the sex, age and pregnancy protections)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20"
+    }
+  ]
+}

@@ -114,10 +114,15 @@ export class MedicationOverviewService {
     const todayBounds = operationalDayBounds(today, timeZone);
     const periodEnd = todayBounds.end;
     const now = new Date();
-    const in14 = new Date(now.getTime() + 14 * DAY_MS);
-    const in30 = new Date(now.getTime() + 30 * DAY_MS);
+    // Settings → Reviews & reminders: courses ending / pack reviews, and medication reviews.
+    const { medicationDueSoonDays, medicationReviewDueSoonDays } = await this.orgSettings.getReviewSettings();
+    const dueSoonEnd = new Date(now.getTime() + medicationDueSoonDays * DAY_MS);
+    const reviewDueSoonEnd = new Date(now.getTime() + medicationReviewDueSoonDays * DAY_MS);
 
-    const result = this.blank(from, today, days);
+    const result = this.blank(from, today, days, {
+      dueSoonDays: medicationDueSoonDays,
+      reviewDueSoonDays: medicationReviewDueSoonDays,
+    });
     const su = this.serviceUserWhere(user, q.locationId);
     if (!su) return { data: result };
 
@@ -223,7 +228,7 @@ export class MedicationOverviewService {
       }),
       this.prisma.serviceUserMedication.count({ where: { ...activeMed, isControlledMedication: true } }),
       this.prisma.serviceUserMedication.count({ where: { ...activeMed, timeCritical: true } }),
-      this.prisma.serviceUserMedication.count({ where: { ...activeMed, endDate: { gte: now, lte: in14 } } }),
+      this.prisma.serviceUserMedication.count({ where: { ...activeMed, endDate: { gte: now, lte: dueSoonEnd } } }),
       this.prisma.serviceUserMedication.count({ where: { ...activeMed, expiryDate: { lt: now } } }),
       this.prisma.medicationSupportProfile.findMany({
         where: { deletedAt: null, isActive: true, serviceUser: su },
@@ -278,7 +283,7 @@ export class MedicationOverviewService {
         _count: { _all: true },
       }),
       this.prisma.medicationPack.count({
-        where: { deletedAt: null, isActive: true, serviceUser: su, status: MedicationPackStatus.ACTIVE, reviewDate: { lte: in14 } },
+        where: { deletedAt: null, isActive: true, serviceUser: su, status: MedicationPackStatus.ACTIVE, reviewDate: { lte: dueSoonEnd } },
       }),
       this.prisma.medicationPack.count({
         where: { deletedAt: null, isActive: true, serviceUser: su, status: MedicationPackStatus.ACTIVE, prescriptionChecked: false },
@@ -420,7 +425,7 @@ export class MedicationOverviewService {
     for (const next of latest.values()) {
       if (!next) continue;
       if (next < todayBounds.start) result.reviews.overdue += 1;
-      else if (next <= in30) result.reviews.dueSoon += 1;
+      else if (next <= reviewDueSoonEnd) result.reviews.dueSoon += 1;
     }
     result.reviews.neverReviewed = [...onMedIds].filter((id) => !latest.has(id)).length;
 
@@ -443,10 +448,17 @@ export class MedicationOverviewService {
     return { data: result };
   }
 
-  private blank(from: string, to: string, days: number) {
+  private blank(
+    from: string,
+    to: string,
+    days: number,
+    windows: { dueSoonDays: number; reviewDueSoonDays: number },
+  ) {
     const statuses = (): Record<RecordedStatus, number> => ({ GIVEN: 0, MISSED: 0, REFUSED: 0, NOT_GIVEN: 0, HELD: 0 });
     return {
       period: { from, to, days },
+      /** Look-ahead windows from Settings → Reviews & reminders, so labels match the counts. */
+      windows,
       today: { recorded: 0, exceptions: 0, byStatus: statuses() },
       doses: {
         recorded: 0,

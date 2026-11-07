@@ -2,7 +2,6 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import type { Prisma, ServiceUserDocumentAccessLevel } from '@prisma/client';
 import { DataAccessType } from '@prisma/client';
 import { createReadStream, existsSync } from 'fs';
-import { join } from 'path';
 import type { Response } from 'express';
 import { PrismaService } from '../prisma/prisma.service';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -16,6 +15,7 @@ import {
   buildDocumentStoreCompliance,
   carePlanApprovalBlockedByDocuments,
 } from './document-store-compliance.util';
+import { safeUploadPath } from '../common/utils/upload-path.util';
 
 const DOC_SEGMENTS = ['service-users', 'documents', 'store'] as const;
 
@@ -447,9 +447,11 @@ export class ServiceUserDocumentStoreService {
     if (!allowed.has(mimetype)) throw new BadRequestException('Only JPEG, PNG, WebP, and PDF files are allowed');
   }
 
+  /** The stored file inside the uploads folder; a stored URL that would escape it is refused. */
   private resolveAbsFromFileUrl(fileUrl: string): string {
-    const rel = fileUrl.startsWith('/uploads/') ? fileUrl.replace('/uploads/', '') : fileUrl;
-    return join(process.cwd(), process.env.UPLOAD_BASE_PATH ?? 'uploads', rel);
+    const abs = safeUploadPath(fileUrl);
+    if (!abs) throw new NotFoundException('File not found');
+    return abs;
   }
 
   async downloadRecord(

@@ -4,6 +4,9 @@ import { promoteIaAssessmentsOnSubmit } from './ia-assessment-promotion.util';
 describe('ia-assessment-promotion.util', () => {
   it('skips promotion when promotionKey already exists', async () => {
     const tx = {
+      organisationGeneralSettings: {
+        findFirst: jest.fn().mockResolvedValue(null),
+      },
       serviceUserAssessment: {
         upsert: jest.fn().mockResolvedValue({ id: 'assessment-1' }),
       },

@@ -190,6 +190,96 @@ export class DomLateVisitZoneAlertDto {
   notificationEmployeeIds!: string[];
 }
 
+/** Settings → Supervision. Every key optional; missing keys keep their defaults. */
+export class SupervisionSettingsDto {
+  @ApiPropertyOptional({ default: true, description: 'A session completes only once every carer has signed or commented.' })
+  @IsOptional()
+  @IsBoolean()
+  requireCarerSignature?: boolean;
+
+  @ApiPropertyOptional({ default: true, description: 'Carers can record that they disagree, with a comment.' })
+  @IsOptional()
+  @IsBoolean()
+  allowCarerDisagree?: boolean;
+
+  @ApiPropertyOptional({ default: true, description: 'Confidential notes section (needs supervision.read_confidential).' })
+  @IsOptional()
+  @IsBoolean()
+  confidentialNotesEnabled?: boolean;
+
+  @ApiPropertyOptional({ default: true, description: 'Required questions on the session form must be answered before the supervisor signs.' })
+  @IsOptional()
+  @IsBoolean()
+  requireFormAnswers?: boolean;
+
+  @ApiPropertyOptional({ default: true, description: 'Daily supervision-due reminders.' })
+  @IsOptional()
+  @IsBoolean()
+  remindersEnabled?: boolean;
+
+  @ApiPropertyOptional({ default: 8, minimum: 0, maximum: 23, description: 'Hour reminders go out (organisation timezone).' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(23)
+  reminderHour?: number;
+
+  @ApiPropertyOptional({ default: 14, minimum: 1, maximum: 90, description: 'Days before the due date a review shows as Due soon.' })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(90)
+  dueSoonDays?: number;
+
+  @ApiPropertyOptional({ type: [Number], default: [14, 7, 1, 0], description: 'Remind this many days before the due date (0 = on the day).' })
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(0, { each: true })
+  @Max(365, { each: true })
+  reminderDaysBefore?: number[];
+
+  @ApiPropertyOptional({ type: [Number], default: [1, 7, 14], description: 'Remind again this many days after the due date.' })
+  @IsOptional()
+  @IsArray()
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  @Max(365, { each: true })
+  reminderDaysAfter?: number[];
+
+  @ApiPropertyOptional({ default: 7, minimum: 0, maximum: 365, description: 'Overdue by this many days → branch managers are told (0 = never).' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(365)
+  escalateAfterDays?: number;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  notifySupervisor?: boolean;
+
+  @ApiPropertyOptional({ default: true, description: 'Push a reminder to the carer\'s phone.' })
+  @IsOptional()
+  @IsBoolean()
+  notifyCarer?: boolean;
+
+  @ApiPropertyOptional({ default: false, description: 'Branch managers get every reminder, not only escalations.' })
+  @IsOptional()
+  @IsBoolean()
+  managersOnAllReminders?: boolean;
+
+  @ApiPropertyOptional({ default: true })
+  @IsOptional()
+  @IsBoolean()
+  emailReminders?: boolean;
+
+  @ApiPropertyOptional({ default: false, description: 'Completing a session books the next one on its due date.' })
+  @IsOptional()
+  @IsBoolean()
+  autoScheduleNext?: boolean;
+}
+
 export class ServiceUserWeeklyHoursSettingsDto {
   @ApiProperty({ description: 'Changing a service user\'s weekly hours waits for a manager.' })
   @IsBoolean()

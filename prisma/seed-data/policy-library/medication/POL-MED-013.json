@@ -1,0 +1,549 @@
+{
+  "reference": "POL-MED-013",
+  "revision": 1,
+  "title": "Medicines Changes, Transfers of Care and Hospital Discharge Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we act on new, changed and stopped medicines, including written and verbal instructions from prescribers, what medicines information we share when a person goes into hospital or moves to another provider, and the discharge medicines check before any dose is given after a hospital or other stay. It is for care workers, Senior Care Workers, Care Coordinators, Field Care Supervisors, Office staff, On-call Managers and managers.",
+  "keyPoints": {
+    "intro": "Most medicines errors happen when something changes. These are the rules you follow when a medicine changes, when a person goes into hospital and when they come home.",
+    "points": [
+      "After a hospital or other stay, give no medicine until CareFlow shows the flash message 'Discharge medicines check completed'. Otherwise, or if a medicine is not on the eMAR, phone the office first, wait with the person and give only what the advice allows.",
+      "Never start, stop or change a medicine because a relative, a nurse or a letter in the home says so. Give only what the eMAR and the label show, and phone the office about the change before you leave.",
+      "If you are told a medicine was changed or stopped because of bleeding, a fall, drowsiness or another sign of harm, phone the office before giving that medicine.",
+      "You cannot accept a verbal instruction from a prescriber. If a GP or nurse prescriber tells you about a change during your visit, phone the office and hand them the phone, or ask them to call the office.",
+      "If a new medicine appears, or a pack's name, strength, appearance or directions differ from the eMAR, do not give it. Record Not Given / Missed with a note and phone the office before you leave.",
+      "Follow the eMAR rather than the label only where the entry shows 'Directions changed by prescriber, label not yet updated'.",
+      "If the person goes into hospital during your visit, give no more medicine after calling 999 unless the call handler or crew asks. Show the crew the eMAR, tell them about allergies, time-sensitive medicines and last doses, and send the pharmacy-labelled packs.",
+      "Before a counted controlled drug leaves the home, count it. Record in the daily visit notes what went, how many and with whom, and phone the office once the person has left.",
+      "Never give from a pack marked 'Do not use', or from a monitored dosage system prepared before the stay unless the discharge medicines check cleared it. Leave stopped medicines where they are until the office asks you to bag them for return.",
+      "Phone the office before you leave if the person came home without their medicines, a discharge letter or enough supply, or seems unwell or drowsy after the stay. Call 999 in an emergency, including confusion that comes on suddenly."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Care Coordinator",
+    "Senior Carer/Nurse",
+    "Manager",
+    "Carer/Domestic"
+  ],
+  "moduleLinks": [
+    "MEDICATION",
+    "CARE_PLAN",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-MED-001",
+    "POL-MED-002",
+    "POL-MED-005",
+    "POL-MED-008",
+    "POL-MED-010",
+    "POL-MED-012",
+    "POL-MED-014",
+    "POL-CD-015"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 Safe care and treatment, including 12(2)(g) the proper and safe management of medicines and 12(2)(i) working with others where responsibility for care is shared or transferred",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2012, section 251B Duty to share information",
+      "url": "https://www.legislation.gov.uk/ukpga/2012/7/section/251B"
+    },
+    {
+      "source": "Department of Health and Social Care, Hospital discharge and community support guidance, statutory guidance for NHS bodies and local authorities in England (last updated 26 January 2024), principles 4, 6 and 11",
+      "url": "https://www.gov.uk/government/publications/hospital-discharge-and-community-support-guidance/hospital-discharge-and-community-support-guidance"
+    },
+    {
+      "source": "Community Pharmacy England, Discharge Medicines Service (essential community pharmacy service since 15 February 2021)",
+      "url": "https://cpe.org.uk/national-pharmacy-services/essential-services/discharge-medicines-service/"
+    },
+    {
+      "source": "PrescQIPP Bulletin 345, Domiciliary care, version 2.0 (March 2024), summarising NICE guideline NG67 on prescribers communicating medicines changes in writing and confirming verbal changes as soon as possible",
+      "url": "https://www.prescqipp.info/media/1funrw2p/345-domiciliary-care-2-0.pdf"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Medicines errors are most likely when a person's medicines change or they move into or out of hospital. {{organisation}} makes sure that every change reaches the eMAR accurately and in time, that nothing changes on an instruction we cannot verify, and that whoever cares for the person elsewhere has the medicines information they need."
+        },
+        {
+          "p": "The law requires the proper and safe management of medicines and, where care is shared with or transferred to others, working with them so that timely care planning protects the person (Regulation 12(2)(g) and (i) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014)."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "To make sure medicines change only on a prescriber's written or verified verbal instruction, a ward or receiving provider gets an accurate medicines summary, no dose is given after a stay until the discharge medicines check is done, and discharge problems are reported and put right."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to all employees, including agency workers placed with us, and to everyone we support with medicines, including Level 0 medicines at discharge. It covers changes from any prescriber (GP, hospital, out-of-hours, dentist, nurse or pharmacist), hospital admissions and discharges, respite, intermediate care and care home stays, and transfers to another provider."
+        },
+        {
+          "p": "Covered elsewhere: the package of care, keys and restarting visits around a hospital stay (Hospital Admission and Discharge Procedure); assessing a new person discharged from hospital (Assessing Medicines Support Needs Procedure); eMAR entries and outcomes (Medicines Administration Records (MAR and eMAR) Procedure); supply and returns (Ordering, Collecting, Storing and Disposing of Medicines Procedure); and errors (Medication Errors, Near Misses and Incidents Procedure)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Medicines change",
+                "A medicine started, stopped, withheld or changed in dose, strength, form, time, frequency, route or course length, or replaced by another brand or product."
+              ],
+              [
+                "Written instruction",
+                "A new dispensing label once the pharmacy or GP practice confirms it reflects a new prescription, a hospital discharge letter, a letter or secure email from the GP practice or a hospital or community team naming the prescriber, or a written dosing record such as an anticoagulant clinic record. A text to a staff member's phone, a relative's note or a message passed on by anyone other than the prescriber never is."
+              ],
+              [
+                "Authorised receiver",
+                "An authorised eMAR user (Care Coordinator, Field Care Supervisor, Deputy Manager, Registered Manager or On-call Manager) or a Senior Care Worker authorised by the Registered Manager to receive verbal instructions."
+              ],
+              [
+                "Discharge information",
+                "The hospital's written list of medicines on discharge with changes and reasons (usually the discharge letter or summary), and the medicines the hospital supplied."
+              ],
+              [
+                "Discharge medicines check",
+                "Our check, in the person's home, of the discharge information against the medicines in the home and the eMAR before the hospital stay, with every difference resolved before that medicine is given. It is not clinical medicines reconciliation, which is for the GP practice, hospital and pharmacy."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Levels of support, pharmacy, named contact and short-notice start have the meanings in the Medicines Management Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "Provide secure email and enough authorised receivers on the office and on-call rotas, and challenge the discharge figures in the quarterly medicines governance report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "As medicines lead, authorises Senior Care Workers to receive verbal instructions, makes sure an authorised eMAR user is available every day, including weekends and bank holidays, for discharge medicines checks, declines in writing any medicines task on discharge that we cannot safely provide, and follows up unconfirmed verbal instructions and discharge problems."
+            }
+          ]
+        },
+        {
+          "heading": "Deputy Manager",
+          "blocks": [
+            {
+              "p": "Audits every admission, discharge and verbal instruction monthly."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinator and Field Care Supervisor",
+          "blocks": [
+            {
+              "p": "As authorised receivers and eMAR users, they act on instructions, send admission and transfer summaries, prepare discharges and resolve discrepancies. The Field Care Supervisor usually carries out the discharge medicines check."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Follow the visit steps in this procedure. Authorised Senior Care Workers may also receive verbal instructions and second-check changed entries."
+            }
+          ]
+        },
+        {
+          "heading": "Office staff and On-call Manager",
+          "blocks": [
+            {
+              "p": "Record Hospitalised on the eMAR, phone admission information to the ward, and obtain advice for any dose due before a check is complete. The On-call Manager hands over to the Registered Manager or Deputy Manager by 10am on the next working day, and the Care Coordinator takes over any open action."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Written changes from prescribers",
+      "blocks": [
+        {
+          "p": "A medicines change is made on the eMAR only from a written instruction, or from a verbal instruction under the next section. A hospital clinic letter that asks the GP to make a change is a recommendation, not an instruction: nothing changes until the GP has prescribed it, and the Care Coordinator asks the GP practice the same working day whether they will. A clinic letter that tells the person to stop or change a medicine now is a written instruction, and the GP practice is told of it the same working day."
+        },
+        {
+          "steps": [
+            "The Care Coordinator compares the written instruction with the eMAR and the labels the same working day; out of hours, the On-call Manager does so where an affected dose is due before the next working day.",
+            "If it is clear and matches the medicines supplied, an authorised eMAR user changes the entry from the date and time the change takes effect, records the source and its date, and the change is second-checked under the Medicines Administration Records (MAR and eMAR) Procedure before the next affected dose.",
+            "If it is unclear, conflicts with another source or the right medicine is not in the home, the Care Coordinator contacts the prescriber or pharmacist the same working day, and the office obtains advice for any dose due before it is resolved.",
+            "Where the label no longer matches, the Care Coordinator asks the pharmacy the same working day to relabel or resupply, and the entry carries the instruction 'Directions changed by prescriber, label not yet updated'. A monitored dosage system that no longer matches is replaced under the Ordering, Collecting, Storing and Disposing of Medicines Procedure.",
+            "A stopped medicine's entry is ended with the date, time and reason. Care workers leave the stopped medicine where it is until the Care Coordinator asks them, with the person's agreement, to put it in the return bag.",
+            "The Care Coordinator updates the medicines section of the care plan and briefs every care worker on the rota before their next visit, including side effects to watch for.",
+            "The same working day, the Care Coordinator tells the person what has changed, and any family member who gives doses between our visits under the care plan and, where the person agrees or it is in their best interests, the named contact.",
+            "Medicines support is reviewed within 7 days of the change under the Assessing Medicines Support Needs Procedure. Where the change alters the level of support or our tasks, the GP practice and pharmacy are told within 2 working days, as the Medicines Management Policy requires."
+          ]
+        },
+        {
+          "p": "Each change also triggers: the prompt list check (Time-Sensitive Medicines Protocol); guidance before a new when required medicine's first dose (When Required (PRN) Medicines Protocol); a stock count decision for a new controlled drug (Controlled Drugs in the Community Procedure); open offering of a covert medicine until re-authorised (Covert Administration of Medicines Policy); and, for a Level 3 task, the delegating professional's written instructions (Delegated Healthcare Activities and Specialised Medicines Tasks Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Verbal instructions from prescribers",
+      "blocks": [
+        {
+          "p": "Verbal instructions are accepted only to avoid a delay in treatment, only from the prescriber and only by an authorised receiver. Care workers never accept one: they phone the office and hand the prescriber the phone, or ask the prescriber to call the office."
+        },
+        {
+          "p": "Our policy is that a verbal instruction may only withhold, stop, or change the dose, time or frequency of a medicine already supplied to the home. It is never accepted to start a medicine, to increase the dose of a counted controlled drug, to change an anticoagulant dose that depends on a blood test, to change a covert or Level 3 medicine, or where the receiver has any doubt. In those cases the office asks for a written instruction by secure email and obtains advice for any dose due meanwhile."
+        },
+        {
+          "steps": [
+            "During the call, record in the daily visit notes the prescriber's name, role, organisation and phone number, the date and time, and your name.",
+            "Write down the medicine's name, strength and form, the new dose and times, when the change starts, how long it lasts, any medicine stopped or replaced, and the reason.",
+            "Read the whole instruction back, spelling the medicine name, and ask the prescriber to confirm it. Where a second authorised receiver is in the office, take the call on speaker so both hear it; otherwise ask the prescriber also to tell the person or the named contact.",
+            "Ask the prescriber to send written confirmation by secure email by the end of the next working day, and the pharmacy any new prescription, and record that you asked.",
+            "An authorised eMAR user changes the entry with the note 'Verbal instruction from' the prescriber's name, the date and time and 'written confirmation awaited', and it is second-checked before the next affected dose. A Senior Care Worker who took the call passes it at once to the Care Coordinator (On-call Manager out of hours) to do this.",
+            "Steps 4 to 8 of Written changes from prescribers then apply."
+          ]
+        },
+        {
+          "table": {
+            "columns": [
+              "If written confirmation",
+              "Who acts",
+              "What happens"
+            ],
+            "rows": [
+              [
+                "Arrives",
+                "Care Coordinator",
+                "Checks it matches the eMAR entry the same working day, saves it to the person's documents in CareFlow and removes 'written confirmation awaited'. Any difference is resolved with the prescriber the same day."
+              ],
+              [
+                "Has not arrived by the end of the next working day",
+                "Care Coordinator",
+                "Phones the GP practice or hospital that day and records the chase in the daily visit notes. The change stays in force unless the prescriber says otherwise, because reversing it could cause harm."
+              ],
+              [
+                "Has not arrived within 3 working days",
+                "Registered Manager",
+                "Writes to the practice manager or the hospital team and records it in the incident log as a medicines-related problem."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Changes found at a visit",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What the care worker finds",
+              "What the care worker does",
+              "What the office does"
+            ],
+            "rows": [
+              [
+                "A new medicine in the home, or a pack whose name, strength, appearance or directions differ from the eMAR",
+                "Does not give it, records Not Given / Missed for any affected eMAR dose with a note of what was found, and phones the office before leaving.",
+                "Confirms with the pharmacy or GP practice the same working day whether it is a change, a brand substitution or an error, and obtains advice on the missed dose straight away for a time-sensitive or advice-if-declined medicine, otherwise the same day."
+              ],
+              [
+                "The person, a relative or a visiting nurse says a medicine has been changed or stopped",
+                "Offers the medicines as the eMAR and labels show and phones the office before leaving. Where the reason given is bleeding, a fall, drowsiness or another sign of harm, phones before giving that medicine.",
+                "Checks with the prescriber the same working day. Possible pressure on the person to stop a medicine follows the Consent, Mental Capacity and Declined Medicines Policy."
+              ],
+              [
+                "A hospital, clinic or GP letter in the home mentions a change",
+                "Does not act on it. Reads the details to the office by phone before leaving.",
+                "Asks the ward or practice to email a copy the same working day and acts under Written changes from prescribers."
+              ],
+              [
+                "A short course, such as an antibiotic, has been prescribed but is not on the eMAR",
+                "Does not give it. Phones the office before leaving.",
+                "Sets up and second-checks the entry, with its course length and stop date, before the next dose, or obtains advice for each dose until it is in place."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "While waiting for advice before any dose, the care worker stays with the person and carries on with other planned tasks; if none comes within 30 minutes after the planned end of the visit, the office arranges an extra visit, and any worsening means 999."
+        },
+        {
+          "p": "A dose that reaches the person late or not at all because of our process is entered in the incident log under the Medication Errors, Near Misses and Incidents Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Going into hospital",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "During a visit",
+          "blocks": [
+            {
+              "steps": [
+                "Call 999 in an emergency. After calling, give no further medicine unless the call handler or ambulance crew asks you to.",
+                "Show the crew the eMAR and tell them the person's allergies, time-sensitive medicines and when each medicine was last given, including any dose at this visit.",
+                "Put the person's current medicines, in their pharmacy-labelled packs, in a bag for the crew, unless the crew declines them. Count any counted controlled drug first.",
+                "Record in the daily visit notes what went, how many of each counted controlled drug, and with whom. Leave medicines that stay behind in their usual storage, locked where the care plan says, secure the home under the Hospital Admission and Discharge Procedure and phone the office once the person has left."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Office actions",
+          "blocks": [
+            {
+              "p": "However we learn of an admission, Office staff (On-call Manager out of hours) confirm it under the Hospital Admission and Discharge Procedure and then:"
+            },
+            {
+              "steps": [
+                "Record Hospitalised on the eMAR for each dose from the time of admission, noting the hospital and ward.",
+                "Phone the ward the same day with the person's allergies, time-sensitive medicines and their times, any counted controlled drug that went with the person, and when each medicine was last given.",
+                "The Care Coordinator emails the ward by secure email the same working day, or by 12 noon on the next working day after an out-of-hours admission, a medicines summary: the current eMAR chart export, the level of support and any swallowing or thickener needs for each medicine, the pharmacy and who orders, the named contact, and our contact details. Where covert administration is in place, the ward is told so the same day, with the medicines it covers and that the GP practice holds the authorisation.",
+                "The same working day, the Care Coordinator tells the pharmacy that the person is in hospital, asks it to hold deliveries and the preparation of any monitored dosage system, and pauses any order we place."
+              ]
+            },
+            {
+              "p": "We share this for the person's direct care under the Confidentiality and Information Sharing Policy. Where the care is arranged by a local authority or the NHS, section 251B of the Health and Social Care Act 2012 also requires us to share information likely to help the person's care and in their best interests, unless we reasonably consider that the person objects or would be likely to object. Where a person with capacity objects, nothing they object to is shared unless the Registered Manager or Deputy Manager (the On-call Manager out of hours, only where it cannot wait) decides to share it under Sharing without agreement in that policy and records the decision as it requires. In an emergency anyone may tell 999 or the ambulance crew what they need to treat the person."
+            }
+          ]
+        },
+        {
+          "heading": "During the stay",
+          "blocks": [
+            {
+              "p": "Medicines left in the home stay in their usual storage. If the ward asks for them, the Care Coordinator asks the named contact to take them in. Only where nobody else can does a care worker take them, as a task the Care Coordinator agrees and records under the Key Holding, Key Safes and Access to People's Homes Procedure, straight from the home to the ward, counting any counted controlled drug first."
+            },
+            {
+              "p": "Before a planned admission, such as for surgery, the Care Coordinator asks the pre-admission team for written instructions on any medicine to take or miss beforehand, and acts on them as written instructions."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Before discharge",
+      "blocks": [
+        {
+          "p": "When the ward tells us a discharge is planned, the Care Coordinator (On-call Manager out of hours) asks the ward or discharge team for:"
+        },
+        {
+          "bullets": [
+            "the discharge information, by secure email, before the person leaves;",
+            "every medicine started, stopped or changed, with reasons, and any medicine paused temporarily;",
+            "when each time-sensitive medicine was last given and when it is next due, and when any other dose was last given that day;",
+            "what supply is being sent home, and for how many days, and whether a monitored dosage system or new labels will be supplied;",
+            "any new controlled drug, injection, anticoagulant, insulin or other Level 3 task, and who will give it; and",
+            "whether the person has been referred to their community pharmacy for the Discharge Medicines Service."
+          ]
+        },
+        {
+          "p": "The Care Coordinator then books an authorised eMAR user for the discharge medicines check and plans the first visit so that the check is done and any time-sensitive dose is given within its window. Where needs, medicines or capacity have changed, care restarts as a short-notice start under the Assessing Medicines Support Needs Procedure, and the check forms part of its first-visit medicines assessment."
+        },
+        {
+          "p": "Where the plan includes a medicines task we cannot safely provide, such as an injection nobody has delegated, the Registered Manager tells the ward and the care transfer hub or commissioner the same day, before discharge, and confirms it in writing with the reason. Level 3 tasks never start out of hours. Where the supply sent home will run out within 7 days, the Care Coordinator orders the next supply the same working day where we order, or tells the person or family who order it the same working day."
+        }
+      ]
+    },
+    {
+      "heading": "The discharge medicines check",
+      "blocks": [
+        {
+          "p": "After a hospital stay of any length, including an emergency department visit where medicines were changed, no dose is given until an authorised eMAR user has completed this check in the person's home with the medicines present. The same check applies after a stay in respite, intermediate care or a care home where that service managed the medicines. Level 0 medicines are included."
+        },
+        {
+          "steps": [
+            "Gather the discharge information, the eMAR from before the stay, the medicines brought home and those left in the home. A verbal list from the ward is not enough: if there is no written discharge information, ask the ward to email it, and use the GP practice's updated list where it has one.",
+            "With the person, and the named contact where they agree, sort every medicine into unchanged, changed, new, stopped or unexplained. A medicine on the old eMAR that the discharge information neither lists nor says was stopped is unexplained, never assumed stopped. Take particular care with anticoagulants, insulin, epilepsy and Parkinson's medicines, steroids and opioids.",
+            "Resolve every unexplained medicine, every change without a stated reason, and every difference between the discharge information, the labels and the medicines in the home, with the ward pharmacy, discharging team or GP practice the same day, or NHS 111 out of hours. Until resolved, that medicine is given only on advice obtained for each dose.",
+            "Restart unchanged entries, end stopped ones with the date and reason, and set up new and changed entries from the discharge information and the label. A second authorised eMAR user checks every new or changed entry before its first dose, in person or, as at any short-notice start, by phone with the labels read back.",
+            "Use hospital-dispensed packs as pharmacy-labelled supplies. Keep one pack of each medicine in use and leave any duplicate unopened in the storage place, so that the same medicine under a brand and a generic name is never given twice.",
+            "Do not use a monitored dosage system or pack prepared before the stay unless the pharmacist confirms in writing that it matches the discharge information. Otherwise, with the person's agreement, mark it 'Do not use' and put it in the return bag, and the Care Coordinator asks the pharmacy for a replacement the same working day.",
+            "Count any counted controlled drug and start or correct its running balance; reassess time-sensitive medicines against the Time-Sensitive Medicines Protocol prompt list, update when required guidance, and keep any covert plan suspended until the prescriber, asked by the Care Coordinator the same working day, confirms in writing that the authorisation still applies.",
+            "Record the check in the medicines section of the care plan: sources used, each difference and how it was resolved, who was consulted, who checked and second-checked, and a flash message for the person in CareFlow reading 'Discharge medicines check completed', set to show for 7 days."
+          ]
+        },
+        {
+          "p": "The check is completed within 24 hours of the person arriving home, including at weekends, and before the first dose wherever possible. Where a dose falls due first, the office or On-call Manager obtains advice for that dose from the discharging ward, prescriber or NHS 111 and records it in the daily visit notes."
+        },
+        {
+          "p": "Steps 5 to 8 of Written changes from prescribers then apply, with the review held at home within 7 days of discharge and including the self-administration risk assessment for Level 0 medicines. The Care Coordinator also tells the GP practice and pharmacy the same working day of any difference found."
+        }
+      ]
+    },
+    {
+      "heading": "The first visit after discharge",
+      "blocks": [
+        {
+          "steps": [
+            "Before any dose, check CareFlow shows the flash message 'Discharge medicines check completed' and that every medicine you are to give is on the eMAR with a matching label. If not, or doses still show Hospitalised, phone the office and wait as in Changes found at a visit; give only what the advice allows.",
+            "Watch for drowsiness, falls, new pain, swelling, breathlessness or not eating since discharge, and phone the office before leaving about any of them. Call 999 in an emergency, including confusion that comes on suddenly.",
+            "Phone the office before leaving if the person has no discharge letter, too little medicine, no equipment needed for a medicine, or does not understand what has changed."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Problems with a discharge",
+      "blocks": [
+        {
+          "p": "The statutory Hospital discharge and community support guidance expects hospitals to share medicines information, including changes since admission, with onward care providers. A discharge medicines problem includes discharge without notice to us, no written discharge information, medicines missing, wrong or unexplained, less than 7 days' supply where none was arranged, or a task we had not agreed."
+        },
+        {
+          "bullets": [
+            "The Care Coordinator (On-call Manager out of hours) raises it with the ward or discharge team at once where it affects a dose due, and otherwise the same working day.",
+            "The Care Coordinator records it in the incident log the same working day under the Medication Errors, Near Misses and Incidents Procedure and writes to the hospital's discharge team, or the care transfer hub where the hospital directs, within 2 working days.",
+            "Where the person was harmed or put at serious risk, the Registered Manager (On-call Manager out of hours) assesses it as a possible safeguarding concern within 1 hour under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, and the Registered Manager tells the commissioner by the end of the next working day, or the same working day where a safeguarding concern is raised."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Other transfers of care",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What we do"
+            ],
+            "rows": [
+              [
+                "Respite, intermediate care or a care home stay",
+                "Before the person leaves, the Care Coordinator sends the receiving service the admission medicines summary by secure email; Office staff record Absent on the eMAR with who is responsible; medicines go only in pharmacy-labelled packs; the discharge medicines check applies on return."
+              ],
+              [
+                "Another agency or the family takes over medicines support, or the person moves away",
+                "The Care Coordinator sends the medicines summary, run-out dates, the last order and any counted controlled drug balances to the new provider before the handover, or the same working day where it is unplanned. Each eMAR entry is ended from the handover time and the GP practice and pharmacy are told within 2 working days."
+              ],
+              [
+                "Care shared with community nurses or another agency, or medicines supplied directly by a hospital or homecare company",
+                "The care plan records who gives and who supplies each medicine, and the prescribing team; changes reach us in writing from that team."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Written instructions, confirmations, discharge information and summaries are saved to the person's documents in CareFlow and named as the source in the eMAR entry. Discharge letters and other papers belonging to the person stay in their home once copied into their documents in CareFlow; paper sent to the branch office is scanned and shredded. Records are kept for the periods in the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Read and acknowledge this procedure in CareFlow",
+                "Care staff, Office staff and managers",
+                "During induction, and within 14 days of each new major version"
+              ],
+              [
+                "Changes found at visits, admission handover and the first visit after discharge, within full medicines training",
+                "Everyone who gives medicines support",
+                "Before giving medicines support, then every 12 months"
+              ],
+              [
+                "Receiving verbal instructions and the discharge medicines check, within eMAR set-up and change competency",
+                "Authorised eMAR users",
+                "Before first doing either, then every 12 months"
+              ],
+              [
+                "Receiving verbal instructions",
+                "Senior Care Workers authorised to receive them",
+                "Before authorisation, then every 12 months"
+              ],
+              [
+                "Admission information to wards and advice on doses after discharge",
+                "Office staff and On-call Managers, within eMAR monitoring training",
+                "Before monitoring alone or the first on-call shift, then every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The first two discharge medicines checks by each authorised eMAR user are reviewed by the Registered Manager or Deputy Manager by the end of the next working day. Training is delivered under the Medicines Training and Competency Assessment Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every admission (summary sent on time) and every discharge (check before the first dose or advice recorded, completed within 24 hours, review within 7 days)",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager and the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Every verbal instruction: read back, second check before the next dose, written confirmation chased and received",
+                "Monthly",
+                "Deputy Manager",
+                "Registered Manager and the Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Discharge problems by hospital, and changes that led to medicines incidents",
+                "Quarterly",
+                "Registered Manager",
+                "Directors and Nominated Individual; hospitals and commissioners"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of discharges with no dose given before the check or recorded advice, 100% of changes second-checked before the next affected dose, 100% of admission summaries sent on time and 100% of verbal instructions confirmed in writing or escalated within 3 working days. Every shortfall produces an action with a named owner and a deadline, recorded with the audit."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious medicines incident, an inspection finding, or when monitoring shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,735 @@
+{
+  "reference": "SUR-PWS-002",
+  "revision": 1,
+  "title": "Six-week review: settling in and your care plan",
+  "audience": "SERVICE_USER",
+  "audienceGroup": "REVIEW_DUE",
+  "respondents": "People about 6 weeks into our care, before their first care plan review; a representative may answer for someone who cannot give their views, even with help",
+  "summary": "Sent with the notice of the 6-week care plan review so the review starts from the person's own view: whether the plan reflects what matters, goals, consent, visit times, care workers, information, raising concerns and, where we help, medicines. Named, about 12 minutes.",
+  "purpose": "The person's own preparation for, and record of, the 6-week care plan review under the Care Plan Review Procedure. The reviewer reads the answers before the visit, so the review starts from the person's priorities: whether the care plan reflects what matters to them and how they like help given, how their goals are going, whether care workers ask before helping and keep to a preference about who gives personal care, whether visit times and care workers suit them, whether they can get help from the office and use our information, and whether they would feel able to complain. Where we help with medicines, it also asks the medicines questions of the medicines survey (SUR-PWS-005), so the 6-week medicines support review is covered in the same contact. It evidences NICE's initial review of the home care plan within 6 weeks, Regulation 9(3) (involving people in their care), Regulation 11 (consent), Regulation 12(2)(g) (safe management of medicines), Regulation 16(2) (an accessible complaints system) and Regulation 17(2)(e) (seeking and acting on feedback).",
+  "timing": {
+    "when": "About 6 weeks after care starts: sent with the review notice at least 5 working days before the 6-week review, and asked back 2 working days before it",
+    "recurrence": null,
+    "trigger": "The 6-week care plan review being booked"
+  },
+  "anonymous": false,
+  "channels": ["PORTAL", "PAPER", "TELEPHONE", "IN_PERSON"],
+  "estimatedMinutes": 11,
+  "cqc": {
+    "keyQuestions": ["SAFE", "EFFECTIVE", "CARING", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": [
+      "Safe and effective staffing",
+      "Medicines optimisation",
+      "Assessing needs",
+      "Monitoring and improving outcomes",
+      "Consent to care and treatment",
+      "Independence, choice and control",
+      "Person-centred care",
+      "Care provision, integration and continuity",
+      "Providing information",
+      "Listening to and involving people"
+    ]
+  },
+  "introduction": "Your first care plan review with {{organisation}} is coming up. These questions help you get ready for it, so the review starts with what matters to you. It takes about 11 minutes, less if we do not help you with your medicines.\n\nTaking part is up to you, and what you say will not affect your care. Someone can help you answer. Your answers will be shared with the person doing your review, but not with your care workers (carers).\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to prepare your care plan review and to improve our care. The law expects us to ask for feedback; our legal reason for using your answers is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name. The person doing your review reads them. They are seen only by our Registered Manager, Deputy Manager, safeguarding lead and Care Coordinators, never by your care workers (carers), and reports show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after your review, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them. To do this, or to complain about how we use your information, contact the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care since it started. Choose \"Don't know\" if you are not sure.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your care plan",
+      "questions": [
+        {
+          "id": "q-asked-matters",
+          "text": "When we planned your care, did we ask what matters to you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Don't know\" if you cannot remember.",
+          "options": ["Yes", "Partly", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Effective: Assessing needs",
+          "comment": {
+            "prompt": "Please tell us what we missed.",
+            "showWhen": ["Partly", "No"]
+          }
+        },
+        {
+          "id": "q-plan",
+          "text": "Does your care plan say how you like your help to be given?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Your care plan is the document in your care folder that says what help you get from us and how you like it given.",
+          "options": ["Yes", "Mostly", "Only partly", "No", "I have not seen my care plan", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Person-centred care",
+          "comment": {
+            "prompt": "What should we change in your care plan?",
+            "showWhen": ["Only partly", "No"]
+          }
+        },
+        {
+          "id": "q-goals",
+          "text": "How are things going with the goals in your care plan?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Goals are the things you told us you want our care to help with, such as washing yourself, staying at home or getting out.",
+          "options": [
+            "All are going well",
+            "Some are going well",
+            "None are going well yet",
+            "I do not know what my goals are",
+            "Don't know"
+          ],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Effective: Monitoring and improving outcomes",
+          "comment": {
+            "prompt": "Which goal is not going well, and why?",
+            "showWhen": ["Some are going well", "None are going well yet"]
+          }
+        },
+        {
+          "id": "q-yourself",
+          "text": "Do your care workers help you to do things for yourself when you want to?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you want your care workers to do these things for you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Independence, choice and control"
+        }
+      ]
+    },
+    {
+      "title": "How your care is given",
+      "questions": [
+        {
+          "id": "q-ask-first",
+          "text": "Do your care workers ask you before they help you?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, asking before they wash you, help you get dressed or help you with your medicines.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Effective: Consent to care and treatment",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-pref-sex",
+          "text": "If you asked for a man or a woman to help with your personal care, do we keep to this?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you did not ask.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Caring: Treating people as individuals",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-known",
+          "text": "Are you visited by care workers you know?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "We mean your regular care workers, or new ones who have been introduced to you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Care provision, integration and continuity"
+        }
+      ]
+    },
+    {
+      "title": "Your visits",
+      "questions": [
+        {
+          "id": "q-ontime",
+          "text": "Do your care workers arrive on time?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "On time means within about half an hour of the time agreed with you.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing",
+          "comment": {
+            "prompt": "Please tell us more, for example which visits are late.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-staytime",
+          "text": "Do your care workers stay for the time agreed for your visit?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, if your visit is booked for 45 minutes, do they stay that long, unless you ask them to go earlier?",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Safe: Safe and effective staffing",
+          "comment": {
+            "prompt": "Please tell us more, for example which visits are cut short.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-visit-times-suit",
+          "text": "Do your visit times suit you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Some of them", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Person-centred care",
+          "comment": {
+            "prompt": "What times would suit you better?",
+            "showWhen": ["Some of them", "No"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your medicines",
+      "introduction": "If you are worried about a medicine today, please phone the office now.",
+      "questions": [
+        {
+          "id": "q-med-help",
+          "text": "Do we help you with your medicines?",
+          "type": "YES_NO",
+          "required": true,
+          "helpText": "For example, reminding you, handing you your medicines, or giving them to you."
+        },
+        {
+          "id": "q-med-times",
+          "text": "Do you get help with your medicines at the right times?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, before food, or at the times your doctor or pharmacist said. Choose \"Don't know\" if you are not sure what times your medicines should be taken.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Safe: Medicines optimisation",
+          "showIf": {
+            "question": "q-med-help",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "Please tell us which medicines or times.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-med-wrong",
+          "text": "Since we started helping you, has anything gone wrong when care workers helped with your medicines?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, a medicine was missed, given at the wrong time, or the wrong one was given.",
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Safe: Medicines optimisation",
+          "showIf": {
+            "question": "q-med-help",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "Please tell us what happened and when.",
+            "showWhen": ["Yes", "Not sure"]
+          }
+        },
+        {
+          "id": "q-med-run-out",
+          "text": "Since we started helping you, have you run out of any of your medicines?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, a medicine was not delivered or collected in time.",
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Safe: Medicines optimisation",
+          "comment": {
+            "prompt": "Which medicine, and what happened?",
+            "showWhen": ["Yes"]
+          },
+          "showIf": {
+            "question": "q-med-help",
+            "answers": ["Yes"]
+          }
+        },
+        {
+          "id": "q-med-change",
+          "text": "When your medicines last changed, did your care workers know about the change?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, after you saw your doctor or came home from hospital. Choose \"My medicines have not changed\" if nothing has changed since we started helping you.",
+          "options": ["Yes, straight away", "Yes, but it took too long", "No", "My medicines have not changed", "Don't know"],
+          "notCountedOptions": ["My medicines have not changed", "Don't know"],
+          "evidence": "Safe: Medicines optimisation",
+          "showIf": {
+            "question": "q-med-help",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Yes, but it took too long", "No"]
+          }
+        },
+        {
+          "id": "q-med-refuse",
+          "text": "If you decide not to take a medicine, do your care workers respect that?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if this has not happened.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Effective: Consent to care and treatment",
+          "showIf": {
+            "question": "q-med-help",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Sometimes", "Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-med-amount",
+          "text": "Is the amount of help you get with your medicines right for you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes, it is about right", "I would like to do more myself", "I would like more help", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Caring: Independence, choice and control",
+          "showIf": {
+            "question": "q-med-help",
+            "answers": ["Yes"]
+          },
+          "comment": {
+            "prompt": "Please tell us more.",
+            "showWhen": ["I would like to do more myself", "I would like more help"]
+          }
+        },
+        {
+          "id": "q-med-who",
+          "text": "Do you know who to contact if you are worried about your medicines?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This could be our office, your pharmacist or your doctor.",
+          "options": ["Yes", "No", "Not sure"],
+          "evidence": "Responsive: Providing information",
+          "showIf": {
+            "question": "q-med-help",
+            "answers": ["Yes"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Getting in touch with us",
+      "questions": [
+        {
+          "id": "q-office-help",
+          "text": "When you contact our office, do you get the help you need?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes phoning us in the evening or at the weekend. Choose \"Does not apply to me\" if you have not contacted us.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-information",
+          "text": "Is the information we give you easy for you to use?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "For example, your care plan, your visit times and letters. We can give you information in large print, easy read, audio or another language.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never"],
+          "evidence": "Responsive: Providing information",
+          "comment": {
+            "prompt": "What would make our information easier for you?",
+            "showWhen": ["Rarely", "Never"]
+          }
+        },
+        {
+          "id": "q-tell-us",
+          "text": "If you were unhappy with your care, would you feel able to tell us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "This includes making a complaint. Choose \"Don't know\" if you are not sure.",
+          "options": ["Yes, and I know how", "Yes, but I am not sure how", "No", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "evidence": "Responsive: Listening to and involving people",
+          "comment": {
+            "prompt": "What would make it easier to tell us?",
+            "showWhen": ["No"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What is working well with your care?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "You can name care workers you would like us to thank."
+        },
+        {
+          "text": "What would you like to change, or talk about, at your review?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "The person doing your review will go through each point with you.",
+          "evidence": "Responsive: Person-centred care"
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days, or talk with you at your review if that is sooner."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Care Coordinator sends this survey with the review notice at least 5 working days before the 6-week review and asks for it back 2 working days before: use Send or schedule, Chosen people, choosing the person in a running copy of this template. A person with a portal account answers there; for anyone else, give a copy in the format recorded in their care plan (paper, or read by phone) and enter their answers with Record response when they come back. The reviewer, usually the assessor who wrote the care plan, reads the answers and every comment before the visit, under the Care Plan Review Procedure. By default only managers and admins can record survey answers (\"Record survey responses\") and only managers can send or open a survey: give these to the staff who make these calls; Care Coordinators can only view surveys unless given them.",
+      "If it is not returned, the reviewer asks the questions at the start of the review, reading each question, its help text and every answer choice exactly as written, and records the channel as In person. For a short-notice start, send it only for the 6-week review, not for the 7-day full care plan visit.",
+      "The medicines questions are asked only where we help the person with their medicines. They replace a separate medicines survey for new packages: do not send the medicines survey (SUR-PWS-005) at the start of care, because the 6-week medicines support review happens at this review. If the person cannot name their medicines, accept descriptions such as \"the water tablet\"; never ask them to read packs.",
+      "This survey deliberately does not ask whether the person feels safe or how they are treated. With the person's agreement, the reviewer spends time alone with them at the review to ask both, so the answers are given in private.",
+      "Office staff help anyone who asks, by phone. Care workers never help the people they care for to answer. A family member may help the person answer; record who answered in CareFlow's \"Who is answering\" field. A representative's own views go in the family survey (SUR-FAM-001). Where an interpreter is needed, use a professional interpreter, never a family member. The easy read version uses the same wording with pictures for Yes, Partly and No and three answers for the frequency questions (Always or usually; Sometimes; Rarely or never) plus Don't know.",
+      "Send nothing else to the person in the 4 weeks before and after this survey, including the monthly visit check-in (check the person's survey history in CareFlow first). The first quality check comes at least 4 weeks after the review and never later than 3 months after care started.",
+      "Use the same words as the quality check and the annual survey for the shared questions (overall experience, familiar care workers, on time, visit length, office help, information and telling us if unhappy), so results compare.",
+      "Who may open individual answers: the reviewer, the Care Coordinator and office staff who enter or follow up answers, and the managers. This is set in Who can see the answers: individual responses are limited to Care Coordinators, the Registered Manager, the Deputy Manager and the safeguarding lead, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the reviewer's role and the office staff who enter or follow up answers."
+    ],
+    "actingOnResults": [
+      "The reviewer covers every answer that needs action at the review, and every point the person lists under what they want to change or talk about, and records what was agreed in the care plan. Where goals are not being met or a change in hours is needed, the commissioner is told in writing within 2 working days of the review, under the Care Plan Review Procedure.",
+      "How to count: the satisfaction figure is the share answering Very good or Good to the overall question, leaving out Don't know. For scale questions report the share answering Always or Usually, leaving out Does not apply to me and Don't know. The medicines questions are asked only of people we help with medicines: report them with that base and say so. Always show how many people answered each question.",
+      "The Deputy Manager's monthly feedback summary to the Monthly Quality and Governance Meeting includes the 6-week review results and comment themes. Never report a group of fewer than 5 people separately.",
+      "Keep individual answers for 3 years after the review under the Records Management and Retention Policy. For CQC, the answers, the review records and the changes made evidence person-centred care planning and the initial review within 6 weeks (Regulation 9(3)), consent (Regulation 11), safe medicines support (Regulation 12(2)(g)) and seeking and acting on feedback (Regulation 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "Any comment suggesting abuse, neglect or that someone is at risk.",
+        "action": "Treat as a possible safeguarding concern. Call 999 first if anyone is in immediate danger. Pass it to the safeguarding lead the same working day; the lead assesses the risk within 1 hour and refers to the local authority where needed, immediately if the risk is immediate and otherwise the same working day, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. A concern about a member of staff also follows the Managing Allegations Against Staff Procedure."
+      },
+      {
+        "when": "\"Since we started helping you, has anything gone wrong when care workers helped with your medicines?\" answered Yes or Not sure, or any comment describing a missed, wrong, late or extra dose.",
+        "action": "The Deputy Manager checks the eMAR and enters it in the incident log the same working day under the Medication Errors, Near Misses and Incidents Procedure. The Registered Manager or Deputy Manager decides within 1 hour what keeps the person safe until the next visit; where the medicine is time-sensitive, harm is possible or a dose is due today, phone the person at once and get advice from their GP or pharmacist. The safeguarding lead decides within 1 hour whether an incident that caused harm, or a pattern, may be neglect.",
+        "rule": {
+          "task": "Possible medicines error: check the eMAR and log it",
+          "if": [
+            {
+              "question": "q-med-wrong",
+              "answers": ["Yes", "Not sure"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "INCIDENT"
+        }
+      },
+      {
+        "when": "\"Since we started helping you, have you run out of any of your medicines?\" answered Yes.",
+        "action": "The Care Coordinator checks the same working day that the person has the medicine now and, where we order or collect it, why it ran out, under the Ordering, Collecting, Storing and Disposing of Medicines Procedure. A dose missed because a medicine ran out is a medicines incident and is logged the same working day.",
+        "rule": {
+          "task": "Ran out of medicines: check they have them now",
+          "if": [
+            {
+              "question": "q-med-run-out",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0,
+          "record": "INCIDENT"
+        }
+      },
+      {
+        "when": "\"Do you get help with your medicines at the right times?\" answered Rarely or Never.",
+        "action": "The Care Coordinator checks the eMAR timings the same working day for time-sensitive medicines, under the Time-Sensitive Medicines Protocol, and otherwise within 5 working days, and agrees visit times that fit the medicines with the person.",
+        "rule": {
+          "task": "Medicines help not at the right times: check eMAR timings",
+          "if": [
+            {
+              "question": "q-med-times",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "\"When your medicines last changed, did your care workers know about the change?\" answered No or \"Yes, but it took too long\".",
+        "action": "The same working day, the Care Coordinator checks the eMAR against the current prescription with the pharmacy or GP practice. Any difference is a medicines incident and is logged the same working day under the Medication Errors, Near Misses and Incidents Procedure; the change itself is handled under the Medicines Changes, Transfers of Care and Hospital Discharge Procedure.",
+        "rule": {
+          "task": "Medicines change not known: check eMAR against prescription",
+          "if": [
+            {
+              "question": "q-med-change",
+              "answers": ["No", "Yes, but it took too long"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0,
+          "record": "INCIDENT"
+        }
+      },
+      {
+        "when": "\"If you decide not to take a medicine, do your care workers respect that?\" answered Sometimes, Rarely or Never, or a comment suggesting medicines were given against the person's wishes or hidden in food or drink.",
+        "action": "Check against any approved plan under the Covert Administration of Medicines Policy. A medicine given against a refusal, or covertly without an approved plan, goes to the safeguarding lead the same working day, and the Registered Manager decides the same day whether the care worker continues medicines visits. Declined doses are reviewed under the Consent, Mental Capacity and Declined Medicines Policy.",
+        "rule": {
+          "task": "Medicine refusals not respected: check for safeguarding",
+          "if": [
+            {
+              "question": "q-med-refuse",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"Do your care workers ask you before they help you?\" answered Rarely or Never, or a comment describing care given without the person's agreement.",
+        "action": "Care given against the person's refusal is a possible safeguarding concern and goes to the safeguarding lead the same working day. Otherwise a Field Care Supervisor observes consent practice at the next spot check; a care worker who does not wait for agreement gets feedback the same day, retraining, and is observed again within 4 weeks, under the Consent to Care Policy.",
+        "rule": {
+          "task": "Not asked before help is given: check consent",
+          "if": [
+            {
+              "question": "q-ask-first",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"If you asked for a man or a woman to help with your personal care, do we keep to this?\" answered Sometimes, Rarely or Never.",
+        "action": "The Care Coordinator contacts the person the same working day to find out what happened and fixes the rota from the next visit; the preference is met on every visit. Intimate care given against the recorded preference without the person's agreement on that occasion goes to the safeguarding lead the same working day. Dissatisfaction is also recorded as a complaint.",
+        "rule": {
+          "task": "Preference for a man or woman not kept",
+          "if": [
+            {
+              "question": "q-pref-sex",
+              "answers": ["Sometimes", "Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0
+        }
+      },
+      {
+        "when": "\"How are things going with the goals in your care plan?\" answered \"None are going well yet\" or \"I do not know what my goals are\", or \"Does your care plan say how you like your help to be given?\" answered No or \"I have not seen my care plan\".",
+        "action": "The reviewer goes through each goal and the care plan with the person at the review. For \"I have not seen my care plan\", the Care Coordinator checks within 5 working days that the home copy is there in the person's recorded format.",
+        "rule": {
+          "task": "Go through goals and care plan at the review",
+          "if": [
+            {
+              "question": "q-goals",
+              "answers": ["None are going well yet", "I do not know what my goals are"]
+            },
+            {
+              "question": "q-plan",
+              "answers": ["No", "I have not seen my care plan"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Is the amount of help you get with your medicines right for you?\" answered \"I would like more help\" or \"I would like to do more myself\".",
+        "action": "The reviewer reviews the medicines support with the person at the review, including the self-administration risk assessment, and records the agreed level in the care plan under the Assessing Medicines Support Needs Procedure.",
+        "rule": {
+          "task": "Review medicines support at the review",
+          "if": [
+            {
+              "question": "q-med-amount",
+              "answers": ["I would like more help", "I would like to do more myself"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Do your visit times suit you?\" answered \"Some of them\" or No.",
+        "action": "The reviewer agrees the times the person wants at the review. A request for a permanent change is acknowledged by the end of the next working day and decided and confirmed within 5 working days, under the Person-Centred Care, Dignity and Respect Policy.",
+        "rule": {
+          "task": "Visit times do not suit: agree new times",
+          "if": [
+            {
+              "question": "q-visit-times-suit",
+              "answers": ["Some of them", "No"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 1
+        }
+      },
+      {
+        "when": "\"Do your care workers arrive on time?\" or \"Do your care workers stay for the time agreed for your visit?\" answered Rarely or Never, or a comment describing a missed visit.",
+        "action": "The reviewer checks the check-in and check-out records before the review. A missed visit not already recorded goes in the incident log the same working day, graded at least Medium, under the Missed, Late and Short Visits Procedure.",
+        "rule": {
+          "task": "Check visit records for late or short visits",
+          "if": [
+            {
+              "question": "q-ontime",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-staytime",
+              "answers": ["Rarely", "Never"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "record": "INCIDENT"
+        }
+      },
+      {
+        "when": "\"Is the information we give you easy for you to use?\" answered Rarely or Never, or \"Do you know who to contact if you are worried about your medicines?\" answered No or Not sure.",
+        "action": "The reviewer agrees the format and contact details the person needs at the review; the request is recorded the same working day and the information is in place within 5 working days, under the Communication and Accessible Information Policy.",
+        "rule": {
+          "task": "Agree information format and contact details",
+          "if": [
+            {
+              "question": "q-information",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-med-who",
+              "answers": ["No", "Not sure"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"If you were unhappy with your care, would you feel able to tell us?\" answered \"Yes, but I am not sure how\", No or Don't know.",
+        "action": "The reviewer explains how to raise a concern or complain at the review and leaves the How to raise a concern or make a complaint leaflet in the person's recorded format, under the Complaints Policy and Procedure.",
+        "rule": {
+          "task": "Explain how to raise a concern at the review",
+          "if": [
+            {
+              "question": "q-tell-us",
+              "answers": ["Yes, but I am not sure how", "No", "Don't know"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "Overall experience answered Poor or Very poor, or any other question answered Rarely or Never, with no particular concern described; or a comment expressing dissatisfaction that needs a response.",
+        "action": "The Care Coordinator contacts the person within 5 working days, or the reviewer covers it at the review if that is sooner. Dissatisfaction that needs a response is a complaint: record it the same working day, grade it within 1 working day and acknowledge it within 3 working days under the Complaints Policy and Procedure. If unsure, treat it as a complaint.",
+        "rule": {
+          "task": "Poor experience: agree what we will do",
+          "if": [
+            {
+              "question": "q-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Care Coordinator contacts the person within 5 working days, or the reviewer covers it at the review if that is sooner, and records what was agreed. Nobody in the person's core care team makes this contact.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      },
+      {
+        "when": "An answer to \"What is working well with your care?\" praising our service or a named member of staff.",
+        "action": "Record it as a compliment in CareFlow the same working day; the Field Care Supervisor or line manager passes it to each employee named within 5 working days, under the Compliments, Feedback and Involvement Procedure."
+      }
+    ]
+  },
+  "access": {
+    "responses": ["CARE_COORDINATOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER", "SAFEGUARDING_LEAD"],
+    "results": ["CARE_COORDINATOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-CD-002",
+    "POL-CD-003",
+    "POL-CD-004",
+    "POL-GOV-006",
+    "POL-CD-001",
+    "POL-CD-006",
+    "POL-CD-013",
+    "POL-GOV-005",
+    "POL-GOV-017",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-MED-002",
+    "POL-MED-003",
+    "POL-MED-004",
+    "POL-MED-013",
+    "POL-MED-014",
+    "POL-MED-009",
+    "POL-MED-008",
+    "POL-MED-012"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9(3): designing care with the person and enabling them to take part in decisions about it",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 11: care only with the consent of the relevant person",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/11"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(g): the proper and safe management of medicines",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "NICE NG21 Home care, recommendations 1.3.20 (ask people which parts of their service are a priority for them), 1.3.21 (a copy of the care plan in a format that meets their needs) and 1.3.25 (initial review of the home care plan within 6 weeks)",
+      "url": "https://www.nice.org.uk/guidance/ng21"
+    },
+    {
+      "source": "NICE QS171 Medicines management for people receiving social care in the community: medicines support recorded in the care plan and people given information on how to raise medicines-related problems",
+      "url": "https://www.nice.org.uk/guidance/qs171"
+    },
+    {
+      "source": "DHSC, Care and support statutory guidance, chapter 13 (review of care and support plans), paragraph 13.12: what is working, what is not working and what might need to change, shared with the person before the review",
+      "url": "https://www.gov.uk/government/publications/care-act-statutory-guidance/care-and-support-statutory-guidance"
+    }
+  ]
+}

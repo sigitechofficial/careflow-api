@@ -9,6 +9,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
+import { isSecretFieldName } from '../common/security/secret-fields';
 import { getRequestAuditMeta, type RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { AuditLogQueryDto } from './dto/audit-log-query.dto';
 import { LoginHistoryQueryDto } from './dto/login-history-query.dto';
@@ -27,6 +28,44 @@ import { AuditModule } from './enums/audit-module.enum';
 import { AuditAction } from './enums/audit-action.enum';
 import { SecurityEventType } from './enums/security-event.enum';
 import { assertFinancialResetEnvironment } from '../billing/financial-controls.util';
+import type { RequestUser } from '../common/decorators/current-user.decorator';
+import { surveysHiddenFromAudit } from '../surveys/survey-access';
+
+/** Who is reading the log, and what they may not see. */
+export type AuditReadOptions = {
+  excludeModules?: string[];
+  /** Survey entries are limited to surveys whose results this reader may see (admins see all). */
+  reader?: RequestUser;
+};
+
+/** The survey an audit entry is about: metadata.surveyId, newValues.surveyId, or a Survey record. */
+export function auditRowSurveyId(row: { recordType: string | null; recordId: string | null; metadata: unknown; newValues: unknown }): string | null {
+  const pick = (v: unknown) =>
+    v && typeof v === 'object' && !Array.isArray(v) && typeof (v as Record<string, unknown>).surveyId === 'string'
+      ? ((v as Record<string, unknown>).surveyId as string)
+      : null;
+  return pick(row.metadata) ?? pick(row.newValues) ?? (row.recordType === 'Survey' ? row.recordId : null);
+}
+
+/**
+ * The filter that leaves out survey entries about `hidden` surveys ('all': every survey entry about
+ * a survey). Survey entries about no particular survey (settings, contact preferences) stay.
+ */
+export function hiddenSurveyAuditWhere(hidden: Set<string> | 'all'): Prisma.AuditLogWhereInput | null {
+  if (hidden === 'all') return { NOT: { module: AuditModule.SURVEY } };
+  if (!hidden.size) return null;
+  const ids = [...hidden];
+  return {
+    NOT: {
+      module: AuditModule.SURVEY,
+      OR: [
+        { recordType: 'Survey', recordId: { in: ids } },
+        ...ids.map((id) => ({ metadata: { path: ['surveyId'], equals: id } })),
+        ...ids.map((id) => ({ newValues: { path: ['surveyId'], equals: id } })),
+      ],
+    },
+  };
+}
 
 type Db = PrismaService | Prisma.TransactionClient;
 
@@ -157,7 +196,7 @@ export class AuditLogsService {
   }
 
   shouldMaskField(fieldName: string): boolean {
-    return SENSITIVE_FIELD_NAMES.has(fieldName.toLowerCase());
+    return SENSITIVE_FIELD_NAMES.has(fieldName.toLowerCase()) || isSecretFieldName(fieldName);
   }
 
   maskSensitiveData(data: unknown): Prisma.InputJsonValue {
@@ -441,12 +480,15 @@ export class AuditLogsService {
    * wide (they name runs, amounts and approvers across branches), so a branch-limited user does
    * not see them (SI-10).
    */
-  async findAuditLogs(query: AuditLogQueryDto, options?: { excludeModules?: string[] }) {
+  async findAuditLogs(query: AuditLogQueryDto, options?: AuditReadOptions) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const skip = (page - 1) * limit;
     const where: Prisma.AuditLogWhereInput = {};
     if (options?.excludeModules?.length) where.NOT = { module: { in: options.excludeModules } };
+    const hiddenSurveys = options?.reader ? await surveysHiddenFromAudit(this.prisma, options.reader) : null;
+    const surveyScope = hiddenSurveys ? hiddenSurveyAuditWhere(hiddenSurveys) : null;
+    if (surveyScope) where.AND = [surveyScope];
     if (query.userId) where.userId = query.userId;
     if (query.module) where.module = query.module;
     if (query.action) where.action = query.action;
@@ -596,10 +638,16 @@ export class AuditLogsService {
     }));
   }
 
-  async findAuditLogById(id: string, options?: { excludeModules?: string[] }) {
+  async findAuditLogById(id: string, options?: AuditReadOptions) {
     const row = await this.prisma.auditLog.findUnique({ where: { id } });
     if (!row || options?.excludeModules?.includes(row.module)) {
       throw new NotFoundException('Audit log not found');
+    }
+    if (row.module === AuditModule.SURVEY && options?.reader) {
+      const hidden = await surveysHiddenFromAudit(this.prisma, options.reader);
+      if (hidden === 'all') throw new NotFoundException('Audit log not found');
+      const surveyId = auditRowSurveyId(row);
+      if (hidden && surveyId && hidden.has(surveyId)) throw new NotFoundException('Audit log not found');
     }
     return { data: row };
   }

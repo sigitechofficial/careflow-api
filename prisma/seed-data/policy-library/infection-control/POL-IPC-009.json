@@ -1,0 +1,610 @@
+{
+  "reference": "POL-IPC-009",
+  "revision": 1,
+  "title": "Staff Vaccination and Immunisation Policy",
+  "documentType": "POLICY",
+  "summary": "How we assess which vaccines each role needs, offer free hepatitis B vaccination and check immunity to measles and chickenpox, run the autumn flu campaign, record offers, decisions and results confidentially, and support informed choice without pressure. It also sets out how staff help the people we support to get the vaccines the NHS offers them. For every employee, with the duties of HR, managers and the IPC lead.",
+  "keyPoints": {
+    "intro": "Vaccines protect you, your family and the people you visit, many of whom could become seriously ill from an infection that is mild for you.",
+    "points": [
+      "Vaccination is your choice. It is never a condition of your job, and deciding not to be vaccinated never affects your hours, pay, progression or appraisal.",
+      "If you give personal care or carry a sharps pick-up kit, we offer you free hepatitis B vaccination in your first week. We strongly advise you to accept, complete the course and have the blood test that checks it worked.",
+      "Go to every vaccination or blood test appointment you have accepted, and ask the Care Coordinator at least 2 working days ahead to fit it into your rota. The time is paid at your normal rate, with travel time and mileage.",
+      "We strongly recommend a flu vaccine every autumn, ideally in October or November. Care workers get it free at a GP practice or pharmacy by showing our letter or ID badge. If charged, send the receipt to the HR Manager for a refund.",
+      "Tell the HR Manager if you have not had chickenpox or shingles, or are unsure you had two MMR doses. We arrange a free chickenpox blood test; your GP gives MMR free. Until immunity is recorded, you are not sent to anyone under rash precautions.",
+      "If you are not yet recorded as immune and a person has a new rash, use rash precautions and tell the office you are not immune when you phone before leaving.",
+      "If you did not respond to hepatitis B vaccine or have not had it, tell the emergency department at once after any needlestick, bite, scratch or splash.",
+      "Tell the HR Manager if you are pregnant or have a weakened immune system, so occupational health can advise you about vaccines.",
+      "Care workers are not offered NHS COVID-19 vaccine because of their job. If you are eligible because of your own health, the Care Coordinator moves your visits so you can attend, but the time is unpaid.",
+      "Your vaccination information is confidential and kept in the restricted section of your staff record, seen by the HR Manager, Registered Manager and Deputy Manager; Care Coordinators see only any restriction on which visits you can do, never the reason.",
+      "Help the people we support to get the vaccines the NHS offers them: share NHS information and tell the office if they want help to book. Never persuade anyone for or against a vaccine, and never give a vaccine yourself.",
+      "If a person has swelling of the face or throat or difficulty breathing after a vaccine, call 999 and stay with them. Phone the office before you leave about any other reaction."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "INFECTION_CONTROL",
+    "HR",
+    "EMPLOYEE",
+    "RECRUITMENT",
+    "RISK_ASSESSMENT"
+  ],
+  "relatedReferences": [
+    "POL-IPC-001",
+    "POL-IPC-003",
+    "POL-IPC-004",
+    "POL-IPC-008",
+    "POL-IPC-012",
+    "POL-HR-002",
+    "POL-HS-016",
+    "POL-SG-004"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(1) and 12(2)(h) assessing the risk of, and preventing, detecting and controlling the spread of, infections",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) (Amendment) (Coronavirus) (No. 3) Regulations 2022 (SI 2022/206), regulations 2 and 3 (removal of the COVID-19 vaccination requirement and revocation of SI 2021/891 and SI 2022/15, in force 15 March 2022)",
+      "url": "https://www.legislation.gov.uk/uksi/2022/206/made"
+    },
+    {
+      "source": "Department of Health and Social Care, The Health and Social Care Act 2008: code of practice on the prevention and control of infections and related guidance (updated 13 December 2022), criterion 10 and Appendix A for adult social care, and criterion 9(y) immunisation of service users",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance/health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "source": "UK Health Security Agency and Department of Health and Social Care, Vaccinations for care and support workers and people accessing care and support in adult social care (published 28 October 2026)",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-ipc-in-adult-social-care-asc/vaccinations-for-care-and-support-workers-and-people-accessing-care-and-support-in-adult-social-care"
+    },
+    {
+      "source": "UK Health Security Agency, Flu vaccination guidance for social care workers and carers (updated 18 September 2026)",
+      "url": "https://www.gov.uk/government/publications/flu-immunisation-for-social-care-staff/flu-vaccination-guidance-for-social-care-workers"
+    },
+    {
+      "source": "NHS, Flu vaccine: who can get it and when (reviewed 29 September 2026)",
+      "url": "https://www.nhs.uk/vaccinations/flu-vaccine/"
+    },
+    {
+      "source": "Department of Health and Social Care, Advice accepted on autumn 2026 COVID-19 vaccination programme (23 March 2026)",
+      "url": "https://www.gov.uk/government/news/advice-accepted-on-autumn-2026-covid-19-vaccination-programme"
+    },
+    {
+      "source": "UK Health Security Agency, Immunisation against infectious disease (the Green Book), chapter 18 Hepatitis B (chapter dated 5 February 2026): individuals at occupational risk, and testing for immunity after vaccination",
+      "url": "https://www.gov.uk/government/publications/hepatitis-b-the-green-book-chapter-18"
+    },
+    {
+      "source": "UK Health Security Agency, Immunisation against infectious disease (the Green Book), chapter 12 Immunisation of healthcare and laboratory staff (published 20 March 2013): measles, rubella and varicella",
+      "url": "https://www.gov.uk/government/publications/immunisation-of-healthcare-and-laboratory-staff-the-green-book-chapter-12"
+    },
+    {
+      "source": "Health and Safety (Sharp Instruments in Healthcare) Regulations 2013, regulations 2 and 3 (application to healthcare employers), regulation 6(1) and Schedule 1 paragraph 4 (information on the benefits and drawbacks of vaccination and non-vaccination against blood-borne diseases)",
+      "url": "https://www.legislation.gov.uk/uksi/2013/645/made"
+    },
+    {
+      "source": "Equality Act 2010, section 60 (enquiries about disability and health before an offer of work)",
+      "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/60"
+    },
+    {
+      "source": "Health and Safety Executive, Blood-borne viruses: immunisation (employer duties under COSHH, cost and records)",
+      "url": "https://www.hse.gov.uk/biosafety/blood-borne-viruses/immunisation.htm"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1 Part 1, paragraphs 1 (employment) and 2 (health or social care purposes, including occupational medicine)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/part/1"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "Many of the people we support are older or have weakened immunity, and our care workers visit several homes every day. Vaccination is one of the most effective ways to stop flu, measles, chickenpox and hepatitis B passing between care workers and the people they visit, and to keep enough staff well to deliver every visit through the winter."
+        },
+        {
+          "p": "{{organisation}} is committed to assessing the vaccination needs of every role, offering free of charge every vaccine that our work makes necessary, making it easy and paid for staff to be vaccinated, and recording offers, decisions and results accurately and confidentially. Vaccination is an individual decision based on informed consent. It is never a condition of employment, and nobody is pressured or treated less favourably because of their decision."
+        },
+        {
+          "p": "This policy adds the detail on vaccination to the Infection Prevention and Control Policy. It follows the UKHSA adult social care vaccination guidance published on 28 October 2026 and the Green Book, kept in line with them through the IPC lead's monthly guidance check. Occupational vaccines and blood tests are given by our external occupational health provider, listed on the Local IPC and Health Protection Contacts sheet."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that every role is assessed for the risk of vaccine-preventable infection; that staff are offered the vaccines and immunity checks their role needs, with the information to decide, before they start the work that creates the risk wherever possible; that the flu campaign reaches every member of staff; that offers, decisions and results are recorded confidentially so we can act quickly after an exposure or in an outbreak; and that the people we support are helped to get the vaccines the NHS offers them. It sets out how we meet criteria 9 and 10 of the Code of Practice on the prevention and control of infections."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every employee, including bank staff, office staff and managers, and to Directors who visit people's homes. Agency workers and students on placement are covered through the arrangements in the section on staff we do not employ. It also covers how care workers and Care Coordinators support the people we support to access vaccination."
+        },
+        {
+          "p": "Owned elsewhere: what to do after a needlestick, bite, scratch or splash, and the occupational health follow-up (Sharps Safety and Needlestick Injury Procedure); staff illness, exclusion periods and individual risk assessments for staff at higher risk from infection (Staff Infection-Related Illness and Exclusion Policy); precautions for people with an infection and outbreak management (Transmission-Based Precautions and Outbreak Management Procedure); the health questionnaire after a job offer (Pre-Employment Checks and DBS Procedure); risk assessment in pregnancy (New and Expectant Mothers at Work Procedure); and mental capacity (Mental Capacity Act and Best Interests Policy). Our staff never administer vaccines to anyone."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Frontline staff",
+                "Staff who give personal care or other hands-on care in people's homes: Care Workers, Senior Care Workers and Field Care Supervisors, and Care Coordinators, On-call Managers, the Deputy Manager and the Registered Manager when they cover visits."
+              ],
+              [
+                "Occupational vaccine",
+                "A vaccine we offer because of a risk created by the work, rather than the person's own age or health: hepatitis B, seasonal flu, and chickenpox for staff who are not immune. We pay for occupational vaccines and any related blood tests."
+              ],
+              [
+                "Role vaccination risk assessment",
+                "Our written assessment, part of the COSHH assessment of biological agents, of which vaccines and immunity checks each role needs."
+              ],
+              [
+                "Evidence of immunity",
+                "For measles and rubella: a record of two doses of MMR vaccine or positive antibody tests. For chickenpox: a definite history of chickenpox or shingles, a record of two doses of chickenpox vaccine, or a positive antibody test. For hepatitis B: an antibody level of at least 10 mIU/ml measured 1 to 2 months after completing a course, or a later occupational health result confirming protection."
+              ],
+              [
+                "Responder and non-responder",
+                "After a hepatitis B course, a responder has an antibody level of at least 10 mIU/ml. A non-responder still has a level below 10 mIU/ml after a second course and would need hepatitis B immunoglobulin after an exposure."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors fund the occupational health provider, occupational vaccines and blood tests, flu vaccine refunds and the paid time this policy gives. They receive vaccination uptake in the quarterly IPC report and the annual IPC statement, and record any decision in their minutes. The Nominated Individual acts as IPC lead under this policy when the Registered Manager and Deputy Manager are both unavailable."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager (IPC lead)",
+          "blocks": [
+            {
+              "p": "Owns this policy and approves the role vaccination risk assessment. Checks national vaccination guidance as part of the monthly guidance check and before each flu campaign, leads the flu campaign, briefs managers on vaccination conversations, decides individual cases occupational health refers back to us, and reports uptake to the Directors. The Deputy Manager carries out these duties when the Registered Manager is absent, and carries out the quarterly records audit."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "Reviews the immunisation answers on the health questionnaire, makes hepatitis B offers and occupational health referrals, holds the private follow-up conversation with any worker who declines hepatitis B vaccination or does not respond to it, tracks doses and blood tests, issues flu campaign letters and refunds, keeps the vaccination record in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions), tells Care Coordinators about any allocation restriction (never the reason), and reports offers, courses and uptake to the IPC lead monthly."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and On-call Managers",
+          "blocks": [
+            {
+              "p": "Arrange rotas so that staff can attend vaccination and blood test appointments, apply any allocation restriction the HR Manager records, keep the vaccination section of each person's care plan up to date, and arrange help for people who want support to be vaccinated. Out of hours the On-call Manager applies allocation restrictions and passes any request for help to the Care Coordinator by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Hold the October flu conversation with each care worker in their team, ask every worker at their annual appraisal whether they would like any vaccine or immunity check this policy offers, and check at quality visits and care plan reviews that people who want help with vaccination have had it. They do not see a worker's vaccination record and never ask what a worker decided. The Deputy Manager does the same for Field Care Supervisors, Care Coordinators and Office staff."
+            }
+          ]
+        },
+        {
+          "heading": "All staff",
+          "blocks": [
+            {
+              "p": "Complete the immunisation questions on the health questionnaire honestly, consider each offer with the information provided, attend appointments they have accepted, tell the HR Manager when they have been vaccinated elsewhere if they wish it recorded, and share only NHS and UKHSA information about vaccines with the people we support."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The law and our approach",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the law requires",
+          "blocks": [
+            {
+              "bullets": [
+                "No vaccine is a legal condition of working in home care in England. The COVID-19 vaccination requirement for care homes was removed from 15 March 2022, and the one planned for other regulated activities from 1 April 2022 was revoked before it came into force (SI 2022/206). UKHSA guidance states that vaccination is an individual decision based on informed consent, and that recording staff vaccination status is recommended but not mandatory.",
+                "Under the Control of Substances Hazardous to Health Regulations 2002, employers must assess the risk from biological agents. Where there is a risk and an effective vaccine exists, the HSE says the employer should offer it, pay for it, explain its advantages, disadvantages and limitations, and let workers know whether it has protected them.",
+                "The Health and Safety (Sharp Instruments in Healthcare) Regulations 2013 apply to employers whose main activity is healthcare. They require staff at risk of sharps injury to be told the benefits and drawbacks of vaccination and non-vaccination against blood-borne diseases. Most of our work is personal care, so they may not strictly apply to us; as the Sharps Safety and Needlestick Injury Procedure sets out, our policy is to meet them in full.",
+                "Regulation 12(2)(h) of the Regulated Activities Regulations requires us to assess the risk of, and prevent, detect and control the spread of, infections. Criterion 10 of the Code of Practice expects employers to make vaccines available free of charge where national guidance or a risk assessment shows a need, and to keep records of immunisation, including offers that were refused. Criterion 9 expects a policy on immunisation of the people we support.",
+                "Section 60 of the Equality Act 2010 restricts questions about health before an offer of work. Our policy is that vaccination is never asked about or considered before an offer is made."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Our policy",
+          "blocks": [
+            {
+              "p": "We never require vaccination, never pay incentives for it, and never take a decision not to be vaccinated into account in recruitment, allocation of hours, pay, appraisal or progression. The only allocation restrictions that follow from immunity are those set out in this policy to protect a worker who is not immune to chickenpox, measles or rubella, and any a worker not protected against hepatitis B chooses for themselves. If the law changes, the Directors take employment law advice and consult staff before changing this policy. The national position described in this policy was checked on 5 November 2026."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Assessing vaccination needs",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Role vaccination risk assessment",
+          "blocks": [
+            {
+              "p": "The IPC lead and HR Manager review the role vaccination risk assessment, with advice from our occupational health provider, every 12 months by 15 September, before the flu campaign, and within 7 days when a role gains a new task, after an exposure or when national guidance changes, as the Hazardous Substances (COSHH) Procedure requires for every COSHH assessment. A new task includes a delegated sharps task or a package where the care plan records biting or scratching that breaks the skin. It applies the Green Book and goes further where our work justifies it, as marked below."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Who",
+                  "What we offer or check",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "Every member of staff who gives personal care or carries a sharps pick-up kit",
+                    "Hepatitis B vaccination and an antibody test after the course (our policy: the Green Book recommends it for adult social care staff who regularly have direct contact with blood or blood-stained body fluids and routinely use needles or lancets, but all personal care brings contact with blood-stained body fluids and a risk of bites and scratches)",
+                    "Offered in the first week of induction"
+                  ],
+                  [
+                    "Staff named for a sharps task, or allocated to a person whose care plan records biting or scratching that breaks the skin",
+                    "Hepatitis B vaccination started as soon as possible, where the worker has not already completed a course",
+                    "Offered before the first visit for that task or person"
+                  ],
+                  [
+                    "All frontline staff",
+                    "Evidence of immunity to measles, rubella and chickenpox; flu vaccination every autumn",
+                    "Immunity checked from the health questionnaire before the first shadowing visit; flu each autumn"
+                  ],
+                  [
+                    "Office staff, the HR Manager and staff allocation roles who do not give care",
+                    "Flu vaccination every autumn, refunded where the NHS does not provide it free; routine vaccines through their GP",
+                    "Each autumn"
+                  ],
+                  [
+                    "Every member of staff",
+                    "Advice to be up to date with routine vaccines (tetanus, diphtheria, polio and MMR) through their own GP",
+                    "At induction"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "New starters and existing staff",
+          "blocks": [
+            {
+              "p": "The health questionnaire every new starter completes after a job offer asks about vaccines already received, any history of chickenpox or shingles, and time spent living overseas. The HR Manager reviews it within 2 working days, as the Pre-Employment Checks and DBS Procedure requires, and records in the restricted section of the staff record what evidence of immunity the new starter has and what is needed. Any occupational health referral about immunity is made within the same 2 working days, with written consent, as the Staff Infection-Related Illness and Exclusion Policy requires. Vaccination is never part of the decision to clear someone to work."
+            },
+            {
+              "p": "During induction week the HR Manager gives every new starter information on registering with a GP, which matters especially for sponsored workers new to the UK, whose immunisation records are often incomplete. The GP or occupational health plans any catch-up doses."
+            },
+            {
+              "p": "When this policy is first adopted, the HR Manager checks the record of every existing member of staff within 1 month and makes any hepatitis B offer or measles and chickenpox immunity check that is missing, in the same way as for a new starter, with any occupational health referral made within 5 working days of the worker's consent."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Hepatitis B",
+      "blocks": [
+        {
+          "p": "Hepatitis B is carried in blood and can be passed on through a needlestick, a bite or a splash. The vaccine is safe and protects most people who complete the course. The HR Manager follows these steps for every member of staff the role vaccination risk assessment covers."
+        },
+        {
+          "steps": [
+            "In the first week of induction, the HR Manager offers hepatitis B vaccination and gives the worker the information sheet on the benefits and drawbacks of being vaccinated and not being vaccinated, which the IPC lead approves from UKHSA and NHS material. The offer and the worker's decision are recorded in the restricted section of the staff record.",
+            "A worker who has been vaccinated before provides any record they hold. If they have no antibody result from 1 to 2 months after the course, occupational health tests them, as the Green Book advises, and the result decides what follows.",
+            "When the worker accepts, the HR Manager refers them to occupational health within 5 working days, or the same working day where they are named for a sharps task or for a person who bites or scratches. Work may start while the course is in progress. Before approving a sharps task risk assessment or allocating workers to a person who bites or scratches, the Registered Manager confirms with the HR Manager that each named worker has been offered vaccination; nothing about a worker's vaccination is written in the person's care plan or risk assessments. Out of hours, the On-call Manager covering a visit to a person who bites or scratches checks the staff record for an allocation restriction before allocating a worker.",
+            "Occupational health gives the doses on the Green Book schedule it chooses, normally the accelerated schedule of doses at 0, 1, 2 and 12 months. The HR Manager records each dose date and the next due date, checks every Monday for doses due in the next 2 weeks, and rebooks a missed dose at the next available appointment. An interrupted course is completed, never restarted.",
+            "Occupational health checks the antibody level 1 to 2 months after the final dose of the course and tells the worker the result. The HR Manager records only the outcome: responder with no further action; one further dose needed; or a second course needed, followed by a repeat test 1 to 2 months later.",
+            "Within 10 working days of a worker declining vaccination or being found to be a non-responder after two courses, the HR Manager explains in private that they would need hepatitis B immunoglobulin after an exposure and must tell the emergency department their status at once, and that they may choose not to be named for sharps tasks or allocated to a person who bites or scratches, with no effect on their hours. If they choose this, the HR Manager records it as an allocation restriction with no reason given. Any test occupational health offers for past or current infection is reported only to the worker; we are never told the result unless the worker chooses (Staff Infection-Related Illness and Exclusion Policy).",
+            "The HR Manager repeats the offer in writing to any worker who has declined, each September with the flu campaign information and whenever their duties change. A worker may accept at any time."
+          ]
+        },
+        {
+          "p": "After an exposure, the HR Manager gives the worker's hepatitis B status to occupational health with the referral made under the Sharps Safety and Needlestick Injury Procedure, so that post-exposure treatment can be decided quickly. Responders with a healthy immune system need no routine booster doses; after an exposure the emergency department or occupational health decides whether a booster is needed."
+        }
+      ]
+    },
+    {
+      "heading": "Seasonal flu",
+      "blocks": [
+        {
+          "p": "Flu can be life-threatening for the people we support, and staff can pass it on before they feel ill, so national guidance encourages every frontline social care worker to have a flu vaccine each year. The NHS says frontline social care workers should get it through their employer; where the employer does not provide it, workers of a registered domiciliary care provider can have it free at a GP practice or community pharmacy, showing proof of employment such as a letter, ID badge or payslip. The best time is October to the end of November; the NHS offers it until 31 March 2027. We do not run our own clinic, because our care workers are spread across a wide area on varied rotas: we use the NHS route for frontline staff, refund any charge, pay the time, and pay for everyone else. Each year:"
+        },
+        {
+          "steps": [
+            "By 15 September the IPC lead checks the UKHSA flu guidance for social care workers and the NHS flu vaccine page, records the check, and briefs any change to staff within 2 weeks under the Infection Prevention and Control Policy.",
+            "By 30 September the HR Manager sends every employee the campaign information, and every frontline worker a letter confirming they are a frontline care worker employed by a CQC-registered domiciliary care provider. New starters receive the letter at induction until 31 March.",
+            "During October the Field Care Supervisor holds a short informed conversation with each care worker, at supervision, after a spot check or by phone, never in front of the person we support or their family, and records in the supervision and appraisal records that the conversation took place, never the worker's decision. The Deputy Manager does this for Field Care Supervisors, Care Coordinators and Office staff.",
+            "Staff have the vaccine at a GP practice or community pharmacy of their choice. Staff charged for it, including office staff the NHS does not cover, send the receipt to the HR Manager, who refunds it in the next payroll.",
+            "Staff tell the HR Manager the date they were vaccinated, or that they have declined, if they are willing to; the HR Manager records it, or records 'not disclosed'.",
+            "From 1 October to 30 November the HR Manager reports uptake to the IPC lead every Monday. The final figure goes into the quarterly IPC report for October to December and the annual IPC statement."
+          ]
+        },
+        {
+          "p": "Time spent getting a flu vaccine is paid at the normal rate, up to 1 hour including travel, with mileage paid as between visits. Care Coordinators arrange a gap in the rota on request, with at least 2 working days' notice. A worker who is not vaccinated against flu works without restriction: hand hygiene, the respiratory symptom rules in the Standard Infection Control Precautions Procedure and the reporting and exclusion rules in the Staff Infection-Related Illness and Exclusion Policy protect the people they visit."
+        }
+      ]
+    },
+    {
+      "heading": "COVID-19 and other vaccines",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "COVID-19",
+          "blocks": [
+            {
+              "p": "The autumn 2026 NHS COVID-19 programme in England, announced on 23 March 2026, is offered to adults aged 75 and over, residents of care homes for older adults and people aged 6 months and over who are immunosuppressed. Care workers are not an eligible group because of their job, and we do not pay for private COVID-19 vaccination. Staff eligible for their own health reasons are encouraged to take up the NHS offer, and the Care Coordinator moves their visits on request so they can attend. The IPC lead checks each new programme announcement; if care workers become eligible, staff are told within 2 weeks and this policy is updated under the Policy Management and Document Control Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Measles, rubella and chickenpox",
+          "blocks": [
+            {
+              "p": "Measles, rubella and chickenpox can be very serious for people with weakened immunity and in pregnancy. The Green Book advises that staff in direct contact with patients should be immune to measles and rubella, and that those with no definite history of chickenpox or shingles are tested and, if they have no antibody, offered the vaccine; we apply this to frontline staff. A frontline worker without evidence of immunity to measles or rubella is advised to have MMR vaccine, which their GP gives free at any age. A frontline worker without evidence of immunity to chickenpox is referred to occupational health (for a new starter within 2 working days of the questionnaire review, otherwise within 5 working days of consent) for an antibody test and, if not immune, a course of chickenpox vaccine, both at our cost."
+            },
+            {
+              "p": "Until evidence of immunity is recorded, the worker is treated as a member of staff at higher risk: the HR Manager records the restriction in the staff record, the individual risk assessment required by the Staff Infection-Related Illness and Exclusion Policy is completed, and the Care Coordinator does not allocate them to anyone under rash or airborne precautions under the Transmission-Based Precautions and Outbreak Management Procedure. The restriction never reduces their hours. After exposure to measles, chickenpox or rubella, the health protection team's advice on staff without evidence of immunity is followed, and any time kept off work while well is paid under the Staff Infection-Related Illness and Exclusion Policy."
+            },
+            {
+              "p": "A worker with this restriction who finds a new, unexplained rash at a visit uses rash precautions for the rest of the visit, completes essential care, and tells the office, or the On-call Manager out of hours, before leaving that they are not yet recorded as immune. The Care Coordinator, or the On-call Manager, allocates the person's next visits to a worker without the restriction, records a temporary restriction in the worker's staff record and tells the IPC lead. Until a doctor has assessed the rash and, if the doctor suspects or confirms measles, chickenpox, shingles or rubella, the IPC lead has taken occupational health or health protection team advice, asked for the same working day, the worker is not allocated to people at higher risk or to homes where someone is pregnant, with no loss of hours."
+            }
+          ]
+        },
+        {
+          "heading": "Pregnancy, weakened immunity and travel",
+          "blocks": [
+            {
+              "p": "Some vaccines, including MMR and chickenpox vaccine, are live vaccines that are not given in pregnancy or to some people with weakened immunity. A worker who is pregnant, planning a pregnancy or has a weakened immune system gets occupational health or GP advice before any occupational vaccine, and the individual risk assessment under the Staff Infection-Related Illness and Exclusion Policy or the New and Expectant Mothers at Work Procedure records it. The NHS also offers vaccines during pregnancy, including flu, whooping cough and RSV, through the GP or maternity service. Travel vaccines are the worker's own matter, through their GP, a travel clinic or a pharmacy, and we encourage staff visiting family abroad to check NHS travel advice. BCG is not part of our programme."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Informed choice and conversations",
+      "blocks": [
+        {
+          "p": "Vaccination conversations are respectful, private and based on trusted information. Field Care Supervisors and managers:"
+        },
+        {
+          "bullets": [
+            "use only NHS, UKHSA and Green Book information, and refer clinical questions to the worker's GP, a pharmacist or occupational health rather than giving personal medical advice;",
+            "hold one informed conversation per vaccine each year, in private, and do not raise it again that year unless the worker asks;",
+            "accept a decision not to be vaccinated without asking for a reason; only the HR Manager records a decision, and only when the worker chooses to tell them;",
+            "never tell colleagues, the people we support or their families whether a named worker is vaccinated."
+          ]
+        },
+        {
+          "p": "When a person we support or their family asks whether care workers are vaccinated, the Care Coordinator explains that every worker is offered the vaccines in this policy and follows the infection precautions in the Infection Prevention and Control Policy on every visit, and that individual health information is confidential. A worker may choose to share their own status. We do not allocate visits by vaccination status. Where a person at higher risk remains worried, the Care Coordinator asks the IPC lead within 2 working days to agree any extra precaution, such as a Type IIR mask during visits in the winter months, and records it in the care plan."
+        }
+      ]
+    },
+    {
+      "heading": "Staff we do not employ",
+      "blocks": [
+        {
+          "p": "Our written agreement with each approved agency requires the agency, as employer, to offer its workers hepatitis B and flu vaccination and to check their immunity to measles and chickenpox, and to confirm this in writing for each worker before their first shift with us. The HR Manager, or the On-call Manager out of hours, checks the confirmation before the first shift, and the HR Manager checks it again at the annual agency audit under the Safer Recruitment Policy. An agency worker whose immunity to measles, rubella and chickenpox has not been confirmed is not allocated to anyone under rash precautions. For students on placement, the HR Manager obtains written confirmation from the college or university, before the first shadowing visit, that the student has been offered hepatitis B vaccination through its occupational health service and has had their measles and chickenpox immunity checked."
+        }
+      ]
+    },
+    {
+      "heading": "Supporting the people we support with vaccination",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Recording and reviewing",
+          "blocks": [
+            {
+              "p": "At the initial assessment the assessor asks the person, with their consent, which vaccines the NHS has offered them and which they have had, such as flu, COVID-19, pneumococcal, shingles and RSV vaccines, and whether they would like help to get any. The answers go in the vaccination section of the care plan, recording only what the person or their GP tells us. The Care Coordinator reviews the section at every care plan review and within 7 days of the person returning from hospital."
+            }
+          ]
+        },
+        {
+          "heading": "Helping people to get vaccinated",
+          "blocks": [
+            {
+              "bullets": [
+                "In September each year care workers give every person the printed NHS information on winter vaccines, supplied by the office, at a visit and record it in the daily visit notes; the Care Coordinator offers help to everyone whose care plan records support with health appointments. Where the care plan records that a family member or attorney arranges the person's health appointments, the Care Coordinator gives the information and the offer of help to them as well, with the person's agreement.",
+                "With the person's agreement, the Care Coordinator helps them book, adds a reminder to the care plan, and moves the visit time so they can attend. A care worker accompanies the person only where the care plan or the commissioner provides escort time; otherwise the Care Coordinator agrees transport with the person or their family.",
+                "Where the person cannot leave home, the Care Coordinator asks the GP practice, with consent, within 5 working days of the request, to arrange vaccination at home through the practice or the district nursing team. A care worker present when the person is vaccinated at home records it in the daily visit notes, and the Care Coordinator updates the care plan from what the person, their family or the clinician tells us.",
+                "Care workers share NHS information when asked and never try to persuade a person for or against a vaccine."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Consent and capacity",
+          "blocks": [
+            {
+              "p": "The clinician giving a vaccine obtains the person's consent and, where the person may lack capacity to decide, assesses capacity and makes any best interests decision under the Mental Capacity Act 2005, consulting family and others close to the person. Where an attorney or deputy has authority over health decisions, they make the decision. Our role is to tell the clinician what we know about the person's wishes, beliefs and usual way of communicating, under the Mental Capacity Act and Best Interests Policy. We record the outcome the clinician gives us in the care plan."
+            }
+          ]
+        },
+        {
+          "heading": "After a vaccine",
+          "blocks": [
+            {
+              "p": "When the Care Coordinator learns that a person has been vaccinated, they add a note to the care plan so that care workers watch for reactions at visits in the following 2 days. Swelling of the face, lips or throat, difficulty breathing or collapse is an emergency: the care worker calls 999, follows the First Aid Procedure, phones the office, which covers their next visits, and stays with the person until the ambulance crew takes over. Any other reaction that worries the person or the care worker, such as a high temperature or a hot, swollen arm, is phoned to the office before the care worker leaves; the Care Coordinator, or the On-call Manager out of hours, gets advice from the GP or NHS 111 the same day. Where the person asks us to report a suspected side effect, or the reaction needed 999 or hospital treatment, the Care Coordinator tells the GP and submits a Yellow Card report within 2 working days, with the person's consent or under a best interests decision, as the Medication Errors, Near Misses and Incidents Procedure sets out."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Pay and time off for vaccination",
+      "blocks": [
+        {
+          "bullets": [
+            "Appointments for occupational vaccines and blood tests are arranged in working time wherever possible and paid at the normal rate, including travel time, with mileage as between visits.",
+            "A worker who feels unwell after an occupational vaccine phones the Care Coordinator, or the On-call Manager out of hours, before their next visit; the exclusion rules in the Staff Infection-Related Illness and Exclusion Policy, such as staying off work with a high temperature, apply. Absence caused by a reaction to an occupational vaccine is paid at the normal rate and does not count towards review points under the Sickness Absence Policy.",
+            "We never charge staff for any occupational vaccine, blood test or occupational health appointment, and refund any charge within the next payroll.",
+            "Appointments for vaccines a worker receives for their own health, such as COVID-19, are personal appointments: the Care Coordinator moves visits to make them possible, but the time is not paid."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept and who sees it",
+              "Retention"
+            ],
+            "rows": [
+              [
+                "Immunisation answers on the health questionnaire, evidence of immunity, offers and decisions, dose dates, antibody test outcomes, occupational health advice and flu vaccination dates",
+                "Restricted section of the staff record; the HR Manager, Registered Manager, Deputy Manager and, for those two posts, the Nominated Individual",
+                "Employment plus 6 years"
+              ],
+              [
+                "Allocation restriction for a worker without evidence of immunity, or chosen by a worker not protected against hepatitis B, with its start and end dates",
+                "Staff record, visible to Care Coordinators, staff allocation roles, Field Care Supervisors and On-call Managers, with no reason given",
+                "Employment plus 6 years"
+              ],
+              [
+                "Role vaccination risk assessment",
+                "Risk assessments, with the COSHH assessment of biological agents",
+                "Superseded versions kept 40 years, as for all COSHH assessments"
+              ],
+              [
+                "Flu campaign letters, refunds and weekly uptake figures",
+                "Staff record and payroll records; uptake figures in the quarterly IPC report",
+                "6 years"
+              ],
+              [
+                "Vaccination status of the people we support and any help given",
+                "Vaccination section of the care plan and daily visit notes",
+                "As set by the Records Management and Retention Policy"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Staff vaccination information is special category health data. We process it to meet our health and safety and employment obligations under Schedule 1 paragraph 1 of the Data Protection Act 2018, with the appropriate policy document kept under the Data Protection Policy, and for occupational health under paragraph 2. A worker may decline to tell us whether they have been vaccinated. During an outbreak we give the health protection team the number of exposed staff with and without recorded immunity; where it needs a named worker's status, the HR Manager asks that worker's agreement first, or the health protection team speaks to the worker directly. The HR Manager gives a worker a copy of their vaccination record within 10 working days of asking, including after they leave."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Vaccination at work: the benefits and drawbacks of hepatitis B vaccination and of not being vaccinated, flu, measles and chickenpox, how to get vaccines, confidentiality, and supporting the people we support",
+                "All care staff, within IPC induction; office staff within IPC awareness training",
+                "Before working without a shadowing colleague; office staff in their first week",
+                "Every 12 months, within the IPC refresher or IPC awareness training"
+              ],
+              [
+                "Holding informed vaccination conversations, the flu campaign and helping people to get vaccinated",
+                "Field Care Supervisors, Care Coordinators and the Deputy Manager, briefed by the IPC lead",
+                "Before their first flu campaign in the role",
+                "Every 12 months, by 30 September"
+              ],
+              [
+                "Vaccination records, occupational health referrals, dose tracking and confidentiality",
+                "HR Manager",
+                "Within 1 month of appointment",
+                "After each new major version of this policy"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Staff acknowledge this policy in CareFlow by the deadline in the Induction and Care Certificate Procedure, within 14 days of starting a new role and within 14 days of each new major version; a minor version does not need acknowledging again."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Hepatitis B offers made in the first week of induction and before any sharps task or biting-risk package, courses on schedule, antibody tests due. Target 100% of offers on time",
+                "Monthly",
+                "HR Manager",
+                "IPC lead"
+              ],
+              [
+                "Flu offers and letters sent by 30 September. Target 100%. Uptake among frontline staff. Our target at least 60%",
+                "Weekly from 1 October to 30 November",
+                "HR Manager",
+                "IPC lead; Directors in the quarterly IPC report"
+              ],
+              [
+                "10 staff records, new starters first: immunisation answers reviewed, hepatitis B offer recorded, measles and chickenpox evidence or referral, restriction recorded where needed, flu letter sent and flu conversation recorded in the supervision and appraisal records in season. Target 100%",
+                "Quarterly audit",
+                "Deputy Manager",
+                "IPC lead and the quarterly governance report"
+              ],
+              [
+                "Vaccination section completed and reviewed in the care plans sampled",
+                "Within the monthly audit of 5 care plans",
+                "Deputy Manager",
+                "IPC lead"
+              ],
+              [
+                "Arrangements tested against criterion 10 of the Code of Practice; uptake of each vaccine in the year",
+                "March annual IPC audit and the annual IPC statement",
+                "IPC lead with the Nominated Individual",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A worker found to have been allocated to someone under rash precautions while restricted is recorded in the incident log the same day by whoever finds it, and the IPC lead decides the same day whether health protection team advice is needed. This policy is reviewed every 12 months by the Registered Manager as IPC lead and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner when national vaccination guidance or the eligibility for NHS flu or COVID-19 vaccination changes, after an outbreak or exposure where vaccination was a factor, a serious incident or an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

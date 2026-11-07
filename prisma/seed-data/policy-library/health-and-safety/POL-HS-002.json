@@ -1,0 +1,689 @@
+{
+  "reference": "POL-HS-002",
+  "revision": 1,
+  "title": "Risk Assessment and Home Environment Risk Assessment Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we assess and control risks to the people we support, our staff and others: the method and risk rating used for every assessment, the home environment risk assessment before care starts and when it is reviewed, individual, general and staff risk assessments, approval of high risks, dynamic risk assessment by staff during visits, and how assessments are recorded, shared and audited. For managers, assessors and care staff.",
+  "keyPoints": {
+    "intro": "Every person we support has a home environment risk assessment and individual risk assessments in CareFlow that tell you the hazards in that home and the safe way to work. This is what you must do with them on every visit.",
+    "points": [
+      "Read the person's risk assessments and care plan before your first visit to them, check them for changes at the start of every visit, and follow every control measure exactly as written.",
+      "Before you go in and throughout the visit, look for anything new or different, such as a loose dog, damaged equipment, moved furniture, a smell of gas or burning, or someone behaving aggressively.",
+      "In serious and imminent danger, get out, call 999 if needed and phone the office or On-call Manager. Never go back in until the Registered Manager, Deputy Manager or On-call Manager says it is safe.",
+      "If a task can no longer be done safely as the care plan says, do not do it and do not improvise. Give the care that is safe, make the person comfortable and phone the office before you leave.",
+      "If neither the office nor the On-call Manager answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. If the person would be unsafe left alone, stay with them until you are told what to do.",
+      "Never use equipment that is damaged, unfamiliar to you or past its examination date, never repair, reset or adjust a person's appliances, boiler or equipment (using their normal heating controls is fine), and never do a two-person task alone.",
+      "Where the care plan says the person is at risk of scalding, check bath and shower water with the thermometer provided before they get in; for everyone else, check the water with them. Never use water above 44 degrees Celsius.",
+      "Before using a tap or shower unused for a week or more, such as after a hospital stay, run it for 2 minutes with the person out of the room.",
+      "If someone smokes while you are working, ask them politely not to smoke in the room you are in and to open a window. You may leave the room.",
+      "Never change a control measure yourself or because the person or a relative asks. If the person refuses a control measure, respect it, keep yourself safe and phone the office.",
+      "Write in the daily visit notes what you found, what you did and did not do and why, and record every new hazard in the incident log before the end of your shift.",
+      "Tell your manager about anything that changes the risk to you, such as pregnancy, an injury or a health condition, so that we can assess it and adjust your work."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Senior Carer/Nurse",
+    "Carer/Domestic"
+  ],
+  "moduleLinks": [
+    "RISK_ASSESSMENT",
+    "INITIAL_ASSESSMENT",
+    "CARE_PLAN",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-HS-001",
+    "POL-CD-002",
+    "POL-CD-016",
+    "POL-HS-003",
+    "POL-HS-005",
+    "POL-HS-006",
+    "POL-HS-010",
+    "POL-CD-009"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, regulation 3 (suitable and sufficient risk assessment, review, and recording of significant findings by employers with five or more employees)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/regulation/3"
+    },
+    {
+      "source": "Management of Health and Safety at Work Regulations 1999, Schedule 1 (general principles of prevention, applied by regulation 4)",
+      "url": "https://www.legislation.gov.uk/uksi/1999/3242/schedule/1"
+    },
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 3 (duties to persons other than employees)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/3"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(a), (b) and (e) (assessing and mitigating risks; safe equipment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Smoke-free (Exemptions and Vehicles) Regulations 2007, regulation 3 (private dwellings, including where personal care or domestic work is provided, are not smoke-free)",
+      "url": "https://www.legislation.gov.uk/uksi/2007/765/regulation/3"
+    },
+    {
+      "source": "Health and Safety Executive, Steps needed to manage risk",
+      "url": "https://www.hse.gov.uk/simple-health-safety/risk/steps-needed-to-manage-risk.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Sensible risk assessment in care settings",
+      "url": "https://www.hse.gov.uk/healthservices/sensible-risk-assessment-care-settings.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Care provided in people's own homes",
+      "url": "https://www.hse.gov.uk/healthservices/domiciliary-care.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Scalding and burning in health and social care (44 degrees Celsius for whole-body immersion of vulnerable people)",
+      "url": "https://www.hse.gov.uk/healthservices/scalding-burning.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Managing legionella in hot and cold water systems (health and social care; flushing infrequently used outlets at least weekly)",
+      "url": "https://www.hse.gov.uk/healthservices/legionella.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Health and social care FAQs (second-hand smoke in the workplace risk assessment; heat packs)",
+      "url": "https://www.hse.gov.uk/healthservices/faqs.htm"
+    },
+    {
+      "source": "Health and Safety Executive, Lone working: training, supervision and monitoring",
+      "url": "https://www.hse.gov.uk/lone-working/employer/training-supervision-monitoring.htm"
+    },
+    {
+      "source": "Medicines and Healthcare products Regulatory Agency, Bed rails: management and safe use (updated 30 August 2023)",
+      "url": "https://www.gov.uk/guidance/bed-rails-management-and-safe-use"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} assesses the risks of its work before the work starts, so that the people we support receive care safely and our staff go home unharmed. We work in people's own homes, which we do not control and where people may live as they choose. Our assessments concentrate on the real, significant risks in each home and task, stay short enough for staff to read, agree practical controls with the person, and put those controls into the care plan that staff follow on every visit."
+        },
+        {
+          "p": "We do not use risk as a reason to stop people doing what matters to them, but a person's choice never requires our staff to work at serious risk."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure sets one method for identifying, rating, approving, recording, sharing and reviewing risk, and what staff do when they find a new hazard during a visit."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to managers, assessors, office staff and care staff, including bank and agency workers and students, and to four kinds of risk assessment:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Assessment",
+              "What it covers"
+            ],
+            "rows": [
+              [
+                "Home environment risk assessment",
+                "The person's home, its surroundings, the people and animals in it and its equipment, for risks to the person, our staff and others"
+              ],
+              [
+                "Individual risk assessments for the person",
+                "The risks of particular care tasks and of the person's health and circumstances, such as moving and handling, falls or fire"
+              ],
+              [
+                "General risk assessments",
+                "Risks common to an activity across the service, such as lone working or driving"
+              ],
+              [
+                "Staff individual risk assessments",
+                "Risks to a particular worker, such as during pregnancy"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Health and Safety Policy sets overall responsibilities and timescales; the content of topic assessments belongs to the documents named here, and the organisational risk register to the Risk Management Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Residual risk",
+                "The risk that remains once every agreed control measure is in place."
+              ],
+              [
+                "Assessor",
+                "A Care Coordinator, Field Care Supervisor, Deputy Manager or Registered Manager authorised by the Registered Manager after the assessment and risk assessment training. An authorised On-call Manager assesses only for short-notice starts out of hours."
+              ],
+              [
+                "Short-notice start",
+                "A package that starts within 48 hours of our accepting the referral, including every start on the day of hospital discharge."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual reviews the monthly list of High and Very high residual risks, challenges any risk without a recorded approval or past its review date, and reports to the Directors in the health and safety report of the quarterly governance report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager, as Health and Safety Lead, is accountable for this procedure: authorises assessors, approves every High residual risk before the task takes place, and decides what happens when a Very high risk cannot be reduced, a home cannot be made safe for the care commissioned or a person declines a control and significant risk remains. The Deputy Manager carries out these duties in the Registered Manager's absence and audits assessment quality."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and Care Coordinators",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors carry out home environment and individual risk assessments and their reviews, make short-notice first visits in office hours, and check at spot checks that controls are followed and still work. Care Coordinators assess when authorised, allocate only care workers trained and suited to the known risks of each visit, tell care workers about changes, chase actions that depend on others and run the weekly check of assessments and actions due."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours, the On-call Manager receives hazard reports and agrees with the care worker how care continues safely. An authorised On-call Manager carries out the assessment at an out-of-hours short-notice first visit and may approve a High residual risk until handover; the Registered Manager or Deputy Manager confirms or changes that decision by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Care workers follow the risk assessments, carry out a dynamic risk assessment on every visit and report hazards. Senior Care Workers also show new care workers the hazards and controls in each home on shadowing shifts, and tell the Field Care Supervisor the same day when a control is not followed or no longer works."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager starts a staff individual risk assessment as soon as a worker tells us of a circumstance listed in this procedure, and keeps assessors' training and authorisation in the training and compliance records."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "How we assess risk",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Principles",
+          "blocks": [
+            {
+              "bullets": [
+                "We assess with the person, in their home, with family or a representative present where the person wishes, and record the person's views in their own words.",
+                "We choose controls in the order the Health and Safety Policy sets, with personal protective equipment last, and prefer controls that keep the person's independence and routines.",
+                "A person with capacity may accept a risk to themselves under the Positive Risk-Taking Policy; nobody can accept a risk on behalf of our staff. Where capacity is in doubt, we follow the Mental Capacity Act and Best Interests Policy."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "The five steps",
+          "blocks": [
+            {
+              "steps": [
+                "Prepare. Read the referral and any assessments by the local authority, hospital or occupational therapist; for a review, also the incident log, daily visit notes and care worker reports since the last assessment.",
+                "Identify hazards. Walk the route from where staff park to the door and through every room where care is given, using the checklist below, and ask the person and family what they find difficult or dangerous.",
+                "Decide who could be harmed and how, and note the controls already in place.",
+                "Rate each risk with its existing controls, agree further controls with the person, each with an owner (the person, family, our care workers, a landlord or the equipment service) and a target date, and rate the residual risk.",
+                "Record the significant findings in CareFlow, write every control that care workers carry out into the visit plans, obtain approval where the residual risk requires it, and set the review date."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Rating risk",
+          "blocks": [
+            {
+              "p": "We score likelihood and severity from 1 to 5 and multiply them. Likelihood: 1 rare, 2 unlikely, 3 possible, 4 likely, 5 almost certain. Severity: 1 no injury; 2 minor injury treated with first aid; 3 injury needing medical treatment, or up to 7 days off work; 4 fracture, hospital admission or more than 7 days off work; 5 death or permanent disability. CareFlow rates risk Low, Medium or High: record Very high as High and add the score and band to the description."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Residual risk",
+                  "Score",
+                  "What happens",
+                  "Approved by",
+                  "Reviewed"
+                ],
+                "rows": [
+                  [
+                    "Low",
+                    "1 to 4",
+                    "Existing controls continue.",
+                    "Assessor",
+                    "At every care plan review"
+                  ],
+                  [
+                    "Medium",
+                    "5 to 9",
+                    "Further controls are written into the visit plans before the next visit. Within 4 weeks the Field Care Supervisor confirms with the care team that they work and records this in the assessment.",
+                    "Assessor",
+                    "At every care plan review"
+                  ],
+                  [
+                    "High",
+                    "10 to 15",
+                    "The task does not take place until the further controls are in place and approved. The risk and what to do are shown in My care at a glance, and the Care Coordinator briefs every allocated worker before their next visit.",
+                    "Registered Manager or Deputy Manager before the task; out of hours the On-call Manager until handover",
+                    "At least every 3 months while High, and at every care plan review"
+                  ],
+                  [
+                    "Very high",
+                    "16 to 25",
+                    "The task or visit does not go ahead as planned. The assessor phones the Registered Manager or Deputy Manager, or the On-call Manager out of hours, at once. They decide the same day on a safe alternative, such as two workers, different equipment or a different time, make sure the person still receives their essential care, and tell the commissioner where the commissioned care changes. It is shown as for High.",
+                    "Registered Manager, before the task resumes",
+                    "Before the task resumes, then as for High"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A risk the person chooses to take to themselves is rated in the same way. The rating informs the conversation with them but does not override their decision; the stop rules in the table apply to what our staff do, not to the person's own choices. Positive risk-taking plans are approved as the Positive Risk-Taking Policy sets out: by the Registered Manager or Deputy Manager where serious harm (severity 4 or 5) is possible or the residual risk is High, and by the Registered Manager (the Deputy Manager only in their absence) where it is Very high. Topic documents may set a higher minimum rating or more frequent reviews, such as the Self-Neglect and Hoarding Procedure; theirs then apply."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Home environment risk assessment",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "When it is carried out and reviewed",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Situation",
+                  "What happens",
+                  "Who"
+                ],
+                "rows": [
+                  [
+                    "Planned package",
+                    "Carried out at the face-to-face assessment visit, no more than 14 days before the first care visit, and recorded in CareFlow before that visit; rechecked as the Needs Assessment and Care Planning Policy sets out if the start is delayed.",
+                    "Assessor"
+                  ],
+                  [
+                    "Short-notice start, including every new package starting on the day of hospital discharge; a restart after hospital where needs, moving and handling or equipment have changed",
+                    "Carried out at the first visit, before any other care worker visits, covering at least the essential checks below, and recorded in CareFlow before the assessor leaves; for a discharge package accepted before the discharge day, done before discharge where the person agrees and a key holder can let us in. Completed in full at a home visit within 7 days.",
+                    "Field Care Supervisor, or out of hours the On-call Manager, who makes the first visit"
+                  ],
+                  [
+                    "Person moves home",
+                    "A new assessment of the new home before the first visit there.",
+                    "Assessor"
+                  ],
+                  [
+                    "Care restarts after a break of more than 28 days without a hospital stay",
+                    "A full assessment before care restarts.",
+                    "Assessor"
+                  ],
+                  [
+                    "Scheduled review",
+                    "In the home at every care plan review: within 6 weeks of care starting, then at least every 6 months.",
+                    "Field Care Supervisor"
+                  ],
+                  [
+                    "Incident, near miss, fall, staff hazard report, or a change in the person's needs, home, household or equipment",
+                    "Reviewed within 7 days, and before the next visit where the change creates an immediate risk; in the home unless the Field Care Supervisor records why a visit is not needed.",
+                    "Field Care Supervisor"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The essential checks at a short-notice first visit are access and lighting; immediate fire, gas and electrical hazards; smoking and home oxygen; animals; anyone in the household who may be aggressive; and the moving and handling, equipment and hot water risks of the tasks due at that visit."
+            }
+          ]
+        },
+        {
+          "heading": "What the assessor checks",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Area",
+                  "What is checked",
+                  "Detail in"
+                ],
+                "rows": [
+                  [
+                    "Access and security",
+                    "Parking, paths, steps and outside lighting; how staff get in, including any key safe; mobile phone signal; the neighbourhood at the times visits take place.",
+                    "Key Holding, Key Safes and Access to People's Homes Procedure; Lone Working and Staff Personal Safety Policy"
+                  ],
+                  [
+                    "Slips, trips and falls",
+                    "Floor coverings, loose rugs, clutter, trailing leads, stairs and handrails, lighting, wet bathroom floors and the routes the person walks.",
+                    "Falls Prevention and Response Procedure"
+                  ],
+                  [
+                    "Space and equipment",
+                    "Room to work safely at the bed, chair, toilet and bath; bed height; every item of equipment, its condition, owner and next service or thorough examination date.",
+                    "Moving and Handling of People Policy; Hoists, Slings and Lifting Equipment Procedure"
+                  ],
+                  [
+                    "Electrical",
+                    "Visible damage to sockets, plugs, leads and appliances; overloaded adaptors; heaters close to bedding, curtains or clothing.",
+                    "This procedure"
+                  ],
+                  [
+                    "Hot water and hot surfaces",
+                    "Whether the person can sense and react to heat and get out of a bath unaided; whether bath and shower water can exceed 44 degrees Celsius; unguarded radiators and heaters; hot water bottles and heat packs; taps and showers that are rarely used.",
+                    "This procedure"
+                  ],
+                  [
+                    "Fire and gas",
+                    "Working smoke alarms; a carbon monoxide alarm where there is a fuel-burning appliance; smoking; emollients; home oxygen; candles and cooking; gas appliances; the escape route.",
+                    "Fire Safety in People's Homes Policy"
+                  ],
+                  [
+                    "Second-hand smoke",
+                    "Who smokes, where and when, and how rooms can be ventilated.",
+                    "This procedure"
+                  ],
+                  [
+                    "Animals",
+                    "Animals in the home, their behaviour and how they are kept away from care.",
+                    "Animals and Pets in People's Homes Guideline"
+                  ],
+                  [
+                    "Substances and infection",
+                    "Cleaning and care products; sharps; pests; soiling; hoarding; handwashing facilities for staff.",
+                    "Hazardous Substances (COSHH) Procedure; Infection Prevention and Control Policy; Self-Neglect and Hoarding Procedure"
+                  ],
+                  [
+                    "People in the home",
+                    "Anyone with a history of aggression or threats; weapons; alcohol or drug misuse; signs of domestic abuse or of risk to the person.",
+                    "Violence and Aggression Towards Staff Policy; Domestic Abuse Policy; Safeguarding Adults Policy"
+                  ],
+                  [
+                    "Temperature and welfare",
+                    "Heating, risk of cold or overheating, flood risk, powered medical equipment, whether the higher weather risk marker applies, and staff access to a toilet and drinking water.",
+                    "Severe Weather and Extreme Temperatures Procedure"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Electrical hazards",
+          "blocks": [
+            {
+              "p": "Care workers look at the plug, lead and socket before using any appliance in a person's home, and never use one that is damaged, scorched, sparking or overheating; they tell the person and phone the office. Staff never repair, reset or adjust a person's appliances, boiler, heating system, fuse box or wiring; they may switch the heating on or up with the controls the person normally uses, such as the switch, thermostat or timer. Our policy is that we do not test people's own appliances: they are the person's responsibility, and wiring and appliances a landlord supplies are the landlord's. The Care Coordinator tells the person, and with their agreement their family or landlord, the same working day, and the Field Care Supervisor records a safe alternative for any task that relied on the appliance."
+            }
+          ]
+        },
+        {
+          "heading": "Hot water and hot surfaces",
+          "blocks": [
+            {
+              "p": "HSE advises that in care settings, where vulnerable people are at risk of scalding during whole-body immersion, water must not exceed 44 degrees Celsius. Our policy applies the same limit to baths and showers in people's own homes. Where the assessment finds that the person cannot reliably sense or react to hot water, or cannot get out of a bath unaided, the care plan says so, the Care Coordinator provides a bath thermometer, kept in the home, before the first visit that includes bathing, and care workers check bath and shower water with it before the person gets in. For everyone else, care workers check the water with the person before they get in. Where hot water reaches the taps much hotter than this, the Field Care Supervisor advises the person, and with their agreement their landlord or occupational therapist, about a thermostatic mixing valve."
+            },
+            {
+              "p": "Unguarded radiators or heaters the person could fall against or lie beside are recorded with a control, such as a guard, moving furniture or turning the heater off before care. Hot water bottles and heat packs are used only where the care plan allows, as the manufacturer's instructions say, checked before each use, never filled with boiling water and never placed directly against the skin."
+            },
+            {
+              "p": "Legionella bacteria can grow in water left standing: before a tap or shower unused for a week or more, such as after a hospital stay, is used for care, the care worker runs it for 2 minutes with the person out of the room, and the assessor advises the household to run little-used taps and showers weekly, as HSE advises for care settings."
+            }
+          ]
+        },
+        {
+          "heading": "Second-hand smoke",
+          "blocks": [
+            {
+              "p": "The smoke-free law does not apply to a person's own home, even while we give personal care or help with housework there (regulation 3 of the Smoke-free (Exemptions and Vehicles) Regulations 2007). We must still protect staff from second-hand smoke so far as is reasonably practicable, and HSE advises including it in the risk assessment. The assessor asks the person and household not to smoke in the room where staff are working, to say before lighting up so the care worker can leave, and to ventilate the room before and during visits, and records what is agreed in the care plan. If someone smokes during a visit, the care worker politely asks them not to smoke in that room and to open a window, and may leave the room. Continued significant exposure is handled as a declined control measure. A worker who is pregnant or has a breathing condition is allocated to a home where people smoke during visits only where their individual risk assessment allows it."
+            }
+          ]
+        },
+        {
+          "heading": "Recording and sharing the assessment",
+          "blocks": [
+            {
+              "p": "The assessor completes the assessment in CareFlow under their own log-in on the day of the visit, recording the findings of each of the five steps and the person's views. Every update records what changed and why."
+            },
+            {
+              "p": "The dated copy of the care plan kept in the home includes its risks part, but never the key safe code."
+            },
+            {
+              "p": "When an assessment changes, the Care Coordinator tells every care worker allocated to the person what has changed, by phone or message, the same day and before their next visit, and notes in the assessment who has been told. Actions that depend on others, such as a landlord repair, an equipment delivery or an occupational therapy or fire and rescue service referral, are chased by the Care Coordinator by their target date, and the Field Care Supervisor re-rates the risk if they are not done."
+            }
+          ]
+        },
+        {
+          "heading": "When care cannot be given safely",
+          "blocks": [
+            {
+              "p": "If a home or task cannot be made safe enough for the care commissioned, the assessor tells the Registered Manager the same working day. The Registered Manager decides within 1 working day what change is needed and asks the commissioner in writing; a planned package does not start until a safe arrangement is in place. At a short-notice start the assessor phones the Registered Manager or Deputy Manager, or the On-call Manager out of hours, before leaving the home; staff give only the care that can be given safely, and the manager decides the same day what extra support, equipment or advice is needed and tells the commissioner. Care is never reduced or withdrawn because of the condition of the home without a decision by the Registered Manager."
+            },
+            {
+              "p": "Where a person declines a control measure and significant risk to staff remains, the Health and Safety Policy steps for a declined control measure apply."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Individual, general and staff risk assessments",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Individual risk assessments for the person",
+          "blocks": [
+            {
+              "p": "The Needs Assessment and Care Planning Policy sets the individual risk assessments each person needs. Each uses the method in this procedure, is completed before the task it covers first takes place, and is reviewed on the same triggers as the home environment risk assessment. These are also completed when they apply:"
+            },
+            {
+              "table": {
+                "columns": [
+                  "Assessment",
+                  "Completed when",
+                  "Detail in"
+                ],
+                "rows": [
+                  [
+                    "Bathing and hot water",
+                    "We help the person to bath or shower, or they use hot water bottles or heat packs.",
+                    "This procedure"
+                  ],
+                  [
+                    "Lifting equipment and bed rails",
+                    "A hoist, sling, stand aid or bed rails are used. Staff use bed rails only where a bed rail risk assessment by the health professional who prescribed or supplied them is recorded, and check them before each use.",
+                    "Hoists, Slings and Lifting Equipment Procedure"
+                  ],
+                  [
+                    "Money, shopping and keys",
+                    "We handle cash or shopping, or hold or use keys or a key safe.",
+                    "Handling Money, Property and Shopping Procedure; Key Holding, Key Safes and Access to People's Homes Procedure"
+                  ],
+                  [
+                    "Choices that carry risk",
+                    "The person chooses to do something that carries a significant risk to themselves.",
+                    "Positive Risk-Taking Policy"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "General risk assessments",
+          "blocks": [
+            {
+              "p": "The Registered Manager keeps the general risk assessments listed in the Health and Safety Policy. They use the method in this procedure, are written with our external health and safety adviser where needed and with the representatives of employee safety, and are listed in the risk assessment register with their review dates. Every High or Very high residual risk in a general risk assessment is also entered on the branch risk register under the Risk Management Policy. Any new activity, service or type of equipment is assessed before it starts. Staff are taken through those for their role at induction."
+            }
+          ]
+        },
+        {
+          "heading": "Staff individual risk assessments",
+          "blocks": [
+            {
+              "p": "The Registered Manager or HR Manager completes an individual risk assessment with a worker who is pregnant, has given birth in the last 6 months or is breastfeeding; is under 18; has a health condition or disability that affects their work; is returning after a work-related injury or illness; is at higher risk from infection; or works from home. Timescales are in the Health and Safety Policy and the Infection Prevention and Control Policy, and detail in the New and Expectant Mothers at Work Procedure and the Young Workers Procedure. Adjustments are recorded in the staff record, the Care Coordinator allocates only the visits the assessment allows, and it is reviewed whenever the worker's circumstances or work change."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Dynamic risk assessment during visits",
+      "blocks": [
+        {
+          "p": "Every care worker carries out a dynamic risk assessment on every visit. It never replaces the written assessment:"
+        },
+        {
+          "steps": [
+            "Before you go in, look and listen: who is there, whether animals are loose, any smell of gas or burning, smoke, raised voices or anything else that makes you feel unsafe. In serious and imminent danger, do not go in, or leave at once, and follow the emergency procedure in the Health and Safety Policy: nobody goes back in until the Registered Manager, Deputy Manager or On-call Manager says it is safe. If you cannot get in, follow the No Reply, No Access and Missing Person Procedure.",
+            "Compare what you find with the risk assessments and care plan: the person's condition, the equipment, the layout of the room and the people present. Check each item of equipment before you use it, and never use one that is damaged, past its examination date or that you have not been trained to use.",
+            "If a task can no longer be done safely as written, do not do it and do not improvise, for example by lifting the person by hand when the hoist is faulty or doing a two-worker task alone. Give the care that remains safe and leave the person safe and comfortable.",
+            "If you could not give care as planned, or the hazard puts the next visit at risk, phone the office, or the On-call Manager out of hours, before you leave and speak to a person, from outside if you feel unsafe. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. Together you agree what happens now, such as a second worker, replacement equipment, a return visit, a call to 999 or NHS 111, or a call to the person's family. If the person would be unsafe alone, stay until you are told what to do; the office tells your next person you will be late.",
+            "Write in the daily visit notes what you found, what you did and did not do, and why. Record the hazard in the incident log before the end of your shift; injuries and near misses are reported as the Health and Safety Policy sets out."
+          ]
+        },
+        {
+          "p": "The office or On-call Manager records the advice given in the incident log entry and tells the Care Coordinator and Field Care Supervisor straight away if the next visit is affected. The Registered Manager or Deputy Manager reviews every hazard report by the end of the next working day."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Assessments, approvals and who was told of changes are kept in the person's risk assessments in CareFlow; what a care worker found and did in the daily visit notes; hazards, near misses and injuries in the incident log; general risk assessments in the branch health and safety file; staff individual risk assessments in the staff record; and assessor training, authorisation and checked assessments in the training and compliance records. Retention follows the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Risk assessment: this procedure, rating, the home environment checklist, positive risk-taking, capacity and recording in CareFlow",
+                "Care Coordinators, Field Care Supervisors, On-call Managers, Deputy Manager and Registered Manager",
+                "Before their first assessment and before joining the on-call rota; their first 3 assessments are checked by the Registered Manager or Deputy Manager",
+                "Every 3 years"
+              ],
+              [
+                "Moving and handling risk assessment",
+                "Assessors who complete moving and handling risk assessments",
+                "Before their first such assessment",
+                "As the Moving and Handling of People Policy sets out"
+              ],
+              [
+                "Reading risk assessments, dynamic risk assessment and reporting hazards, within health and safety awareness (Care Certificate Standard 13)",
+                "All care staff",
+                "At induction, before the first unsupervised visit",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The Registered Manager or Deputy Manager observes each assessor carrying out a home environment risk assessment at least once every 12 months. An assessor whose assessment an audit finds has a significant error, such as a missed significant hazard, a rating that left a risk without controls, or a High risk acted on without approval, is given feedback within 5 working days and completes two further supervised assessments before assessing alone again."
+        },
+        {
+          "p": "At spot checks, Field Care Supervisors ask care workers to explain the main risks and controls for the person and what they would do if something changed; a care worker who cannot is managed as the Health and Safety Policy sets out for a shortfall at a spot check."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Assessments and reviews due, overdue or missing; actions past their target date; short-notice assessments due within 7 days",
+                "Weekly",
+                "Care Coordinator",
+                "Registered Manager by exception"
+              ],
+              [
+                "5 home environment risk assessments (all if fewer), including every short-notice start: all areas checked, ratings justified, controls in the visit plans, person's views recorded, approvals in place, equipment examination dates current",
+                "Monthly",
+                "Deputy Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Every High and Very high residual risk, with its approval and review date, including positive risk-taking plans where serious harm is possible or the residual risk is High or Very high",
+                "Monthly",
+                "Registered Manager",
+                "Nominated Individual, in the monthly health and safety indicators"
+              ],
+              [
+                "Hazard reports reviewed by the end of the next working day, and assessments updated on time",
+                "Monthly",
+                "Deputy Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "General risk assessment register",
+                "Every 12 months",
+                "Registered Manager",
+                "Health and Safety Meeting"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of people we support with a current home environment risk assessment and 100% of High residual risks approved before the task takes place. Every shortfall goes into the service improvement plan with an action, an owner and a deadline, and is tracked at the Health and Safety Meeting until complete."
+        },
+        {
+          "p": "This procedure is reviewed every 12 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

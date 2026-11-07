@@ -111,7 +111,7 @@ import {
 } from './visit-plan-slot-carer-sync.util';
 import { collectCarerPatternConflicts, employmentToPatternContext, type EmployeePatternContext, type SlotCarerPatternInput } from './visit-plan-carer-job-fit.util';
 import { VisitPlanCarerSyncPatternPreviewDto } from './dto/visit-plan-carer-sync-pattern-preview.dto';
-import { clearVisitPlansAndRota } from './clear-visit-plans-and-rota.util';
+import { clearServiceUserVisitPlansAndRota, clearVisitPlansAndRota } from './clear-visit-plans-and-rota.util';
 import {
   resolveGlobalAssignedEmployeeIds,
   slotAssignedEmployeeIds,
@@ -2231,6 +2231,7 @@ export class ServiceUserVisitPlansService {
     if (backfillOnly && backfillDays < 1) {
       throw new BadRequestException('backfillDays must be at least 1 when backfillOnly is true');
     }
+    const orgMaxBackfillDays = await this.assertBackfillWithinOrgLimit(backfillDays);
     const enabledSlots = plan.slots.filter((s) => s.isEnabled);
     const bankHolidayDates = await this.loadBankHolidayDateKeys(from, to, backfillDays);
     const timeZone = await this.orgSettings.getOperationalTimezone();
@@ -2240,6 +2241,7 @@ export class ServiceUserVisitPlansService {
       fromDate: from,
       toDate: to,
       backfillDays,
+      orgMaxBackfillDays,
       backfillOnly,
       enabledSlots: enabledSlots.map((s) => slotAsWithRelations(s)),
       scheduleAnchor: plan.effectiveFrom,
@@ -2370,6 +2372,53 @@ export class ServiceUserVisitPlansService {
       message: dryRun
         ? 'Dry run — visit plans and rota counts only'
         : 'Visit plans and rota cleared for all service users',
+    };
+  }
+
+  /** Refuses a backfill over the organisation limit (Settings → Dom Care); returns that limit. */
+  private async assertBackfillWithinOrgLimit(backfillDays: number): Promise<number> {
+    const orgMax = await this.orgSettings.getMaxBackfillDays();
+    if (backfillDays > 0 && orgMax === 0) {
+      throw new BadRequestException(
+        'Backfill is turned off. Set Max backfill days in Settings → Dom Care to allow it.',
+      );
+    }
+    if (backfillDays > orgMax) {
+      throw new BadRequestException(
+        `Backfill is limited to ${orgMax} day(s) (Settings → Dom Care).`,
+      );
+    }
+    return orgMax;
+  }
+
+  /** One service user's visit plans and rota only (Reset rota → this service user). Others are not touched. */
+  async clearServiceUserVisitPlansAndRota(
+    userId: string,
+    serviceUserId: string,
+    dryRun: boolean,
+    meta?: RequestAuditMeta,
+  ) {
+    const su = await this.ensureServiceUser(serviceUserId);
+    const name = `${su.firstName} ${su.lastName}`.trim();
+    const result = await clearServiceUserVisitPlansAndRota(this.prisma, serviceUserId, { dryRun });
+    if (!dryRun) {
+      await this.audit.logAudit({
+        userId,
+        module: AuditModule.SERVICE_USER,
+        action: AuditAction.SERVICE_USER_VISIT_PLANS_AND_ROTA_CLEARED,
+        recordType: 'ServiceUser',
+        recordId: serviceUserId,
+        newValues: { deleted: result.deleted },
+        metadata: { serviceUserId, serviceUserName: name },
+        ipAddress: meta?.ipAddress,
+        userAgent: meta?.userAgent,
+      });
+    }
+    return {
+      data: { dryRun, serviceUserId, serviceUserName: name, counts: result.counts, deleted: result.deleted ?? null },
+      message: dryRun
+        ? `Dry run — ${name}'s visit plans and rota counts only`
+        : `Visit plans and rota cleared for ${name}`,
     };
   }
 
@@ -2617,7 +2666,7 @@ export class ServiceUserVisitPlansService {
     try {
       suspensionReviewDueAt = dto.reviewDueAt?.trim()
         ? parseVisitPlanDateOnly(dto.reviewDueAt, 'reviewDueAt')
-        : defaultSuspensionReviewDueAt(today);
+        : defaultSuspensionReviewDueAt(today, (await this.orgSettings.getReviewSettings()).visitPlanSuspensionReviewDays);
     } catch (e) {
       throw new BadRequestException(e instanceof Error ? e.message : 'Invalid reviewDueAt');
     }
@@ -2937,8 +2986,9 @@ export class ServiceUserVisitPlansService {
       rounds,
     );
 
+    // First review of a plan drafted from the assessment (Settings → Reviews & reminders).
     const reviewDueAt = new Date();
-    reviewDueAt.setDate(reviewDueAt.getDate() + 42);
+    reviewDueAt.setDate(reviewDueAt.getDate() + (await this.orgSettings.getReviewSettings()).visitPlanFirstReviewDays);
 
     return this.create(
       userId,
@@ -3006,6 +3056,7 @@ export class ServiceUserVisitPlansService {
     if (backfillOnly && backfillDays < 1) {
       throw new BadRequestException('backfillDays must be at least 1 when backfillOnly is true');
     }
+    const orgMaxBackfillDays = await this.assertBackfillWithinOrgLimit(backfillDays);
 
     // Service user weekly hours (Settings → Dom Rules): from today on, a visit that takes its week
     // over the hours is held for a manager (not made) or made with a warning. Visits already held
@@ -3199,7 +3250,7 @@ export class ServiceUserVisitPlansService {
 
         if (isBackfillDay) {
           const anySlotAllowsBackfill = enabledSlots.some((slot) => {
-            const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays);
+            const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays, orgMaxBackfillDays);
             if (allowed <= 0) return false;
             const slotStart = computeGenerationStart(from, backfillDays, slot.slotEffectiveFrom, {
               clampToSlotEffectiveFrom: clampToSlot,
@@ -3227,7 +3278,7 @@ export class ServiceUserVisitPlansService {
         for (const slot of slotsInTimeOrder) {
           let extendBefore = 0;
           if (isBackfillDay) {
-            const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays);
+            const allowed = maxAllowedBackfillDays(slot.allowBackfillDays, backfillDays, orgMaxBackfillDays);
             if (allowed <= 0) continue;
             const slotStart = computeGenerationStart(from, backfillDays, slot.slotEffectiveFrom, {
               clampToSlotEffectiveFrom: clampToSlot,

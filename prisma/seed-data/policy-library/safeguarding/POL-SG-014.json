@@ -1,0 +1,509 @@
+{
+  "reference": "POL-SG-014",
+  "revision": 1,
+  "title": "Prevent and Radicalisation Guideline",
+  "documentType": "GUIDELINE",
+  "summary": "How all staff recognise and report a concern that a person we support, someone in their household or a colleague may be drawn into terrorism, using notice, check, share through our safeguarding route. Covers signs, stereotyping, the visit, referrals, Channel, information sharing, notifications and training.",
+  "keyPoints": {
+    "intro": "Prevent is part of everyday safeguarding. On every visit, report any worry that someone is being drawn into supporting terrorism in exactly the way you report any other safeguarding concern.",
+    "points": [
+      "If you believe an attack or serious violence is imminent, or see weapons, explosives or attack plans: touch nothing, leave, call 999 from outside, then the office or On-call Manager. Stay out until the Registered Manager, Deputy Manager or On-call Manager says it is safe.",
+      "Report any worry that a person we support, someone in their household or a colleague is being drawn into terrorism or supporting it. You do not need proof or to know the ideology, and reporting is not an accusation.",
+      "Notice, check, share: note what you saw and heard, then, before you leave the visit, phone the office (the On-call Manager out of hours) and speak to a person, from outside if anyone involved could overhear.",
+      "If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. If no manager can be reached and you believe someone is at risk, contact the police using your Local Safeguarding Contacts sheet.",
+      "Never argue with, challenge or try to change the person's views, never warn them or anyone else that you are reporting, and never promise to keep what they tell you secret.",
+      "Never search the home or the person's phone or computer, and never touch, photograph, copy, download or share extremist or terrorist material. Describe what you saw in words.",
+      "Report the concern, with the person's exact words, in the CareFlow app as a Safeguarding Concern incident before the end of your shift. In the daily visit notes, write only that a concern has been reported to the office.",
+      "Faith, culture, appearance, political views, lawful protest and strong opinions are not signs of radicalisation. Report words and behaviour that suggest support for violence, never who someone is.",
+      "Dementia, mental illness and some other conditions can cause out-of-character remarks. Still report what you heard: a health condition never by itself rules out a referral, and the safeguarding lead decides what to share.",
+      "Keep giving the person their care as planned. A Prevent referral never by itself reduces or ends their care, and the safeguarding lead decides who tells the person and their family.",
+      "Complete the GOV.UK Prevent awareness course during induction and a refresher course every 3 years, and never use a work phone or CareFlow device to view extremist material."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "SAFEGUARDING",
+    "TRAINING"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-002",
+    "POL-SG-007",
+    "POL-SG-004",
+    "POL-SG-003",
+    "POL-CD-005",
+    "POL-GOV-016",
+    "POL-GOV-009"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Counter-Terrorism and Security Act 2015, section 26 (general duty on specified authorities to have due regard to the need to prevent people from being drawn into terrorism)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/6/section/26"
+    },
+    {
+      "source": "Counter-Terrorism and Security Act 2015, Schedule 6 (specified authorities)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/6/schedule/6"
+    },
+    {
+      "source": "Counter-Terrorism and Security Act 2015, section 36 (Channel: assessment and support by local panels)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/6/section/36"
+    },
+    {
+      "source": "Counter-Terrorism and Security Act 2015, section 38 (co-operation with panels)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/6/section/38"
+    },
+    {
+      "source": "Counter-Terrorism and Security Act 2015, section 41 (interpretation: necessary consent)",
+      "url": "https://www.legislation.gov.uk/ukpga/2015/6/section/41"
+    },
+    {
+      "source": "Terrorism Act 2000, section 38B (information about acts of terrorism)",
+      "url": "https://www.legislation.gov.uk/ukpga/2000/11/section/38B"
+    },
+    {
+      "source": "Home Office, Prevent duty guidance: for England and Wales (2023, in force 31 December 2023), including the Healthcare section and glossary of terms",
+      "url": "https://www.gov.uk/government/publications/prevent-duty-guidance"
+    },
+    {
+      "source": "Home Office, Key Principles of Prevent (23 February 2026): referral threshold, no clear ideology needed, mental ill-health and neurodivergence as context only",
+      "url": "https://www.gov.uk/government/publications/key-principles-of-prevent/key-principles-of-prevent-accessible"
+    },
+    {
+      "source": "Home Office, Notice, check, share (28 August 2026, updated 20 October 2026): indicators, checking with the safeguarding lead and colleagues, concerns outside Prevent, national referral form to the police, recording decisions not to refer",
+      "url": "https://www.gov.uk/government/publications/notice-check-share/notice-check-share-accessible"
+    },
+    {
+      "source": "Home Office, Channel duty guidance: protecting people susceptible to radicalisation (2023, collection last updated 14 October 2025), including police triage of referrals, consent and capacity, and partners' information requests",
+      "url": "https://www.gov.uk/government/publications/channel-and-prevent-multi-agency-panel-pmap-guidance/channel-duty-guidance-protecting-people-susceptible-to-radicalisation-accessible"
+    },
+    {
+      "source": "Home Office, Prevent duty training portal (awareness, referrals, Channel or PMAP, and refresher awareness courses)",
+      "url": "https://www.support-people-susceptible-to-radicalisation.service.gov.uk/portal"
+    },
+    {
+      "source": "GOV.UK, Report online material promoting terrorism or extremism",
+      "url": "https://www.gov.uk/report-terrorism"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 (safeguarding service users from abuse and improper treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18(2)(e) and (f) (abuse or allegation of abuse; incidents reported to or investigated by the police)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "UK GDPR, Article 6(1)(ea) and Annex 1, paragraphs 2, 5 and 6 to 8 (recognised legitimate interests: national and public security, crime, and safeguarding vulnerable individuals), in force from 5 February 2026",
+      "url": "https://www.legislation.gov.uk/eur/2016/679/annex/1"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 2, paragraph 10 (preventing, detecting or investigating unlawful acts)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/10"
+    },
+    {
+      "source": "Data Protection Act 2018, Schedule 1, Part 2, paragraph 18 (safeguarding of children and of individuals at risk)",
+      "url": "https://www.legislation.gov.uk/ukpga/2018/12/schedule/1/paragraph/18"
+    },
+    {
+      "source": "Home Office, Workers and Temporary Workers: guidance for sponsors, Part 3: sponsor duties and compliance (updated 2 September 2026), paragraph C1.14 (information that a sponsored worker may be engaged in terrorism or criminal activity given to the police)",
+      "url": "https://www.gov.uk/government/publications/workers-and-temporary-workers-guidance-for-sponsors-part-3-sponsor-duties-and-compliance/workers-and-temporary-workers-guidance-for-sponsors-part-3-sponsor-duties-and-compliance-accessible"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} treats the risk that someone may be drawn into terrorism as a safeguarding matter. People who are isolated, unwell or dependent on others can be targeted, often online, and our care workers may be the only people who see them regularly."
+        },
+        {
+          "p": "{{organisation}} will make sure concerns are reported without delay and never on stereotypes, and that the person keeps the care they need."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This guideline sets out how we apply the Prevent duty guidance in home care. Anything not stated here follows the Safeguarding Adults Policy and the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This guideline applies to everyone who works for us, including Directors, bank and agency workers, students and volunteers. It covers concerns about a person we support, anyone living in or visiting their home, and any member of staff."
+        },
+        {
+          "p": "Violence, knife crime, gangs or domestic abuse with no link to terrorism follow the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure or the Domestic Abuse Policy. Threats or abuse aimed at staff follow the Violence and Aggression Towards Staff Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Terrorism",
+                "Serious violence or damage, or the threat of it, used to influence a government or intimidate the public for a political, religious, racial or ideological cause (Terrorism Act 2000, section 1, summarised)."
+              ],
+              [
+                "Radicalisation",
+                "The process by which a person comes to support, or to use, terrorist violence."
+              ],
+              [
+                "Channel",
+                "The voluntary, local authority-chaired multi-agency panel that assesses people referred through Prevent and, with their consent, arranges support (Counter-Terrorism and Security Act 2015, section 36)."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Role",
+              "Duties under this guideline"
+            ],
+            "rows": [
+              [
+                "Directors and Nominated Individual",
+                "The Directors are accountable for our Prevent arrangements. The Nominated Individual is the senior leader for Prevent, checks that commissioners' Prevent requirements are met and reviews the Prevent figures for signs of stereotyping."
+              ],
+              [
+                "Registered Manager (Prevent lead) and Deputy Manager (deputy)",
+                "Within the safeguarding lead role (Nominated Individual if both are unavailable): check concerns, decide on and make referrals, liaise with Prevent leads and police, attend Channel panels, notify, and keep Prevent contacts on each Local Safeguarding Contacts sheet."
+              ],
+              [
+                "On-call Manager",
+                "Out of hours: receive concerns, call 999 for any immediate risk, open the safeguarding record and hand over by 10am the next working day; never make a non-emergency referral."
+              ],
+              [
+                "Care Coordinators and Field Care Supervisors",
+                "Pass concerns to the lead at once, update risk assessments, brief care workers and ask referrers about police or probation arrangements."
+              ],
+              [
+                "Care Workers, Senior Care Workers and Office staff",
+                "Follow the notice steps, report and record every concern, and complete Prevent training on time. Office staff record a phoned-in concern in the caller's words and pass it at once to the lead, or the On-call Manager out of hours."
+              ],
+              [
+                "HR Manager",
+                "Keeps Prevent training records and manages the employment side of a concern about staff."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "How the Prevent duty applies to us",
+      "blocks": [
+        {
+          "p": "The law: section 26 of the Counter-Terrorism and Security Act 2015 requires the authorities in Schedule 6, such as local authorities and NHS trusts, to have due regard to the need to prevent people from being drawn into terrorism. Independent home care providers are not specified authorities, but commissioners may require Prevent arrangements, including training, in their contracts."
+        },
+        {
+          "p": "Regulation 13 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 requires us to protect people from abuse and improper treatment; our policy treats grooming or exploitation towards terrorism as abuse. Section 38B of the Terrorism Act 2000 makes it an offence for anyone, without reasonable excuse, not to tell the police as soon as reasonably practicable information they know or believe might be of material assistance in preventing an act of terrorism or bringing someone to justice for one."
+        },
+        {
+          "p": "Our policy: we follow the Prevent duty guidance for every person we support, however their care is funded. The Registered Manager records each commissioner's Prevent requirements in the governance records, meets them and completes their assurance returns by the deadline."
+        }
+      ]
+    },
+    {
+      "heading": "Recognising a concern",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What may be a sign",
+          "blocks": [
+            {
+              "p": "No single sign proves anything, and a clear ideology is not needed for a referral. The same threshold applies to every ideology, including Islamist and extreme right-wing terrorism and violence driven by hatred of women, Jewish people, Muslims, LGBT people or any other group. Report it when someone:"
+            },
+            {
+              "bullets": [
+                "says they support a terrorist organisation or attack, or that violence against a group or the public is justified;",
+                "talks about plans, targets, weapons, explosives or making dangerous substances, or is fascinated by mass killings;",
+                "has, views, shares or displays material or symbols promoting terrorism, such as attack videos, propaganda or instructions;",
+                "has changed suddenly: new hostility to a group, cutting off family, rigid new views, or anger built around a grievance;",
+                "is influenced by a new online contact or visitor who controls what they read or watch, asks for money or demands secrecy."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Avoiding stereotypes",
+          "blocks": [
+            {
+              "p": "Religious practice, dress, culture, ethnicity, nationality, strong opinions, lawful protest and criticism of the government are never signs on their own. Staff report what a person says and does, never who they are. A report based on a protected characteristic alone is discrimination, handled under the Equality, Diversity and Human Rights in Care Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Susceptibility and health",
+          "blocks": [
+            {
+              "p": "Loneliness, a learning disability or autism, mental ill-health, cognitive impairment, a recent loss or long periods online can make a person more susceptible. Dementia, delirium, psychosis and some brain injuries can cause out-of-character remarks. Staff still report them: health and neurodivergence are context, never on their own a reason not to refer. Where a health cause is possible, the lead tells the GP or community mental health team the same working day, with the person's agreement or in their best interests; those services do not manage radicalisation risk."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Notice: what you do at the visit",
+      "blocks": [
+        {
+          "p": "Your role is to notice and pass on, never to investigate or intervene."
+        },
+        {
+          "steps": [
+            "If you believe an attack or serious violence is planned or imminent, or you see weapons, explosives, stored chemicals or attack plans, touch nothing. Leave as soon as it is safe, call 999 from outside, then phone the office or the On-call Manager, saying whether the home and key safe are secure, and check out on CareFlow. Stay out until the Registered Manager, Deputy Manager or On-call Manager says it is safe. Leaving early for your safety is never held against you; the office arranges any essential care still due.",
+            "If the person says something worrying, stay calm. Do not argue or try to change their views, and do not ask leading questions. If they confide in you, explain that you must tell your manager.",
+            "Never search the home or look through post, phones or computers, and never touch, photograph, copy, download or forward material. Note in words what you saw, where, and anything written on it. Decline, and report, any request to help reach, print, post or pay for such material or contacts.",
+            "Never warn the person, a visitor or the family that you will report. Finish the planned care calmly if it is safe.",
+            "Before you leave the visit, phone the office, or the On-call Manager out of hours, and speak to a person, from outside if anyone involved could overhear; with no signal, from the nearest place with one before travelling on. If nobody answers within 15 minutes, follow the escalation in the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. The office tells you whether to stay with the person or go on, and rearranges your next visit if you will be late.",
+            "Before the end of your shift, report the concern in the CareFlow app as a Safeguarding Concern incident: date, time, exact words in quotation marks, what you saw, who was present and what you did. Dictate any CareFlow voice note only once away from the home, and never record anyone speaking. In the daily visit notes, write only that a concern has been reported."
+          ]
+        },
+        {
+          "p": "If you feel threatened, leave and follow the Lone Working and Staff Personal Safety Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Check and share: what managers do",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Checking the concern",
+          "blocks": [
+            {
+              "p": "Within 1 hour of the report, the lead or the On-call Manager speaks to the person who raised it, checks for earlier concerns, and records whether anyone is at immediate risk (999 at once), who else is involved, the person's care and support needs and any possible health cause. The lead also asks the person's regular care workers what they have noticed."
+            },
+            {
+              "p": "If unsure whether to refer, the lead asks the local authority Prevent lead or police Prevent team for advice the same working day without naming the person, and records the advice; the decision stays with the lead. When in doubt the lead refers. Every decision, including not to refer, is recorded with reasons."
+            }
+          ]
+        },
+        {
+          "heading": "Making a Prevent referral",
+          "blocks": [
+            {
+              "p": "The lead completes the Prevent national referral form from the care worker's recorded account, checking any detail with them, and sends it by the route on the Local Safeguarding Contacts sheet for the area where the person lives, the same working day the decision is made; a concern reported out of hours with nobody at immediate risk is referred by 12 noon the next working day."
+            },
+            {
+              "p": "The lead records the reference and, if there is no acknowledgement by the end of the next working day, phones the recipient. Information that might help prevent an act of terrorism goes to the police at once, by 999 if there is any immediate risk, and is never held back to complete a form. The lead also reports any online terrorist material staff saw through the GOV.UK service Report online material promoting terrorism or extremism."
+            }
+          ]
+        },
+        {
+          "heading": "Safeguarding alongside Prevent",
+          "blocks": [
+            {
+              "p": "A Prevent referral never replaces a safeguarding referral. Where someone is grooming, exploiting, coercing or financially abusing the person, or they may be neglected, the lead also refers to the local authority under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. Where someone influencing them gives part of their care (medicines, meals or money), the lead agrees the same working day who takes that part over and whether the key safe code changes, and the Care Coordinator updates the care plan. A child at risk is also referred under the Safeguarding Children and Young People Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Telling the person and sharing information",
+          "blocks": [
+            {
+              "p": "A referral can lawfully be made without the person's consent. When referring, the lead asks the police Prevent team whether and when the person may be told and, unless they advise against it or it would increase risk, tells the person that a concern has been shared and why, using a professional interpreter where needed, never a family member. Family are told only where the lead agrees it with the police."
+            },
+            {
+              "p": "We share only what is necessary, securely, recording what, with whom and why (Confidentiality and Information Sharing Policy). Our lawful basis is recognised legitimate interest (UK GDPR Article 6(1)(ea) and Annex 1: national and public security, crime, and safeguarding a vulnerable individual). Beliefs, health and offence information shared without consent relies on the Data Protection Act 2018, Schedule 1, paragraph 10 (unlawful acts) or paragraph 18 (individuals at risk), under the appropriate policy document kept with the Data Protection Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Notifications",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Who",
+                  "By whom",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "CQC: a referral or police involvement concerning a person we support or their household (a police incident), and an allegation of abuse where someone is exploiting or grooming the person",
+                    "Registered Manager, or Deputy Manager when absent (Nominated Individual if both are unavailable)",
+                    "Within 24 hours of the referral or of the police first contacting us, under the Statutory Notifications to CQC Procedure, by CareFlow reference number only"
+                  ],
+                  [
+                    "Nominated Individual",
+                    "Registered Manager",
+                    "Within 24 hours of any Prevent referral or police involvement"
+                  ],
+                  [
+                    "Commissioner (the local authority or integrated care board commissioning our care; self-funders and direct payment holders have none)",
+                    "Registered Manager",
+                    "The same working day, stating only that a referral has been made, unless the police ask us to wait"
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "After a referral",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Police assessment and Channel",
+          "blocks": [
+            {
+              "p": "Specialist police triage every referral and may close it, pass it to other services, manage it themselves or send it to the local authority's Channel panel. Where the person may lack capacity to consent to Channel support, the lead tells the panel and gives our observations; the capacity assessment and any best interests decision belong to the panel's agencies (Mental Capacity Act and Best Interests Policy)."
+            },
+            {
+              "p": "When invited, the Registered Manager or Deputy Manager attends the panel or sends a written report with a chronology. Requests for information from the panel or police are answered by the date set, or within 2 working days where none is set. Agreed actions go into the safeguarding record with an owner and deadline, and into the care plan where they change the person's care."
+            }
+          ]
+        },
+        {
+          "heading": "Continuing care and keeping staff safe",
+          "blocks": [
+            {
+              "p": "The person's care continues as planned; a referral never by itself reduces, suspends or ends a package, and any change needed for staff safety follows the Violence and Aggression Towards Staff Policy. Where any risk to staff is suggested, the Registered Manager or Deputy Manager reviews the risk assessment with the Field Care Supervisor before the next visit, and the Care Coordinator phone-briefs every allocated worker, bank, agency and On-call Managers included, before their next visit. Controls go in the risk assessment only, never in the care plan copy kept in the home. Any care worker may ask not to visit the person and is moved without loss of hours."
+            },
+            {
+              "p": "Before a package starts, the Care Coordinator asks the referrer about known police, probation or multi-agency public protection arrangements, including terrorism-related licence conditions, and records the answer in the initial assessment. Where they exist, the Registered Manager contacts the police or probation officer before the first visit, or the next visit if they come to light later."
+            }
+          ]
+        },
+        {
+          "heading": "Closing the Prevent part of the record",
+          "blocks": [
+            {
+              "p": "Referrers are not always told the outcome. The lead asks for an update 20 working days after the referral and every 4 weeks after that. The Registered Manager or Deputy Manager closes the Prevent part of the record, with reasons, once the police or panel confirm our part has ended, or 3 months after the referral if there has been no further contact. Safeguarding actions stay open until complete."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Concerns about staff",
+      "blocks": [
+        {
+          "p": "A member of staff who expresses support for terrorism, shares terrorist material or appears to be drawn into extremist violence is reported to the Registered Manager (the Nominated Individual if it concerns the Registered Manager), who decides the same day whether to make a Prevent referral and whether it is an allegation under the Managing Allegations Against Staff Procedure. A referral is support, not a disciplinary finding; any breach of the Staff Code of Conduct follows the Disciplinary Policy and Procedure. Where information suggests a sponsored worker may be engaged in terrorism, the Registered Manager gives it to the police the same working day, as the Right to Work and Sponsored Workers Policy requires."
+        },
+        {
+          "p": "Staff never use a work phone, CareFlow device or office computer to view, store or share extremist or terrorist material. Anyone worried about themselves, a colleague or a relative may speak privately to the Registered Manager or HR Manager, or use the Whistleblowing (Speaking Up) Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Every Prevent concern has a restricted safeguarding record in CareFlow, with the referral form and references; a concern about staff is also recorded in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions). Records follow the Records Management and Retention Policy and are never destroyed while a police investigation or Channel case is open."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "GOV.UK Prevent awareness course",
+                "All employees, including Office staff and Directors",
+                "Care staff during induction, before lone working sign-off; everyone else within the first week and before taking calls alone",
+                "GOV.UK refresher awareness course every 3 years, with a Prevent update in the annual safeguarding refresher"
+              ],
+              [
+                "GOV.UK Prevent referrals course",
+                "Senior Care Workers, Field Care Supervisors, Care Coordinators and On-call Managers",
+                "Before supervisory or on-call duties",
+                "Every 3 years"
+              ],
+              [
+                "GOV.UK Prevent referrals and Channel courses, and the local authority's Prevent briefing where offered",
+                "Registered Manager, Deputy Manager and Nominated Individual",
+                "Within 3 months of appointment; until then the Nominated Individual (for a new Nominated Individual, the Registered Manager) countersigns every referral decision the same working day",
+                "Every 2 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Certificates go in the training and compliance records. At the first supervision after the awareness course, the supervisor asks the worker to explain notice, check, share; a worker who cannot is taken through this guideline again before their next unsupervised visit."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every Prevent concern against the timescales and notifications here",
+                "Monthly audit of every safeguarding record opened; target 100%",
+                "Deputy Manager (Registered Manager for cases the Deputy led)",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Concerns, referrals, Channel involvement and outcomes",
+                "Monthly safeguarding report, with quarterly trends",
+                "Registered Manager",
+                "Nominated Individual; quarterly to the Directors"
+              ],
+              [
+                "Prevent training (100% induction, 95% refreshers in date)",
+                "Training and compliance records, monthly",
+                "HR Manager",
+                "Registered Manager"
+              ],
+              [
+                "Prevent contacts on each Local Safeguarding Contacts sheet",
+                "Every 3 months and on starting in a new area",
+                "Registered Manager",
+                "Nominated Individual by exception"
+              ],
+              [
+                "Referrals by type and protected characteristic, to detect stereotyping",
+                "Annual safeguarding report",
+                "Registered Manager",
+                "Nominated Individual and Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall has an action, owner and deadline. This guideline is reviewed every 24 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after new Prevent or Channel guidance, a change in law, a referral showing the arrangements did not work, or an inspection finding."
+        }
+      ]
+    }
+  ]
+}

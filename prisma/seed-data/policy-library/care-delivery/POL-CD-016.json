@@ -1,0 +1,680 @@
+{
+  "reference": "POL-CD-016",
+  "revision": 1,
+  "title": "Positive Risk-Taking Policy",
+  "documentType": "POLICY",
+  "summary": "How we support the people we support to do the things that matter to them when those choices carry risk: respecting decisions made by people with capacity, agreeing, approving and reviewing positive risk-taking plans, deciding in a person's best interests when they cannot decide, handling disagreements, and where positive risk-taking ends because of staff safety, risks to others or safeguarding. For all employees.",
+  "keyPoints": {
+    "intro": "People have the right to live their own lives in their own homes, including taking risks you would not take. This tells you how to respect their choices, keep them as safe as they agree to, and when to phone the office.",
+    "points": [
+      "Respect a person's right to make their own choices, including ones you think unwise. Never stop, trick, pressure or threaten anyone to make them safer; the only exception is the emergency action the Restraint and Restrictive Practice Policy allows.",
+      "If a person chooses something that could harm them and their care plan does not cover it, explain the risk honestly, offer a safer way, record what they chose and what you said in the daily visit notes, and phone the office before you leave.",
+      "If the person could be harmed before your next visit, stay until the office or On-call Manager says what to do; if nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager.",
+      "Read a person's positive risk-taking plan before your first visit, check it for changes at every visit and follow its agreed steps. Phone the office before you leave if a sign it lists appears; call 999 for the emergency signs it names.",
+      "A person's choice never means you work unsafely. Never lift a person's weight by hand, do a two-worker task alone or use equipment that is damaged or unchecked; give the care that is safe and phone the office.",
+      "A person can take risks only for themselves. If their choice puts you, a child or anyone else at risk, phone the office before you leave.",
+      "If you think a choice is not really the person's own, because someone is pressuring them or they do not seem to understand the risk, phone the office before you leave the visit.",
+      "Family cannot overrule a person who can decide for themselves. If a relative insists you stop the person or give care they do not want, stay calm, do not argue and phone the office before you leave.",
+      "If you are worried about a risk a person is taking, or a plan is not working, tell the Care Coordinator or your Field Care Supervisor the same day. The plan will be reviewed.",
+      "If the person is harmed or nearly harmed, give first aid, call 999 if needed, phone the office and record it in the incident log before the end of your shift.",
+      "You will not be blamed for harm when you followed an approved plan. Never change a plan yourself: tell the office what is not working.",
+      "Complete positive risk-taking training with your Mental Capacity Act training at induction, before you work without a shadowing colleague, then every 12 months."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "RISK_ASSESSMENT",
+    "CARE_PLAN",
+    "SAFEGUARDING"
+  ],
+  "relatedReferences": [
+    "POL-CD-001",
+    "POL-CD-002",
+    "POL-CD-004",
+    "POL-CD-014",
+    "POL-SG-004",
+    "POL-SG-006",
+    "POL-SG-012",
+    "POL-HS-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Mental Capacity Act 2005, section 1 (the principles, including unwise decisions and the less restrictive option)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/1"
+    },
+    {
+      "source": "Office of the Public Guardian, Mental Capacity Act Code of Practice (GOV.UK page last updated 14 October 2020), paragraph 2.11",
+      "url": "https://www.gov.uk/government/publications/mental-capacity-act-code-of-practice"
+    },
+    {
+      "source": "Care Act 2014, section 1 (promoting individual well-being), subsections (2) and (3)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/1"
+    },
+    {
+      "source": "Care Act 2014, section 42 (enquiry by local authority)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/42"
+    },
+    {
+      "source": "Care Act 2014, section 73 (Human Rights Act 1998: provision of regulated care or support etc a public function)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/73"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 9(3)(c) and (d) (person-centred care: balance of risks and benefits, involvement in decisions)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/9"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(1) and (2)(a) and (b) (safe care and treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Human Rights Act 1998, Schedule 1, Article 8 (right to respect for private and family life)",
+      "url": "https://www.legislation.gov.uk/ukpga/1998/42/schedule/1"
+    },
+    {
+      "source": "Health and Safety at Work etc. Act 1974, section 2 (general duties of employers to their employees)",
+      "url": "https://www.legislation.gov.uk/ukpga/1974/37/section/2"
+    },
+    {
+      "source": "Social Care Institute for Excellence, Dignity in care: freedom to choose",
+      "url": "https://www.scie.org.uk/providing-care/dignity-in-care/freedom/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} supports people to live the lives they choose in their own homes. For many people the things that matter most carry some risk: walking to the corner shop alone, staying at home alone overnight, cooking their own meals, having a drink or a cigarette, or keeping a dog that gets under their feet. Removing every risk would remove independence, dignity and much of what makes life worth living."
+        },
+        {
+          "p": "{{organisation}} does not use risk as an automatic reason to say no. We find out with each person what they want to do and why it matters, set out honestly what they gain and what could go wrong, agree the safest way of doing it that they accept, and record and review that agreement. We respect decisions made by people with capacity, decide in the best interests of people who cannot, choosing the least restrictive option, and never ask our staff to work unsafely or let one person's choice put others at risk."
+        },
+        {
+          "p": "The Directors are accountable for this policy. The Registered Manager leads on positive risk-taking."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy sets out what care workers do when a person makes a risky choice; when a positive risk-taking plan is needed and how it is agreed, approved and reviewed; how risk decisions are made when a person may lack capacity; how disagreements are handled; where positive risk-taking ends; and how we check that we are neither careless nor over-cautious."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to all Directors, managers, office staff, care staff, bank and agency workers and students, and to every adult we support, whoever arranges or pays for their care. It covers risks a person chooses to take to themselves in their daily life and their care, including declining support, equipment or a safety measure we recommend, and best interests decisions about activities that carry risk for people who cannot decide."
+        },
+        {
+          "p": "Other documents own related subjects and use this policy whenever a person chooses to accept a risk: the rating method and home hazards (Risk Assessment and Home Environment Risk Assessment Procedure); risks to our staff and declined control measures (Health and Safety Policy); capacity assessments and best interests decisions (Mental Capacity Act and Best Interests Policy); restrictions (Restraint and Restrictive Practice Policy); self-neglect (Self-Neglect and Hoarding Procedure); declined visits and tasks (Visit Cancellations and Refusals of Care Procedure); managing medicines against advice (Self-Administration of Medicines Procedure); eating and drinking with acknowledged risks (Nutrition and Hydration Policy); fire risks (Fire Safety in People's Homes Policy); and risks to the organisation (Risk Management Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Positive risk-taking",
+                "Supporting a person to do something that matters to them, accepting that some risk remains, after weighing the benefits to their well-being against the possible harm and agreeing ways to reduce it."
+              ],
+              [
+                "Positive risk-taking plan",
+                "An individual risk assessment in CareFlow, linked to the Risks part of the care plan, that records the person's choice, the benefits and possible harms, the agreed controls, the signs that need action and the review date."
+              ],
+              [
+                "Unwise decision",
+                "A decision others think carries too much risk. Under the Mental Capacity Act 2005 it is never by itself proof that a person lacks capacity."
+              ],
+              [
+                "Serious harm",
+                "Harm rated severity 4 (fracture, hospital admission) or 5 (death or permanent disability) under the Risk Assessment and Home Environment Risk Assessment Procedure."
+              ],
+              [
+                "Residual risk",
+                "The risk that remains with every agreed control in place, rated Low (1 to 4), Medium (5 to 9), High (10 to 15) or Very high (16 to 25) by that procedure's method."
+              ],
+              [
+                "Risk to others",
+                "A risk that falls on anyone other than the person, including our staff, household members, children, neighbours and the public. A person cannot accept it on anyone else's behalf."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and provide the assessor time and training it needs; a person's own informed choices are not counted against the risk appetite set in the Risk Management Policy. The Nominated Individual reviews the monthly report of plans where serious harm is possible or the residual risk is High or Very high, and challenges any without approval or past their review date."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and Deputy Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on positive risk-taking: approves plans as this policy sets out, chairs risk discussion meetings, decides whether we will not support an activity, decides within 1 working day whether care can continue safely when a person declines part of their care plan, and reports in the quarterly quality report. The Deputy Manager carries out these duties in the Registered Manager's absence and does the monthly audit of plans."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Authorised assessors among them hold positive risk-taking conversations, write plans and carry out reviews. Care Coordinators also set interim instructions, brief care workers, contact health professionals and commissioners and check review dates weekly. Field Care Supervisors check at spot checks that care workers know and follow each plan."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours the On-call Manager takes reports of risky choices, decides interim arrangements and hands over to the Registered Manager or Deputy Manager by 10am on the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers and Care Workers",
+          "blocks": [
+            {
+              "p": "Care workers respect people's choices, follow positive risk-taking plans, record what happens in the daily visit notes and phone the office as this policy sets out. Senior Care Workers show new care workers on shadowing visits how each plan works in that home."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The law and our principles",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the law requires",
+          "blocks": [
+            {
+              "bullets": [
+                "Mental Capacity Act 2005, section 1: a person is assumed to have capacity unless it is established that they lack it, must be helped to decide, and is not treated as unable to decide merely because they make an unwise decision; anything done for a person who lacks capacity must be in their best interests, considering the less restrictive option. The Code of Practice (paragraph 2.11) says that repeated unwise decisions that put a person at significant risk of harm or exploitation, or one that is obviously irrational or out of character, may need further investigation of capacity, but do not necessarily mean that capacity is lacking.",
+                "Regulation 9(3)(c) and (d) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 require us to help the person, or anyone lawfully acting for them, understand their choices, discuss the balance of risks and benefits, and take part in decisions about their care as fully as possible.",
+                "Regulation 12(2)(a) and (b) require us to assess the risks of the care we give and do all that is reasonably practicable to reduce them. It gives us no power to override a person with capacity; we meet it by assessing, offering, agreeing and reviewing controls.",
+                "Section 1 of the Care Act 2014 requires local authorities to promote well-being, including control over day-to-day life, starting from the assumption that the person is best placed to judge their own well-being and keeping restrictions to the minimum necessary. The duty is the local authority's; our policy is to work the same way.",
+                "Article 8 of the Human Rights Act 1998 protects private and family life and home. Where a local authority arranges or pays for a person's care, section 73 of the Care Act 2014 means we exercise a public function in providing it and must act compatibly with Article 8; our policy is to do the same for everyone we support.",
+                "Section 2 of the Health and Safety at Work etc. Act 1974 requires us to protect our employees so far as is reasonably practicable, so a person's choice can never require our staff to work unsafely.",
+                "Section 42 of the Care Act 2014 requires the local authority to make, or cause to be made, whatever enquiries it thinks necessary where it has reasonable cause to suspect that an adult in its area has needs for care and support, is experiencing or at risk of abuse or neglect, and because of those needs cannot protect themselves. Whether self-neglect is referred for an enquiry is decided under the Self-Neglect and Hoarding Procedure."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Our principles",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Principle",
+                  "What it means in practice"
+                ],
+                "rows": [
+                  [
+                    "The person is the expert on their own life",
+                    "We start from what the person wants and why, record it in their own words and link it to a goal in What matters to me."
+                  ],
+                  [
+                    "Benefits count as much as harms",
+                    "Every plan records what the person gains, such as confidence, contact with friends, pleasure or staying at home, and weighs it against what could go wrong."
+                  ],
+                  [
+                    "Risk is reduced, not banned",
+                    "We look first for ways to make the activity safer that the person accepts: equipment, a different time, practice with an occupational therapist, telecare or help from family."
+                  ],
+                  [
+                    "Least restrictive",
+                    "Any restriction is the minimum needed, used only as the Restraint and Restrictive Practice Policy allows, never for our convenience."
+                  ],
+                  [
+                    "Shared and honest",
+                    "Decisions are made with the person and people they want involved, disagreements are recorded, and the person sees what we write."
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When a positive risk-taking plan is needed",
+      "blocks": [
+        {
+          "p": "Every choice carrying risk is rated by the method in the Risk Assessment and Home Environment Risk Assessment Procedure. The rating informs the conversation with the person; it never overrides their decision, and the procedure's stop rules apply to what our staff do, not to the person's own choices."
+        },
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What we do"
+            ],
+            "rows": [
+              [
+                "Residual risk Low and harm no worse than severity 3, such as choosing to skip a wash or go to bed late",
+                "Recorded in the care plan or daily visit notes. No plan is needed."
+              ],
+              [
+                "Residual risk Medium or higher, or serious harm possible whatever the score",
+                "A positive risk-taking plan is agreed under this policy."
+              ],
+              [
+                "The person declines recommended support, equipment or a safety measure, such as a pendant alarm, a key safe, a frame indoors, an extra visit or a higher level of medicines support",
+                "A plan where the residual risk is Medium or higher. Where part of the care plan is declined, the Registered Manager decides within 1 working day whether the rest can be given safely and tells the commissioner in writing."
+              ],
+              [
+                "Eating and drinking against swallowing advice, managing medicines against advice, or a fire risk such as smoking in bed",
+                "A plan under this policy, also following the Nutrition and Hydration Policy, the Self-Administration of Medicines Procedure or the Fire Safety in People's Homes Policy. Fire risks always count as serious harm."
+              ],
+              [
+                "The person lacks capacity for the decision",
+                "A best interests decision, with the risks and benefits recorded as a positive risk-taking plan (see When the person may lack capacity)."
+              ],
+              [
+                "The choice creates a risk to others, or there are signs of pressure, abuse or self-neglect",
+                "Not managed by a plan alone (see Where positive risk-taking ends)."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "At the visit",
+      "blocks": [
+        {
+          "p": "When a person makes or tells you about a choice that could harm them:"
+        },
+        {
+          "steps": [
+            "Listen to what they want to do and why. Do not argue, lecture or tell them off.",
+            "Explain the risk honestly and simply, using the communication methods in their care plan, and offer a safer way of doing it, without nagging.",
+            "Respect their decision. Never take away or move out of reach a walking aid, phone, alarm, keys or cigarettes, lock a door, hide food or drink, or threaten to stop visiting. Physical action is allowed only as an emergency intervention under the Restraint and Restrictive Practice Policy, to stop immediate serious harm.",
+            "Give the rest of the care that is safe and leave the person as safe as they agree to, with their phone, alarm and walking aid within reach and their home and key safe secured as the care plan records.",
+            "Record in the daily visit notes what the person chose, in their words, and what you said and offered.",
+            "Phone the office, or the On-call Manager out of hours, before you leave and speak to a person where the choice could cause harm and no plan covers it, a sign listed in the plan appears, you doubt the person understands the risk, someone else seems to be pressuring them, or the choice puts you or anyone else at risk, and agree with them what happens next. Where the person is at risk before the next visit, stay until the office or On-call Manager tells you what to do, waiting nearby if the person asks you to leave; they tell your next visit if you will be late. If nobody answers or calls you back within 15 minutes, phone the Registered Manager or Deputy Manager directly. If anyone is in immediate danger, call 999 first."
+          ]
+        },
+        {
+          "p": "Where a positive risk-taking plan exists, care workers read it before their first visit and check it for changes at the start of each visit, carry out the controls in the visit plans, and record what the plan asks them to watch for. For advice during a visit on how to follow a plan, they phone a Senior Care Worker or the Care Coordinator (the On-call Manager out of hours). They never change a plan themselves, whether the person, a relative or a colleague asks; they phone the office instead, and they tell the office the same day if a family carer or another agency can no longer do their part of the plan."
+        }
+      ]
+    },
+    {
+      "heading": "Agreeing a positive risk-taking plan",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Steps and timescales",
+          "blocks": [
+            {
+              "steps": [
+                "Same working day as the report (out of hours, the On-call Manager): the Care Coordinator records interim instructions in the care plan, briefs every rostered care worker before their next visit, and decides whether a capacity doubt, safeguarding concern or self-neglect sign needs action. Where serious harm is possible or the residual risk is High or Very high, the Registered Manager or Deputy Manager confirms or changes the interim instructions the same working day (an out-of-hours decision by 10am on the next working day).",
+                "Within 2 working days: the assessor records the choice, the advice given, the rating and the interim controls in the person's risk assessments. Where the risk relates to health, medicines, swallowing, skin, mobility or falls, the Care Coordinator asks the GP or the relevant community nurse or therapist for advice, with the person's consent.",
+                "Within 7 days of the report, as the focused review the Care Plan Review Procedure requires: an authorised assessor holds the positive risk-taking conversation with the person at home, with anyone they want present, after asking at least two core care team members (all if fewer) for their views. The assessor talks through what the person wants and why, what they gain, what could go wrong, the options and what our care workers can and cannot do, speaks with the person alone for part of it if they agree, and uses a professional interpreter where needed, never a family member.",
+                "The assessor submits the plan for approval the same working day. It is approved within 2 working days of submission, and in every case within 7 days of the report.",
+                "Once approved, the Care Coordinator briefs every rostered care worker by phone or message the same day and before their next visit, recording who was told; where serious harm is possible or the residual risk is High or Very high, the risk and what to do is shown in My care at a glance.",
+                "Within 5 working days of approval, the person receives a copy or summary in the format their care plan records. Where serious harm is possible and a local authority or NHS commissioner funds the care, the Care Coordinator tells the commissioner in writing within 2 working days of approval."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "What the plan records",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Part",
+                  "What it records"
+                ],
+                "rows": [
+                  [
+                    "The choice",
+                    "What the person wants to do and why, in their own words, and the goal in What matters to me it supports."
+                  ],
+                  [
+                    "Benefits and harms",
+                    "The benefits to the person's well-being; each possible harm, to whom, with its likelihood, severity and residual rating."
+                  ],
+                  [
+                    "Options",
+                    "The options discussed and why the person chose this one."
+                  ],
+                  [
+                    "Agreed controls",
+                    "What the person does, what family carers or other agencies do, what our care workers do at each visit (written into the visit plans), and any equipment, telecare or professional input, each with an owner. Where the person's safety depends on our visit times, whether the missed-visit risk level in the care plan needs to change."
+                  ],
+                  [
+                    "What we will not do",
+                    "Anything our staff cannot do and why, such as a manual lift or giving food against swallowing advice without a plan."
+                  ],
+                  [
+                    "Capacity basis",
+                    "Presumed capacity with the reasons no doubt arose, or the formal capacity assessment and best interests decision."
+                  ],
+                  [
+                    "Who was involved",
+                    "Everyone consulted, their views, and any disagreement and how it was dealt with."
+                  ],
+                  [
+                    "Signs and actions",
+                    "The signs that mean the care worker phones the office before leaving, and the signs that mean 999."
+                  ],
+                  [
+                    "Approval and review",
+                    "Who approved it and when, the review date and who reviews it."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Approval",
+          "blocks": [
+            {
+              "p": "Approval confirms our part in the plan: that the person's choice was informed, the options were considered and what our staff do is safe and lawful. It is not permission for the person, whose choice stands either way. Nobody approves a plan they wrote."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Plan",
+                  "Approved by"
+                ],
+                "rows": [
+                  [
+                    "Residual risk Low or Medium and harm no worse than severity 3",
+                    "An approver authorised under the Needs Assessment and Care Planning Policy: a Care Coordinator or Field Care Supervisor approver, the Deputy Manager or the Registered Manager."
+                  ],
+                  [
+                    "Residual risk High; serious harm possible (severity 4 or 5); every fire risk; every plan for eating and drinking with acknowledged risks; every best interests decision",
+                    "The Registered Manager or Deputy Manager."
+                  ],
+                  [
+                    "Residual risk Very high",
+                    "The Registered Manager (the Deputy Manager only in their absence), who also decides within 2 working days whether to request a multi-agency risk meeting through the local authority."
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When the person may lack capacity",
+      "blocks": [
+        {
+          "p": "A risky choice is never by itself a reason to doubt capacity. Capacity is looked at more closely when the person repeatedly makes choices that put them at significant risk of harm or exploitation, makes one that is obviously irrational or out of character, does not seem to understand or remember the risks explained, or keeps doing something different from what they say they will do. Care workers phone the office before leaving the visit with any doubt about a risky choice, and report other doubts the same day. A formal capacity assessment of the specific decision follows within 7 days under the Consent to Care Policy and the Mental Capacity Act and Best Interests Policy. Until then the person's choice is respected; where an essential task cannot wait, the one-visit best interests approval in the Consent to Care Policy applies."
+        },
+        {
+          "p": "Where a person lacks capacity for the decision, a verified attorney or deputy with authority for it decides; otherwise our decision is a best interests decision prepared by an authorised assessor and approved by the Registered Manager or Deputy Manager before use. It:"
+        },
+        {
+          "bullets": [
+            "gives real weight to the person's past and present wishes, feelings, beliefs and values and to their quality of life, so the safest option is not chosen automatically;",
+            "chooses, from every option considered, the one that restricts the person least while managing the risk;",
+            "records the risks and benefits as a positive risk-taking plan with a review date no later than the next care plan review;",
+            "is decided at a best interests meeting within 10 working days, chaired by the Registered Manager or Deputy Manager, wherever those consulted disagree or the option involves a restriction;",
+            "follows the Restraint and Restrictive Practice Policy for any restriction, and the Deprivation of Liberty in the Community Procedure where the arrangements may deprive the person of their liberty."
+          ]
+        },
+        {
+          "p": "Decisions that are not ours, such as where the person lives or the funding of their care, are referred by the Care Coordinator in writing to the commissioner, or for a self-funder the local authority, within 2 working days with our observations and the person's views."
+        }
+      ]
+    },
+    {
+      "heading": "Disagreements",
+      "blocks": [
+        {
+          "p": "Disagreement is recorded, not hidden. A person with capacity has the final say on risks to themselves; nobody else, including family, a health professional or our staff, can overrule them, although we keep offering safer options."
+        },
+        {
+          "table": {
+            "columns": [
+              "Who disagrees",
+              "What we do",
+              "Timescale"
+            ],
+            "rows": [
+              [
+                "A relative or friend wants us to stop the person or give care the person declines",
+                "With the person's agreement, the Care Coordinator explains the person's right to decide and how the plan reduces the risk, and records the relative's views. A verified attorney or deputy decides only where the person lacks capacity for that decision and it is within their authority. Pressure on the person is a safeguarding concern.",
+                "Within 2 working days"
+              ],
+              [
+                "A health professional advises against the choice",
+                "Their advice is recorded in the plan, explained to the person and built into the controls the person accepts. The person's decision stands.",
+                "At the next approval or review"
+              ],
+              [
+                "A member of staff disagrees with the plan",
+                "They tell the Care Coordinator or Field Care Supervisor, who records the concern and arranges a focused review. Staff are never asked to do anything they reasonably believe is unsafe.",
+                "Reported the same day; focused review within 7 days"
+              ],
+              [
+                "Views stay divided where serious harm is possible or the residual risk is Very high",
+                "A risk discussion meeting with the person, people they want present, relevant professionals and any advocate, chaired by the Registered Manager or Deputy Manager. The Care Coordinator sends the written outcome to everyone involved.",
+                "Meeting within 10 working days of the disagreement being recorded; outcome within 5 working days of the meeting"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where the person may have substantial difficulty taking part and has nobody suitable to support them, the Care Coordinator asks the local authority in writing within 2 working days to consider an independent advocate, as the Person-Centred Care, Dignity and Respect Policy sets out; a self-funder is given the local advocacy service's details."
+        },
+        {
+          "p": "Only the Registered Manager or Deputy Manager may decide that we will not support an activity a person wants because of risk; a Care Coordinator, Field Care Supervisor or care worker may not. They decide within 5 working days of the request reaching them and record the reasons in the plan, and the person receives written reasons in their format with the nearest alternative we can offer and the route under the Complaints Policy and Procedure. We never reduce, withdraw or threaten to withdraw care because a person chooses to take a risk; a package is handed back only under the Visit Cancellations and Refusals of Care Procedure, when we can no longer meet needs safely, and for a person with an open self-neglect record only as the Self-Neglect and Hoarding Procedure also requires."
+        }
+      ]
+    },
+    {
+      "heading": "Where positive risk-taking ends",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Staff safety",
+          "blocks": [
+            {
+              "p": "A person may accept a risk to themselves but never on behalf of our staff. A plan may ask care workers to support an activity in a safer way; it never asks them to lift all or most of a person's weight by hand, do a two-worker task alone, use damaged or unchecked equipment, work with an uncontrolled hazard, break the law or act against a health professional's written instructions. Where a person chooses to eat and drink despite swallowing advice, care workers follow the written plan agreed with the speech and language therapist or GP under the Nutrition and Hydration Policy. Where a choice leaves a significant risk to staff, the declined control measure steps in the Health and Safety Policy apply. Any member of staff may refuse a task they reasonably believe would put them in serious danger, giving the care that is safe and phoning the office."
+            }
+          ]
+        },
+        {
+          "heading": "Risks to other people",
+          "blocks": [
+            {
+              "p": "Where a choice puts other people at risk, such as smoking near home oxygen in a block of flats, a dog that bites visitors, a child left unsupervised, or driving after a doctor has said not to, the care worker phones the office before leaving. The Care Coordinator tells the Registered Manager or Deputy Manager the same working day, and they decide the action under the document that owns the risk, such as the Fire Safety in People's Homes Policy, the Animals and Pets in People's Homes Guideline or the Safeguarding Children and Young People Policy. Information is shared without consent to protect others only as the Confidentiality and Information Sharing Policy allows."
+            }
+          ]
+        },
+        {
+          "heading": "Safeguarding and self-neglect",
+          "blocks": [
+            {
+              "p": "A choice is not positive risk-taking where it is not freely made or where the risk comes from someone else. The safeguarding lead, or the On-call Manager out of hours, assesses the risk within 1 hour under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure when:"
+            },
+            {
+              "bullets": [
+                "the person appears to be pressured, coerced, controlled or exploited by someone into the choice, including where domestic abuse may be involved;",
+                "another person is causing the risk, such as a relative withholding food, medicines or care;",
+                "the person lacks capacity for the decision and the risk is not being managed;",
+                "an urgent self-neglect sign in the Self-Neglect and Hoarding Procedure is present, or the person's choices mean they are not meeting their essential needs and the risk is rising."
+              ]
+            },
+            {
+              "p": "A plan does not close a safeguarding concern. Where self-neglect is suspected, the Self-Neglect and Hoarding Procedure applies alongside this policy and its referral triggers decide whether the local authority is asked to make enquiries."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Reviewing plans and learning from incidents",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "When",
+              "Review",
+              "By whom"
+            ],
+            "rows": [
+              [
+                "Every care plan review",
+                "Full review of each plan: is it still the person's choice, does it still meet their goal, are the controls working, can any be reduced",
+                "The reviewer"
+              ],
+              [
+                "Serious harm possible, or residual risk High",
+                "At least every 3 months as well",
+                "Authorised assessor; approved by the Registered Manager or Deputy Manager"
+              ],
+              [
+                "Residual risk Very high",
+                "At least every 4 weeks as well, until the risk falls or the multi-agency route decides otherwise",
+                "Authorised assessor; approved by the Registered Manager"
+              ],
+              [
+                "After an incident or near miss linked to the risk, a change in health, mobility, capacity, household or equipment, a family carer or other agency no longer able to carry out an agreed control, a request from the person or family, or a staff concern",
+                "Focused review within 7 days, before the next visit where what staff do is no longer safe",
+                "Authorised assessor"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "When harm or a near miss happens, the care worker gives first aid, calls 999 if needed, phones the office before leaving and records it in the incident log before the end of their shift, under the Incident Reporting, Investigation and Learning Policy. The Registered Manager or Deputy Manager reviews it within that policy's initial review timescale (at once for a Critical incident; the same working day for Medium or High, by 12 noon the next working day if reported out of hours; by the end of the next working day for Low): was the plan followed, was the choice still informed, does the plan need to change, and whether a notification is due under the Statutory Notifications to CQC Procedure or the Duty of Candour Policy applies. Where our care or another person may have contributed to the harm, the safeguarding lead (the On-call Manager out of hours) decides within 1 hour of the report whether it is a safeguarding concern."
+        },
+        {
+          "p": "Harm from a risk the person chose, with the plan followed, is not a failure of care, and staff who followed an approved plan in good faith are supported, not blamed. Not following or changing a plan is dealt with in supervision and, where it continues or is deliberate, under the Disciplinary Policy and Procedure. After serious harm, the Field Care Supervisor contacts the care workers involved within 1 working day and a debrief is offered within 3 working days, as the Incident Reporting, Investigation and Learning Policy sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "p": "Plans, ratings, approvals and who was briefed are kept in the person's risk assessments in CareFlow, linked to the Risks part of the care plan; agreement, capacity assessments and best interests decisions in the Consent and decisions part; meeting records, decisions not to support an activity and letters to commissioners in the Reviews part; what happened at each visit in the daily visit notes; harm and near misses in the incident log; and safeguarding concerns in the safeguarding records. Earlier versions are never deleted. Retention follows the Records Management and Retention Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "This policy: respecting choices, what to do at the visit, following plans and when to phone",
+                "All care staff",
+                "Within the consent and Mental Capacity Act training at induction, before working without a shadowing colleague; refreshed every 12 months with the safeguarding refresher"
+              ],
+              [
+                "Positive risk-taking awareness and taking reports of risky choices",
+                "Office staff and HR Manager",
+                "Within the first week of employment; every 12 months"
+              ],
+              [
+                "Positive risk-taking conversations, rating, writing and approving plans",
+                "Authorised assessors, approvers and On-call Managers",
+                "Within the risk assessment training before the first assessment or on-call shift (refreshed every 3 years), and in the annual assessor update. Best interests decisions are covered by the capacity assessment and best interests training in the Consent to Care Policy"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Each new assessor's first two positive risk-taking plans are checked by the Registered Manager or Deputy Manager before approval. At every spot check in the home of a person with a positive risk-taking plan, the Field Care Supervisor asks the care worker to explain the plan and the signs that need action; a care worker who cannot is briefed before their next visit to that person."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Plans due or overdue for review, and plans not approved within 7 days of the report",
+                "Weekly",
+                "Care Coordinator",
+                "Weekly management meeting"
+              ],
+              [
+                "Every plan approved or changed in the month where serious harm is possible, plus 5 others (all if fewer): person's own words, benefits and harms, options, least restrictive controls, capacity basis, approval, briefing and review date (target 100%). Positive risk-taking is also checked within the monthly audit of 10 care plans",
+                "Monthly",
+                "Deputy Manager; the Registered Manager audits plans the Deputy Manager approved",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Plans where serious harm is possible or the residual risk is High or Very high, with approval and review dates, within the monthly High and Very high risk report under the Risk Assessment and Home Environment Risk Assessment Procedure",
+                "Monthly",
+                "Registered Manager",
+                "Nominated Individual"
+              ],
+              [
+                "Number of plans, linked incidents and harm, reviews on time, risk discussion meetings, decisions not to support an activity and their outcomes, and related complaints",
+                "Quarterly",
+                "Registered Manager",
+                "Quarterly quality report to the Nominated Individual and Directors"
+              ],
+              [
+                "Whether people feel supported to do the things that matter to them, including where there is some risk",
+                "Every 12 months, in the feeling safe at home survey",
+                "Deputy Manager",
+                "Directors"
+              ],
+              [
+                "Training compliance (100% at induction, 95% in date for refreshers) and policy acknowledgements by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The quarterly review looks for over-caution as well as harm, such as activities we would not support, restrictions that could be reduced and choices recorded without a plan. Every shortfall is recorded with an action, an owner and a deadline and tracked to completion."
+        },
+        {
+          "p": "This policy is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

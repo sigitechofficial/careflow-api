@@ -1,0 +1,331 @@
+{
+  "reference": "POL-HR-009",
+  "revision": 1,
+  "title": "Grievance Policy and Procedure",
+  "documentType": "POLICY",
+  "summary": "How employees raise a problem or complaint about their own work, such as rotas, pay, travel time, visit lengths, working conditions or how they have been treated, and how we resolve it fairly and promptly. Following the Acas Code of Practice, it covers informal resolution, mediation, formal grievances, meetings and investigation, the right to be accompanied, written outcomes, appeals and protection from victimisation. For all employees and the managers who handle grievances.",
+  "keyPoints": {
+    "intro": "How to raise a problem about your own work, such as your rota, pay, travel time, workload or how you are treated, and what happens next. Raising a grievance in good faith will never count against you.",
+    "points": [
+      "If a problem puts you or a person we support at risk during a visit, do not save it for a grievance: phone the office, or the On-call Manager out of hours, before you leave the home.",
+      "Most problems are best sorted by talking first. Speak to the Care Coordinator about rotas and visits, the HR Manager about pay, or your supervisor about anything else; they answer within 5 working days.",
+      "If talking has not worked, or the matter is serious, write to the HR Manager by letter or email, saying what the problem is and what you would like to happen. If it is about the HR Manager, write to the Registered Manager.",
+      "You can ask for help to put your grievance in writing, and for an interpreter or other adjustments. It is acknowledged within 2 working days, and a manager who was not involved meets you within 10 working days.",
+      "You may bring a colleague, or a trade union representative or official, to any grievance meeting or appeal. If they cannot come, we move the meeting to a time you suggest within 5 working days.",
+      "You receive a written outcome within 20 working days, unless we have told you in writing beforehand of a later date and why. If you are unhappy with it, appeal in writing to the HR Manager within 5 working days.",
+      "Never raise or discuss a grievance in front of a person we support or their family, and never refuse, shorten or delay care because of a dispute with us.",
+      "Keep grievance matters confidential, never discuss them with witnesses, and never record a meeting secretly. You may still get advice from your companion, your union, Acas or a legal adviser.",
+      "Wrongdoing or risk to people goes under the Whistleblowing (Speaking Up) Policy; bullying or harassment by colleagues under the Bullying, Harassment and Sexual Harassment Policy; abuse or harassment by people we support or their families under the Violence and Aggression Towards Staff Policy.",
+      "Nobody may cut your hours, change your rota or treat you worse because you raised a grievance or helped with one. Tell the HR Manager or Registered Manager at once if this happens."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": ["ALL_EMPLOYEES"],
+  "moduleLinks": ["HR", "EMPLOYEE"],
+  "relatedReferences": ["POL-HR-008", "POL-HR-013", "POL-HR-018", "POL-HR-005", "POL-HR-014", "POL-HS-004", "POL-HR-012", "POL-HR-019"],
+  "regulatoryBasis": [
+    { "source": "Acas Code of Practice on disciplinary and grievance procedures (2015), paragraphs 1 to 4 and 32 to 47", "url": "https://www.acas.org.uk/acas-code-of-practice-on-disciplinary-and-grievance-procedures/html" },
+    { "source": "Employment Relations Act 1999, section 10 (right to be accompanied)", "url": "https://www.legislation.gov.uk/ukpga/1999/26/section/10" },
+    { "source": "Employment Relations Act 1999, section 13(5) (meaning of grievance hearing)", "url": "https://www.legislation.gov.uk/ukpga/1999/26/section/13" },
+    { "source": "Trade Union and Labour Relations (Consolidation) Act 1992, section 207A (adjustment of awards for failure to follow the Acas Code)", "url": "https://www.legislation.gov.uk/ukpga/1992/52/section/207A" },
+    { "source": "Employment Rights Act 1996, section 3 (written statement: person to whom a grievance is made and how)", "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/3" },
+    { "source": "Employment Rights Act 1996, section 43B (qualifying disclosures, including sexual harassment from 6 April 2026)", "url": "https://www.legislation.gov.uk/ukpga/1996/18/section/43B" },
+    { "source": "Equality Act 2010, section 27 (victimisation)", "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/27" },
+    { "source": "Equality Act 2010, section 20 (duty to make reasonable adjustments)", "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/20" },
+    { "source": "Equality Act 2010, section 40A (duty to take all reasonable steps to prevent sexual harassment, as amended from 30 October 2026)", "url": "https://www.legislation.gov.uk/ukpga/2010/15/section/40A" },
+    { "source": "Employment Rights Act 2025, section 152 (tribunal time limits increased to 6 months, in force 1 October 2026)", "url": "https://www.legislation.gov.uk/ukpga/2025/36/section/152" },
+    { "source": "Acas, Grievance procedure: step by step", "url": "https://www.acas.org.uk/grievance-procedure-step-by-step" },
+    { "source": "Acas, Mediation at work", "url": "https://www.acas.org.uk/mediation" },
+    { "source": "Acas, Early conciliation", "url": "https://www.acas.org.uk/early-conciliation" },
+    { "source": "Acas, Employment Rights Act 2025: changes and dates", "url": "https://www.acas.org.uk/employment-rights-act-2025" }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        { "p": "{{organisation}} wants everyone who works for us to be able to raise a problem about their work and have it dealt with fairly, promptly and without fear. Our care workers spend most of their working day alone, travelling between short visits, and rarely see a manager face to face. Problems with rotas, travel time, pay, visit lengths or how someone has been treated can easily go unheard, and unresolved problems damage morale and retention and, in the end, the care people receive. We therefore make it easy to raise a problem by phone, at supervision or in writing, and we answer every grievance within set timescales." },
+        { "p": "This policy follows the Acas Code of Practice on disciplinary and grievance procedures. The Code is not itself law, but employment tribunals take it into account and may increase an award by up to 25% where an employer unreasonably fails to follow it, or reduce it by up to 25% where an employee unreasonably fails to (Trade Union and Labour Relations (Consolidation) Act 1992, section 207A). The law also requires each employee's written statement of employment particulars to specify, by name or description, the person to whom they can apply to seek redress of a grievance and how to apply (Employment Rights Act 1996, section 3). At {{organisation}} that person is the HR Manager, and the application is made in writing as this policy sets out." },
+        { "p": "Our policy is that raising a grievance in good faith never counts against anyone, and that every formal grievance is decided by a manager who was not involved in the matter." }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        { "p": "This policy makes sure that:" },
+        { "bullets": [
+          "employees know how to raise a problem about their own employment, with whom, and what will happen next;",
+          "most problems are settled quickly and informally by the person who can put them right;",
+          "formal grievances are heard, investigated and decided impartially and in writing, within set timescales, with a right of appeal;",
+          "nobody is victimised for raising a grievance, giving evidence or acting as a companion;",
+          "themes from grievances, such as rota pressure, travel time or visit lengths, are used to improve how we work."
+        ] }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        { "p": "This policy applies to every employee of {{organisation}}, including staff on probation, bank, apprentice, part-time and zero hours staff, and anyone we engage on a worker's contract, whatever their length of service. It also covers a grievance from a former employee about their employment received within 3 months of their last working day, as Particular situations sets out." },
+        { "p": "A grievance is a concern, problem or complaint that an employee raises about their own employment. Examples in our work are: how visits and rotas are allocated; travel time, mileage, pay or holiday pay; visits too short to give the planned care; the hours offered; working conditions or equipment; a manager's decision or how the employee has been treated, including unfair treatment because of a protected characteristic other than harassment; a refused reasonable adjustment; and changes to terms and conditions." },
+        { "p": "These matters follow their own documents instead:" },
+        { "table": {
+          "columns": ["Matter", "Where it goes"],
+          "rows": [
+            ["Abuse or neglect of a person we support", "Safeguarding Concerns: Reporting, Referral and Enquiry Procedure, phoned to the office or On-call Manager before leaving the home, and the Managing Allegations Against Staff Procedure where a member of staff may be responsible"],
+            ["Wrongdoing or risk to the people we support, colleagues or the public, even where it also affects the employee", "Whistleblowing (Speaking Up) Policy"],
+            ["Bullying, harassment or sexual harassment by a colleague, manager, agency worker or contractor, and victimisation for complaining about it", "Bullying, Harassment and Sexual Harassment Policy, which has its own complaint procedure"], ["Abuse, threats, harassment or violence from a person we support, their family, a visitor or a member of the public", "Violence and Aggression Towards Staff Policy, with the Sexual Safety Policy where the behaviour is sexual"],
+            ["A safety concern at a visit, or work the employee believes is unsafe", "Health and Safety Policy, where concerns are acknowledged within 1 working day and answered within 5 working days, and an unresolved concern goes to the Registered Manager and then the Nominated Individual. How the matter affects the employee's own hours, pay or treatment may be raised under this policy."],
+            ["Challenging a disciplinary or capability outcome", "The appeal stage of the Disciplinary Policy and Procedure or the Capability and Performance Procedure"],
+            ["A decision on a flexible working request", "Flexible Working and Family Leave Policy"],
+            ["Disagreeing with a supervision record or spot check result", "Supervision, Spot Checks and Appraisal Policy"],
+            ["Seeing or correcting the employee's own personal data", "Staff Personal Data and HR Records Policy and the Subject Access and Individual Rights Procedure"],
+            ["A complaint by a person we support or their family about a member of staff", "Complaints Policy and Procedure"]
+          ]
+        } },
+        { "p": "Agency workers, students and contractors raise problems about their placement with their agency, college or employer. Where their concern is about how our staff treated them or their safety while working for us, the Registered Manager looks into it, replies in writing within 10 working days and tells their agency, college or employer." }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        { "table": {
+          "columns": ["Term", "Meaning"],
+          "rows": [
+            ["Grievance", "A concern, problem or complaint an employee raises about their own employment."],
+            ["Formal grievance", "A grievance raised in writing under this policy, which is heard at a meeting and answered in writing with a right of appeal."],
+            ["Grievance manager", "The manager appointed to hear a formal grievance and decide the outcome. They were not involved in the matter."],
+            ["Appeal manager", "The manager who hears an appeal against a grievance outcome. They have not been involved in the matter or the grievance."],
+            ["Companion", "A fellow worker, an official employed by a trade union, or a union representative certified by their union, chosen by the employee to accompany them."],
+            ["Collective grievance", "The same grievance raised by two or more employees together, or by a trade union on their behalf."],
+            ["Mediation", "A voluntary, confidential meeting in which an impartial trained mediator helps people repair a working relationship and agree how they will work together. It does not decide who was right."],
+            ["Working day", "Monday to Friday, excluding bank holidays in England."]
+          ]
+        } }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        { "heading": "Directors and Nominated Individual", "blocks": [
+          { "p": "The Directors approve this policy and make sure enough trained managers, a retained employment law adviser and an accredited external workplace mediator are available. The Nominated Individual hears grievances and appeals as Who hears a grievance sets out, receives the quarterly grievance themes and carries out the annual audit of closed grievances." }
+        ] },
+        { "heading": "Registered Manager", "blocks": [
+          { "p": "The Registered Manager owns this policy, appoints grievance managers and appeal managers with the HR Manager, agrees any extension to a timescale, makes sure that actions agreed in grievance outcomes are carried out, and decides whether anything disclosed in a grievance needs action under another procedure. The Deputy Manager acts for the Registered Manager when they are absent, except where the grievance is about the Deputy Manager or they are involved. Where the grievance is about the Registered Manager or they are involved, the Nominated Individual makes the Registered Manager's decisions under this policy, including appointments and extensions." }
+        ] },
+        { "heading": "HR Manager", "blocks": [
+          { "p": "The HR Manager receives, logs and acknowledges every formal grievance, answers pay queries, arranges meetings, interpreters, adjustments and companions' paid time off, sends every letter from our standard letters, tracks every timescale, attends formal grievance and appeal meetings as adviser and note-taker, and keeps the case file. The HR Manager takes advice from our retained employment law adviser on any grievance alleging discrimination, a breach of employment law or detriment for whistleblowing, and tells the Nominated Individual within 2 working days of receiving a grievance alleging discrimination, as the Equality, Diversity and Inclusion Policy requires. Where a grievance is about the HR Manager or they are involved, the Registered Manager carries out these duties (the Deputy Manager where the Registered Manager hears the grievance or appeal), a member of Office staff who is not involved takes the notes, and the employment law adviser gives the advice." }
+        ] },
+        { "heading": "Supervisors and Care Coordinators", "blocks": [
+          { "p": "Supervisors under the Supervision, Spot Checks and Appraisal Policy, and Care Coordinators for rota and visit matters, try to resolve problems informally, record what they agree, and show the employee how to raise a formal grievance when they cannot resolve it. Care Coordinators make sure nobody's hours or rota change because they raised or took part in a grievance, and arrange cover so that employees, companions and witnesses can attend meetings without missing visits or losing hours." }
+        ] },
+        { "heading": "Every employee", "blocks": [
+          { "p": "Every employee raises problems promptly through the routes in this policy, keeps grievance matters confidential, co-operates honestly with investigations and continues to give the care on their rota while a grievance is open, never refusing, shortening or delaying a visit because of a dispute with us or discussing a grievance in front of a person we support or their family. Knowingly making a false allegation is misconduct; a grievance raised in good faith that is not upheld never is." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Resolving problems informally",
+      "blocks": [
+        { "p": "A problem that puts anyone at risk during a visit, such as a missing second worker on a double-handed visit, broken equipment or an unsafe home, is phoned to the office, or the On-call Manager out of hours, before the care worker leaves the home. It is dealt with at once under the relevant policy and is never held back for a grievance. Out of hours, the On-call Manager also sorts out anything that stops the rest of that day's visits being done safely and on time, such as a run with too little travel time, and passes the underlying problem to the Care Coordinator by 10am the next working day." },
+        { "p": "Most other problems are best settled quickly by the person who can put them right. An employee may raise a problem by phone, in person, by email or at supervision with:" },
+        { "table": {
+          "columns": ["Problem", "Raise it with"],
+          "rows": [
+            ["Rota, visit allocation, travel between visits, visit lengths or hours offered", "Care Coordinator"],
+            ["Pay, mileage, travel time pay, holiday pay or expenses", "HR Manager"],
+            ["Working relationships, workload, training, support or any other matter", "The employee's supervisor named in the Supervision, Spot Checks and Appraisal Policy: the Field Care Supervisor or authorised Senior Care Worker for Care Workers, the Field Care Supervisor for Senior Care Workers, the Deputy Manager for Field Care Supervisors, Care Coordinators, Office staff and staff allocation roles, the Registered Manager for the HR Manager and Deputy Manager, and the Nominated Individual for the Registered Manager"],
+            ["A problem with the person above", "The Deputy Manager; the Registered Manager where it concerns the Deputy Manager or the HR Manager; the Nominated Individual where it concerns the Registered Manager"]
+          ]
+        } },
+        { "steps": [
+          "The manager listens, asks what outcome the employee wants and checks the facts in CareFlow, for example rotas, visit check-in and check-out, and pay records.",
+          "They give the employee an answer within 5 working days of the problem being raised: what will change and by when, or why it cannot, and that the employee may raise a formal grievance if not satisfied.",
+          "They record the problem, the answer and any agreed action in the employee's supervision record within 2 working days of giving the answer. The employee may add comments.",
+          "If the employee is not satisfied, or the problem has not been put right by the agreed date, they may raise a formal grievance."
+        ] },
+        { "p": "When the HR Manager confirms an underpayment, it is paid by bank transfer within 2 working days where it is £50 or more or takes the employee's pay for the pay reference period below the National Minimum Wage; otherwise it is paid in the next pay run. Where the same error may affect other employees, for example travel time not counted between a run of visits, the HR Manager checks and corrects the pay of everyone affected, not only the employee who asked." },
+        { "p": "Nobody has to try informal resolution first. An employee may raise a formal grievance at any time, and should do so where the matter is serious or informal resolution has not worked." }
+      ]
+    },
+    {
+      "heading": "Mediation",
+      "blocks": [
+        { "p": "Where a problem is about a working relationship, for example between two care workers who share double-handed visits or between a care worker and a member of the office team, the HR Manager may offer mediation at any stage, including after a grievance outcome to help people work together again." },
+        { "bullets": [
+          "Mediation is voluntary for everyone involved. Declining it never counts against anyone, and the grievance continues.",
+          "It never replaces the investigation of an allegation of sexual harassment, violence, discrimination, or abuse or neglect of a person we support, and it is not offered where one person says they fear the other.",
+          "The mediator is an accredited external workplace mediator arranged by the HR Manager at our cost. Mediation takes place within 15 working days of everyone agreeing, in paid time, at the branch office or another neutral place.",
+          "What is said in mediation is confidential and is not used in any later procedure, unless it reveals a risk to someone's safety.",
+          "With the employee's written agreement, a formal grievance is paused during mediation. If mediation does not resolve it, the grievance resumes at the stage it had reached and its timescales restart from that day.",
+          "The HR Manager records in the staff record only that mediation took place and whether agreement was reached. The agreement belongs to the participants, and each person's supervisor asks at their next supervision whether it is working."
+        ] }
+      ]
+    },
+    {
+      "heading": "Raising a formal grievance",
+      "blocks": [
+        { "p": "A formal grievance is raised in writing, by letter or email, as soon as possible after the matter arises. It says what the problem is, when it happened, who was involved and what outcome the employee wants. An employee who finds writing difficult may ask the HR Manager, their supervisor or their companion to write it down from what they say; the employee confirms it by email or signature, and it is treated as received on that day." },
+        { "table": {
+          "columns": ["The grievance is about", "Send it to"],
+          "rows": [
+            ["Anyone or anything other than those below", "HR Manager"],
+            ["The HR Manager", "Registered Manager"],
+            ["The Registered Manager", "Nominated Individual"],
+            ["The Nominated Individual or a Director", "The chair of the Directors"]
+          ]
+        } },
+        { "p": "Anyone who receives a grievance meant for someone else, including an On-call Manager out of hours, passes it on the same working day (by 10am the next working day if received out of hours), and the timescales start when the right person receives it. Within 2 working days of receipt, the HR Manager (or whoever received it under the table above) acknowledges it in writing, lists the points it raises, names the grievance manager, and explains the next steps and the right to be accompanied." },
+        { "p": "If a grievance suggests that a person we support may be at risk of abuse or neglect, whoever reads it phones the Registered Manager, or the Deputy Manager in their absence, at once, and the concern is dealt with under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure first. Information suggesting other wrongdoing is passed to the Registered Manager the same working day for handling under the Whistleblowing (Speaking Up) Policy. A grievance showing that the care in a person's plan cannot be delivered in the visit time allowed is passed to the Care Coordinator the same working day, who arranges a review under the Care Plan Review Procedure without waiting for the outcome. In each case the employee's own complaint is still answered under this policy." }
+      ],
+      "subsections": [
+        { "heading": "Who hears a grievance", "blocks": [
+          { "table": {
+            "columns": ["Employee raising the grievance", "Grievance manager", "Appeal manager"],
+            "rows": [
+              ["Care Worker, Senior Care Worker, Field Care Supervisor, Care Coordinator, Office staff or staff allocation role", "Deputy Manager", "Registered Manager"],
+              ["HR Manager or Deputy Manager", "Registered Manager", "Nominated Individual"],
+              ["Registered Manager", "Nominated Individual", "A Director other than the Nominated Individual"],
+              ["Nominated Individual or a Director employed by us", "A Director chosen by the other Directors", "Another uninvolved Director, or an external HR professional appointed by the Directors where none is available"]
+            ]
+          } },
+          { "p": "A grievance about a manager is always heard by someone senior to them: a grievance about the Deputy Manager or the HR Manager is heard by the Registered Manager with appeal to the Nominated Individual, one about the Registered Manager by the Nominated Individual with appeal to a Director other than the Nominated Individual, and one about the Nominated Individual or a Director by a Director chosen by the other Directors with appeal to another uninvolved Director or an external HR professional. Nobody hears a grievance or an appeal if it is about them, they were involved in the matter, they are a witness, they gave the informal answer the employee is challenging, or they are related or close to the employee or anyone the grievance is about. The next more senior person in the order Deputy Manager, Registered Manager, Nominated Individual, another Director takes their place, and the appeal moves up the same order. Where nobody can act independently, the Nominated Individual (the other Directors where the Nominated Individual is involved) appoints an external HR professional through our employment law adviser within 5 working days, and the timescales run from that appointment." }
+        ] }
+      ]
+    },
+    {
+      "heading": "The grievance meeting and investigation",
+      "blocks": [
+        { "steps": [
+          "The HR Manager invites the employee in writing to a grievance meeting held within 10 working days of receiving the grievance, with at least 3 working days' notice unless the employee asks for an earlier date. The invitation names the grievance manager, gives the date, time and venue, and explains the right to be accompanied and how to ask for an adjustment or interpreter.",
+          "At the meeting the grievance manager makes sure they understand each point, the evidence the employee relies on and the outcome the employee wants, and explores whether the matter can be settled there and then. The HR Manager takes notes, which the employee receives within 5 working days and may comment on within a further 5 working days.",
+          "Where facts need checking, the grievance manager adjourns and investigates, or for a complex grievance asks the Registered Manager to appoint an investigating officer trained under the Disciplinary Policy and Procedure. The investigation uses CareFlow records such as rotas, visit check-in and check-out, pay records, supervision records and training and compliance records, and written accounts from witnesses, who give them within 3 working days of being asked, in paid time.",
+          "Anyone the grievance complains about is told in writing what is said about them before they are asked for their account, may bring a companion to their meeting, and is told not to discuss the matter with the employee or the witnesses.",
+          "Any new evidence the grievance manager will rely on is shared with the employee, who may comment on it before the decision. A further meeting is held where the employee asks for one or the grievance manager needs it.",
+          "If the grievance or the investigation shows possible misconduct by anyone, the grievance manager tells the Registered Manager the same working day, and the Registered Manager decides the route under the Disciplinary Policy and Procedure. The grievance is still answered."
+        ] },
+        { "p": "The outcome letter is sent within 20 working days of receiving the grievance. If more time is needed, for example because a witness is absent, the Registered Manager agrees a new date and records why, and the employee is told in writing before the original date. While a grievance is open the employee receives a written update at least every 10 working days." }
+      ],
+      "subsections": [
+        { "heading": "Arrangements for meetings", "blocks": [
+          { "bullets": [
+            "Meetings take place in paid time, including travel and mileage as the Working Time, Rest Breaks and Travel Time Policy sets out, in a private room at the branch office, never in a person's home or a car. A video meeting is used only with the employee's agreement.",
+            "The Care Coordinator covers the employee's visits so that none is missed or late, and offers replacement visits where needed so that attending a meeting never reduces their hours. Employees never have to swap visits themselves to attend.",
+            "We make reasonable adjustments for disabled employees, as the Equality Act 2010, section 20 requires, such as questions in writing, extra breaks, a different venue or more preparation time. A professional interpreter is provided at our cost where needed; colleagues and relatives are never used as interpreters.",
+            "Nobody records a meeting covertly or on a personal phone. A meeting is recorded only if everyone present agrees beforehand, or the HR Manager agrees in writing to an open recording as a reasonable adjustment. The HR Manager makes any recording on a work device and keeps it only in the grievance case file, giving the employee a copy on request.",
+            "An employee who is off sick may still have their grievance heard: the HR Manager offers a video meeting, a different venue, written submissions or their companion attending for them, and asks occupational health for advice where the employee's health makes taking part difficult.",
+            "A meeting the employee cannot attend for a reason outside their control is rearranged. If they then fail to attend twice without good reason, the grievance manager decides on the information available and says so in the outcome letter."
+          ] }
+        ] },
+        { "heading": "Right to be accompanied", "blocks": [
+          { "p": "The law gives every worker who reasonably asks the right to be accompanied at a grievance hearing that concerns the performance of a duty we owe them, such as a complaint that we have not honoured their contract or have broken employment law (Employment Relations Act 1999, sections 10 and 13). The companion may be a fellow worker, an official employed by a trade union, or a union representative certified by their union. If the chosen companion cannot attend, we move the meeting to a reasonable time the employee proposes within 5 working days after the original date." },
+          { "p": "Our policy goes further: the right applies to every formal grievance meeting and appeal, whatever the subject, and to any investigation meeting with the employee or with anyone the grievance is about. The companion may put and sum up the employee's case, respond to views expressed and confer with the employee, but may not answer questions for them. The law gives a fellow worker acting as a companion paid time off to do so (Employment Relations Act 1999, section 10(6) and (7)); we also pay their travel time. Where a disability makes it necessary, the Registered Manager may also agree a supporter, such as a support worker, who is not a witness." }
+        ] }
+      ]
+    },
+    {
+      "heading": "Outcome",
+      "blocks": [
+        { "p": "The HR Manager sends the outcome letter for the grievance manager. It sets out:" },
+        { "bullets": [
+          "each point raised and whether it is upheld, partly upheld or not upheld, with the reasons;",
+          "what we will do, who will do it and by when, for example a rota change, a pay correction, a request to the commissioner to review visit lengths, training for a manager or a change to a procedure;",
+          "that any action concerning another employee has been taken under our employment procedures, without giving its outcome, which stays confidential to that employee;",
+          "how to appeal, to whom and by when."
+        ] },
+        { "p": "The grievance manager offers to meet the employee to explain the outcome. Within 4 weeks of the outcome they check with the employee that the agreed actions have been carried out and record this in the case file; any action not completed is reported to the Registered Manager, who sets a new date and tells the employee." }
+      ]
+    },
+    {
+      "heading": "Appeals",
+      "blocks": [
+        { "steps": [
+          "The employee appeals in writing to the HR Manager (the Registered Manager where the grievance is about the HR Manager) within 5 working days of receiving the outcome letter, giving the grounds: for example that the procedure was unfair, there is new evidence, the conclusions do not follow from the evidence or the actions do not resolve the problem. The HR Manager acknowledges it within 2 working days. A later appeal is accepted where there was good reason for the delay.",
+          "The appeal manager set out in Who hears a grievance holds an appeal meeting within 10 working days of the appeal being received, with at least 3 working days' written notice. The right to be accompanied applies.",
+          "The appeal manager considers whether the procedure was fair, whether the conclusions were reasonable on the evidence, any new evidence, and whether the actions resolve the problem. They may investigate further before deciding, sharing any new evidence with the employee.",
+          "The HR Manager sends the appeal outcome in writing within 5 working days of the appeal meeting. The appeal manager may confirm the original outcome, change it or replace it with their own decision and actions. The decision is final and completes the grievance procedure."
+        ] },
+        { "p": "A further grievance about a matter already decided on appeal is answered in writing by the HR Manager within 5 working days, explaining that the matter is closed, unless it contains new information; the Registered Manager then decides within the same 5 working days whether to reopen it." }
+      ]
+    },
+    {
+      "heading": "Protection from victimisation",
+      "blocks": [
+        { "p": "Nobody may treat an employee worse because they raised a grievance, helped someone raise one, gave evidence or acted as a companion. A grievance alleging discrimination is a protected act under the Equality Act 2010, section 27, and victimising someone for it is unlawful. Victimisation, or pressuring anyone not to raise or pursue a grievance, is misconduct under the Disciplinary Policy and Procedure." },
+        { "bullets": [
+          "Care Coordinators never reduce hours, change an employee's usual run of visits or offer them less favourable visits because of a grievance. While a grievance is open, any change to the employee's usual run or hours, other than one the employee asks for or same-day cover for sickness or an emergency, is agreed in advance with the Registered Manager and its reason recorded in the staff record.",
+          "Where an employee asks not to work alongside a colleague their grievance is about, for example on double-handed visits, the Care Coordinator stops pairing them within 2 working days while the grievance is open, without reducing either worker's hours.",
+          "Raising a grievance never affects a sponsored worker's sponsorship. Suggesting that it might is a disciplinary matter, as the Right to Work and Sponsored Workers Policy sets out.",
+          "An employee who believes they are being victimised tells the HR Manager or the Registered Manager, who looks into it within 5 working days."
+        ] }
+      ]
+    },
+    {
+      "heading": "Particular situations",
+      "blocks": [
+        { "table": {
+          "columns": ["Situation", "What we do"],
+          "rows": [
+            ["A grievance raised during a disciplinary or capability case", "Where it concerns the process or the people running the case, the Registered Manager (the Nominated Individual if the Registered Manager is involved) decides within 2 working days whether to pause the case briefly, replace a manager or deal with both together. Otherwise both proceed separately."],
+            ["A grievance about stress, workload or hours", "The HR Manager or Registered Manager completes an individual stress risk assessment within 5 working days, under the Work-Related Stress and Staff Wellbeing Policy, without waiting for the outcome. Rostered hours above working time limits are corrected under the Working Time, Rest Breaks and Travel Time Policy from the next rota."],
+            ["A grievance that is also a whistleblowing disclosure, for example that visits are being cut short, records falsified or, since 6 April 2026, that sexual harassment is happening (Employment Rights Act 1996, section 43B)", "The concern about wrongdoing is handled under the Whistleblowing (Speaking Up) Policy and the employee keeps its protection. Their personal complaint is answered under this policy."],
+            ["A grievance about a person we support, their family or their home", "Abuse, aggression or harassment goes under the Violence and Aggression Towards Staff Policy, with the Sexual Safety Policy where the behaviour is sexual; since 30 October 2026 the law requires employers to take all reasonable steps to prevent sexual harassment of their staff in the course of their work, including by people we support, their families and visitors (Equality Act 2010, section 40A). Hazards in the home go to the Care Coordinator the same working day for review of the home environment risk assessment under the Risk Assessment and Home Environment Risk Assessment Procedure. Nobody is required to return to a home where they were harmed."],
+            ["Several employees raise the same grievance", "With their agreement the HR Manager handles them together, with one meeting and one outcome, while each employee keeps the right to an individual meeting. A grievance raised by a trade union we recognise, on behalf of its members, follows the recognition agreement with that union."],
+            ["An anonymous grievance", "It cannot be answered as a grievance because we cannot reply. The Registered Manager reviews the issue it describes within 5 working days and, where it suggests wrongdoing, handles it under the Whistleblowing (Speaking Up) Policy."],
+            ["The employee is working their notice", "The grievance is handled under this policy, with meetings and the outcome brought forward so that, where possible, the outcome is given before the last working day."],
+            ["A former employee raises a grievance within 3 months of their last working day", "The grievance manager offers a meeting, by video if they prefer, and answers in writing within 20 working days. The former employee may appeal in writing within 5 working days; the appeal manager decides on the papers and replies in writing within 10 working days. A later grievance receives a written reply from the HR Manager within 10 working days, and any safeguarding, whistleblowing or pay matter it raises is acted on under the relevant policy."],
+            ["Acas early conciliation or an employment tribunal claim", "Using this procedure does not change tribunal time limits. For matters arising on or after 1 October 2026 most claims must be brought within 6 months (Employment Rights Act 2025, section 152), and Acas must be notified first. Any notification or claim is passed at once to the Nominated Individual, who tells our employment law adviser and insurers the same working day. The grievance continues unless the employee withdraws it."]
+          ]
+        } }
+      ]
+    },
+    {
+      "heading": "Records and confidentiality",
+      "blocks": [
+        { "table": {
+          "columns": ["Record", "Where it is kept", "How long"],
+          "rows": [
+            ["Problems raised and answered informally", "Supervision records", "Employment plus 6 years"],
+            ["The grievance, acknowledgement, invitations, meeting notes, investigation evidence, outcome and appeal letters and action checks", "Grievance case file in the staff record of the employee who raised it, open only to the HR Manager, Registered Manager, Deputy Manager, Nominated Individual and managers appointed to the case, never to anyone the grievance is about", "Employment plus 6 years"],
+            ["Evidence used in disciplinary action arising from a grievance", "Copied to the disciplinary case file", "As the Disciplinary Policy and Procedure sets out"]
+          ]
+        } },
+        { "p": "Nothing about a grievance is placed in the staff record of anyone it complains about unless action is taken under another procedure. Records identify people we support only by their CareFlow reference. Witnesses are told that their account may be shown to the employee and to anyone it concerns. Employees may see their records under the Subject Access and Individual Rights Procedure. Nothing is destroyed while a tribunal claim, safeguarding enquiry or police investigation is open or expected." },
+        { "p": "Everyone involved keeps a grievance confidential. Discussing it with colleagues, people we support or their families, or on social media, is misconduct. This never stops the employee seeking advice from their companion, their trade union, Acas or a legal adviser." }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        { "table": {
+          "columns": ["Who", "Training", "When", "Refresher"],
+          "rows": [
+            ["All employees", "How to raise a problem and this policy, acknowledged in CareFlow", "During organisational induction", "Acknowledged within 14 days of each new major version"],
+            ["Field Care Supervisors, authorised Senior Care Workers, Care Coordinators and Deputy Manager", "Resolving problems informally, recording them, and recognising when a problem belongs under safeguarding, whistleblowing or harassment procedures", "Before their first supervision or rota responsibility", "Every 3 years"],
+            ["Deputy Manager, Registered Manager, Nominated Individual and Directors who hear grievances or appeals", "Handling grievances: the Acas Code, impartiality, investigation, equality and reasonable adjustments, and writing outcomes", "Before hearing their first grievance", "Every 3 years"],
+            ["HR Manager", "Employment law update", "On appointment", "Every 12 months"]
+          ]
+        } },
+        { "p": "The HR Manager briefs every grievance manager and appeal manager on this procedure, its timescales and our standard letters when they are appointed to a case, and briefs all of them within 10 working days of any change in employment law or the Acas Code that affects this policy." }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        { "table": {
+          "columns": ["What is checked", "How often", "By whom", "Reported to"],
+          "rows": [
+            ["Open grievances and timescales against this policy", "Monthly", "HR Manager", "Registered Manager; workforce figures to the Monthly Quality and Governance Meeting"],
+            ["Grievances by theme (rota, pay and travel time, visit lengths, management, working conditions), branch, stage and outcome, appeals upheld, and problems resolved informally", "Quarterly, anonymised", "Registered Manager", "Nominated Individual; quarterly governance report"],
+            ["Grievances and outcomes by protected characteristic and branch, to detect unequal treatment", "Annually, in the workforce equality report under the Equality, Diversity and Inclusion Policy, completed by 30 April", "HR Manager", "Directors"],
+            ["Audit of 5 closed grievances (all if fewer) against each step of this policy, including the 4-week action checks", "Annually, in November", "Nominated Individual", "Directors"],
+            ["Staff survey questions on whether staff know how to raise a grievance and trust it would be handled fairly", "Annually, in the September staff survey", "HR Manager", "Directors with the survey results"]
+          ]
+        } },
+        { "p": "Targets: 100% of formal grievances acknowledged within 2 working days; at least 90% of grievance meetings held within 10 working days; at least 90% of outcomes sent within 20 working days or an extension agreed before the deadline; 100% of appeal meetings held within 10 working days; at least 80% of staff survey respondents saying they know how to raise a grievance and that it would be handled fairly. Where 3 or more grievances on the same theme are raised in one branch in a quarter, the Registered Manager reviews the cause and reports to the next Monthly Quality and Governance Meeting." },
+        { "p": "When a grievance closes, the Registered Manager records whether it shows a wider issue, such as rota pressure, unpaid travel time or visits too short for the care planned, and adds any action to the service improvement plan within 5 working days. Every shortfall against a target also goes into the plan with an owner and a deadline." },
+        { "p": "This policy is reviewed every 12 months by the Registered Manager, with the HR Manager, and approved by the Directors under the Policy Management and Document Control Policy; sooner after a change in employment law or the Acas Code, a tribunal finding, a serious incident, an inspection finding, or when monitoring shows the arrangements are not working." }
+      ]
+    }
+  ]
+}

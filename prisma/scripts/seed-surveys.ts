@@ -31,7 +31,7 @@ type SurveySeed = {
   questions: QuestionSeed[];
 };
 
-const LIKERT = ['Strongly agree', 'Agree', 'Neutral', 'Disagree', 'Strongly disagree'];
+const LIKERT = ['Strongly agree', 'Agree', 'Neither agree nor disagree', 'Disagree', 'Strongly disagree'];
 
 const SURVEYS: SurveySeed[] = [
   {

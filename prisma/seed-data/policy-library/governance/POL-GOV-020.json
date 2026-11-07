@@ -1,0 +1,833 @@
+{
+  "reference": "POL-GOV-020",
+  "revision": 1,
+  "title": "Business Continuity and Emergency Planning Policy",
+  "documentType": "POLICY",
+  "summary": "How we keep essential home care going when severe weather, an outbreak, staff shortages, a CareFlow, phone or cyber failure, loss of the branch office, a fuel shortage or a supplier failure disrupts the service: the branch business continuity plan, the order in which visits are protected, who activates the plan and leads, who is told, and how we recover, test and learn. For all staff.",
+  "keyPoints": {
+    "intro": "When something disrupts the service, the people who most depend on us must still get their care. This is what you do, and what you can expect from us, when the business continuity plan is in use.",
+    "points": [
+      "If anything stops you reaching a visit or giving care safely, such as illness, weather, a car problem or a phone or CareFlow failure, phone the office or On-call Manager at once. Never just miss a visit or swap with a colleague.",
+      "When the plan is activated, visits are protected in a set order: time-critical visits first, then other visits for people with a High missed-visit risk level. Do only the visits the office gives you.",
+      "Never shorten a visit, leave out an essential task or move a visit yourself. Only the Registered Manager, Deputy Manager or On-call Manager can agree that, and every essential task is still done.",
+      "If CareFlow or your work phone fails, carry on with the care. Phone the office on arrival and before leaving, from your own phone or the person's landline with their agreement, and give medicines only as the office tells you, on the back-up MAR sheet.",
+      "When the office texts asking you to phone in, phone as soon as you safely can, never while driving. Office texts never contain a link, key safe code or address; if CareFlow is down, codes and visit details are given to you by phone.",
+      "Keep your work phone charged, carry a power bank (free from the office on request) and keep at least one week's PPE in your kit box. Tell the HR Manager within 5 working days when your phone number or address changes.",
+      "You may be asked to work extra hours or different runs. You keep your breaks and 11 hours' rest, and you are never pressured to drive a route you judge unsafe.",
+      "If we cancel or move your visits because of the incident, you are paid the planned visit and travel time unless we give you other paid work in that time.",
+      "Office staff and managers give care during an incident only if their care training is in date, and only do tasks they are signed off for. Medicines need current medicines competency.",
+      "During a fuel shortage that the office has warned about, refuel when your tank falls to half. If you cannot get fuel, phone the office before your next visit.",
+      "Never talk to journalists or post anything about an incident online. Refer any media enquiry to the office; only the Nominated Individual or a Director speaks for us."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "BUSINESS_CONTINUITY",
+    "VISIT",
+    "RISK_ASSESSMENT",
+    "INFECTION_CONTROL",
+    "BRANCH"
+  ],
+  "relatedReferences": [
+    "POL-GOV-004",
+    "POL-GOV-009",
+    "POL-GOV-018",
+    "POL-GOV-010",
+    "POL-HS-014",
+    "POL-IPC-003",
+    "POL-CD-013",
+    "POL-MED-005"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, Regulation 18(1) and (2)(g) (notification without delay of any event which prevents, or appears likely to threaten to prevent, the ability to carry on the regulated activity safely, including insufficient suitably qualified, skilled and experienced staff, utility interruptions over 24 hours and damage to premises)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(1) and (2)(a) and (b) (good governance: systems to assess, monitor and mitigate risks to the health, safety and welfare of service users)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(1) and (2)(a) to (c) (safe care and treatment: assessing and mitigating risks; staff with the competence to provide care safely)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Care Act 2014, section 48 (temporary duty on the local authority to meet needs when a registered provider becomes unable to carry on a regulated activity because of business failure)",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/48"
+    },
+    {
+      "source": "Department of Health and Social Care, Adult social care winter letter 2025 to 2026 (16 October 2025): local councils and care providers should maintain business continuity plans for localised disruption from severe winter weather, including disruption to energy supply, disrupted transport and staff shortages",
+      "url": "https://www.gov.uk/government/publications/adult-social-care-winter-letter-2025-to-2026/winter-letter-2025-to-2026"
+    },
+    {
+      "source": "UK Health Security Agency, Adverse Weather and Health Plan 2026 to 2027 (25 March 2026)",
+      "url": "https://www.gov.uk/government/publications/adverse-weather-and-health-plan"
+    },
+    {
+      "source": "UK Health Security Agency, Weather-Health Alerting System (heat-health alert core season 1 June to 30 September; cold-health alert core season 1 November to 31 March; alerts sent by email to those who register)",
+      "url": "https://www.gov.uk/guidance/weather-health-alerting-system"
+    },
+    {
+      "source": "Digital Care Hub, Reduce the risk and impact of a cyber incident (business continuity plans to cover data and cyber security and outages lasting months; plans to be tested)",
+      "url": "https://www.digitalcarehub.co.uk/data-protection-and-cyber-security/cyber-security/reduce-the-risk-and-impact-of-a-cyber-incident/"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} provides personal care to people in their own homes. Many of them live alone and rely on our visits to get up, eat and drink, use the toilet, take time-sensitive medicines and stay safe. Events that would inconvenience most businesses, such as snow, an outbreak among staff, a cyber attack on CareFlow, a fuel shortage or the loss of the branch office, can leave a person without help within hours. We therefore decide in advance whose care is protected first, who takes charge, and how care continues without our usual systems."
+        },
+        {
+          "p": "The law requires us to assess and reduce risks to the people we support (Regulations 12 and 17 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014) and to notify CQC without delay of any event that prevents, or appears likely to threaten to prevent, our ability to carry on the regulated activity safely (Regulation 18(2)(g) of the Care Quality Commission (Registration) Regulations 2009). Our policy goes further: every branch keeps a tested business continuity plan and offline records that let care continue for weeks without CareFlow, and a visit for a person with a High missed-visit risk level is never left undelivered."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every branch has a plan, records and equipment ready before disruption happens.",
+            "The most essential visits continue in every incident, in an order set in advance.",
+            "Everyone knows who activates the plan, who leads, how decisions are recorded and who is told.",
+            "The service recovers safely and every incident and exercise improves the plan."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to every branch, the Directors and every employee, to agency workers through their bookings, and to our IT support provider and other suppliers through their contracts. It covers any business continuity incident: an event that puts the care of several people at risk at once, or stops the branch office, CareFlow, phones or electronic call monitoring working normally."
+        },
+        {
+          "p": "Owned elsewhere: a single late or missed visit (Missed, Late and Short Visits Procedure); detailed weather actions (Severe Weather and Extreme Temperatures Procedure); infection precautions and outbreak control (Transmission-Based Precautions and Outbreak Management Procedure); IT security controls and the technical response to a cyber attack (Information and Cyber Security Policy); recording during an outage (Medicines Administration Records (MAR and eMAR) Procedure and Daily Records and Visit Notes Procedure); CQC notifications (Statutory Notifications to CQC Procedure); the risk register and continuity of the business (Risk Management Policy); the Registered Manager's absence (Registered Manager Role and Absence Cover Policy); planned branch moves and closures (Statement of Purpose and Registration Procedure); handing a package back (Visit Cancellations and Refusals of Care Procedure); and a danger in one person's home (Health and Safety Policy)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Activation",
+                "The recorded decision that a business continuity incident exists, putting this policy's incident arrangements and visit priority order into effect until stand-down (the recorded decision that normal arrangements have resumed)."
+              ],
+              [
+                "Incident lead",
+                "The manager in charge of the response: the branch Registered Manager, the Deputy Manager in their absence, or the Nominated Individual where this policy says so."
+              ],
+              [
+                "Escalation manager",
+                "The manager on the management escalation rota (the Registered Manager or Deputy Manager, or a manager covering under the Registered Manager Role and Absence Cover Policy), reachable by phone whenever an On-call Manager is on duty."
+              ],
+              [
+                "Missed-visit risk level",
+                "High or Standard, set for each person at assessment under the Needs Assessment and Care Planning Policy. It sets the order in which visits are protected."
+              ],
+              [
+                "Time-critical visit",
+                "A visit at which a time-sensitive medicine, or a meal or task it depends on, is due (Time-Sensitive Medicines Protocol)."
+              ],
+              [
+                "Essential task",
+                "A task in the visit plan marked essential because leaving it undone could harm the person before the next visit."
+              ],
+              [
+                "Care-ready staff",
+                "Managers, Field Care Supervisors, Care Coordinators, On-call Managers and Office staff whose care training and competencies are in date, so they can give care in an incident."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for business continuity. They approve this policy, fund the resilience it requires (spare devices, the business continuity and on-call laptops, approved agencies, PPE stock and business interruption insurance), receive a report on every activation and the annual business continuity report, and decide whether the service or a contract can continue under the Risk Management Policy."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual leads business continuity for the Directors. They approve each branch business continuity plan, run the annual business continuity exercise, check each year that the CareFlow supplier, the IT support provider, the PPE suppliers and the approved agencies have tested continuity arrangements, and review business interruption cover with the insurer at each renewal. They are told at once of every activation, tell the Directors within 24 hours, and become incident lead when more than one branch is affected or the Registered Manager and Deputy Manager are both unavailable. Only the Nominated Individual or a Director speaks to the media."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager is the branch business continuity lead and the incident lead in their branch. They write and keep the branch business continuity plan, activate it, chair the incident team, decide on visit changes, notify CQC, tell commissioners, lead the post-event review and make sure staff are trained. The Deputy Manager covers every duty in their absence and, while the Registered Manager leads, keeps the decision log."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager keeps the staff contact list and the care-ready staff list, keeps agency agreements in place with at least two approved agencies per branch, produces the daily staffing figure during an incident, checks working time and pay after it, and arranges welfare support for staff."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Office staff",
+          "blocks": [
+            {
+              "p": "Care Coordinators keep each person's priority information current in CareFlow, save the business continuity records exports on time, re-plan rotas in priority order during an incident, phone people whose visits change and transfer downtime records afterwards. Office staff act as the monitor, run the phone cascade, keep the office downtime log and take phoned check-ins."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Managers",
+          "blocks": [
+            {
+              "p": "Out of hours the On-call Manager recognises an incident, activates the plan through the escalation manager, protects visits in priority order, keeps the decision log until a manager takes over and hands over to the Registered Manager or Deputy Manager by 10am the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "They give care when asked, support new and agency workers, and make welfare visits the incident lead allocates."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers",
+          "blocks": [
+            {
+              "p": "Care Workers phone the office or On-call Manager whenever they cannot reach or complete a visit, phone the Registered Manager or Deputy Manager directly if nobody answers within 15 minutes, and never miss or swap a visit on their own. They keep their work phone charged, carry a power bank, keep at least one week's PPE in their kit box, tell the HR Manager within 5 working days when their phone number or address changes, and reply to cascade tests."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The branch business continuity plan",
+      "blocks": [
+        {
+          "p": "Each branch has one business continuity plan, written by the Registered Manager and approved by the Nominated Individual. It is reviewed and re-approved by 30 September every year so that it is current before winter, and within 1 month after a post-event review, an exercise that finds a gap, a new office, phone system or IT system, or a new local authority area. It is kept in the governance records and offline on the branch business continuity laptop, the on-call laptop and the Nominated Individual's laptop. It holds no personal information about the people we support, so it can be opened anywhere."
+        },
+        {
+          "p": "The plan contains: role cards for the incident lead, decision log keeper, On-call Manager and monitor; the contact routes for suppliers, commissioners, CQC, the local authority emergency planning team, the community IPC and health protection teams and utility companies; the alternative working arrangements for the branch; the critical activities and recovery targets below; and an action card for each scenario in this policy."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Critical activities and recovery targets",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Critical activity",
+                  "Recovery target"
+                ],
+                "rows": [
+                  [
+                    "Time-critical visits and other visits for people with a High missed-visit risk level",
+                    "Never interrupted"
+                  ],
+                  [
+                    "Other visits with essential tasks",
+                    "Delivered; moved only with the person's agreement"
+                  ],
+                  [
+                    "Monitoring of check-in/check-out and the on-call phone",
+                    "Calls answered at once or returned within 15 minutes; monitoring by phoned check-ins within 1 hour of a system failure"
+                  ],
+                  [
+                    "Branch office phone line",
+                    "Diverted to work phones within 1 hour"
+                  ],
+                  [
+                    "Access to care information without CareFlow",
+                    "From the business continuity records within 1 hour"
+                  ],
+                  [
+                    "A care worker's failed work phone",
+                    "Spare phone before the worker's next shift, or during the shift where visits remain"
+                  ],
+                  [
+                    "Email and file storage",
+                    "Restored within 1 working day (Information and Cyber Security Policy)"
+                  ],
+                  [
+                    "Branch office premises",
+                    "Alternative working within 4 hours"
+                  ],
+                  [
+                    "Staff pay",
+                    "Paid on the usual pay date"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Business continuity records",
+          "blocks": [
+            {
+              "p": "The business continuity records let Office staff and the On-call Manager run care when CareFlow is unavailable. The rota, MAR charts, visit lists and staff lists are CareFlow exports. CareFlow cannot export the priority list or My care at a glance, so the Care Coordinator keeps the priority list as a spreadsheet from CareFlow's people list export and the care plan, with My care at a glance alerts. The records are encrypted and opened only by the Registered Manager, Deputy Manager, Care Coordinators, On-call Managers and Office staff named by the Registered Manager; the HR Manager saves and opens only the staff lists. They are never printed, emailed outside our accounts or copied to any other device. Each new copy replaces and deletes the one before."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Record",
+                  "What it holds",
+                  "Saved by and when"
+                ],
+                "rows": [
+                  [
+                    "Priority list",
+                    "For each person: CareFlow reference, name, address, missed-visit risk level, time-critical visit times, essential tasks per visit, two-worker visits, higher weather risk marker, powered equipment and telecare, whether they live alone, access arrangement (never the code), chosen contact and who can help with what",
+                    "Care Coordinator every Monday and the same working day any of these change"
+                  ],
+                  [
+                    "Rota",
+                    "Every visit for the next 7 days with worker, time and length",
+                    "Care Coordinator by 4pm each working day, after the daily cover check"
+                  ],
+                  [
+                    "Visit plans",
+                    "Each person's visits, from CareFlow's visits export; My care at a glance alerts are in the priority list",
+                    "Care Coordinator every Monday and the same working day a care plan changes"
+                  ],
+                  [
+                    "MAR chart exports",
+                    "Each person's current MAR chart",
+                    "Care Coordinator (On-call Manager for a change made out of hours) every Monday and the same day an entry is set up, changed or stopped, as the Medicines Administration Records (MAR and eMAR) Procedure sets out"
+                  ],
+                  [
+                    "Severe weather list",
+                    "For each person with a higher weather risk marker: CareFlow reference, address, missed-visit risk level, time-critical visits, powered equipment and chosen contact (Severe Weather and Extreme Temperatures Procedure)",
+                    "Care Coordinator the same working day a marker changes"
+                  ],
+                  [
+                    "Access file",
+                    "Key safe codes, in a separately encrypted file",
+                    "Care Coordinator every Monday and the same working day a code changes"
+                  ],
+                  [
+                    "Staff contact and care-ready lists",
+                    "Each employee's work and personal phone numbers, whether they drive and their care training status; home postcode areas in a separate file opened only by Care Coordinators and managers to re-plan runs",
+                    "HR Manager every Monday"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "The access file is the only copy of key safe codes held outside the CareFlow key safe code field. It is opened only during an activation, to give a code by voice to a rostered worker under the Key Holding, Key Safes and Access to People's Homes Procedure, and each opening is noted in the incident log entry. If the business continuity laptop or on-call laptop is lost or stolen, the codes are handled as the Personal Data Breach Procedure sets out for a lost device."
+            }
+          ]
+        },
+        {
+          "heading": "Resilience held in readiness",
+          "blocks": [
+            {
+              "bullets": [
+                "The branch business continuity laptop, an enrolled laptop kept by the Registered Manager (the Deputy Manager while they are away) and never left in the branch office overnight, for use if the office is lost.",
+                "At least two charged, enrolled spare work phones and one spare laptop per branch, checked monthly by Office staff, and enough power banks in stock for every care worker who asks and every On-call Manager.",
+                "A branch phone system that can be diverted to work phones from any device, tested every 6 months by the Deputy Manager.",
+                "At least 4 weeks' PPE stock at all times, with two approved PPE suppliers (Infection Prevention and Control Policy).",
+                "Signed agreements with at least two approved care agencies per branch under the Safer Recruitment Policy, in place before they are needed.",
+                "Two blank back-up MAR sheets carried by every care worker who gives medicines, and office downtime log forms in the office and in the on-call bag.",
+                "An agreed alternative workplace: home working on managed laptops for Office staff and managers with a home working risk assessment, and desk space at another of our registered branches where one is within reach."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Protecting the people who depend on us most",
+      "blocks": [
+        {
+          "p": "Priority is decided person by person before any incident. At assessment and every care plan review the assessor records the missed-visit risk level, essential tasks and time-critical visits in the care plan, the higher weather risk marker in My care at a glance, and the missed-visit contingency in the Risks part of the care plan: who will be phoned, who can safely help and with what, and needs that must be met at a set time. Family members help only where the person agrees and the contingency records what they will do. The Care Coordinator updates this the same working day a person's needs, contacts or a family carer's availability change, so the priority list is always current."
+        },
+        {
+          "p": "Once the plan is activated, visits are protected in this order, the same order used for severe weather and outbreaks:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Priority",
+              "Visits",
+              "Rule"
+            ],
+            "rows": [
+              [
+                "1",
+                "Time-critical visits",
+                "Never missed, never moved outside the medicine's window and never left uncovered to cover another visit; given to workers with current medicines competency"
+              ],
+              [
+                "2",
+                "Other visits for people with a High missed-visit risk level",
+                "Never left undelivered"
+              ],
+              [
+                "3",
+                "Standard visits with essential tasks for people with a higher weather risk marker",
+                "Late only with the person's agreement"
+              ],
+              [
+                "4",
+                "Other Standard visits with essential tasks",
+                "Moved only with the person's agreement"
+              ],
+              [
+                "5",
+                "Visits with no essential tasks",
+                "Postponed first, with agreement, and rebooked within 7 days"
+              ]
+            ]
+          }
+        },
+        {
+          "bullets": [
+            "Only the Registered Manager, Deputy Manager or, out of hours, the On-call Manager decides that a visit is moved, shortened or postponed. A shortened visit always includes every essential task.",
+            "If no staff can reach a person with a High missed-visit risk level, the manager asks the chosen contact to check on them (the local authority for a welfare check where no contact can), calls 999 where life may be at risk and keeps trying to get a worker there.",
+            "A visit we cannot staff is never treated as a cancellation, even with the person's agreement: it is recorded in the incident log, reported to the commissioner and never charged.",
+            "A two-worker visit is never done by one worker, and nobody who has not been cleared to work is started to fill a gap."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Activating the plan and taking charge",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "When the plan is activated",
+          "blocks": [
+            {
+              "p": "Any employee who thinks an incident may be developing phones the office or On-call Manager at once. The plan is activated when any of these applies:"
+            },
+            {
+              "bullets": [
+                "in the next 24 hours any visit is expected to be missed, shortened or moved outside its agreed time, or 5 or more visits to start more than 30 minutes late, for a reason affecting more than one visit;",
+                "CareFlow, phones or electronic call monitoring are, or are expected to be, unavailable for more than 2 hours, or for any time if a visit is at risk;",
+                "the branch office cannot be used or has no power, heating, water or internet for more than 4 hours of office time;",
+                "PPE or another essential supply falls below its minimum with no delivery confirmed before it runs out;",
+                "an emergency in the community, such as flooding, an evacuation or a major incident declared by the emergency services, affects any person we support or their visits;",
+                "the Registered Manager judges that the event needs incident arrangements even though none of the above has yet happened."
+              ]
+            },
+            {
+              "p": "In office hours the Registered Manager activates the plan (the Deputy Manager in their absence). Out of hours the On-call Manager activates it after phoning the escalation manager, or at once if a visit is at immediate risk and the escalation manager cannot be reached within 15 minutes. The Nominated Individual may activate it for any branch. The person activating tells the Nominated Individual at once; if the Nominated Individual cannot be reached within 1 hour, the Director named to act for them is told."
+            }
+          ]
+        },
+        {
+          "heading": "The first two hours",
+          "blocks": [
+            {
+              "steps": [
+                "Make anyone in immediate danger safe: 999 where life is at risk.",
+                "Open one incident log entry for the event and start the decision log within it, recording the activation time, reason and who activated.",
+                "Check every visit in the next 24 hours against the priority list and identify every priority 1 and 2 visit at risk.",
+                "Secure staff for priority 1 and 2 visits first, phoning each worker and confirming the change before their next visit.",
+                "Phone each person, or their chosen contact, whose visit will change, before the planned time.",
+                "Hold the incident team call within 2 hours of activation, sooner if visits in the next 2 hours are at risk.",
+                "The Registered Manager or Deputy Manager (the escalation manager out of hours) decides the CQC and commissioner notifications and records each decision; an On-call Manager never decides a CQC notification."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Incident team and decision log",
+          "blocks": [
+            {
+              "p": "The incident team is the incident lead, the Deputy Manager, the Care Coordinators, the HR Manager, and the On-call Manager for the coming period. The Nominated Individual joins whenever they choose and always when they are incident lead. In an outbreak the incident team also serves as the outbreak meeting under the Transmission-Based Precautions and Outbreak Management Procedure. While the plan is active the team reviews the position at least twice a day, by 10am and before the 2pm daily cover check, by phone at weekends and on bank holidays."
+            },
+            {
+              "p": "Every significant decision is entered in the decision log at the time it is made: the time, who decided, what was decided, the options considered, the reason and who was told. Decisions made by phone are entered by the decision log keeper during the call. The decision log stays with the incident log entry."
+            },
+            {
+              "p": "When the incident is expected to last beyond 24 hours, the incident lead sets office cover of at least 7am to 8pm every day, including weekends and bank holidays, until stand-down, with the On-call Manager covering the remaining hours."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Keeping care going",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Staffing the visits",
+          "blocks": [
+            {
+              "p": "The HR Manager reports the day's staffing figure to the incident lead by 10am each day while the plan is active: who is off sick, excluded, unable to travel or available for extra work. Care Coordinators re-plan the rota in priority order, using these measures in turn:"
+            },
+            {
+              "steps": [
+                "Rearrange existing runs, using care workers who live closest to the people affected and walking rounds where travel is difficult.",
+                "Offer extra hours to willing staff within the Working Time, Rest Breaks and Travel Time Policy and any visa limit on hours (Right to Work and Sponsored Workers Policy). Nobody works more than 60 hours in a rota week except with the Registered Manager's written agreement during an activation, and nobody loses breaks or 11 hours' daily rest.",
+                "Cancel training, supervision and meetings that can be rescheduled. Agreed annual leave is cancelled only with the Registered Manager's agreement, repaying any costs the employee cannot recover.",
+                "Deploy care-ready staff to visits within their training and competency, including current medicines competency for any medicines support; the Registered Manager gives care only when the plan is activated.",
+                "Book workers from our approved agencies, completing the agency profile, photo ID and local induction checks the Safer Recruitment Policy requires, issuing a spare work phone and telling each person before the visit who is coming.",
+                "With the person's agreement (their chosen contact's where they cannot decide), recorded on the visit record, arrange for family or friends to cover a task they already do safely.",
+                "Ask the commissioner to arrange temporary cover from another provider for named visits we cannot staff, sharing the information that provider needs with the person's agreement or in their best interests."
+              ]
+            },
+            {
+              "p": "A sponsored worker moves to another branch or role only after the HR Manager has checked sponsorship duties. If the rota cannot safely cover existing care, the Registered Manager pauses new packages under the Governance and Quality Assurance Policy. Packages are handed back only under the Visit Cancellations and Refusals of Care Procedure, never as a quick way to reduce demand."
+            }
+          ]
+        },
+        {
+          "heading": "Staff welfare and pay",
+          "blocks": [
+            {
+              "p": "A worker who judges a route unsafe is never pressured to travel. A care worker asked to stay with a person until another worker or help arrives is paid for all the time, and if their daily rest is cut their next start is moved back to give 11 hours. A care worker whose visits we cancel or move because of the incident is paid the planned visit and travel time unless given other paid work in that time. Extra hours, waiting time and taxis we book are paid. Staff with caring responsibilities disrupted by the same event, such as a school closure, are supported under the Flexible Working and Family Leave Policy. In an incident lasting more than 3 days, the HR Manager checks each worker's hours every day and the incident lead offers a debrief to any worker affected by a distressing event within 3 working days."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scenario arrangements",
+      "blocks": [
+        {
+          "p": "Each scenario has an action card in the branch business continuity plan. The table sets the rules every action card follows."
+        },
+        {
+          "table": {
+            "columns": [
+              "Scenario",
+              "Our arrangements"
+            ],
+            "rows": [
+              [
+                "Severe weather: heat, cold, snow, ice, flooding",
+                "Weather-health alerts, Met Office warnings and flood warnings are checked daily and acted on as the Severe Weather and Extreme Temperatures Procedure sets out."
+              ],
+              [
+                "Infectious disease outbreak or pandemic",
+                "The IPC lead manages the outbreak under the Transmission-Based Precautions and Outbreak Management Procedure; this policy is activated when visits are at risk. In a pandemic the Nominated Individual tracks national guidance daily, and the IPC lead keeps PPE above the 4-week minimum."
+              ],
+              [
+                "Staff shortage, including sickness, travel disruption and industrial action",
+                "The daily cover check finds gaps by 2pm and any visit uncovered at 4pm goes to the Registered Manager or Deputy Manager (Missed, Late and Short Visits Procedure); the staffing measures above are then used. For public transport strikes, non-drivers are given taxis at our cost for priority 1 and 2 visits."
+              ],
+              [
+                "CareFlow, phone or call monitoring outage, including a cyber attack",
+                "As set out in the next section; the technical response is led under the Information and Cyber Security Policy."
+              ],
+              [
+                "Loss of the branch office or its utilities",
+                "Staff move to the alternative workplace within 4 hours; the office phone is diverted; keys we hold are recovered from the key cabinet only when it is safe, otherwise access is arranged through the person or key holders. Besides any notification the Statutory Notifications to CQC Procedure requires, if the office will be out of use for more than 5 working days the Nominated Individual tells CQC in writing where the branch is being managed from."
+              ],
+              [
+                "Power cut or phone network failure affecting people's homes",
+                "The office uses the priority list to find people with powered equipment or telecare, reports the power cut on 105, phones each person or chosen contact at least every 4 hours until power returns and visits a higher-risk person living alone within 4 hours, as the Severe Weather and Extreme Temperatures Procedure sets out. The office reports telecare that may have failed to its provider the same day."
+              ],
+              [
+                "Fuel shortage or transport disruption",
+                "When the Registered Manager warns of a fuel supply disruption, drivers refuel when their tank falls to half, runs are re-planned to cut mileage, and staff who cannot get fuel phone the office before their next visit."
+              ],
+              [
+                "Failure of a key supplier",
+                "CareFlow supplier and IT support provider: outage arrangements below. PPE: the second approved supplier; if neither can deliver before stock falls below the 4-week minimum, the IPC lead buys compliant PPE elsewhere without further approval and tells commissioners the same day. Agency: the second approved agency. A pharmacy that cannot supply: the Care Coordinator arranges supply through the GP practice or another pharmacy the same working day. Community equipment: reported to its owner the same working day and a safe alternative arranged."
+              ],
+              [
+                "Loss of managers",
+                "The Registered Manager Role and Absence Cover Policy applies; if both the Registered Manager and Deputy Manager are unavailable, the Nominated Individual becomes incident lead at once."
+              ],
+              [
+                "Emergency in the community",
+                "Staff never enter a cordon or evacuated area. Within 1 hour the incident lead lists the people we support in the area, contacts each person or their chosen contact, gives the emergency services and local authority what they need to protect them under the Confidentiality and Information Sharing Policy, and accounts for every worker in the area."
+              ],
+              [
+                "Risk that we cannot continue the service or a contract",
+                "The Directors and Nominated Individual act under the Risk Management Policy, which sets who is told and when. If a registered provider becomes unable to continue because of business failure, the law requires each local authority to meet, for as long as it considers necessary, the needs the provider was meeting in its area (Care Act 2014, section 48); we hand over care information so that no visit is lost."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "CareFlow, phone or call monitoring outage",
+      "blocks": [
+        {
+          "p": "We plan for an outage lasting weeks, not hours. The Nominated Individual is told at once of any outage affecting everyone."
+        },
+        {
+          "steps": [
+            "Office staff tell every care worker on shift by phone to carry on with their visits and to phone the office on arrival and before leaving each visit; the monitor records those times in the office downtime log, acts at once on a time-critical or High missed-visit risk visit with no phoned arrival 15 minutes after its planned start, and starts lone working escalation from the phoned times as the Lone Working and Staff Personal Safety Policy sets out.",
+            "The office works from the business continuity records: rota, priority list, My care at a glance, visit plans and MAR chart exports.",
+            "Before each medicines visit the office reads the worker the doses due from the MAR chart export; the worker records on the back-up MAR sheet and phones each outcome before leaving, as the Medicines Administration Records (MAR and eMAR) Procedure sets out.",
+            "Visit content is phoned to the office and written in the downtime log; no other paper care notes are made.",
+            "Where the office phone system fails, it is diverted to work phones. A care worker whose work phone fails phones the office from their own phone or, with the person's agreement, the person's landline; the office gives each remaining code by voice just before the visit until a spare phone reaches them.",
+            "If CareFlow is unavailable at the end of the office day, Care Coordinators phone each care worker by 6pm with the next day's visits, and Office staff (the On-call Manager out of hours) give codes by voice just before each visit.",
+            "The incident lead contacts the CareFlow supplier or IT support provider within 1 hour and records the expected restoration time in the decision log."
+          ]
+        },
+        {
+          "p": "When CareFlow returns, the Care Coordinator (the On-call Manager at weekends and bank holidays) transfers downtime records and manual check-in/check-out times within 24 hours, soonest next visit first, checked as the Daily Records and Visit Notes Procedure and the Medicines Administration Records (MAR and eMAR) Procedure set out. Nothing is reconnected after a cyber attack until the IT support provider confirms in writing that it is clean."
+        }
+      ]
+    },
+    {
+      "heading": "Communication",
+      "blocks": [
+        {
+          "p": "The Registered Manager checks the contacts in the branch business continuity plan every 3 months. Texts to staff never contain a link, key safe code, address or information about a person we support; staff asked by text to phone in do so as soon as they safely can, never while driving. Staff refer media enquiries to the office and never post about an incident online."
+        },
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "When",
+              "By whom"
+            ],
+            "rows": [
+              [
+                "Nominated Individual",
+                "At once on activation",
+                "Person activating"
+              ],
+              [
+                "Directors",
+                "Within 24 hours of every activation; at once if a priority 1 or 2 visit cannot be delivered or more than one branch is affected",
+                "Nominated Individual"
+              ],
+              [
+                "Staff rostered in the next 24 hours",
+                "Within 2 hours of activation and always before their next affected visit",
+                "Care Coordinators and Office staff"
+              ],
+              [
+                "Each person or chosen contact whose visit changes",
+                "Before the planned visit time, in the way their care plan records they need",
+                "Care Coordinators and Office staff"
+              ],
+              [
+                "Commissioners",
+                "The same working day as activation, then a written update by 12 noon each day while the plan is active, and on stand-down",
+                "Registered Manager, with the Care Coordinator sending the daily written update; Nominated Individual for an incident affecting more than one branch or a cyber attack"
+              ],
+              [
+                "CQC",
+                "Where the event meets the tests in the Statutory Notifications to CQC Procedure: the same working day if identified in office hours, otherwise within 24 hours; updated within 1 working day when the position worsens significantly and when back to normal",
+                "Registered Manager, Deputy Manager or Nominated Individual"
+              ],
+              [
+                "GP practices, district nurses and other providers sharing a person's care",
+                "The same day a change affects medicines or care they share",
+                "Care Coordinator (On-call Manager out of hours)"
+              ],
+              [
+                "Self-funders and direct payment holders",
+                "As each person above, and in writing within 5 working days if their care changed for more than 1 day",
+                "Registered Manager"
+              ],
+              [
+                "Insurers",
+                "At once for a cyber attack; within 5 working days where a claim may arise",
+                "Nominated Individual"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Stand-down, recovery and learning",
+      "blocks": [
+        {
+          "p": "The incident lead stands down the plan when every visit for the next 48 hours is staffed under normal arrangements and the cause is resolved or controlled. The Nominated Individual agrees stand-down where they are incident lead. Stand-down is recorded in the decision log and staff, commissioners and CQC are told as the communication table sets out."
+        },
+        {
+          "bullets": [
+            "Postponed visits are rebooked within 7 days. Care plan reviews, risk assessment reviews, spot checks, supervision and training postponed in the incident take place within 4 weeks of stand-down, the most overdue and highest-risk first.",
+            "The HR Manager checks every worker's working time and pay within 5 working days of stand-down, and arranges rest or a reduced rota for anyone whose average hours or rest fell short."
+          ]
+        },
+        {
+          "p": "The Registered Manager completes a post-event review within 5 working days of stand-down, asking staff involved and, where they wish, people we support and families what worked and what did not. It also serves as the event-triggered risk review under the Risk Management Policy. For an outbreak it covers continuity of visits and feeds into the post-outbreak review. Actions go into the service improvement plan within 5 working days, the branch business continuity plan is updated within 1 month, and learning is shared with all staff within 1 month of the review."
+        }
+      ]
+    },
+    {
+      "heading": "Testing and exercising",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Test",
+              "Who and how often",
+              "What it proves"
+            ],
+            "rows": [
+              [
+                "Annual business continuity exercise",
+                "Nominated Individual, in each branch by 30 June, with the Registered Manager, Deputy Manager, Care Coordinators, HR Manager, a Field Care Supervisor, an On-call Manager and the IT support provider",
+                "A CareFlow and eMAR outage and a ransomware attack every year, plus one rotating scenario: loss of the office, fuel shortage, mass staff absence or emergency in the community"
+              ],
+              [
+                "Severe weather, outbreak and sudden manager absence exercises",
+                "As the Severe Weather and Extreme Temperatures Procedure, the Transmission-Based Precautions and Outbreak Management Procedure and the Registered Manager Role and Absence Cover Policy set",
+                "Scenario arrangements for those events"
+              ],
+              [
+                "Business continuity records",
+                "Deputy Manager, quarterly: records opened offline on both laptops without internet",
+                "Records open and are in date"
+              ],
+              [
+                "Phone cascade",
+                "Deputy Manager, by 31 May and 31 October",
+                "Every employee reached within 24 hours"
+              ],
+              [
+                "Office phone diversion",
+                "Deputy Manager, every 6 months",
+                "Calls reach work phones within 1 hour"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Each exercise is written up by its lead within 10 working days, and gaps go into the service improvement plan within 5 working days of the report. A real activation never replaces the annual exercise, but may count as that year's rotating scenario once its post-event review is complete."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "bullets": [
+            "Each incident, its decision log, notifications and post-event review: the incident log entry, kept as the Incident Reporting, Investigation and Learning Policy sets out.",
+            "Each version of the branch business continuity plan, exercise reports and annual business continuity reports: the governance records, for the life of the organisation plus 6 years.",
+            "Business continuity records exports: copies only; nothing in them replaces the CareFlow record.",
+            "Back-up MAR sheets and office downtime logs: transferred, checked, scanned and shredded as the Medicines Administration Records (MAR and eMAR) Procedure and the Daily Records and Visit Notes Procedure set out."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Who",
+              "Training",
+              "When"
+            ],
+            "rows": [
+              [
+                "All employees",
+                "Their part in this policy: phoning in, outage working, the cascade, priority order, pay and safety",
+                "At induction before working without a shadowing colleague, then each year in the 31 October seasonal briefing; this policy is acknowledged in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version"
+              ],
+              [
+                "Office staff, Care Coordinators and On-call Managers",
+                "Opening the business continuity records, phoned check-ins, the downtime log, re-planning rotas in priority order, giving codes by voice",
+                "Before monitoring alone or the first on-call shift, then every 12 months within monitoring and downtime training"
+              ],
+              [
+                "Registered Manager, Deputy Manager and Nominated Individual",
+                "Leading a business continuity incident and keeping a decision log",
+                "Within 3 months of appointment and before first leading an incident, then every 3 years"
+              ],
+              [
+                "Care-ready staff",
+                "Care training and competencies kept in date",
+                "As the Training and Development Policy sets"
+              ],
+              [
+                "Directors",
+                "Business continuity accountability",
+                "Within 1 month of appointment and at the annual governance update"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every spot check asks the care worker what they would do if CareFlow or their phone failed during a visit; a worker who cannot explain is briefed before their next lone visit."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Check",
+              "Who and how often",
+              "Reported to",
+              "Target"
+            ],
+            "rows": [
+              [
+                "Business continuity records in date, opened offline, and priority information complete for 10 people",
+                "Deputy Manager, quarterly",
+                "Monthly Quality and Governance Meeting",
+                "100%"
+              ],
+              [
+                "Missed-visit risk level and contingency in care plans",
+                "Deputy Manager, monthly, within the care records audit",
+                "Registered Manager; Monthly Quality and Governance Meeting",
+                "100%"
+              ],
+              [
+                "Cascade and phone diversion tests",
+                "Deputy Manager, as scheduled",
+                "Monthly Quality and Governance Meeting",
+                "100% reached within 24 hours; diversion within 1 hour"
+              ],
+              [
+                "Activations, notifications and post-event reviews",
+                "Registered Manager, after every activation",
+                "Quarterly governance report",
+                "100% reviewed within 5 working days; notifications on time"
+              ],
+              [
+                "Branch plans approved, exercises held, supplier assurance",
+                "Nominated Individual, yearly",
+                "Annual business continuity report to the Directors' governance meeting held by mid-May",
+                "Every plan approved by 30 September; every exercise by 30 June"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan within 5 working days. Each activation is added to the risk register within 5 working days under the Risk Management Policy."
+        },
+        {
+          "p": "The Registered Manager reviews this policy every 12 months, and sooner after a change in law or national guidance, a serious incident, an activation or exercise that shows a gap, an inspection finding, or when monitoring shows the arrangements are not working. The Directors approve it under the Policy Management and Document Control Policy."
+        }
+      ]
+    }
+  ]
+}

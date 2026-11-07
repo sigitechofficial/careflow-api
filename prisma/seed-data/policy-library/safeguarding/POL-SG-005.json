@@ -1,0 +1,672 @@
+{
+  "reference": "POL-SG-005",
+  "revision": 1,
+  "title": "Deprivation of Liberty in the Community Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we identify people in their own homes whose care arrangements may amount to a deprivation of liberty under the test set by the Supreme Court in June 2026, refer them to the commissioner or local authority for a Court of Protection decision, keep care least restrictive while a decision is awaited, follow any court order, escalate delays and notify CQC. For managers, coordinators, assessors, senior care workers and office staff.",
+  "keyPoints": {
+    "intro": "This procedure tells you how to spot care that may take away a person's liberty at home, who to tell, and how we make sure nobody is deprived of liberty without a court's authority.",
+    "points": [
+      "Only the Court of Protection can authorise a deprivation of liberty in a person's own home. Agreement from family, an attorney's decision, a best interests decision or our care plan never authorises it.",
+      "Tell the office the same day and note it in the daily visit notes if a person keeps trying or asking to leave, resists care or a restriction, is given covert or sedating medicines, or is watched almost all the time.",
+      "Never lock a person in, take or hide their keys, stop them going out or bring them back unless the care plan records that restriction as approved. Leave the door so the person can open it from inside, unless they choose otherwise.",
+      "If a person who cannot keep safe outside alone walks out, go with them and never hold or block them; phone the office. If a colleague uses an unapproved restriction or restraint, phone it in before you leave: it is a safeguarding concern.",
+      "If a relative or anyone else locks the person in, stops them going out, keeps visitors away or restrains them, phone the office before you leave the visit. It is a safeguarding concern.",
+      "Assessors complete the deprivation of liberty screen in the Consent and decisions part of the care plan at every initial assessment and full care plan review. The Care Coordinator updates it the same working day whenever a sign or restriction is reported or proposed.",
+      "Going along with care is not the same as being content. Record what the person says and shows, in their own words where possible, including any sign of fear, pressure, sedation or not wanting to be a burden.",
+      "Where a person who lacks, or may lack, capacity has a significant restriction or objects, the Registered Manager writes to the commissioner within 2 working days. Never decide yourself that a person is content enough not to refer.",
+      "While a decision is awaited, use only restrictions that have an approved best interests decision, always choose the least restrictive way, and never add or increase a restriction without approval from the Registered Manager or Deputy Manager.",
+      "Where a Court of Protection order is in place, follow its conditions exactly and tell the office the same day about any change in the person's needs, wishes or objections.",
+      "If a person is in immediate danger, call 999. Office staff record every report about leaving, objection, restriction or supervision in the daily visit notes and pass it to the Care Coordinator the same working day."
+    ]
+  },
+  "reviewFrequencyMonths": 6,
+  "acknowledgementRequired": true,
+  "audience": [
+    "Manager",
+    "Care Coordinator",
+    "Senior Carer/Nurse",
+    "Admin"
+  ],
+  "moduleLinks": [
+    "INITIAL_ASSESSMENT",
+    "CARE_PLAN",
+    "RISK_ASSESSMENT",
+    "SAFEGUARDING"
+  ],
+  "relatedReferences": [
+    "POL-SG-001",
+    "POL-SG-004",
+    "POL-CD-004",
+    "POL-SG-006",
+    "POL-SG-002",
+    "POL-MED-009",
+    "POL-GOV-009",
+    "POL-CD-019"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Mental Capacity Act 2005, section 4A (restriction on deprivation of liberty)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/4A"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 4B (deprivation of liberty necessary for life-sustaining treatment or a vital act while a court decision is sought)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/4B"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 16 (powers of the court: decisions and deputies)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/16"
+    },
+    {
+      "source": "Mental Capacity Act 2005, section 16A (section 16 powers: Mental Health Act patients)",
+      "url": "https://www.legislation.gov.uk/ukpga/2005/9/section/16A"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13(4)(b), (5) and (7) (control, restraint and deprivation of liberty)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 18(4A)(b) and (4B) (notification of applications to a court to deprive a person of their liberty)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/18"
+    },
+    {
+      "source": "UK Supreme Court, A Reference by the Attorney General for Northern Ireland of a Devolution Issue, 2026 UKSC 16 (2 June 2026), press summary",
+      "url": "https://caselaw.nationalarchives.gov.uk/uksc/2026/16/press-summary"
+    },
+    {
+      "source": "Department of Health and Social Care, UK Supreme Court 2026 judgment on what constitutes a deprivation of liberty (published 15 June 2026, updated 22 September 2026)",
+      "url": "https://www.gov.uk/government/publications/changes-to-the-definition-of-deprivation-of-liberty/uk-supreme-court-2026-judgment-on-what-constitutes-a-deprivation-of-liberty"
+    },
+    {
+      "source": "HM Courts and Tribunals Service, Deprivation of Liberty orders (Court of Protection applications, form COPDOL11; updated 13 July 2026)",
+      "url": "https://www.gov.uk/guidance/deprivation-of-liberty-orders"
+    },
+    {
+      "source": "Department of Health and Social Care, Improved safeguarding and protections for vulnerable people (press release, 18 October 2025, on the Liberty Protection Safeguards consultation)",
+      "url": "https://www.gov.uk/government/news/improved-safeguarding-and-protections-for-vulnerable-people"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} never deprives a person of their liberty for the purpose of care without lawful authority. In a person's own home that authority can come only from an order of the Court of Protection. Our part is to identify arrangements that may need one, refer them promptly to the commissioner, including whenever in doubt, keep every restriction to the least needed while a decision is made, and follow every court order exactly."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure sets out how we meet Regulation 13(5) of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 and section 4A of the Mental Capacity Act 2005 when we support people in their own homes."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure covers every adult we support in their own home or tenancy, however their care is funded, and every role named in Roles and responsibilities. Care Workers' duties come from the Consent to Care Policy and the key points."
+        },
+        {
+          "p": "Capacity assessment and best interests decisions are covered by the Mental Capacity Act and Best Interests Policy, approval of individual restrictions by the Restraint and Restrictive Practice Policy, covert medicines by the Covert Administration of Medicines Policy, and reporting abuse by the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. In a care home or hospital the local authority's Deprivation of Liberty Safeguards apply instead."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Deprivation of liberty",
+                "Confinement of a person, beyond a restriction, to which they have not given valid consent, judged on all the circumstances. The commissioner and, finally, the Court of Protection decide whether it exists, not us."
+              ],
+              [
+                "Restriction",
+                "Any limit on what a person may do or where they may go, including restraint as Regulation 13(7) defines it."
+              ],
+              [
+                "Significant restriction",
+                "Our term for any of the following, by anyone: being locked in or kept from going out; being stopped or brought back when trying to leave; supervision or monitoring for all or most of the day and night; physical restraint or being held for care; covert medicines or medicines given to sedate or control behaviour; limits on seeing people or using the phone."
+              ],
+              [
+                "Valid consent",
+                "Not the same as legal capacity: a person aware of their surroundings, with a basic understanding of their situation, who can express whether they are happy with it, may consent to their arrangements even if they lack capacity under the Act. Compliance is not consent, and serious doubt rules it out."
+              ],
+              [
+                "Commissioner",
+                "The local authority or NHS integrated care board that arranges and funds the person's care; for a person who pays for their own care, the local authority where they live."
+              ],
+              [
+                "Court of Protection order",
+                "A welfare order under section 16(2)(a) of the Act authorising the person's care arrangements, usually applied for by the commissioner on form COPDOL11."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors are accountable for {{organisation}} meeting Regulation 13(5), approve this procedure, fund legal advice and decide whether we apply to the court ourselves. The Nominated Individual takes the escalations below and challenges the figures in the quarterly quality report."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager leads on deprivation of liberty: they decide every screen that finds a restriction, send referral letters, approve restrictions with the Deputy Manager, keep the deprivation of liberty log, notify CQC, escalate delays and tell staff about legal changes within 2 weeks. The Deputy Manager does this, to the same timescales, in the Registered Manager's absence, and carries out the monthly audit."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators and Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "As authorised assessors, they complete the screen at assessments and reviews with the evidence of the person's wishes and feelings. Care Coordinators record reported signs and pass them to the Registered Manager the same working day, follow up commissioners, keep visit plans in line with approved restrictions or court conditions, and brief care workers. Field Care Supervisors check at every spot check that no unapproved restriction is used and that court conditions are followed."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours, the On-call Manager records reports in the daily visit notes, acts under When it cannot wait, obtains phone approval from the Registered Manager or Deputy Manager before any new restriction is used, and hands over by 10am the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "Senior Care Workers, Care Workers and Office staff",
+          "blocks": [
+            {
+              "p": "Care staff act as the key points set out and leave the home so the person can open the door from inside, unless the person chooses otherwise or an approved restriction says otherwise. They get advice from a Senior Care Worker or the Care Coordinator, or the On-call Manager out of hours, phoning the Registered Manager or Deputy Manager directly if nobody answers within 15 minutes. A person who cannot keep safe outside alone and walks out during a visit is never held or blocked: the care worker goes with them, keeps them in sight and phones the office, under the No Reply, No Access and Missing Person Procedure. Restraint or a restriction used by our staff without approval, including an emergency intervention under the Restraint and Restrictive Practice Policy (the only physical action ever allowed), or beyond a court order, is a safeguarding concern phoned to the office before the care worker leaves and logged in the incident log the same day. Senior Care Workers check, at visits they share, that colleagues follow the approved restrictions. Office staff record every report in the daily visit notes and pass it to the Care Coordinator the same working day."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The legal position",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What the law requires",
+          "blocks": [
+            {
+              "bullets": [
+                "Regulation 13(5): a person must not be deprived of their liberty for the purpose of receiving care or treatment without lawful authority.",
+                "Section 4A of the Mental Capacity Act 2005: a person may be deprived of their liberty only to give effect to a Court of Protection welfare order under section 16(2)(a) or under the Deprivation of Liberty Safeguards, which cover only care homes and hospitals. At home only a court order applies; no relative, attorney, deputy or best interests decision can authorise it.",
+                "Section 4B: while a court decision is sought, a deprivation of liberty is allowed only for life-sustaining treatment or a vital act to prevent a serious deterioration. Our policy is that staff never rely on it: they call 999.",
+                "Section 16A: the court cannot authorise a deprivation of liberty for a person made ineligible by their Mental Health Act 1983 position (Schedule 1A).",
+                "Regulation 18(4A)(b) and (4B) of the Care Quality Commission (Registration) Regulations 2009: CQC must be notified of any application made to a court under section 16(2)(a) in relation to depriving a person we support of their liberty, arising while we provide care or as a consequence of it, once the outcome is known or when it is withdrawn."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "The test since 2 June 2026",
+          "blocks": [
+            {
+              "p": "On 2 June 2026 the Supreme Court overruled the 2014 Cheshire West acid test (A Reference by the Attorney General for Northern Ireland, 2026 UKSC 16). Whether a person is deprived of their liberty depends on their concrete situation, and no single factor decides it. The Department of Health and Social Care guidance of 15 June 2026 lists factors including:"
+            },
+            {
+              "bullets": [
+                "the type of restriction, such as locked doors, physical control, sedating medication or social isolation;",
+                "its duration, its effects on the person and the way it is carried out;",
+                "whether the person objects, by words or behaviour;",
+                "how normal the arrangements are: greater restrictions are needed in a person's own home for a deprivation of liberty to arise;",
+                "their purpose, such as care and protection rather than punishment or coercion."
+              ]
+            },
+            {
+              "p": "Limits that come only from their own illness or impairment, such as being unable to form any wish to leave, are unlikely to amount to a deprivation. The guidance warns that sedation, fear, pressure or not wanting to be a burden can hide objection, and asks for a cautious approach, with borderline cases and any doubt about objection referred."
+            },
+            {
+              "p": "The Liberty Protection Safeguards (Mental Capacity (Amendment) Act 2019) are not in force; the government said in October 2025 it would consult on them in 2026."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Identifying a possible deprivation of liberty",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "When the screen is completed",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Trigger",
+                  "Who completes the screen",
+                  "When"
+                ],
+                "rows": [
+                  [
+                    "Initial assessment of every new package, including short-notice starts",
+                    "The assessor",
+                    "On the day of the assessment visit, before the first care visit; for a hospital discharge, after asking the ward about any Deprivation of Liberty Safeguards authorisation and restrictions planned at home"
+                  ],
+                  [
+                    "Every full care plan review, including the 6-week review",
+                    "The reviewer",
+                    "On the day of the review"
+                  ],
+                  [
+                    "Any report of a sign in the key points; a restriction added, changed or proposed by anyone; a new covert or sedating medicine; a capacity doubt about the care arrangements",
+                    "Care Coordinator (On-call Manager out of hours)",
+                    "Screen updated the same working day, with a focused review within 7 days under the Care Plan Review Procedure"
+                  ],
+                  [
+                    "A Court of Protection order approaching its end date",
+                    "Care Coordinator",
+                    "At least 3 months before the end date"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "The screening questions",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Question",
+                  "What the assessor looks for"
+                ],
+                "rows": [
+                  [
+                    "Can the person decide about their care arrangements, including the restrictions in them?",
+                    "Any recorded capacity assessment and any doubt. Our assessor assesses capacity for a restriction we use under the Mental Capacity Act and Best Interests Policy; the commissioner assesses capacity about the care package as a whole."
+                  ],
+                  [
+                    "Can the person go out, alone or with help, when they want to?",
+                    "Doors locked from outside, keys removed or hidden, a key safe or lock they cannot use to get out, being stopped or brought back, instructions to stop them leaving."
+                  ],
+                  [
+                    "How much of the day and night is the person watched or accompanied?",
+                    "Live-in carers, a family rota, waking nights, sensors, cameras or tracking that summon someone to stop or return them."
+                  ],
+                  [
+                    "What controls their care and daily life?",
+                    "Holding or restraint, care given despite resistance, covert or sedating medicines including when required medicines for agitation, bed rails, lap belts, removal of walking aids, a phone or an alarm, limits on visitors."
+                  ],
+                  [
+                    "What does the person say and show about the arrangements?",
+                    "Objection, attempts or requests to leave, resistance, distress, wishes that swing between contentment and objection, and anything that may suppress them."
+                  ],
+                  [
+                    "Is any other authority in place?",
+                    "A Court of Protection order, a verified attorney or deputy, or Mental Health Act 1983 powers such as guardianship, a community treatment order or conditional discharge."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Evidence of the person's wishes and feelings",
+          "blocks": [
+            {
+              "p": "The assessor speaks with the person privately at their best time, with their communication aids and a professional interpreter where needed, never a family member. They read the last 4 weeks of daily visit notes, ask at least two core care team members (all if fewer) and the people the person would want consulted, and check What matters to me and any advance statement. They record, with dates, what the person says, in their own words where possible, and what they show. A record saying only that the person is settled or compliant is never acceptable."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Deciding and referring",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Screen outcomes",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Outcome",
+                  "When it applies",
+                  "What happens"
+                ],
+                "rows": [
+                  [
+                    "No restrictions of concern",
+                    "No restriction beyond ordinary help with care",
+                    "Assessor records it; screen repeated at the next trigger."
+                  ],
+                  [
+                    "Has capacity for the arrangements",
+                    "The person can decide about their care arrangements and agrees to any restriction",
+                    "Signed consent to each restriction under the Consent to Care Policy; withdrawn agreement ends the restriction at once. Restriction by others against their wishes is a safeguarding concern."
+                  ],
+                  [
+                    "Restriction, no referral needed",
+                    "The person lacks or may lack capacity, has no significant restriction and shows no objection or distress, such as a door sensor that alerts a relative who then checks on them",
+                    "Registered Manager confirms within 2 working days with reasons; each restriction approved under the Restraint and Restrictive Practice Policy."
+                  ],
+                  [
+                    "Possible deprivation of liberty",
+                    "The person lacks or may lack capacity and either has any significant restriction or objects to, or is distressed by, any restriction; or the Registered Manager is in doubt",
+                    "Referral letter within 2 working days."
+                  ],
+                  [
+                    "Authorised",
+                    "A Court of Protection order covers the arrangements",
+                    "Working with a Court of Protection order applies."
+                  ],
+                  [
+                    "Mental Health Act powers",
+                    "Guardianship, a community treatment order, conditional discharge or leave of absence applies",
+                    "Registered Manager writes within 2 working days to the commissioner and the responsible mental health team, who decide the lawful route."
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "We never decide that a person who lacks capacity validly consents to a significant restriction: it is always referred. An awaited capacity assessment never delays a referral: the letter says so, and the result follows within 2 working days of completion."
+            }
+          ]
+        },
+        {
+          "heading": "Making the referral",
+          "blocks": [
+            {
+              "steps": [
+                "The assessor or Care Coordinator records the screen and evidence in the Consent and decisions part of the care plan on the day and tells the Registered Manager the same working day.",
+                "Within 2 working days, the Registered Manager reviews the screen with the daily visit notes, risk assessments and the eMAR for covert or sedating medicines, decides the outcome and records the reasons.",
+                "For a possible deprivation of liberty, the Registered Manager sends the referral letter by secure email within the same 2 working days to the local authority, the integrated care board for NHS continuing healthcare, or both where care is jointly funded; for a person who pays for their own care, to the adult social care team where they live. A commissioner in another area is written to and the local authority where the person lives is copied in.",
+                "The Registered Manager or Care Coordinator tells the person, in a way they understand, and any verified health and welfare attorney or deputy, that we have asked for the arrangements to be checked. Family are told with the person's agreement or where it is in their best interests, unless that would put the person at risk.",
+                "The Care Coordinator records the letter in the People involved part of the care plan and the deprivation of liberty log, sets the follow-up dates, updates the care plan and risk assessments with the interim arrangements within 2 working days, and tells every rostered care worker before their next visit."
+              ]
+            },
+            {
+              "p": "The letter gives the person's name, address, date of birth and NHS number; each restriction, who imposes it, how often and for how long; the evidence of their wishes and feelings; the capacity information we hold, asking the commissioner to assess capacity about the care arrangements where it has not; the less restrictive options tried; the people involved; and, where nobody but paid staff is appropriate to consult, a request for an advocate. It asks for a written decision within 20 working days on whether an application will be made to the Court of Protection, or the reasons why not, and to be told the application date and outcome. Information is shared under the Confidentiality and Information Sharing Policy."
+            }
+          ]
+        },
+        {
+          "heading": "When it cannot wait",
+          "blocks": [
+            {
+              "p": "Where anyone is in immediate danger, staff call 999. Where the arrangements may be a deprivation of liberty and the person is strongly objecting, trying to leave in a way that puts them at serious risk, or being restrained or locked in by others, the Registered Manager or Deputy Manager phones the commissioner the same day (out of hours, the On-call Manager phones the local authority emergency duty team, using the Local Safeguarding Contacts sheet), asking it to consider an urgent application. The call is confirmed in writing the same working day, or by 12 noon the next working day if made out of hours. We never confine a person ourselves in an emergency."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Least restrictive care while a referral is pending",
+      "blocks": [
+        {
+          "bullets": [
+            "Care workers use only restrictions with a best interests decision approved by the Registered Manager or Deputy Manager under the Restraint and Restrictive Practice Policy, with a best interests meeting within 10 working days.",
+            "The visit plan says exactly what staff do and must not do, such as walking with the person rather than stopping them.",
+            "The Care Coordinator reviews every restriction at least every 4 weeks with the person, the core care team and those consulted, to see whether it can be reduced, replaced or ended, including by technology under the Technology-Enabled Care and Telecare Policy.",
+            "No restriction is added or increased without approval from the Registered Manager or Deputy Manager (by phone through the On-call Manager out of hours; covert medicines only by the Registered Manager or an authorised acting manager, never out of hours), and the commissioner is told in writing within 2 working days. Until a formal capacity assessment and best interests decision exist, each approval covers one visit only.",
+            "When objection or distress increases, the Care Coordinator holds a focused review within 7 days and the Registered Manager tells the commissioner in writing within 2 working days, or acts under When it cannot wait if the risk is serious.",
+            "Where more support would let the person go out safely or replace a restriction, the Care Coordinator asks the commissioner in writing within 2 working days.",
+            "We never reduce or end a package because an authorisation is delayed."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Following up and escalating",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Stage",
+              "When",
+              "Action",
+              "By"
+            ],
+            "rows": [
+              [
+                "No acknowledgement",
+                "5 working days after the letter",
+                "Phone and email the commissioner",
+                "Care Coordinator"
+              ],
+              [
+                "No written decision",
+                "20 working days after the letter",
+                "Write to the team manager asking for a decision within 10 working days; tell the Nominated Individual",
+                "Registered Manager"
+              ],
+              [
+                "Still no decision",
+                "10 working days after that request",
+                "Write to the senior manager responsible for adult social care or NHS continuing healthcare",
+                "Nominated Individual"
+              ],
+              [
+                "Application made",
+                "Every 4 weeks until the outcome is known",
+                "Ask the applicant for progress and the outcome",
+                "Care Coordinator"
+              ],
+              [
+                "Commissioner decides not to apply",
+                "Within 2 working days of the reply",
+                "Record its reasons; if the Registered Manager disagrees, reply in writing with reasons within 5 working days and tell the Nominated Individual",
+                "Registered Manager"
+              ],
+              [
+                "Disagreement remains, or the local authority will not act for a self-funder",
+                "Within 10 working days of the commissioner's further reply or refusal",
+                "Arrange legal advice; the Directors decide within 10 working days of receiving it whether we apply to the court ourselves",
+                "Nominated Individual and Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where the person objects and restrictions continue without authority, the Registered Manager decides the same day whether to raise a safeguarding concern. A referral stays open until a court order is made, the commissioner confirms in writing with reasons that no application is needed, or restrictions are reduced so that the Registered Manager records that the screen no longer shows a possible deprivation of liberty and tells the commissioner in writing. A hospital admission, or the package ending or transferring, does not close a referral: the Registered Manager tells the commissioner in writing within 2 working days."
+        }
+      ]
+    },
+    {
+      "heading": "Working with a Court of Protection order",
+      "blocks": [
+        {
+          "p": "The applicant is usually the commissioner; where it is someone else, the commissioner is told everything the applicant is told."
+        },
+        {
+          "bullets": [
+            "Within 2 working days of receiving the order, the Care Coordinator records in the Consent and decisions part its date, the applicant, the measures authorised, every condition, the end or review date and the person's court-appointed representative, and scans a copy of the order to the person's documents in CareFlow.",
+            "Visit plans include only the authorised measures and every condition, are approved by the Registered Manager before the next visit, and are briefed to every rostered care worker before their next visit. An order permits restrictions but does not require them, so staff still use the least restrictive approach.",
+            "We lock the person alone in their home only where the order expressly authorises it and the Registered Manager has approved the fire safety arrangements after a home fire safety visit by the fire and rescue service.",
+            "The Registered Manager tells the applicant in writing within 2 working days of any change in the person's needs, wishes or objections, a restriction no longer needed or a new one needed, a hospital admission, a move or a condition we cannot meet.",
+            "The Registered Manager writes to the applicant at least 2 months before the order ends asking how it will be reviewed, and sends information requested for a court review by the date set or within 5 working days.",
+            "The person's representative may speak with the person privately, is given the information they need and is invited to care plan reviews.",
+            "A measure used beyond the order is reported as an unapproved restriction; it, or any condition not met, goes in the incident log the same day and the Registered Manager tells the applicant the same working day.",
+            "If an order ends without renewal, the Registered Manager tells the applicant in writing the same working day and the person is treated as a possible deprivation of liberty until a decision is made."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Other situations",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Hospital discharge and care home stays",
+          "blocks": [
+            {
+              "p": "A hospital or care home's Deprivation of Liberty Safeguards authorisation gives no authority at home. Where the screen before discharge shows a possible deprivation of liberty at home, the Registered Manager raises it with the discharge team and the commissioner the same working day, before discharge wherever possible, and sends the referral letter. Otherwise discharge follows the Hospital Admission and Discharge Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Restrictions imposed by family or others",
+          "blocks": [
+            {
+              "p": "Where relatives, privately employed carers or other services lock a person in, take their keys, stop visitors or track them, care workers leave the door so the person can open it from inside, unless an approved restriction says otherwise, and phone the office before leaving the visit; the safeguarding lead assesses the risk within 1 hour under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. The Registered Manager decides the screen outcome, and sends any referral letter, within 2 working days, and acts the same day under When it cannot wait where the person is locked in or restrained. A person locked in alone is a fire risk, reported to the local authority the same day and referred by the Care Coordinator to the fire and rescue service the same working day under the Fire Safety in People's Homes Policy. The Care Coordinator discusses less restrictive alternatives with the family, such as telecare or extra visits."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Notifying CQC",
+      "blocks": [
+        {
+          "p": "Beyond the legal duty in What the law requires, our policy is to notify every application to deprive a person we support of their liberty that we know of, whoever made it. The Registered Manager submits the notification within 2 working days of learning the outcome or withdrawal, under the Statutory Notifications to CQC Procedure, and records the date in the deprivation of liberty log. Unlawful restriction or restraint that is abuse or an allegation of abuse is notified as the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure sets out."
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "Screens, evidence, decisions and reasons, approved restrictions, reviews and court order details",
+                "Consent and decisions part of the care plan"
+              ],
+              [
+                "Letters, replies, chasers, escalations, representatives, attorneys and deputies",
+                "People involved part of the care plan"
+              ],
+              [
+                "Attempts to leave, objection, distress and responses to restrictions",
+                "Daily visit notes"
+              ],
+              [
+                "Restriction or restraint by others; urgent referrals; unapproved restrictions by our staff and breaches of an order (also in the incident log)",
+                "Safeguarding records"
+              ],
+              [
+                "Each referral's dates, outcome and CQC notification date, by CareFlow reference number",
+                "Deprivation of liberty log, kept by the Registered Manager"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Retention follows the Records Management and Retention Policy. Its schedule keeps deprivation of liberty log entries as long as the person's care record, or any linked safeguarding, serious incident, complaint or claim record if longer. Nothing connected with Court of Protection proceedings is destroyed while they are open or expected."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Consent and the Mental Capacity Act, including recognising and reporting restrictions",
+                "Care Workers and Senior Care Workers",
+                "At induction, before working without a shadowing colleague",
+                "Every 12 months, with the safeguarding refresher"
+              ],
+              [
+                "Consent and legal authority awareness, including recording reports",
+                "Office staff",
+                "Within the first week of employment",
+                "Every 12 months"
+              ],
+              [
+                "Capacity assessment, best interests, legal authority and deprivation of liberty, including the screen and referral letter",
+                "Care Coordinators, Field Care Supervisors, On-call Managers, Deputy Manager and Registered Manager",
+                "Before the first screen or on-call shift",
+                "Every 2 years, and within 2 months of a significant change in law or guidance"
+              ],
+              [
+                "Lead-level Mental Capacity Act and deprivation of liberty training",
+                "Registered Manager and Deputy Manager",
+                "Within 3 months of appointment",
+                "Every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Anyone in the last two groups whose deprivation of liberty training predates 2 June 2026 completes an update on the 2026 judgment and this procedure before their next screen, referral decision or on-call shift. A new assessor's first three screens that find a restriction are checked by the Registered Manager or Deputy Manager. Field Care Supervisors ask at every spot check which signs a care worker must report the same day; a care worker who cannot say is retrained before their next unsupervised visit. Staff in this procedure's audience acknowledge it in CareFlow by the deadline in the Induction and Care Certificate Procedure and within 14 days of each new major version."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Every screen that found a restriction and every referral in the month: evidence, reasons, timescales, interim restrictions approved and reviewed",
+                "Monthly audit; the Registered Manager audits those the Deputy Manager decided",
+                "Deputy Manager",
+                "Registered Manager; Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Screen completed at assessments and full reviews",
+                "Monthly 10-care-plan audit",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Follow-up dates; orders within 3 months of ending",
+                "Weekly",
+                "Care Coordinator",
+                "Weekly management meeting"
+              ],
+              [
+                "Referrals, outcomes, referrals open over 20 working days, court orders, CQC notifications",
+                "Monthly review",
+                "Registered Manager",
+                "Nominated Individual and Directors in the quarterly quality report"
+              ],
+              [
+                "Changes in law and guidance",
+                "First working day of each month, recorded",
+                "Registered Manager",
+                "Directors when a change affects this procedure"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets, each 100%, are screens completed when due, referral letters sent within 2 working days, restrictions approved before use and CQC notifications on time. Every shortfall goes in the service improvement plan within 5 working days with an owner and deadline."
+        },
+        {
+          "p": "This procedure is reviewed every 6 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, including further Department of Health and Social Care guidance on the 2026 judgment, a revised Mental Capacity Act Code of Practice or any decision on the Liberty Protection Safeguards, after a serious incident or an inspection finding, or when monitoring shows our arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

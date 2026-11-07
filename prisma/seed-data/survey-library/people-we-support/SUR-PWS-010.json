@@ -1,0 +1,316 @@
+{
+  "reference": "SUR-PWS-010",
+  "revision": 1,
+  "title": "Tell us what you think",
+  "audience": "PUBLIC",
+  "audienceGroup": "SEVERAL",
+  "respondents": "Anyone: people we support, relatives and friends, people who act for someone we support, professionals and the public",
+  "summary": "An always-open form, by link, QR code, paper or phone, for compliments, worries, complaints and ideas between our regular surveys. Each message is read every working day and sent to the right route. Your details are optional. About 6 minutes.",
+  "purpose": "A permanent, easy route for compliments, concerns, complaints, worries about someone's safety and ideas, between scheduled surveys, under the Compliments, Feedback and Involvement Procedure. It is not a measurement survey: its value is reading every message the working day it arrives and sending each part to the right route (safeguarding, complaint, incident, compliment or suggestion). It can be the electronic complaints form the Complaints Policy and Procedure describes. The overall rating comes from people who chose to write, so it is never pooled with the annual survey's satisfaction figure. It evidences Regulation 16(2) (an accessible system for identifying, receiving and handling complaints) and Regulation 17(2)(e) (seeking and acting on feedback).",
+  "timing": {
+    "when": "Always open, one copy a year: a page on our website (with a QR code in the welcome pack and care folder) links to the current form; also a paper slip, or by phone to the office",
+    "recurrence": null,
+    "trigger": null
+  },
+  "anonymous": false,
+  "channels": ["ONLINE", "PAPER", "TELEPHONE"],
+  "estimatedMinutes": 6,
+  "cqc": {
+    "keyQuestions": ["SAFE", "RESPONSIVE", "WELL_LED"],
+    "qualityStatements": ["Safeguarding", "Listening to and involving people", "Learning, improvement and innovation"]
+  },
+  "introduction": "Tell {{organisation}} what you think at any time: something we did well, something you are unhappy about, a worry about someone's safety, or an idea. We read this form every working day. It takes about 6 minutes.\n\nGiving your name and contact details is up to you. What you tell us will never affect anyone's care. You can also share your experience with the Care Quality Commission (CQC) or your local Healthwatch.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone our office (out of hours, the on-call number in the care folder or on our website). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses what you tell us to deal with it and to improve our service. Our legal reason is our legitimate interest in running a good, safe service.\n\nIf you leave your details blank, we cannot reply unless your message says who you are. If you ask us to contact you, we keep your details with your message. It is seen only by our Registered Manager, Deputy Manager, safeguarding lead, Care Coordinators and the office staff who follow it up. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nEach year's form closes at the end of that year, and we keep your answers for 3 years after it closes. A complaint is also copied into our complaints records and kept there for 10 years after it is closed, under our Records Management and Retention Policy. We do not record the internet address or device you used. You can ask to see, correct or delete your information, or object to our using it, by contacting the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "closingMessage": "Thank you. We read every message each working day. If you asked us to contact you and gave your details, someone from our office will be in touch. If you are worried about someone's safety now, phone our office; in an emergency, call 999.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose \"Don't know\" if you have not used our service yourself. You can skip this question.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "who-are-you",
+          "text": "Who are you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "So we can see what each group thinks. A relative, friend, attorney or anyone else who acts for someone we support chooses Families and representatives. If you work for us, please use the speaking up routes in the staff handbook instead.",
+          "options": [
+            "People we support",
+            "Families and representatives",
+            "Health and social care professionals",
+            "Commissioners and local authority",
+            "Advocates and community organisations",
+            "Job applicants",
+            "Volunteers",
+            "General public",
+            "Prefer not to say"
+          ],
+          "notCountedOptions": ["Prefer not to say"],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us who you are",
+            "textRequired": false
+          }
+        }
+      ]
+    },
+    {
+      "title": "Your feedback",
+      "questions": [
+        {
+          "id": "q-type",
+          "text": "What would you like to tell us about?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "If you are worried about someone's safety right now, please phone our office instead. In an emergency, call 999.",
+          "options": [
+            "Something we did well",
+            "Something you are unhappy about",
+            "A worry about someone's safety",
+            "An idea to improve our service"
+          ],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us what it is about",
+            "textRequired": true
+          },
+          "evidence": "Responsive: Listening to and involving people"
+        },
+        {
+          "id": "q-message",
+          "text": "Please tell us what happened, or your idea.",
+          "type": "TEXTAREA",
+          "required": true,
+          "helpText": "Please include the date and, if you can, who it is about. Please do not include bank or medical details.",
+          "evidence": "Responsive: Listening to and involving people"
+        },
+        {
+          "id": "q-told-before",
+          "text": "Have you already told us about this?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Yes", "No", "Not sure"],
+          "showIf": {
+            "question": "q-type",
+            "answers": ["Something you are unhappy about"]
+          }
+        },
+        {
+          "text": "What would you like us to do about it?",
+          "type": "TEXTAREA",
+          "required": false,
+          "showIf": {
+            "question": "q-type",
+            "answers": ["Something you are unhappy about"]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Getting back to you",
+      "questions": [
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office will contact you within 5 working days; please give your name and how to reach you. If you choose No, we cannot reply to you, but we will still act on what you tell us."
+        },
+        {
+          "text": "Your name",
+          "type": "TEXT",
+          "required": false,
+          "showIf": {
+            "question": "q-contact",
+            "answers": ["Yes"]
+          }
+        },
+        {
+          "text": "Your phone number or email address",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "Tell us the best time to call, if you like.",
+          "showIf": {
+            "question": "q-contact",
+            "answers": ["Yes"]
+          }
+        },
+        {
+          "text": "If this is about someone we support, what is their name?",
+          "type": "TEXT",
+          "required": false,
+          "showIf": {
+            "question": "q-contact",
+            "answers": ["Yes"]
+          }
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Run this form one calendar year at a time, so its messages are deleted on time: CareFlow deletes a closed survey's answers 3 years after it closes (the period in the privacy notice), but cannot delete single answers. Each January publish a new copy from this template with an end date of 31 December, so CareFlow closes it at the end of the year and deletes its answers 3 years later (complaints are kept in the complaint records, not in the form). Because each copy has its own link, put a page on your own website (for example /feedback) in the welcome pack, care folder and You said, we did summary, with a QR code to that page, and point the page at the current year's link. Offer a paper slip with a freepost address, and take the same questions by phone in the office, entering them with Record response (channel Telephone or Paper). Easy read and translated versions sit behind the same page where the organisation has them.",
+      "Do not use \"Let people choose to answer without their name\" on this form: answers given that way are held back until a survey closes, and this form never closes, so complaints and safety worries would never be seen. Details are optional instead, and the form says so honestly; never call it anonymous.",
+      "Office staff or the Deputy Manager read every new message on the working day it arrives, in the survey's Individual responses. CareFlow does not alert anyone to new answers, so check at the start and end of each working day. If no one reads it out of hours, the form already says it is not for urgent concerns.",
+      "The form never asks for permission to publish a comment and is never presented as a way to post reviews: testimonials need signed consent approved by the Nominated Individual, under the Compliments, Feedback and Involvement Procedure. Because this form is open to the public, set up and check it like any public page: watch for spam, and never let it replace the complaints leaflet.",
+      "Recording a phone or paper message needs the \"Record survey responses\" permission (by default managers and admins only): give it to the office staff who take them.",
+      "Who may open individual answers: the office staff who read the form each working day, the Deputy Manager and the Registered Manager. This is set in Who can see the answers: individual responses are limited to the Deputy Manager, the Registered Manager, Care Coordinators and the safeguarding lead, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who read the form each working day."
+    ],
+    "actingOnResults": [
+      "Each part of a mixed message goes to its own route, whatever the writer chose under \"What would you like to tell us about?\": their choice is a hint, and staff still apply the procedure's test, because a \"worry\" is often a complaint. No one's care is reduced, changed or delayed because they gave critical feedback.",
+      "Count messages each month by type and route in the monthly feedback summary. The overall rating comes only from people who chose to write: report it on its own and never pool it with the annual survey.",
+      "Copy each message into its route's own record the day it is read (complaint, safeguarding concern, incident or compliment), where the route's retention period applies; CareFlow deletes the answers in the form's yearly copy 3 years after it closes, under the Records Management and Retention Policy. For CQC, the messages and what was done with them evidence an accessible way to raise concerns and complaints at any time (Regulation 16(2) and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"A worry about someone's safety\" chosen, or any message suggesting abuse, neglect or risk, named or anonymous.",
+        "action": "Pass it to the safeguarding lead the same working day; call 999 first if anyone is in immediate danger. The lead assesses the risk within 1 hour and refers to the local authority where needed, immediately if the risk is immediate and otherwise the same working day, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure.",
+        "rule": {
+          "task": "Worry about someone's safety: pass to the safeguarding lead",
+          "if": [
+            {
+              "question": "q-type",
+              "answers": ["A worry about someone's safety"]
+            }
+          ],
+          "owner": "SAFEGUARDING_LEAD",
+          "dueWorkingDays": 0,
+          "urgent": true,
+          "record": "SAFEGUARDING"
+        }
+      },
+      {
+        "when": "\"Something you are unhappy about\" chosen, or any message expressing dissatisfaction that needs a response, whatever type was chosen.",
+        "action": "Treat it as a complaint: record it the same working day, grade it within 1 working day and, where contact details were given, acknowledge it within 3 working days, under the Complaints Policy and Procedure. An anonymous complaint is investigated as far as the information allows. Where \"Have you already told us about this?\" is Yes, link it to the open complaint.",
+        "rule": {
+          "task": "Feedback about something they are unhappy about: record a complaint",
+          "if": [
+            {
+              "question": "q-type",
+              "answers": ["Something you are unhappy about"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 0,
+          "record": "COMPLAINT"
+        }
+      },
+      {
+        "when": "A message describing an accident, an error, a missed visit or harm.",
+        "action": "Log it in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy; a missed visit also follows the Missed, Late and Short Visits Procedure."
+      },
+      {
+        "when": "A request to change visits or care workers for someone we support who can be identified.",
+        "action": "Pass it to the office the same day; the Care Coordinator acknowledges it by the end of the next working day, under the Person-Centred Care, Dignity and Respect Policy."
+      },
+      {
+        "when": "A message suggesting personal information has been lost, shared wrongly or misused.",
+        "action": "Start the Personal Data Breach Procedure at once and tell the Nominated Individual the same day."
+      },
+      {
+        "when": "A message describing wrongdoing by a member of staff.",
+        "action": "The Registered Manager handles it as a speaking-up concern under the Whistleblowing (Speaking Up) Policy, as well as any complaint or safeguarding route above."
+      },
+      {
+        "when": "\"Something we did well\" chosen, or any message praising our service or a named member of staff.",
+        "action": "Record it as a compliment the same working day and pass it to each employee named within 5 working days. Never publish it without signed consent.",
+        "rule": {
+          "task": "Record a compliment and pass it on",
+          "if": [
+            {
+              "question": "q-type",
+              "answers": ["Something we did well"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 0,
+          "record": "COMPLIMENT"
+        }
+      },
+      {
+        "when": "\"An idea to improve our service\" chosen, or a suggestion in any message.",
+        "action": "Record it the same working day and pass it to the Deputy Manager; put it in the feedback log within 2 working days and, where contact details were given, reply within 5 working days.",
+        "rule": {
+          "task": "Record an improvement idea in the feedback log",
+          "if": [
+            {
+              "question": "q-type",
+              "answers": ["An idea to improve our service"]
+            }
+          ],
+          "owner": "DEPUTY_MANAGER",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff contact the person within 5 working days using the details given, and record what was agreed.",
+        "rule": {
+          "task": "Asked to be contacted about their feedback",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "CARE_COORDINATOR",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {
+    "responses": ["DEPUTY_MANAGER", "REGISTERED_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "results": ["DEPUTY_MANAGER", "REGISTERED_MANAGER", "CARE_COORDINATOR", "SAFEGUARDING_LEAD"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": [
+    "POL-GOV-006",
+    "POL-GOV-005",
+    "POL-SG-002",
+    "POL-CD-001",
+    "POL-CD-013",
+    "POL-GOV-007",
+    "POL-GOV-015",
+    "POL-GOV-017",
+    "POL-HR-018"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 16(2): an accessible system for identifying, receiving, recording, handling and responding to complaints",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/16"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "NHS England, Using the Friends and Family Test to improve patient experience (version 2): people should be able to give feedback whenever they want, for example through a feedback page on the provider's website",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2019/09/using-the-fft-to-improve-patient-experience-guidance-v2.pdf"
+    },
+    {
+      "source": "NICE NG21 Home care, recommendation 1.4.6: make the complaints procedure available on your website and in other ways that suit people and their carers",
+      "url": "https://www.nice.org.uk/guidance/ng21"
+    },
+    {
+      "source": "Digital Markets, Competition and Consumers Act 2024, Schedule 20: banned practices on consumer reviews, including publishing reviews selectively",
+      "url": "https://www.legislation.gov.uk/ukpga/2024/13/schedule/20"
+    }
+  ]
+}

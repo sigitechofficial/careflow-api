@@ -6,6 +6,7 @@ import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
 import { LookupsService } from './lookups.service';
 import { CreateLookupNameDto } from './dto/create-lookup-name.dto';
+import { UpdateNamedLookupDto } from './dto/update-named-lookup.dto';
 import { CreateServiceUserCareTypeDto } from './dto/create-service-user-care-type.dto';
 import { CreateServiceUserFundingTypeDto } from './dto/create-service-user-funding-type.dto';
 import { UpdateServiceUserCareTypeDto } from './dto/update-service-user-care-type.dto';
@@ -766,13 +767,18 @@ export class LookupsController {
 
   @Patch(':resource/:id')
   @Permissions('lookups.manage')
-  @ApiOperation({ summary: 'Rename a manageable lookup item' })
+  @ApiOperation({
+    summary: 'Rename a manageable lookup item',
+    description: 'Review, skill and certification types also take their default interval.',
+  })
   async updateNamedLookup(
     @Param('resource') resource: string,
     @Param('id', ParseUUIDPipe) id: string,
-    @Body() dto: CreateLookupNameDto,
+    @Body() dto: UpdateNamedLookupDto,
   ) {
-    return { data: await this.service.updateNamedLookup(resource, id, dto.name) };
+    const renamed = await this.service.updateNamedLookup(resource, id, dto.name);
+    const interval = await this.service.updateLookupInterval(resource, id, dto);
+    return { data: interval ?? renamed };
   }
 
   @Delete(':resource/:id')

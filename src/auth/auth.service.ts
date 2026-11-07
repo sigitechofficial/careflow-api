@@ -37,6 +37,8 @@ export const PASSWORD_RESET_INVALID_MESSAGE =
 export const PASSWORD_RESET_COMPLETED_MESSAGE =
   'Your password has been reset. You can now sign in with your new password.';
 export const PASSWORD_RESET_TOKEN_TTL_MINUTES = 60;
+/** A new account's invitation to choose its own password (the same single-use link, longer to answer). */
+export const ACCOUNT_INVITE_TOKEN_TTL_HOURS = 72;
 /** Max reset tokens created per user in a rolling hour; further requests are silently skipped. */
 export const PASSWORD_RESET_MAX_TOKENS_PER_HOUR = 3;
 const PASSWORD_RESET_DEV_URL_BASE = 'http://localhost:5173';
@@ -670,10 +672,24 @@ export class AuthService {
     return matches.find((u) => u.email === email) ?? null;
   }
 
+  /**
+   * A new account (e.g. an independent survey reviewer's) chooses its own password: the password
+   * reset link, worded as an invitation and valid for ACCOUNT_INVITE_TOKEN_TTL_HOURS. Nobody ever
+   * sets or sees the password. Returns false when no link could be sent (no reset address configured
+   * or too many links this hour); the person can still use "Forgot password" later.
+   */
+  async sendAccountInvite(
+    user: PasswordResetUser,
+    opts: { requestedIp?: string | null; purpose: string },
+  ): Promise<boolean> {
+    return this.issuePasswordReset(user, opts.requestedIp ?? null, { purpose: opts.purpose });
+  }
+
   private async issuePasswordReset(
     user: PasswordResetUser,
     requestedIp: string | null,
-  ) {
+    invite?: { purpose: string },
+  ): Promise<boolean> {
     const now = new Date();
     const recentCount = await this.prisma.passwordResetToken.count({
       where: {
@@ -685,7 +701,7 @@ export class AuthService {
       this.logger.warn(
         `Password reset per-user limit reached for user ${user.id}; not sending another link`,
       );
-      return;
+      return false;
     }
 
     const urlBase = this.getPasswordResetUrlBase();
@@ -693,7 +709,7 @@ export class AuthService {
       this.logger.error(
         'PASSWORD_RESET_URL_BASE is not configured; password reset email not sent',
       );
-      return;
+      return false;
     }
 
     const rawToken = randomBytes(32).toString('base64url');
@@ -707,7 +723,8 @@ export class AuthService {
           userId: user.id,
           tokenHash: hashPasswordResetToken(rawToken),
           expiresAt: new Date(
-            now.getTime() + PASSWORD_RESET_TOKEN_TTL_MINUTES * 60 * 1000,
+            now.getTime() +
+              (invite ? ACCOUNT_INVITE_TOKEN_TTL_HOURS * 60 : PASSWORD_RESET_TOKEN_TTL_MINUTES) * 60 * 1000,
           ),
           requestedIp,
         },
@@ -719,8 +736,8 @@ export class AuthService {
     void this.mailService
       .send({
         to: user.email,
-        ...buildPasswordResetEmail(user.firstName, link),
-        // The reset link signs in as this user: never copy it to MAIL_BCC.
+        ...(invite ? buildAccountInviteEmail(user.firstName, link, invite.purpose) : buildPasswordResetEmail(user.firstName, link)),
+        // The reset or invitation link signs in as this user: never copy it to MAIL_BCC.
         skipBcc: true,
       })
       .catch((err: unknown) => {
@@ -728,6 +745,7 @@ export class AuthService {
           `Password reset email could not be sent for user ${user.id}: ${err instanceof Error ? err.message : String(err)}`,
         );
       });
+    return true;
   }
 
   private getPasswordResetUrlBase(): string | null {
@@ -893,4 +911,23 @@ function buildPasswordResetEmail(firstName: string | null, link: string) {
     `<p>${escapeHtml(ignore)}</p>`,
   ].join('\n');
   return { subject: 'Reset your Careflow password', text, html };
+}
+
+function buildAccountInviteEmail(firstName: string | null, link: string, purpose: string) {
+  const name = firstName?.trim();
+  const greeting = name ? `Hi ${name},` : 'Hi,';
+  const intro = `A Careflow account has been made for you ${purpose}. Use the link below to choose your password:`;
+  const expiry = `This link expires in ${ACCOUNT_INVITE_TOKEN_TTL_HOURS} hours and can be used once. After that, use "Forgot password" on the sign-in page.`;
+  const ignore = "If you weren't expecting this, you can ignore this email.";
+  const text = [greeting, '', intro, '', link, '', expiry, '', ignore].join('\n');
+  const href = escapeHtml(link);
+  const html = [
+    `<p>${escapeHtml(greeting)}</p>`,
+    `<p>${escapeHtml(intro)}</p>`,
+    `<p><a href="${href}">Choose your password</a></p>`,
+    `<p style="word-break:break-all;font-size:12px;color:#555">${href}</p>`,
+    `<p>${escapeHtml(expiry)}</p>`,
+    `<p>${escapeHtml(ignore)}</p>`,
+  ].join('\n');
+  return { subject: 'Your Careflow account', text, html };
 }

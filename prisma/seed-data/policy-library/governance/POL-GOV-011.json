@@ -1,0 +1,788 @@
+{
+  "reference": "POL-GOV-011",
+  "revision": 1,
+  "title": "Fit and Proper Persons (Directors) Policy",
+  "documentType": "POLICY",
+  "summary": "How we make sure that every Director, the Nominated Individual and anyone acting as a director of the provider is fit and proper, as regulation 5 requires: the test, the checks before appointment, declarations, the annual fitness review, how concerns about a Director are handled fairly, the action taken when someone is no longer fit, and the records CQC can ask to see. For the Directors, the Nominated Individual and the HR Manager.",
+  "keyPoints": {
+    "intro": "This policy tells the Directors, the Nominated Individual and the HR Manager how we prove that everyone who directs {{organisation}} is fit and proper, on appointment and every year after.",
+    "points": [
+      "No one becomes a Director, the Nominated Individual or an equivalent post-holder, even on an interim basis, until every check is complete and the fitness decision-maker has recorded them as fit in their fit and proper person file.",
+      "The chair of the Directors decides each Director's fitness; the deputy chair decides the chair's. Nobody decides on their own fitness, and the HR Manager who carries out the checks never makes the decision.",
+      "Directors: tell the chair the same day, and within 24 hours at the latest, of any arrest, charge, caution, conviction, insolvency step, disqualification step, barring or professional regulator action, or health change affecting your role.",
+      "Every April each Director signs a new declaration and the HR Manager repeats the register checks. The chair confirms each Director's fitness to the Directors' governance meeting held by mid-May.",
+      "A Director who is not cleared with an enhanced DBS check and adults' barred list check never visits a person we support, never receives key safe codes, never gives care and never joins the On-call Manager rota.",
+      "A concern about a Director's fitness goes to the chair, or to the deputy chair if it is about the chair, the same working day. Anyone may also use the Whistleblowing (Speaking Up) Policy or contact CQC.",
+      "Where {{organisation}} has only one Director, or a concern is about every Director, the independent reviewer makes the fitness decisions, and the HR Manager passes any concern to them the same working day.",
+      "An allegation that a Director has harmed or put at risk an adult or child goes first to the Managing Allegations Against Staff Procedure; the fitness assessment runs alongside it.",
+      "A Director found unfit stops acting as a Director the same day and comes off any on-call or visit rota. CQC is told in writing within 2 working days of the decision, and the chair tells any professional regulator within 5 working days.",
+      "Never agree a settlement or resignation term that stops us informing CQC, a professional regulator or the DBS, or giving an accurate reference."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": false,
+  "audience": [
+    "Admin",
+    "HR"
+  ],
+  "moduleLinks": [
+    "RECRUITMENT",
+    "HR"
+  ],
+  "relatedReferences": [
+    "POL-GOV-002",
+    "POL-GOV-009",
+    "POL-GOV-010",
+    "POL-GOV-012",
+    "POL-GOV-022",
+    "POL-HR-001",
+    "POL-HR-002",
+    "POL-SG-007"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 5 (Fit and proper persons: directors)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/5"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, regulation 6 (Requirement where the service provider is a body other than a partnership)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/6"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 3 (Information required in respect of persons employed or appointed for the purposes of a regulated activity)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/3"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Schedule 4 (Unfit person test and good character)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/schedule/4"
+    },
+    {
+      "source": "Care Quality Commission (Registration) Regulations 2009, regulation 15 (Notice of changes)",
+      "url": "https://www.legislation.gov.uk/uksi/2009/3112/regulation/15"
+    },
+    {
+      "source": "Safeguarding Vulnerable Groups Act 2006, Schedule 4, paragraph 7 (regulated activity relating to vulnerable adults, including day-to-day management or supervision)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/47/schedule/4"
+    },
+    {
+      "source": "Police Act 1997 (Criminal Records) Regulations 2002, regulation 5B (enhanced criminal record certificates: work with adults)",
+      "url": "https://www.legislation.gov.uk/uksi/2002/233/regulation/5B"
+    },
+    {
+      "source": "Company Directors Disqualification Act 1986, section 11 (Undischarged bankrupts)",
+      "url": "https://www.legislation.gov.uk/ukpga/1986/46/section/11"
+    },
+    {
+      "source": "Companies Act 2006, section 167G (Duty to notify registrar of change in directors)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/167G"
+    },
+    {
+      "source": "Companies Act 2006, section 167M (Prohibition on director acting unless ID verified)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/167M"
+    },
+    {
+      "source": "Companies Act 2006, section 168 (Resolution to remove director)",
+      "url": "https://www.legislation.gov.uk/ukpga/2006/46/section/168"
+    },
+    {
+      "source": "Companies House, Verifying your identity for Companies House (updated 1 June 2026)",
+      "url": "https://www.gov.uk/guidance/verifying-your-identity-for-companies-house"
+    },
+    {
+      "source": "Companies House, Search the register of disqualified company directors",
+      "url": "https://www.gov.uk/search-the-register-of-disqualified-company-directors"
+    },
+    {
+      "source": "Insolvency Service, Search the bankruptcy and insolvency register",
+      "url": "https://www.gov.uk/search-bankruptcy-insolvency-register"
+    },
+    {
+      "source": "Disclosure and Barring Service, Eligibility for roles working with adults (1 September 2026)",
+      "url": "https://www.gov.uk/government/publications/eligibility-for-roles-working-with-adults/eligibility-for-roles-working-with-adults"
+    },
+    {
+      "source": "Disclosure and Barring Service, Basic DBS checks guidance",
+      "url": "https://www.gov.uk/guidance/basic-dbs-checks-guidance"
+    },
+    {
+      "source": "HM Courts and Tribunals Service, Employment tribunal decisions",
+      "url": "https://www.gov.uk/employment-tribunal-decisions"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} is a company registered with the Care Quality Commission (CQC) to provide personal care to people in their own homes. The people we support let our care workers in, often alone and early or late in the day, trusting that the organisation behind them is run honestly and competently. The Directors set the culture, budget and priorities that decide whether visits are safe, so the people who direct {{organisation}} must be as trustworthy as the care workers they employ."
+        },
+        {
+          "p": "The law requires that, where the provider is a body other than a partnership, no one is appointed or kept as a director, or in a role with functions equivalent or similar to a director's, unless they meet the fit and proper person test (regulation 5 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014). A breach of regulation 5 can lead CQC to take enforcement action against our registration."
+        },
+        {
+          "p": "Our policy is that every Director, the Nominated Individual and every equivalent post-holder is checked before appointment, declares their fitness every year, is reviewed every year against the whole test, and is dealt with fairly, quickly and openly when a concern arises. Nobody decides on their own fitness, and no commercial or personal relationship outweighs the safety of the people we support."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "bullets": [
+            "Every person who directs {{organisation}} meets the fit and proper person test on the day they are appointed and throughout their time in office.",
+            "Checks, declarations and decisions are recorded so that we can show CQC, commissioners and the people we support how each decision was reached.",
+            "Concerns about a Director are assessed independently and fairly, and lead to proportionate action that keeps people safe.",
+            "CQC, professional regulators, the DBS and commissioners are told what the law and our contracts require, on time."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to:"
+        },
+        {
+          "bullets": [
+            "every Director of {{organisation}} registered at Companies House, executive or non-executive, paid or unpaid, permanent, interim or alternate, whatever their voting rights, including the chair;",
+            "the Nominated Individual, for whom the law requires us to take all reasonable steps to ensure good character, the necessary qualifications, competence, skills and experience, and health (regulation 6); our policy is that the Nominated Individual meets the whole regulation 5 test, whether or not they are a Director;",
+            "anyone who performs functions equivalent or similar to a director's without being appointed; our policy treats as such a shadow director, a shareholder or parent company officer who takes part in the Directors' decisions, or an employee with a director job title who votes or decides at Directors' meetings."
+          ]
+        },
+        {
+          "p": "People who attend Directors' meetings only to report, such as the Registered Manager or HR Manager, are not equivalent post-holders. This policy does not cover the fitness of the Registered Manager (Registered Manager Role and Absence Cover Policy), recruitment checks for other staff (Safer Recruitment Policy and Pre-Employment Checks and DBS Procedure), registering changes with CQC (Statement of Purpose and Registration Procedure), Directors' interests (Conflicts of Interest Policy) or the employment terms of an executive Director (our HR policies)."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Director",
+                "Anyone within the first or third bullet of Scope. The Nominated Individual is treated as a Director throughout this policy unless a rule says otherwise."
+              ],
+              [
+                "Serious misconduct or mismanagement",
+                "Our working definition for the regulation 5(3)(d) test: conduct or management, lawful or not, in a regulated activity or an equivalent service elsewhere, that caused or risked serious harm or seriously breached the law or regulations, and for which the person was responsible or which they knew of, contributed to or allowed to continue. Examples are concealing harm or a complaint, punishing a whistleblower, falsifying records or notifications, and continuing a service the person knew was unsafe."
+              ],
+              [
+                "Fitness decision-maker",
+                "The chair of the Directors for each Director and the Nominated Individual; the deputy chair for the chair; the independent reviewer where neither is free of conflict, where {{organisation}} has only one Director or where a concern is about every Director."
+              ],
+              [
+                "Deputy chair",
+                "The Director the Directors appoint each year at the Directors' governance meeting held by mid-May to decide on the chair's fitness and receive concerns about the chair."
+              ],
+              [
+                "Independent reviewer",
+                "An adult social care governance or HR professional with no other role in {{organisation}}, appointed through our retained employment law adviser. When acting as fitness decision-maker, they take every action this policy gives the chair and the Directors not involved, and report to the shareholders."
+              ],
+              [
+                "Fit and proper person file",
+                "The restricted section of the Director's staff record in CareFlow holding their checks, declarations, assessments and decisions. We keep a staff record for every Director, employed or not."
+              ],
+              [
+                "Working day",
+                "Monday to Friday, excluding bank holidays in England."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors",
+          "blocks": [
+            {
+              "p": "The Directors are collectively accountable for complying with regulations 5 and 6. They approve the role description and person specification for each Director post, keep a skills matrix of the board, appoint the deputy chair each year, minute every appointment only after a recorded fitness decision, receive the annual fitness report and act when a Director is found unfit. A Director never takes part in a discussion or decision about their own fitness, appraisal or appointment."
+            }
+          ]
+        },
+        {
+          "heading": "Chair of the Directors and deputy chair",
+          "blocks": [
+            {
+              "p": "The chair is the fitness decision-maker for every other Director and the Nominated Individual: they review each fit and proper person file, record each fitness decision with reasons, receive declarations and concerns, decide interim arrangements, appraise each Director every year and report the annual fitness review to the Directors. The deputy chair does all of this for the chair and, where a concern is about the chair, takes every action this policy gives the chair. Where the chair is also the Nominated Individual, the deputy chair appraises them. This is the Directors' choice of appraiser for the Nominated Individual under the Supervision, Spot Checks and Appraisal Policy, and the appraisal is held alongside the annual fitness review."
+            }
+          ]
+        },
+        {
+          "heading": "Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Nominated Individual gives CQC notice of every change of Director or Nominated Individual under the Statutory Notifications to CQC Procedure, tells commissioners where contracts require it, and files appointments and terminations at Companies House. Where a notice or filing concerns the Nominated Individual's own fitness or removal, the chair gives or makes it."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager runs the process: they carry out and record every check, collect declarations, keep each fit and proper person file and the fit and proper persons register, send reminders and report items due or overdue. They never make a fitness decision."
+            }
+          ]
+        },
+        {
+          "heading": "Each Director",
+          "blocks": [
+            {
+              "p": "Each Director gives complete and truthful information, signs the declaration on appointment and every April, tells the chair of any change as Declarations sets out, and cooperates with any check or investigation. Giving false or incomplete information, or failing to disclose, is itself a fitness concern."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager and all staff",
+          "blocks": [
+            {
+              "p": "Anyone who learns of information suggesting a Director may not be fit tells the chair, or the deputy chair if it concerns the chair, the same working day, using the direct contact details on the Local Safeguarding Contacts sheet and the branch office noticeboard. A care worker who finds during a visit that a Director may have harmed or put a person at risk treats it as a safeguarding concern: they phone the office, or the On-call Manager out of hours, before leaving the home (999 in an emergency), and phone the Registered Manager or Deputy Manager instead where that Director is the On-call Manager. The Registered Manager makes sure care workers know they may raise a concern about a Director under the Whistleblowing (Speaking Up) Policy, which gives two routes where {{organisation}} has only one Director or the concern is about every Director: through the HR Manager to the independent reviewer, or directly to CQC."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "The fit and proper person test",
+      "blocks": [
+        {
+          "p": "The fitness decision-maker assesses each requirement of regulation 5(3) separately and records a finding with its evidence."
+        },
+        {
+          "table": {
+            "columns": [
+              "Requirement",
+              "What the law says",
+              "How we assess it"
+            ],
+            "rows": [
+              [
+                "Good character",
+                "Must be assessed, including whether the person has been convicted of an offence in the UK, or elsewhere of an offence that would be one in the UK, and whether they have been erased, removed or struck off a register of health care or social work professionals (Schedule 4, Part 2).",
+                "Criminal record certificates, professional register history, references, employment tribunal decisions, public news search, the declaration and interview. A conviction is not an automatic bar: the decision-maker weighs its relevance, seriousness and age and the person's explanation."
+              ],
+              [
+                "Qualifications, competence, skills and experience",
+                "Necessary for the office held.",
+                "The person specification, the board skills matrix, certificates, career history and interview. Our Nominated Individual has at least 3 years' senior management experience in health or social care and working knowledge of the regulations."
+              ],
+              [
+                "Health",
+                "Able, after reasonable adjustments, to do the tasks intrinsic to the office.",
+                "Health questionnaire after a conditional offer and before the fitness decision; never asked before an offer. No one is found unfit on health grounds without occupational health advice and a written consideration of adjustments."
+              ],
+              [
+                "Serious misconduct or mismanagement",
+                "Must not have been responsible for, privy to, contributed to or facilitated it in a regulated activity or an equivalent service elsewhere.",
+                "Companies House appointment history, regulators' reports and enforcement for every health or social care organisation the person directed or managed in the last 10 years, references from those organisations and the person's account. Holding office at a failing service is not in itself a finding: the decision-maker assesses what the person did, knew and could have done."
+              ],
+              [
+                "None of the unfit person grounds (Schedule 4, Part 1)",
+                "Unfit if an undischarged bankrupt or subject to an undischarged sequestration; subject to a bankruptcy restrictions order or interim bankruptcy restrictions order, or an order to like effect in Scotland or Northern Ireland; in a debt relief order moratorium; under an undischarged composition, arrangement or trust deed with creditors; on the children's or adults' barred list; or prohibited by law from holding the office or carrying on the activity.",
+                "Insolvency, disqualification and sanctions registers, a barred list check where the role is eligible, and the declaration. Any one of these grounds means the person cannot be appointed or continue; there is no discretion."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Being an undischarged bankrupt, or subject to a bankruptcy or debt relief restrictions order or undertaking or a debt relief order moratorium, also makes it an offence to act as a company director without the leave of the court (Company Directors Disqualification Act 1986, section 11). Each of these, like a disqualification order or undertaking, therefore means the person is prohibited by law from holding the office, which is an unfit person ground, unless the court has given leave."
+        }
+      ]
+    },
+    {
+      "heading": "Appointing a Director or Nominated Individual",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Selection",
+          "blocks": [
+            {
+              "p": "The Directors approve a role description and person specification before recruiting, using the skills matrix to identify what the board needs. Candidates complete an application form with a full employment and office-holding history since leaving full-time education, by month and year, explaining in writing every gap of a calendar month or more. The chair and at least one other Director shortlist and interview, at least one of them trained in safer recruitment within the last 3 years. For the Nominated Individual and any executive Director, a person we support or a family carer also meets shortlisted candidates and their views are recorded. A Director with a personal or business relationship with a candidate declares it under the Conflicts of Interest Policy and takes no part."
+            }
+          ]
+        },
+        {
+          "heading": "Checks before appointment",
+          "blocks": [
+            {
+              "p": "The HR Manager starts these checks when the candidate accepts a conditional offer, aims to complete them within 4 weeks, and records each one with its date and verifier in the fit and proper person file."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Check",
+                  "How",
+                  "Tests"
+                ],
+                "rows": [
+                  [
+                    "Identity and recent photograph",
+                    "Originals seen in person under the Pre-Employment Checks and DBS Procedure; confirmation that the person has verified their identity with Companies House and holds a personal code",
+                    "Schedule 3 information"
+                  ],
+                  [
+                    "Criminal record and barring",
+                    "Through our DBS umbrella body at the level in DBS checks for Directors",
+                    "Good character; barred list"
+                  ],
+                  [
+                    "Overseas criminal record certificate",
+                    "Where the person has lived outside the UK for 12 months or more, continuously or in total, in the last 10 years since age 18 (Safer Recruitment Policy)",
+                    "Good character"
+                  ],
+                  [
+                    "Insolvency",
+                    "Individual Insolvency Register and the bankruptcy and debt relief restrictions listings, saved as a dated screenshot",
+                    "Unfit person grounds"
+                  ],
+                  [
+                    "Disqualification and sanctions",
+                    "Companies House register of disqualified directors and the UK sanctions list",
+                    "Unfit person grounds"
+                  ],
+                  [
+                    "Directorships and regulatory history",
+                    "All current and past Companies House appointments; CQC reports and enforcement, or those of the other UK care regulators, for each health or social care organisation directed or managed in the last 10 years; the Charity Commission register of removed trustees",
+                    "Serious misconduct or mismanagement"
+                  ],
+                  [
+                    "Professional registration",
+                    "The regulator's online register (for example NMC, HCPC, Social Work England, GMC, GPhC), including conditions, sanctions and past removal",
+                    "Good character"
+                  ],
+                  [
+                    "Employment tribunal decisions",
+                    "Published decisions (from February 2017) naming the person or organisations they directed",
+                    "Good character; serious misconduct or mismanagement"
+                  ],
+                  [
+                    "Public news search",
+                    "News and public professional profiles in the person's name; never personal social media accounts",
+                    "Good character; serious misconduct or mismanagement"
+                  ],
+                  [
+                    "References",
+                    "At least two from organisations, covering at least the last 3 years and including the most recent employer and, where different, the most recent employer for work with adults or children; where the person was a director, trustee, nominated individual or registered manager in health or social care in the last 6 years, one from that organisation's chair or equivalent covering conduct, concerns and regulatory history; reasons for leaving any work with adults or children verified",
+                    "Good character; competence; serious misconduct or mismanagement"
+                  ],
+                  [
+                    "Qualifications",
+                    "Original certificates; membership of any professional body the person specification relies on confirmed with that body",
+                    "Qualifications"
+                  ],
+                  [
+                    "Health",
+                    "Questionnaire reviewed by the HR Manager within 2 working days, with occupational health advice where needed",
+                    "Health"
+                  ],
+                  [
+                    "Right to work",
+                    "For an executive Director or employed Nominated Individual, under the Right to Work and Sponsored Workers Policy",
+                    "Lawful employment"
+                  ],
+                  [
+                    "Interests",
+                    "Declaration under the Conflicts of Interest Policy",
+                    "Good character; competence"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "DBS checks for Directors",
+          "blocks": [
+            {
+              "p": "Regulated activity relating to adults includes the regular day-to-day management or supervision of people who provide personal care (Safeguarding Vulnerable Groups Act 2006, Schedule 4, paragraph 7(5)). Our policy, applied through our DBS umbrella body against the DBS eligibility guidance, is:"
+            },
+            {
+              "bullets": [
+                "any Director, including the Nominated Individual, whose role includes regular day-to-day management or supervision of care staff, taking On-call Manager shifts, giving care or carrying out spot checks has an enhanced DBS check with the adults' barred list;",
+                "every other Director, including a Nominated Individual whose role does not, has the highest level of check the umbrella body confirms the role is eligible for, and at least a basic DBS check, which shows unspent convictions and conditional cautions;",
+                "a Director who is not eligible for a barred list check relies on their signed declaration for that ground, and never takes on work in regulated activity until a barred list check has been made."
+              ]
+            },
+            {
+              "p": "A Director without a clear enhanced check with the adults' barred list never visits a person we support, never receives key safe codes, never gives care and sees only the anonymised governance information the Governance and Quality Assurance Policy provides. A cleared Director who wishes to observe care or attend a review in a person's home does so only with the person's agreement, arranged through the Registered Manager. A Director who covers visits or takes On-call Manager shifts first completes the same induction, competency checks and on-call training as any care worker or On-call Manager. To join the On-call Manager rota they also need at least 12 months' home care experience with any employer, at least two on-call shifts shadowed with an experienced On-call Manager and the Registered Manager's sign-off, recorded in the training and compliance records."
+            }
+          ]
+        },
+        {
+          "heading": "Decision and appointment",
+          "blocks": [
+            {
+              "steps": [
+                "The HR Manager confirms in the file that every check is complete and presents it to the fitness decision-maker, who must not have carried out any check.",
+                "Where information of concern has come to light, the decision-maker discusses it with the candidate, records the conversation and completes a written risk assessment. Appointing anyone with information relevant to the role also needs the agreement of a majority of the other Directors, minuted with reasons.",
+                "The decision-maker records a finding for each requirement and an overall decision: fit; fit with conditions, such as training completed within 3 months or a responsibility not held until it is; or not fit.",
+                "The Directors resolve to appoint, or the shareholders appoint where the articles require it, only after the decision is recorded. The appointment takes effect on the date the minutes state. The letter of appointment, or the service contract of an executive Director, records the Director's agreement to follow this policy, including stopping acting when it requires.",
+                "The Nominated Individual gives CQC notice before the appointment or nomination takes effect, and files the appointment at Companies House, with the Director's personal code, within 5 working days of it taking effect. The law allows 14 days for that filing, which must state that the Director's identity is verified, and no one may act as a director until it is (Companies Act 2006, sections 167G and 167M).",
+                "Where a commissioner's contract requires notice of a change of Director or key personnel, the Nominated Individual gives it within the contract's timescale, or within 5 working days where the contract sets none."
+              ]
+            },
+            {
+              "p": "No one acts as an interim Director or interim Nominated Individual on incomplete checks. If a Nominated Individual leaves suddenly, the Directors nominate only a Director, or a manager we employ other than a Registered Manager, whom the fitness decision-maker has already found fit under this policy, and CQC is given notice within 2 working days. The law requires the Nominated Individual to be employed as a director, manager or secretary and to supervise the management of the regulated activity (regulation 6)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Declarations",
+      "blocks": [
+        {
+          "p": "Each Director signs a fit and proper person declaration, which the HR Manager saves to their staff record in CareFlow, before appointment and again every April. It covers each unfit person ground; convictions and cautions (for a Director with only a basic check, unspent ones; otherwise those not protected under the DBS filtering rules); any removal from, or current investigation by, a professional register; any part in serious misconduct or mismanagement and any current regulatory, police or civil investigation that could lead to such a finding; any health condition affecting the role after adjustments; and confirmation that their interests are declared under the Conflicts of Interest Policy."
+        },
+        {
+          "p": "Between declarations, a Director tells the chair (the deputy chair, if they are the chair; the HR Manager, for the independent reviewer, where there is only one Director) the same day, and within 24 hours at the latest, of: an arrest, charge, caution, conviction or police investigation; a bankruptcy petition or application, debt relief order application, proposed arrangement with creditors, or restrictions order or undertaking; disqualification proceedings or undertaking, or a sanctions designation; a DBS notice that it is considering barring them; an investigation, condition, suspension or removal by a professional regulator; enforcement action, an investigation or a serious incident at another organisation they direct or manage, or a court or tribunal finding against them; and a change in health affecting the role. The chair records the disclosure in the fit and proper person file and handles it under Concerns about a Director's fitness the same working day."
+        }
+      ]
+    },
+    {
+      "heading": "Annual fitness review",
+      "blocks": [
+        {
+          "p": "Every Director is reviewed against the whole test in April each year, so that the result reaches the Directors' governance meeting held by mid-May with the other annual reports."
+        },
+        {
+          "table": {
+            "columns": [
+              "What",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "Signed annual declaration",
+                "Each Director",
+                "By 15 April"
+              ],
+              [
+                "Insolvency, disqualification and sanctions registers, Companies House appointments and identity verification status, regulators' reports for other organisations the Director directs, professional register, employment tribunal decisions and public news search, all repeated",
+                "HR Manager",
+                "By 20 April"
+              ],
+              [
+                "DBS Update Service status check for a Director who subscribes",
+                "HR Manager",
+                "Every 12 months, in April"
+              ],
+              [
+                "New DBS check for a Director who does not subscribe, including a Director with a basic check",
+                "HR Manager",
+                "Every 3 years, started 8 weeks before the third anniversary"
+              ],
+              [
+                "Appraisal against the role description, contribution to the board, development needs and the skills matrix",
+                "Chair; the deputy chair for the chair, and for the Nominated Individual where the chair is the Nominated Individual",
+                "By 30 April"
+              ],
+              [
+                "Fitness decision for each requirement recorded in the file",
+                "Fitness decision-maker",
+                "By 30 April"
+              ],
+              [
+                "Annual fitness report: each Director and the Nominated Individual confirmed fit, any conditions and progress, any check outstanding with the reason",
+                "Chair",
+                "Directors' governance meeting held by mid-May, minuted"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Development needs from appraisal are funded and recorded in the training and compliance records. A condition attached to a fitness decision is reviewed by its deadline and at least every 3 months until met. Where {{organisation}} has only one Director, the independent reviewer carries out the assessment on appointment and every year and reports to the shareholders."
+        }
+      ]
+    },
+    {
+      "heading": "Concerns about a Director's fitness",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Raising and receiving a concern",
+          "blocks": [
+            {
+              "p": "A concern may come from a Director's own disclosure, an annual check, a member of staff, a person we support or their family, a commissioner, the local authority, the police, CQC or the media. It goes to the chair, or to the deputy chair if it is about the chair. Anyone else who receives it, including the Registered Manager, HR Manager or Nominated Individual, passes it on the same working day without investigating it. Staff who raise a concern are protected under the Whistleblowing (Speaking Up) Policy. Where CQC passes us information about a Director, the chair replies with the outcome of our assessment by CQC's deadline. Where {{organisation}} has only one Director, or a concern is about every Director, whoever receives it passes it to the HR Manager, who passes it to the independent reviewer through our retained employment law adviser, each the same working day."
+            }
+          ]
+        },
+        {
+          "heading": "Initial assessment",
+          "blocks": [
+            {
+              "steps": [
+                "Within 1 working day of receiving the concern, and the same day where it suggests risk to the people we support or an unfit person ground, the decision-maker records it in the fit and proper person file and decides the route.",
+                "An allegation that the Director has harmed or may pose a risk to an adult or child is handled first under the Managing Allegations Against Staff Procedure: the other Directors refer it to the local authority and appoint an external case manager and investigator. The fitness assessment runs alongside, using the same evidence where the police and local authority agree.",
+                "Where an unfit person ground is confirmed, the Director stops acting as a Director that day and Action when a Director is not fit applies at once.",
+                "In every other case the decision-maker decides whether the concern is factual and can be settled by obtaining information, or needs an investigation because it could amount to serious misconduct or mismanagement, dishonesty, a criminal matter or harm."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Interim arrangements",
+          "blocks": [
+            {
+              "p": "The decision-maker chooses the least restrictive arrangement that keeps people safe, records the reasons and reviews it at least every 5 working days: no change; removing a specific responsibility, such as safeguarding oversight, signing payments and contracts, or On-call Manager shifts and visits; an agreed leave of absence from Directors' meetings and papers; or, for a Director who is an employee, suspension under the Disciplinary Policy and Procedure. If the Nominated Individual steps aside, the Directors nominate an interim Nominated Individual on the same basis as after a sudden departure, and CQC is given notice within 2 working days. The Director concerned is excluded from every discussion of the concern under the Conflicts of Interest Policy. When a Director stops acting, or is restricted from On-call Manager shifts or visits, the Care Coordinator takes them off that rota and those visits the same day and arranges cover; the HR Manager ends their CareFlow access and recovers their ID badge; and, where this follows a concern about them, the Care Coordinator offers each person whose key safe code they could see a code change, and recovers any key they hold for a home, the same working day under the Key Holding, Key Safes and Access to People's Homes Procedure."
+            }
+          ]
+        },
+        {
+          "heading": "Investigation and fair process",
+          "blocks": [
+            {
+              "bullets": [
+                "The Director is told in writing within 2 working days of the concern being recorded what it is and how it will be handled, unless the police or local authority ask us to wait.",
+                "A factual concern is settled by the decision-maker, who obtains the information and holds the meeting below within 10 working days.",
+                "A concern needing investigation goes to an external investigator appointed within 5 working days by the Directors not involved, through our retained employment law adviser, with written terms of reference. The report is due within 20 working days of appointment; any extension is agreed by the decision-maker and told to the Director before the original date.",
+                "The Director sees the evidence relied on and may respond in writing and at a meeting with the decision-maker, held within 10 working days of the report, accompanied by a person of their choice who is not involved in the matter.",
+                "The decision-maker decides within 5 working days of the meeting and gives the decision and reasons in writing within a further 2 working days.",
+                "The Director may ask for a review within 10 working days of receiving the decision. Directors not involved complete it within 15 working days; where there are none, or the independent reviewer made the decision, a second independent reviewer appointed through our retained employment law adviser does. A review never delays action needed to protect people.",
+                "Where the Director is also an employee, any employment consequence follows the Disciplinary Policy and Procedure or the Capability and Performance Procedure with an external investigator; the fitness decision is made separately against the test."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Action when a Director is not fit",
+      "blocks": [
+        {
+          "p": "The law requires us, when a Director no longer meets the test, to take the action necessary and proportionate to make sure the office is held by someone who does, and to tell any health care or social care professional regulator the person is registered with (regulation 5(6)). Our arrangements are:"
+        },
+        {
+          "table": {
+            "columns": [
+              "Action",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "The Director stops acting: no meetings, decisions, signing or governance papers; CareFlow access ended; off any on-call rota and visits, as Interim arrangements sets out",
+                "Chair; HR Manager ends access; Care Coordinator changes the rota",
+                "The day of the decision"
+              ],
+              [
+                "Replacement Nominated Individual, nominated as Decision and appointment sets out, where the person was the Nominated Individual",
+                "Directors",
+                "The day of the decision"
+              ],
+              [
+                "The Director asked to resign the office",
+                "Chair",
+                "Within 2 working days of the decision, with 5 working days to reply"
+              ],
+              [
+                "If they do not resign, removal under the articles of association or by the shareholders' ordinary resolution with special notice (Companies Act 2006, section 168)",
+                "Directors; shareholders",
+                "Started within 5 working days of the reply deadline"
+              ],
+              [
+                "CQC told in writing that the Director has been found unfit and has stopped acting, with notice of any change of Nominated Individual",
+                "Nominated Individual, or the chair where the Nominated Individual is the subject",
+                "Within 2 working days of the decision"
+              ],
+              [
+                "CQC notice of the change of Director (regulation 15), saying it follows a fitness decision",
+                "Nominated Individual, or the chair where the Nominated Individual is the subject",
+                "Within 2 working days of the office ending"
+              ],
+              [
+                "Professional regulator informed",
+                "Chair",
+                "Within 5 working days of the decision"
+              ],
+              [
+                "DBS referral decision where the person worked in regulated activity, under the Staff Fitness Concerns and DBS Referrals Procedure",
+                "Chair",
+                "Decision within 5 working days; any referral within 10 working days of that decision"
+              ],
+              [
+                "Termination filed at Companies House",
+                "Nominated Individual, or the chair where the Nominated Individual is the subject",
+                "Within 5 working days of the office ending"
+              ],
+              [
+                "Commissioners told where a contract requires it",
+                "Nominated Individual",
+                "Within the contract timescale, or 5 working days"
+              ],
+              [
+                "Lessons for recruitment and governance added to the service improvement plan",
+                "Chair",
+                "Within 5 working days of the case closing"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Where the shortfall can be remedied, such as a skills gap, the decision-maker may instead set conditions with a deadline; the Director holds no responsibility the gap affects until the condition is met. A Director who resigns while a concern is open does not end the process: the assessment is completed, the conclusion recorded and the regulator and DBS duties still apply. No settlement agreement, resignation term or reference wording may stop us completing the process, informing CQC, a professional regulator or the DBS, or giving an accurate reference."
+        }
+      ]
+    },
+    {
+      "heading": "Records and availability to CQC",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where",
+              "Kept"
+            ],
+            "rows": [
+              [
+                "Schedule 3 information, checks with dates and verifiers, declarations, health information, fitness assessments and decisions, conditions and appraisals",
+                "Fit and proper person file",
+                "Period in office plus 6 years"
+              ],
+              [
+                "DBS certificate copy",
+                "Fit and proper person file",
+                "Deleted when the office ends; its date, type, number, the role and the decision kept for the period in office plus 6 years"
+              ],
+              [
+                "Concerns, investigations and outcomes",
+                "Fit and proper person file, and the incident log with restricted access where an allegation of harm is involved",
+                "Period in office plus 6 years; 20 years from closure where harm to an adult or child was alleged"
+              ],
+              [
+                "Fit and proper persons register: each Director's role, appointment date, check dates, next due dates and latest decision, without sensitive details",
+                "Governance records",
+                "Life of the organisation plus 6 years"
+              ],
+              [
+                "Appointments, fitness reports, removals and CQC notices",
+                "Directors' minutes and the notifications register",
+                "Life of the organisation plus 6 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Only the HR Manager, the fitness decision-maker, the independent quality reviewer for the annual file test and, for a concern, the investigator or independent reviewer see a fit and proper person file; a Director never sees another Director's file. Criminal offence and health information is processed under the conditions and appropriate policy document in the Data Protection Policy. The law requires the Schedule 3 information about each Director to be available to CQC (regulation 5(5)): when CQC asks, the Nominated Individual (the chair where it concerns the Nominated Individual) provides it by CQC's deadline, or within 2 working days where CQC sets none."
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When"
+            ],
+            "rows": [
+              [
+                "This policy, regulation 5 and the declaration",
+                "Every new Director and Nominated Individual, briefed by the chair",
+                "Before signing the first declaration"
+              ],
+              [
+                "Each new major version of this policy (a manager-only policy, briefed rather than acknowledged in CareFlow; a minor version needs no briefing)",
+                "Every Director, the Nominated Individual and the HR Manager, briefed by the chair",
+                "Within 14 days of each new major version"
+              ],
+              [
+                "Governance, risk, notifications, duty of candour, mental capacity and Registered Manager cover briefings, as those documents set out, and the Nominated Individual's anti-bribery and fraud controls briefing",
+                "Every Director",
+                "Within 1 month of appointment, then at the annual governance update"
+              ],
+              [
+                "Safeguarding adults and children awareness under the Safeguarding Adults Policy, including sexual harassment awareness; the GOV.UK Prevent awareness course",
+                "Every Director",
+                "Within the first week of appointment and before any contact with people we support; safeguarding refreshed every 12 months with a Prevent update, and the Prevent course every 3 years"
+              ],
+              [
+                "The Oliver McGowan Mandatory Training on Learning Disability and Autism at Tier 2",
+                "Every Director",
+                "Within 6 months of appointment, refreshed every 3 years (Training and Development Policy)"
+              ],
+              [
+                "External training on the Nominated Individual role and on bribery and fraud prevention; safeguarding lead-level training; the GOV.UK Prevent referrals and Channel courses and the local authority's Prevent briefing where offered; sexual harassment risk assessment training",
+                "Nominated Individual",
+                "Within 3 months of appointment, and the sexual harassment risk assessment training before their first approval of that assessment; refreshed every 3 years, or every 2 years for the Prevent courses"
+              ],
+              [
+                "Fitness assessment: the test, Schedule 4, weighing criminal record and regulatory information, fair process and records",
+                "Chair, deputy chair and HR Manager",
+                "Before their first fitness decision or check, refreshed every 3 years"
+              ],
+              [
+                "Safer recruitment; hearing and appeal training",
+                "Directors who shortlist, interview or hear a concern",
+                "Before first doing so, refreshed every 3 years"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "The chair records the evidence of adult social care governance experience of any independent reviewer or external investigator before appointing them."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Declarations, checks, conditions and appraisals due in the next 60 days or overdue",
+                "Monthly, in the monthly recruitment report",
+                "HR Manager",
+                "Chair; any item more than 1 month overdue to the Directors"
+              ],
+              [
+                "Annual fitness review complete for every Director and the Nominated Individual",
+                "Every year",
+                "Chair",
+                "Directors' governance meeting held by mid-May"
+              ],
+              [
+                "Every fit and proper person file tested against this policy and Schedule 3",
+                "Every 12 months, within the independent quality review",
+                "Independent quality reviewer",
+                "Directors"
+              ],
+              [
+                "Each concern: timescales met, decision reasoned, notices given",
+                "When each case closes",
+                "Deputy chair (the chair for concerns about the deputy chair)",
+                "Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Our targets are 100% of appointments made only after a recorded fitness decision, 100% of annual reviews completed by 30 April, 100% of concerns assessed within 1 working day, and 100% of CQC notices and regulator reports on time. Any shortfall becomes an action in the service improvement plan."
+        },
+        {
+          "p": "This policy is reviewed every 24 months by the Registered Manager with the HR Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or CQC guidance on fit and proper persons, a Director found unfit, a concern not handled within this policy's timescales, a CQC or commissioner finding about our governance, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

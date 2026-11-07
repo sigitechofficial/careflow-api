@@ -31,7 +31,7 @@ export class AuditLogsController {
   @Permissions('audit_logs.read')
   @ApiOperation({ summary: 'List immutable audit log entries' })
   async list(@CurrentUser() user: RequestUser, @Query() query: AuditLogQueryDto) {
-    return this.auditLogsService.findAuditLogs(query, { excludeModules: payAuditModulesHiddenFrom(user) });
+    return this.auditLogsService.findAuditLogs(query, { excludeModules: payAuditModulesHiddenFrom(user), reader: user });
   }
 
   @Delete()
@@ -92,6 +92,6 @@ export class AuditLogsController {
   @Permissions('audit_logs.read')
   @ApiOperation({ summary: 'Get a single audit log by id' })
   async getById(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string) {
-    return this.auditLogsService.findAuditLogById(id, { excludeModules: payAuditModulesHiddenFrom(user) });
+    return this.auditLogsService.findAuditLogById(id, { excludeModules: payAuditModulesHiddenFrom(user), reader: user });
   }
 }

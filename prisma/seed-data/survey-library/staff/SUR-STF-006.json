@@ -1,0 +1,303 @@
+{
+  "reference": "SUR-STF-006",
+  "revision": 1,
+  "title": "Supervision feedback",
+  "audience": "EMPLOYEE",
+  "respondents": "Every supervisee, in any role, after every second supervision (about twice a year)",
+  "summary": "A short confidential check after every second supervision: was it private, was there time, were your views asked, did you talk about how you are and a real situation, were actions followed up. Your supervisor never sees your answers. About 6 minutes.",
+  "purpose": "Checks whether supervision happens as the Supervision, Spot Checks and Appraisal Policy promises and whether it helps: private, two-way, about wellbeing and real practice, with actions followed up. It complements the record audit (which shows supervision happened) with the supervisee's view, and gives each supervisor with 5 or more responses a reading against the policy's target that at least 80% say supervision helps them in their work, which the anonymous September survey cannot break down by supervisor.",
+  "timing": {
+    "when": "2 working days after every second supervision record is shared with the worker (about twice a year); open 14 days",
+    "recurrence": null,
+    "trigger": "Every second routine supervision recorded (not probation reviews, appraisals or extra supervisions after an incident)",
+    "contactRule": {"holdBack": true, "countsAsContact": true, "whenHeld": "skip", "reason": "Routine survey, lowest staff priority: anyone sent another named survey in the last 4 weeks is skipped this time, not sent later"}
+  },
+  "anonymous": false,
+  "channels": ["ONLINE"],
+  "estimatedMinutes": 6,
+  "cqc": {
+    "keyQuestions": ["SAFE", "WELL_LED"],
+    "qualityStatements": ["Safe and effective staffing", "Learning culture", "Capable, compassionate and inclusive leaders"]
+  },
+  "introduction": "{{organisation}} would like to know how your last supervision went, so supervision helps you as it should. It takes about 6 minutes, in paid time. Please answer on your own device, not in the supervision meeting.\n\nYour answers are linked to your name so the HR Manager can follow up if you ask. Your supervisor never sees your answers. You can ask the Registered Manager for a different supervisor at any time.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office or, out of hours, the On-call Manager (number in your staff handbook). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to make supervision useful and to support you. Our legal reason is our legitimate interest in being a good employer.\n\nYour answers are linked to your name. They are seen by the HR Manager and the Registered Manager, never by your supervisor or anyone between your supervisor and the Registered Manager. A supervisor sees combined results only when 5 or more of their supervisees have answered. If you tell us someone may be at risk of harm, we must act on it.\n\nWe keep your answers for 1 year after the survey closes, under our Records Management and Retention Policy. You can ask to see or correct your information by contacting the HR Manager or our Data Protection Officer. You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-last-supervision",
+          "text": "Overall, how would you rate your last supervision?",
+          "type": "LIKERT",
+          "required": true,
+          "helpText": "Think about your last supervision.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor"],
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "stf-supervision",
+          "text": "Supervision helps me in my work.",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if you have not had a supervision with us yet.",
+          "options": ["Strongly agree", "Agree", "Neither agree nor disagree", "Disagree", "Strongly disagree", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "What would make supervision more useful?",
+            "showWhen": ["Disagree", "Strongly disagree"]
+          },
+          "evidence": "Safe: Learning culture"
+        }
+      ]
+    },
+    {
+      "title": "How it went",
+      "questions": [
+        {
+          "id": "q-private",
+          "text": "Was your supervision held somewhere private?",
+          "type": "YES_NO",
+          "required": true,
+          "helpText": "Private means nobody else could hear you, such as a closed room at the office.",
+          "comment": {
+            "prompt": "Where was it held?",
+            "showWhen": ["No"]
+          },
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "q-enough-time",
+          "text": "Was there enough time to talk about what mattered to you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Partly", "No"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        },
+        {
+          "id": "q-views-asked",
+          "text": "Did your supervisor ask for your views?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Yes", "Partly", "No"],
+          "evidence": "Well-led: Capable, compassionate and inclusive leaders"
+        }
+      ]
+    },
+    {
+      "title": "What you talked about",
+      "questions": [
+        {
+          "id": "q-talked-wellbeing",
+          "text": "Did you talk about how you are, such as your health, wellbeing or workload?",
+          "type": "YES_NO",
+          "required": true,
+          "evidence": "Safe: Safe and effective staffing"
+        },
+        {
+          "id": "q-talked-situation",
+          "text": "Did you talk through a real situation from your work?",
+          "type": "YES_NO",
+          "required": true,
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-actions-followed",
+          "text": "Were the actions agreed at your previous supervision followed up?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose \"Does not apply to me\" if no actions were agreed last time.",
+          "options": ["Yes", "Partly", "No", "Does not apply to me"],
+          "notCountedOptions": ["Does not apply to me"],
+          "comment": {
+            "prompt": "Please tell us which actions were not followed up.",
+            "showWhen": ["Partly", "No"]
+          },
+          "evidence": "Safe: Learning culture"
+        },
+        {
+          "id": "q-talked-learning",
+          "text": "Did you talk about your learning and development?",
+          "type": "YES_NO",
+          "required": true,
+          "evidence": "Safe: Learning culture"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What is one thing that would make your supervision more useful?",
+          "type": "TEXTAREA",
+          "required": false
+        },
+        {
+          "text": "Is there anything you would like to talk about at your next supervision that you have not been able to raise?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "We will not pass this to your supervisor unless you ask us to."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, the HR Manager, not your supervisor, will contact you within 5 working days. You can also ask the Registered Manager for a different supervisor at any time."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The HR Manager runs it. CareFlow accepts only one answer from each person per survey and cannot start one from a supervision record, so keep one copy of this template for each half-year (for example \"Supervision feedback, January to June 2027\"). When every second routine supervision record has been shared with the worker, wait 2 working days and add that worker with Send or schedule, chosen employee; it reaches them in the CareFlow app and by email. Not after probation reviews, appraisals or extra supervisions after an incident. Close each copy at the end of its half-year. CareFlow takes one answer per person per copy, so a worker who has already been sent this half-year's copy is not sent it again until the next copy (Send or schedule skips them anyway).",
+      "Set one reminder after 7 days (5 working days) in Reminders and follow-up; it goes only if the worker has not answered. Never let the worker complete it in the supervision meeting or on the supervisor's device. If the trigger falls in September, hold it until the September staff survey closes; it is the lowest priority under the named 4-week rule, so CareFlow does not send it to anyone who had another named staff survey in the last 4 weeks (it skips them rather than sending later). Anonymous staff surveys do not count.",
+      "Who may open individual answers: the HR Manager (the Registered Manager where the HR Manager is the supervisor); never the supervisor or anyone between the supervisor and the Registered Manager. This is set in Who can see the answers: individual responses are limited to the HR Manager and the Registered Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "The HR Manager reads each response the working day it arrives and acts under the alerts below. Supervision is support, not a disciplinary meeting, and so is this feedback.",
+      "How to count: report the share answering Strongly agree or Agree for supervision helps (target at least 80%), Very good or Good overall, and Yes for the other questions, leaving out Does not apply to me. Report by supervisor only when the supervisor has 5 or more responses (combine up to 12 months), flagged under 10; a supervisor with fewer than 5 responses never gets a personal report or themes drawn from their own supervisees' answers, which they could trace to a person; the Registered Manager discusses only organisation-wide themes with them. Quarterly themes go to the governance report under the Supervision, Spot Checks and Appraisal Policy.",
+      "Keep individual answers for 1 year after each copy closes, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "\"Was your supervision held somewhere private?\" answered No, or a comment saying it was held in a car, a person's home or a public place.",
+        "action": "The HR Manager tells the Registered Manager within 2 working days (library timescale); the Registered Manager reminds the supervisor of the Supervision, Spot Checks and Appraisal Policy without naming the worker where the supervisor has several supervisees, otherwise only with the worker's agreement.",
+        "rule": {
+          "task": "Supervision not private: remind the supervisor",
+          "if": [
+            {
+              "question": "q-private",
+              "answers": ["No"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 2
+        }
+      },
+      {
+        "when": "The overall rating Poor or Very poor, or supervision helps answered Disagree or Strongly disagree, together with not enough time (No) or views not asked (No), and the worker asked to be contacted.",
+        "action": "The HR Manager contacts the worker within 5 working days and reminds them they may ask for a different supervisor; the Registered Manager decides any request within 10 working days. Without a request for contact, no unrequested contact: the introduction already gives that right.",
+        "rule": {
+          "task": "Poor supervision, asked for contact: offer a change",
+          "if": [
+            {
+              "all": [
+                {
+                  "question": "q-last-supervision",
+                  "answers": ["Poor", "Very poor"]
+                },
+                {
+                  "question": "q-enough-time",
+                  "answers": ["No"]
+                },
+                {
+                  "question": "q-contact",
+                  "answers": ["Yes"]
+                }
+              ]
+            },
+            {
+              "all": [
+                {
+                  "question": "q-last-supervision",
+                  "answers": ["Poor", "Very poor"]
+                },
+                {
+                  "question": "q-views-asked",
+                  "answers": ["No"]
+                },
+                {
+                  "question": "q-contact",
+                  "answers": ["Yes"]
+                }
+              ]
+            },
+            {
+              "all": [
+                {
+                  "question": "stf-supervision",
+                  "answers": ["Disagree", "Strongly disagree"]
+                },
+                {
+                  "question": "q-enough-time",
+                  "answers": ["No"]
+                },
+                {
+                  "question": "q-contact",
+                  "answers": ["Yes"]
+                }
+              ]
+            },
+            {
+              "all": [
+                {
+                  "question": "stf-supervision",
+                  "answers": ["Disagree", "Strongly disagree"]
+                },
+                {
+                  "question": "q-views-asked",
+                  "answers": ["No"]
+                },
+                {
+                  "question": "q-contact",
+                  "answers": ["Yes"]
+                }
+              ]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "A comment describing bullying or harassment by the supervisor.",
+        "action": "Tell the Registered Manager the same working day, as a report under the Bullying, Harassment and Sexual Harassment Policy; a request for a different supervisor linked to it is decided at once."
+      },
+      {
+        "when": "A comment describing stress the worker is struggling with.",
+        "action": "The HR Manager offers contact and names the employee assistance programme; once we know stress is affecting someone, the HR Manager or Registered Manager meets them within 5 working days for an individual stress risk assessment, under the Work-Related Stress and Staff Wellbeing Policy."
+      },
+      {
+        "when": "A comment describing abuse or neglect of a person we support, or wrongdoing.",
+        "action": "Abuse or neglect goes to the safeguarding lead the same working day (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure); wrongdoing is a speaking-up concern under the Whistleblowing (Speaking Up) Policy, with the Nominated Individual as case owner where it concerns the Registered Manager, Deputy Manager or HR Manager."
+      },
+      {
+        "when": "A supervisor with 5 or more responses below 80% positive on supervision helps, or below 80% Yes on privacy, time, views, wellbeing, a real situation or actions.",
+        "action": "The Registered Manager observes that supervisor's next supervision, with the supervisee's agreement, or reviews two records (library decision, on top of the yearly observation of each supervisor)."
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The HR Manager, not the supervisor, contacts the worker within 5 working days.",
+        "rule": {
+          "task": "Asked to be contacted about their answers",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "HR_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "alertsNeverTo": ["FIELD_CARE_SUPERVISOR"],
+  "access": {
+    "responses": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "results": ["HR_MANAGER", "REGISTERED_MANAGER"],
+    "reportingThreshold": 5
+  },
+  "relatedPolicies": ["POL-HR-005", "POL-HR-006", "POL-HS-015", "POL-HR-013", "POL-HR-018", "POL-SG-002", "POL-GOV-006", "POL-GOV-017"],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 18(2)(a): staff receive such appropriate support, training, professional development, supervision and appraisal as is necessary",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/18"
+    },
+    {
+      "source": "Skills for Care, Effective supervision guide (2025): supervision supports, develops and keeps staff informed",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Support-for-leaders-and-managers/Managing-people/Supervision/Effective-supervision-guide.pdf"
+    }
+  ]
+}

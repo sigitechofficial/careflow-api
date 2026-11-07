@@ -22,7 +22,7 @@ import {
 } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { extname } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import type { Request } from 'express';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
@@ -35,13 +35,13 @@ import { PictureGalleryService } from './picture-gallery.service';
 import { PictureGalleryQueryDto } from './dto/picture-gallery-query.dto';
 import { UploadCarePictureDto } from './dto/upload-care-picture.dto';
 import { UpdateCarePictureDto } from './dto/update-care-picture.dto';
+import { uploadPath } from '../common/utils/upload-path.util';
 
 const ALLOWED_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
 const ALLOWED_MIMES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 function pictureUploadRoot() {
-  const base = process.env.UPLOAD_BASE_PATH ?? 'uploads';
-  return join(process.cwd(), base, 'care-pathway', 'pictures');
+    return uploadPath('care-pathway', 'pictures');
 }
 
 function pictureMaxBytes() {

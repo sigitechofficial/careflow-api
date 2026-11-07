@@ -171,6 +171,7 @@ export class ScheduleAllocationNotificationHook implements OnModuleDestroy {
     if (!pd?.email) return null;
     const user = await this.prisma.user.findFirst({
       where: { email: pd.email, deletedAt: null, isActive: true },
+      select: { id: true },
     });
     return user?.id ?? null;
   }

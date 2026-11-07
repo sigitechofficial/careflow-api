@@ -1,0 +1,613 @@
+{
+  "reference": "POL-SG-009",
+  "revision": 1,
+  "title": "Professional Boundaries Policy",
+  "documentType": "POLICY",
+  "summary": "How everyone who works for us keeps a warm but professional relationship with the people we support and their families: sexual and romantic relationships, people staff already know, contact outside visits, personal phones and social media, influence and conflicts of interest, after the service ends, warning signs of boundary drift and closed cultures, and how breaches are handled. For all employees.",
+  "keyPoints": {
+    "intro": "You are trusted to work alone in people's homes. Be kind and personal in how you care, but keep the relationship professional: these rules protect the people we support and protect you.",
+    "points": [
+      "Never start a romantic or sexual relationship, or any sexual contact, with a person we support (gross misconduct) or anyone in their household (a serious breach). Where the person has dementia, a learning disability or another mental disorder, it can be a crime.",
+      "Unless you knew them before their care began, never give a person or their family your personal phone number, address or social media details, never message them from your own phone, and never send, accept or reply to friend or follow requests.",
+      "Visit and use the key safe only for your rostered visits, do only what the care plan says, and never stay on to socialise; phone the office before the expected finish if a care reason means staying over 15 minutes longer.",
+      "If you recognise a person on your rota, such as a relative, friend, neighbour or former partner, tell the Care Coordinator before the visit. If you only realise at the door, phone the office before you start care.",
+      "Never use your own phone to photograph or film a person or their home, never record what they or anyone else says, and never post about the people you support, their homes or your visits online, even without names.",
+      "Keep what you say about yourself light: never share your money, health or relationship problems, never ask a person to keep a secret, never sell, recruit, preach or campaign, and never ask for or encourage private work.",
+      "If a person or relative asks for your number, to meet outside visits or for more than your role allows, decline kindly, note it in the daily visit notes and tell the office the same day.",
+      "For 12 months after your last visit to someone you did not know before, never start contact with them or their household. If they contact you, do not reply and tell the office the same day.",
+      "If you feel unusually close to a person, or they treat you as family or a favourite, tell your Field Care Supervisor. You will not be disciplined for asking for help before anything has happened.",
+      "Tell the office the same day if a colleague visits off rota, keeps secrets with a person or contacts them outside visits. Phone any sexual or romantic contact to the office, or On-call Manager, before you leave the visit."
+    ]
+  },
+  "reviewFrequencyMonths": 24,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "EMPLOYEE",
+    "HR",
+    "TRAINING",
+    "VISIT"
+  ],
+  "relatedReferences": [
+    "POL-HR-007",
+    "POL-SG-008",
+    "POL-SG-007",
+    "POL-SG-010",
+    "POL-SG-001",
+    "POL-HR-018",
+    "POL-HR-017",
+    "POL-HR-008"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Skills for Care and Skills for Health, Code of Conduct for Healthcare Support Workers and Adult Social Care Workers in England (2013), Standard 1, guidance statements 6 (clear and appropriate professional boundaries with people who use services, carers and colleagues) and 7, and Standard 2, guidance statement 8 (never abuse, neglect, harm or exploit)",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Support-for-leaders-and-managers/Managing-people/Code-of-conduct/Code-of-Conduct.pdf"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 10 (dignity and respect)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/10"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 13 (safeguarding service users from abuse and improper treatment), paragraph (6): abuse includes any behaviour towards a service user that is an offence under the Sexual Offences Act 2003",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/13"
+    },
+    {
+      "source": "Sexual Offences Act 2003, section 38 (care workers: sexual activity with a person with a mental disorder)",
+      "url": "https://www.legislation.gov.uk/ukpga/2003/42/section/38"
+    },
+    {
+      "source": "Sexual Offences Act 2003, section 42 (care workers: interpretation), subsection (4): providers of care, assistance or services in connection with the person's mental disorder, paid or unpaid",
+      "url": "https://www.legislation.gov.uk/ukpga/2003/42/section/42"
+    },
+    {
+      "source": "Sexual Offences Act 2003, section 44 (sexual relationships which pre-date care relationships)",
+      "url": "https://www.legislation.gov.uk/ukpga/2003/42/section/44"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} provides personal care to adults in their own homes. Our staff are usually alone with the person, in their bedroom and bathroom, with access to their keys, medicines, money and private life, and many of the people we support are lonely, unwell or depend on us for their daily routine. That trust creates a power imbalance: a person may find it hard to say no to a care worker they rely on, or to complain about one they have grown fond of. Clear professional boundaries protect the people we support from exploitation, and protect our staff from misunderstanding and false allegation."
+        },
+        {
+          "p": "{{organisation}} expects every member of staff to be warm and personal in how they give care, and professional in the relationship itself, which exists to meet the person's needs, within their care plan, during rostered visits. The national Code of Conduct for Healthcare Support Workers and Adult Social Care Workers is voluntary, but {{organisation}} has adopted it as a condition of working for us: it requires care workers to establish and maintain clear and appropriate professional boundaries with people who use services, carers and colleagues at all times, and never to exploit them."
+        },
+        {
+          "p": "This policy helps us meet Regulation 10 of the Health and Social Care Act 2008 (Regulated Activities) Regulations 2014 (dignity, respect and privacy) and Regulation 13 (protection from abuse and improper treatment). Breaches are handled through supervision or the Disciplinary Policy and Procedure according to their seriousness and, where a person may have been exploited or harmed, as a safeguarding concern."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This policy makes sure that everyone who works for us knows where the professional line is, at visits, by phone, online and outside work, and what to do when it is tested; that connections with people staff already know are decided before any visit; that boundary drift and closed cultures are noticed early; and that breaches are handled consistently."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This policy applies to everyone covered by the Staff Code of Conduct, including Directors, bank staff and the agency workers, students, volunteers and contractors who meet the people we support. It applies at visits, by phone, online and outside work wherever contact involves a person we support, their household, family or representatives, including after the service has ended."
+        },
+        {
+          "p": "This policy owns professional boundaries; the Staff Code of Conduct states the headline rules and refers here. Related matters are covered elsewhere and not repeated: gifts, hospitality, favours, wills and legacies by the Gifts, Hospitality, Wills and Legacies Policy; handling a person's money by the Handling Money, Property and Shopping Procedure; other paid work and private work for a person by the Staff Code of Conduct; declaring interests in general, including relationships between colleagues, by the Conflicts of Interest Policy; staff use of phones and social media in general by the Mobile Phones and Social Media Policy; sexual behaviour by people we support towards staff by the Sexual Safety Policy; children in the household by the Safeguarding Children and Young People Policy; and reporting concerns and allegations by the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure and the Managing Allegations Against Staff Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "Professional boundary",
+                "The limits that keep the relationship between a member of staff and a person we support focused on the person's care and wellbeing: what we do, when and where, and how we relate to them."
+              ],
+              [
+                "Boundary drift",
+                "Small, gradual steps away from a professional relationship, such as extra time, personal disclosures, secrets or contact outside visits, which can lead to exploitation or abuse even when nobody intends harm."
+              ],
+              [
+                "Household",
+                "Everyone who lives in the person's home or stays there regularly."
+              ],
+              [
+                "Connected person",
+                "A person we support, or a member of their household, whom a worker knew before being allocated: a relative, partner or former partner, friend, neighbour, someone known through a faith or community group, school or another job, or someone the worker has worked for privately."
+              ],
+              [
+                "Close relative",
+                "A worker's partner, parent, child, brother or sister, grandparent or grandchild, including step, half and in-law relationships."
+              ],
+              [
+                "Personal contact details",
+                "A worker's personal phone number, home address, personal email address, and social media or messaging accounts."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors approve this policy and make sure rotas are funded so that no person depends on a single worker without oversight. The Nominated Individual discusses every closed-culture warning sign with the Registered Manager within one week of it being recorded, reviews boundary breaches in the quarterly anonymised conduct summary, and handles any boundary concern about the Registered Manager."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "The Registered Manager owns this policy and, as safeguarding lead, decides on every boundary concern that may be abuse or exploitation. The Registered Manager decides whether a worker may support a connected person, approves any exception to the rota controls in this policy, reviews the monthly boundary exceptions report, and decides the route for every breach. The Deputy Manager does this when the Registered Manager is absent or connected to the matter."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager records in the staff record, on the day received, the relationship declarations this policy says are made to the HR Manager, and includes the 12-month contact rule in every leaving letter."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, On-call Managers and Office staff",
+          "blocks": [
+            {
+              "p": "Care Coordinators record connected-person declarations in the staff record, check it before allocating, never allocate a worker to a connected person without the Registered Manager's agreement, plan rotas that meet the controls in this policy, compile the monthly boundary exceptions report, and follow up requests that test boundaries. On-call Managers make the doorstep decisions out of hours. Office staff never give anyone a worker's personal contact details or say where a worker lives."
+            }
+          ]
+        },
+        {
+          "heading": "Field Care Supervisors",
+          "blocks": [
+            {
+              "p": "Field Care Supervisors, and Senior Care Workers authorised to supervise, observe boundaries at every spot check in the person's home, ask the person the boundary question in Monitoring and review, carry out the extra unannounced spot checks this policy requires, tell the Registered Manager the same working day about any significant breach, and phone any serious breach through at once."
+            }
+          ]
+        },
+        {
+          "heading": "Care Workers and Senior Care Workers",
+          "blocks": [
+            {
+              "p": "Every Care Worker and Senior Care Worker follows this policy at visits and outside work. Senior Care Workers also model good boundaries on shadow shifts and help newer colleagues decline requests kindly."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Keeping the relationship professional",
+      "blocks": [
+        {
+          "p": "Good boundaries do not mean being cold or distant. People should feel that their care workers know them, like them and enjoy their company. The boundary is crossed when the relationship starts to serve the worker's needs, becomes personal or exclusive, or makes the person feel they owe the worker something. Before doing anything outside the usual, staff ask themselves: Is this in the care plan or my role? Would I be comfortable if my manager, the person's family and my colleagues knew? Would I do the same for everyone I support? Could it make it harder for the person to complain about me? If any answer causes doubt, do not do it and phone the office."
+        }
+      ],
+      "subsections": [
+        {
+          "heading": "Talking about yourself",
+          "blocks": [
+            {
+              "bullets": [
+                "You may share light, general things about yourself, such as having a family, a hobby or a recent holiday, where it helps the conversation and the person is interested.",
+                "Never talk about your money worries, health, relationships or family problems, never ask the person for advice, sympathy or help with them, and never discuss colleagues, other people we support or your views of {{organisation}}.",
+                "Never ask about the person's money, savings, will or property, or family matters, beyond what their care plan needs."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Words, touch and comfort",
+          "blocks": [
+            {
+              "bullets": [
+                "Use the name recorded in the care plan. Do not use terms such as darling, sweetheart or love unless the care plan records that the person likes them.",
+                "Touch the person only to give the care in the care plan, or to comfort them in a way they clearly welcome, such as holding a hand when they are upset. Never kiss a person or start a hug. If the person hugs you, respond briefly and kindly; if they often seek touch, tell the office so that the care plan records an agreed approach.",
+                "Never make sexual jokes or comments, or remarks about the person's body that the care is not about. Sexual behaviour by a person towards staff is handled under the Sexual Safety Policy."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Visits, time and tasks",
+          "blocks": [
+            {
+              "bullets": [
+                "Go to a person's home only for a visit on your CareFlow rota, and never bring anyone with you, as the Staff Code of Conduct sets out. Never call in when you are not rostered, even to drop something off or see that they are all right; if you are worried about someone between visits, phone the office, which arranges a welfare check.",
+                "Use a key safe code or key only for a rostered visit, under the Key Holding, Key Safes and Access to People's Homes Procedure.",
+                "Do only the tasks in the care plan. Requests for favours, errands or extra help go to the office under the Gifts, Hospitality, Wills and Legacies Policy.",
+                "Never stay on after the planned visit to socialise. If the person's needs or an emergency mean you must stay more than 15 minutes beyond the planned time, phone the office, or the On-call Manager out of hours, before the expected finish so that the time is recorded and your next visits are covered, as the Staff Code of Conduct sets out.",
+                "Never give a person or their family a lift, or take the person out, in your own car unless the care plan includes an escorted journey and you meet the conditions of the Driving at Work Policy, and never drive their vehicle.",
+                "Never ask a person to keep anything from the office, their family or your colleagues, and never promise to keep a secret.",
+                "Treat everyone you support fairly. Do not ask to be allocated only to particular people, and do not resist rota changes because you want to keep a person to yourself."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Loneliness and requests for company",
+          "blocks": [
+            {
+              "p": "For many people our visits are their main company, and they may ask a worker to stay longer, visit as a friend or keep in touch. Staff stay kind but never try to fill that gap personally. The worker tells the office the same day when a person seems lonely or asks for more company. Within 5 working days the Care Coordinator talks with the person about what would help and, with their agreement, arranges a care plan review, gives information about befriending services and local groups, asks the GP practice about its social prescribing link worker, and, where the local authority or NHS funds the care, asks the commissioner for a review of the person's support."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Relationships",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Sexual and romantic relationships",
+          "blocks": [
+            {
+              "p": "Our policy is absolute: staff must never start a romantic or sexual relationship, or have sexual contact of any kind, with a person we support or any member of their household, whether or not the person seems to want it. Under the Staff Code of Conduct and the Disciplinary Policy and Procedure, a sexual or romantic relationship with a person we support is gross misconduct, and one with a member of their household is a serious breach of this policy. A relationship that existed before the care began, such as with the worker's own partner, is not a breach: it is declared and decided as a connected person below."
+            },
+            {
+              "p": "The law makes it an offence for a care worker to touch a person with a mental disorder sexually where the worker provides care, assistance or services to them in connection with that disorder, paid or unpaid, and has had or is likely to have regular face-to-face contact with them as a result, and knows or could reasonably be expected to know of the disorder (Sexual Offences Act 2003, sections 38 and 42). This can include people we support who live with dementia, a learning disability or a mental illness. The person's agreement is no defence; the main exception is a sexual relationship that existed immediately before the care began (section 44). The maximum penalty is 10 years' imprisonment, or 14 years where penetration is involved. Any behaviour towards a person we support that is an offence under that Act is abuse under Regulation 13."
+            },
+            {
+              "p": "If you find yourself attracted to a person or a member of their household, or they show romantic or sexual interest in you, do not act on it and tell your Field Care Supervisor or the Care Coordinator the same day. The Care Coordinator moves you from that person's visits from the next rota without loss of hours, and nobody is disciplined for asking for help before anything has happened. Any sexual comment, request or touch towards you also goes in the incident log before the end of your shift, under the Sexual Safety Policy."
+            },
+            {
+              "p": "A worker who begins a personal relationship with a relative or representative of a person they support who does not live in the person's home tells the HR Manager within 5 working days of it starting, and is not allocated to that person from the next rota."
+            }
+          ]
+        },
+        {
+          "heading": "People you already know",
+          "blocks": [
+            {
+              "p": "In the communities where we work, staff often know the people we support. A worker who supports a connected person may find it hard to keep confidences, keep to the care plan or report concerns, and the person may find it hard to refuse or complain. Every connection is therefore declared and decided before the worker visits."
+            },
+            {
+              "steps": [
+                "When you see a name or address you recognise on your rota, or learn that someone you know uses our service, tell the Care Coordinator before any visit to them, as the Staff Code of Conduct requires.",
+                "If you only realise at the door, phone the office, or the On-call Manager out of hours, before you start care (if you realise part-way through a visit, finish the care safely and phone before you leave). The Care Coordinator or On-call Manager decides during that call whether you give that visit: you do so only if the person agrees and no other worker can arrive within 30 minutes of the planned time. If nobody answers within 15 minutes, phone the Registered Manager or Deputy Manager directly. If the person does not agree, you give no care (if they need emergency help, call 999 and stay until help arrives), and the office sends another worker and phones the person to explain.",
+                "The Care Coordinator records the declaration, and any doorstep decision, in the staff record the same working day (the On-call Manager passes out-of-hours decisions on at the 10am handover) and does not allocate you to that person again until the Registered Manager decides.",
+                "The Care Coordinator or a Field Care Supervisor asks the person privately whether they are happy to be supported by you and, where the person lacks capacity for that decision, consults their representative under the Mental Capacity Act and Best Interests Policy.",
+                "The Registered Manager decides within 2 working days whether you may support the person and on what conditions, with reasons recorded in the staff record. The care plan records only that a connected worker is part of the team.",
+                "The person can change their mind at any time; you are then moved from their visits from the next rota without loss of hours."
+              ]
+            },
+            {
+              "p": "A worker is not allocated to a close relative or to anyone who lives in the worker's own home. The Registered Manager may agree an exception in writing only where there is a strong reason, such as the person's clear wish or a language or cultural need that no other worker can meet, and, where the commissioner's contract requires it, after the Care Coordinator has obtained the commissioner's written agreement."
+            },
+            {
+              "p": "Every agreed connected-person allocation has these conditions: at least one other member of the core care team visits the person in every 2-week period; the connected worker does not handle the person's cash or shopping; a Field Care Supervisor carries out an unannounced spot check of the connected worker at that person's home within 4 weeks of the first visit and at least every 3 months after that; and the arrangement is reviewed at every care plan review. Personal contact that existed before the care began, including by phone or social media, may continue, but the worker never arranges or discusses the person's care through it: care matters go through the office. The contact rules in the rest of this policy apply to everyone else in the person's household and family whom the worker did not already know."
+            }
+          ]
+        },
+        {
+          "heading": "Families, households and visitors",
+          "blocks": [
+            {
+              "p": "Staff are courteous and helpful to the person's family and visitors, but their role is to the person. Staff never take sides in family disagreements, pass on messages against the person's wishes, or become involved in family finances, property or inheritance. Information is shared with family only as the care plan and the Confidentiality and Information Sharing Policy allow. Staff never agree to be a person's next of kin, emergency contact or personal key holder, never let post or deliveries for the person come to their own address, and never look after a child, as the Safeguarding Children and Young People Policy sets out."
+            }
+          ]
+        },
+        {
+          "heading": "When the service ends or you leave",
+          "blocks": [
+            {
+              "bullets": [
+                "When you stop visiting someone, say goodbye kindly and do not promise to keep in touch. The Care Coordinator tells the person when a core team member is leaving, under the Person-Centred Care, Dignity and Respect Policy.",
+                "Do not visit a person you support, or have supported, and did not know before, in hospital, a care home or their own home in a personal capacity. If the person or their family asks for a visit, tell the office; the Registered Manager may agree one visit on our behalf in work time, such as at the end of life, and records the decision.",
+                "While you work for us, never start contact, or a personal, romantic, sexual or business relationship, with a person you supported or a member of their household within 12 months of your last visit to them. If they contact you, do not reply and tell the office the same day. This does not apply to a connected person you knew before the care began, or to private work they ask you to do, which is handled under the Staff Code of Conduct (see Influence, advice and conflicts of interest).",
+                "After 12 months, a worker who forms a personal relationship with someone they supported through us, or a member of that person's household, declares it to the HR Manager within 5 working days, and the Registered Manager decides whether it raises a safeguarding concern, particularly where the person may lack capacity or be at risk."
+              ]
+            },
+            {
+              "p": "Funeral attendance and keepsakes are covered by the Gifts, Hospitality, Wills and Legacies Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Contact outside visits, phones and social media",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Situation",
+              "What you must do"
+            ],
+            "rows": [
+              [
+                "A person or relative asks for your number, address or social media name",
+                "Decline kindly and give them the office number and the on-call number from their information pack. Never give your personal contact details, even after the service ends."
+              ],
+              [
+                "You need to phone a person or their family",
+                "Phone them only when the care plan or the office asks you to, from your work phone with your number withheld, as the Mobile Phones and Social Media Policy sets out. If you ever have to phone them from your own phone, for example in an emergency when your work phone has failed, withhold your number. Never text or message them from your own phone, and never save their numbers in your own phone or messaging apps; contact details are kept in CareFlow."
+              ],
+              [
+                "You receive a friend or follow request, message or call from a person you support or have supported, or their family",
+                "Do not accept, reply or call back, and tell the office the same day. A Field Care Supervisor or the Care Coordinator explains our rules to the person or family within 5 working days."
+              ],
+              [
+                "You want to post about work",
+                "Never post anything about the people you support, their homes or your visits, even without names or faces, and never post photos taken at a person's home or check in at their address. The Mobile Phones and Social Media Policy covers everything else."
+              ],
+              [
+                "A person or family posts about you or {{organisation}}",
+                "Do not reply or react. Tell the office; only the Nominated Individual or a Director replies publicly for us, as the Complaints Policy and Procedure sets out."
+              ],
+              [
+                "A person asks you to take a photo of or with them",
+                "Never use your own phone to photograph or film a person or their home, including selfies at their request, and never record what they or anyone else says. Body map photographs and video are taken only in the CareFlow app on your work phone, with the person's consent or a best interests decision recorded in CareFlow; any other photograph needs a purpose recorded in the care plan and signed consent or an approved best interests decision, under the Consent to Care Policy."
+              ],
+              [
+                "You meet a person you support by chance, in a shop or on the street",
+                "Let them greet you first, so that you do not reveal to others that they receive care. Be polite, do not discuss their care, and tell your Field Care Supervisor if they then try to meet or contact you."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Staff who live in the same area as the people they support never discuss one person with another, with neighbours or with their own family, and never say who we visit. Confidentiality continues after a worker leaves us, under the Confidentiality and Information Sharing Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Influence, advice and conflicts of interest",
+      "blocks": [
+        {
+          "p": "People we support may trust a care worker's opinion more than anyone else's. Staff must never use that trust to influence them. Staff must never:"
+        },
+        {
+          "bullets": [
+            "sell or promote any product or service, including catalogue or online selling schemes, or recommend their own, a relative's or a friend's business; requests for a tradesperson or service go to the office;",
+            "ask for, encourage or arrange private work, paid or unpaid, with a person we support, a person they supported in the last 12 months, or anyone in their household, encourage them to employ a relative or friend privately, or encourage them to move to another care provider; a request for private work is told to the office the same day and handled under the Staff Code of Conduct;",
+            "promote their own religion, beliefs, political views or causes, invite the person to their place of worship or events, or discuss how the person should vote; staff support the person's own faith and practices as the care plan records;",
+            "give personal advice on money, legal, medical or relationship matters beyond their role; the office signposts the person to the right professional or service;",
+            "sign any document for the person, or act for them in a personal capacity in any matter."
+          ]
+        },
+        {
+          "p": "Any other personal interest that could affect how a worker treats a person we support, such as a business link with the person's family, is declared to the HR Manager within 5 working days of arising under the Conflicts of Interest Policy."
+        }
+      ]
+    },
+    {
+      "heading": "Boundary drift and closed cultures",
+      "blocks": [
+        {
+          "p": "Most boundary breaches start small and grow over weeks or months. Staff and managers watch for these signs in themselves, in colleagues and in the people we support, and discuss every sign with the Field Care Supervisor or the Care Coordinator."
+        },
+        {
+          "table": {
+            "columns": [
+              "Warning sign",
+              "Examples"
+            ],
+            "rows": [
+              [
+                "Special treatment",
+                "Visits to one person regularly overrun; extra tasks or time for one person and not others; a worker who brings the person things or does them favours."
+              ],
+              [
+                "Exclusivity and secrets",
+                "The person refuses other workers or says only one worker understands them; a worker asks to keep a person, resists rota changes, calls the person 'my lady' or 'like family', or says 'don't tell the office'."
+              ],
+              [
+                "Contact outside visits",
+                "Visits or check-ins not on the rota; texts, calls or social media contact; meeting the person or family outside work; the person knows the worker's address or family details."
+              ],
+              [
+                "Personal involvement",
+                "A worker who knows the person's finances or will in detail, takes sides in family matters, shares their own problems, or receives gifts or offers; a person who worries about the worker or gives them money."
+              ],
+              [
+                "Changes in the person",
+                "Anxiety before or after a particular worker's visits, reluctance to speak in front of them, unexplained spending, or being cut off from family or other visitors."
+              ]
+            ]
+          }
+        },
+        {
+          "p": "In home care the risk of a closed culture is greatest where a person is seen by one worker for long periods, cannot easily communicate, has no family or other visitors, lives on an isolated rural run, or is supported by workers who are related or close to each other. We use these controls:"
+        },
+        {
+          "bullets": [
+            "The Care Coordinator plans rotas so that every person who receives visits on 4 or more days a week is visited by at least two members of their core care team in every 2-week period. Where the care plan records a reason for a single worker, such as an autistic person's assessed need for consistency, the Registered Manager approves the exception in writing and a Field Care Supervisor carries out an unannounced spot check at least every 4 weeks.",
+            "Workers who are close relatives or partners are not paired as the regular team for a double-handed visit without the Registered Manager's agreement.",
+            "By the 5th working day of each month the Care Coordinator compiles a boundary exceptions report for the previous month from CareFlow's electronic call monitoring and scheduling reports, comparing visit check-in and check-out with the rota, and sends it to the Registered Manager. It lists: check-ins that did not match the worker's rota; any worker who stayed 30 minutes or more beyond the planned time at three or more visits to the same person without a care reason recorded; any person whose visits were all made by one worker in a 2-week period without an approved exception; and visit swaps requested to keep a particular person.",
+            "The Registered Manager decides within 5 working days what each exception needs, such as no action, a supervision discussion, an unannounced spot check within 4 weeks or a safeguarding concern, and records the decision.",
+            "Every closed-culture warning sign is recorded in the safeguarding records and discussed with the Nominated Individual within one week, as the Safeguarding Adults Policy requires."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "When boundaries are tested or crossed",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "When a person or family tests a boundary",
+          "blocks": [
+            {
+              "steps": [
+                "Decline kindly and explain that the rule applies to every care worker and protects everyone. For example: 'I really enjoy seeing you, but I'm not allowed to give out my number. You can always reach me through the office.'",
+                "Before checking out, write a short factual note in the daily visit notes: what was asked and what you said. If you report it as a safeguarding concern (step 3), the daily visit notes say only that a concern was reported.",
+                "Tell the office the same day. If the request involves sexual behaviour, pressure, money or a possible risk to the person, phone the office, or the On-call Manager out of hours, before you leave the visit, as a safeguarding concern, from outside the home if the person who may be responsible is present or you feel unsafe.",
+                "Within 5 working days the Care Coordinator or a Field Care Supervisor speaks with the person, or their family, explains our rules and records the agreed approach in the care plan so that every worker responds the same way.",
+                "If the requests continue after that conversation, the Care Coordinator holds a focused care plan review within 7 days, considering loneliness, changes in memory or mental health, and whether anyone is pressuring the person."
+              ]
+            }
+          ]
+        },
+        {
+          "heading": "Asking for help and reporting colleagues",
+          "blocks": [
+            {
+              "p": "A worker who feels unusually close to a person, finds it hard to leave at the end of visits, or has already slipped, for example by giving out a number, tells their Field Care Supervisor. The supervisor offers a supervision session within 5 working days, or a phone conversation the same day if it is urgent, agrees what will change and, where needed, asks the Care Coordinator to adjust the rota. A worker who tells us about their own slip by the next working day, where nobody has been harmed or exploited and it is not a serious breach in the table below, is supported: it is handled as a minor lapse under the Staff Code of Conduct, not under the Disciplinary Policy and Procedure."
+            },
+            {
+              "p": "Staff who see a colleague crossing a boundary tell the office the same day. Anything that may be sexual contact, exploitation, financial gain or harm is phoned to the office, or the On-call Manager out of hours, before leaving the visit, from outside the home if the person who may be responsible is present or they feel unsafe, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. A concern about the colleague on a double-handed visit is phoned once the two workers are apart and before the next visit. Staff who report in good faith are protected under the Whistleblowing (Speaking Up) Policy."
+            }
+          ]
+        },
+        {
+          "heading": "How breaches are handled",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Breach",
+                  "Response",
+                  "Who and when"
+                ],
+                "rows": [
+                  [
+                    "Minor lapse with no effect on the person, such as using a pet name, sharing a personal problem or staying on to chat once",
+                    "Discussed and recorded in the supervision record, as a minor lapse under the Staff Code of Conduct. A repeat within 6 months goes to the Registered Manager to decide on disciplinary action.",
+                    "Field Care Supervisor, at the next supervision"
+                  ],
+                  [
+                    "Significant breach with no sign of harm or exploitation, such as giving out personal contact details, accepting a friend request, calling in off rota, not declaring a connected person, or posting about work (unless self-reported as set out above)",
+                    "Registered Manager confirms the categorisation under the Managing Allegations Against Staff Procedure, normally a practice concern, with reasons in the restricted section of the staff record (staff record documents, which CareFlow opens only to roles given the staff document permissions) the same day; supervision within 7 days; unannounced spot check within 4 weeks; contact ended or post removed. A photograph or identifying post is also handled under the Personal Data Breach Procedure.",
+                    "Registered Manager, who also decides the disciplinary route within 2 working days; Field Care Supervisor"
+                  ],
+                  [
+                    "Serious breach: any romantic or sexual contact; using the relationship for money, gifts, favours, accommodation or work, including asking for, encouraging or arranging private work; secret contact; continuing contact after being told to stop; or a significant breach involving a person who lacks or may lack capacity",
+                    "Safeguarding concern phoned at once and categorised under the Managing Allegations Against Staff Procedure, including interim measures; police where a crime may have been committed; possible gross misconduct under the Disciplinary Policy and Procedure; referral to the Disclosure and Barring Service where the law requires.",
+                    "Registered Manager as safeguarding lead, within 1 hour of the report"
+                  ]
+                ]
+              }
+            },
+            {
+              "p": "A breach by an agency worker, student or contractor is reported to their agency, college or employer as the Staff Code of Conduct sets out. The person affected never loses care because a boundary was crossed. Staff affected by a breach, or by the death of a person they were close to, are offered support through supervision, our employee assistance programme and the Work-Related Stress and Staff Wellbeing Policy."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where in CareFlow",
+              "Kept for"
+            ],
+            "rows": [
+              [
+                "Declarations of connected persons and relationships, the Registered Manager's decisions, conditions and exceptions",
+                "Staff record; the care plan notes only that a connected worker is in the team",
+                "Employment plus 6 years"
+              ],
+              [
+                "Requests that tested a boundary, the agreed approach, and approved single-worker exceptions",
+                "Daily visit notes and the person's care plan",
+                "As the person's care records"
+              ],
+              [
+                "Practice concerns and boundary breaches",
+                "Restricted section of the staff record; supervision records; disciplinary case file",
+                "Employment plus 6 years, or longer where the Managing Allegations Against Staff Procedure requires"
+              ],
+              [
+                "Monthly boundary exceptions report and the Registered Manager's decisions",
+                "Governance records, with people identified by CareFlow reference number only",
+                "6 years"
+              ],
+              [
+                "Safeguarding concerns and closed-culture warning signs",
+                "Safeguarding records and the incident log, under the Safeguarding Adults Policy",
+                "Under the Records Management and Retention Policy"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "bullets": [
+            "Every new starter covers this policy during organisational induction, with scenarios such as a friend request from a relative, a familiar name on the rota, a lonely person asking the worker to stay and a person showing romantic interest, and acknowledges it in CareFlow as the Induction and Care Certificate Procedure sets out. Every employee acknowledges it again within 14 days of each new major version; a minor version does not need acknowledging again.",
+            "Agency workers and students are taken through the key points at their local induction before their first visit.",
+            "Professional boundaries are covered again in the annual safeguarding refresher.",
+            "At least once every 12 months the safeguarding scenario at a worker's supervision is about professional boundaries, as the Supervision, Spot Checks and Appraisal Policy sets out; spot checks carry the general safeguarding question. A worker who cannot say what they would do is taken through this policy at once and rechecked at the next spot check.",
+            "Care Coordinators, Field Care Supervisors and On-call Managers are briefed by the Registered Manager or Deputy Manager on connected-person decisions, doorstep decisions, the boundary exceptions report and the warning signs before first doing them, then every 3 years.",
+            "Office staff are taken through the rules on never giving out staff contact details before taking calls alone."
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How and how often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Boundary exceptions from visit check-in and check-out, with a decision on each within 5 working days",
+                "Monthly report",
+                "Care Coordinator; Registered Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Every connected-person declaration decided within 2 working days and before any further visit, with conditions met and spot checks done: target 100%",
+                "Quarterly audit of every decision and allocation",
+                "Deputy Manager (Registered Manager for decisions the Deputy Manager made)",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Whether any worker has given the person personal contact details, contacted them outside visits, called when not booked or made them uncomfortable",
+                "Question asked privately at every spot check and care plan review",
+                "Field Care Supervisors and Care Coordinators",
+                "Registered Manager, the same working day for any concern"
+              ],
+              [
+                "Single-worker exceptions approved and spot checks done every 4 weeks: target 100%",
+                "Monthly continuity report",
+                "Deputy Manager",
+                "Registered Manager"
+              ],
+              [
+                "Boundary breaches by type and branch, and closed-culture warning signs",
+                "Quarterly anonymised conduct summary; annual safeguarding report",
+                "Registered Manager",
+                "Nominated Individual; Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Every shortfall goes into the service improvement plan with an owner and a deadline. This policy is reviewed every 24 months by the Registered Manager, checked by the Nominated Individual and approved by the Directors under the Policy Management and Document Control Policy. It is reviewed sooner after a change in law or national guidance, including any revision of the national Code of Conduct, a serious incident or safeguarding concern involving a boundary breach, an inspection finding, or when monitoring shows the arrangements are not working."
+        }
+      ]
+    }
+  ]
+}

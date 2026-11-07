@@ -1,0 +1,658 @@
+{
+  "reference": "POL-HS-008",
+  "revision": 1,
+  "title": "First Aid Procedure",
+  "documentType": "PROCEDURE",
+  "summary": "How we assess first aid needs, equip and train a mostly lone, mobile workforce, and respond when someone we support, a member of staff or an office visitor is injured or suddenly ill, including resuscitation, waiting for and handing over to the ambulance crew, kits, first aiders and records. For all staff.",
+  "keyPoints": {
+    "intro": "You may be the first person there when someone we support, a colleague or you yourself is hurt or suddenly ill. These are the rules you follow on every visit and shift.",
+    "points": [
+      "In an emergency call 999 first, on speaker so your hands are free, and give first aid within your training. Phone the office or On-call Manager as soon as you can without leaving the person in danger.",
+      "If someone is unresponsive, call 999 and start CPR where they lie. Withhold CPR only if My care at a glance records a recommendation against it and you find the form, unless breathing stopped straight after choking or anaphylaxis. If in doubt, start CPR.",
+      "Before your first visit, read and follow the emergency plan of anyone with epilepsy, a severe allergy, diabetes, angina or another known emergency. Give rescue medicines such as buccal midazolam only if signed off for that person; in anaphylaxis, give their own adrenaline auto-injector.",
+      "Stay with the person until the crew arrive or one of our staff takes over; never leave anyone alone on the floor. Only the Registered Manager, Deputy Manager or On-call Manager can agree you leave. The office covers your next visits; waiting time is paid.",
+      "After calling 999, give no more medicine unless the call handler or crew asks. Give the crew the facts and times, My care at a glance, any DNACPR or ReSPECT form, hospital passport, pharmacy-labelled medicines, glasses, hearing aids and dentures.",
+      "Never drive a person to hospital yourself and never give anyone a medicine from your own supply. Wear gloves for first aid and use the face shield in your kit for rescue breaths.",
+      "Carry your personal first aid kit on every shift, check it at the start of each week and after each use, and ask the office for replacements, which you will receive before your next shift.",
+      "If you are hurt or unwell at work, give yourself first aid and phone the office; if driving is unsafe, we pay for a taxi. After a needlestick, or a human bite, scratch or splash, follow the Sharps Safety and Needlestick Injury Procedure.",
+      "Record any first aid you give, every 999 call and every injury in the incident log before the end of your shift, and the care you gave in the daily visit notes.",
+      "Keep your emergency first aid and basic life support training in date: if it expires you will not be given visits. After a resuscitation attempt, a death or another distressing emergency, your Field Care Supervisor contacts you within 1 working day."
+    ]
+  },
+  "reviewFrequencyMonths": 12,
+  "acknowledgementRequired": true,
+  "audience": [
+    "ALL_EMPLOYEES"
+  ],
+  "moduleLinks": [
+    "TRAINING",
+    "INCIDENT",
+    "BRANCH",
+    "EMPLOYEE"
+  ],
+  "relatedReferences": [
+    "POL-HS-001",
+    "POL-HS-003",
+    "POL-HS-007",
+    "POL-GOV-007",
+    "POL-HR-006",
+    "POL-CD-012",
+    "POL-CD-009",
+    "POL-IPC-004"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Safety (First-Aid) Regulations 1981, regulation 2 (definition of first-aid)",
+      "url": "https://www.legislation.gov.uk/uksi/1981/917/regulation/2"
+    },
+    {
+      "source": "Health and Safety (First-Aid) Regulations 1981, regulation 3 (duty of employer to make provision for first-aid, including appointed persons)",
+      "url": "https://www.legislation.gov.uk/uksi/1981/917/regulation/3"
+    },
+    {
+      "source": "Health and Safety (First-Aid) Regulations 1981, regulation 4 (duty to inform employees of the first-aid arrangements)",
+      "url": "https://www.legislation.gov.uk/uksi/1981/917/regulation/4"
+    },
+    {
+      "source": "Health and Safety Executive, L74 First aid at work: Guidance on Regulations (third edition, amended 2024), including needs assessment, travelling and lone workers, kits, certificate validity and annual refreshers",
+      "url": "https://www.hse.gov.uk/pubns/books/l74.htm"
+    },
+    {
+      "source": "Health and Safety Executive, First aid at work: what employers need to do",
+      "url": "https://www.hse.gov.uk/firstaid/what-employers-need-to-do.htm"
+    },
+    {
+      "source": "Health and Safety Executive, First aid at work: frequently asked questions (kit contents, tablets and medicines, defibrillators, records)",
+      "url": "https://www.hse.gov.uk/firstaid/faqs.htm"
+    },
+    {
+      "source": "Health and Safety Executive, GEIS3(rev2) Selecting a first-aid training provider (2024)",
+      "url": "https://www.hse.gov.uk/pubns/geis3.htm"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12 (safe care and treatment)",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Human Medicines Regulations 2012, regulation 238 (administration of Schedule 19 medicines, including adrenaline, to save life in an emergency)",
+      "url": "https://www.legislation.gov.uk/uksi/2012/1916/regulation/238"
+    },
+    {
+      "source": "Resuscitation Council UK, 2025 Adult Basic Life Support Guidelines (27 October 2025)",
+      "url": "https://www.resus.org.uk/library/2025-resuscitation-guidelines/adult-basic-life-support-guidelines"
+    },
+    {
+      "source": "Resuscitation Council UK, 2025 First Aid Guidelines (27 October 2025)",
+      "url": "https://www.resus.org.uk/library/2025-resuscitation-guidelines/first-aid-guidelines"
+    },
+    {
+      "source": "NHS, What to do if someone has a seizure (fit)",
+      "url": "https://www.nhs.uk/conditions/what-to-do-if-someone-has-a-seizure-fit/"
+    },
+    {
+      "source": "NHS, Sepsis: when to call 999",
+      "url": "https://www.nhs.uk/conditions/sepsis/"
+    },
+    {
+      "source": "NHS, Confusion (call 999 if someone suddenly becomes confused)",
+      "url": "https://www.nhs.uk/symptoms/confusion/"
+    },
+    {
+      "source": "NHS, Stroke symptoms",
+      "url": "https://www.nhs.uk/conditions/stroke/symptoms/"
+    },
+    {
+      "source": "NHS, Burns and scalds",
+      "url": "https://www.nhs.uk/conditions/burns-and-scalds/"
+    },
+    {
+      "source": "NHS, Animal and human bites",
+      "url": "https://www.nhs.uk/conditions/animal-and-human-bites/"
+    },
+    {
+      "source": "NHS, Where to get urgent help for mental health (NHS 111 mental health option)",
+      "url": "https://www.nhs.uk/nhs-services/mental-health-services/where-to-get-urgent-help-for-mental-health/"
+    },
+    {
+      "source": "NHS, Do not attempt cardiopulmonary resuscitation (DNACPR) decisions",
+      "url": "https://www.nhs.uk/conditions/do-not-attempt-cardiopulmonary-resuscitation-dnacpr-decisions/"
+    },
+    {
+      "source": "Skills for Care, Statutory and mandatory training guide for adult social care employers (December 2025): basic life support at least annually, first aid every 3 years",
+      "url": "https://www.skillsforcare.org.uk/resources/documents/Developing-your-workforce/Guide-to-developing-your-staff/Statutory-and-mandatory-training-guide-December-2025.pdf"
+    }
+  ],
+  "sections": [
+    {
+      "heading": "Policy statement",
+      "blocks": [
+        {
+          "p": "{{organisation}} makes sure that anyone injured or taken ill while our staff are working gets prompt, competent first aid and that emergency help is called without delay. Because our care workers work alone in people's homes, each is trained, equipped and briefed to act until help arrives."
+        },
+        {
+          "p": "The law requires first aid provision for our employees. Our policy also covers the people we support and visitors to our offices, and respects the resuscitation decisions recorded in a person's care plan."
+        }
+      ]
+    },
+    {
+      "heading": "Purpose",
+      "blocks": [
+        {
+          "p": "This procedure sets each branch's first aid provision, how staff respond to injury and sudden illness, and how emergencies are recorded and learned from."
+        }
+      ]
+    },
+    {
+      "heading": "Scope",
+      "blocks": [
+        {
+          "p": "This procedure applies to all employees, bank and agency workers and students wherever they work for us."
+        },
+        {
+          "p": "Falls, choking, DNACPR and ReSPECT recording, expected deaths, needlestick injuries, incidents and RIDDOR are owned by documents named where they apply. Rescue medicines follow the Delegated Healthcare Activities and Specialised Medicines Tasks Policy, and hospital admission the Hospital Admission and Discharge Procedure."
+        }
+      ]
+    },
+    {
+      "heading": "Definitions",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Term",
+              "Meaning"
+            ],
+            "rows": [
+              [
+                "First aid",
+                "Treatment to preserve life and minimise the consequences of injury or illness until help from a doctor or nurse is obtained, and treatment of minor injuries that would otherwise need no medical treatment (regulation 2 of the Health and Safety (First-Aid) Regulations 1981)."
+              ],
+              [
+                "Emergency first aid",
+                "Our course for everyone who gives care or works on call: at least 6 hours face to face with a practical assessment, covering basic life support and the AED, anaphylaxis and auto-injectors, heart attack, stroke, seizures, asthma, low blood sugar, sepsis, bleeding and burns."
+              ],
+              [
+                "First aider",
+                "A member of office staff with a current First Aid at Work certificate, named on the branch first aid notice."
+              ],
+              [
+                "Appointed person",
+                "A named member of office staff who takes charge of first aid arrangements, including calling 999, when an unforeseen absence leaves no first aider at the office."
+              ],
+              [
+                "Emergency plan",
+                "The part of a person's care plan, based on health professional advice, setting out the signs of and response to an emergency linked to a known condition."
+              ],
+              [
+                "Blood-thinning medicine",
+                "Any anticoagulant or antiplatelet medicine, aspirin included (Falls Prevention and Response Procedure), shown in My care at a glance."
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Roles and responsibilities",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Directors and Nominated Individual",
+          "blocks": [
+            {
+              "p": "The Directors fund the kits, defibrillators, training and paid time this procedure requires. The Nominated Individual challenges any out-of-date needs assessment or gap in cover or training."
+            }
+          ]
+        },
+        {
+          "heading": "Registered Manager",
+          "blocks": [
+            {
+              "p": "As Health and Safety Lead, the Registered Manager (the Deputy Manager in their absence) keeps the branch first aid needs assessment, appoints the first aiders, appointed persons and mental health first aider, keeps the first aid notice current and reviews every incident log entry involving first aid or a 999 call."
+            }
+          ]
+        },
+        {
+          "heading": "Care Coordinators, Field Care Supervisors and Office staff",
+          "blocks": [
+            {
+              "p": "Care Coordinators allocate visits only to staff with in-date emergency first aid and basic life support training and brief workers on emergency plans. Field Care Supervisors check kits and emergency knowledge at spot checks and support staff afterwards. Office staff pass emergency calls at once to the Registered Manager or Deputy Manager, restock kits and keep the first aider rota."
+            }
+          ]
+        },
+        {
+          "heading": "On-call Manager",
+          "blocks": [
+            {
+              "p": "Out of hours the On-call Manager takes the office's and managers' calls and decisions in this procedure, makes sure an incident log entry exists, and hands over to the Registered Manager or Deputy Manager by 10am the next working day."
+            }
+          ]
+        },
+        {
+          "heading": "HR Manager",
+          "blocks": [
+            {
+              "p": "The HR Manager keeps the register of first aiders, appointed persons and mental health first aiders with their certificate dates in the training and compliance records, and tells each worker and the Care Coordinator 30 days before first aid training expires."
+            }
+          ]
+        },
+        {
+          "heading": "All staff",
+          "blocks": [
+            {
+              "p": "Everyone carries and checks their kit, keeps their training in date, gives first aid only within their training, records every emergency, and tells their manager about any health condition that could cause an emergency while working alone (Lone Working and Staff Personal Safety Policy)."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "First aid needs assessment and provision",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "The needs assessment",
+          "blocks": [
+            {
+              "p": "The Registered Manager keeps a written first aid needs assessment for each branch in the branch health and safety file, prepared with the representatives of employee safety and reviewed every 12 months with the general risk assessments, and within 7 days after an emergency that tested the arrangements, a change in services, premises or staff numbers, or new guidance. It covers lone, mobile and night working, poor phone signal, incident history, the most people at the office at once, first aiders' absence, staff health conditions, and the people we support and visitors (our policy; the law does not require it). A branch may add to the standing arrangements below but never reduce them."
+            },
+            {
+              "table": {
+                "columns": [
+                  "Where",
+                  "Our provision"
+                ],
+                "rows": [
+                  [
+                    "People's homes and travelling",
+                    "All care staff, Field Care Supervisors and On-call Managers hold emergency first aid and basic life support training, carry a personal first aid kit and a charged mobile phone, and are briefed on each person's emergency plan."
+                  ],
+                  [
+                    "Branch office",
+                    "At least two First Aid at Work first aiders per branch, rostered so that one is on site whenever the office is open; an appointed person named on the daily office rota covers only an unforeseen absence; a first aid box; an automated external defibrillator (AED); one trained mental health first aider."
+                  ],
+                  [
+                    "Office staff working at home",
+                    "A personal first aid kit, and the home working assessment confirms how they would call for help."
+                  ],
+                  [
+                    "Any vehicle we own or lease",
+                    "A travelling first aid kit, checked monthly by the Office staff member responsible for the vehicle."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Personal first aid kits",
+          "blocks": [
+            {
+              "p": "Each worker's kit is issued free at induction and contains at least: a first aid guidance leaflet; 10 individually wrapped hypoallergenic plasters; one medium and one large sterile dressing; two triangular bandages and two safety pins; a conforming bandage; a sterile eye pad; a burns dressing; six moist cleansing wipes; a roll of microporous tape; two pairs of nitrile gloves; a resuscitation face shield; a foil blanket; and clothing shears. No tablets or medicines are kept in any of our kits."
+            },
+            {
+              "p": "Agency workers get the same kit before their first visit. Workers check it at the start of each working week and after each use and phone the office for replacements, which reach them before their next shift."
+            }
+          ]
+        },
+        {
+          "heading": "Branch office equipment",
+          "blocks": [
+            {
+              "p": "Each office has a first aid box stocked to BS 8599-1 for the most people who may be present, near hand-washing facilities; the duty first aider checks it monthly against its contents list and restocks it within 1 working day of any use. The AED is in a signposted place by the entrance and registered on The Circuit, the national defibrillator network; the duty first aider checks its status indicator weekly and its pad and battery expiry dates monthly, and replaces pads after every use. Each check is recorded in the branch health and safety file."
+            }
+          ]
+        },
+        {
+          "heading": "Telling staff about the arrangements",
+          "blocks": [
+            {
+              "p": "Staff learn these arrangements at induction. A notice by each office entrance and first aid box names the first aiders, appointed persons and mental health first aider and shows where the box and AED are; the Registered Manager updates it within 5 working days of a change."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Medical emergencies during visits",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "What you do",
+          "blocks": [
+            {
+              "steps": [
+                "Check it is safe to approach (for example, appliance switched off, dog shut away); never put yourself in danger. If you cannot get in but can see or hear that the person needs help, call 999 at once and follow the No Reply, No Access and Missing Person Procedure.",
+                "Call 999 for any life-threatening emergency, or ask a family member present or your double-handed colleague to call while you give first aid. Use the speaker, or the person's landline if your mobile has no signal. Give the address and postcode, how to get in (you may give the key safe code; tell the office, which has it changed) and what has happened, and follow the call handler's instructions.",
+                "Give first aid within your training, using the table below and the person's emergency plan. Clean your hands and wear nitrile gloves; infection risk never delays CPR.",
+                "Check My care at a glance in CareFlow for the person's DNACPR, ReSPECT or advance decision status, allergies and medicines, and tell the call handler.",
+                "Phone the office, or the On-call Manager out of hours, as soon as you can do so without leaving the person in danger, and speak to a person. The office tells the person's named contact the same day, with the person's agreement where they can give it.",
+                "Stay with the person, keep them warm and reassured, and call 999 back at once if their condition gets worse, telling the call handler what has changed.",
+                "Record the emergency in the incident log, and your care in the daily visit notes, before your shift ends. Dressings and gloves follow the Waste Management in People's Homes Procedure, blood spills the Laundry, Soiled Linen and Spillages Procedure."
+              ]
+            },
+            {
+              "p": "Staff never drive a person we support to hospital in an emergency, and never give anyone a medicine from their own or another person's supply. Our policy on aspirin for chest pain: only where the call handler advises it, you may hand the person their own aspirin if My care at a glance shows no aspirin allergy and the call handler knows their other medicines; record it in the incident log and tell the crew."
+            },
+            {
+              "p": "The office or On-call Manager escalates every 999 emergency under the Incident Reporting, Investigation and Learning Policy and the RIDDOR Reporting Procedure; the Registered Manager decides on CQC notification (Statutory Notifications to CQC Procedure)."
+            }
+          ]
+        },
+        {
+          "heading": "Recognising and responding to common emergencies",
+          "blocks": [
+            {
+              "table": {
+                "columns": [
+                  "Emergency",
+                  "Signs",
+                  "What you do"
+                ],
+                "rows": [
+                  [
+                    "Cardiac arrest",
+                    "Unresponsive and not breathing normally, including slow gasping breaths or brief fit-like movements",
+                    "Call 999 and start CPR as set out in the next subsection."
+                  ],
+                  [
+                    "Unresponsive but breathing normally",
+                    "No response to voice or touch",
+                    "Call 999. Put them in the recovery position unless a fall or injury means they should not be moved, and keep checking their breathing."
+                  ],
+                  [
+                    "Choking",
+                    "Cannot cough, speak or breathe",
+                    "Under the Nutrition and Hydration Policy: anyone else present calls 999 at once; up to 5 back blows, then up to 5 abdominal thrusts (never in pregnancy: keep giving back blows), repeated; 999 if it does not clear, always after abdominal thrusts, and if a cough, pain or difficulty swallowing remains."
+                  ],
+                  [
+                    "Heart attack",
+                    "Chest pain or tightness that may spread to the arm, neck or jaw; breathlessness, sweating, sickness, pale or grey skin",
+                    "Call 999. Help the person sit with their back supported. Help them use their own GTN spray where the care plan allows, and follow the aspirin rule above."
+                  ],
+                  [
+                    "Stroke",
+                    "Face drooping, arm weakness, slurred speech or confusion, even if the signs pass",
+                    "Call 999 and note the time the signs were first seen. Give nothing to eat or drink."
+                  ],
+                  [
+                    "Severe allergic reaction (anaphylaxis)",
+                    "Swelling of the lips, tongue or throat, difficulty breathing or swallowing, wheeze, faintness, often with a rash",
+                    "Call 999. Lie the person down, or sit them with legs out if breathing is difficult. Give their own adrenaline auto-injector into the outer thigh, even if no emergency plan is recorded yet; give a second dose after 5 minutes if there is no improvement and a second device. Hand used devices to the crew."
+                  ],
+                  [
+                    "Seizure",
+                    "Jerking, stiffness or loss of awareness",
+                    "Move the person only if in danger, cushion their head, never restrain them or put anything in their mouth, and time it; recovery position when it stops. Call 999 for a first seizure, one lasting longer than usual (or over 5 minutes if their usual is unknown), no recovery between seizures, injury, breathing difficulty, or where the emergency plan says so."
+                  ],
+                  [
+                    "Low blood sugar in a person with diabetes",
+                    "Shaking, sweating, confusion, unusual behaviour, drowsiness",
+                    "If awake and able to swallow, give the sugary food or drink named in the emergency plan and recheck after 15 minutes, repeating once if needed. Call 999 if the person is unresponsive, cannot swallow or is not improving after the second treatment."
+                  ],
+                  [
+                    "Sudden confusion or possible sepsis",
+                    "Confusion that comes on suddenly (possible sepsis or delirium); very fast breathing; slurred speech; blue, pale or blotchy skin, lips or tongue (on black or brown skin check the palms and soles); very hot or cold or shivery; a rash that does not fade when pressed",
+                    "Call 999 (low blood sugar in a person with diabetes: row above)."
+                  ],
+                  [
+                    "Severe bleeding",
+                    "Blood flowing or spurting, or soaking through a dressing",
+                    "Call 999. Press firmly on the wound with a dressing and keep pressing; add another dressing on top if blood soaks through. Do not remove anything stuck in the wound."
+                  ],
+                  [
+                    "Burn or scald",
+                    "Red, blistered or broken skin after heat, chemicals or electricity",
+                    "Cool under cool running water for 20 minutes, remove jewellery and clothing near the burn unless stuck, then cover loosely with cling film or the burns dressing; no creams. Call 999 for a large or deep burn, one to the face, genitals or bottom, or a chemical or electrical burn."
+                  ],
+                  [
+                    "Head injury or suspected fracture",
+                    "After a fall or blow",
+                    "Do not move the person or lift them by hand. Our policy: 999 for any sign the Falls Prevention and Response Procedure lists, including a head injury with loss of consciousness, drowsiness, confusion, vomiting, a fit or new problems with sight, speech or balance; any possible head injury in a person taking blood-thinning medicine; or a possible broken bone."
+                  ],
+                  [
+                    "Mental health crisis, self-harm or overdose",
+                    "Threats or attempts to harm themselves, a serious injury, or more of a medicine taken than the pack or eMAR allows",
+                    "Call 999 for any possible overdose, whoever gave the medicine, or serious self-harm, or if the person's life is otherwise at risk. Give no more medicine, stay with them and keep any packaging. Otherwise phone the office, which follows the person's crisis plan or uses the NHS 111 mental health option."
+                  ],
+                  [
+                    "Animal bite or scratch",
+                    "Broken skin after contact with a pet or other animal",
+                    "Wash with soap and warm water, gently squeeze to make it bleed slightly unless it is already bleeding, dry and cover it. Call 999 if it is large or deep or the bleeding will not stop. After a bat bite or scratch, call NHS 111 straight away. Otherwise phone the office, which arranges NHS 111 advice the same day."
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "heading": "Resuscitation",
+          "blocks": [
+            {
+              "p": "Call 999 for anyone who is unresponsive, checking their breathing and My care at a glance while you wait for an answer. Withhold CPR only where My care at a glance records a DNACPR decision or ReSPECT recommendation against CPR and you find the form, or the copy the care plan names, in the home: tell the call handler and give the form to the crew. But where the person stopped breathing normally straight after choking or a severe allergic reaction, start CPR, tell the call handler about the form and keep going unless they tell you to stop (DNACPR and ReSPECT Protocol). If there is no record, it is unclear, the form is not yet recorded in My care at a glance or you cannot find it straight away, start CPR and tell the call handler what the record says; the call handler and then the crew decide whether CPR continues. If the person has obviously been dead for some time, or an advance decision refuses resuscitation but there is no DNACPR form, tell the call handler and follow their instructions. A DNACPR decision covers only CPR: all other first aid and care continue."
+            },
+            {
+              "bullets": [
+                "Push hard and fast in the centre of the chest, 5 to 6 cm deep, 100 to 120 times a minute, letting the chest rise fully each time.",
+                "If you are trained and willing, give 2 rescue breaths through the face shield after every 30 compressions; otherwise, or without a face shield, give continuous compressions.",
+                "Start CPR where the person lies. Never move them from a bed to the floor: compress more deeply to make up for a soft mattress, and on a powered air mattress use its CPR release if it has one.",
+                "If anyone else is present, send them for the AED the call handler directs you to; never leave the person yourself. Follow the AED's voice prompts.",
+                "Carry on until the crew take over, the person starts breathing normally or you are too exhausted to continue."
+              ]
+            },
+            {
+              "p": "Where My care at a glance records that a person's death is expected and a DNACPR decision or ReSPECT recommendation against CPR is in place, the care worker has found the form, or the copy the care plan names, in the home, and the person appears to have died, the care worker phones the community nursing team or GP named in the care plan (NHS 111 when closed) and the office instead of 999, under the End of Life Care Policy; anything unexpected, such as an injury, or any doubt that the person has died means a 999 call. After any death or serious injury, staff do only what safety, care and dignity need and leave the scene, equipment and medicines as they are until a manager or the police say otherwise (Incident Reporting, Investigation and Learning Policy)."
+            }
+          ]
+        },
+        {
+          "heading": "Emergency plans and emergency medicines",
+          "blocks": [
+            {
+              "p": "Where an assessment or review shows a condition with a known emergency, such as epilepsy, severe allergy, diabetes treated with medicines that can cause low blood sugar, asthma or angina, the assessor records an emergency plan in the care plan before the first visit, using any existing professional plan; at a short-notice start, the condition and any existing plan go in the initial care plan before the assessor leaves the first visit. Without a professional plan, the Care Coordinator asks the GP or specialist nurse in writing within 2 working days, and until advice arrives staff call 999 for any emergency linked to that condition. The Care Coordinator phone-briefs every allocated worker before their first visit."
+            },
+            {
+              "p": "Staff help a person use their own reliever inhaler or GTN spray only where the care plan allows. Rescue medicines such as buccal midazolam are given only by workers signed off for that person as a delegated task; anyone else calls 999. Every care worker is trained to use the person's own adrenaline auto-injector, which regulation 238 of and Schedule 19 to the Human Medicines Regulations 2012 allow anyone to give to save life, and is shown its make before their first visit."
+            }
+          ]
+        },
+        {
+          "heading": "Waiting for the ambulance and handing over",
+          "blocks": [
+            {
+              "p": "A worker stays with a person awaiting an emergency ambulance until the crew arrive or another of our staff takes over, staying checked in on CareFlow; waiting time is paid working time. The office, or the On-call Manager out of hours, reallocates the worker's later visits at once."
+            },
+            {
+              "p": "Where the ambulance service warns of a long wait, the Registered Manager or Deputy Manager (the On-call Manager out of hours) may agree that the worker leaves only when all of these apply, and records the decision and reasons in the incident log entry:"
+            },
+            {
+              "bullets": [
+                "the ambulance service has confirmed that the person can safely be left;",
+                "the person has capacity and agrees, or a family member or other responsible adult who agrees is with them; a person on the floor is never left without such an adult;",
+                "the person can call for help, with a phone or alarm pendant within reach, and the crew can get in;",
+                "the office phones the person at least every 30 minutes until the crew arrive and sends a member of staff back at once if there is no answer or the person is worse."
+              ]
+            },
+            {
+              "p": "After calling 999 the worker gives no further medicine unless the call handler or crew asks. They tell the crew what happened and when, the first aid given, allergies, last doses and communication needs, and hand over the home copy of My care at a glance, any DNACPR or ReSPECT form, the hospital passport, glasses, hearing aids and dentures, and the person's medicines in their pharmacy-labelled packs unless the crew declines them (Medicines Changes, Transfers of Care and Hospital Discharge Procedure). A worker goes in the ambulance only where the Registered Manager, Deputy Manager or On-call Manager agrees that the person needs familiar support, no relative can go and the worker's visits are covered. Before leaving an empty home the worker switches off the cooker and heaters, closes windows, locks up under the Key Holding, Key Safes and Access to People's Homes Procedure, and phones the office, mentioning any pets."
+            }
+          ]
+        },
+        {
+          "heading": "Urgent problems that are not emergencies, and declined help",
+          "blocks": [
+            {
+              "p": "For an injury or illness that needs advice but is not life-threatening, the worker gives first aid and phones the office before leaving; the Care Coordinator (On-call Manager out of hours) contacts the GP the same day, or NHS 111 when the practice is closed, and records the advice in the incident log entry."
+            },
+            {
+              "p": "A person with capacity may refuse first aid, an ambulance or hospital. In a life-threatening emergency the worker still calls 999, tells the call handler the person is refusing, respects the refusal of treatment, stays and phones the office; the Care Coordinator tells the GP the same day. Where the person's capacity is in doubt in an emergency, staff act in their best interests and call 999."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "First aid for staff and others",
+      "blocks": [],
+      "subsections": [
+        {
+          "heading": "Staff injured or taken ill at work",
+          "blocks": [
+            {
+              "p": "A worker who is hurt or unwell gives themselves first aid, calls 999 if needed and phones the office or On-call Manager, who reallocates their visits. A worker must not drive if injury, illness or shock makes it unsafe; we pay for a taxi to hospital, an urgent treatment centre or home. Needlestick injuries and human bites, scratches and splashes follow the Sharps Safety and Needlestick Injury Procedure, animal bites the table above, and assaults the Violence and Aggression Towards Staff Policy. The injury goes in the incident log before the end of the shift, by the office during the call if the worker cannot, and the RIDDOR Reporting Procedure then applies."
+            }
+          ]
+        },
+        {
+          "heading": "At the branch office and in the community",
+          "blocks": [
+            {
+              "p": "When anyone at the office, including a visitor, is injured or taken ill, the duty first aider gives first aid while another member of staff calls 999 where needed, brings the AED and meets the crew. The mental health first aider supports colleagues in distress and directs them to the employee assistance programme, their GP or NHS 111; anyone at immediate risk of harming themselves is never left alone and 999 is called."
+            },
+            {
+              "p": "Staff who meet an emergency in the community while working may help within their training if it is safe, and phone the office, which covers their visits and logs it."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "heading": "Records",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "Record",
+              "Where it is kept"
+            ],
+            "rows": [
+              [
+                "First aid and every 999 call: what happened, call and arrival times, first aid, CPR and AED use, the DNACPR check, any decision that the worker could leave, who was told, the outcome",
+                "The incident log (our accident book), with injuries on the body map; care given in the daily visit notes"
+              ],
+              [
+                "Kit checks and emergency questions at spot checks",
+                "Supervision and appraisal records"
+              ]
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "heading": "Training and competence",
+      "blocks": [
+        {
+          "p": "The Registered Manager approves first aid training providers against HSE guidance under the Training and Development Policy."
+        },
+        {
+          "table": {
+            "columns": [
+              "Training",
+              "Who",
+              "When",
+              "Refresher"
+            ],
+            "rows": [
+              [
+                "Emergency first aid, including basic life support",
+                "Care staff, Field Care Supervisors and On-call Managers",
+                "Before working alone or the first on-call shift",
+                "Full course every 3 years; basic life support practical every 12 months, covering CPR, the AED, the recovery position, choking, the adrenaline auto-injector, a DNACPR and ReSPECT scenario and handing over to the crew"
+              ],
+              [
+                "First Aid at Work (3 days)",
+                "Office first aiders",
+                "Before appointment",
+                "Requalification every 3 years; half-day refresher every 12 months"
+              ],
+              [
+                "Emergency first aid",
+                "Appointed persons",
+                "Before appointment",
+                "Every 3 years"
+              ],
+              [
+                "Mental health first aid (2 days)",
+                "One member of staff per branch",
+                "Before appointment",
+                "Every 3 years"
+              ],
+              [
+                "The person's emergency plan and any rescue medicine",
+                "Every allocated worker; rescue medicine only named, signed-off workers",
+                "Before the first visit",
+                "When the plan changes; delegated tasks at least every 12 months"
+              ],
+              [
+                "Handling emergency calls, arranging cover and the waiting decisions in this procedure, and calls on DNACPR or ReSPECT recommendations in place, missing or disputed; end of life symptoms, expected and unexpected deaths and the steps after a death; fires; hospital admissions; animals; key safe codes",
+                "Office staff, Care Coordinators and On-call Managers",
+                "Before taking calls alone or the first on-call shift",
+                "Every 12 months"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "A worker whose emergency first aid or basic life support training has expired is not allocated visits until it is renewed, and a first aider whose certificate has expired comes off the notice and rota. At every spot check the Field Care Supervisor asks the worker where the person's DNACPR or ReSPECT status is recorded and what they would do in that person's emergency; a worker who cannot answer is briefed before their next visit to that person. After a resuscitation attempt, a death or another distressing emergency, the Field Care Supervisor contacts the worker within 1 working day and offers a debrief within 3 working days and the employee assistance programme."
+        }
+      ]
+    },
+    {
+      "heading": "Monitoring and review",
+      "blocks": [
+        {
+          "table": {
+            "columns": [
+              "What is checked",
+              "How often",
+              "By whom",
+              "Reported to"
+            ],
+            "rows": [
+              [
+                "Personal first aid kits complete and in date, target 100%",
+                "Every spot check",
+                "Field Care Supervisor",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Office box, AED and vehicle kit checks recorded; a first aider on site whenever the office was open, target 100%",
+                "Monthly records check; quarterly office inspection",
+                "Deputy Manager",
+                "Health and Safety Meeting"
+              ],
+              [
+                "Every incident log entry with first aid or a 999 call, including every CPR attempt and decision to leave a person awaiting an ambulance: response, DNACPR check and record complete",
+                "At the initial review, then all checked monthly",
+                "Registered Manager or Deputy Manager",
+                "Monthly health and safety indicators"
+              ],
+              [
+                "People with a condition that has a known emergency who have an emergency plan, target 100%",
+                "Monthly care records audit",
+                "Deputy Manager",
+                "Monthly Quality and Governance Meeting"
+              ],
+              [
+                "Emergency first aid and basic life support training in date, target 100%; first aider certificates in date",
+                "Monthly",
+                "HR Manager",
+                "Registered Manager and Health and Safety Meeting"
+              ],
+              [
+                "Emergencies, 999 calls, ambulance waits of more than 1 hour, outcomes and trends",
+                "Quarterly",
+                "Registered Manager",
+                "Health and Safety Meeting and Directors"
+              ]
+            ]
+          }
+        },
+        {
+          "p": "Shortfalls go into the service improvement plan with an owner and deadline. This procedure is reviewed every 12 months by the Registered Manager and approved by the Directors under the Policy Management and Document Control Policy, and sooner after a change in law or national guidance, a serious incident, an inspection finding or a monitoring shortfall."
+        }
+      ]
+    }
+  ]
+}

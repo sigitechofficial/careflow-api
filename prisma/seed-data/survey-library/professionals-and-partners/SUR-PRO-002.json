@@ -1,0 +1,400 @@
+{
+  "reference": "SUR-PRO-002",
+  "revision": 1,
+  "title": "Feedback from commissioners",
+  "audience": "PUBLIC",
+  "audienceGroup": "COMMISSIONERS",
+  "respondents": "Local authority and NHS integrated care board commissioners, contract managers, quality assurance and monitoring officers, brokerage and continuing healthcare teams who managed a package with us in the last 12 months",
+  "summary": "A short yearly survey for commissioners: whether we deliver what you commission, reply to referrals and tell you about problems in good time, how well we communicate, follow advice, share information, work in partnership and handle safeguarding, complaints and people's communication needs, and how confident you are in our staffing. About 7 minutes.",
+  "purpose": "Commissioners already hold our numbers through contract monitoring; this survey asks for their judgement of our reliability, openness and partnership, which their indicators do not capture, and prepares us for contract review. It uses the same four themes as every professionals' survey (communicate, follow advice, share information, work in partnership) and the shared overall rating, so the commissioners' view joins the yearly professionals' result under the Compliments, Feedback and Involvement Procedure. The Registered Manager and Nominated Individual, the main contacts with commissioners on governance, review every response.",
+  "timing": {
+    "when": "Once a year on the first working day of February with the professionals' survey, open 4 weeks; or, at the Registered Manager's request, 6 to 8 weeks before a commissioner's annual contract review that falls outside February to April",
+    "recurrence": "YEARLY",
+    "trigger": "A contract review outside February to April (optional one-off copy instead of February)"
+  },
+  "anonymous": false,
+  "channels": ["ONLINE"],
+  "estimatedMinutes": 7,
+  "cqc": {
+    "keyQuestions": ["WELL_LED", "RESPONSIVE", "SAFE"],
+    "qualityStatements": [
+      "Partnerships and communities",
+      "Governance, management and sustainability",
+      "Care provision, integration and continuity",
+      "Listening to and involving people",
+      "Providing information",
+      "Safeguarding"
+    ]
+  },
+  "introduction": "{{organisation}} would like your view, as a commissioner, of how we deliver the care you fund and how we work with you. It takes about 7 minutes. Taking part is up to you. We have attached our latest performance summary, so we do not ask for figures you already receive. Please do not name anyone we support. If you write the reference number from our email, we can follow up your answers with you.\n\nThis survey is not for urgent concerns. If you are worried about someone's safety, or need us now, phone our office (out of hours, our on-call number). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to improve our service and how we work with commissioners. Our legal reason is our legitimate interest in running a good, safe service.\n\nThis survey is not anonymous. We work with only a few commissioners, so we may know which organisation answered, and if you write the reference number or give your details, your answers are linked to you. They are read by our Registered Manager, Nominated Individual and Deputy Manager. Any report we publish shows combined results only, for groups of 5 or more; with fewer answers, we use your feedback by name in our internal governance report and at your contract meetings. If you tell us someone may be at risk of harm, we will tell our safeguarding lead.\n\nWe keep your answers for 3 years after the survey closes, under our Records Management and Retention Policy. You can ask to see, correct or delete your information, or object to our using it, by contacting our office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "About you",
+      "questions": [
+        {
+          "id": "q-commission-for",
+          "text": "Who do you commission for?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["A local council", "An NHS integrated care board", "Both"],
+          "otherOption": {
+            "label": "Other (please tell us)",
+            "textPrompt": "Please tell us",
+            "textRequired": true
+          }
+        },
+        {
+          "id": "q-commissioner-role",
+          "text": "Which best describes your role?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "options": ["Commissioner or contract manager", "Quality assurance or monitoring officer", "Brokerage or placements", "Continuing healthcare"],
+          "otherOption": { "label": "Other (please tell us)", "textPrompt": "Please tell us your role", "textRequired": true }
+        }
+      ]
+    },
+    {
+      "title": "Delivering what you commission",
+      "questions": [
+        {
+          "id": "q-deliver-agreed",
+          "text": "Do we deliver the care you commission, as agreed?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, visits at the agreed times and for the agreed length. Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        },
+        {
+          "id": "q-referral-reply",
+          "text": "When you send us a referral, do we reply in good time?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "We aim to reply by the end of the next working day, and the same working day for hospital discharges and urgent referrals. Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Responsive: Care provision, integration and continuity"
+        },
+        {
+          "id": "q-tell-problems",
+          "text": "Do we tell you promptly about problems, such as staffing pressures or serious incidents?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Always", "Usually", "Sometimes", "Rarely", "Never", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us what happened. Please do not name anyone we support.",
+            "showWhen": ["Rarely", "Never"]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        }
+      ]
+    },
+    {
+      "title": "How we work with you",
+      "questions": [
+        {
+          "id": "pro-communicate",
+          "text": "How well do we communicate with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, replies to your queries and contract meetings. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        },
+        {
+          "id": "pro-follow-advice",
+          "text": "How well do we follow the advice you give us?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, actions agreed after contract monitoring or quality visits. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "pro-share-info",
+          "text": "How well do we share information with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, whether our reports and returns are accurate and on time. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "pro-partnership",
+          "text": "How well do we work in partnership with you?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, helping with hospital discharge, reablement and other local priorities. Choose Don't know if you have not worked with us enough to say.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        },
+        {
+          "id": "q-safeguarding-handling",
+          "text": "How well do we deal with safeguarding concerns about people you fund?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Safe: Safeguarding"
+        },
+        {
+          "id": "q-complaints-handling",
+          "text": "How well do we deal with complaints about the care you fund?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "Please tell us more. Please do not name anyone we support.",
+            "showWhen": ["Poor", "Very poor"]
+          },
+          "evidence": "Responsive: Listening to and involving people"
+        },
+        {
+          "id": "q-communication-needs",
+          "text": "How well do we meet people's communication needs, such as easy read or interpreters?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose Don't know if you have not seen this.",
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": { "prompt": "Please tell us more. Please do not name anyone we support.", "showWhen": ["Poor", "Very poor"] },
+          "evidence": "Responsive: Providing information"
+        }
+      ]
+    },
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-staffing-confidence",
+          "text": "How confident are you that we have enough staff to deliver what we have agreed?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very confident", "Fairly confident", "Not very confident", "Not at all confident", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What makes you less confident?",
+            "showWhen": ["Not very confident", "Not at all confident"]
+          },
+          "evidence": "Well-led: Governance, management and sustainability"
+        },
+        {
+          "id": "pro-overall",
+          "text": "Overall, how would you rate us as a care provider to work with?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"],
+          "notCountedOptions": ["Don't know"],
+          "comment": {
+            "prompt": "What is the main reason for your rating?",
+            "showWhen": ["Very good", "Good", "Neither good nor poor", "Poor", "Very poor", "Don't know"]
+          },
+          "evidence": "Well-led: Partnerships and communities"
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What should we improve before our next contract review?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Please do not name anyone we support."
+        },
+        {
+          "text": "What do we do well that you would like us to keep doing?",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "We will only quote you with your permission."
+        },
+        {
+          "id": "q-reference",
+          "text": "Please write the reference number from our email, so we know which organisation answered.",
+          "type": "TEXT",
+          "required": false,
+          "helpText": "If you leave it blank, we will still act on what you tell us, but we cannot reply to you."
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, our Registered Manager or Deputy Manager will contact you within 5 working days, through your organisation's main number. We can only do this if you give your details below."
+        },
+        {
+          "id": "q-contact-details",
+          "text": "Your name, organisation and a work phone number or email.",
+          "type": "TEXT",
+          "required": false,
+          "showIf": {
+            "question": "q-contact",
+            "answers": ["Yes"]
+          }
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "The Deputy Manager runs it under the Compliments, Feedback and Involvement Procedure. CareFlow cannot yet send a survey to named people outside the organisation, so this is a public form: each year publish a new copy of this template on the first working day of February with an end date 4 weeks later, and email the link to every commissioner, contract or quality officer who managed a package with us in the last 12 months, from the funding records and partner contacts, each with their own reference number. Keep the list of reference numbers with the invitations, because a public form cannot tell us who answered.",
+      "Where the Registered Manager asks, send a commissioner a one-off copy 6 to 8 weeks before an annual contract review that falls outside February to April, instead of the February copy; each commissioner is asked once a year either way, and anyone sent the professionals' survey (SUR-PRO-001) that year is left out. Attach our latest performance summary and never ask for figures the commissioner already receives. CareFlow cannot send reminders for a public form: email one reminder after 2 weeks to those who have not given a reference number in an answer.",
+      "Who may open individual answers: the Registered Manager, the Nominated Individual and the Deputy Manager. This is set in Who can see the answers: individual responses are limited to the Registered Manager, the Nominated Individual and the Deputy Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them."
+    ],
+    "actingOnResults": [
+      "The Registered Manager reads each response the working day it arrives and acts under the alerts below. Phone commissioners back only through their organisation's main number, found independently (Confidentiality and Information Sharing Policy). Contract or fee disputes are handled under the contract with that commissioner, not the complaints procedure (Complaints Policy and Procedure).",
+      "Commissioners are few: with fewer than 5 responses, publish no scores. Use the answers in the governance report as named partner feedback, and take each to that commissioner's next contract meeting with the actions taken. With 5 or more, positive means Always or Usually, Very good or Good, or Very or Fairly confident, leaving out Don't know. The four shared items and the overall rating are also pooled with the other professionals' surveys (SUR-PRO-001, 004 and 005) as the yearly professionals' result.",
+      "Actions go into the service improvement plan within 5 working days; an action from a commissioner's finding is closed only after a re-audit within 3 months shows it worked (Governance and Quality Assurance Policy). Results and actions go to every commissioner asked within 3 months of closing, as a short letter of actions. Keep answers for 3 years after the survey closes, under the Records Management and Retention Policy."
+    ],
+    "alerts": [
+      {
+        "when": "A comment that is, or says it is, a formal quality concern, suspension of new work, or a default or termination notice.",
+        "action": "The Registered Manager tells the Nominated Individual the same day (Governance and Quality Assurance Policy, immediate escalation) and handles it as commissioner quality monitoring under the Inspection Readiness and Working with Regulators Guideline."
+      },
+      {
+        "when": "A comment raising a safeguarding concern about a person.",
+        "action": "Tell the safeguarding lead the same working day; the lead decides within 1 hour and refers the same working day where needed (Safeguarding Concerns: Reporting, Referral and Enquiry Procedure)."
+      },
+      {
+        "when": "A comment about a specific person's care that shows dissatisfaction.",
+        "action": "Record it as a complaint the same working day, grade it within 1 working day and acknowledge it within 3 working days (Complaints Policy and Procedure); a contract or fee dispute goes under the contract instead."
+      },
+      {
+        "when": "Delivery, referral replies or telling you about problems answered Rarely or Never; communicate, follow advice, share information, partnership, safeguarding, complaints, communication needs or overall answered Poor or Very poor; or staffing confidence Not very or Not at all confident.",
+        "action": "The Registered Manager contacts the commissioner within 5 working days, where they can be identified, and adds an action to the service improvement plan within 5 working days (Compliments, Feedback and Involvement Procedure).",
+        "rule": {
+          "task": "Commissioner concern: contact and add action",
+          "if": [
+            {
+              "question": "q-deliver-agreed",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-referral-reply",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "q-tell-problems",
+              "answers": ["Rarely", "Never"]
+            },
+            {
+              "question": "pro-communicate",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-follow-advice",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-share-info",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "pro-partnership",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "q-safeguarding-handling",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "q-complaints-handling",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "q-communication-needs",
+              "answers": ["Poor", "Very poor"]
+            },
+            {
+              "question": "q-staffing-confidence",
+              "answers": ["Not very confident", "Not at all confident"]
+            },
+            {
+              "question": "pro-overall",
+              "answers": ["Poor", "Very poor"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5
+        }
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "The Registered Manager or Nominated Individual contacts them within 5 working days, through their organisation's main number.",
+        "rule": {
+          "task": "Commissioner asked to be contacted",
+          "if": [
+            {
+              "question": "q-contact",
+              "answers": ["Yes"]
+            }
+          ],
+          "owner": "REGISTERED_MANAGER",
+          "dueWorkingDays": 5,
+          "contactRequest": true
+        }
+      }
+    ]
+  },
+  "access": {"responses": ["REGISTERED_MANAGER", "NOMINATED_INDIVIDUAL", "DEPUTY_MANAGER"], "results": ["REGISTERED_MANAGER", "NOMINATED_INDIVIDUAL", "DEPUTY_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-GOV-006",
+    "POL-GOV-002",
+    "POL-GOV-005",
+    "POL-GOV-023",
+    "POL-CD-002",
+    "POL-GOV-016",
+    "POL-SG-002",
+    "POL-GOV-013",
+    "POL-GOV-017"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback from relevant persons and other persons on the services provided",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "Care Act 2014, section 5: local authorities must promote a diverse, high-quality market of care and support services, which is the basis for their contract and quality monitoring of providers",
+      "url": "https://www.legislation.gov.uk/ukpga/2014/23/section/5"
+    }
+  ]
+}

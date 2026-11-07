@@ -1,0 +1,466 @@
+{
+  "reference": "SUR-PWS-007",
+  "revision": 1,
+  "title": "Coming home from hospital",
+  "audience": "SERVICE_USER",
+  "audienceGroup": "HOME_FROM_HOSPITAL",
+  "respondents": "People whose care started or restarted after a hospital stay of one night or more, and people at the end of reablement; a family member may help or answer for someone who cannot give their views",
+  "summary": "A call 10 to 14 days after someone comes home from hospital: whether care was ready, the first visit, whether care workers knew what had changed, equipment, medicines, knowing who to call, feeling safe at home and getting back to doing things. Named, about 9 minutes.",
+  "purpose": "An independent check, from the person's side, of how the return home from hospital went, under the Hospital Admission and Discharge Procedure. It asks whether our care was ready, whether the first visit came when expected, whether we asked what the person wanted, whether care workers knew about changes, whether equipment was in place, whether there were medicines problems, whether the person knew who to call, how safe they have felt at home, whether they are doing more for themselves and, after reablement, whether we helped them work towards their goals. It catches problems that need same-day action. Combined results by hospital feed the Registered Manager's quarterly report on discharge problems, our letters to hospital discharge teams and the conversation with partners in the professionals' survey. It evidences Regulation 12(2)(i) (working with others to make sure care is safe when people move between services), Regulation 12(2)(g) (safe management of medicines) and Regulation 17(2)(e) (seeking and acting on feedback), and the CQC quality statements on safe systems, pathways and transitions and on how staff, teams and services work together.",
+  "timing": {
+    "when": "10 to 14 days after the person comes home from a hospital stay of one night or more, or at the end of reablement; asked by office staff, not the hospital contact who planned the restart",
+    "recurrence": null,
+    "trigger": "Coming home from a hospital stay of one night or more, or the end of reablement",
+    "contactRule": {"holdBack": false, "countsAsContact": true, "reason": "Event survey after a hospital stay: event surveys come first, so it goes on time."}
+  },
+  "anonymous": false,
+  "channels": [
+    "TELEPHONE",
+    "IN_PERSON",
+    "PAPER"
+  ],
+  "estimatedMinutes": 9,
+  "cqc": {
+    "keyQuestions": [
+      "SAFE",
+      "EFFECTIVE",
+      "RESPONSIVE"
+    ],
+    "qualityStatements": [
+      "Safe systems, pathways and transitions",
+      "Medicines optimisation",
+      "How staff, teams and services work together",
+      "Monitoring and improving outcomes",
+      "Person-centred care",
+      "Providing information"
+    ]
+  },
+  "introduction": "{{organisation}} would like to know how things went when you came home from hospital, so we can put right anything that is not working and do better for others. It takes about 9 minutes, and we can stop and call back if you are tired.\n\nTaking part is up to you, and what you say will not affect your care. Your answers are linked to your name so we can act on anything that is not right. Your care workers (carers) will not see them.\n\nThis survey is not for urgent concerns. If you are worried about your safety or someone else's, or need help now, phone the office (out of hours, the on-call number in your care folder). In an emergency, call 999.",
+  "privacyNotice": "{{organisation}} uses your answers to put things right and to improve how we help people home from hospital. The law expects us to ask for feedback; our legal reason for using your answers is our legitimate interest in running a good, safe service. Health details stay confidential.\n\nYour answers are linked to your name. They are seen only by our Registered Manager, Deputy Manager, Care Coordinators and the office staff who follow them up, never by your care workers (carers). Reports, including to hospitals, show combined results only. If you tell us someone may be at risk of harm, we may tell the council to keep them safe.\n\nWe keep your answers for 3 years after this call, under our Records Management and Retention Policy. You can ask to see, correct or delete your answers, or object to our using them. To do this, or to complain about how we use your information, contact the office or our Data Protection Officer (details on our website). You can also complain to the Information Commission.",
+  "sections": [
+    {
+      "title": "Overall",
+      "questions": [
+        {
+          "id": "q-overall",
+          "text": "Overall, how was your experience of our service?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Please think about your care since you came home from hospital. Choose \"Don't know\" if you are not sure.",
+          "options": [
+            "Very good",
+            "Good",
+            "Neither good nor poor",
+            "Poor",
+            "Very poor",
+            "Don't know"
+          ],
+          "notCountedOptions": [
+            "Don't know"
+          ],
+          "comment": {
+            "prompt": "Please tell us why you gave this answer."
+          }
+        }
+      ]
+    },
+    {
+      "title": "Coming home",
+      "questions": [
+        {
+          "id": "q-ready",
+          "text": "When you got home, was our care ready to start?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Yes",
+            "No",
+            "Don't know"
+          ],
+          "notCountedOptions": [
+            "Don't know"
+          ],
+          "evidence": "Safe: Safe systems, pathways and transitions",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": [
+              "No"
+            ]
+          }
+        },
+        {
+          "id": "q-first-visit",
+          "text": "Was your first visit from us at the time you expected?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Yes",
+            "No, it was late",
+            "No, it was early",
+            "It did not happen",
+            "Don't know"
+          ],
+          "notCountedOptions": [
+            "Don't know"
+          ],
+          "evidence": "Safe: Safe systems, pathways and transitions",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": [
+              "No, it was late",
+              "No, it was early",
+              "It did not happen"
+            ]
+          }
+        },
+        {
+          "id": "q-asked-wanted",
+          "text": "After your hospital stay, did we ask what you wanted from your care?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Yes",
+            "Partly",
+            "No",
+            "Don't know"
+          ],
+          "notCountedOptions": [
+            "Don't know"
+          ],
+          "evidence": "Responsive: Person-centred care",
+          "comment": {
+            "prompt": "What would you have liked us to ask?",
+            "showWhen": [
+              "Partly",
+              "No"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "title": "What had changed",
+      "questions": [
+        {
+          "id": "q-knew-changes",
+          "text": "Did your care workers know about the changes since your hospital stay?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, changes to how you move, your medicines or the help you need.",
+          "options": [
+            "Yes",
+            "Partly",
+            "No",
+            "Nothing had changed",
+            "Don't know"
+          ],
+          "notCountedOptions": [
+            "Nothing had changed",
+            "Don't know"
+          ],
+          "evidence": "Safe: Safe systems, pathways and transitions",
+          "comment": {
+            "prompt": "What did they not know?",
+            "showWhen": [
+              "Partly",
+              "No"
+            ]
+          }
+        },
+        {
+          "id": "q-equipment",
+          "text": "Did you have the equipment you needed when you got home?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, a walking frame, a commode, a hoist or a hospital bed.",
+          "options": [
+            "Yes",
+            "No",
+            "I did not need any new equipment",
+            "Don't know"
+          ],
+          "notCountedOptions": [
+            "I did not need any new equipment",
+            "Don't know"
+          ],
+          "evidence": "Safe: Safe systems, pathways and transitions",
+          "comment": {
+            "prompt": "What was missing?",
+            "showWhen": [
+              "No"
+            ]
+          }
+        },
+        {
+          "id": "q-medicines",
+          "text": "Since you came home, have you had any problems with your medicines?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, a medicine missing, not given, or different from what the hospital said. If you are worried about a medicine today, please phone the office now.",
+          "options": [
+            "Yes",
+            "No",
+            "Don't know"
+          ],
+          "notCountedOptions": [
+            "Don't know"
+          ],
+          "evidence": "Safe: Medicines optimisation",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": [
+              "Yes"
+            ]
+          }
+        },
+        {
+          "id": "q-who-to-call",
+          "text": "When you came home, did you know who to contact if you needed help?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "For example, our office, the on-call number, your GP or a community nurse.",
+          "options": [
+            "Yes",
+            "No",
+            "Not sure"
+          ],
+          "evidence": "Responsive: Providing information",
+          "comment": {
+            "prompt": "Who would you have liked to be able to contact?",
+            "showWhen": [
+              "No",
+              "Not sure"
+            ]
+          }
+        },
+        {
+          "id": "q-work-with-health",
+          "text": "Did we work well with the hospital, nurses or therapists?",
+          "type": "SINGLE_SELECT",
+          "required": false,
+          "helpText": "Choose \"Don't know\" if you cannot say.",
+          "options": [
+            "Yes",
+            "Partly",
+            "No",
+            "Don't know"
+          ],
+          "notCountedOptions": [
+            "Don't know"
+          ],
+          "evidence": "Effective: How staff, teams and services work together",
+          "comment": {
+            "prompt": "Please tell us what happened.",
+            "showWhen": [
+              "Partly",
+              "No"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Since you came home",
+      "questions": [
+        {
+          "id": "q-safe-home",
+          "text": "Since you came home, how often have you felt safe at home?",
+          "type": "LIKERT",
+          "required": false,
+          "helpText": "If you do not feel safe, please phone the office now. Do not wait for this survey. In an emergency, call 999.",
+          "options": [
+            "Always",
+            "Usually",
+            "Sometimes",
+            "Rarely",
+            "Never"
+          ],
+          "evidence": "Safe: Safe systems, pathways and transitions",
+          "comment": {
+            "prompt": "Please tell us what makes you feel unsafe.",
+            "showWhen": [
+              "Sometimes",
+              "Rarely",
+              "Never"
+            ]
+          }
+        },
+        {
+          "id": "q-do-more",
+          "text": "Since you came home, are you able to do more for yourself?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "options": [
+            "Yes, a lot more",
+            "Yes, a little more",
+            "No change",
+            "I can do less",
+            "Don't know"
+          ],
+          "notCountedOptions": [
+            "Don't know"
+          ],
+          "evidence": "Effective: Monitoring and improving outcomes",
+          "comment": {
+            "prompt": "What have you found harder?",
+            "showWhen": [
+              "I can do less"
+            ]
+          }
+        },
+        {
+          "id": "q-reablement",
+          "text": "Did we help you work towards the goals you agreed at the start of your reablement?",
+          "type": "SINGLE_SELECT",
+          "required": true,
+          "helpText": "Reablement is short-term help to get back to doing things for yourself. Choose \"Does not apply to me\" if you did not have reablement.",
+          "options": [
+            "Yes",
+            "Partly",
+            "No",
+            "Does not apply to me",
+            "Don't know"
+          ],
+          "notCountedOptions": [
+            "Does not apply to me",
+            "Don't know"
+          ],
+          "evidence": "Effective: Monitoring and improving outcomes",
+          "comment": {
+            "prompt": "Which goal did we not help with?",
+            "showWhen": [
+              "Partly",
+              "No"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "title": "Anything else",
+      "questions": [
+        {
+          "text": "What could we have done better when you came home?",
+          "type": "TEXTAREA",
+          "required": false,
+          "helpText": "Tell us about our part. If something went wrong at the hospital, we can pass it on with your agreement.",
+          "evidence": "Safe: Safe systems, pathways and transitions"
+        },
+        {
+          "id": "q-contact",
+          "text": "Would you like someone to contact you about your answers?",
+          "type": "YES_NO",
+          "required": false,
+          "helpText": "If you choose Yes, someone from our office, not one of your care workers, will contact you within 5 working days."
+        }
+      ]
+    }
+  ],
+  "managerGuidance": {
+    "howToRun": [
+      "Office staff make this call 10 to 14 days after the person comes home from a hospital stay of one night or more, or at the end of reablement; never the Care Coordinator who was the hospital contact and planned the restart. It comes after the full review at home within 7 days of discharge, so it is an independent check: compare its answers with that review's notes in the quarterly report. The library exempts this survey from the 4-week rule, because a hospital discharge comes before other surveys (only the complaint follow-up call comes first). The answers you record count as a survey contact, so for the next 4 weeks CareFlow holds back its other sends to the person and sends each on their free day if it is still open.",
+      "CareFlow cannot start a survey from a hospital stay, so the Care Coordinator puts a call reminder in the office diary on the day the person comes home. This is a call, not a send, because results are reported by hospital: keep a copy of this template open for responses, phone the person and enter the answers with Record response, channel Telephone; write the name of the hospital or care transfer hub in the call notes, because results are reported by hospital. For people who live alone with dementia or communication needs, a Field Care Supervisor who is not in their core care team visits instead. Post a printed copy only if the person asks, and enter it with Record response on the day it comes back. Recording answers needs the \"Record survey responses\" responsibility, and opening a survey for responses needs \"Surveys\" (act): give these to the Care Coordinators and office staff who make these calls (by default only managers and admins can record survey answers, and only managers can open a survey for responses; Care Coordinators can only view surveys unless given them).",
+      "Never send it after a fast-track end of life discharge (End of Life Care Policy); cancel it if the person is readmitted before the call; do not send it after a hospital visit without an overnight stay; ask it of each person at most once in 3 months.",
+      "People just home are often tired: read each question, its help text and every answer choice exactly as written, slowly, and offer to stop and call back. Reading every choice aloud is why it takes about 9 minutes. Ask the feeling safe question only once the person confirms they can talk privately; otherwise leave it unanswered and ask it at their next spot check. Use a professional interpreter, never a family member. Family carers often managed the discharge: the person answers where they can; record who answered in CareFlow's \"Who is answering\" field. Family views go in the family survey (SUR-FAM-001).",
+      "This call takes priority over other surveys except the complaint follow-up call: before calling, check the person's survey history in CareFlow and leave them out of any monthly visit check-in or medicines survey due before the call. If the person had a complaint follow-up call (SUR-PWS-006) in the last 4 weeks, CareFlow will not stop this call, so wait until 4 weeks after that call if that is still within 6 weeks of coming home; otherwise do not send it. A quality check due in that time waits until 4 weeks after this call only if it stays within 3 months of the last one; otherwise ask its questions after these in the same call.",
+      "Who may open individual answers: office staff and Care Coordinators who make or follow up the calls, and the Registered Manager and Deputy Manager. This is set in Who can see the answers: individual responses are limited to Care Coordinators, the Registered Manager and the Deputy Manager, and results to the same staff, showing from 5 answers. Super Admin, Admin and the person who made the survey can always see both, so keep those roles to staff who may open them. Add the role of the office staff who make or follow up the calls."
+    ],
+    "actingOnResults": [
+      "Office staff pass every answer that needs action to the Care Coordinator or Registered Manager the same working day, and the alerts below apply.",
+      "How to count: report the share answering Yes (or Always or Usually for feeling safe), leaving out Does not apply to me, Nothing had changed, \"I did not need any new equipment\" and Don't know, with the number of people who answered each question. The reablement question applies only to people who had reablement: report it with that base.",
+      "The Registered Manager reports results each quarter by hospital or care transfer hub, beside the discharge problems logged under the Hospital Admission and Discharge Procedure and readmissions within 30 days, and uses them in letters to discharge teams and the professionals' survey. Never report a group of fewer than 5 people separately.",
+      "Keep individual answers for 3 years after the call under the Records Management and Retention Policy. For CQC, the results and the discharge problems raised with hospitals evidence safe transitions between services and working with partners (Regulation 12(2)(i) and 17(2)(e))."
+    ],
+    "alerts": [
+      {
+        "when": "\"Since you came home, how often have you felt safe at home?\" answered Sometimes, Rarely or Never, or any comment suggesting harm, neglect, a fall or risk.",
+        "action": "The Care Coordinator phones the person the same working day. A possible safeguarding concern goes to the safeguarding lead the same working day; the lead assesses the risk within 1 hour and refers to the local authority where needed, under the Safeguarding Concerns: Reporting, Referral and Enquiry Procedure. A fall or injury goes in the incident log the same working day under the Incident Reporting, Investigation and Learning Policy, with a focused review within 7 days under the Care Plan Review Procedure.",
+        "rule": {"task": "Does not feel safe at home after hospital: phone today", "if": [{"question": "q-safe-home", "answers": ["Sometimes", "Rarely", "Never"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0, "urgent": true, "record": "SAFEGUARDING"}
+      },
+      {
+        "when": "\"Since you came home, have you had any problems with your medicines?\" answered Yes.",
+        "action": "The same working day, check the discharge medicines check and the eMAR against the discharge letter and the current prescription with the pharmacy or GP practice, under the Medicines Changes, Transfers of Care and Hospital Discharge Procedure. An error goes in the incident log the same working day under the Medication Errors, Near Misses and Incidents Procedure.",
+        "rule": {"task": "Medicines problem after discharge: check eMAR and discharge letter", "if": [{"question": "q-medicines", "answers": ["Yes"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0, "record": "INCIDENT"}
+      },
+      {
+        "when": "\"When you got home, was our care ready to start?\" answered No, or \"Was your first visit from us at the time you expected?\" answered \"It did not happen\" or late.",
+        "action": "Check the check-in records the same working day. A missed visit goes in the incident log the same working day, graded at least Medium, and the Registered Manager is told the same day, under the Missed, Late and Short Visits Procedure. Where care was not ready because of the discharge, it is also a discharge problem (next alert).",
+        "rule": {"task": "Care not ready or first visit wrong: check visit records", "if": [{"question": "q-ready", "answers": ["No"]}, {"question": "q-first-visit", "answers": ["It did not happen", "No, it was late"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0, "record": "INCIDENT"}
+      },
+      {
+        "when": "\"Did you have the equipment you needed when you got home?\" answered No, or a comment about missing equipment or information from the hospital.",
+        "action": "The Care Coordinator records a discharge problem in the incident log and raises it with the ward the same working day, and writes to the hospital discharge team or care transfer hub within 2 working days, under the Hospital Admission and Discharge Procedure. Where the person was harmed or put at serious risk, the Registered Manager assesses it as a possible safeguarding concern within 1 hour and tells the commissioner by the end of the next working day, or the same working day where a safeguarding concern is raised. New equipment is written into the care plan, with care workers trained, before the next visit at which it is used.",
+        "rule": {"task": "Missing equipment after discharge: raise with the hospital", "if": [{"question": "q-equipment", "answers": ["No"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0, "record": "INCIDENT"}
+      },
+      {
+        "when": "\"Did your care workers know about the changes since your hospital stay?\" answered Partly or No.",
+        "action": "The Care Coordinator checks the care plan is up to date the same working day and briefs the core care team before their next visit, under the Hospital Admission and Discharge Procedure and the Care Plan Review Procedure.",
+        "rule": {"task": "Care workers did not know the changes: update the care plan", "if": [{"question": "q-knew-changes", "answers": ["Partly", "No"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 0}
+      },
+      {
+        "when": "\"Since you came home, are you able to do more for yourself?\" answered \"I can do less\", or the reablement goals question answered No.",
+        "action": "A focused care plan review within 7 days for a change in mobility or needs, under the Care Plan Review Procedure; tell the commissioner if hours need to change. For reablement, the same focused review agrees with the person and the commissioner what help continues.",
+        "rule": {"task": "Can do less since coming home: focused review", "if": [{"question": "q-do-more", "answers": ["I can do less"]}, {"question": "q-reablement", "answers": ["No"]}], "owner": "CARE_COORDINATOR", "dueCalendarDays": 7}
+      },
+      {
+        "when": "\"When you came home, did you know who to contact if you needed help?\" answered No or Not sure.",
+        "action": "The Care Coordinator sends the office and on-call numbers in the person's recorded format within 5 working days and checks they are in the care folder.",
+        "rule": {"task": "Send office and on-call numbers", "if": [{"question": "q-who-to-call", "answers": ["No", "Not sure"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5}
+      },
+      {
+        "when": "A comment expressing dissatisfaction with our care that needs a response, or overall experience answered Poor or Very poor.",
+        "action": "Dissatisfaction with our care is a complaint: record it the same working day, grade it within 1 working day and acknowledge it within 3 working days under the Complaints Policy and Procedure. Overall experience Poor or Very poor with no particular concern: the Care Coordinator contacts the person within 5 working days. Dissatisfaction with the hospital: with the person's agreement, pass it on, and give the hospital's patient advice and liaison service (PALS) and local Healthwatch details.",
+        "rule": {"task": "Poor experience: contact the person", "if": [{"question": "q-overall", "answers": ["Poor", "Very poor"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5, "record": "COMPLAINT"}
+      },
+      {
+        "when": "\"Would you like someone to contact you about your answers?\" answered Yes.",
+        "action": "Office staff or the Care Coordinator, never a member of the person's core care team, contact the person within 5 working days in the way they prefer and record what was agreed.",
+        "rule": {"task": "Asked to be contacted about their answers", "if": [{"question": "q-contact", "answers": ["Yes"]}], "owner": "CARE_COORDINATOR", "dueWorkingDays": 5, "contactRequest": true}
+      },
+      {
+        "when": "A comment praising our service or a named member of staff.",
+        "action": "Record it as a compliment in CareFlow the same working day; the Field Care Supervisor or line manager passes it to each employee named within 5 working days, under the Compliments, Feedback and Involvement Procedure."
+      }
+    ]
+  },
+  "access": {"responses": ["CARE_COORDINATOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER"], "results": ["CARE_COORDINATOR", "REGISTERED_MANAGER", "DEPUTY_MANAGER"], "reportingThreshold": 5},
+  "relatedPolicies": [
+    "POL-CD-015",
+    "POL-MED-013",
+    "POL-GOV-006",
+    "POL-CD-003",
+    "POL-CD-011",
+    "POL-CD-013",
+    "POL-GOV-005",
+    "POL-GOV-007",
+    "POL-GOV-017",
+    "POL-MED-014",
+    "POL-SG-002"
+  ],
+  "regulatoryBasis": [
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 12(2)(g) and (i): safe management of medicines; working with others so that care is safe when people move between services",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/12"
+    },
+    {
+      "source": "Health and Social Care Act 2008 (Regulated Activities) Regulations 2014, Regulation 17(2)(e): seek and act on feedback",
+      "url": "https://www.legislation.gov.uk/uksi/2014/2936/regulation/17"
+    },
+    {
+      "source": "DHSC, Hospital discharge and community support guidance: quality surveillance that includes patient, carer and staff feedback, and feedback from providers of care after discharge",
+      "url": "https://www.gov.uk/government/publications/hospital-discharge-and-community-support-guidance/hospital-discharge-and-community-support-guidance"
+    },
+    {
+      "source": "Healthwatch Brighton and Hove, report of Healthwatch England's 2023 hospital discharge survey: half of people were not given contact information for further help, and a third felt unprepared",
+      "url": "https://www.healthwatchbrightonandhove.co.uk/news/2023-11-22/nhs-urged-do-more-help-patients-leave-hospital-safely"
+    },
+    {
+      "source": "NHS England, Using the Friends and Family Test to improve patient experience (version 2): feedback a few weeks after discharge is more considered than feedback straight away",
+      "url": "https://www.england.nhs.uk/wp-content/uploads/2019/09/using-the-fft-to-improve-patient-experience-guidance-v2.pdf"
+    },
+    {
+      "source": "NICE NG21 Home care, recommendation 1.5.1: healthcare practitioners and home care workers liaise regularly about the person's medication",
+      "url": "https://www.nice.org.uk/guidance/ng21"
+    }
+  ]
+}
