@@ -25,6 +25,43 @@ import type {
 
 /** A `running` row older than this is treated as abandoned (process died) and marked failed. */
 export const STALE_RUNNING_MS = 60 * 60_000;
+/** A running job marks its row this often, so other processes can tell it is still alive. */
+export const HEARTBEAT_EVERY_MS = 60_000;
+/**
+ * A running row with no heartbeat for this long belongs to a process that stopped (restart, deploy, crash): it
+ * no longer blocks the job and is marked failed. Rows from before heartbeats keep the STALE_RUNNING_MS rule.
+ */
+export const STALE_HEARTBEAT_MS = 5 * 60_000;
+
+/** `running` rows whose process is gone: no heartbeat for STALE_HEARTBEAT_MS (or, without one, started over STALE_RUNNING_MS ago). */
+export function staleRunningWhere(now: Date): Prisma.JobRunWhereInput {
+  return {
+    status: 'running',
+    OR: [
+      { heartbeatAt: { lt: new Date(now.getTime() - STALE_HEARTBEAT_MS) } },
+      { heartbeatAt: null, startedAt: { lt: new Date(now.getTime() - STALE_RUNNING_MS) } },
+    ],
+  };
+}
+
+/** `running` rows still alive (the opposite of staleRunningWhere). */
+export function liveRunningWhere(now: Date): Prisma.JobRunWhereInput {
+  return {
+    status: 'running',
+    OR: [
+      { heartbeatAt: { gte: new Date(now.getTime() - STALE_HEARTBEAT_MS) } },
+      { heartbeatAt: null, startedAt: { gte: new Date(now.getTime() - STALE_RUNNING_MS) } },
+    ],
+  };
+}
+
+/** Whether one running row is stale (same rule as staleRunningWhere). */
+export function isStaleRunning(row: { status: string; startedAt: Date; heartbeatAt?: Date | null }, now: Date): boolean {
+  if (row.status !== 'running') return false;
+  return row.heartbeatAt
+    ? row.heartbeatAt.getTime() < now.getTime() - STALE_HEARTBEAT_MS
+    : row.startedAt.getTime() < now.getTime() - STALE_RUNNING_MS;
+}
 /** Retention pass runs at most this often per process. */
 export const RETENTION_INTERVAL_MS = 60 * 60_000;
 const MAX_ERROR_LENGTH = 4_000;
@@ -154,6 +191,7 @@ export class JobRunner {
           source,
           status: 'running',
           startedAt,
+          heartbeatAt: startedAt,
           triggeredById: options.triggeredById ?? null,
         },
         select: { id: true },
@@ -201,6 +239,13 @@ export class JobRunner {
     let status: JobRunStatus;
     let summary: JobSummary | null = null;
     let error: string | null = null;
+    // Sign of life while the work runs, so a run left behind by a stopped process stops blocking within minutes.
+    const heartbeat = setInterval(() => {
+      void this.prisma.jobRun
+        .updateMany({ where: { id: runId, status: 'running' }, data: { heartbeatAt: new Date() } })
+        .catch(() => undefined);
+    }, HEARTBEAT_EVERY_MS);
+    heartbeat.unref?.();
     try {
       const overlapping = await this.findOverlappingRun(name, runId, startedAt);
       const outcome: JobOutcome = overlapping
@@ -221,6 +266,8 @@ export class JobRunner {
       if (err instanceof JobFailedWithSummaryError) {
         summary = sanitiseSummary(err.summary);
       }
+    } finally {
+      clearInterval(heartbeat);
     }
 
     const finishedAt = new Date();
@@ -283,28 +330,22 @@ export class JobRunner {
   ): Promise<string | null> {
     const existing = await this.prisma.jobRun.findUnique({
       where: { jobName_periodKey: { jobName: name, periodKey } },
-      select: { id: true, status: true, startedAt: true, attempt: true },
+      select: { id: true, status: true, startedAt: true, heartbeatAt: true, attempt: true },
     });
     if (!existing) return null;
-    const staleBefore = new Date(now.getTime() - STALE_RUNNING_MS);
-    const retryable =
-      existing.status === 'failed' ||
-      (existing.status === 'running' &&
-        existing.startedAt.getTime() < staleBefore.getTime());
+    const retryable = existing.status === 'failed' || isStaleRunning(existing, now);
     if (!retryable) return null;
     const claimed = await this.prisma.jobRun.updateMany({
       where: {
         id: existing.id,
         attempt: existing.attempt,
-        OR: [
-          { status: 'failed' },
-          { status: 'running', startedAt: { lt: staleBefore } },
-        ],
+        OR: [{ status: 'failed' }, staleRunningWhere(now)],
       },
       data: {
         status: 'running',
         source,
         startedAt: now,
+        heartbeatAt: now,
         finishedAt: null,
         durationMs: null,
         summary: Prisma.DbNull,
@@ -330,13 +371,12 @@ export class JobRunner {
     return periodKeyFor(def, now, timeZone);
   }
 
-  /** Marks `running` rows older than STALE_RUNNING_MS as failed (optionally for one job). */
+  /** Marks `running` rows whose process has stopped as failed (staleRunningWhere; optionally for one job). */
   async failStaleRuns(name?: JobName, now = new Date()): Promise<number> {
     const stale = await this.prisma.jobRun.findMany({
       where: {
         ...(name ? { jobName: name } : {}),
-        status: 'running',
-        startedAt: { lt: new Date(now.getTime() - STALE_RUNNING_MS) },
+        ...staleRunningWhere(now),
       },
       select: {
         id: true,
@@ -349,13 +389,14 @@ export class JobRunner {
     let marked = 0;
     for (const row of stale) {
       const durationMs = now.getTime() - row.startedAt.getTime();
+      // Guarded on the same rule, so a row that just signed of life is left alone.
       const res = await this.prisma.jobRun.updateMany({
-        where: { id: row.id, status: 'running' },
+        where: { id: row.id, ...staleRunningWhere(now) },
         data: {
           status: 'failed',
           finishedAt: now,
           durationMs,
-          error: `stale: no finish recorded within ${STALE_RUNNING_MS / 60_000} minutes (process stopped?)`,
+          error: 'stale: no sign of life from the process running it (stopped, restarted or crashed?)',
         },
       });
       if (res.count === 0) continue;
@@ -422,12 +463,11 @@ export class JobRunner {
     return this.prisma.jobRun.findFirst({
       where: {
         jobName: name,
-        status: 'running',
         id: { not: runId },
-        startedAt: { gte: new Date(startedAt.getTime() - STALE_RUNNING_MS) },
-        OR: [
-          { startedAt: { lt: startedAt } },
-          { startedAt, id: { lt: runId } },
+        // Only a run whose process is still alive blocks (a stopped process's row is stale: see staleRunningWhere).
+        AND: [
+          liveRunningWhere(startedAt),
+          { OR: [{ startedAt: { lt: startedAt } }, { startedAt, id: { lt: runId } }] },
         ],
       },
       orderBy: { startedAt: 'asc' },

@@ -15435,6 +15435,10 @@ model JobRun {
   triggeredById String?   @db.Uuid
   /// 1 for the first run of a period; +1 each time a failed/stale run of the same period is retried
   attempt       Int       @default(1)
+  /// Last sign of life from the process running it (every minute while running). A running row whose heartbeat
+  /// is older than STALE_HEARTBEAT_MS belongs to a process that stopped (restart, deploy, crash): it no longer
+  /// blocks the next run and is marked failed. Null on rows written before heartbeats (the 60-minute rule applies).
+  heartbeatAt   DateTime?
 
   @@unique([jobName, periodKey])
   @@index([jobName, startedAt(sort: Desc)])
