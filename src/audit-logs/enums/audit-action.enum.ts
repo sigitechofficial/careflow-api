@@ -559,6 +559,7 @@ export enum AuditAction {
   /** Phase 3: a survey's translation (another language or easy read) saved, imported, published, withdrawn or deleted (counts only). */
   SURVEY_TRANSLATION_CHANGED = 'survey_translation_changed',
   SURVEY_APPLICANT_INVITES_CHANGED = 'survey_applicant_invites_changed',
+  SURVEY_BENCHMARK_SHARING_CHANGED = 'survey_benchmark_sharing_changed',
   FEEDBACK_RECORDED = 'feedback_recorded',
   FEEDBACK_UPDATED = 'feedback_updated',
   FEEDBACK_STATUS_CHANGED = 'feedback_status_changed',

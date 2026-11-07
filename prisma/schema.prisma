@@ -17324,3 +17324,50 @@ model SurveyApplicantInvited {
   @@index([surveyId])
   @@schema("surveys")
 }
+
+/// Anonymised sector benchmarks (Phase 3): this agency's choice to share (one row, id "default").
+model SurveyBenchmarkSetting {
+  id               String    @id
+  sharing          Boolean   @default(false)
+  /// The data-sharing agreement accepted (BENCHMARK_AGREEMENT_VERSION), by whom and when.
+  agreementVersion String?
+  agreedById       String?   @db.Uuid
+  agreedAt         DateTime?
+  lastSyncedAt     DateTime?
+  lastSyncError    String?
+  updatedAt        DateTime  @default(now()) @updatedAt
+
+  @@schema("surveys")
+}
+
+/// Sector figures from the benchmark service, per ready-made question (only while sharing).
+model SurveyBenchmarkFigure {
+  id            String   @id @default(uuid()) @db.Uuid
+  reference     String
+  questionKey   String
+  organisations Int
+  median        Int
+  lowerQuartile Int
+  upperQuartile Int
+  receivedAt    DateTime
+
+  @@unique([reference, questionKey])
+  @@schema("surveys")
+}
+
+/// The benchmark service's side: each agency's current figures, by a hash of its key (never its name).
+model SurveyBenchmarkContribution {
+  id              String   @id @default(uuid()) @db.Uuid
+  contributorHash String
+  reference       String
+  questionKey     String
+  /// Share of positive answers, whole per cent.
+  percent         Int
+  /// How many answered: 10-29, 30-99 or 100+.
+  band            String
+  receivedAt      DateTime
+
+  @@unique([contributorHash, reference, questionKey])
+  @@index([reference, questionKey])
+  @@schema("surveys")
+}
