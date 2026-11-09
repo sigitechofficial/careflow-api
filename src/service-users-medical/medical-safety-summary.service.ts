@@ -152,12 +152,9 @@ export class MedicalSafetySummaryService {
             take: 50,
           })
         : Promise.resolve(null),
+      // Medicine allergies are now part of the one allergy list above; the old separate list is no longer used.
       canMedAllergies
-        ? this.prisma.medicationAllergy.findMany({
-            where: { serviceUserId, deletedAt: null },
-            orderBy: { createdAt: 'desc' },
-            take: 50,
-          })
+        ? Promise.resolve([] as { id: string; allergyName: string; reaction: string | null; severity: string | null }[])
         : Promise.resolve(null),
       canFlash
         ? this.prisma.serviceUserFlashMessage.findFirst({

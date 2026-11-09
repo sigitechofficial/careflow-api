@@ -8,7 +8,6 @@ export const DEFAULT_SERVICE_USER_FUNDING_TYPES: Array<{ name: string; code: str
   { name: 'Mixed funding', code: 'MIXED' },
   { name: 'Unknown', code: 'FUNDING_UNKNOWN' },
   { name: 'Not yet assessed', code: 'NOT_YET_ASSESSED' },
-  { name: 'Prefer not to say', code: 'PREFER_NOT_TO_SAY' },
 
   // —— NHS continuing healthcare & health-funded care ——
   { name: 'NHS Continuing Healthcare (CHC)', code: 'NHS_CHC' },

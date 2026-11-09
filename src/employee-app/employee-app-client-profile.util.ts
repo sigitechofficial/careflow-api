@@ -69,6 +69,24 @@ export function mapProfileGp(pack?: { gpName: string | null; gpSurgery: string |
   return { name, surgery };
 }
 
+/** The GP saved on Contacts (relationship GP) — the one place the person's GP is kept. */
+export function isGpContact(c: { relationshipType: { code?: string | null } | null }): boolean {
+  return c.relationshipType?.code === 'GP';
+}
+
+export function gpContactAsContact(c: {
+  firstName: string;
+  lastName: string | null;
+  phone: string | null;
+  mobile: string | null;
+  address?: string | null;
+}): { title: string; subtitle: string | null; type: 'gp' } {
+  const name = [c.firstName, c.lastName].filter(Boolean).join(' ').trim();
+  const phone = c.phone?.trim() || c.mobile?.trim() || null;
+  const surgery = c.address?.replace(/\s+/g, ' ').trim() || null;
+  return { title: name || 'GP', subtitle: [surgery, phone].filter(Boolean).join(' · ') || null, type: 'gp' };
+}
+
 export function gpAsContact(gp: { name: string | null; surgery: string | null }): {
   title: string;
   subtitle: string | null;

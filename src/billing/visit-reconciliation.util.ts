@@ -180,6 +180,7 @@ type FundingSnapshot = {
   purchaseOrderNumber: string | null;
   purchaseOrderExpiresAt: Date | null;
   billingContactName: string | null;
+  funderBillingContact?: string | null;
 } | null;
 
 export function detectVisitExceptions(input: {
@@ -265,7 +266,12 @@ export function detectVisitExceptions(input: {
     });
   }
 
-  if (funding) {
+  if (!funding) {
+    exceptions.push({
+      code: FinanceExceptionCode.FUNDING_SETUP_INCOMPLETE,
+      message: 'No funding set up — add who pays on the Funding tab',
+    });
+  } else {
     const readiness = assessFundingBillingReadiness({
       status: funding.status as Parameters<typeof assessFundingBillingReadiness>[0]['status'],
       isActive: funding.isActive,
@@ -275,6 +281,7 @@ export function detectVisitExceptions(input: {
       purchaseOrderNumber: funding.purchaseOrderNumber,
       purchaseOrderExpiresAt: funding.purchaseOrderExpiresAt,
       billingContactName: funding.billingContactName,
+      funderBillingContact: funding.funderBillingContact ?? null,
     });
     for (const issue of readiness.issues) {
       if (issue.toLowerCase().includes('purchase order expired')) {

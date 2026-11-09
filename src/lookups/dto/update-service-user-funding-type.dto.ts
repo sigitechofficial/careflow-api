@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, MaxLength, MinLength } from 'class-validator';
+import { IsBoolean, IsOptional, IsString, IsUUID, MaxLength, MinLength, ValidateIf } from 'class-validator';
 
 export class UpdateServiceUserFundingTypeDto {
   @ApiPropertyOptional()
@@ -20,4 +20,10 @@ export class UpdateServiceUserFundingTypeDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ description: 'Funding route only: the broad billing type it comes under (null to clear).' })
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @IsUUID()
+  billingFundingTypeId?: string | null;
 }

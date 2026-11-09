@@ -51,6 +51,17 @@ function baseEvidence(ctx: CarePlanComposeContext, serviceUserId: string) {
 }
 
 function resolveGenderOfCarerPreferred(ctx: CarePlanComposeContext): ComposeFieldResult | null {
+  // The current preference (DOM Care) wins over the assessment answer it started from.
+  const current = ctx.profile?.staffGenderPreference?.toLowerCase().trim();
+  if (current && STAFF_GENDER_PREFERENCE_LABELS[current]) {
+    return {
+      fieldKey: '',
+      label: 'Gender of carer preferred',
+      value: STAFF_GENDER_PREFERENCE_LABELS[current],
+      source: 'profile',
+      sourceLabel: 'DOM Care: gender preference of staff',
+    };
+  }
   if (!ctx.ia) return null;
 
   const answer =

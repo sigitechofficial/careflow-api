@@ -173,6 +173,8 @@ export type CarePlanComposeProfile = {
   homeAddress: string | null;
   /** Access instructions / key-safe notes from the address record, or null. */
   propertyAccessInstructions: string | null;
+  /** Current carer gender preference (DOM Care: male / female / case_by_case), or null. Wins over the assessment answer. */
+  staffGenderPreference?: string | null;
 };
 
 export type CarePlanComposeContext = {
@@ -187,6 +189,8 @@ export type CarePlanComposeContext = {
   emar: EmarComposeSummary;
   pack: MedicationPackComposeSummary | null;
   gpPharmacyLine: string | null;
+  /** True when the GP line came from Contacts (the person's GP), so the pack's printed GP is not repeated. */
+  hasGpContact?: boolean;
   /** Structured legal-document record; null when the service user has none on file. */
   legalDocument?: CarePlanLegalDocumentEvidence | null;
   /** Read-only profile facts for person-centred prefill; null/undefined when unavailable. */

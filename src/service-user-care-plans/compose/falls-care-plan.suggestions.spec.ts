@@ -475,7 +475,8 @@ describe('Falls care plan suggestions', () => {
     expect(result.suggestions?.some((s) => s.kind === 'value')).toBe(true);
     expect(result.iaStatus).toBe('SUBMITTED');
     expect(result.evidence.some((e) => e.label.includes('Awaiting manager review'))).toBe(true);
-    expect(result.evidence.some((e) => e.label === 'Falls risk')).toBe(true);
+    // A stored falls score is shown as history only (NICE NG249: no risk-prediction scores).
+    expect(result.evidence.some((e) => e.label === 'Falls risk (legacy score)')).toBe(true);
   });
 
   it('allows REVIEWED IA suggestions and keeps previous assessments separate', () => {
@@ -592,8 +593,11 @@ describe('Falls care plan suggestions', () => {
       MEDICATION_CARE_PLAN_FIELD_MAPPINGS,
       'su-1',
     );
-    expect(result.suggestionMode).toBeUndefined();
-    expect(result.values['sec:1']).toBe('Prompted');
+    // Medication fills what it can (allergies) and offers the support level as a suggestion for the manager to
+    // accept (hybrid); Falls only suggests.
+    expect(result.suggestionMode).toBe('hybrid');
+    expect(result.values['sec:1']).toBeUndefined();
+    expect(result.suggestions?.find((s) => s.targetFieldKey === 'sec:1')?.suggestedValue).toBe('Prompted');
     expect(Object.keys(result.values).length).toBeGreaterThan(0);
   });
 

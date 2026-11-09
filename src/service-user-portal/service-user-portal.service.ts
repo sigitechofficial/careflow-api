@@ -608,7 +608,7 @@ export class ServiceUserPortalService {
         });
       }
 
-      return tx.serviceUserContact.create({
+      const contact = await tx.serviceUserContact.create({
         data: {
           serviceUserId,
           firstName: dto.firstName.trim(),
@@ -625,6 +625,26 @@ export class ServiceUserPortalService {
         },
         include: { relationshipType: true },
       });
+      // Who may be told about their care is recorded in Privacy. The person asking for this contact to get
+      // updates is their agreement, so it becomes a sharing line there (which keeps this flag in step).
+      if (dto.canReceiveUpdates) {
+        await tx.serviceUserSharingAgreement.create({
+          data: {
+            serviceUserId,
+            recipientKind: 'CONTACT',
+            contactId: contact.id,
+            recipientName: [contact.firstName, contact.lastName].filter(Boolean).join(' '),
+            recipientRole: contact.relationshipType?.name ?? '',
+            categories: ['CARE_UPDATES'],
+            channels: ['PORTAL'],
+            basis: 'CONSENT',
+            conditions: 'Added by the person through the family portal.',
+            startsOn: new Date(new Date().toISOString().slice(0, 10)),
+            source: 'PROFILE',
+          },
+        });
+      }
+      return contact;
     });
 
     return { message: 'Contact added', data: this.mapPortalContact(created) };

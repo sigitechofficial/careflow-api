@@ -3070,11 +3070,17 @@ model ServiceUserFundingType {
   id        String   @id @default(uuid()) @db.Uuid
   name      String
   code      String   @unique
+  /// The broad billing type this funding route comes under (Funding tab lines, cancellation rules).
+  billingFundingTypeId String?  @db.Uuid
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  serviceUsers ServiceUser[]
+  serviceUsers       ServiceUser[]
+  billingFundingType FundingType? @relation(fields: [billingFundingTypeId], references: [id])
+  fundingLines       ServiceUserFunding[]
+
+  @@index([billingFundingTypeId])
 
   @@schema("service_users")
 }
@@ -3131,6 +3137,7 @@ model FundingType {
 
   funders             Funder[]
   serviceUserFundings ServiceUserFunding[]
+  fundingRoutes       ServiceUserFundingType[]
 
   @@index([deletedAt])
   @@schema("service_users")
@@ -3181,6 +3188,8 @@ model ServiceUserFunding {
   serviceUserId            String        @db.Uuid
   fundingTypeId            String        @db.Uuid
   funderId                 String?       @db.Uuid
+  /// The funding route (how this line is funded, e.g. LA spot purchase). Must sit under the line's billing type.
+  fundingRouteId           String?       @db.Uuid
   status                   FundingStatus @default(UNKNOWN)
   fundingReference         String?
   approvalReference        String?
@@ -3224,6 +3233,7 @@ model ServiceUserFunding {
   serviceUser             ServiceUser       @relation("FundingLines", fields: [serviceUserId], references: [id])
   fundingType             FundingType       @relation(fields: [fundingTypeId], references: [id])
   funder                  Funder?           @relation(fields: [funderId], references: [id])
+  fundingRoute            ServiceUserFundingType? @relation(fields: [fundingRouteId], references: [id])
   approvedBy              User?             @relation("ServiceUserFundingApprovedBy", fields: [approvedById], references: [id])
   markedCurrentFor        ServiceUser?      @relation("FundingAsCurrent")
   defaultChargeCard       ChargeCard?       @relation("FundingDefaultChargeCard", fields: [defaultChargeCardId], references: [id], onDelete: SetNull)
@@ -3347,6 +3357,10 @@ model ServiceUser {
   legalDocument   ServiceUserLegalDocument?
   dolsRecords     ServiceUserDolsRecord[]
   legalAuthorities      ServiceUserLegalAuthority[]
+  communicationNeeds    ServiceUserCommunicationNeeds?
+  sharingAgreements     ServiceUserSharingAgreement[]
+  sharingExceptions     ServiceUserSharingException[]
+  consentChanges        ServiceUserConsentChange[]
   documentRecords ServiceUserDocumentRecord[]
   absences          ServiceUserAbsence[]
   domCare           ServiceUserDomCare?
@@ -4502,6 +4516,8 @@ model ServiceUserContact {
   serviceUser            ServiceUser                @relation(fields: [serviceUserId], references: [id])
   relationshipType       RelationshipType?          @relation(fields: [relationshipTypeId], references: [id])
   liveInResidentProfiles ServiceUserLiveInProfile[]
+  sharingAgreements      ServiceUserSharingAgreement[]
+  communicationNeedsVia  ServiceUserCommunicationNeeds[]
 
   @@index([serviceUserId])
   @@index([deletedAt])
@@ -5134,6 +5150,155 @@ model ServiceUserLegalAuthority {
 
   @@index([serviceUserId])
   @@index([deletedAt])
+  @@schema("service_users")
+}
+
+/// Accessible Information Standard: how the person needs information given to them and how to communicate
+/// with them. One row per person, first filled from the initial assessment, then kept up to date on the profile
+/// (Privacy). Every change is in the audit log.
+model ServiceUserCommunicationNeeds {
+  id                  String                        @id @default(uuid()) @db.Uuid
+  serviceUserId       String                        @unique @db.Uuid
+  interpreterNeeded   Boolean                       @default(false)
+  interpreterLanguage String                        @default("") @db.VarChar(120)
+  /// LARGE_PRINT, EASY_READ, BRAILLE, AUDIO, BSL, READ_ALOUD, PLAIN_LANGUAGE (service-user-privacy.constants.ts).
+  formats             String[]                      @default([])
+  hearing             String                        @default("") @db.Text
+  sight               String                        @default("") @db.Text
+  /// Send written information to this contact (a representative) instead of the person.
+  contactViaContactId String?                       @db.Uuid
+  notes               String                        @default("") @db.Text
+  source              ServiceUserClinicalDataSource @default(MANUAL)
+  sourceSubmissionId  String?                       @db.Uuid
+  createdAt           DateTime                      @default(now())
+  updatedAt           DateTime                      @updatedAt
+  createdById         String?                       @db.Uuid
+  updatedById         String?                       @db.Uuid
+
+  serviceUser ServiceUser         @relation(fields: [serviceUserId], references: [id])
+  contactVia  ServiceUserContact? @relation(fields: [contactViaContactId], references: [id], onDelete: SetNull)
+
+  @@schema("service_users")
+}
+
+/// Who we may share the person's information with, what, how, on what basis and for how long. Sharing is
+/// stopped (stoppedAt), never deleted, so the history stays; deletedAt only for a line entered by mistake.
+model ServiceUserSharingAgreement {
+  id                 String                        @id @default(uuid()) @db.Uuid
+  serviceUserId      String                        @db.Uuid
+  recipientKind      ServiceUserSharingRecipientKind
+  /// A family member or friend from Contacts and Family (recipientKind CONTACT).
+  contactId          String?                       @db.Uuid
+  recipientName      String                        @db.VarChar(255)
+  /// Their role or organisation, e.g. "GP, Croydon Health Centre", "Social worker".
+  recipientRole      String                        @default("") @db.VarChar(255)
+  /// CARE_UPDATES, VISIT_TIMES, HEALTH_MEDICINES, FINANCE, INCIDENTS, ALL.
+  categories         String[]                      @default([])
+  /// PHONE, EMAIL, PORTAL, LETTER, IN_PERSON.
+  channels           String[]                      @default([])
+  basis              ServiceUserSharingBasis
+  /// The LPA / deputyship it relies on (basis LPA_HEALTH_WELFARE / DEPUTY).
+  legalAuthorityId   String?                       @db.Uuid
+  conditions         String                        @default("") @db.Text
+  startsOn           DateTime                      @db.Date
+  endsOn             DateTime?                     @db.Date
+  reviewOn           DateTime?                     @db.Date
+  stoppedAt          DateTime?
+  stoppedById        String?                       @db.Uuid
+  stopReason         String                        @default("") @db.Text
+  source             ServiceUserClinicalDataSource @default(MANUAL)
+  sourceSubmissionId String?                       @db.Uuid
+  createdAt          DateTime                      @default(now())
+  updatedAt          DateTime                      @updatedAt
+  deletedAt          DateTime?
+  createdById        String?                       @db.Uuid
+  updatedById        String?                       @db.Uuid
+  deletedById        String?                       @db.Uuid
+
+  serviceUser ServiceUser         @relation(fields: [serviceUserId], references: [id])
+  contact     ServiceUserContact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  @@index([serviceUserId])
+  @@index([contactId])
+  @@schema("service_users")
+}
+
+/// Information shared without the person's consent (safeguarding, someone's life at risk, a legal duty):
+/// the decision, recorded as UK GDPR and the Care Act expect.
+model ServiceUserSharingException {
+  id            String                         @id @default(uuid()) @db.Uuid
+  serviceUserId String                         @db.Uuid
+  sharedOn      DateTime                       @db.Date
+  sharedWith    String                         @db.VarChar(255)
+  whatShared    String                         @db.Text
+  reason        ServiceUserSharingExceptionReason
+  /// Who decided (name and role).
+  decidedBy     String                         @db.VarChar(255)
+  notes         String                         @default("") @db.Text
+  createdAt     DateTime                       @default(now())
+  createdById   String?                        @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@index([serviceUserId])
+  @@schema("service_users")
+}
+
+/// A consent given, changed or withdrawn after the initial assessment (which stays as it was). Never edited or
+/// deleted: each change is a new row, so the latest per topic is the consent now and the rest is its history.
+model ServiceUserConsentChange {
+  id            String   @id @default(uuid()) @db.Uuid
+  serviceUserId String   @db.Uuid
+  /// ASSESSMENT, FAMILY_INVOLVEMENT, INFO_SHARING, CARE, PHOTOGRAPHY, MEDICATION_SUPPORT, KEY_SAFE, OTHER
+  /// (service-user-privacy.util.ts CONSENT_TOPICS).
+  topic         String   @db.VarChar(40)
+  /// OTHER: what the consent is about.
+  title         String   @default("") @db.VarChar(255)
+  /// GIVEN, REFUSED, PARTLY, WITHDRAWN, BEST_INTERESTS.
+  answer        String   @db.VarChar(20)
+  /// written, verbal, non_verbal, representative.
+  method        String   @default("") @db.VarChar(20)
+  /// Who gave or refused it: the person, or their representative / attorney by name.
+  givenBy       String   @default("") @db.VarChar(255)
+  details       String   @default("") @db.Text
+  /// The day it was given or changed.
+  decidedOn     DateTime @db.Date
+  createdAt     DateTime @default(now())
+  createdById   String?  @db.Uuid
+
+  serviceUser ServiceUser @relation(fields: [serviceUserId], references: [id])
+
+  @@index([serviceUserId, topic])
+  @@schema("service_users")
+}
+
+enum ServiceUserSharingRecipientKind {
+  CONTACT
+  PROFESSIONAL
+  ORGANISATION
+
+  @@schema("service_users")
+}
+
+enum ServiceUserSharingBasis {
+  /// The person agreed.
+  CONSENT
+  /// They lack capacity for this decision; shared in their best interests (Mental Capacity Act).
+  BEST_INTERESTS
+  LPA_HEALTH_WELFARE
+  DEPUTY
+  OTHER
+
+  @@schema("service_users")
+}
+
+enum ServiceUserSharingExceptionReason {
+  SAFEGUARDING
+  VITAL_INTERESTS
+  LEGAL_DUTY
+  PREVENT_CRIME
+  OTHER
+
   @@schema("service_users")
 }
 
@@ -17374,4 +17539,212 @@ model SurveyBenchmarkContribution {
   @@unique([contributorHash, reference, questionKey])
   @@index([reference, questionKey])
   @@schema("surveys")
+}
+
+/// Mail provider of a referrals mailbox: Gmail (testing) or Microsoft 365 (allforcare).
+enum ReferralMailboxProvider {
+  GMAIL
+  MICROSOFT
+  /// Any host with IMAP to read and SMTP to send (cPanel, GoDaddy Workspace, Zoho, IONOS…).
+  IMAP
+  /// A service posts each email to CareFlow (Brevo inbound parsing, raw email). Replies go through a relay.
+  INBOUND_WEBHOOK
+
+  @@schema("service_users")
+}
+
+/// A mailbox CareFlow reads referral emails from. Only emails carrying `labelName` are read.
+model ReferralMailbox {
+  id                    String                  @id @default(uuid()) @db.Uuid
+  provider              ReferralMailboxProvider
+  emailAddress          String
+  /// What staff call the mailbox ("Hammersmith referrals").
+  displayName           String?
+  /// Branch for emails with no postcode (falls back to the automation setting).
+  defaultLocationId     String?                 @db.Uuid
+  /// OAuth refresh token (Gmail, Microsoft), encrypted (field-encryption.util). Never returned by the API.
+  encryptedRefreshToken String?                 @db.Text
+  /// IMAP password, or the inbound service's API key (to download attachments). Encrypted, never returned.
+  encryptedSecret       String?                 @db.Text
+  /// Connection settings without secrets: IMAP/SMTP host, port, security, username, Sent folder; webhook format.
+  config                Json?
+  /// SHA-256 of the secret in the inbound webhook address.
+  webhookTokenHash      String?
+  /// MAILBOX (send replies from the mailbox itself) or SMTP_RELAY (ZeptoMail, Brevo, SendGrid… over SMTP).
+  sendVia               String                  @default("MAILBOX")
+  /// Relay settings without the password: host, port, secure, username, fromAddress.
+  relayConfig           Json?
+  encryptedRelaySecret  String?                 @db.Text
+  /// Set when staff remove the mailbox: its sign-in, password and keys are wiped; emails already read stay.
+  removedAt             DateTime?
+  /// Only emails with this label/folder are read.
+  labelName             String                  @default("Referrals")
+  /// Provider id of the label CareFlow adds once an email has been read ("CareFlow read").
+  processedLabelId      String?
+  lastCheckedAt         DateTime?
+  lastError             String?                 @db.Text
+  isActive              Boolean                 @default(true)
+  connectedById         String?                 @db.Uuid
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+
+  emails ReferralEmail[]
+
+  @@index([isActive])
+  @@schema("service_users")
+}
+
+/// Where a referral email is in the inbox.
+enum ReferralEmailStatus {
+  /// Saved, waiting for Claude to read it.
+  RECEIVED
+  /// Claude has read it; waiting for staff.
+  READ
+  /// Reading failed (see error); can be retried.
+  FAILED
+  /// Claude judged it is not a care referral; staff can still create an enquiry.
+  NOT_A_REFERRAL
+  /// Staff created an enquiry from it.
+  ENQUIRY_CREATED
+  /// Staff dismissed it.
+  DISMISSED
+  /// A later email in the thread of a referral already received (e.g. the referrer answering our questions); linked, not re-read.
+  FOLLOW_UP
+
+  @@schema("service_users")
+}
+
+/// One email received in a referrals mailbox, with its attachments and what Claude read from it.
+model ReferralEmail {
+  id                String              @id @default(uuid()) @db.Uuid
+  mailboxId         String              @db.Uuid
+  providerMessageId String
+  providerThreadId  String?
+  /// Message-ID / References / Reply-To of the email, to reply in its thread (any provider).
+  messageIdHeader   String?
+  referencesHeader  String?             @db.Text
+  replyToEmail      String?
+  fromName          String?
+  fromEmail         String?
+  subject           String?
+  receivedAt        DateTime
+  bodyText          String              @db.Text
+  /// [{ fileName, mimeType, size, storedName }] — files kept in private storage, served only to signed-in staff.
+  attachments       Json                @default("[]")
+  status            ReferralEmailStatus @default(RECEIVED)
+  /// What Claude read from the email and attachments (referral details, questions asked, missing information).
+  extraction        Json?
+  extractionModel   String?
+  extractionCostUsd Float?
+  error             String?             @db.Text
+  enquiryId         String?             @db.Uuid
+  /// Branch chosen from the postcode (coverage) or by staff.
+  locationId        String?             @db.Uuid
+  /// Result of each check: [{ key, label, result: PASS|FAIL|WARN|UNKNOWN, detail }].
+  checks            Json?
+  /// YES | POSSIBLY | NEED_INFO | NO
+  decision          String?
+  decisionReasons   String[]            @default([])
+  replySubject      String?
+  replyText         String?             @db.Text
+  replySentAt       DateTime?
+  replySentById     String?             @db.Uuid
+  /// Where the reply actually went (testing redirects it to the mailbox itself).
+  replySentTo       String?
+  replyError        String?             @db.Text
+  /// Set while a reply is being sent, so two runs can't send it twice.
+  replyClaimedAt    DateTime?
+  /// The reply as formatted HTML (edited in the inbox); replyText is the plain-text version.
+  replyHtml         String?             @db.Text
+  /// Addresses the reply was copied to (e.g. the registered manager).
+  replyCopiedTo     String[]            @default([])
+  /// Quotation created from this email (EnquiryQuotation / version), attached to the reply as a PDF.
+  quotationId       String?             @db.Uuid
+  quotationVersionId String?            @db.Uuid
+  /// Where the price in the reply came from, e.g. "Allfor Care Croydon standard private rates".
+  rateSource        String?
+  handledById       String?             @db.Uuid
+  handledAt         DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  mailbox ReferralMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+
+  @@unique([mailboxId, providerMessageId])
+  @@index([status])
+  @@index([receivedAt])
+  @@schema("service_users")
+}
+
+/// Referral automation settings (one row): what happens automatically when a referral email is read.
+model ReferralAutomationSettings {
+  id                   String   @id @default(uuid()) @db.Uuid
+  /// Create (or link) the CRM enquiry automatically once Claude has read the email.
+  autoCreateEnquiry    Boolean  @default(true)
+  /// Send the reply automatically; off = the reply waits for a manager to press Send.
+  autoReply            Boolean  @default(true)
+  /// Which decisions are replied to automatically: YES, POSSIBLY, NEED_INFO. "NO" is never sent without a manager.
+  autoReplyDecisions   String[] @default(["YES", "POSSIBLY", "NEED_INFO"])
+  /// SAME_CARER: one carer must be free on every day asked for. ANY_CARER_EACH_DAY: each day needs enough free carers, who can differ by day.
+  availabilityMode     String   @default("ANY_CARER_EACH_DAY")
+  /// Minutes a carer must also be free before and after each visit (travel).
+  travelBufferMinutes  Int      @default(15)
+  /// Every reply is also sent (Bcc; Cc while testing) to these addresses.
+  copyRepliesTo        String[] @default(["suzettethomas@allforcare.co.uk"])
+  /// Make a provisional quotation from the standard rates and attach it to the reply when the visits are known.
+  autoQuote            Boolean  @default(true)
+  /// Days an automatic quotation is valid for.
+  quoteValidDays       Int      @default(30)
+  /// Branch for enquiries from emails whose area can't be worked out (no or unknown postcode). Null = the first active branch.
+  unplacedLocationId   String?  @db.Uuid
+  /// Minimum days between today and the requested start for a plain "yes".
+  minNoticeDays        Int      @default(2)
+  /// When the referrer asks about price, quote the funder's standard hourly rate (never a formal quote).
+  answerPriceQuestions Boolean  @default(true)
+  /// Referral rules (referral-rules.util ReferralRules): action per kind of email, outcome per care rule, our own written rules.
+  rules                Json?
+  updatedById          String?  @db.Uuid
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@schema("service_users")
+}
+
+/// Standard private (self-funded) rates used for automatic quotations and price questions.
+/// One row per branch; the row with no branch is the rate for every branch without its own.
+model QuoteStandardRate {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// Branch (Location) id; null = all branches.
+  locationId  String?  @db.Uuid
+  /// £ per carer per hour on weekdays.
+  hourlyRate  Decimal  @db.Decimal(10, 2)
+  /// Other rates in the quotation format (QuoteRates: short visits, weekend, bank holiday, nights).
+  rates       Json?
+  notes       String?
+  isActive    Boolean  @default(true)
+  updatedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([locationId])
+  @@schema("service_users")
+}
+
+/// Which councils a branch takes referrals from, and who signs its replies.
+model ReferralBranchCoverage {
+  id                String   @id @default(uuid()) @db.Uuid
+  /// Location (branch) id.
+  locationId        String   @unique @db.Uuid
+  /// Local authority names as postcodes.io returns them (admin_district), e.g. "Croydon", "Hammersmith and Fulham".
+  localAuthorities  String[] @default([])
+  /// The named manager replies go out under.
+  replyManagerName  String?
+  replyManagerTitle String?
+  replyPhone        String?
+  isActive          Boolean  @default(true)
+  updatedById       String?  @db.Uuid
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@schema("service_users")
 }

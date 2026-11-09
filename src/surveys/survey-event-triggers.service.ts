@@ -55,8 +55,15 @@ export const SURVEY_EVENT_DUE_TASK_SOURCE = 'SURVEY_EVENT_DUE';
 const OPEN_TASK = [RoleTaskStatus.OPEN, RoleTaskStatus.IN_PROGRESS];
 /** A death recorded within this many days stops survey contact (every run; idempotent). */
 const DEATH_SWEEP_DAYS = 90;
-/** How often the records are read for new events (each server; the unique key makes repeats harmless). */
-const DETECT_EVERY_MS = 15 * 60_000;
+/**
+ * How often the records are read for new events (each server; the unique key makes repeats harmless).
+ * SURVEY_EVENT_DETECT_MINUTES (1–60) changes it, e.g. 1 for a demo; default 15.
+ */
+export function detectEveryMs(raw: string | undefined = process.env.SURVEY_EVENT_DETECT_MINUTES): number {
+  const n = Number(raw);
+  return (Number.isInteger(n) && n >= 1 && n <= 60 ? n : 15) * 60_000;
+}
+const DETECT_EVERY_MS = detectEveryMs();
 
 /** One event found in the records: who, the record that raised it, and the event day. */
 export type FoundEvent = {

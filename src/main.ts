@@ -7,6 +7,7 @@ import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { ConfigService } from '@nestjs/config';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { posix } from 'path';
+import { json, raw } from 'express';
 import { AppModule } from './app.module';
 import { corsOrigin } from './config/cors-origins.util';
 import { applyTrustProxy } from './config/trust-proxy.util';
@@ -63,6 +64,14 @@ async function bootstrap() {
     }
     next();
   });
+  // Emails posted by an email service (Brevo inbound parsing, raw emails) can carry attachments: larger bodies
+  // for that one route only, and raw emails as bytes. Registered before Nest's own parsers, which then skip that
+  // request. Wrapped in plain functions: Nest leaves out its own global JSON parser when it finds one by name.
+  const inboundJson = json({ limit: '40mb' });
+  const inboundRaw = raw({ type: ['message/rfc822', 'application/octet-stream', 'text/plain'], limit: '40mb' });
+  app.use('/referral-mailbox/inbound', (req: never, res: never, next: (e?: unknown) => void) =>
+    inboundJson(req, res, (err?: unknown) => (err ? next(err) : inboundRaw(req, res, next))),
+  );
   app.useStaticAssets(uploadPath, {
     prefix: '/uploads/',
     setHeaders: uploadStaticHeaders,

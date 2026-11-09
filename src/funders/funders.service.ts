@@ -45,7 +45,10 @@ export class FundersService {
         orderBy,
         skip,
         take: limit,
-        include: { fundingType: { select: { id: true, name: true, code: true } } },
+        include: {
+          fundingType: { select: { id: true, name: true, code: true } },
+          defaultChargeCard: { select: { id: true, name: true } },
+        },
       }),
     ]);
     return { data: rows, meta: buildPaginationMeta({ page, limit, total }) };
@@ -175,6 +178,12 @@ export class FundersService {
   async remove(userId: string, id: string, meta?: RequestAuditMeta) {
     const existing = await this.prisma.funder.findFirst({ where: { id, deletedAt: null } });
     if (!existing) throw new NotFoundException('Funder not found');
+    const inUse = await this.prisma.serviceUserFunding.count({ where: { funderId: id, deletedAt: null } });
+    if (inUse > 0) {
+      throw new ConflictException(
+        `${existing.name} is on ${inUse} funding line${inUse === 1 ? '' : 's'}. Move those lines to another funder before deleting it.`,
+      );
+    }
     const now = new Date();
     return this.prisma.$transaction(async (tx) => {
       await tx.funder.update({

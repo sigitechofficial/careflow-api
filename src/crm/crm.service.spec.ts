@@ -57,6 +57,7 @@ describe('CrmService', () => {
     serviceUserFundingType: { findMany: jest.fn() },
     location: { findMany: jest.fn() },
     carePathwayForm: { findMany: jest.fn() },
+    referralEmail: { findMany: jest.fn().mockResolvedValue([]) },
     serviceUser: { findFirst: jest.fn(), findMany: jest.fn(), create: jest.fn(), update: jest.fn() },
     serviceUserAddress: { create: jest.fn(), upsert: jest.fn() },
     serviceUserStatus: { findFirst: jest.fn() },

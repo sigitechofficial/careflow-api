@@ -7,6 +7,23 @@ import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { assertServiceUserExists } from '../medications/medication.asserts';
 import { UpdateMedicationSupportProfileDto } from './dto/update-medication-support-profile.dto';
+import { findCarerVisibleIa } from '../employee-app/employee-app-ia-source.util';
+import { mapMedicationSupportLevelToCarePlan } from '../service-user-care-plans/compose/ia-answer-resolver.util';
+
+/** First value of an assessment answer (text, or the first selected option). */
+function answerValue(a: { textValue: string | null; selectedOptions: unknown } | null | undefined): string | null {
+  if (!a) return null;
+  if (a.textValue?.trim()) return a.textValue.trim();
+  const opts = a.selectedOptions;
+  const list = Array.isArray(opts) ? opts : opts !== null && opts !== undefined ? [opts] : [];
+  for (const o of list) {
+    if (typeof o === 'string' && o.trim()) return o.trim();
+    if (o && typeof o === 'object' && typeof (o as { value?: unknown }).value === 'string') {
+      return (o as { value: string }).value;
+    }
+  }
+  return null;
+}
 
 @Injectable()
 export class MedicationSupportProfilesService {
@@ -15,7 +32,35 @@ export class MedicationSupportProfilesService {
     private readonly audit: AuditLogsService,
   ) {}
 
+  /**
+   * The medication support level carers and the medication care plan use: the assessment's §9 answer (the
+   * reviewed assessment, else the submitted one). Shown on the Meds tab so there is one level, not two.
+   */
+  async assessmentSupportLevel(serviceUserId: string): Promise<{ label: string; pendingReview: boolean } | null> {
+    const ia = await findCarerVisibleIa(this.prisma, serviceUserId, { id: true });
+    if (!ia) return null;
+    const answer = await this.prisma.initialAssessmentAnswer.findFirst({
+      where: {
+        submissionId: ia.submission.id,
+        question: {
+          OR: [
+            { metadata: { path: ['fieldKey'], equals: 'medicationSupportLevel' } },
+            { questionText: { contains: 'medication support level', mode: 'insensitive' } },
+          ],
+        },
+      },
+      select: { textValue: true, selectedOptions: true },
+    });
+    const label = mapMedicationSupportLevelToCarePlan(answerValue(answer));
+    return label ? { label, pendingReview: ia.pendingReview } : null;
+  }
+
   async get(serviceUserId: string) {
+    const row = await this.getRow(serviceUserId);
+    return { ...row, assessmentSupportLevel: await this.assessmentSupportLevel(serviceUserId) };
+  }
+
+  private async getRow(serviceUserId: string) {
     await assertServiceUserExists(this.prisma, serviceUserId);
     let row = await this.prisma.medicationSupportProfile.findFirst({
       where: { serviceUserId, deletedAt: null },
@@ -52,7 +97,7 @@ export class MedicationSupportProfilesService {
 
   async update(userId: string, serviceUserId: string, dto: UpdateMedicationSupportProfileDto, meta: RequestAuditMeta) {
     await assertServiceUserExists(this.prisma, serviceUserId);
-    const existing = await this.get(serviceUserId);
+    const existing = await this.getRow(serviceUserId);
     const updated = await this.prisma.medicationSupportProfile.update({
       where: { id: existing.id },
       data: {
@@ -78,6 +123,6 @@ export class MedicationSupportProfilesService {
       metadata: { serviceUserId },
       ...meta,
     });
-    return updated;
+    return { ...updated, assessmentSupportLevel: await this.assessmentSupportLevel(serviceUserId) };
   }
 }

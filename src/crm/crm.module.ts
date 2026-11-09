@@ -13,6 +13,6 @@ import { QuotationsService } from './quotations/quotations.service';
   imports: [PrismaModule, AuditLogsModule, OrganisationGeneralSettingsModule, ServiceUserVisitPlansModule, InitialAssessmentsModule],
   controllers: [CrmController, QuotationsController],
   providers: [CrmService, QuotationsService],
-  exports: [CrmService],
+  exports: [CrmService, QuotationsService],
 })
 export class CrmModule {}

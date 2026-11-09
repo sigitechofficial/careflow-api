@@ -100,3 +100,18 @@ describe('AllocationChecksService.checkCapacity — carer weekly hours', () => {
     expect(out).toEqual([]);
   });
 });
+
+describe('genderPreferenceMismatch', () => {
+  const { genderPreferenceMismatch } = jest.requireActual('./allocation-checks.service') as typeof import('./allocation-checks.service');
+  it('warns when the carer is not the preferred gender', () => {
+    expect(genderPreferenceMismatch('female', 'Male')).toBe(
+      'They prefer a female carer for personal care (DOM Care); this carer is recorded as Male.',
+    );
+  });
+  it('is quiet when it matches, there is no clear preference, or the carer gender is unknown', () => {
+    expect(genderPreferenceMismatch('female', 'Female')).toBeNull();
+    expect(genderPreferenceMismatch('case_by_case', 'Male')).toBeNull();
+    expect(genderPreferenceMismatch(null, 'Male')).toBeNull();
+    expect(genderPreferenceMismatch('male', null)).toBeNull();
+  });
+});

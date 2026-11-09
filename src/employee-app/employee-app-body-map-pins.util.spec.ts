@@ -8,7 +8,8 @@ describe('employee-app-body-map-pins.util', () => {
     const pins = extractBodyMapPinsFromPayload({
       bodyMapPins: [{ view: 'dual', x: 10, y: 20, part: 'Chest' }],
     });
-    expect(pins).toEqual([{ view: 'dual', x: 10, y: 20, part: 'Chest' }]);
+    // A dual-view pin keeps its canvas view and says which side of the body it was recorded on.
+    expect(pins).toEqual([{ view: 'dual', x: 10, y: 20, part: 'Chest', canvasView: 'dual', recordView: 'front' }]);
   });
 
   it('filters observations by scheduledJobId when set', () => {

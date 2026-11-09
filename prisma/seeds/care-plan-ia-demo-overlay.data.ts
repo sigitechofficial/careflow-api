@@ -98,7 +98,7 @@ function personCentredCore(params: {
     text('How should staff support privacy during personal care?', params.privacy),
     text('How and when to support me', params.howAndWhen, 'howAndWhenToSupportMe'),
     text('Night support', params.nightSupport, 'nightSupport'),
-    text('What is most important to me', params.whatMatters, 'whatIsMostImportantToMe'),
+    text('What matters most to the Service User?', params.whatMatters, 'whatMattersMost'),
   ];
   if (params.worried) {
     rows.push(text('What are they worried about?', params.worried));

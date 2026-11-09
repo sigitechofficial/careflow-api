@@ -111,3 +111,29 @@ export const DEFAULT_MEDICAL_CONDITION_CATALOG: MedicalConditionCatalogSeedEntry
   { code: 'POOR_EATING_DRINKING', name: 'Poor Eating and Drinking', category: 'OTHER' },
   { code: 'USED_HOIST', name: 'Used Hoist', category: 'OTHER' },
 ];
+
+/**
+ * Catalogue entries that are not medical conditions and are recorded elsewhere: office flags, legal and
+ * capacity records, the medication support level, communication needs (Privacy), falls risk (risk assessments)
+ * and number of carers (DOM Care). They stay in the table so people who already have them keep them, but are
+ * hidden from the list so they are not picked for new records. Mirrors migration 20261228094000.
+ */
+export const RETIRED_MEDICAL_CONDITION_CODES: ReadonlySet<string> = new Set([
+  'BARCODE_PLACED',
+  'NEWLY_ASSESSED',
+  'WEEKLY_NEW_PACKAGES',
+  'CARE_LOGS_CHECKED',
+  'INITIAL_CONTACT_10_START',
+  'NEW_CARE_PLAN_FORMAT',
+  'BEST_INTEREST_COMPLETE',
+  'LPA_OR_DEPUTY',
+  'HAS_CAPACITY',
+  'LACK_CAPACITY',
+  'BEST_INTEREST_LACK_CAPACITY',
+  'SELF_MEDICATE',
+  'PROMPT_ASSIST_MEDICATION',
+  'MEDICATION_BY_CARER',
+  'COMMUNICATION_NEEDS',
+  'HIGH_RISK_FALLS',
+  'DOUBLE_HAND_CLIENT',
+]);

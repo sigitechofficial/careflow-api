@@ -10,7 +10,8 @@ jest.mock('bcrypt', () => ({
   compare: jest.fn(),
 }));
 
-const recent = new Date('2026-09-15T11:00:00.000Z');
+// A minute ago: a session seen this recently counts as live (a fixed date stops being recent as time passes).
+const recent = new Date(Date.now() - 60_000);
 
 function loginRow(overrides: Record<string, unknown> = {}) {
   return {

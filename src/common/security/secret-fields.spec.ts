@@ -109,6 +109,7 @@ describe('secret column coverage (schema guard)', () => {
     'ServiceUserCarePlanDraft.approvalContentHash': 'content fingerprint of a care plan draft, not a credential',
     'SurveyLinkRate.linkHash': 'one-way hash of a shared survey link, used only as a per-minute rate-limit key; never returned by any API',
     'CqcFrameworkVersion.contentHash': 'content fingerprint of a CQC framework version, not a credential',
+    'SurveyBenchmarkContribution.contributorHash': 'one-way hash identifying a contributing organisation in pooled benchmarks (so a resend replaces its own row), not a credential',
   };
 
   const LOOKS_SECRET = /(hash|enc|encrypted|cipher|secret|password)$/i;

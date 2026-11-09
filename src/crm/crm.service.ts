@@ -28,6 +28,7 @@ import { EnquiryDuplicatesQueryDto } from './dto/duplicates-query.dto';
 import { LinkServiceUserDto } from './dto/link-service-user.dto';
 import { InitialAssessmentsService } from '../initial-assessments/initial-assessments.service';
 import { canMove } from './crm-workflow.util';
+import { syncServiceUserActiveFlag } from '../service-users/service-user-active-flag.util';
 
 type EventRow = Prisma.EnquiryEventGetPayload<object>;
 type EnquiryRow = Prisma.EnquiryGetPayload<{ include: { events: true } }>;
@@ -282,14 +283,34 @@ export class CrmService {
 
   /** Map rows to API shape with user / funding / branch names resolved. */
   private async present<T extends AnyEnquiryRow>(rows: T[]) {
-    const [users, funding, locations, carePlans, assessments] = await Promise.all([
+    const [users, funding, locations, carePlans, assessments, attachments] = await Promise.all([
       this.userNames(rows.flatMap(r => [r.recordedById, r.ownerId, r.assessorId])),
       this.fundingNames(rows.map(r => r.fundingTypeId)),
       this.locationNames(rows.map(r => r.locationId)),
       this.carePlanNames(rows.flatMap(r => r.carePlanFormIds)),
       this.latestAssessments(rows.map(r => r.convertedServiceUserId)),
+      this.attachmentCounts(rows.map(r => r.id)),
     ]);
-    return rows.map(r => mapEnquiry(r, { users, funding, locations, carePlans, assessments }));
+    return rows.map(r => ({
+      ...mapEnquiry(r, { users, funding, locations, carePlans, assessments }),
+      attachmentCount: attachments.get(r.id) ?? 0,
+    }));
+  }
+
+  /** Files that came in with each enquiry's referral emails (only those kept in storage). */
+  private async attachmentCounts(enquiryIds: string[]) {
+    const counts = new Map<string, number>();
+    if (!enquiryIds.length) return counts;
+    const emails = await this.prisma.referralEmail.findMany({
+      where: { enquiryId: { in: enquiryIds } },
+      select: { enquiryId: true, attachments: true },
+    });
+    for (const m of emails) {
+      const files = Array.isArray(m.attachments) ? (m.attachments as Array<{ storedName?: string | null }>) : [];
+      const kept = files.filter(f => f && typeof f === 'object' && f.storedName).length;
+      if (m.enquiryId && kept) counts.set(m.enquiryId, (counts.get(m.enquiryId) ?? 0) + kept);
+    }
+    return counts;
   }
 
   /* ─── reads ─────────────────────────────────────────────────────────── */
@@ -856,6 +877,7 @@ export class CrmService {
         createdById: actor.id,
       },
     });
+    await syncServiceUserActiveFlag(tx, su.id);
     if (locationId) {
       await tx.serviceUserAssignment.create({
         data: { serviceUserId: su.id, locationId, createdById: actor.id },
@@ -973,6 +995,7 @@ export class CrmService {
             updatedById: userId,
           },
         });
+        await syncServiceUserActiveFlag(tx, serviceUserId);
         const address = await tx.serviceUserAddress.findUnique({
           where: { serviceUserId },
           select: { id: true, latitude: true },

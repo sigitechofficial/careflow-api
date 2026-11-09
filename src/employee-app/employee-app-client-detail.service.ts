@@ -1,3 +1,5 @@
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
+import { carerPhotoConsent, carerSharingNotes, communicationNeedsWords } from '../service-user-privacy/service-user-privacy.util';
 import {
   prnLimitLabels,
   prnLimitsFromMedication,
@@ -35,6 +37,8 @@ import { EmployeeAppClientsService } from './employee-app-clients.service';
 import { employeeAppAccessPayload } from './employee-app-access.util';
 import {
   gpAsContact,
+  gpContactAsContact,
+  isGpContact,
   mapProfileCommunication,
   mapProfileContact,
   mapProfileGp,
@@ -197,9 +201,10 @@ export class EmployeeAppClientDetailService {
           lastName: true,
           phone: true,
           mobile: true,
+          address: true,
           isPrimary: true,
           isEmergencyContact: true,
-          relationshipType: { select: { name: true } },
+          relationshipType: { select: { name: true, code: true } },
         },
         orderBy: [{ isEmergencyContact: 'desc' }, { isPrimary: 'desc' }, { firstName: 'asc' }],
         take: 8,
@@ -274,9 +279,50 @@ export class EmployeeAppClientDetailService {
       conditions.push({ id: risk.riskType.toLowerCase(), label: profileRiskLabel(risk.riskType) });
     }
     const communication = mapProfileCommunication(ia?.careInstructions);
-    const gp = mapProfileGp(gpPack);
+    // Profile → Privacy: how they need information, and who carers may (or must not) tell what.
+    const [needsRow, sharingRows, photoConsentRow] = await Promise.all([
+      this.prisma.serviceUserCommunicationNeeds.findUnique({
+        where: { serviceUserId: clientId },
+        select: {
+          interpreterNeeded: true,
+          interpreterLanguage: true,
+          formats: true,
+          hearing: true,
+          sight: true,
+          notes: true,
+          contactVia: { select: { firstName: true, lastName: true } },
+        },
+      }),
+      this.prisma.serviceUserSharingAgreement.findMany({
+        where: { serviceUserId: clientId, deletedAt: null },
+        select: { recipientName: true, recipientRole: true, contactId: true, categories: true, conditions: true, startsOn: true, endsOn: true, stoppedAt: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.serviceUserConsentChange.findFirst({
+        where: { serviceUserId: clientId, topic: 'PHOTOGRAPHY' },
+        select: { answer: true, details: true, decidedOn: true },
+        orderBy: [{ decidedOn: 'desc' }, { createdAt: 'desc' }],
+      }),
+    ]);
+    const photoConsent = carerPhotoConsent(photoConsentRow);
+    const informationNeeds = needsRow
+      ? {
+          summary: communicationNeedsWords({
+            ...needsRow,
+            contactViaName: needsRow.contactVia ? [needsRow.contactVia.firstName, needsRow.contactVia.lastName].filter(Boolean).join(' ') : null,
+          }),
+          hearing: needsRow.hearing || null,
+          sight: needsRow.sight || null,
+          notes: needsRow.notes || null,
+        }
+      : null;
+    const sharingNotes = carerSharingNotes(sharingRows, dayKeyInTimeZone(new Date(), timeZone));
+    // The GP on Contacts is the person's GP. The medicine pack's GP (what the pharmacy printed) is only used
+    // when no GP has been added to Contacts.
+    const hasGpContact = nokContacts.some(isGpContact);
+    const gp = hasGpContact ? null : mapProfileGp(gpPack);
     const contacts = [
-      ...nokContacts.map(mapProfileContact),
+      ...nokContacts.map((c) => (isGpContact(c) ? gpContactAsContact(c) : mapProfileContact(c))),
       ...(gp ? [gpAsContact(gp)] : []),
     ];
 
@@ -372,6 +418,12 @@ export class EmployeeAppClientDetailService {
         todayVisits,
         carePlanEssentials,
         communication,
+        /** Profile → Privacy: how they need information given (null when nothing is recorded). */
+        informationNeeds,
+        /** Who carers may tell what, and who not to share with (Profile → Privacy). */
+        sharingNotes,
+        /** Profile → Privacy → Consent record: their standing answer about photographs (null when not recorded). */
+        photoConsent,
         contacts,
         gp,
         date,

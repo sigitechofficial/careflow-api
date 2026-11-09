@@ -54,6 +54,7 @@ import { formatOrganisationIsoDate } from '../common/utils/organisation-display-
 import { serviceUserIdsForLocation } from './billing-location-scope.util';
 import { operationalDayBounds, operationalTodayIso } from '../common/utils/operational-day.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { pickFundingLineForPeriod, resolveInvoiceBillTo, type InvoiceBillTo } from './invoice-bill-to.util';
 import {
   computeInvoiceDueDate,
   utcDateOnly,
@@ -1713,10 +1714,86 @@ export class InvoiceRunsService {
         netTotalValue: netTotal,
         lines,
         funderSummaries,
-        serviceUserSummaries,
+        serviceUserSummaries: await this.withBillTo(serviceUserSummaries, row.periodStart, row.periodEnd),
         auditTrail,
       },
     };
+  }
+
+  /**
+   * Add who each invoice is addressed to: per funder share, the funder's billing details (Settings → Funders)
+   * or the funding line's own, plus its PO number and funding reference. `billTo` is set when one funder pays.
+   */
+  private async withBillTo<
+    S extends { serviceUserId: string; funders: Array<{ funderId: string | null }> },
+  >(summaries: S[], periodStart: Date, periodEnd: Date) {
+    const pairs = summaries.flatMap((s) =>
+      s.funders.filter((f) => f.funderId).map((f) => ({ serviceUserId: s.serviceUserId, funderId: f.funderId! })),
+    );
+    if (!pairs.length) {
+      return summaries.map((s) => ({
+        ...s,
+        billTo: null as InvoiceBillTo | null,
+        funders: s.funders.map((f) => ({ ...f, billTo: null as InvoiceBillTo | null })),
+      }));
+    }
+    const funderIds = [...new Set(pairs.map((p) => p.funderId))];
+    const [funderRows, fundingRows] = await Promise.all([
+      this.prisma.funder.findMany({
+        where: { id: { in: funderIds } },
+        select: {
+          id: true,
+          name: true,
+          contactName: true,
+          email: true,
+          addressLine1: true,
+          addressLine2: true,
+          town: true,
+          county: true,
+          postcode: true,
+        },
+      }),
+      this.prisma.serviceUserFunding.findMany({
+        where: {
+          deletedAt: null,
+          serviceUserId: { in: [...new Set(pairs.map((p) => p.serviceUserId))] },
+          funderId: { in: funderIds },
+        },
+        select: {
+          serviceUserId: true,
+          funderId: true,
+          startDate: true,
+          endDate: true,
+          status: true,
+          updatedAt: true,
+          billingContactName: true,
+          billingContactEmail: true,
+          billingAddressLine1: true,
+          billingAddressLine2: true,
+          billingTown: true,
+          billingCounty: true,
+          billingPostcode: true,
+          purchaseOrderNumber: true,
+          fundingReference: true,
+        },
+      }),
+    ]);
+    const funderById = new Map(funderRows.map((f) => [f.id, f]));
+    const billFor = (serviceUserId: string, funderId: string | null): InvoiceBillTo | null => {
+      if (!funderId) return null;
+      const funder = funderById.get(funderId);
+      if (!funder) return null;
+      const line = pickFundingLineForPeriod(
+        fundingRows.filter((r) => r.serviceUserId === serviceUserId && r.funderId === funderId),
+        periodStart,
+        periodEnd,
+      );
+      return resolveInvoiceBillTo(funder, line);
+    };
+    return summaries.map((s) => {
+      const funders = s.funders.map((f) => ({ ...f, billTo: billFor(s.serviceUserId, f.funderId) }));
+      return { ...s, funders, billTo: funders.length === 1 ? funders[0].billTo : null };
+    });
   }
 
   /** Build a downloadable CSV or Excel of the invoice run's visits (one row per visit × funder). */

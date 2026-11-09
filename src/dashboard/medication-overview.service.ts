@@ -15,6 +15,7 @@ import { OrganisationGeneralSettingsService } from '../organisation-general-sett
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { operationalDayBounds, operationalTodayIso } from '../common/utils/operational-day.util';
 import type { MedicationOverviewQueryDto } from './dto/home-signals-query.dto';
+import { CARER_VISIBLE_IA_STATUSES } from '../employee-app/employee-app-ia-source.util';
 
 const DAY_MS = 86_400_000;
 /** Upper bound on given doses read to work out on-time %, so a huge range cannot stall the dashboard. */
@@ -159,7 +160,6 @@ export class MedicationOverviewService {
       endingSoon,
       expired,
       profiles,
-      medicationAllergyUsers,
       profileAllergyUsers,
       iaSupportAnswers,
       reviews,
@@ -242,11 +242,7 @@ export class MedicationOverviewService {
         },
         orderBy: { updatedAt: 'desc' },
       }),
-      this.prisma.medicationAllergy.groupBy({
-        by: ['serviceUserId'],
-        where: { deletedAt: null, isActive: true, serviceUser: su },
-        orderBy: { serviceUserId: 'asc' },
-      }),
+      // Medicine allergies are part of this one allergy list (the Meds tab shows a filtered view of it).
       // General allergies on the profile (what carers see on visits) — counted alongside medication allergies.
       this.prisma.serviceUserAllergy.groupBy({
         by: ['serviceUserId'],
@@ -256,7 +252,7 @@ export class MedicationOverviewService {
       // IA §9.2 medication support level (the source the Medication care plan uses).
       this.prisma.initialAssessmentAnswer.findMany({
         where: {
-          submission: { deletedAt: null, isActive: true, serviceUser: su },
+          submission: { deletedAt: null, isActive: true, status: { in: CARER_VISIBLE_IA_STATUSES }, serviceUser: su },
           question: {
             OR: [
               { metadata: { path: ['fieldKey'], equals: 'medicationSupportLevel' } },
@@ -377,9 +373,20 @@ export class MedicationOverviewService {
     result.medicines.endingSoon = endingSoon;
     result.medicines.expired = expired;
 
-    /* Support level per service user on medication: support profile first, else the latest IA §9.2 answer */
+    /* Support level per service user on medication: the latest IA §9.2 answer (what carers and the medication
+       care plan use), else the Meds-tab support ticks for people with no assessment level yet */
     const onMedIds = new Set(onMedication.map((g) => g.serviceUserId));
     const level = new Map<string, SupportBucket>();
+    for (const a of iaSupportAnswers) {
+      const id = a.submission.serviceUserId;
+      if (!onMedIds.has(id) || level.has(id)) continue;
+      const raw = iaAnswerValue(a);
+      const bucket = raw ? IA_SUPPORT_LEVEL[raw] : undefined;
+      if (bucket) {
+        level.set(id, bucket);
+        result.support.fromAssessment += 1;
+      }
+    }
     for (const p of profiles) {
       if (!onMedIds.has(p.serviceUserId) || level.has(p.serviceUserId)) continue;
       const bucket: SupportBucket | null = p.requiresCarerAdministration
@@ -398,22 +405,11 @@ export class MedicationOverviewService {
         result.support.fromProfile += 1;
       }
     }
-    for (const a of iaSupportAnswers) {
-      const id = a.submission.serviceUserId;
-      if (!onMedIds.has(id) || level.has(id)) continue;
-      const raw = iaAnswerValue(a);
-      const bucket = raw ? IA_SUPPORT_LEVEL[raw] : undefined;
-      if (bucket) {
-        level.set(id, bucket);
-        result.support.fromAssessment += 1;
-      }
-    }
     for (const b of level.values()) result.support[b] += 1;
     result.support.recorded = level.size;
     result.support.notRecorded = onMedIds.size - level.size;
 
     const allergyIds = new Set([
-      ...medicationAllergyUsers.map((g) => g.serviceUserId),
       ...profileAllergyUsers.map((g) => g.serviceUserId),
     ]);
     result.allergies.serviceUsersWithAllergies = allergyIds.size;

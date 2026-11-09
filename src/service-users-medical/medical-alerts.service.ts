@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ServiceUserClinicalDataSource } from '@prisma/client';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -44,6 +44,22 @@ function mapAlert(row: {
   };
 }
 
+/**
+ * DNACPR and allergy warnings are built for carers from the real records (Documents → DNACPR, the allergy list).
+ * A hand-made alert of those types showed twice, or disagreed with the record, so new ones are refused.
+ */
+export const RECORD_BACKED_ALERT_CATEGORIES: ReadonlySet<string> = new Set(['DNACPR', 'ALLERGIES']);
+
+export function assertNotRecordBackedAlert(category: string | null | undefined): void {
+  if (category && RECORD_BACKED_ALERT_CATEGORIES.has(category)) {
+    throw new BadRequestException(
+      category === 'DNACPR'
+        ? 'Record DNACPR in Documents. Carers are warned from that record, so a separate alert is not needed.'
+        : 'Record allergies on the allergy list. Carers are warned from that list, so a separate alert is not needed.',
+    );
+  }
+}
+
 @Injectable()
 export class MedicalAlertsService {
   constructor(
@@ -67,6 +83,7 @@ export class MedicalAlertsService {
     dto: CreateMedicalAlertDto,
     meta?: RequestAuditMeta,
   ) {
+    assertNotRecordBackedAlert(dto.category);
     await assertServiceUserAccessible(this.prisma, this.orgScope, user, serviceUserId);
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.serviceUserMedicalAlert.create({
@@ -112,6 +129,7 @@ export class MedicalAlertsService {
         where: { id, serviceUserId, deletedAt: null },
       });
       if (!before) throw new NotFoundException('Medical alert not found');
+      if (dto.category !== undefined && dto.category !== before.category) assertNotRecordBackedAlert(dto.category);
 
       const updated = await tx.serviceUserMedicalAlert.update({
         where: { id },

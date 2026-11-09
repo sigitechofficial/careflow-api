@@ -68,3 +68,25 @@ describe('employee-app-client-profile.util', () => {
     expect(mapProfileGp({ gpName: '  ', gpSurgery: null })).toBeNull();
   });
 });
+
+describe('GP from Contacts', () => {
+  it('recognises the GP contact and shows surgery and phone', () => {
+    const { isGpContact, gpContactAsContact } = jest.requireActual('./employee-app-client-profile.util');
+    expect(isGpContact({ relationshipType: { code: 'GP' } })).toBe(true);
+    expect(isGpContact({ relationshipType: { code: 'SON' } })).toBe(false);
+    expect(
+      gpContactAsContact({ firstName: 'Dr', lastName: 'Khan', phone: '0161 000', mobile: null, address: 'Riverside\nMedical' }),
+    ).toEqual({ title: 'Dr Khan', subtitle: 'Riverside Medical · 0161 000', type: 'gp' });
+  });
+});
+
+describe('GP from Contacts', () => {
+  it('recognises the GP contact and shows surgery and phone', () => {
+    const { isGpContact, gpContactAsContact } = jest.requireActual('./employee-app-client-profile.util');
+    expect(isGpContact({ relationshipType: { code: 'GP' } })).toBe(true);
+    expect(isGpContact({ relationshipType: { code: 'SON' } })).toBe(false);
+    expect(
+      gpContactAsContact({ firstName: 'Dr', lastName: 'Khan', phone: '0161 000', mobile: null, address: 'Riverside\nMedical' }),
+    ).toEqual({ title: 'Dr Khan', subtitle: 'Riverside Medical · 0161 000', type: 'gp' });
+  });
+});

@@ -154,6 +154,11 @@ export function mapServiceUserDetail(
   careType: { id: string; name: string; code: string } | null;
   careLevel: string | null;
   fundingType: { id: string; name: string; code: string } | null;
+  currentFunding?: {
+    fundingRouteId?: string | null;
+    fundingType: { name: string } | null;
+    funder?: { name: string } | null;
+  } | null;
   riskLevel: { id: string; name: string; code: string; color: string | null } | null;
   locationId: string | null;
   location: { id: string; name: string } | null;
@@ -265,6 +270,15 @@ export function mapServiceUserDetail(
     careType: mapLookup(user.careType),
     careLevel: (user.careLevel as 'STANDARD' | 'COMPLEX' | null) ?? null,
     fundingType: mapLookup(user.fundingType),
+    /**
+     * The broad billing type of the primary funding line (Funding tab). The funding route above is a more
+     * detailed category from a different list, so the two are shown side by side, not copied.
+     */
+    billingFundingType: user.currentFunding?.fundingType?.name ?? null,
+    /** True when the funding route comes from the main funding line (then it is changed on the Funding tab). */
+    fundingRouteFromLine: Boolean(user.currentFunding?.fundingRouteId),
+    /** Who pays: the funder on the main funding line (Funding tab). */
+    currentFunderName: user.currentFunding?.funder?.name ?? null,
     riskLevel: mapRiskLevel(user.riskLevel),
     location: mappedLocation,
     serviceUserAreaId: user.serviceUserAreaId ?? null,

@@ -2275,6 +2275,66 @@ export class QuotationsService {
     };
   }
 
+  /* ─── automatic quotes (referral inbox) ─────────────────────────────── */
+
+  /**
+   * A provisional quotation made automatically from a referral email: created as a draft, then approved
+   * with the standard rates (the approval note says it was automatic). Pricing problems throw, so a quote
+   * is only made when every visit can be priced.
+   */
+  async createApprovedFromReferral(actor: RequestUser, enquiryId: string, dto: QuoteDraftDto, note: string) {
+    const created = await this.create(actor, enquiryId, dto);
+    const v = created.data as { id: string; quotationId: string };
+    try {
+      await this.approve(actor, enquiryId, v.quotationId, v.id, note);
+    } catch (e) {
+      // Leave nothing half-made: the draft is removed when it can't be priced.
+      await this.prisma.enquiryQuotation.update({ where: { id: v.quotationId }, data: { deletedAt: new Date(), isCurrent: false } });
+      throw e;
+    }
+    const row = await this.prisma.enquiryQuotationVersion.findUniqueOrThrow({
+      where: { id: v.id },
+      select: { weeklyTotal: true, quotation: { select: { quotationNumber: true } } },
+    });
+    return { quotationId: v.quotationId, versionId: v.id, quotationNumber: row.quotation.quotationNumber, weeklyTotal: Number(row.weeklyTotal) };
+  }
+
+  /** The PDF and the client wording of an issued version (for attaching to an email sent elsewhere). */
+  async clientPdf(actor: RequestUser, enquiryId: string, quotationId: string, versionId: string) {
+    const v = await this.version(actor, enquiryId, quotationId, versionId);
+    const enquiry = await this.enquiry(actor, enquiryId);
+    const view = await this.clientView(v, enquiry);
+    return { buffer: await buildQuotePdf(view), filename: `${v.quotation.quotationNumber}-V${v.versionNumber}.pdf`, view };
+  }
+
+  /** Record that an approved version was emailed from the referrals mailbox (moves it to Sent, like a normal send). */
+  async recordEmailedFromMailbox(
+    actor: RequestUser,
+    enquiryId: string,
+    quotationId: string,
+    versionId: string,
+    sent: { recipientEmail: string; recipientName?: string | null; subject: string; providerMessageId?: string | null },
+  ) {
+    const v = await this.version(actor, enquiryId, quotationId, versionId);
+    const comm = await this.prisma.enquiryQuotationCommunication.create({
+      data: {
+        quotationId,
+        versionId,
+        channel: 'EMAIL',
+        status: 'SENT',
+        recipientEmail: sent.recipientEmail,
+        recipientName: sent.recipientName ?? null,
+        template: 'referral-reply',
+        subject: sent.subject,
+        senderId: null,
+        sentAt: new Date(),
+        providerMessageId: sent.providerMessageId ?? null,
+        idempotencyKey: `referral-${versionId}`,
+      },
+    });
+    await this.afterSuccessfulSend(actor, enquiryId, v, comm.id, 'EMAIL');
+  }
+
   /* ─── responses ─────────────────────────────────────────────────────── */
 
   async recordResponse(

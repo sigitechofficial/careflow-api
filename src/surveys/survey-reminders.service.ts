@@ -1,4 +1,5 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { communicationNeedsWords } from '../service-user-privacy/service-user-privacy.util';
 import { ConfigService } from '@nestjs/config';
 import {
   NotificationModule,
@@ -1218,7 +1219,27 @@ export class SurveyRemindersService {
       serviceUserIds.length
         ? this.prisma.serviceUser.findMany({
             where: { id: { in: serviceUserIds } },
-            select: { id: true, firstName: true, lastName: true, mobile: true, phone: true, dateOfDeath: true },
+            select: {
+              id: true,
+              firstName: true,
+              lastName: true,
+              mobile: true,
+              phone: true,
+              dateOfDeath: true,
+              communicationNeeds: {
+                select: {
+                  interpreterNeeded: true,
+                  interpreterLanguage: true,
+                  formats: true,
+                  contactVia: { select: { firstName: true, lastName: true } },
+                },
+              },
+              references: {
+                where: { referenceType: 'SU_PROFILE_PREF_CONTACT', deletedAt: null },
+                select: { referenceValue: true },
+                take: 1,
+              },
+            },
           })
         : [],
     ]);
@@ -1256,6 +1277,21 @@ export class SurveyRemindersService {
           name,
           phones,
           died: Boolean(su?.dateOfDeath),
+          /** How they need information (Profile → Privacy), e.g. "Large print · Interpreter: Polish"; "" when none. */
+          needs: [
+            su?.communicationNeeds
+              ? communicationNeedsWords({
+                  ...su.communicationNeeds,
+                  contactViaName: su.communicationNeeds.contactVia
+                    ? [su.communicationNeeds.contactVia.firstName, su.communicationNeeds.contactVia.lastName].filter(Boolean).join(' ')
+                    : null,
+                })
+              : '',
+            // Personal Details → preferred contact method (general, not a refusal).
+            su?.references?.[0]?.referenceValue?.trim() ? `Prefers: ${su.references[0].referenceValue.trim()}` : '',
+          ]
+            .filter(Boolean)
+            .join(' · '),
           sentAt: p.sentAt?.toISOString() ?? null,
           reminders: p.reminderCount,
           lastReminderAt: p.remindedAt?.toISOString() ?? null,

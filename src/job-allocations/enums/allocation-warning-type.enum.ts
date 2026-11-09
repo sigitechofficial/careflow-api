@@ -8,6 +8,8 @@ export enum AllocationWarningType {
   ROLE_MISMATCH = 'ROLE_MISMATCH',
   BLOCKED_CARER = 'BLOCKED_CARER',
   PREFERRED_CARER_MATCH = 'PREFERRED_CARER_MATCH',
+  /** The person asked for a carer of a particular gender (DOM Care) and this carer is not. */
+  GENDER_PREFERENCE = 'GENDER_PREFERENCE',
   COMPLIANCE_WARNING = 'COMPLIANCE_WARNING',
   COMPLIANCE_BLOCK = 'COMPLIANCE_BLOCK',
   TIME_CONFLICT = 'TIME_CONFLICT',
