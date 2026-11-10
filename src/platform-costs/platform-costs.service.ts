@@ -27,6 +27,7 @@ import {
   round2,
   sumCost,
   toCsv,
+  whisperSpend,
 } from './platform-costs-aggregation.util';
 import {
   BASELINE_INPUT,
@@ -130,6 +131,7 @@ export class PlatformCostsService {
           share: r.share,
         })),
       openAnomalies,
+      whisper: whisperSpend(rows, month),
     };
   }
 
