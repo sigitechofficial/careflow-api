@@ -17583,6 +17583,8 @@ model ReferralMailbox {
   processedLabelId      String?
   lastCheckedAt         DateTime?
   lastError             String?                 @db.Text
+  /// Set while one API process checks this mailbox, so two processes (or a slow check and the next one) can't overlap.
+  checkLockedUntil      DateTime?
   isActive              Boolean                 @default(true)
   connectedById         String?                 @db.Uuid
   createdAt             DateTime                @default(now())
@@ -17591,6 +17593,19 @@ model ReferralMailbox {
   emails ReferralEmail[]
 
   @@index([isActive])
+  @@schema("service_users")
+}
+
+/// A Google / Microsoft sign-in in progress (10-minute life, used once). Kept in the database so a restart or a
+/// second API process doesn't lose it. Only the SHA-256 of the state is stored.
+model ReferralOAuthState {
+  stateHash String   @id
+  provider  String
+  userId    String   @db.Uuid
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
   @@schema("service_users")
 }
 
@@ -17608,7 +17623,7 @@ enum ReferralEmailStatus {
   ENQUIRY_CREATED
   /// Staff dismissed it.
   DISMISSED
-  /// A later email in the thread of a referral already received (e.g. the referrer answering our questions); linked, not re-read.
+  /// A later email in the thread of a referral already received (e.g. the referrer answering our questions); linked, and the referral is read again with it.
   FOLLOW_UP
 
   @@schema("service_users")
@@ -17637,6 +17652,9 @@ model ReferralEmail {
   extractionModel   String?
   extractionCostUsd Float?
   error             String?             @db.Text
+  /// Failed reads so far, and when the next automatic try is due (null = no more automatic tries).
+  readAttempts      Int                 @default(0)
+  nextReadAt        DateTime?
   enquiryId         String?             @db.Uuid
   /// Branch chosen from the postcode (coverage) or by staff.
   locationId        String?             @db.Uuid
@@ -17673,6 +17691,7 @@ model ReferralEmail {
   @@unique([mailboxId, providerMessageId])
   @@index([status])
   @@index([receivedAt])
+  @@index([nextReadAt])
   @@schema("service_users")
 }
 

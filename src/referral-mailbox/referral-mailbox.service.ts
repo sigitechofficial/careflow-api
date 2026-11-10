@@ -5,11 +5,15 @@ import {
   Logger,
   NotFoundException,
   OnApplicationBootstrap,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
+import { JobHandler } from '../jobs/job-handler.registry';
+import { JobRunner, runCronTick } from '../jobs/job-runner.service';
+import { JobFailedWithSummaryError, jobSkipped, jobSuccess, type JobOutcome } from '../jobs/job-run.types';
 import { Prisma, ReferralEmailStatus, ReferralMailbox, ReferralMailboxProvider } from '@prisma/client';
-import { randomBytes, randomUUID } from 'crypto';
+import { createHash, randomBytes, randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../prisma/prisma.service';
@@ -21,6 +25,7 @@ import { GmailSession, gmailAuthUrl, gmailExchangeCode, gmailOAuthConfig } from 
 import { DOCX_MIME, MAX_ATTACHMENT_BYTES, docxToText } from './referral-email-parse.util';
 import { ReferralExtractionService, type ExtractionAttachment, type ReferralExtraction } from './referral-extraction.service';
 import { enquiryFromReferral } from './referral-to-enquiry.util';
+import { newFacts, threadBody } from './referral-follow-up.util';
 import { ReferralAutomationService } from './referral-automation.service';
 import { TEST_REFERRAL_SCENARIOS, buildTestReferralRaw } from './referral-test-email.util';
 import { MailboxError, PROCESSED_MARK, type FetchedEmail } from './connectors/connector.types';
@@ -34,6 +39,14 @@ const STORAGE_ROOT = path.join(process.cwd(), 'storage', 'referral-mailbox');
 /** Where the browser lands after connecting a mailbox. */
 const ADMIN_ORIGIN = () => (process.env.ADMIN_APP_URL ?? 'http://localhost:5173').replace(/\/$/, '');
 const isProduction = () => (process.env.NODE_ENV ?? 'development') === 'production';
+/** A referral read (and acted on) that later emails in its thread are added to. */
+const THREAD_READ_STATUSES: ReferralEmailStatus[] = [ReferralEmailStatus.READ, ReferralEmailStatus.ENQUIRY_CREATED];
+type ReferralEmailRow = NonNullable<Awaited<ReturnType<PrismaService['referralEmail']['findUnique']>>>;
+const hashOAuthState = (state: string) => createHash('sha256').update(state).digest('hex');
+/** How long one mailbox check may hold its lock before another process may take over (a stopped process). */
+const CHECK_LOCK_MS = 10 * 60_000;
+/** Automatic tries after a failed read: 5 minutes, 30 minutes, then 2 hours later. */
+export const READ_RETRY_DELAYS_MS = [5 * 60_000, 30 * 60_000, 2 * 60 * 60_000];
 
 type StoredAttachment = { fileName: string; mimeType: string; size: number; storedName: string | null; skippedReason?: string };
 
@@ -62,10 +75,6 @@ export type MailboxUpdateInput = {
 @Injectable()
 export class ReferralMailboxService implements OnApplicationBootstrap {
   private readonly logger = new Logger(ReferralMailboxService.name);
-  /** Pending Google / Microsoft sign-ins: state → who started it (10-minute life, one use). */
-  private readonly pendingStates = new Map<string, { userId: string; provider: 'GMAIL' | 'MICROSOFT'; expires: number }>();
-  /** Mailboxes being checked right now (each is checked by one run at a time). */
-  private readonly checking = new Set<string>();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -73,6 +82,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     private readonly crm: CrmService,
     private readonly automation: ReferralAutomationService,
     private readonly connectors: ReferralConnectorsService,
+    @Optional() private readonly jobRunner?: JobRunner,
   ) {}
 
   /* ─── mailboxes ──────────────────────────────────────────────── */
@@ -138,32 +148,38 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     return mb;
   }
 
-  private newState(userId: string, provider: 'GMAIL' | 'MICROSOFT') {
-    const now = Date.now();
-    for (const [k, v] of this.pendingStates) if (v.expires < now) this.pendingStates.delete(k);
+  /**
+   * A Google / Microsoft sign-in in progress, kept in the database (10-minute life, used once) so a restart or a
+   * second API process can finish it. Only a hash of the state is stored.
+   */
+  private async newState(userId: string, provider: 'GMAIL' | 'MICROSOFT') {
+    await this.prisma.referralOAuthState.deleteMany({ where: { expiresAt: { lt: new Date() } } });
     const state = randomBytes(24).toString('base64url');
-    this.pendingStates.set(state, { userId, provider, expires: now + 10 * 60_000 });
+    await this.prisma.referralOAuthState.create({
+      data: { stateHash: hashOAuthState(state), provider, userId, expiresAt: new Date(Date.now() + 10 * 60_000) },
+    });
     return state;
   }
 
-  private takeState(state: string | undefined, provider: 'GMAIL' | 'MICROSOFT') {
-    const pending = state ? this.pendingStates.get(state) : undefined;
-    if (state) this.pendingStates.delete(state);
-    return pending && pending.provider === provider && pending.expires >= Date.now() ? pending : null;
+  private async takeState(state: string | undefined, provider: 'GMAIL' | 'MICROSOFT') {
+    if (!state) return null;
+    // Deleting it is what makes it single-use: of two callbacks with the same state only one gets the row.
+    const pending = await this.prisma.referralOAuthState.delete({ where: { stateHash: hashOAuthState(state) } }).catch(() => null);
+    return pending && pending.provider === provider && pending.expiresAt.getTime() >= Date.now() ? { userId: pending.userId } : null;
   }
 
-  startGmailConnect(userId: string) {
+  async startGmailConnect(userId: string) {
     const cfg = gmailOAuthConfig();
     if (!cfg) throw new ServiceUnavailableException('Gmail is not set up. Add the GOOGLE_OAUTH_* settings to the API .env file.');
-    return { data: { url: gmailAuthUrl(cfg, this.newState(userId, 'GMAIL')) } };
+    return { data: { url: gmailAuthUrl(cfg, await this.newState(userId, 'GMAIL')) } };
   }
 
-  startMicrosoftConnect(userId: string) {
+  async startMicrosoftConnect(userId: string) {
     const cfg = microsoftOAuthConfig();
     if (!cfg) {
       throw new ServiceUnavailableException('Microsoft 365 is not set up. Add the MICROSOFT_OAUTH_* settings to the API .env file.');
     }
-    return { data: { url: microsoftAuthUrl(cfg, this.newState(userId, 'MICROSOFT')) } };
+    return { data: { url: microsoftAuthUrl(cfg, await this.newState(userId, 'MICROSOFT')) } };
   }
 
   /** Add the mailbox, or switch it back on with the new sign-in if it was connected before. */
@@ -190,7 +206,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
   /** Google sends the browser back here. Returns where to send the browser next. */
   async finishGmailConnect(code: string | undefined, state: string | undefined, error: string | undefined): Promise<string> {
     const back = (q: string) => `${ADMIN_ORIGIN()}/crm/referral-inbox?${q}`;
-    const pending = this.takeState(state, 'GMAIL');
+    const pending = await this.takeState(state, 'GMAIL');
     if (error) return back('gmail=cancelled');
     if (!code || !pending) return back('gmail=expired');
     const cfg = gmailOAuthConfig();
@@ -212,7 +228,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
   /** Microsoft sends the browser back here. */
   async finishMicrosoftConnect(code: string | undefined, state: string | undefined, error: string | undefined): Promise<string> {
     const back = (q: string) => `${ADMIN_ORIGIN()}/crm/referral-inbox?${q}`;
-    const pending = this.takeState(state, 'MICROSOFT');
+    const pending = await this.takeState(state, 'MICROSOFT');
     if (error) return back(`microsoft=${error === 'access_denied' ? 'cancelled' : 'failed'}`);
     if (!code || !pending) return back('microsoft=expired');
     const cfg = microsoftOAuthConfig();
@@ -489,21 +505,47 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
 
   /* ─── checking the mailboxes ─────────────────────────────────── */
 
-  /** Every 2 minutes while a mailbox is connected (testing; production moves to the job catalogue). */
+  /** In-process timer (CRON_MODE=internal); with CRON_MODE=external Azure calls the job instead. */
   @Cron('*/2 * * * *', { timeZone: 'UTC' })
   async scheduledCheck() {
-    if (!(await this.prisma.referralMailbox.count({ where: { isActive: true, provider: { in: POLLED_PROVIDERS } } }))) return;
-    await this.checkNow().catch((e: Error) => this.logger.warn(`Referral mailbox check failed: ${e.message}`));
+    await runCronTick(this.jobRunner, 'referral-mailbox-check', () => this.runScheduledCheck());
   }
 
-  /** Check every connected mailbox (or one) for new emails. One mailbox failing doesn't stop the others. */
-  async checkNow(mailboxId?: string) {
-    const boxes = await this.prisma.referralMailbox.findMany({
-      where: { isActive: true, provider: { in: POLLED_PROVIDERS }, ...(mailboxId ? { id: mailboxId } : {}) },
+  /**
+   * The "Referral mailbox check" job (admin → System jobs): check every connected mailbox for new emails, then try
+   * again the reads that failed and are due. JobRunner makes it run once per 2-minute period across API processes,
+   * and each mailbox has its own lock, so "Check now" and the job can't check the same mailbox at once.
+   */
+  @JobHandler('referral-mailbox-check')
+  async runScheduledCheck(): Promise<JobOutcome> {
+    const retried = await this.retryDueReads();
+    const boxes = await this.polledMailboxes();
+    if (!boxes.length) return retried ? jobSuccess({ mailboxes: 0, retried }) : jobSkipped('No mailbox to check', { retried });
+    const r = await this.checkBoxes(boxes);
+    const summary = { mailboxes: boxes.length, saved: r.saved, busy: r.busy, failed: r.errors.length, retried };
+    if (r.errors.length === boxes.length) throw new JobFailedWithSummaryError(r.errors.join(' · ').slice(0, 1000), summary);
+    return jobSuccess(summary);
+  }
+
+  private polledMailboxes(mailboxId?: string) {
+    return this.prisma.referralMailbox.findMany({
+      where: { isActive: true, removedAt: null, provider: { in: POLLED_PROVIDERS }, ...(mailboxId ? { id: mailboxId } : {}) },
       orderBy: { createdAt: 'asc' },
     });
+  }
+
+  /** Check every connected mailbox (or one) for new emails ("Check now"). One mailbox failing doesn't stop the others. */
+  async checkNow(mailboxId?: string) {
+    const boxes = await this.polledMailboxes(mailboxId);
     if (!boxes.length && mailboxId) throw new BadRequestException('This mailbox is not checked: emails are posted to CareFlow.');
     if (!boxes.length) throw new BadRequestException('No referrals mailbox is connected.');
+    const { saved, busy, errors } = await this.checkBoxes(boxes);
+    // One mailbox: its error is the answer. Several: report what was saved; each mailbox shows its own error.
+    if (errors.length && errors.length === boxes.length) throw new BadRequestException(errors.join(' · '));
+    return { data: { saved, read: 0, busy, errors } };
+  }
+
+  private async checkBoxes(boxes: ReferralMailbox[]) {
     let saved = 0;
     let busy = false;
     const errors: string[] = [];
@@ -513,15 +555,51 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       busy ||= r.busy;
       if (r.error) errors.push(`${mb.displayName ?? mb.emailAddress}: ${r.error}`);
     }
-    // One mailbox: its error is the answer. Several: report what was saved; each mailbox shows its own error.
-    if (errors.length && errors.length === boxes.length) throw new BadRequestException(errors.join(' · '));
-    return { data: { saved, read: 0, busy, errors } };
+    return { saved, busy, errors };
+  }
+
+  /**
+   * Reads to try again: failed ones whose next try is due, and ones left "Being read" for over 15 minutes (the
+   * process stopped while reading). Each is claimed with a conditional update, so two processes never take the same one.
+   */
+  async retryDueReads(): Promise<number> {
+    const now = new Date();
+    const due = await this.prisma.referralEmail.findMany({
+      where: {
+        OR: [
+          { status: { in: [ReferralEmailStatus.FAILED, ReferralEmailStatus.FOLLOW_UP] }, nextReadAt: { lte: now } },
+          { status: ReferralEmailStatus.RECEIVED, updatedAt: { lt: new Date(now.getTime() - 15 * 60_000) } },
+        ],
+      },
+      orderBy: { receivedAt: 'asc' },
+      select: { id: true, status: true, nextReadAt: true, updatedAt: true },
+      take: 5,
+    });
+    const claimed: string[] = [];
+    for (const d of due) {
+      const won = await this.prisma.referralEmail.updateMany({
+        where:
+          d.status === ReferralEmailStatus.RECEIVED
+            ? { id: d.id, status: d.status, updatedAt: d.updatedAt }
+            : { id: d.id, status: d.status, nextReadAt: d.nextReadAt },
+        // A failed read shows "Being read" (RECEIVED) while the next try runs; a follow-up keeps its status.
+        data: d.status === ReferralEmailStatus.FAILED ? { status: ReferralEmailStatus.RECEIVED, nextReadAt: null } : { nextReadAt: null },
+      });
+      if (won.count) claimed.push(d.id);
+    }
+    if (claimed.length) void this.readInBackground(claimed);
+    return claimed.length;
   }
 
   /** Save new emails and their attachments, mark them in the mailbox, then let Claude read each. */
   private async checkMailbox(mb: ReferralMailbox): Promise<{ saved: number; busy: boolean; error: string | null }> {
-    if (this.checking.has(mb.id)) return { saved: 0, busy: true, error: null };
-    this.checking.add(mb.id);
+    // The lock lives in the database so it holds across API processes; a lock left by a stopped process runs out.
+    const now = new Date();
+    const lock = await this.prisma.referralMailbox.updateMany({
+      where: { id: mb.id, OR: [{ checkLockedUntil: null }, { checkLockedUntil: { lt: now } }] },
+      data: { checkLockedUntil: new Date(now.getTime() + CHECK_LOCK_MS) },
+    });
+    if (!lock.count) return { saved: 0, busy: true, error: null };
     let saved = 0;
     const newIds: string[] = [];
     let connector;
@@ -567,7 +645,9 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       // Claude reads in the background so "Check now" returns straight away; the inbox shows "Being read".
       if (newIds.length) void this.readInBackground(newIds);
       await connector?.close().catch(() => undefined);
-      this.checking.delete(mb.id);
+      await this.prisma.referralMailbox
+        .update({ where: { id: mb.id }, data: { checkLockedUntil: null } })
+        .catch((e: Error) => this.logger.warn(`Unlocking ${mb.emailAddress} failed: ${e.message}`));
     }
   }
 
@@ -656,7 +736,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       ? await this.prisma.referralEmail.findFirst({
           where: { mailboxId, providerThreadId: email.threadKey, id: { not: id }, status: { not: ReferralEmailStatus.FOLLOW_UP } },
           orderBy: { receivedAt: 'asc' },
-          select: { id: true, enquiryId: true, locationId: true },
+          select: { id: true, enquiryId: true, locationId: true, status: true, extraction: true },
         })
       : null;
     if (!original) return id;
@@ -684,7 +764,8 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
         },
       });
     }
-    return null;
+    // The referral is read again with this reply, so new facts (an answer to our questions) reach the checks.
+    return original.extraction && THREAD_READ_STATUSES.includes(original.status) ? id : null;
   }
 
   private async readInBackground(ids: string[]) {
@@ -695,12 +776,21 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
 
   /** On start-up, read any emails left unread (for example when the API restarted while reading). */
   async onApplicationBootstrap() {
+    // Left "Being read" by the last run (a few minutes' grace in case another process is reading them right now).
     const pending = await this.prisma.referralEmail.findMany({
-      where: { status: ReferralEmailStatus.RECEIVED },
-      select: { id: true },
+      where: { status: ReferralEmailStatus.RECEIVED, updatedAt: { lt: new Date(Date.now() - 5 * 60_000) } },
+      select: { id: true, updatedAt: true },
       take: 20,
     });
-    if (pending.length) void this.readInBackground(pending.map((p) => p.id));
+    const mine: string[] = [];
+    for (const p of pending) {
+      const won = await this.prisma.referralEmail.updateMany({
+        where: { id: p.id, status: ReferralEmailStatus.RECEIVED, updatedAt: p.updatedAt },
+        data: { nextReadAt: null },
+      });
+      if (won.count) mine.push(p.id);
+    }
+    if (mine.length) void this.readInBackground(mine);
     // Read but never checked (the API stopped between Claude reading it and the checks): finish those too.
     const unchecked = await this.prisma.referralEmail.findMany({
       where: {
@@ -721,13 +811,10 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     }
   }
 
-  /** Claude reads the email and its attachments (also used for "Read again"). */
-  async readEmail(id: string) {
-    const row = await this.prisma.referralEmail.findUnique({ where: { id } });
-    if (!row) throw new NotFoundException('Referral email not found');
-    const files = (row.attachments as unknown as StoredAttachment[]) ?? [];
+  /** The saved attachments of an email, as Claude reads them (Word and text files as their text). */
+  private async attachmentInputs(row: { id: string; attachments: Prisma.JsonValue }): Promise<ExtractionAttachment[]> {
     const inputs: ExtractionAttachment[] = [];
-    for (const f of files) {
+    for (const f of (row.attachments as unknown as StoredAttachment[]) ?? []) {
       if (!f.storedName) continue;
       const data = await fs.readFile(path.join(STORAGE_ROOT, row.id, f.storedName));
       const text =
@@ -738,6 +825,15 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
             : undefined;
       inputs.push({ fileName: f.fileName, mimeType: f.mimeType, data, text });
     }
+    return inputs;
+  }
+
+  /** Claude reads the email and its attachments (also used for "Read again"). */
+  async readEmail(id: string) {
+    const row = await this.prisma.referralEmail.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException('Referral email not found');
+    if (row.status === ReferralEmailStatus.FOLLOW_UP) return this.readFollowUp(row);
+    const inputs = await this.attachmentInputs(row);
     try {
       const settingsRow = await this.prisma.referralAutomationSettings.findFirst({ select: { rules: true } });
       const rules = normaliseRules(settingsRow?.rules);
@@ -760,15 +856,17 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
           extractionModel: result.model,
           extractionCostUsd: (row.extractionCostUsd ?? 0) + result.costUsd,
           error: null,
+          readAttempts: 0,
+          nextReadAt: null,
           status:
-            row.status === ReferralEmailStatus.ENQUIRY_CREATED || row.status === ReferralEmailStatus.FOLLOW_UP
+            row.status === ReferralEmailStatus.ENQUIRY_CREATED
               ? row.status
               : handled
                 ? ReferralEmailStatus.READ
                 : ReferralEmailStatus.NOT_A_REFERRAL,
         },
       });
-      if (handled && row.status !== ReferralEmailStatus.FOLLOW_UP) {
+      if (handled) {
         await this.automation
           .process(id)
           .catch((err: Error) => this.logger.warn(`Referral automation for ${id} failed: ${err.message}`));
@@ -776,9 +874,95 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       const fresh = await this.prisma.referralEmail.findUniqueOrThrow({ where: { id } });
       return { data: this.present(fresh) };
     } catch (e) {
+      const message = (e as Error).message ?? 'Reading failed';
+      const attempts = row.readAttempts + 1;
+      // A refusal won't change on a second try; anything else (network, overloaded, timeout) is tried again later.
+      const delay = /declined/i.test(message) ? undefined : READ_RETRY_DELAYS_MS[attempts - 1];
       await this.prisma.referralEmail.update({
         where: { id },
-        data: { status: ReferralEmailStatus.FAILED, error: (e as Error).message?.slice(0, 2000) ?? 'Reading failed' },
+        data: {
+          status: ReferralEmailStatus.FAILED,
+          error: message.slice(0, 2000),
+          readAttempts: attempts,
+          nextReadAt: delay ? new Date(Date.now() + delay) : null,
+        },
+      });
+      throw e;
+    }
+  }
+
+  /**
+   * A later email in a referral's thread (usually the referrer answering our questions): the referral is read again
+   * together with every later email in its thread, what changed is noted on the enquiry, and the checks, decision
+   * and draft reply are worked out again. A reply that has already gone stays as it was.
+   */
+  private async readFollowUp(row: ReferralEmailRow) {
+    const original = row.providerThreadId
+      ? await this.prisma.referralEmail.findFirst({
+          where: { mailboxId: row.mailboxId, providerThreadId: row.providerThreadId, status: { not: ReferralEmailStatus.FOLLOW_UP } },
+          orderBy: { receivedAt: 'asc' },
+        })
+      : null;
+    if (!original?.extraction || !THREAD_READ_STATUSES.includes(original.status)) {
+      // Nothing read to add it to: it stays linked to the thread for staff.
+      return { data: this.present(row) };
+    }
+    try {
+      const later = await this.prisma.referralEmail.findMany({
+        where: { mailboxId: row.mailboxId, providerThreadId: row.providerThreadId, status: ReferralEmailStatus.FOLLOW_UP },
+        orderBy: { receivedAt: 'asc' },
+        take: 10,
+      });
+      const inputs = await this.attachmentInputs(original);
+      for (const f of later) inputs.push(...(await this.attachmentInputs(f)));
+      const settingsRow = await this.prisma.referralAutomationSettings.findFirst({ select: { rules: true } });
+      const result = await this.extraction.extract({
+        subject: original.subject,
+        fromName: original.fromName,
+        fromEmail: original.fromEmail,
+        receivedAt: original.receivedAt,
+        bodyText: threadBody(original.bodyText, later),
+        attachments: inputs,
+        houseRules: houseRulesForReading(normaliseRules(settingsRow?.rules)),
+      });
+      const before = original.extraction as unknown as ReferralExtraction;
+      // The thread is still about the same referral even if the reply on its own reads like a question.
+      const after: ReferralExtraction = { ...result.extraction, isReferral: before.isReferral, emailKind: before.emailKind ?? result.extraction.emailKind };
+      const facts = newFacts(before, after);
+      await this.prisma.referralEmail.update({
+        where: { id: original.id },
+        data: { extraction: after as unknown as Prisma.InputJsonValue, extractionModel: result.model },
+      });
+      await this.prisma.referralEmail.update({
+        where: { id: row.id },
+        data: { extractionCostUsd: (row.extractionCostUsd ?? 0) + result.costUsd, error: null, readAttempts: 0, nextReadAt: null },
+      });
+      if (original.enquiryId) {
+        await this.prisma.enquiryEvent.create({
+          data: {
+            enquiryId: original.enquiryId,
+            action: 'Referral read again with the referrer\'s reply',
+            note: (facts.length ? ['New or changed:', ...facts.map((f) => `• ${f}`)] : ['Nothing new for the referral details.'])
+              .concat(after.missingInformation?.length ? ['', `Still missing: ${after.missingInformation.join('; ')}`] : [])
+              .join('\n')
+              .slice(0, 4000),
+            userId: null,
+          },
+        });
+      }
+      await this.automation
+        .process(original.id)
+        .catch((err: Error) => this.logger.warn(`Referral automation for ${original.id} failed: ${err.message}`));
+      const fresh = await this.prisma.referralEmail.findUniqueOrThrow({ where: { id: row.id } });
+      return { data: this.present(fresh) };
+    } catch (e) {
+      // It stays a follow-up (so it isn't read as a new referral); the next try is scheduled like any failed read.
+      const message = (e as Error).message ?? 'Reading failed';
+      const attempts = row.readAttempts + 1;
+      const delay = /declined/i.test(message) ? undefined : READ_RETRY_DELAYS_MS[attempts - 1];
+      await this.prisma.referralEmail.update({
+        where: { id: row.id },
+        data: { error: message.slice(0, 2000), readAttempts: attempts, nextReadAt: delay ? new Date(Date.now() + delay) : null },
       });
       throw e;
     }
@@ -800,6 +984,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     extractionCostUsd: number | null;
     error: string | null;
     enquiryId: string | null;
+    nextReadAt?: Date | null;
     bodyText?: string;
     locationId?: string | null;
     checks?: Prisma.JsonValue | null;
@@ -837,6 +1022,8 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       extractionModel: row.extractionModel,
       extractionCostUsd: row.extractionCostUsd,
       error: row.error,
+      /** When the next automatic try of a failed read is due (null = none). */
+      nextReadAt: row.nextReadAt?.toISOString() ?? null,
       enquiryId: row.enquiryId,
       locationId: row.locationId ?? null,
       checks: (row.checks as unknown as Array<{ key: string; label: string; result: string; detail: string }> | null) ?? null,

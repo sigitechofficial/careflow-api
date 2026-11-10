@@ -264,6 +264,8 @@ export type ReferralExtraction = {
   questionsAsked: string[];
   missingInformation: string[];
   attachmentsRead: Array<{ fileName: string; whatItIs: string }>;
+  /** Attachments left out of the read (too large or too long for the AI), with the reason. */
+  attachmentsNotRead?: Array<{ fileName: string; reason: string }>;
 };
 
 
@@ -412,6 +414,63 @@ export type ReplyFacts = {
 
 export type ExtractionAttachment = { fileName: string; mimeType: string; data: Buffer; text?: string };
 
+/** Claude API limits for files sent with a read (the whole request must stay under 32 MB once base64-encoded). */
+export const AI_FILE_LIMITS = { totalBytes: 22 * 1024 * 1024, imageBytes: 5 * 1024 * 1024, pdfPages: 100 };
+const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+
+/** Pages in a PDF, counted from its page objects; 0 when they can't be counted (compressed object streams). */
+export function pdfPageCount(data: Buffer): number {
+  return (data.toString('latin1').match(/\/Type\s*\/Page(?![a-zA-Z])/g) ?? []).length;
+}
+
+/**
+ * Which files go to Claude. A file too big for the AI is left out (with the reason) instead of failing the whole
+ * email: images over 5 MB, PDFs over 100 pages, and, smallest first, whatever doesn't fit in the request.
+ */
+export function planAttachments(attachments: ExtractionAttachment[]): {
+  send: ExtractionAttachment[];
+  notRead: Array<{ fileName: string; reason: string }>;
+} {
+  const notRead: Array<{ fileName: string; reason: string }> = [];
+  const binary: ExtractionAttachment[] = [];
+  const send: ExtractionAttachment[] = [];
+  for (const a of attachments) {
+    const isPdf = a.mimeType === 'application/pdf';
+    const isImage = IMAGE_TYPES.includes(a.mimeType);
+    if (!isPdf && !isImage) {
+      send.push(a);
+      continue;
+    }
+    if (isImage && a.data.length > AI_FILE_LIMITS.imageBytes) {
+      notRead.push({ fileName: a.fileName, reason: 'Image over 5 MB: too large for the AI to read' });
+      continue;
+    }
+    const pages = isPdf ? pdfPageCount(a.data) : 0;
+    if (pages > AI_FILE_LIMITS.pdfPages) {
+      notRead.push({ fileName: a.fileName, reason: `${pages} pages: too long for the AI to read (at most ${AI_FILE_LIMITS.pdfPages})` });
+      continue;
+    }
+    binary.push(a);
+  }
+  let used = 0;
+  for (const a of [...binary].sort((x, y) => x.data.length - y.data.length)) {
+    if (used + a.data.length > AI_FILE_LIMITS.totalBytes) {
+      notRead.push({ fileName: a.fileName, reason: 'Too large to read together with the other files' });
+      continue;
+    }
+    used += a.data.length;
+    send.push(a);
+  }
+  // Keep the email's own order of attachments.
+  return { send: attachments.filter((a) => send.includes(a)), notRead };
+}
+
+/** The API turned the request down because of a file in it (too large, too many pages, damaged…). */
+function isFileRejection(err: unknown) {
+  const status = (err as { status?: number })?.status;
+  return status === 413 || (status === 400 && /pdf|document|image|page|too large|size|exceed|media|base64|process/i.test(String((err as Error)?.message)));
+}
+
 @Injectable()
 export class ReferralExtractionService {
   private readonly logger = new Logger(ReferralExtractionService.name);
@@ -473,16 +532,43 @@ Write the reply.` }],
           required: [...REFERRAL_EXTRACTION_SCHEMA.required, 'houseRuleMatches'],
         }
       : REFERRAL_EXTRACTION_SCHEMA;
+    const planned = planAttachments(input.attachments);
+    const notRead = [...planned.notRead];
+    let toSend = planned.send;
+    // A file the API still turns down is left out and the email read again without it (largest file first).
+    for (;;) {
+      try {
+        const result = await this.extractWith(input, toSend, notRead, system, mainSchema);
+        if (notRead.length) result.extraction.attachmentsNotRead = notRead;
+        return result;
+      } catch (err) {
+        const files = toSend.filter((a) => a.mimeType === 'application/pdf' || IMAGE_TYPES.includes(a.mimeType));
+        if (!files.length || !isFileRejection(err)) throw err;
+        const largest = files.reduce((m, a) => (a.data.length > m.data.length ? a : m));
+        this.logger.warn(`Reading again without "${largest.fileName}": ${(err as Error).message}`);
+        notRead.push({ fileName: largest.fileName, reason: 'The AI could not read this file' });
+        toSend = toSend.filter((a) => a !== largest);
+      }
+    }
+  }
+
+  private async extractWith(
+    input: { subject: string | null; fromName: string | null; fromEmail: string | null; receivedAt: Date; bodyText: string },
+    attachments: ExtractionAttachment[],
+    notRead: Array<{ fileName: string; reason: string }>,
+    system: string,
+    mainSchema: unknown,
+  ): Promise<{ extraction: ReferralExtraction; model: string; costUsd: number }> {
     const content: Anthropic.Beta.BetaContentBlockParam[] = [];
-    const skipped: string[] = [];
-    for (const a of input.attachments) {
+    const skipped: string[] = notRead.map((n) => `${n.fileName} (${n.reason})`);
+    for (const a of attachments) {
       if (a.mimeType === 'application/pdf') {
         content.push({
           type: 'document',
           source: { type: 'base64', media_type: 'application/pdf', data: a.data.toString('base64') },
           title: a.fileName,
         });
-      } else if (['image/png', 'image/jpeg', 'image/gif', 'image/webp'].includes(a.mimeType)) {
+      } else if (IMAGE_TYPES.includes(a.mimeType)) {
         content.push({
           type: 'image',
           source: { type: 'base64', media_type: a.mimeType as 'image/png', data: a.data.toString('base64') },
@@ -523,7 +609,7 @@ Write the reply.` }],
     let costUsd = main.costUsd;
 
     // Detailed referrals (attachments or a long email): read every section of the form in a second call.
-    const detailed = input.attachments.length > 0 || (input.bodyText ?? '').length > 1500;
+    const detailed = attachments.length > 0 || (input.bodyText ?? '').length > 1500;
     if (parsed.isReferral && detailed) {
       try {
         const more = await this.read<{ details: ReferralDetails }>(

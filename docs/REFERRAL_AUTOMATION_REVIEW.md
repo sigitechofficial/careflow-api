@@ -39,7 +39,7 @@ What is good:
 | A3 | Medium | **New referrals were linked to closed enquiries.** The "already known" match (same name + date of birth or postcode) also matched WON and LOST enquiries, so a person referred again months later was attached to the old closed enquiry. | Fixed: only open enquiries are linked; a closed one is mentioned in the check, and a new enquiry is made. |
 | A4 | Medium | **A second quotation was made and sent when an email matched an enquiry that already had one.** Seen in testing: the same family's second email made EQ-2026-0002 although EQ-2026-0001 had already been sent. | Fixed: no automatic quote when the enquiry already has a quotation; the check says which one exists. |
 | A5 | Medium | **A referral matched to an existing enquiry is still answered automatically** (a YES with a new quote went out in testing). The match is "same name and DOB or postcode", which is reasonable, but a second automatic reply to an enquiry staff are already handling may cross with what they have said. | Changed: a reply is not sent automatically when the email was linked to an enquiry that already existed; it waits for staff. |
-| A6 | Low | Replies in the same thread from the referrer (follow-ups) are linked and noted on the enquiry, but not read for new facts (e.g. the postcode we asked for). Staff update the enquiry by hand. | Open: a later piece of work ("read follow-ups and update the enquiry"). |
+| A6 | Low | Replies in the same thread from the referrer (follow-ups) are linked and noted on the enquiry, but not read for new facts (e.g. the postcode we asked for). Staff update the enquiry by hand. | Fixed 10 Nov 2026: the referral is read again with every later email in its thread; what is new or changed is noted on the enquiry and the checks and decision are worked out again. A reply already sent stays as it was. |
 | A7 | Low | The "no postcode" branch order is: the mailbox's branch, then the setting, then the first covered branch. A branch-specific mailbox is the right first choice. | No change. |
 
 ### B. Claude reading the emails (extraction and reply drafting)
@@ -56,8 +56,8 @@ What is good:
 | # | Severity | Finding | Action |
 |---|---|---|---|
 | B1 | High | **Key safe codes and PINs are kept out of what Claude records, but not out of the email itself.** The email text and the attachments are stored as received (they have to be, as the record of what was sent to us), so a code written in the email is in the database and in private file storage. Only staff signed in to CareFlow can see either. | Decision needed. Options: (1) accept it (the original email is the record); (2) hide likely codes in the stored email text (e.g. "key safe code 4821" → "key safe code ••••"), leaving attachments as they are. Not changed without your say. |
-| B2 | Medium | **Emails that fail to be read are not retried.** A read can fail when Claude is busy or a file is too big; the email stays "Failed" until someone presses "Read again". | Open: retry failed reads automatically once or twice, then leave for staff. |
-| B3 | Medium | **One very large PDF (over about 100 pages or 32 MB) makes the whole email fail**, not just that file. | Open: send such files as "could not be read" and carry on with the rest. |
+| B2 | Medium | **Emails that fail to be read are not retried.** A read can fail when Claude is busy or a file is too big; the email stays "Failed" until someone presses "Read again". | Fixed 10 Nov 2026: tried again automatically after 5 minutes, 30 minutes and 2 hours (not after a refusal); the inbox shows when. Then left for staff. |
+| B3 | Medium | **One very large PDF (over about 100 pages or 32 MB) makes the whole email fail**, not just that file. | Fixed 10 Nov 2026: images over 5 MB, PDFs over 100 pages and files that don't fit in one request are left out with the reason; a file the API still turns down is dropped and the email read again. The inbox lists them under "Not read by Claude". |
 | B4 | Low | Old Word files (.doc), Excel and HEIC photos (iPhone) are not read; they are listed as "could not be read" and Claude adds them to the missing information. | Open: convert .doc / HEIC if they turn up in practice. |
 | B5 | Low | The follow-up date and urgency come from Claude's urgency (EMERGENCY / URGENT / ROUTINE). The prompt defines them; spot checks matched (hospital discharges came back URGENT). | No change. |
 | B6 | Low | "Server-side fallback" is on: if the main model is unavailable, another Claude model answers. The model used is recorded on each email. | No change. |
@@ -77,8 +77,8 @@ What is good:
 | C1 | High | **Turning a mailbox off lost its settings in practice.** "Disconnect" switched it off, the screen then hid it, and getting it back meant adding it again from scratch (and for IMAP, typing the password again). There was no way to pause a mailbox. | Fixed: **Turn off** (kept, shown as "Off", can be **Turn on**ed; the connection is checked first), and **Remove** (sign-in, passwords, relay key and webhook address wiped; emails stay; adding the same address brings it back). Tested in the app (section E). |
 | C2 | Medium | **IMAP servers that don't keep CareFlow's mark could stall.** Each check took the 20 *oldest* unmarked emails; if the mark doesn't stick, the same 20 come back forever and new mail is never reached. | Fixed: up to 200 are listed, ones already saved are skipped, and the 20 newest unsaved are read. |
 | C3 | Medium | **Replies sent through a relay with its own sender address had no Reply-To**, so the referrer's answer would go to e.g. `noreply@…` instead of the referrals mailbox. | Fixed: Reply-To is set to the mailbox; covered by the local-server test. |
-| C4 | Medium | **Several API instances would each run the 2-minute check.** The "being checked" lock is per instance. Saving is safe (one row per email in the database), but two instances could both try, and one records an error. | Open (known): move the check into the job catalogue with a database lock before running more than one API instance. |
-| C5 | Medium | **Google/Microsoft sign-in "state" is kept in memory.** With more than one API instance, the sign-in can come back to the other one and fail as "expired". | Open: keep it in the database (or signed) before scaling out. |
+| C4 | Medium | **Several API instances would each run the 2-minute check.** The "being checked" lock is per instance. Saving is safe (one row per email in the database), but two instances could both try, and one records an error. | Fixed 10 Nov 2026: "Referral mailbox check" is a catalogue job (System jobs, once per 2-minute period across instances), and each mailbox has a lock in the database. |
+| C5 | Medium | **Google/Microsoft sign-in "state" is kept in memory.** With more than one API instance, the sign-in can come back to the other one and fail as "expired". | Fixed 10 Nov 2026: kept in the database (hash only, 10 minutes, used once). |
 | C6 | Low | Microsoft: attachments over 3 MB need an upload session (the quote PDF is small, so not needed now); a reply fails if the original email was deleted in Outlook. | Open, low risk. |
 | C7 | Low | A mailbox re-added after being removed keeps its first "connected" date, so its 14-day first read starts from then. Harmless (emails already saved are skipped). | No change. |
 | C8 | Low | Webhook posts are limited to 40 MB and need the secret; there is no per-mailbox rate limit. | Open: add one if the address is ever exposed widely. |
@@ -128,11 +128,10 @@ and several that would have given wrong results in particular cases (A2–A5, C1
    received. Claude still never copies a code into the enquiry; only signed-in staff can open the stored email.
 2. **Real rates.** The standard private rates are still placeholders (£28.50 an hour, £16.50 per 30-minute visit).
    Every automatic quote uses them.
-3. **C4 / C5 – before running more than one API instance:** move the 2-minute check into the job catalogue with a
-   database lock, and keep sign-in state in the database.
-4. **B2 / B3 – failed reads:** retry automatically, and don't let one huge PDF fail the whole email.
-5. **Microsoft 365 live test:** needs the Entra app registration; the code is tested against simulated responses only.
-6. **A6 – follow-up emails** are linked but not read for new facts.
-7. Small: D3, D4, C6, C8, B4.
-8. Test data to clean up: enquiries ENQ-2026-0002 to 0013, quotes EQ-2026-0001 and 0002, test emails in Gmail.
-9. Nothing is committed yet.
+3. **Microsoft 365 live test:** needs the Entra app registration; the code is tested against simulated responses only.
+4. Small: D3, D4, C6, C8, B4.
+5. The test emails are still in the Gmail test mailbox (labelled "CareFlow read", so they are not imported again).
+
+Done 10 Nov 2026: C4, C5 (job + database lock, sign-in state in the database), B2, B3 (automatic retries, large
+files left out), A6 (follow-ups read for new facts), and the local test data (31 test emails, enquiries
+ENQ-2026-0002 to 0013 and their quotes) deleted.

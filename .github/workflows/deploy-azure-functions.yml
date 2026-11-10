@@ -29,6 +29,7 @@ env:
     survey-distribution visit-start-reminder late-visit-alert ecm-missed-visit
     ecm-missing-checkout platform-costs-sync employee-payout-auto supervision-reminders
     compliance-expiry-reminders assessment-review-reminders policy-acknowledgement-reminders
+    referral-mailbox-check
 
 jobs:
   deploy:
