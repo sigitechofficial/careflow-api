@@ -139,3 +139,13 @@ describe('service-user-alert-mapping', () => {
     });
   });
 });
+
+describe('mapCommunicationNeedsToAlert', () => {
+  const { mapCommunicationNeedsToAlert } = jest.requireActual('./service-user-alert-mapping.util') as typeof import('./service-user-alert-mapping.util');
+  it('makes one alert from the communication needs summary', () => {
+    expect(mapCommunicationNeedsToAlert('Large print; interpreter: Polish')).toEqual(
+      expect.objectContaining({ id: 'communication-needs', title: 'Communication needs', detail: 'Large print; interpreter: Polish' }),
+    );
+    expect(mapCommunicationNeedsToAlert('  ')).toBeNull();
+  });
+});

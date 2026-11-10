@@ -775,6 +775,7 @@ describe('cut-over: internal @Cron tick and external trigger share the period ke
     ['assessment-review-reminders', '2026-10-02T10:25:00.000Z', 30_000],
     ['policy-acknowledgement-reminders', '2026-10-02T10:35:00.000Z', 30_000],
     ['rolling-rota', '2026-10-02T02:00:00.000Z', 60_000],
+    ['referral-mailbox-check', '2026-10-02T10:08:00.000Z', 8_000],
   ];
 
   it.each(cases)(

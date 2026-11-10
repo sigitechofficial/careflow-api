@@ -35,8 +35,12 @@ describe('Medical Conditions & Alerts clinical SoT foundation (Phase 2)', () => 
     expect(sql).not.toMatch(/ALTER TABLE "alerts"\."Alert"/i);
   });
 
-  it('migration seeds medical clinical permissions without alerts.* changes', () => {
-    const sql = readFileSync(migrationPath, 'utf8');
+  it('migrations seed every medical clinical permission without alerts.* changes', () => {
+    // The medical alerts permissions came later, in their own migration.
+    const sql = [
+      readFileSync(migrationPath, 'utf8'),
+      readFileSync(join(__dirname, '../../prisma/migrations/20261226110000_medical_alert_permissions/migration.sql'), 'utf8'),
+    ].join('\n');
     for (const key of MEDICAL_CLINICAL_PERMISSION_KEYS) {
       expect(sql).toContain(`'${key}'`);
     }

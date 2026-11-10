@@ -331,7 +331,7 @@ export class ServiceUserMedicationsService {
     this.validateSchedules(dto.medicationKind, dto.schedules);
     this.validateSchedulePattern(dto);
 
-    const allergies = await this.prisma.medicationAllergy.findMany({
+    const allergies = await this.prisma.serviceUserAllergy.findMany({
       where: { serviceUserId, deletedAt: null, isActive: true },
     });
     const warnings = buildAllergyWarnings(dto.medicationName, allergies);
@@ -687,7 +687,7 @@ export class ServiceUserMedicationsService {
     });
 
     const nameForWarn = dto.medicationName ?? existing.medicationName;
-    const allergies = await this.prisma.medicationAllergy.findMany({
+    const allergies = await this.prisma.serviceUserAllergy.findMany({
       where: { serviceUserId, deletedAt: null, isActive: true },
     });
     const warnings = buildAllergyWarnings(nameForWarn, allergies);

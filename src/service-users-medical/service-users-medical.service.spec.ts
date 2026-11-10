@@ -460,11 +460,19 @@ describe('Service Users Medical Phase 3', () => {
   describe('reasonable adjustments', () => {
     it('9 create', async () => {
       const res = await adjustments.create(makeUser(), suId, {
-        type: ReasonableAdjustmentType.COMMUNICATION,
-        description: 'Large print',
+        type: ReasonableAdjustmentType.PHYSICAL_ACCESS,
+        description: 'Ramp at the back door',
       });
-      expect(res.data.type).toBe(ReasonableAdjustmentType.COMMUNICATION);
+      expect(res.data.type).toBe(ReasonableAdjustmentType.PHYSICAL_ACCESS);
       expect(alertCreates).toBe(0);
+    });
+
+    it('9b refuses communication and sensory adjustments (recorded in Privacy → Communication needs)', async () => {
+      for (const type of [ReasonableAdjustmentType.COMMUNICATION, ReasonableAdjustmentType.SENSORY]) {
+        await expect(adjustments.create(makeUser(), suId, { type, description: 'Large print' })).rejects.toBeInstanceOf(
+          BadRequestException,
+        );
+      }
     });
 
     it('10 update', async () => {
@@ -480,8 +488,8 @@ describe('Service Users Medical Phase 3', () => {
 
     it('11 list', async () => {
       await adjustments.create(makeUser(), suId, {
-        type: ReasonableAdjustmentType.SENSORY,
-        description: 'Reduce noise',
+        type: ReasonableAdjustmentType.ROUTINE_TIMING,
+        description: 'Visits after 9am',
       });
       const list = await adjustments.list(makeUser(), suId);
       expect(list.data.length).toBe(1);

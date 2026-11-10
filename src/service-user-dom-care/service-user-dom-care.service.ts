@@ -8,16 +8,15 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { PatchServiceUserDomCareDto } from './dto/patch-service-user-dom-care.dto';
 import {
+  LIVE_FUNDING_LINE_WHERE,
+  totalAuthorisedWeeklyHours,
+} from '../service-user-funding/authorised-hours.util';
+import {
   currentServiceUserWeeklyHours,
   sameWeeklyHours,
   SERVICE_USER_HOURS_NEED_APPROVAL_MESSAGE,
   syncServiceUserWeeklyHours,
 } from './service-user-weekly-hours-sync.util';
-import {
-  decryptSecureText,
-  encryptSecureText,
-  IA_DOOR_CODE_FIELD_KEY,
-} from '../initial-assessments/initial-assessment-secure-field.util';
 
 const DOC_SEGMENTS = ['service-users', 'dom-care', 'contracts'] as const;
 const GENDER_PREF_QUESTION_NEEDLE = 'gender preference';
@@ -229,57 +228,6 @@ export class ServiceUserDomCareService {
     });
   }
 
-  private async readKeySafeCodeFromIa(serviceUserId: string): Promise<string | null> {
-    const submission = await this.prisma.initialAssessmentSubmission.findFirst({
-      where: { serviceUserId, deletedAt: null },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true },
-    });
-    if (!submission) return null;
-    const answer = await this.prisma.initialAssessmentAnswer.findFirst({
-      where: {
-        submissionId: submission.id,
-        question: {
-          metadata: { path: ['fieldKey'], equals: IA_DOOR_CODE_FIELD_KEY },
-          deletedAt: null,
-        },
-      },
-      select: { textValue: true },
-    });
-    return decryptSecureText(answer?.textValue)?.trim() || null;
-  }
-
-  private async syncKeySafeCodeToIa(
-    tx: Prisma.TransactionClient,
-    serviceUserId: string,
-    value: string | null,
-  ): Promise<void> {
-    const submission = await tx.initialAssessmentSubmission.findFirst({
-      where: { serviceUserId, deletedAt: null },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true, templateId: true },
-    });
-    if (!submission) return;
-    const question = await tx.initialAssessmentQuestion.findFirst({
-      where: {
-        metadata: { path: ['fieldKey'], equals: IA_DOOR_CODE_FIELD_KEY },
-        isActive: true,
-        deletedAt: null,
-        section: { templateId: submission.templateId, deletedAt: null },
-      },
-      select: { id: true },
-    });
-    if (!question) return;
-    const textValue = encryptSecureText(value);
-    await tx.initialAssessmentAnswer.upsert({
-      where: {
-        submissionId_questionId: { submissionId: submission.id, questionId: question.id },
-      },
-      create: { submissionId: submission.id, questionId: question.id, textValue },
-      update: { textValue },
-    });
-  }
-
   private async ensureEmployeesExist(tx: Prisma.TransactionClient, employeeIds: string[]) {
     if (!employeeIds.length) return;
     const found = await tx.employee.findMany({
@@ -298,6 +246,15 @@ export class ServiceUserDomCareService {
     } as const;
   }
 
+  /** Weekly hours the funders agreed to pay for, across all live funding lines (Funding tab). */
+  private async authorisedHours(serviceUserId: string): Promise<number | null> {
+    const lines = await this.prisma.serviceUserFunding.findMany({
+      where: { serviceUserId, ...LIVE_FUNDING_LINE_WHERE },
+      select: { authorisedWeeklyHours: true },
+    });
+    return totalAuthorisedWeeklyHours(lines);
+  }
+
   async get(serviceUserId: string) {
     await this.ensureServiceUser(serviceUserId);
     const row = await this.prisma.serviceUserDomCare.findUnique({
@@ -308,8 +265,7 @@ export class ServiceUserDomCareService {
       const payload = defaultPayload(serviceUserId);
       payload.staffGenderPreference = await this.readGenderPreferenceFromIa(serviceUserId);
       payload.accommodationType = await this.readAccommodationTypeFromIa(serviceUserId);
-      payload.doorCode = await this.readKeySafeCodeFromIa(serviceUserId);
-      return { data: payload };
+      return { data: { ...payload, authorisedWeeklyHours: await this.authorisedHours(serviceUserId) } };
     }
     const payload = mapDomPayload(serviceUserId, row);
     if (!payload.staffGenderPreference) {
@@ -318,10 +274,7 @@ export class ServiceUserDomCareService {
     if (!payload.accommodationType) {
       payload.accommodationType = await this.readAccommodationTypeFromIa(serviceUserId);
     }
-    if (!payload.doorCode) {
-      payload.doorCode = await this.readKeySafeCodeFromIa(serviceUserId);
-    }
-    return { data: payload };
+    return { data: { ...payload, authorisedWeeklyHours: await this.authorisedHours(serviceUserId) } };
   }
 
   /** Active employees with personal details; scoped to DOM care read (no `employees.read` required). */
@@ -379,6 +332,8 @@ export class ServiceUserDomCareService {
         }
       }
 
+      // Older door code kept on DOM Care. Carers see the key safe code on Home & access (the address), so this
+      // is only ever cleared now; it is not copied into the assessment answer, which records what was said then.
       const doorCode =
         dto.doorCode === undefined
           ? undefined
@@ -488,9 +443,6 @@ export class ServiceUserDomCareService {
       if (dto.accommodationType !== undefined) {
         await this.syncAccommodationTypeToIa(tx, serviceUserId, dto.accommodationType ?? null);
       }
-      if (dto.doorCode !== undefined) {
-        await this.syncKeySafeCodeToIa(tx, serviceUserId, dto.doorCode ?? null);
-      }
       if (dto.weeklyContractedHours !== undefined) {
         await syncServiceUserWeeklyHours(tx, this.audit, {
           serviceUserId,
@@ -517,7 +469,7 @@ export class ServiceUserDomCareService {
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
-      return { message: 'DOM Care updated', data: payload };
+      return { message: 'DOM Care updated', data: { ...payload, authorisedWeeklyHours: await this.authorisedHours(serviceUserId) } };
     });
   }
 

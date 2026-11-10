@@ -40,6 +40,19 @@ import {
 
 export type AllocationWarningSeverity = 'blocking' | 'warning' | 'info';
 
+/**
+ * The person's carer gender preference (DOM Care, from the assessment) against the carer's recorded gender.
+ * A message when they differ; null when there is no preference, it is "case by case", or the carer's gender
+ * is not recorded.
+ */
+export function genderPreferenceMismatch(preference: string | null | undefined, carerGender: string | null | undefined): string | null {
+  const pref = preference?.trim().toLowerCase();
+  const carer = carerGender?.trim().toLowerCase();
+  if (!pref || !carer || (pref !== 'male' && pref !== 'female')) return null;
+  if (carer === pref) return null;
+  return `They prefer a ${pref} carer for personal care (DOM Care); this carer is recorded as ${carerGender!.trim()}.`;
+}
+
 export type AllocationWarning = {
   type: AllocationWarningType;
   message: string;
@@ -393,6 +406,14 @@ export class AllocationChecksService {
         message: 'Employee is a preferred carer for this service user',
         severity: 'info',
       });
+    }
+    if (domCare?.staffGenderPreference) {
+      const carer = await this.prisma.employeePersonalDetail.findFirst({
+        where: { employeeId: ctx.employeeId },
+        select: { gender: { select: { name: true } } },
+      });
+      const message = genderPreferenceMismatch(domCare.staffGenderPreference, carer?.gender?.name);
+      if (message) push({ type: AllocationWarningType.GENDER_PREFERENCE, message, severity: 'warning' });
     }
 
     const liveIn = await this.prisma.serviceUserLiveInProfile.findFirst({

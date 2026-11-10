@@ -1,4 +1,5 @@
 import { copySurveyTranslations, translationsForAnswerPage } from './survey-translations.answer-page';
+import { suggestedSurveyLanguage } from '../service-user-privacy/service-user-privacy.util';
 import {
   BadRequestException,
   ConflictException,
@@ -7645,7 +7646,11 @@ export class SurveysService {
       forServiceUser && recipient.serviceUserId
         ? await this.prisma.serviceUser.findFirst({
             where: { id: recipient.serviceUserId },
-            select: { firstName: true, lastName: true },
+            select: {
+              firstName: true,
+              lastName: true,
+              communicationNeeds: { select: { formats: true, interpreterNeeded: true, interpreterLanguage: true } },
+            },
           })
         : null;
     const alreadyCompleted = Boolean(recipient.response) || recipient.status === 'COMPLETED';
@@ -7667,6 +7672,7 @@ export class SurveysService {
       linkKind: 'recipient',
       askRespondent: forServiceUser,
       forName: su ? `${su.firstName} ${su.lastName}`.trim() : null,
+      needs: su?.communicationNeeds ?? null,
     });
   }
 
@@ -7781,6 +7787,8 @@ export class SurveysService {
       noOpenPeriod?: { nextOpensAt: Date | null } | null;
       /** This person's invitation lapsed (they can no longer be sent it): closed for them. */
       closedForYou?: boolean;
+      /** Their communication needs (Profile → Privacy): the page opens in easy read or their language. */
+      needs?: { formats: string[]; interpreterNeeded: boolean; interpreterLanguage: string } | null;
     },
   ) {
     const availability: Availability = opts.closedForYou
@@ -7868,6 +7876,11 @@ export class SurveysService {
          */
         languages: translated.languages,
         translations: translated.translations,
+        /**
+         * The version this person's link opens in, from their communication needs (easy read, or the language
+         * they need an interpreter for); null = English. A choice they made on the page before wins.
+         */
+        suggestedLanguage: suggestedSurveyLanguage(opts.needs, translated.languages),
       },
     };
   }

@@ -323,6 +323,10 @@ async function main() {
     'service_users.medical_monitoring.update',
     'service_users.medical_usual_parameters.read',
     'service_users.medical_usual_parameters.update',
+    'service_users.medical_alerts.read',
+    'service_users.medical_alerts.create',
+    'service_users.medical_alerts.update',
+    'service_users.medical_alerts.delete',
     'service_users.documents.read',
     'service_users.documents.update',
     'service_users.documents.delete',
@@ -890,6 +894,10 @@ async function main() {
     'service_users.medical_monitoring.update',
     'service_users.medical_usual_parameters.read',
     'service_users.medical_usual_parameters.update',
+    'service_users.medical_alerts.read',
+    'service_users.medical_alerts.create',
+    'service_users.medical_alerts.update',
+    'service_users.medical_alerts.delete',
     'service_users.documents.read',
     'service_users.documents.update',
     'service_users.documents.delete',
@@ -1966,6 +1974,8 @@ async function main() {
       create: { name: row.name, code: row.code, description: row.description ?? undefined },
     });
   }
+  // Funding routes were seeded before the billing types existed: link each route to its billing type now.
+  await seedServiceUserFundingTypes(prisma);
 
   const typeId = async (code: string) => {
     const t = await prisma.fundingType.findFirst({ where: { code, deletedAt: null } });
@@ -1978,7 +1988,8 @@ async function main() {
     { name: 'Private / Self-Funded', code: 'PRIVATE_SELF_FUNDED', fundingTypeCode: 'SELF_FUNDED' },
     { name: 'Direct Payment', code: 'DIRECT_PAYMENT_FUNDER', fundingTypeCode: 'DIRECT_PAYMENT' },
     { name: 'Family Funded', code: 'FAMILY_FUNDED_FUNDER', fundingTypeCode: 'FAMILY_FUNDED' },
-    { name: 'Unknown', code: 'UNKNOWN_FUNDER', fundingTypeCode: 'UNKNOWN' },
+    // No "Unknown" funder: a funding line is someone you can invoice. Undecided funding is recorded as the
+    // expected funding route in Personal Details until a real payer is agreed.
   ];
   for (const f of funderDefs) {
     const ftId = await typeId(f.fundingTypeCode);

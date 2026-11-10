@@ -41,7 +41,9 @@ describe('workplace pension, relief at source (Gate C16)', () => {
       employeeNet: 40,
       employer: 30,
     });
-    expect(pensionQualifyingLimits(new Date(Date.UTC(2026, 3, 6)), 'WEEKLY')).toBeNull();
+    // Every pay frequency has its 2026/27 qualifying earnings band (£6,240 to £50,270 a year).
+    expect(pensionQualifyingLimits(new Date(Date.UTC(2026, 3, 6)), 'WEEKLY')).toEqual({ lower: 120, upper: 967 });
+    expect(pensionQualifyingLimits(new Date(Date.UTC(2026, 3, 6)), 'FOUR_WEEKLY')).toEqual({ lower: 480, upper: 3867 });
     expect(pensionQualifyingLimits(new Date(Date.UTC(2025, 3, 6)), 'MONTHLY')).toBeNull();
   });
 

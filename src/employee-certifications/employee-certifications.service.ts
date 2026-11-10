@@ -8,13 +8,47 @@ import { UpdateEmployeeCertificationDto } from './dto/update-employee-certificat
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { EmployeeComplianceService } from '../employee-compliance/employee-compliance.service';
+import { matchComplianceTypeForCertificate } from '../employee-compliance/evidence-match.util';
 
 @Injectable()
 export class EmployeeCertificationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly compliance: EmployeeComplianceService,
   ) {}
+
+  /**
+   * A certificate whose type is also a compliance item (Care Certificate, driving licence…) is that item's
+   * evidence, so it is filed there too, instead of the compliance item staying "missing".
+   */
+  private async fileAgainstCompliance(
+    userId: string,
+    employeeId: string,
+    cert: { id: string; issueDate: Date | null; expiryDate: Date | null; certificateUrl: string | null; certificationType: { name: string } | null },
+  ) {
+    if (!cert.certificationType) return;
+    const types = await this.prisma.complianceType.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: { id: true, name: true },
+    });
+    const match = matchComplianceTypeForCertificate(cert.certificationType.name, types);
+    if (!match) return;
+    const url = cert.certificateUrl?.trim();
+    await this.compliance.attachEvidence({
+      userId,
+      employeeId,
+      complianceTypeId: match.id,
+      issueDate: cert.issueDate,
+      expiryDate: cert.expiryDate,
+      file: url
+        ? { fileUrl: url, fileName: url.split('/').pop() || 'certificate', originalName: `${cert.certificationType.name} certificate`, fileSize: 0, mimeType: 'application/octet-stream' }
+        : null,
+      source: 'certification',
+      sourceId: cert.id,
+    });
+  }
 
   async list(employeeId: string) {
     const items = await this.prisma.employeeWorkCertification.findMany({
@@ -36,7 +70,7 @@ export class EmployeeCertificationsService {
       });
       expiryDate = defaultExpiryFromValidity(dto.issueDate, type?.defaultValidityMonths) ?? undefined;
     }
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const created = await tx.employeeWorkCertification.create({
         data: {
           employeeId,
@@ -63,6 +97,8 @@ export class EmployeeCertificationsService {
       });
       return { message: 'Certification created', data: created };
     });
+    await this.fileAgainstCompliance(userId, employeeId, result.data);
+    return result;
   }
 
   async update(

@@ -54,6 +54,8 @@ export function assessFundingBillingReadiness(input: {
   purchaseOrderNumber?: string | null;
   purchaseOrderExpiresAt?: Date | null;
   billingContactName?: string | null;
+  /** The funder's billing contact or email (Settings → Funders); used when the line has none of its own. */
+  funderBillingContact?: string | null;
 }): FundingBillingReadiness {
   const issues: string[] = [];
   if (!input.isActive || !isBillableFundingStatus(input.status)) {
@@ -72,8 +74,8 @@ export function assessFundingBillingReadiness(input: {
       issues.push('Purchase order expired');
     }
   }
-  if (!input.billingContactName?.trim()) {
-    issues.push('Billing contact missing');
+  if (!input.billingContactName?.trim() && !input.funderBillingContact?.trim()) {
+    issues.push('Billing contact missing — add one to the funder in Settings → Funders');
   }
   return { isReady: issues.length === 0, issues };
 }

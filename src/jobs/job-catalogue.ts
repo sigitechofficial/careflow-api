@@ -1,5 +1,5 @@
 /**
- * Scheduled jobs catalogue — the single list of the 14 background jobs.
+ * Scheduled jobs catalogue — the single list of the 16 background jobs.
  * Names are the canonical IDs used everywhere (JobRun.jobName, POST /internal/jobs/:name,
  * the CLI, the Azure Functions and Container Apps Jobs, the admin System jobs screen).
  */
@@ -19,6 +19,7 @@ export const JOB_NAMES = [
   'compliance-expiry-reminders',
   'assessment-review-reminders',
   'policy-acknowledgement-reminders',
+  'referral-mailbox-check',
 ] as const;
 
 export type JobName = (typeof JOB_NAMES)[number];
@@ -233,6 +234,17 @@ export const JOB_CATALOGUE: readonly JobDefinition[] = [
     },
     expectedIntervalMinutes: 60,
     period: { kind: 'minutes', minutes: 60 },
+    retentionDays: MINUTE_JOB_RETENTION_DAYS,
+  },
+  {
+    name: 'referral-mailbox-check',
+    label: 'Referral mailbox check',
+    description:
+      'Checks each connected referrals mailbox for new emails (Claude then reads them) and tries again reads that failed. Skipped when no mailbox is connected.',
+    trigger: 'function',
+    schedule: { cron: '*/2 * * * *', human: 'Every 2 minutes' },
+    expectedIntervalMinutes: 2,
+    period: { kind: 'minutes', minutes: 2 },
     retentionDays: MINUTE_JOB_RETENTION_DAYS,
   },
 ];

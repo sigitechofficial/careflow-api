@@ -80,3 +80,6 @@ $RECYCLE.BIN/
 # Firebase Admin private key
 serviceAccount.json
 storage/body-map-videos/
+
+# Referral emails and their attachments (health data) — never committed.
+storage/referral-mailbox/

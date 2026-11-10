@@ -1,3 +1,4 @@
+import { carerPhotoConsent } from '../service-user-privacy/service-user-privacy.util';
 import {
   BadRequestException,
   ForbiddenException,
@@ -2002,9 +2003,16 @@ export class EmployeeAppVisitsService {
     const base = await this.getBodyMap(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
     const eligibleMedications = await this.listBodyMapEligibleMedications(ctx.job.serviceUserId);
+    const photoConsentRow = await this.prisma.serviceUserConsentChange.findFirst({
+      where: { serviceUserId: ctx.job.serviceUserId, topic: 'PHOTOGRAPHY' },
+      select: { answer: true, details: true, decidedOn: true },
+      orderBy: [{ decidedOn: 'desc' }, { createdAt: 'desc' }],
+    });
     return {
       data: {
         ...base.data,
+        /** Standing consent to photographs (Profile → Privacy). Show before the photo step; still ask each time. */
+        photoConsent: carerPhotoConsent(photoConsentRow),
         wizard: {
           ...employeeAppBodyMapWizardCatalog(),
           eligibleMedications,

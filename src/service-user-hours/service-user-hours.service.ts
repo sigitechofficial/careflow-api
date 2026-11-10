@@ -8,6 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { jobDurationMinutes } from '../scheduling/schedule-date-range.util';
 import type { ServiceUserHoursMonthlyDetailQueryDto } from './dto/service-user-hours-monthly-detail.dto';
+import { LIVE_FUNDING_LINE_WHERE, totalAuthorisedWeeklyHours } from '../service-user-funding/authorised-hours.util';
 import type {
   ServiceUserHourBand,
   ServiceUserHourMetric,
@@ -130,7 +131,7 @@ export function reconciliationBillableMinutes(r: {
 
 function resolvePackageHours(su: {
   domCare: { weeklyContractedHours: string | null } | null;
-  currentFunding: { authorisedWeeklyHours: number | null } | null;
+  fundings: { authorisedWeeklyHours: number | null }[];
   visitPlans: { weeklyContractedHours: string | null }[];
 }): {
   weeklyPackageHours: number | null;
@@ -139,7 +140,7 @@ function resolvePackageHours(su: {
 } {
   const visitPlanHours = parseHoursValue(su.visitPlans[0]?.weeklyContractedHours);
   const domCareHours = parseHoursValue(su.domCare?.weeklyContractedHours);
-  const fundingHours = parseHoursValue(su.currentFunding?.authorisedWeeklyHours);
+  const fundingHours = totalAuthorisedWeeklyHours(su.fundings);
 
   if (visitPlanHours != null) {
     return {
@@ -253,7 +254,7 @@ export class ServiceUserHoursService {
         status: { select: { id: true, name: true } },
         riskLevel: { select: { id: true, name: true } },
         domCare: { select: { weeklyContractedHours: true } },
-        currentFunding: { select: { authorisedWeeklyHours: true } },
+        fundings: { where: LIVE_FUNDING_LINE_WHERE, select: { authorisedWeeklyHours: true } },
         visitPlans: {
           where: {
             deletedAt: null,
@@ -389,7 +390,7 @@ export class ServiceUserHoursService {
       const visitPlan = su.visitPlans[0] ?? null;
       const visitPlanHours = parseHoursValue(visitPlan?.weeklyContractedHours);
       const domCareHours = parseHoursValue(su.domCare?.weeklyContractedHours);
-      const fundingHours = parseHoursValue(su.currentFunding?.authorisedWeeklyHours);
+      const fundingHours = totalAuthorisedWeeklyHours(su.fundings);
 
       let weeklyPackageHours: number | null = null;
       let contractedSource: ContractedSource = null;
@@ -613,7 +614,7 @@ export class ServiceUserHoursService {
         careType: { select: { id: true, name: true } },
         status: { select: { id: true, name: true } },
         domCare: { select: { weeklyContractedHours: true } },
-        currentFunding: { select: { authorisedWeeklyHours: true } },
+        fundings: { where: LIVE_FUNDING_LINE_WHERE, select: { authorisedWeeklyHours: true } },
         visitPlans: {
           where: {
             deletedAt: null,

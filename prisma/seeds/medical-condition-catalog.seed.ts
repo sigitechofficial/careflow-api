@@ -1,5 +1,8 @@
 import type { PrismaClient } from '@prisma/client';
-import { DEFAULT_MEDICAL_CONDITION_CATALOG } from '../seed-data/medical-condition-catalog';
+import {
+  DEFAULT_MEDICAL_CONDITION_CATALOG,
+  RETIRED_MEDICAL_CONDITION_CODES,
+} from '../seed-data/medical-condition-catalog';
 
 /** Idempotent catalogue seed — upserts by code; deactivates codes no longer in the seed list. */
 export async function seedMedicalConditionCatalog(prisma: PrismaClient): Promise<number> {
@@ -14,7 +17,7 @@ export async function seedMedicalConditionCatalog(prisma: PrismaClient): Promise
         category: entry.category,
         description: entry.description ?? null,
         sortOrder: i,
-        isActive: true,
+        isActive: !RETIRED_MEDICAL_CONDITION_CODES.has(entry.code),
       },
       create: {
         code: entry.code,
@@ -22,6 +25,7 @@ export async function seedMedicalConditionCatalog(prisma: PrismaClient): Promise
         category: entry.category,
         description: entry.description ?? null,
         sortOrder: i,
+        isActive: !RETIRED_MEDICAL_CONDITION_CODES.has(entry.code),
       },
     });
   }

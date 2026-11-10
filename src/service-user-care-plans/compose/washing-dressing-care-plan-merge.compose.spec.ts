@@ -180,6 +180,13 @@ describe('Washing and dressing AUTO-PREFILL', () => {
     expect(washingDressingFieldRegistryEntry('washing_dressing_gender_of_carer')?.mode).toBe('AUTO_PREFILL');
   });
 
+  it('uses the current DOM Care preference over the older assessment answer', () => {
+    const base = ctxWithDistractors();
+    const ctx = { ...base, profile: { ...(base.profile ?? {}), staffGenderPreference: 'male' } } as CarePlanComposeContext;
+    const result = runCarePlanCompose(WASHING_DRESSING_FORM_NAME, ctx, wdFields());
+    expect(result.values[keyOf('washing_dressing_gender_of_carer')]).toBe('Male');
+  });
+
   it('maps already-labelled SELECT values through unchanged', () => {
     const result = runCarePlanCompose(
       WASHING_DRESSING_FORM_NAME,

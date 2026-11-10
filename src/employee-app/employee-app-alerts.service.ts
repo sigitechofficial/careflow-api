@@ -1,3 +1,4 @@
+import { communicationNeedsWords } from '../service-user-privacy/service-user-privacy.util';
 import { Injectable } from '@nestjs/common';
 import {
   InitialAssessmentRiskStatus,
@@ -14,6 +15,7 @@ import {
   mapMedicalAlertToAlert,
   mapMedicalConditionToAlert,
   mapReasonableAdjustmentToAlert,
+  mapCommunicationNeedsToAlert,
   type ServiceUserAlertItem,
 } from './service-user-alert-mapping.util';
 import { loadCprIaReport, resolveCprStatus } from './employee-app-cpr-status.util';
@@ -36,7 +38,7 @@ export class EmployeeAppAlertsService {
   async getAlerts(employeeId: string, clientId: string) {
     await this.clientsService.assertClientOnRound(employeeId, clientId);
 
-    const [allergies, legal, conditions, medicalAlerts, adjustments, risks] =
+    const [allergies, legal, conditions, medicalAlerts, adjustments, needs, risks] =
       await Promise.all([
       this.prisma.serviceUserAllergy.findMany({
         where: { serviceUserId: clientId, deletedAt: null, isActive: true },
@@ -77,6 +79,10 @@ export class EmployeeAppAlertsService {
         where: { serviceUserId: clientId, deletedAt: null, isActive: true },
         select: { id: true, description: true, notes: true },
       }),
+      this.prisma.serviceUserCommunicationNeeds.findUnique({
+        where: { serviceUserId: clientId },
+        include: { contactVia: { select: { firstName: true, lastName: true } } },
+      }),
       this.prisma.initialAssessmentRiskRecord.findMany({
         where: {
           serviceUserId: clientId,
@@ -113,6 +119,16 @@ export class EmployeeAppAlertsService {
       const a = mapMedicalAlertToAlert(row);
       if (a) alerts.push(a);
     }
+
+    const needsAlert = needs
+      ? mapCommunicationNeedsToAlert(
+          communicationNeedsWords({
+            ...needs,
+            contactViaName: needs.contactVia ? [needs.contactVia.firstName, needs.contactVia.lastName].filter(Boolean).join(' ') : null,
+          }),
+        )
+      : null;
+    if (needsAlert) alerts.push(needsAlert);
 
     for (const adj of adjustments) {
       const a = mapReasonableAdjustmentToAlert({

@@ -662,30 +662,48 @@ export class ServiceUserVisitPlansService {
     return slotId;
   }
 
-  async suggestCarers(serviceUserId: string, dto: SuggestVisitPlanCarersDto) {
-    const serviceUser = await this.prisma.serviceUser.findFirst({
-      where: { id: serviceUserId, deletedAt: null },
-      select: {
-        id: true,
-        locationId: true,
-        assignments: {
-          where: { deletedAt: null },
-          select: { locationId: true },
-        },
-      },
-    });
-    if (!serviceUser) throw new NotFoundException('Service user not found');
+  /**
+   * Carers who could do a visit pattern for a branch before the person is a service user (referral
+   * checks): the same rules as the rota's carer picker, with the branch and care areas given directly.
+   */
+  async suggestCarersForBranch(locationIds: string[], dto: SuggestVisitPlanCarersDto, careAreas: string[]) {
+    return this.suggestCarers('', dto, { locationIds, careAreas });
+  }
 
-    const serviceUserLocationIds = resolveServiceUserLocationIds(serviceUser);
+  async suggestCarers(
+    serviceUserId: string,
+    dto: SuggestVisitPlanCarersDto,
+    forBranch?: { locationIds: string[]; careAreas: string[] },
+  ) {
+    let serviceUserLocationIds: string[];
+    if (forBranch) {
+      serviceUserLocationIds = forBranch.locationIds;
+    } else {
+      const serviceUser = await this.prisma.serviceUser.findFirst({
+        where: { id: serviceUserId, deletedAt: null },
+        select: {
+          id: true,
+          locationId: true,
+          assignments: {
+            where: { deletedAt: null },
+            select: { locationId: true },
+          },
+        },
+      });
+      if (!serviceUser) throw new NotFoundException('Service user not found');
+      serviceUserLocationIds = resolveServiceUserLocationIds(serviceUser);
+    }
     const employmentLocationWhere = buildEmployeeEmploymentLocationWhere(serviceUserLocationIds);
 
-    const domCare = await this.prisma.serviceUserDomCare.findFirst({
-      where: { serviceUserId, deletedAt: null },
-      include: {
-        preferredCarerLinks: { where: { isActive: true } },
-        blockedCarerLinks: { where: { isActive: true } },
-      },
-    });
+    const domCare = forBranch
+      ? null
+      : await this.prisma.serviceUserDomCare.findFirst({
+          where: { serviceUserId, deletedAt: null },
+          include: {
+            preferredCarerLinks: { where: { isActive: true } },
+            blockedCarerLinks: { where: { isActive: true } },
+          },
+        });
     const preferredIds = new Set(domCare?.preferredCarerLinks.map((l) => l.employeeId) ?? []);
     const blockedIds = new Set(domCare?.blockedCarerLinks.map((l) => l.employeeId) ?? []);
 
@@ -697,10 +715,10 @@ export class ServiceUserVisitPlansService {
             select: { id: true, name: true },
           })
         : [];
-    const skillKeywords = requiredSkillKeywords([], careForms.map((f) => f.name));
+    const skillKeywords = requiredSkillKeywords(forBranch?.careAreas ?? [], careForms.map((f) => f.name));
 
     const employeeInclude = {
-      personalDetail: true,
+      personalDetail: { include: { gender: { select: { name: true } } } },
       employment: { include: { role: true, jobTitle: true } },
       workingPatterns: { where: { deletedAt: null, isActive: true } },
       skills: {
@@ -807,7 +825,7 @@ export class ServiceUserVisitPlansService {
         proposedByWeek.set(weekStart, minutes);
       }
     }
-    const editedSlotIds = dto.scheduledDate
+    const editedSlotIds = dto.scheduledDate || forBranch
       ? []
       : (
           await this.prisma.visitPlanSlot.findMany({
@@ -1113,6 +1131,7 @@ export class ServiceUserVisitPlansService {
       candidates.push({
         employeeId: emp.id,
         displayName: name || emp.id,
+        gender: emp.personalDetail.gender?.name ?? null,
         role: emp.employment?.role?.name ?? null,
         jobTitle: emp.employment?.jobTitle?.name ?? null,
         fit,

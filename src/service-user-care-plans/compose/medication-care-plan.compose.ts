@@ -502,7 +502,7 @@ export const MEDICATION_CARE_PLAN_FIELD_MAPPINGS: MedicationFieldMapping[] = [
   {
     fieldLabel: 'Pharmacy and GP contact',
     resolve: (ctx) => {
-      const parts = [ctx.gpPharmacyLine, ctx.pack?.pharmacyLine, ctx.pack?.gpLine].filter(Boolean);
+      const parts = [ctx.gpPharmacyLine, ctx.pack?.pharmacyLine, ctx.hasGpContact ? null : ctx.pack?.gpLine].filter(Boolean);
       const unique = [...new Set(parts)];
       if (unique.length === 0) return null;
       return {

@@ -47,7 +47,9 @@ import {
 import {
   parseServiceUserDateOfDeath,
   SU_PROFILE_DATE_OF_DEATH_REF,
+  deathStatusAction,
 } from './service-user-date-of-death.util';
+import { syncServiceUserActiveFlag } from './service-user-active-flag.util';
 
 export type ServiceUserAuditMeta = RequestAuditMeta & { actorUserId: string };
 
@@ -58,6 +60,9 @@ const detailInclude = {
   status: true,
   careType: true,
   fundingType: true,
+  currentFunding: {
+    select: { fundingRouteId: true, fundingType: { select: { name: true } }, funder: { select: { name: true } } },
+  },
   riskLevel: true,
   location: true,
   serviceUserArea: {
@@ -715,6 +720,7 @@ export class ServiceUsersService implements OnModuleInit {
       };
 
       const created = await tx.serviceUser.create({ data });
+      await syncServiceUserActiveFlag(tx, created.id);
 
       if (dto.references?.length) {
         for (const r of dto.references) {
@@ -813,12 +819,11 @@ export class ServiceUsersService implements OnModuleInit {
     const deathRef = references.find(
       (r) => r.referenceType === SU_PROFILE_DATE_OF_DEATH_REF,
     );
-    if (deathRef !== undefined) {
-      await tx.serviceUser.update({
-        where: { id: serviceUserId },
-        data: { dateOfDeath: parseServiceUserDateOfDeath(deathRef.referenceValue) },
-      });
-    }
+    // The list is the whole set: no date-of-death entry means it was cleared (the form leaves out empty fields).
+    await tx.serviceUser.update({
+      where: { id: serviceUserId },
+      data: { dateOfDeath: deathRef ? parseServiceUserDateOfDeath(deathRef.referenceValue) : null },
+    });
   }
 
   async update(userId: string, id: string, dto: UpdateServiceUserDto, meta?: RequestAuditMeta) {
@@ -875,7 +880,16 @@ export class ServiceUsersService implements OnModuleInit {
       if (dto.statusId !== undefined) data.status = dto.statusId ? { connect: { id: dto.statusId } } : { disconnect: true };
       if (dto.careTypeId !== undefined) data.careType = dto.careTypeId ? { connect: { id: dto.careTypeId } } : { disconnect: true };
       if (dto.careLevel !== undefined) data.careLevel = dto.careLevel || null;
-      if (dto.fundingTypeId !== undefined)
+      // Once the main funding line has a funding route, the route is set there (Funding tab), not here.
+      if (
+        dto.fundingTypeId !== undefined &&
+        !(
+          await tx.serviceUser.findUnique({
+            where: { id },
+            select: { currentFunding: { select: { fundingRouteId: true } } },
+          })
+        )?.currentFunding?.fundingRouteId
+      )
         data.fundingType = dto.fundingTypeId ? { connect: { id: dto.fundingTypeId } } : { disconnect: true };
       if (dto.riskLevelId !== undefined)
         data.riskLevel = dto.riskLevelId ? { connect: { id: dto.riskLevelId } } : { disconnect: true };
@@ -907,6 +921,7 @@ export class ServiceUsersService implements OnModuleInit {
       const updated = await tx.serviceUser.update({ where: { id }, data });
 
       await this.syncReferences(tx, id, dto.references);
+      await this.keepDeathAndStatusInStep(tx, id, before?.statusId ?? null, before?.dateOfDeath ?? null);
 
       const assignmentTouch =
         dto.keyWorkerId !== undefined ||
@@ -1057,6 +1072,36 @@ export class ServiceUsersService implements OnModuleInit {
     });
   }
 
+  /**
+   * Date of death and the Deceased status are one fact: a date sets the status to Deceased; Deceased needs a date.
+   * Runs inside the save, so a refusal rolls the whole save back.
+   */
+  private async keepDeathAndStatusInStep(
+    tx: Prisma.TransactionClient,
+    id: string,
+    statusIdBefore: string | null,
+    dateOfDeathBefore: Date | null,
+  ) {
+    const now = await tx.serviceUser.findFirst({
+      where: { id },
+      select: { statusId: true, dateOfDeath: true, status: { select: { code: true } } },
+    });
+    if (!now) return;
+    const action = deathStatusAction({
+      dateOfDeath: now.dateOfDeath,
+      statusCode: now.status?.code ?? null,
+      statusChangedToDeceased: now.statusId !== statusIdBefore && now.status?.code === 'DECEASED',
+      statusChangedAway: now.statusId !== statusIdBefore && now.status?.code !== 'DECEASED',
+      dateCleared: Boolean(dateOfDeathBefore) && !now.dateOfDeath,
+    });
+    if (action.kind === 'refuse') throw new BadRequestException(action.message);
+    if (action.kind === 'set_deceased') {
+      const deceased = await tx.serviceUserStatus.findFirst({ where: { code: 'DECEASED' }, select: { id: true } });
+      if (deceased) await tx.serviceUser.update({ where: { id }, data: { statusId: deceased.id } });
+    }
+    await syncServiceUserActiveFlag(tx, id);
+  }
+
   async updateStatus(userId: string, id: string, dto: UpdateServiceUserStatusDto, meta?: RequestAuditMeta) {
     await this.ensureExists(id);
     return this.prisma.$transaction(async (tx) => {
@@ -1068,6 +1113,7 @@ export class ServiceUsersService implements OnModuleInit {
           updatedById: userId,
         },
       });
+      await this.keepDeathAndStatusInStep(tx, id, before?.statusId ?? null, before?.dateOfDeath ?? null);
       const after = await tx.serviceUser.findFirst({ where: { id, deletedAt: null } });
       await this.audit.logAudit({
         tx,
