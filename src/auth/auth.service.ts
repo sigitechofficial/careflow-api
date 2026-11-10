@@ -734,7 +734,7 @@ export class AuthService {
     const link = `${urlBase}/auth/reset-password?token=${encodeURIComponent(rawToken)}`;
     // Not awaited: a slow or failing mail provider must not change the response (timing or status).
     void this.mailService
-      .send({
+      .send({ kind: 'account',
         to: user.email,
         ...(invite ? buildAccountInviteEmail(user.firstName, link, invite.purpose) : buildPasswordResetEmail(user.firstName, link)),
         // The reset or invitation link signs in as this user: never copy it to MAIL_BCC.

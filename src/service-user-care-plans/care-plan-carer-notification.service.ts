@@ -181,7 +181,7 @@ export class CarePlanCarerNotificationService {
         publishedVersionId: version.id,
         versionNumber: String(version.versionNumber),
       },
-    });
+    }, 'care-plans');
     await this.prisma.carePlanVersionAcknowledgement.updateMany({
       where: {
         publishedVersionId: version.id,

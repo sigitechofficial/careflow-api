@@ -88,7 +88,7 @@ export class CarerMessagesService {
       title: dto.title,
       body: dto.body,
       data: { type: CARER_MESSAGE_PUSH_TYPE, messageId: message.id },
-    });
+    }, 'carer-messages');
     const delivered = report.sent ?? 0;
     await this.prisma.carerMessage.update({ where: { id: message.id }, data: { deliveredCount: delivered } });
 

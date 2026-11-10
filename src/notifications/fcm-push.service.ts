@@ -1,12 +1,13 @@
 import { existsSync, readFileSync } from 'fs';
 import { resolve } from 'path';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, Optional } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { DevicePushPlatform } from '@prisma/client';
 import { cert, getApps, initializeApp, type ServiceAccount } from 'firebase-admin/app';
 import { getMessaging, type TokenMessage } from 'firebase-admin/messaging';
 import { PrismaService } from '../prisma/prisma.service';
 import { fcmReport, type FcmSendReport } from './fcm-send-report';
+import { MessageDeliveryService } from '../message-delivery/message-delivery.service';
 
 export type FcmPushPayload = {
   title: string;
@@ -27,6 +28,7 @@ export class FcmPushService {
   constructor(
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
+    @Optional() private readonly delivery?: MessageDeliveryService,
   ) {
     this.ready = this.initAdmin();
   }
@@ -121,14 +123,65 @@ export class FcmPushService {
     return { deleted: result.count };
   }
 
+  /**
+   * `kind` names the type of notification (message-kinds.ts) for Administration › Message delivery, which can switch
+   * it off or limit push to carers whose email is on the allowed list. Each carer's outcome goes to the delivery log.
+   */
   async sendToEmployees(
     employeeIds: string[],
     payload: FcmPushPayload,
+    kind?: string,
   ): Promise<FcmSendReport> {
-    const unique = [...new Set(employeeIds.filter(Boolean))];
+    let unique = [...new Set(employeeIds.filter(Boolean))];
     if (!unique.length) {
       return fcmReport({ ready: this.ready, reason: 'NO_EMPLOYEE' });
     }
+    // Message delivery: carers are matched by their email (no email: only "everyone" reaches them).
+    let logKind = kind ?? 'other';
+    let who = new Map<string, string>();
+    if (this.delivery) {
+      const people = await this.prisma.employeePersonalDetail
+        .findMany({ where: { employeeId: { in: unique } }, select: { employeeId: true, email: true, firstName: true, lastName: true } })
+        .catch(() => []);
+      const emailOf = new Map(people.map((p) => [p.employeeId, p.email?.trim() || '']));
+      who = new Map(people.map((p) => [p.employeeId, p.email?.trim() || `${p.firstName} ${p.lastName}`.trim()]));
+      const label = (id: string) => who.get(id) || `Employee ${id.slice(0, 8)}`;
+      // Carers without an email get a stand-in that no allowed-list entry matches.
+      const key = (id: string) => emailOf.get(id) || `no-email:${id}`;
+      const decision = await this.delivery.decide('PUSH', kind, unique.map(key));
+      logKind = decision.kind;
+      const allowedKeys = new Set(decision.allowed);
+      const held = unique.filter((id) => !allowedKeys.has(key(id)));
+      if (held.length) {
+        const reasonOf = new Map(this.delivery.heldRows(decision).map((r) => [r.recipient, r.reason]));
+        await this.delivery.record(
+          'PUSH',
+          logKind,
+          held.map((id) => ({ recipient: label(id), outcome: 'HELD' as const, reason: reasonOf.get(key(id)) ?? null })),
+          payload.title,
+        );
+      }
+      unique = unique.filter((id) => allowedKeys.has(key(id)));
+      if (!unique.length) {
+        return fcmReport({ ready: this.ready, skipped: held.length, reason: 'HELD' });
+      }
+      who = new Map(unique.map((id) => [id, label(id)]));
+    }
+    const report = await this.sendNow(unique, payload);
+    if (this.delivery) {
+      // No phone signed in, or push not set up here: nothing could be delivered, but nothing went wrong either.
+      const skipped: Record<string, string> = {
+        NO_DEVICE_TOKEN: 'No phone signed in to the carer app',
+        FIREBASE_NOT_READY: 'Push is not set up on this server',
+      };
+      const outcome = report.reason === 'SENT' ? ('SENT' as const) : skipped[report.reason] ? ('SKIPPED' as const) : ('FAILED' as const);
+      const reason = report.reason === 'SENT' ? null : skipped[report.reason] ?? report.error ?? report.reason;
+      await this.delivery.record('PUSH', logKind, unique.map((id) => ({ recipient: who.get(id) ?? id, outcome, reason })), payload.title);
+    }
+    return report;
+  }
+
+  private async sendNow(unique: string[], payload: FcmPushPayload): Promise<FcmSendReport> {
 
     const rows = await this.prisma.employeeDeviceToken.findMany({
       where: { employeeId: { in: unique } },

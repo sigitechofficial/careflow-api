@@ -81,7 +81,7 @@ describe('PolicyAcknowledgementNotificationsService — on publish', () => {
       title: 'New policy to read: Safeguarding',
       body: expect.stringMatching(/^Please read and acknowledge POL-1 \(v1\.1\) by \d+ \w+ \d{4}\.$/),
       data: { type: 'POLICY_ACKNOWLEDGEMENT', documentId: 'doc-1' },
-    });
+    }, 'policies');
     // Ben has no web account.
     expect(notifyUsers).not.toHaveBeenCalled();
   });
@@ -144,7 +144,7 @@ describe('PolicyAcknowledgementNotificationsService — daily reminders', () => 
       title: 'Policy overdue: Safeguarding',
       body: expect.stringContaining('overdue by 16 days'),
       data: { type: 'POLICY_ACKNOWLEDGEMENT', documentId: 'doc-1' },
-    });
+    }, 'policies');
     // The job creates the row for staff who did not have one yet.
     const row = store.acks.find((a) => a.versionId === 'v1-1' && a.employeeId === 'emp-ben')!;
     expect(row.metadata.reminders.OVERDUE_15).toMatchObject({ pushed: true, notified: false });

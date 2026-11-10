@@ -4061,7 +4061,7 @@ export class SurveysService {
             paperOnly: true,
             unsubscribeLink: stopAll,
           });
-          await this.safeMail(survey.id, { to, subject: m.emailSubject, text: m.emailText, html: m.emailHtml });
+          await this.safeMail(survey.id, 'surveys-people', { to, subject: m.emailSubject, text: m.emailText, html: m.emailHtml });
         }
       }
       const accounts = await this.prisma.serviceUserPortalAccount.findMany({
@@ -4088,7 +4088,7 @@ export class SurveysService {
           link: null,
           portalLink: base ? `${base}/portal/surveys` : null,
         });
-        await this.safeMail(survey.id, { to: a.email, subject: m.emailSubject, text: m.emailText, html: m.emailHtml });
+        await this.safeMail(survey.id, 'surveys-people', { to: a.email, subject: m.emailSubject, text: m.emailText, html: m.emailHtml });
       }
       return;
     }
@@ -4136,7 +4136,7 @@ export class SurveysService {
             ...(survey.isAnonymous ? {} : { token: r.token }),
             ...(link ? { url: link } : {}),
           },
-        });
+        }, 'surveys');
       } catch (err) {
         this.logger.warn(
           `Survey ${survey.id} push to employee ${r.employeeId} failed: ${err instanceof Error ? err.message : String(err)}`,
@@ -4161,14 +4161,14 @@ export class SurveysService {
             ? await this.unsubscribe.link(base, { subjectKind: 'EMPLOYEE', subjectId: r.employeeId })
             : null,
       });
-      await this.safeMail(survey.id, { to, subject: m.emailSubject, text: m.emailText, html: m.emailHtml });
+      await this.safeMail(survey.id, 'surveys-staff', { to, subject: m.emailSubject, text: m.emailText, html: m.emailHtml });
     }
   }
 
-  private async safeMail(surveyId: string, input: { to: string; subject: string; text: string; html?: string }) {
+  private async safeMail(surveyId: string, kind: string, input: { to: string; subject: string; text: string; html?: string }) {
     try {
       // Survey emails carry personal links or unsubscribe tokens: never copy them to MAIL_BCC.
-      await this.mail.send({ ...input, skipBcc: true });
+      await this.mail.send({ kind, ...input, skipBcc: true });
     } catch (err) {
       this.logger.warn(
         // Never the address in the log (logs are kept longer and seen more widely than the survey).

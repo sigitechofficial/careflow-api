@@ -128,6 +128,8 @@ export class MedicationNotificationHook {
         recordType: 'MedicationAdministrationEvent',
         recordId: params.eventId,
         metadata: {
+          // Opens Medication › Exceptions (missed, refused and over-limit doses).
+          href: '/medication/exceptions',
           serviceUserId: params.serviceUserId,
           status: params.status,
           controlledMedication: params.controlled,

@@ -807,6 +807,9 @@ export class EcmExceptionsService {
       fcm = fcmReport({ ready: false, reason: 'NOT_FIRST_ACK' });
     } else if (updated.kind !== EcmExceptionKind.CARER_SOS) {
       fcm = fcmReport({ ready: false, reason: 'NOT_SOS' });
+    } else if ((updated.context as { test?: unknown } | null)?.test === true) {
+      // A test SOS (Administration › Test office alerts): the carer named on it never hears about it.
+      fcm = fcmReport({ ready: false, reason: 'HELD', error: 'Test alert: the carer is not notified.' });
     } else {
       const employeeId = parseCarerSosContext(updated.context).employeeId?.trim();
       if (!employeeId) {

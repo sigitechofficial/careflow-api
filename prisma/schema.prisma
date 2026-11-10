@@ -17803,3 +17803,47 @@ model ReferralBranchCoverage {
 
   @@schema("service_users")
 }
+
+/// Who CareFlow may send emails, texts, WhatsApp messages and push notifications to (Administration › Message delivery).
+/// One row ("default"); with no row everything is sent to everyone.
+model MessageDeliverySettings {
+  id              String   @id @default("default")
+  emailEnabled    Boolean  @default(true)
+  textEnabled     Boolean  @default(true)
+  whatsappEnabled Boolean  @default(true)
+  pushEnabled     Boolean  @default(true)
+  /// EVERYONE or ALLOWED_ONLY.
+  emailAudience   String   @default("EVERYONE")
+  textAudience    String   @default("EVERYONE")
+  pushAudience    String   @default("EVERYONE")
+  /// Exact addresses or whole domains ("@allforcare.co.uk"). Push is allowed for carers whose email is listed.
+  allowedEmails   String[] @default([])
+  allowedPhones   String[] @default([])
+  /// "<CHANNEL>:<kind>" entries switched off (new kinds are on until switched off).
+  disabledKinds   String[] @default([])
+  /// Held emails go to this inbox instead, with the intended recipient in the subject.
+  heldEmailsTo    String?
+  updatedById     String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@schema("platform")
+}
+
+/// Each email, text, WhatsApp message and push notification CareFlow sent or held back (kept 30 days).
+model MessageDeliveryLog {
+  id        String   @id @default(uuid()) @db.Uuid
+  at        DateTime @default(now())
+  channel   String
+  kind      String
+  /// Email address, masked phone number, or the carer's name for push.
+  recipient String
+  subject   String?
+  /// SENT, HELD, REDIRECTED or FAILED.
+  outcome   String
+  reason    String?
+
+  @@index([at])
+  @@index([channel, outcome, at])
+  @@schema("platform")
+}

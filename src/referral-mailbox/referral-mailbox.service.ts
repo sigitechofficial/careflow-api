@@ -28,6 +28,10 @@ import { enquiryFromReferral } from './referral-to-enquiry.util';
 import { newFacts, threadBody } from './referral-follow-up.util';
 import { ReferralAutomationService } from './referral-automation.service';
 import { TEST_REFERRAL_SCENARIOS, buildTestReferralRaw } from './referral-test-email.util';
+import { mayGetCopy, referralTestCopyAddresses } from './referral-test-copies.util';
+import { MailService } from '../mail/mail.service';
+import { uploadPath } from '../common/utils/upload-path.util';
+import { MessageDeliveryService } from '../message-delivery/message-delivery.service';
 import { MailboxError, PROCESSED_MARK, type FetchedEmail } from './connectors/connector.types';
 import { GmailConnector } from './connectors/gmail.connector';
 import { ImapConnector, type ImapConfig } from './connectors/imap.connector';
@@ -35,7 +39,21 @@ import { GraphSession, microsoftAuthUrl, microsoftExchangeCode, microsoftOAuthCo
 import { hashWebhookToken, newWebhookToken, parseInboundPost, webhookTokenMatches } from './connectors/inbound-webhook';
 import { POLLED_PROVIDERS, ReferralConnectorsService, type RelayConfig } from './connectors/referral-connectors.service';
 
-const STORAGE_ROOT = path.join(process.cwd(), 'storage', 'referral-mailbox');
+/**
+ * Referral emails' attachments live in the uploads folder (a shared, persistent volume on Azure, unlike the container's
+ * own disk), in an area the public /files/uploads route refuses to serve: they are only given to signed-in staff.
+ */
+export const REFERRAL_UPLOAD_AREA = 'referral-mailbox';
+const storageRoot = () => uploadPath(REFERRAL_UPLOAD_AREA);
+/** Where attachments were saved before they moved to the uploads folder; still read from. */
+const LEGACY_STORAGE_ROOT = path.join(process.cwd(), 'storage', 'referral-mailbox');
+/** A saved attachment's file: the uploads folder, or the old folder for emails saved before the move. */
+async function storedFile(emailId: string, storedName: string): Promise<string> {
+  const current = path.join(storageRoot(), emailId, storedName);
+  const legacy = path.join(LEGACY_STORAGE_ROOT, emailId, storedName);
+  const exists = (f: string) => fs.access(f).then(() => true, () => false);
+  return (await exists(current)) || !(await exists(legacy)) ? current : legacy;
+}
 /** Where the browser lands after connecting a mailbox. */
 const ADMIN_ORIGIN = () => (process.env.ADMIN_APP_URL ?? 'http://localhost:5173').replace(/\/$/, '');
 const isProduction = () => (process.env.NODE_ENV ?? 'development') === 'production';
@@ -83,6 +101,8 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     private readonly automation: ReferralAutomationService,
     private readonly connectors: ReferralConnectorsService,
     @Optional() private readonly jobRunner?: JobRunner,
+    @Optional() private readonly mail?: MailService,
+    @Optional() private readonly delivery?: MessageDeliveryService,
   ) {}
 
   /* ─── mailboxes ──────────────────────────────────────────────── */
@@ -453,22 +473,39 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
   }
 
   /**
-   * Development only: place a made-up referral (Word care plan + PDF discharge summary) in a mailbox. Nothing is
-   * sent to anyone outside our own addresses. Webhook mailboxes take it as if it had been posted.
+   * Place a made-up referral (Word care plan + PDF discharge summary) in a mailbox. Webhook mailboxes take it as if it
+   * had been posted. On the live system only a Super Admin may: the made-up senders use .test addresses, which can't
+   * exist, and replies to them always go to the mailbox itself (referral-automation sendReply).
    */
-  async insertTestReferral(scenario = 0, mailboxId?: string) {
-    if (isProduction()) throw new NotFoundException();
+  async insertTestReferral(scenario = 0, mailboxId?: string, user?: { roles?: string[] }) {
+    this.assertTestReferralsAllowed(user);
     const mb = mailboxId
       ? await this.mailbox(mailboxId)
       : await this.prisma.referralMailbox.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'asc' } });
     if (!mb) throw new BadRequestException('No referrals mailbox is connected.');
     if (!mb.isActive) throw new BadRequestException('That mailbox is turned off.');
-    const { mime, subject } = await buildTestReferralRaw(mb.emailAddress, scenario);
+    const built = await buildTestReferralRaw(mb.emailAddress, scenario);
+    const { mime, subject } = built;
     if (mb.provider === ReferralMailboxProvider.INBOUND_WEBHOOK) {
       const [email] = await parseInboundPost(Buffer.from(mime, 'utf8'), 'message/rfc822', null);
       const saved = await this.saveFetched(mb, email);
       if (saved) void this.readInBackground([saved]);
-      return { message: `Test referral posted to ${mb.displayName ?? mb.emailAddress}: "${subject}"` };
+      // The same made-up email goes to the people who get copies, through the app's mail service.
+      const copied = await this.testCopyRecipients(mb.emailAddress);
+      if (copied.length && this.mail) {
+        await this.mail
+          .send({ kind: 'referral-test-copies',
+            to: copied,
+            subject: `[TEST referral copy] ${subject}`,
+            text: `From: ${built.fromName} <${built.fromEmail}>\nTo: ${mb.emailAddress}\n\n${built.body}`,
+            attachments: built.files,
+            skipBcc: true,
+          })
+          .catch((e: Error) => this.logger.warn(`Test referral copy to ${copied.join(', ')} failed: ${e.message}`));
+      }
+      return {
+        message: `Test referral posted to ${mb.displayName ?? mb.emailAddress}: "${subject}"${copied.length ? `; a copy was sent to ${copied.join(', ')}` : ''}`,
+      };
     }
     const c = this.connectors.connector(mb);
     try {
@@ -480,8 +517,14 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       // so they see exactly what CareFlow read.
       let copied: string[] = [];
       if (c instanceof GmailConnector) {
-        const settings = await this.prisma.referralAutomationSettings.findFirst({ select: { copyRepliesTo: true } });
-        copied = (settings?.copyRepliesTo ?? []).filter((x) => x.toLowerCase().endsWith('@allforcare.co.uk'));
+        copied = await this.testCopyRecipients(mb.emailAddress);
+        // Administration › Message delivery can switch these copies off or limit them like any email.
+        if (this.delivery && copied.length) {
+          const d = await this.delivery.decide('EMAIL', 'referral-test-copies', copied);
+          await this.delivery.record('EMAIL', d.kind, this.delivery.heldRows(d), `[TEST referral copy] ${subject}`);
+          await this.delivery.record('EMAIL', d.kind, d.allowed.map((recipient) => ({ recipient, outcome: 'SENT' as const })), `[TEST referral copy] ${subject}`);
+          copied = d.allowed;
+        }
         for (const to of copied) {
           const copy = await buildTestReferralRaw(to, scenario, { subjectPrefix: '[TEST referral copy]' });
           await c.sendRaw(copy.mime).catch((e: Error) => this.logger.warn(`Test referral copy to ${to} failed: ${e.message}`));
@@ -498,9 +541,22 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     }
   }
 
-  testScenarios() {
-    if (isProduction()) throw new NotFoundException();
+  /** Who gets a copy of a test referral: the reply-copy addresses allowed while testing, plus REFERRAL_TEST_COPY_TO. */
+  private async testCopyRecipients(mailboxAddress: string): Promise<string[]> {
+    const settings = await this.prisma.referralAutomationSettings.findFirst({ select: { copyRepliesTo: true } });
+    const all = [...(settings?.copyRepliesTo ?? []).map((x) => x.trim().toLowerCase()), ...referralTestCopyAddresses()];
+    const own = mailboxAddress.trim().toLowerCase();
+    return [...new Set(all)].filter((x) => x !== own && mayGetCopy(x));
+  }
+
+  testScenarios(user?: { roles?: string[] }) {
+    this.assertTestReferralsAllowed(user);
     return { data: TEST_REFERRAL_SCENARIOS };
+  }
+
+  /** Test referrals: anyone with crm.manage outside production; only a Super Admin on the live system. */
+  private assertTestReferralsAllowed(user?: { roles?: string[] }) {
+    if (isProduction() && !user?.roles?.includes('Super Admin')) throw new NotFoundException();
   }
 
   /* ─── checking the mailboxes ─────────────────────────────────── */
@@ -696,7 +752,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     const mailboxId = mb.id;
     if (email.fromEmail && email.fromEmail.toLowerCase() === mb.emailAddress.toLowerCase()) return null;
     const id = randomUUID();
-    const dir = path.join(STORAGE_ROOT, id);
+    const dir = path.join(storageRoot(), id);
     const attachments: StoredAttachment[] = [];
     for (const a of email.attachments) {
       if (a.size > MAX_ATTACHMENT_BYTES) {
@@ -816,7 +872,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     const inputs: ExtractionAttachment[] = [];
     for (const f of (row.attachments as unknown as StoredAttachment[]) ?? []) {
       if (!f.storedName) continue;
-      const data = await fs.readFile(path.join(STORAGE_ROOT, row.id, f.storedName));
+      const data = await fs.readFile(await storedFile(row.id, f.storedName));
       const text =
         f.mimeType === DOCX_MIME
           ? await docxToText(data).catch(() => '')
@@ -1078,7 +1134,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     const row = await this.prisma.referralEmail.findUnique({ where: { id }, select: { id: true, attachments: true } });
     const f = ((row?.attachments as unknown as StoredAttachment[]) ?? [])[index];
     if (!row || !f?.storedName) throw new NotFoundException('Attachment not found');
-    return { path: path.join(STORAGE_ROOT, row.id, f.storedName), fileName: f.fileName, mimeType: f.mimeType };
+    return { path: await storedFile(row.id, f.storedName), fileName: f.fileName, mimeType: f.mimeType };
   }
 
   /** The text of a Word attachment, so staff can read it on screen (browsers can't show .docx). */

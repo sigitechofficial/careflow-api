@@ -237,3 +237,51 @@ describe('MailService — sender comes only from MAIL_FROM', () => {
     expect(beginSend.mock.calls[0][0].senderAddress).toBe('noreply@allforcare.co.uk');
   });
 });
+
+describe('MailService — message delivery settings', () => {
+  const delivery = (rules: Partial<import('../message-delivery/message-delivery.rules').DeliveryRules>) => {
+    const { DEFAULT_DELIVERY_RULES, decideDelivery, HOLD_REASON_TEXT } = jest.requireActual('../message-delivery/message-delivery.rules');
+    const r = { ...DEFAULT_DELIVERY_RULES, ...rules };
+    const recorded: unknown[] = [];
+    const svc = {
+      decide: async (c: string, k: string | undefined, to: string[]) => ({ ...decideDelivery(r, c, k, to), heldEmailsTo: r.heldEmailsTo }),
+      record: async (_c: string, _k: string, rows: unknown[]) => void recorded.push(...rows),
+      heldRows: (d: { held: Array<{ recipient: string; reason: string }> }) =>
+        d.held.map((h) => ({ recipient: h.recipient, outcome: 'HELD', reason: HOLD_REASON_TEXT[h.reason] })),
+    };
+    return { svc, recorded };
+  };
+  const make = (d: unknown) =>
+    new MailService({ get: (key: string, fallback?: unknown) => (key === 'mail.mode' ? 'log' : fallback) } as unknown as ConfigService, d as never);
+
+  it('sends only to allowed recipients and logs the rest as held', async () => {
+    const { svc, recorded } = delivery({ emailAudience: 'ALLOWED_ONLY', allowedEmails: ['@allforcare.co.uk'] });
+    const mail = make(svc);
+    const spy = jest.spyOn(mail as never as { deliver: (i: unknown) => Promise<unknown> }, 'deliver');
+    await mail.send({ kind: 'quotes', to: ['sam@allforcare.co.uk', 'gp@nhs.net'], subject: 'Quote', text: 'x' });
+    expect((spy.mock.calls[0][0] as { to: string[] }).to).toEqual(['sam@allforcare.co.uk']);
+    expect(recorded).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ recipient: 'sam@allforcare.co.uk', outcome: 'SENT' }),
+        expect.objectContaining({ recipient: 'gp@nhs.net', outcome: 'HELD' }),
+      ]),
+    );
+  });
+
+  it('throws a clear "not sent" error when nobody is left, so staff are told', async () => {
+    const { svc } = delivery({ disabledKinds: ['EMAIL:invoices'] });
+    await expect(make(svc).send({ kind: 'invoices', to: 'funder@council.gov.uk', subject: 'Invoice', text: 'x' })).rejects.toThrow(
+      /Not sent: this type of message is switched off/,
+    );
+  });
+
+  it('sends held emails to the held-emails inbox instead, with who they were for', async () => {
+    const { svc, recorded } = delivery({ emailAudience: 'ALLOWED_ONLY', allowedEmails: ['@allforcare.co.uk'], heldEmailsTo: 'testing@allforcare.co.uk' });
+    const mail = make(svc);
+    const spy = jest.spyOn(mail as never as { deliver: (i: unknown) => Promise<unknown> }, 'deliver');
+    await mail.send({ kind: 'quotes', to: 'family@gmail.com', subject: 'Your quote', text: 'x' });
+    const sent = spy.mock.calls[0][0] as { to: string; subject: string; skipBcc: boolean };
+    expect(sent).toMatchObject({ to: 'testing@allforcare.co.uk', subject: '[Held – for family@gmail.com] Your quote', skipBcc: true });
+    expect(recorded).toEqual([expect.objectContaining({ recipient: 'family@gmail.com', outcome: 'REDIRECTED' })]);
+  });
+});

@@ -666,6 +666,9 @@ async function main() {
     // System jobs (scheduled job health / run history / run now) — Super Admin only (all-permissions sweep)
     'system_jobs.read',
     'system_jobs.manage',
+    // Message delivery (who emails, texts, WhatsApp and push may go to) — Super Admin only (all-permissions sweep)
+    'message_delivery.read',
+    'message_delivery.manage',
     // Office user salaries (Super Admin + Admin only)
     'office_salaries.manage',
     // Setup checklist (Super Admin + Admin only)

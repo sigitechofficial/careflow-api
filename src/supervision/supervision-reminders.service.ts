@@ -243,7 +243,7 @@ export class SupervisionRemindersService {
             ? `Your ${c.typeName.toLowerCase()} is booked for ${fmt(bookedAt)}.`
             : `Your ${c.typeName.toLowerCase()} is due ${fmt(c.nextDue)}. Your supervisor will arrange a time.`,
           data: { type: 'SUPERVISION_DUE', employeeId: c.employeeId, reviewTypeId: c.reviewTypeId },
-        });
+        }, 'supervision-reminders');
         carerPushed = report.sent > 0;
       } catch (err) {
         this.logger.warn(`Supervision reminder ${c.employeeId}/${c.reviewTypeId}: push failed: ${(err as Error).message}`);
@@ -285,7 +285,7 @@ export class SupervisionRemindersService {
     try {
       // One message per person so staff never see each other's addresses.
       for (const address of to) {
-        await this.mail.send({ to: address, subject, text: link ? `${text}\n\nOpen the staff record: ${link}` : text });
+        await this.mail.send({ kind: 'supervision-reminders', to: address, subject, text: link ? `${text}\n\nOpen the staff record: ${link}` : text });
       }
       return true;
     } catch (err) {

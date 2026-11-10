@@ -1969,7 +1969,7 @@ export class QuotationsService {
         recipientName: comm.recipientName,
         message: comm.message,
       });
-      const result = await this.mail.send({
+      const result = await this.mail.send({ kind: 'quotes',
         to: comm.recipientEmail!,
         subject: comm.subject ?? `Your care quotation ${view.quotationNumber}`,
         text: body.text,

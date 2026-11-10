@@ -4,6 +4,7 @@ import { randomUUID } from 'crypto';
 import { resolveTextMessageMode, type TextMessageMode, type TextMessageProvider } from './text-message.provider';
 import { maskMobile, normaliseUkMobile } from './uk-mobile.util';
 import { classifyTextReply, type TextReplyHandler } from './text-message-replies.util';
+import { MessageDeliveryService } from '../message-delivery/message-delivery.service';
 
 /** Injection token for a real provider (none until the organisation chooses one; log mode otherwise). */
 export const TEXT_MESSAGE_PROVIDER = Symbol('TEXT_MESSAGE_PROVIDER');
@@ -24,7 +25,7 @@ export class LogTextMessageProvider implements TextMessageProvider {
 
 export type TextSendResult =
   | { sent: true; messageId: string }
-  | { sent: false; reason: 'OFF' | 'INVALID_NUMBER' | 'TOO_LONG' | 'FAILED' };
+  | { sent: false; reason: 'OFF' | 'HELD' | 'INVALID_NUMBER' | 'TOO_LONG' | 'FAILED' };
 
 /**
  * Text messages (survey invitations and reminders). TEXT_MESSAGE_MODE: "log" (default) or "off".
@@ -45,7 +46,11 @@ export class TextMessageService {
    */
   readonly replyUrl: string | null;
 
-  constructor(config: ConfigService, @Optional() @Inject(TEXT_MESSAGE_PROVIDER) provider?: TextMessageProvider) {
+  constructor(
+    config: ConfigService,
+    @Optional() @Inject(TEXT_MESSAGE_PROVIDER) provider?: TextMessageProvider,
+    @Optional() private readonly delivery?: MessageDeliveryService,
+  ) {
     const mode = resolveTextMessageMode(config.get<string>('TEXT_MESSAGE_MODE'));
     if (mode === 'live' && !provider) {
       this.logger.warn('TEXT_MESSAGE_MODE is live but no text message provider is set up, so texts are written to the log only');
@@ -132,16 +137,28 @@ export class TextMessageService {
     return this.isEnabled() ? this.provider.name : null;
   }
 
-  async send(input: { to: string; body: string }): Promise<TextSendResult> {
+  /**
+   * `kind` names the type of text (message-kinds.ts) for Administration › Message delivery, which can switch it off
+   * or limit texts to listed numbers ("HELD"). Each outcome is written to the delivery log (number masked).
+   */
+  async send(input: { to: string; body: string; kind?: string }): Promise<TextSendResult> {
     if (!this.isEnabled()) return { sent: false, reason: 'OFF' };
     const to = normaliseUkMobile(input.to);
     if (!to) return { sent: false, reason: 'INVALID_NUMBER' };
     if (input.body.length > MAX_TEXT_MESSAGE_LENGTH) return { sent: false, reason: 'TOO_LONG' };
+    const decision = this.delivery ? await this.delivery.decide('TEXT', input.kind, [to]) : null;
+    if (decision && !decision.allowed.length) {
+      await this.delivery!.record('TEXT', decision.kind, this.delivery!.heldRows(decision));
+      return { sent: false, reason: 'HELD' };
+    }
+    const kind = decision?.kind ?? input.kind ?? 'other';
     try {
       const { messageId } = await this.provider.send({ to, body: input.body });
+      await this.delivery?.record('TEXT', kind, [{ recipient: to, outcome: 'SENT', reason: this.provider.name === 'log' ? 'Written to the log only (no text provider)' : null }]);
       return { sent: true, messageId };
     } catch (err) {
       this.logger.warn(`Text to ${maskMobile(to)} failed (${err instanceof Error ? err.name : 'error'})`);
+      await this.delivery?.record('TEXT', kind, [{ recipient: to, outcome: 'FAILED', reason: err instanceof Error ? err.name : 'error' }]);
       return { sent: false, reason: 'FAILED' };
     }
   }

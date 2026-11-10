@@ -112,6 +112,6 @@ export class CarerVisitPushHook {
         scheduledJobId: params.scheduledJobId,
         ...(params.serviceUserId ? { serviceUserId: params.serviceUserId } : {}),
       },
-    });
+    }, 'visits');
   }
 }
