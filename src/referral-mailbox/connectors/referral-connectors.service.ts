@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
+import { MailService } from '../../mail/mail.service';
 import { ReferralMailbox, ReferralMailboxProvider } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { decryptFieldValue, encryptFieldValue } from '../../common/utils/field-encryption.util';
@@ -12,6 +13,8 @@ import { sendReplyOverSmtp, testSmtp, type SmtpSettings } from './smtp.sender';
 
 /** Relay settings kept on the mailbox (the password is stored separately, encrypted). */
 export type RelayConfig = { host: string; port: number; secure: boolean; username: string; fromAddress?: string | null };
+
+const isProduction = () => (process.env.NODE_ENV ?? 'development') === 'production';
 
 /** On first connection only recent mail is read (an Inbox can hold years of email). */
 const FIRST_READ_DAYS = 14;
@@ -30,7 +33,10 @@ const secret = (v: string | null | undefined, what: string) => {
 /** Builds the right connector for a mailbox and sends replies (from the mailbox, or through its relay). */
 @Injectable()
 export class ReferralConnectorsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly mail?: MailService,
+  ) {}
 
   since(mb: ReferralMailbox) {
     return new Date(mb.createdAt.getTime() - FIRST_READ_DAYS * 86_400_000);
@@ -102,7 +108,22 @@ export class ReferralConnectorsService {
   async send(mb: ReferralMailbox, reply: ReplyMime, ctx: ReplyContext): Promise<string | null> {
     if (mb.sendVia === 'SMTP_RELAY' || mb.provider === ReferralMailboxProvider.INBOUND_WEBHOOK) {
       const relay = this.relaySettings(mb);
-      if (!relay) throw new MailboxError('Replies for this mailbox go through a relay, but no relay is set. Edit the mailbox.');
+      if (!relay) {
+        // Testing on a laptop with no relay: the copies (never the referrer) go through the app's own mail service.
+        const copies = [...reply.cc, ...reply.bcc];
+        if (!isProduction() && this.mail && copies.length) {
+          const sent = await this.mail.send({
+            to: copies,
+            subject: reply.subject,
+            text: reply.text,
+            html: reply.html,
+            attachments: reply.attachments,
+            skipBcc: true,
+          });
+          return sent.messageId || null;
+        }
+        throw new MailboxError('Replies for this mailbox go through a relay, but no relay is set. Edit the mailbox.');
+      }
       const sent = await sendReplyOverSmtp(relay, reply);
       // IMAP mailboxes still get a copy in their Sent folder.
       if (mb.provider === ReferralMailboxProvider.IMAP) {
