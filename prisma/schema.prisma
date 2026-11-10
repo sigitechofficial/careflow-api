@@ -17724,6 +17724,9 @@ model ReferralEmail {
 
   mailbox ReferralMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
 
+  /// Screening result before the full read: { decision BRING | SKIP, reason, by RULE | AI, costUsd }.
+  screening         Json?
+
   @@unique([mailboxId, providerMessageId])
   @@index([status])
   @@index([receivedAt])
@@ -17758,6 +17761,8 @@ model ReferralAutomationSettings {
   answerPriceQuestions Boolean  @default(true)
   /// Referral rules (referral-rules.util ReferralRules): action per kind of email, outcome per care rule, our own written rules.
   rules                Json?
+  /// Screening before Claude reads an email (referral-screening.util ScreeningSettings): mode, trusted and blocked senders.
+  screening            Json?
   updatedById          String?  @db.Uuid
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt

@@ -56,6 +56,8 @@ class UpdateReferralSettingsDto {
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() unplacedLocationId?: string | null;
   /** Checked and cleaned by normaliseRules before it is saved. */
   @IsOptional() @IsObject() rules?: ReferralRules;
+  /** Checked and cleaned by normaliseScreening before it is saved. */
+  @IsOptional() @IsObject() screening?: Record<string, unknown>;
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => StandardRateDto) standardRates?: StandardRateDto[];
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => CoverageRowDto) coverage?: CoverageRowDto[];
 }
@@ -219,6 +221,13 @@ export class ReferralMailboxController {
   @ApiOperation({ summary: 'Change a mailbox: name, folder, branch, IMAP settings, how replies are sent' })
   updateMailbox(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateMailboxDto) {
     return this.service.updateMailbox(id, dto);
+  }
+
+  @Get('mailboxes/:id/folders')
+  @Permissions('crm.manage')
+  @ApiOperation({ summary: 'The labels or folders this mailbox can read, to choose from' })
+  mailboxFolders(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.mailboxFolders(id);
   }
 
   @Post('mailboxes/:id/test')

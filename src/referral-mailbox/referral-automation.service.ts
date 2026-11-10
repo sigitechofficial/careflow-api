@@ -3,6 +3,7 @@ import { MessageDeliveryService } from '../message-delivery/message-delivery.ser
 import { MessageHeldError } from '../message-delivery/message-held.error';
 import { EnquiryLostReason, EnquiryStage, Prisma, ReferralEmailStatus } from '@prisma/client';
 import { parseFromHeader } from './referral-email-parse.util';
+import { normaliseScreening } from './referral-screening.util';
 import { QuotationsService } from '../crm/quotations/quotations.service';
 import type { QuoteDraftDto } from '../crm/quotations/dto/quotation.dto';
 import { EMAIL_RE, htmlToPlain, sanitizeReplyHtml, textToHtml, type ReplyMime } from './referral-reply-mime.util';
@@ -163,6 +164,7 @@ export class ReferralAutomationService {
       data: {
         ...s,
         rules: normaliseRules(s.rules),
+        screening: normaliseScreening(s.screening),
         ruleCatalog: RULE_CATALOG,
         emailKinds: EMAIL_KINDS.map((k) => ({ key: k, ...EMAIL_KIND_INFO[k] })),
         coverage: coverage.map((c) => ({ ...c, branchName: nameOf.get(c.locationId) ?? 'Branch' })),
@@ -193,6 +195,7 @@ export class ReferralAutomationService {
       quoteValidDays?: number;
       unplacedLocationId?: string | null;
       rules?: ReferralRules;
+      screening?: unknown;
       standardRates?: Array<{ locationId: string | null; hourlyRate: number | null; rates?: unknown; notes?: string | null }>;
       coverage?: Array<{
         locationId: string;
@@ -227,6 +230,7 @@ export class ReferralAutomationService {
           ...(dto.quoteValidDays !== undefined ? { quoteValidDays: Math.max(1, Math.min(180, Math.round(dto.quoteValidDays))) } : {}),
           ...(dto.unplacedLocationId !== undefined ? { unplacedLocationId: dto.unplacedLocationId || null } : {}),
           ...(dto.rules ? { rules: normaliseRules(dto.rules) as unknown as Prisma.InputJsonValue } : {}),
+          ...(dto.screening ? { screening: normaliseScreening(dto.screening) as unknown as Prisma.InputJsonValue } : {}),
           updatedById: userId,
         },
       });

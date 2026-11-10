@@ -26,6 +26,7 @@ import { DOCX_MIME, MAX_ATTACHMENT_BYTES, docxToText } from './referral-email-pa
 import { ReferralExtractionService, type ExtractionAttachment, type ReferralExtraction } from './referral-extraction.service';
 import { enquiryFromReferral } from './referral-to-enquiry.util';
 import { newFacts, threadBody } from './referral-follow-up.util';
+import { normaliseScreening, screenByRules } from './referral-screening.util';
 import { ReferralAutomationService } from './referral-automation.service';
 import { TEST_REFERRAL_SCENARIOS, buildTestReferralRaw } from './referral-test-email.util';
 import { mayGetCopy, referralTestCopyAddresses } from './referral-test-copies.util';
@@ -389,6 +390,21 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
   }
 
   /** Signs in to the mailbox (and its relay when it has one) without reading anything. */
+  /** The labels or folders a mailbox can read, for the picker (webhook mailboxes have none). */
+  async mailboxFolders(id: string) {
+    const mb = await this.mailbox(id);
+    if (!POLLED_PROVIDERS.includes(mb.provider)) return { data: { folders: [], current: mb.labelName } };
+    const c = this.connectors.connector(mb);
+    try {
+      const folders = c.listFolders ? await c.listFolders() : [];
+      return { data: { folders, current: mb.labelName } };
+    } catch (e) {
+      throw new BadRequestException((e as Error).message);
+    } finally {
+      await c.close();
+    }
+  }
+
   async testMailbox(id: string) {
     const mb = await this.mailbox(id);
     const results: string[] = [];
@@ -622,6 +638,8 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     const now = new Date();
     const due = await this.prisma.referralEmail.findMany({
       where: {
+        // A turned-off mailbox is never read, retries included: turning it off stops all Claude use for it.
+        mailbox: { isActive: true },
         OR: [
           { status: { in: [ReferralEmailStatus.FAILED, ReferralEmailStatus.FOLLOW_UP] }, nextReadAt: { lte: now } },
           { status: ReferralEmailStatus.RECEIVED, updatedAt: { lt: new Date(now.getTime() - 15 * 60_000) } },
@@ -748,9 +766,26 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
    * Save one email and its attachments. Returns the id to read with Claude, or null when there is nothing to read:
    * our own sent replies are skipped, and a later email in a referral's thread is linked to it as a follow-up.
    */
+  /**
+   * Emails CareFlow itself sent, which come back when a mailbox reads its whole inbox: from this or another referral
+   * mailbox, from the app's own sender (MAIL_FROM), or a test reply or test copy (their subjects are ours alone).
+   * They are marked as read in the mailbox but never saved or read by Claude.
+   */
+  private async isOwnEmail(mb: ReferralMailbox, email: FetchedEmail): Promise<boolean> {
+    const subject = (email.subject ?? '').trim();
+    if (/^\[TEST – would go to /.test(subject) || /^\[TEST referral copy\]/.test(subject) || /^\[Held – for /.test(subject)) return true;
+    const from = email.fromEmail?.trim().toLowerCase();
+    if (!from) return false;
+    if (from === mb.emailAddress.toLowerCase()) return true;
+    const appSender = (process.env.MAIL_FROM ?? '').match(/<([^>]+)>/)?.[1] ?? process.env.MAIL_FROM ?? '';
+    if (appSender.trim().toLowerCase() === from) return true;
+    const other = await this.prisma.referralMailbox.count({ where: { emailAddress: { equals: from, mode: 'insensitive' } } });
+    return other > 0;
+  }
+
   private async saveFetched(mb: ReferralMailbox, email: FetchedEmail): Promise<string | null> {
     const mailboxId = mb.id;
-    if (email.fromEmail && email.fromEmail.toLowerCase() === mb.emailAddress.toLowerCase()) return null;
+    if (await this.isOwnEmail(mb, email)) return null;
     const id = randomUUID();
     const dir = path.join(storageRoot(), id);
     const attachments: StoredAttachment[] = [];
@@ -795,7 +830,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
           select: { id: true, enquiryId: true, locationId: true, status: true, extraction: true },
         })
       : null;
-    if (!original) return id;
+    if (!original) return this.screenNew(id, email);
     await this.prisma.referralEmail.update({
       where: { id },
       data: { status: ReferralEmailStatus.FOLLOW_UP, enquiryId: original.enquiryId, locationId: original.locationId },
@@ -824,6 +859,47 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     return original.extraction && THREAD_READ_STATUSES.includes(original.status) ? id : null;
   }
 
+  /**
+   * Screening, before any money is spent on a new email: free rules, then (for unclear emails) the quick check.
+   * Screened out: kept as "not a referral" with the reason and never read; staff can still read it. Returns the id
+   * to read in full, or null.
+   */
+  private async screenNew(id: string, email: FetchedEmail): Promise<string | null> {
+    const row = await this.prisma.referralAutomationSettings.findFirst({ select: { screening: true } });
+    const settings = normaliseScreening(row?.screening);
+    const from = email.fromEmail?.trim();
+    const knownSender = from
+      ? (await this.prisma.referralEmail.count({
+          where: {
+            id: { not: id },
+            fromEmail: { equals: from, mode: 'insensitive' },
+            status: { in: [ReferralEmailStatus.READ, ReferralEmailStatus.ENQUIRY_CREATED, ReferralEmailStatus.FOLLOW_UP] },
+          },
+        })) > 0
+      : false;
+    const rule = screenByRules(email, settings, { knownSender });
+    let result: { decision: 'BRING' | 'SKIP'; reason: string; by: 'RULE' | 'AI'; costUsd?: number };
+    if (rule.decision !== 'UNSURE') result = { decision: rule.decision, reason: rule.reason, by: 'RULE' };
+    else if (settings.mode === 'RULES_AND_AI' && process.env.AI_API_KEY?.trim()) {
+      const ai = await this.extraction.screen(email).catch((e: Error) => {
+        this.logger.warn(`Quick check of referral email ${id} failed, reading it in full: ${e.message}`);
+        return null;
+      });
+      result = ai
+        ? { decision: ai.aboutCare ? 'BRING' : 'SKIP', reason: ai.reason, by: 'AI', costUsd: ai.costUsd }
+        : { decision: 'BRING', reason: 'The quick check failed, so it is read in full', by: 'RULE' };
+    } else result = { decision: 'BRING', reason: rule.reason, by: 'RULE' };
+    await this.prisma.referralEmail.update({
+      where: { id },
+      data: {
+        screening: { ...result, at: new Date().toISOString() } as Prisma.InputJsonValue,
+        ...(result.costUsd ? { extractionCostUsd: result.costUsd } : {}),
+        ...(result.decision === 'SKIP' ? { status: ReferralEmailStatus.NOT_A_REFERRAL } : {}),
+      },
+    });
+    return result.decision === 'BRING' ? id : null;
+  }
+
   private async readInBackground(ids: string[]) {
     for (const id of ids) {
       await this.readEmail(id).catch((e: Error) => this.logger.warn(`Reading referral email ${id} failed: ${e.message}`));
@@ -834,7 +910,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     // Left "Being read" by the last run (a few minutes' grace in case another process is reading them right now).
     const pending = await this.prisma.referralEmail.findMany({
-      where: { status: ReferralEmailStatus.RECEIVED, updatedAt: { lt: new Date(Date.now() - 5 * 60_000) } },
+      where: { status: ReferralEmailStatus.RECEIVED, updatedAt: { lt: new Date(Date.now() - 5 * 60_000) }, mailbox: { isActive: true } },
       select: { id: true, updatedAt: true },
       take: 20,
     });
@@ -1041,6 +1117,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     error: string | null;
     enquiryId: string | null;
     nextReadAt?: Date | null;
+    screening?: Prisma.JsonValue | null;
     bodyText?: string;
     locationId?: string | null;
     checks?: Prisma.JsonValue | null;
@@ -1080,6 +1157,8 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       error: row.error,
       /** When the next automatic try of a failed read is due (null = none). */
       nextReadAt: row.nextReadAt?.toISOString() ?? null,
+      /** Why the email was (or wasn't) read in full: { decision, reason, by RULE | AI }. */
+      screening: row.screening ?? null,
       enquiryId: row.enquiryId,
       locationId: row.locationId ?? null,
       checks: (row.checks as unknown as Array<{ key: string; label: string; result: string; detail: string }> | null) ?? null,
