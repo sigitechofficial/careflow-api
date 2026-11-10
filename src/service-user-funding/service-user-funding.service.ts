@@ -24,6 +24,7 @@ import { VisitReconciliationsService } from '../billing/visit-reconciliations.se
 
 const fundingInclude = {
   fundingType: { select: { id: true, name: true, code: true } },
+  fundingRoute: { select: { id: true, name: true, code: true, billingFundingTypeId: true } },
   funder: {
     select: {
       id: true,
@@ -121,10 +122,41 @@ export class ServiceUserFundingService {
     });
   }
 
+  /**
+   * A line's funding route must come under the line's billing type (a council line can only have a council
+   * route). Routes with no billing type set yet are allowed, so nothing is blocked before Settings is filled in.
+   */
+  private async assertRouteFitsLine(tx: Tx, fundingId: string) {
+    const line = await tx.serviceUserFunding.findUnique({
+      where: { id: fundingId },
+      select: {
+        fundingTypeId: true,
+        fundingType: { select: { name: true } },
+        fundingRoute: { select: { name: true, billingFundingTypeId: true } },
+      },
+    });
+    const route = line?.fundingRoute;
+    if (line && route?.billingFundingTypeId && route.billingFundingTypeId !== line.fundingTypeId) {
+      throw new BadRequestException(
+        `The funding route "${route.name}" does not fit a ${line.fundingType.name} funder. Choose a route for this funder.`,
+      );
+    }
+  }
+
+  /**
+   * Point the person at their main funding line. When that line has a funding route, Personal Details shows it
+   * (the route is chosen on the funding line, next to its funder, so it is entered once).
+   */
   private async setCurrentFundingPointer(tx: Tx, serviceUserId: string, fundingId: string | null) {
+    const line = fundingId
+      ? await tx.serviceUserFunding.findUnique({ where: { id: fundingId }, select: { fundingRouteId: true } })
+      : null;
     await tx.serviceUser.update({
       where: { id: serviceUserId },
-      data: { currentFundingId: fundingId },
+      data: {
+        currentFundingId: fundingId,
+        ...(line?.fundingRouteId ? { fundingTypeId: line.fundingRouteId } : {}),
+      },
     });
   }
 
@@ -183,6 +215,7 @@ export class ServiceUserFundingService {
     const data: Prisma.ServiceUserFundingUncheckedUpdateInput = { updatedById: userId };
     if (dto.fundingTypeId !== undefined) data.fundingTypeId = dto.fundingTypeId;
     if (dto.funderId !== undefined) data.funderId = dto.funderId ?? null;
+    if (dto.fundingRouteId !== undefined) data.fundingRouteId = dto.fundingRouteId ?? null;
     if (dto.status !== undefined) data.status = dto.status as FundingStatus;
     if (dto.fundingReference !== undefined) data.fundingReference = dto.fundingReference?.trim() ?? null;
     if (dto.approvalReference !== undefined) data.approvalReference = dto.approvalReference?.trim() ?? null;
@@ -310,6 +343,7 @@ export class ServiceUserFundingService {
           serviceUserId,
           fundingTypeId: dto.fundingTypeId,
           funderId: dto.funderId ?? null,
+          fundingRouteId: dto.fundingRouteId ?? null,
           status,
           fundingReference: dto.fundingReference?.trim() ?? null,
           approvalReference: dto.approvalReference?.trim() ?? null,
@@ -340,6 +374,7 @@ export class ServiceUserFundingService {
         },
         include: fundingInclude,
       });
+      await this.assertRouteFitsLine(tx, created.id);
       if (isPrimary) await this.setCurrentFundingPointer(tx, serviceUserId, created.id);
       await this.ensurePrimaryFunding(tx, serviceUserId, userId);
       await this.audit.logAudit({
@@ -395,6 +430,7 @@ export class ServiceUserFundingService {
         data: data as Prisma.ServiceUserFundingUncheckedUpdateInput,
         include: fundingInclude,
       });
+      await this.assertRouteFitsLine(tx, fundingId);
       if (wantPrimary) await this.setCurrentFundingPointer(tx, serviceUserId, fundingId);
       if (demotePrimary) {
         const su = await tx.serviceUser.findFirst({ where: { id: serviceUserId }, select: { currentFundingId: true } });

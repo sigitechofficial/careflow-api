@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { ServiceUserClinicalDataSource } from '@prisma/client';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -38,6 +38,21 @@ function mapAdj(row: {
   };
 }
 
+/**
+ * How a person needs information given (interpreter, large print, hearing, sight) is recorded once, in
+ * Profile → Privacy → Communication needs, which the carer app and surveys use. New communication or sensory
+ * adjustments are refused here so it is not typed twice; older ones still show.
+ */
+export const COMMUNICATION_ADJUSTMENT_TYPES: ReadonlySet<string> = new Set(['COMMUNICATION', 'SENSORY']);
+
+export function assertNotCommunicationAdjustment(type: string | null | undefined): void {
+  if (type && COMMUNICATION_ADJUSTMENT_TYPES.has(type)) {
+    throw new BadRequestException(
+      'Record communication and sensory needs in Profile → Privacy → Communication needs, so they are kept in one place.',
+    );
+  }
+}
+
 @Injectable()
 export class ReasonableAdjustmentsService {
   constructor(
@@ -61,6 +76,7 @@ export class ReasonableAdjustmentsService {
     dto: CreateReasonableAdjustmentDto,
     meta?: RequestAuditMeta,
   ) {
+    assertNotCommunicationAdjustment(dto.type);
     await assertServiceUserAccessible(this.prisma, this.orgScope, user, serviceUserId);
     return this.prisma.$transaction(async (tx) => {
       const created = await tx.serviceUserReasonableAdjustment.create({
@@ -103,6 +119,7 @@ export class ReasonableAdjustmentsService {
         where: { id, serviceUserId, deletedAt: null },
       });
       if (!before) throw new NotFoundException('Reasonable adjustment not found');
+      if (dto.type !== undefined && dto.type !== before.type) assertNotCommunicationAdjustment(dto.type);
 
       const updated = await tx.serviceUserReasonableAdjustment.update({
         where: { id },

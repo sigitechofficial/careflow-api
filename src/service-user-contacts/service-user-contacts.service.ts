@@ -63,7 +63,8 @@ export class ServiceUserContactsService {
           address: dto.address,
           isPrimary: dto.isPrimary ?? false,
           isEmergencyContact: dto.isEmergencyContact ?? false,
-          canReceiveUpdates: dto.canReceiveUpdates ?? false,
+          // Set from Profile → Privacy (sharing lines), not typed here.
+          canReceiveUpdates: false,
           notes: dto.notes,
           createdById: userId,
         },
@@ -117,7 +118,6 @@ export class ServiceUserContactsService {
           ...(dto.address !== undefined ? { address: dto.address } : {}),
           ...(dto.isPrimary !== undefined ? { isPrimary: dto.isPrimary } : {}),
           ...(dto.isEmergencyContact !== undefined ? { isEmergencyContact: dto.isEmergencyContact } : {}),
-          ...(dto.canReceiveUpdates !== undefined ? { canReceiveUpdates: dto.canReceiveUpdates } : {}),
           ...(dto.notes !== undefined ? { notes: dto.notes } : {}),
           updatedById: userId,
         },

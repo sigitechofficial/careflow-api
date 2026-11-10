@@ -18,6 +18,8 @@ const fundingLineInclude = {
       name: true,
       code: true,
       defaultChargeCardId: true,
+      contactName: true,
+      email: true,
     },
   },
   defaultChargeCard: { select: { id: true, name: true, code: true, status: true } },
@@ -101,6 +103,7 @@ function deriveContractStatus(lines: FundingLine[]): {
       purchaseOrderNumber: line.purchaseOrderNumber,
       purchaseOrderExpiresAt: line.purchaseOrderExpiresAt,
       billingContactName: line.billingContactName,
+      funderBillingContact: line.funder?.contactName ?? line.funder?.email ?? null,
     });
     for (const issue of readiness.issues) issues.add(issue);
   }

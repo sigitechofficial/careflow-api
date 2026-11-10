@@ -37,6 +37,16 @@ import { UpdateEmergencyProtocolDto } from './dto/update-emergency-protocol.dto'
 import { DEFAULT_EMERGENCY_PROTOCOLS } from './emergency-protocols.defaults';
 import { CreateManualAuthorisationReasonDto } from './dto/create-manual-authorisation-reason.dto';
 import { UpdateManualAuthorisationReasonDto } from './dto/update-manual-authorisation-reason.dto';
+
+/** A funding route (Personal Details) and the broad billing type it comes under (Funding tab). */
+const FUNDING_ROUTE_SELECT = {
+  id: true,
+  name: true,
+  code: true,
+  isActive: true,
+  billingFundingTypeId: true,
+  billingFundingType: { select: { id: true, name: true, code: true } },
+} as const;
 import {
   DEFAULT_MANUAL_AUTHORISATION_REASONS,
   OTHER_MANUAL_AUTHORISATION_REASON_CODE,
@@ -722,7 +732,7 @@ export class LookupsService implements OnModuleInit {
     return this.prisma.serviceUserFundingType.findMany({
       where: { isActive: true },
       orderBy: { name: 'asc' },
-      select: { id: true, name: true, code: true, isActive: true },
+      select: FUNDING_ROUTE_SELECT,
     });
   }
 
@@ -732,8 +742,13 @@ export class LookupsService implements OnModuleInit {
     if (!name || !code) throw new BadRequestException('Name and code are required');
     try {
       return await this.prisma.serviceUserFundingType.create({
-        data: { name, code, isActive: true },
-        select: { id: true, name: true, code: true, isActive: true },
+        data: {
+          name,
+          code,
+          isActive: true,
+          ...(dto.billingFundingTypeId ? { billingFundingType: { connect: { id: dto.billingFundingTypeId } } } : {}),
+        },
+        select: FUNDING_ROUTE_SELECT,
       });
     } catch (e) {
       this.handleUniqueViolation(e, 'A funding type with this code already exists');
@@ -755,11 +770,16 @@ export class LookupsService implements OnModuleInit {
       data.code = code;
     }
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
+    if (dto.billingFundingTypeId !== undefined) {
+      data.billingFundingType = dto.billingFundingTypeId
+        ? { connect: { id: dto.billingFundingTypeId } }
+        : { disconnect: true };
+    }
     try {
       return await this.prisma.serviceUserFundingType.update({
         where: { id },
         data,
-        select: { id: true, name: true, code: true, isActive: true },
+        select: FUNDING_ROUTE_SELECT,
       });
     } catch (e) {
       this.handleUniqueViolation(e, 'A funding type with this code already exists');

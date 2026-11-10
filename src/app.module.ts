@@ -58,6 +58,7 @@ import { ServiceUserPhotosModule } from './service-user-photos/service-user-phot
 import { ServiceUserLookupsModule } from './service-user-lookups/service-user-lookups.module';
 import { ServiceUserInventoryModule } from './service-user-inventory/service-user-inventory.module';
 import { ServiceUserAllergiesModule } from './service-user-allergies/service-user-allergies.module';
+import { ServiceUserPrivacyModule } from './service-user-privacy/service-user-privacy.module';
 import { ServiceUserNfcTagsModule } from './service-user-nfc-tags/service-user-nfc-tags.module';
 import { ServiceUsersMedicalModule } from './service-users-medical/service-users-medical.module';
 import { ObservationLookupsModule } from './observation-lookups/observation-lookups.module';
@@ -127,6 +128,7 @@ import { CqcEvidenceModule } from './cqc-evidence/cqc-evidence.module';
 import { SpecialistPathwaysModule } from './specialist-pathways/specialist-pathways.module';
 import { SafeguardingModule } from './safeguarding/safeguarding.module';
 import { CrmModule } from './crm/crm.module';
+import { ReferralMailboxModule } from './referral-mailbox/referral-mailbox.module';
 import { CarerMessagesModule } from './carer-messages/carer-messages.module';
 import { OnCallModule } from './on-call/on-call.module';
 import { EmployeeHoursApprovalsModule } from './employee-hours-approvals/employee-hours-approvals.module';
@@ -220,6 +222,7 @@ import { JobsModule } from './jobs/jobs.module';
     ServiceUserLookupsModule,
     ServiceUserInventoryModule,
     ServiceUserAllergiesModule,
+    ServiceUserPrivacyModule,
     ServiceUserNfcTagsModule,
     ServiceUsersMedicalModule,
     ObservationLookupsModule,
@@ -289,6 +292,7 @@ import { JobsModule } from './jobs/jobs.module';
     SpecialistPathwaysModule,
     SafeguardingModule,
     CrmModule,
+    ReferralMailboxModule,
     CarerMessagesModule,
     OnCallModule,
     EmployeeHoursApprovalsModule,

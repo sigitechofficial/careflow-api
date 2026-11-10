@@ -54,18 +54,25 @@ function isoDate(d: Date | null | undefined): string | null {
   return d ? d.toISOString().slice(0, 10) : null;
 }
 
-type AbsenceWithEmployee = Prisma.EmployeeAbsenceRecordGetPayload<{
-  include: {
-    employee: {
-      select: {
-        id: true;
-        isActive: true;
-        personalDetail: { select: { firstName: true; lastName: true } };
-        employment: { select: { employeeNumber: true; visaTypeId: true } };
-      };
-    };
-  };
-}>;
+/** Compliance items whose expiry is the person's permission to work in the UK. */
+export const RIGHT_TO_WORK_EXPIRY_CODES = ['BIOMETRIC_CARD', 'EMPLOYEE_SHARE_CODE', 'HOME_OFFICE_LETTER', 'RIGHT_TO_WORK'];
+
+/**
+ * Visa / right-to-work expiry for an absence, from the employee's Right to Work compliance (the latest expiry
+ * held), so it is not typed again on each absence. Older absences with a typed value keep it only when no
+ * compliance expiry is recorded.
+ */
+export function rightToWorkExpiry(
+  compliance: { expiryDate: Date | null }[],
+  typedOnAbsence: string | null,
+): { value: string | null; fromCompliance: boolean } {
+  const latest = compliance
+    .map((c) => c.expiryDate)
+    .filter((d): d is Date => Boolean(d))
+    .sort((a, b) => b.getTime() - a.getTime())[0];
+  if (latest) return { value: latest.toISOString().slice(0, 10), fromCompliance: true };
+  return { value: typedOnAbsence?.trim() || null, fromCompliance: false };
+}
 
 const EMPLOYEE_INCLUDE = {
   employee: {
@@ -74,9 +81,15 @@ const EMPLOYEE_INCLUDE = {
       isActive: true,
       personalDetail: { select: { firstName: true, lastName: true } },
       employment: { select: { employeeNumber: true, visaTypeId: true } },
+      complianceRecords: {
+        where: { deletedAt: null, complianceType: { code: { in: RIGHT_TO_WORK_EXPIRY_CODES } } },
+        select: { expiryDate: true },
+      },
     },
   },
 } satisfies Prisma.EmployeeAbsenceRecordInclude;
+
+type AbsenceWithEmployee = Prisma.EmployeeAbsenceRecordGetPayload<{ include: typeof EMPLOYEE_INCLUDE }>;
 
 @Injectable()
 export class EmployeeAbsencesService {
@@ -94,6 +107,7 @@ export class EmployeeAbsencesService {
 
     const visa = resolveEnterpriseVisaMeta(record.employee.employment?.visaTypeId);
     const sponsored = visa?.sponsored ?? false;
+    const rtw = rightToWorkExpiry(record.employee.complianceRecords ?? [], record.visaRtwExpiry);
 
     const durationDays = inclusiveDaySpan(record.fromDateTime, record.toDateTime);
     const durationHours = round2(
@@ -173,7 +187,9 @@ export class EmployeeAbsencesService {
       sponsored,
       immigrationLabel: visa?.label ?? null,
       cosWorkerRef: record.cosWorkerRef,
-      visaRtwExpiry: record.visaRtwExpiry,
+      // From Right to Work compliance (not typed per absence).
+      visaRtwExpiry: rtw.value,
+      visaRtwExpiryFromCompliance: rtw.fromCompliance,
       permissionStatus: record.permissionStatus,
       evidenceTypeRequired: record.evidenceTypeRequired,
       evidenceHeld: record.evidenceHeld,
@@ -334,7 +350,8 @@ export class EmployeeAbsencesService {
         managerAction: dto.managerAction?.trim() || 'No action unless required',
         comments: dto.comments?.trim() || null,
         cosWorkerRef: dto.cosWorkerRef?.trim() || null,
-        visaRtwExpiry: dto.visaRtwExpiry?.trim() || null,
+        // Right-to-work expiry comes from compliance; it is no longer typed per absence.
+        visaRtwExpiry: null,
         permissionStatus: dto.permissionStatus ?? 'Authorised',
         evidenceTypeRequired: dto.evidenceTypeRequired?.trim() || null,
         evidenceHeld: dto.evidenceHeld ?? false,
@@ -453,7 +470,6 @@ export class EmployeeAbsencesService {
     if (dto.managerAction !== undefined) data.managerAction = dto.managerAction?.trim() || null;
     if (dto.comments !== undefined) data.comments = dto.comments?.trim() || null;
     if (dto.cosWorkerRef !== undefined) data.cosWorkerRef = dto.cosWorkerRef?.trim() || null;
-    if (dto.visaRtwExpiry !== undefined) data.visaRtwExpiry = dto.visaRtwExpiry?.trim() || null;
     if (dto.permissionStatus !== undefined) data.permissionStatus = dto.permissionStatus;
     if (dto.evidenceTypeRequired !== undefined) {
       data.evidenceTypeRequired = dto.evidenceTypeRequired?.trim() || null;

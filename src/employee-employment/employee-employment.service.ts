@@ -11,6 +11,7 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { RbacEmploymentSyncService } from './rbac-employment-sync.service';
 import { assertEmployeeDefaultPayCard } from '../billing/pay-card-assignment.util';
 import { recordEmployeePayCardChange } from '../billing/employee-pay-card-assignment.util';
+import { syncLeavingRecordFromEmployment } from './employee-leaving-sync.util';
 
 @Injectable()
 export class EmployeeEmploymentService {
@@ -159,6 +160,18 @@ export class EmployeeEmploymentService {
           createdById: userId,
         },
       });
+
+      if (
+        dto.endDate !== undefined ||
+        dto.leavingReasonId !== undefined ||
+        dto.leavingNotes !== undefined
+      ) {
+        await syncLeavingRecordFromEmployment(tx, employeeId, userId, {
+          endDate: employment.endDate,
+          leavingReasonId: employment.leavingReasonId,
+          leavingNotes: employment.leavingNotes,
+        });
+      }
 
       if (defaultPayCardId !== undefined && defaultPayCardId !== (before?.defaultPayCardId ?? null)) {
         // Keep the dated pay card history in step (applies from today).

@@ -113,7 +113,8 @@ export class CreateEnquiryDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  @MaxLength(4000)
+  // Referrals read from email can carry long needs text (up to 10,000 characters).
+  @MaxLength(10000)
   needs?: string;
 
   @ApiPropertyOptional({

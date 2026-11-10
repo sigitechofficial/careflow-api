@@ -142,7 +142,7 @@ describe('triggerJob', () => {
 });
 
 describe('job catalogue', () => {
-  it('has the 11 function jobs with 6-field NCRONTAB schedules', () => {
+  it('has the 12 function jobs with 6-field NCRONTAB schedules', () => {
     assert.deepEqual(
       FUNCTION_JOBS.map((j) => [j.name, j.schedule]),
       [
@@ -157,6 +157,7 @@ describe('job catalogue', () => {
         ['compliance-expiry-reminders', '0 20 * * * *'],
         ['assessment-review-reminders', '0 25 * * * *'],
         ['policy-acknowledgement-reminders', '0 35 * * * *'],
+        ['referral-mailbox-check', '0 */2 * * * *'],
       ],
     );
   });

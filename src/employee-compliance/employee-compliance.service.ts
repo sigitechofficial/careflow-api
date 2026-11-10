@@ -842,6 +842,100 @@ export class EmployeeComplianceService {
     return { workAreaId: dims.workAreaId, workAreaName, items };
   }
 
+  /**
+   * One record per piece of staff evidence: when a document tagged with a compliance type, or a certificate of a
+   * matching type, is added elsewhere (Documents, Certifications), it is filed against that compliance item here
+   * (created if missing) instead of sitting apart from it. It still needs checking like any upload.
+   */
+  async attachEvidence(input: {
+    userId: string;
+    employeeId: string;
+    complianceTypeId: string;
+    issueDate?: Date | null;
+    expiryDate?: Date | null;
+    file?: { fileUrl: string; fileName: string; originalName: string; fileSize: number; mimeType: string } | null;
+    source: 'employee_document' | 'certification';
+    sourceId: string;
+  }): Promise<{ complianceId: string } | null> {
+    const type = await this.prisma.complianceType.findFirst({
+      where: { id: input.complianceTypeId, deletedAt: null },
+    });
+    if (!type) return null;
+    return this.prisma.$transaction(async (tx) => {
+      let row = await tx.employeeCompliance.findFirst({
+        where: { employeeId: input.employeeId, complianceTypeId: type.id, deletedAt: null },
+        orderBy: { updatedAt: 'desc' },
+        include: complianceInclude,
+      });
+      const previousStatus = row?.status ?? null;
+      if (!row) {
+        const requirementId = await this.resolveRequirementId(input.employeeId, type.id, undefined);
+        row = await tx.employeeCompliance.create({
+          data: {
+            employeeId: input.employeeId,
+            complianceTypeId: type.id,
+            requirementId,
+            issueDate: input.issueDate ?? null,
+            expiryDate: input.expiryDate ?? null,
+            createdById: input.userId,
+            status: EmployeeComplianceStatus.REQUIRED,
+          },
+          include: complianceInclude,
+        });
+      } else {
+        // Newer evidence replaces the dates; older evidence is only filed.
+        const newer =
+          !row.expiryDate || (input.expiryDate && input.expiryDate.getTime() > row.expiryDate.getTime());
+        if (newer && (input.issueDate || input.expiryDate)) {
+          row = await tx.employeeCompliance.update({
+            where: { id: row.id },
+            data: {
+              ...(input.issueDate ? { issueDate: input.issueDate } : {}),
+              ...(input.expiryDate ? { expiryDate: input.expiryDate } : {}),
+              // New evidence needs checking again.
+              verifiedAt: null,
+              rejectedAt: null,
+              rejectionReason: null,
+              updatedById: input.userId,
+            },
+            include: complianceInclude,
+          });
+        }
+      }
+      if (input.file) {
+        await tx.employeeComplianceDocument.create({
+          data: {
+            employeeComplianceId: row.id,
+            fileName: input.file.fileName,
+            originalName: input.file.originalName,
+            fileUrl: input.file.fileUrl,
+            fileSize: input.file.fileSize,
+            mimeType: input.file.mimeType,
+            uploadedById: input.userId,
+          },
+        });
+      }
+      const withDocs = await tx.employeeCompliance.update({
+        where: { id: row.id },
+        data: { submittedAt: input.file || input.expiryDate || input.issueDate ? new Date() : row.submittedAt },
+        include: complianceInclude,
+      });
+      const status = this.computePersistedStatus(withDocs);
+      await tx.employeeCompliance.update({ where: { id: row.id }, data: { status } });
+      await tx.complianceVerification.create({
+        data: {
+          employeeComplianceId: row.id,
+          action: ComplianceVerificationAction.UPDATED,
+          previousStatus,
+          newStatus: status,
+          performedById: input.userId,
+          metadata: { source: input.source, sourceId: input.sourceId },
+        },
+      });
+      return { complianceId: row.id };
+    });
+  }
+
   async getChecklist(employeeId: string) {
     await this.ensureEmployee(employeeId);
     const data = await this.buildChecklistItems(employeeId);

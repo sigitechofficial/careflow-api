@@ -10,6 +10,7 @@ import {
   IsOptional,
   IsString,
   IsUUID,
+  ValidateIf,
   Max,
   MaxLength,
   Min,
@@ -25,6 +26,12 @@ export class CreateServiceUserFundingDto {
   @IsOptional()
   @IsUUID()
   funderId?: string;
+
+  @ApiPropertyOptional({ description: 'How this line is funded (a funding route that comes under the line type).' })
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @IsUUID()
+  fundingRouteId?: string | null;
 
   @ApiPropertyOptional({ enum: FundingStatus })
   @IsOptional()

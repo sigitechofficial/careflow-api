@@ -28,6 +28,9 @@ env:
   JOB: job-careflow-migrate
   # Scheduled Container Apps Jobs that run the API image as a CLI (node dist/src/jobs/run-job.js <name>).
   SCHEDULED_JOBS: job-careflow-rolling-rota job-careflow-plan-end job-careflow-learning job-careflow-care-plan-reviews
+  # Whisper speech-to-text worker (Container Apps Job, deploy/azure/whisper). Its image is only built and
+  # rolled out when the repo variable WHISPER_JOB_ENABLED is 'true'.
+  WHISPER_JOB: job-careflow-whisper
 
 jobs:
   deploy:
@@ -114,6 +117,25 @@ jobs:
         if: failure()
         run: docker logs api 2>&1 | tail -80 || true
 
+      - name: Build whisper worker image
+        if: vars.WHISPER_JOB_ENABLED == 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: whisper-worker
+          load: true
+          tags: ${{ env.ACR }}/careflow-whisper:${{ env.TAG }}
+          cache-from: type=gha,scope=whisper
+          cache-to: type=gha,scope=whisper,mode=max
+
+      - name: Smoke test whisper worker image
+        if: vars.WHISPER_JOB_ENABLED == 'true'
+        run: |
+          set -euo pipefail
+          IMG="$ACR/careflow-whisper:$TAG"
+          # The model loads offline (baked into the image) and the worker entry point exists.
+          docker run --rm --entrypoint sh "$IMG" -c '"$WHISPER_PYTHON" -c "import os; from faster_whisper import WhisperModel; WhisperModel(os.environ[\"WHISPER_MODEL\"], device=\"cpu\", compute_type=\"int8\"); print(\"whisper model ok\")" && test -f dist/src/initial-assessments/run-transcription-worker.js && test -f scripts/whisper/transcribe.py && echo "worker files ok"'
+
       - name: Azure login (OIDC)
         uses: azure/login@v2
         with:
@@ -126,6 +148,10 @@ jobs:
           az acr login --name "${ACR%%.*}"
           docker push "$ACR/careflow-migrate:$TAG"
           docker push "$ACR/careflow-api:$TAG"
+
+      - name: Push whisper worker image to ACR
+        if: vars.WHISPER_JOB_ENABLED == 'true'
+        run: docker push "$ACR/careflow-whisper:$TAG"
 
       - name: Run database migrations (Container Apps Job)
         run: |
@@ -180,3 +206,13 @@ jobs:
               echo "$out"; echo "::error::could not read $J"; exit 1
             fi
           done
+
+      # Only after the API revision is live (its migrations add the queue table the worker reads).
+      - name: Update Whisper Container Apps Job to the new image
+        if: vars.WHISPER_JOB_ENABLED == 'true'
+        run: |
+          set -euo pipefail
+          az containerapp job update -g "$RG" -n "$WHISPER_JOB" --container-name whisper --image "$ACR/careflow-whisper:$TAG" -o none
+          img=$(az containerapp job show -g "$RG" -n "$WHISPER_JOB" --query "properties.template.containers[0].image" -o tsv)
+          [ "$img" = "$ACR/careflow-whisper:$TAG" ] || { echo "::error::$WHISPER_JOB still on $img"; exit 1; }
+          echo "- whisper job \`$WHISPER_JOB\` -> $TAG" >> "$GITHUB_STEP_SUMMARY"

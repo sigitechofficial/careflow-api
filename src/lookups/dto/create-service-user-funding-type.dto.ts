@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, MaxLength, MinLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsOptional, IsString, IsUUID, MaxLength, MinLength, ValidateIf } from 'class-validator';
 
 export class CreateServiceUserFundingTypeDto {
   @ApiProperty({ example: 'Local Authority' })
@@ -13,4 +13,10 @@ export class CreateServiceUserFundingTypeDto {
   @MinLength(1)
   @MaxLength(64)
   code!: string;
+
+  @ApiPropertyOptional({ description: 'Funding route only: the broad billing type it comes under (null to clear).' })
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @IsUUID()
+  billingFundingTypeId?: string | null;
 }

@@ -184,6 +184,23 @@ export function mapReasonableAdjustmentToAlert(input: {
   };
 }
 
+// ── Communication needs (Profile → Privacy) ─────────────────────────────────
+/** How the person needs information given: one alert from the one record (not per adjustment). */
+export function mapCommunicationNeedsToAlert(summary: string | null | undefined): ServiceUserAlertItem | null {
+  const text = summary?.trim();
+  if (!text) return null;
+  return {
+    id: 'communication-needs',
+    category: 'COMMUNICATION',
+    title: 'Communication needs',
+    actionLine: 'Give information in the way they need it.',
+    detail: text,
+    tier: 'IMPORTANT',
+    source: 'ADMIN',
+    requiresAck: false,
+  };
+}
+
 // ── Flash message (manual office note) ───────────────────────────────────────
 export function mapFlashMessageToAlert(input: {
   id: string;

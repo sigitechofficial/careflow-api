@@ -8,12 +8,14 @@ import { UpdateEmployeeDocumentDto } from './dto/update-employee-document.dto';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
+import { EmployeeComplianceService } from '../employee-compliance/employee-compliance.service';
 
 @Injectable()
 export class EmployeeDocumentsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    private readonly compliance: EmployeeComplianceService,
   ) {}
 
   async list(employeeId: string) {
@@ -35,7 +37,7 @@ export class EmployeeDocumentsService {
     userAgent?: string | null;
   }) {
     await this.ensureEmployee(params.employeeId);
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const created = await tx.employeeDocument.create({
         data: {
           employeeId: params.employeeId,
@@ -71,6 +73,25 @@ export class EmployeeDocumentsService {
       });
       return { message: 'Document uploaded', data: created };
     });
+    // A document tagged with a compliance type is that compliance item's evidence: file it there too.
+    if (params.dto.complianceTypeId) {
+      await this.compliance.attachEvidence({
+        userId: params.userId,
+        employeeId: params.employeeId,
+        complianceTypeId: params.dto.complianceTypeId,
+        expiryDate: result.data.expiryDate ?? null,
+        file: {
+          fileUrl: params.fileUrl,
+          fileName: params.file.filename,
+          originalName: params.file.originalname,
+          fileSize: params.file.size,
+          mimeType: params.file.mimetype,
+        },
+        source: 'employee_document',
+        sourceId: result.data.id,
+      });
+    }
+    return result;
   }
 
   async update(

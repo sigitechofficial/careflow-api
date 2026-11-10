@@ -467,7 +467,7 @@ export async function loadCarePlanComposeContext(
   prisma: PrismaService,
   serviceUserId: string,
 ): Promise<CarePlanComposeContext> {
-  const [serviceUser, iaBundle, allergies, meds, pack, references, emergencyContacts, legalDocument] =
+  const [serviceUser, iaBundle, allergies, meds, pack, references, emergencyContacts, gpContactRow, legalDocument] =
     await Promise.all([
     prisma.serviceUser.findFirst({
       where: { id: serviceUserId, deletedAt: null },
@@ -491,6 +491,7 @@ export async function loadCarePlanComposeContext(
             keySafeNumber: true,
           },
         },
+        domCare: { select: { staffGenderPreference: true } },
       },
     }),
     loadComposeIaSnapshots(prisma, serviceUserId),
@@ -533,6 +534,11 @@ export async function loadCarePlanComposeContext(
       orderBy: [{ isPrimary: 'desc' }, { firstName: 'asc' }],
       take: 6,
     }),
+    prisma.serviceUserContact.findFirst({
+      where: { serviceUserId, deletedAt: null, isActive: true, relationshipType: { code: 'GP' } },
+      select: { firstName: true, lastName: true, phone: true, mobile: true, address: true },
+      orderBy: [{ isPrimary: 'desc' }, { updatedAt: 'desc' }],
+    }),
     prisma.serviceUserLegalDocument.findFirst({
       where: { serviceUserId, isActive: true },
       select: {
@@ -554,10 +560,21 @@ export async function loadCarePlanComposeContext(
   const previousAssessments = iaBundle.previous;
 
   const gpParts: string[] = [];
+  // The GP on Contacts is the person's GP; the assessment answer is used only when none has been added.
+  const gpFromContacts = gpContactRow
+    ? [
+        [gpContactRow.firstName, gpContactRow.lastName].filter(Boolean).join(' ').trim(),
+        gpContactRow.address?.replace(/\s+/g, ' ').trim(),
+        gpContactRow.phone?.trim() || gpContactRow.mobile?.trim(),
+      ]
+        .filter(Boolean)
+        .join(' · ')
+    : '';
+  if (gpFromContacts) gpParts.push(`GP: ${gpFromContacts}`);
   if (ia) {
-    const gpContact = resolveIaDisplayValue(
-      findIaAnswer(ia.answers, { fieldKey: 'gpContactDetails' }),
-    );
+    const gpContact = gpFromContacts
+      ? null
+      : resolveIaDisplayValue(findIaAnswer(ia.answers, { fieldKey: 'gpContactDetails' }));
     const pharmacy = resolveIaDisplayValue(
       findIaAnswer(ia.answers, { specRef: '13.9', questionTextContains: 'pharmacy' }),
     );
@@ -598,6 +615,7 @@ export async function loadCarePlanComposeContext(
     ),
     pack: pack ? buildMedicationPackComposeSummary(pack) : null,
     gpPharmacyLine: gpParts.length > 0 ? gpParts.join('\n') : null,
+    hasGpContact: Boolean(gpFromContacts),
     profile: serviceUser
       ? {
           preferredName: serviceUser.preferredName?.trim() || null,
@@ -623,6 +641,7 @@ export async function loadCarePlanComposeContext(
             ].filter(Boolean);
             return parts.length > 0 ? parts.join('\n') : null;
           })(),
+          staffGenderPreference: serviceUser.domCare?.staffGenderPreference?.trim() || null,
         }
       : null,
     legalDocument: legalDocument

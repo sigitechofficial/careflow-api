@@ -251,12 +251,12 @@ describe('generic IA QA demo generator — complete catalog (non-persona)', () =
         ].filter(Boolean).length,
       };
       const expected = {
-        critical: { correctlyFilled: 515, hidden: 33 },
-        normal: { correctlyFilled: 455, hidden: 93 },
-        low: { correctlyFilled: 441, hidden: 107 },
+        critical: { correctlyFilled: 517, hidden: 33 },
+        normal: { correctlyFilled: 457, hidden: 93 },
+        low: { correctlyFilled: 443, hidden: 107 },
       } as const;
       expect(report).toEqual({
-        catalog: 555,
+        catalog: 557,
         wronglyFilled: 0,
         blankButRequired: 0,
         secure: 1,

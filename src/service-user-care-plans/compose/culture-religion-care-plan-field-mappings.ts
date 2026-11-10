@@ -114,6 +114,25 @@ function resolveGenderPreference(ctx: CarePlanComposeContext): CrsSuggestionPart
   if (!ctx.ia) return null;
 
   const answer = findIaAnswer(ctx.ia.answers, CRS_IA_QUERIES.genderPreference);
+  // The current preference (DOM Care) wins over the assessment answer it started from.
+  const current = ctx.profile?.staffGenderPreference?.toLowerCase().trim();
+  const currentLabel = current ? STAFF_GENDER_PREFERENCE_LABELS[current] : null;
+  if (currentLabel) {
+    return {
+      suggestedValue: currentLabel,
+      displayText: currentLabel,
+      sources: [
+        {
+          questionId: answer?.questionId ?? 'dom-care-gender-preference',
+          questionFieldKey: answer?.fieldKey,
+          specRef: answer?.specRef,
+          sourceSection: 'DOM Care',
+          sourceLabel: 'Gender preference of staff (current)',
+          sourceValue: currentLabel,
+        },
+      ],
+    };
+  }
   if (!answer) return null;
 
   const raw = resolveIaRawValue(answer)?.toLowerCase().trim();

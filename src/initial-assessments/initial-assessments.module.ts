@@ -12,6 +12,9 @@ import { InitialAssessmentNotificationHook } from './initial-assessment-notifica
 import { InitialAssessmentTranscriptionService } from './initial-assessment-transcription.service';
 import { InitialAssessmentAiFillService } from './initial-assessment-ai-fill.service';
 import { InitialAssessmentConversationFilesService } from './initial-assessment-conversation-files.service';
+import { TranscriptionJobStarter } from './transcription-job-starter';
+import { TranscriptionQueueService } from './transcription-queue.service';
+import { TranscriptionWorker } from './transcription-worker.service';
 // Stateless (Prisma only); provided here so accepting a recommendation can compose the first draft
 // without importing ServiceUserCarePlansModule, which already imports this module.
 import { CarePlanComposeService } from '../service-user-care-plans/care-plan-compose.service';
@@ -36,6 +39,9 @@ import { CarePlanReassessmentService } from './care-plan-reassessment.service';
     InitialAssessmentTranscriptionService,
     InitialAssessmentAiFillService,
     InitialAssessmentConversationFilesService,
+    TranscriptionJobStarter,
+    TranscriptionQueueService,
+    TranscriptionWorker,
     CarePlanComposeService,
     CarePlanReassessmentService,
   ],

@@ -4581,7 +4581,7 @@ export class VisitReconciliationsService {
             purchaseOrderNumber: true,
             purchaseOrderExpiresAt: true,
             billingContactName: true,
-            funder: { select: { defaultChargeCardId: true } },
+            funder: { select: { defaultChargeCardId: true, contactName: true, email: true } },
           },
         },
         fundings: {
@@ -4617,6 +4617,7 @@ export class VisitReconciliationsService {
       purchaseOrderNumber: funding?.purchaseOrderNumber ?? null,
       purchaseOrderExpiresAt: funding?.purchaseOrderExpiresAt ?? null,
       billingContactName: funding?.billingContactName ?? null,
+      funderBillingContact: funding?.funder?.contactName ?? funding?.funder?.email ?? null,
     };
   }
 
