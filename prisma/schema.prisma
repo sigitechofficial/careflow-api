@@ -4004,6 +4004,7 @@ model InitialAssessmentSubmission {
   answers                 InitialAssessmentAnswer[]
   actions                 InitialAssessmentAction[]
   attachments             InitialAssessmentAttachment[]
+  transcriptionJobs       InitialAssessmentTranscriptionJob[]
   riskRecords             InitialAssessmentRiskRecord[]
   visitPlans              ServiceUserVisitPlan[]
   assessmentCompletions   ServiceUserAssessmentCompletion[]
@@ -4149,6 +4150,41 @@ model InitialAssessmentAttachment {
   @@index([submissionId])
   @@index([serviceUserId])
   @@index([deletedAt])
+  @@schema("service_users")
+}
+
+/// Speech-to-text job run by the separate Whisper worker (WHISPER_MODE=azure-job): the API queues it
+/// and starts the Container Apps Job, the worker claims it, reports progress and stores the result.
+/// Rows are deleted 2 hours after they finish (the transcript itself is kept as an attachment).
+/// In the default local mode jobs stay in the API's memory and this table is not used.
+model InitialAssessmentTranscriptionJob {
+  id                     String    @id @default(uuid()) @db.Uuid
+  submissionId           String    @db.Uuid
+  serviceUserId          String    @db.Uuid
+  /// Who uploaded the recording (the transcript attachment is saved as theirs).
+  userId                 String    @db.Uuid
+  recordingAttachmentId  String    @db.Uuid
+  fileName               String
+  /// 'QUEUED' | 'RUNNING' | 'DONE' | 'FAILED'
+  status                 String    @default("QUEUED")
+  /// Seconds of audio processed so far, and the audio length (known once Whisper starts).
+  done                   Float     @default(0)
+  duration               Float?
+  text                   String?   @db.Text
+  language               String?
+  segments               Json?
+  error                  String?
+  transcriptAttachmentId String?   @db.Uuid
+  createdAt              DateTime  @default(now())
+  startedAt              DateTime?
+  /// Last sign of life from the worker while RUNNING; a stale one means the worker stopped.
+  heartbeatAt            DateTime?
+  finishedAt             DateTime?
+
+  submission InitialAssessmentSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([submissionId])
   @@schema("service_users")
 }
 
