@@ -58,8 +58,34 @@ export class OfficeTestAlertsService {
     @Optional() private readonly notifications?: NotificationsService,
   ) {}
 
-  catalogue() {
-    return { data: OFFICE_TEST_ALERTS.map(({ key, group, label, description }) => ({ key, group, label, description })) };
+  /** The alerts, where a click on each one opens, the visit they would go on, and how many test alerts are live. */
+  async catalogue() {
+    const [visit, openExceptions] = await Promise.all([
+      this.pickVisit().catch(() => null),
+      this.prisma.ecmException.count({ where: { context: { path: ['test'], equals: true } } }),
+    ]);
+    return {
+      data: {
+        alerts: OFFICE_TEST_ALERTS.map(({ key, group, label, description, ecm, notification }) => ({
+          key,
+          group,
+          label,
+          description,
+          popsUp: Boolean(ecm && ['CARER_SOS', 'LEFT_VISIT_AREA', 'OUTSIDE_AREA_CHECK_IN_REQUEST'].includes(ecm.kind)),
+          opens: notification?.startsWith('MED_') ? 'Medication › Missed & refused doses' : 'Live visits › Exceptions, on the visit',
+        })),
+        visit: visit
+          ? {
+              id: visit.id,
+              name: visit.jobName,
+              serviceUser: [visit.serviceUser.firstName, visit.serviceUser.lastName].filter(Boolean).join(' '),
+              start: visit.scheduledStartDateTime,
+              inProgress: visit.allocations.some((a) => a.actualStartDateTime && !a.actualEndDateTime),
+            }
+          : null,
+        openTestExceptions: openExceptions,
+      },
+    };
   }
 
   /** A recent visit to hang the alerts on: one in progress if there is one, else the latest that has started. */

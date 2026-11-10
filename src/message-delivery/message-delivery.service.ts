@@ -16,7 +16,8 @@ const CACHE_MS = 30_000;
 /** Log rows are kept this long; older ones are removed now and then as new ones are written. */
 export const DELIVERY_LOG_DAYS = 30;
 
-export type DeliveryOutcome = 'SENT' | 'HELD' | 'REDIRECTED' | 'FAILED';
+/** SKIPPED: nothing to deliver to (no phone signed in to the carer app, push not set up on this server). */
+export type DeliveryOutcome = 'SENT' | 'HELD' | 'REDIRECTED' | 'SKIPPED' | 'FAILED';
 
 /** "07700 900123" → "07700 ••• 123": numbers are never stored or shown in full in the log. */
 export function maskPhone(n: string): string {

@@ -169,8 +169,13 @@ export class FcmPushService {
     }
     const report = await this.sendNow(unique, payload);
     if (this.delivery) {
-      const outcome = report.reason === 'SENT' ? ('SENT' as const) : ('FAILED' as const);
-      const reason = report.reason === 'SENT' ? null : report.error ?? report.reason;
+      // No phone signed in, or push not set up here: nothing could be delivered, but nothing went wrong either.
+      const skipped: Record<string, string> = {
+        NO_DEVICE_TOKEN: 'No phone signed in to the carer app',
+        FIREBASE_NOT_READY: 'Push is not set up on this server',
+      };
+      const outcome = report.reason === 'SENT' ? ('SENT' as const) : skipped[report.reason] ? ('SKIPPED' as const) : ('FAILED' as const);
+      const reason = report.reason === 'SENT' ? null : skipped[report.reason] ?? report.error ?? report.reason;
       await this.delivery.record('PUSH', logKind, unique.map((id) => ({ recipient: who.get(id) ?? id, outcome, reason })), payload.title);
     }
     return report;

@@ -9,7 +9,7 @@ import { MailService } from '../mail/mail.service';
 import { TextMessageService } from '../text-messages/text-message.service';
 import { FcmPushService } from '../notifications/fcm-push.service';
 import { MessageDeliveryService, DELIVERY_LOG_DAYS } from './message-delivery.service';
-import { MESSAGE_KINDS, kindId } from './message-kinds';
+import { MESSAGE_AUDIENCES, MESSAGE_KINDS, kindId } from './message-kinds';
 import { normaliseEmail, normalisePhone, type DeliveryRules } from './message-delivery.rules';
 import type { MessageDeliveryLogQueryDto, SendTestMessageDto, UpdateMessageDeliveryDto } from './dto/message-delivery.dto';
 
@@ -48,9 +48,13 @@ export class MessageDeliverySettingsService {
   }
 
   private view(rules: DeliveryRules, row: { updatedAt: Date; updatedById: string | null } | null) {
+    // Switches for message types that no longer exist are dropped, so they never block a save.
+    const disabledKinds = rules.disabledKinds.filter((k) => VALID_KIND_IDS.has(k));
     return {
       ...rules,
-      kinds: MESSAGE_KINDS.map((k) => ({ ...k, id: kindId(k.channel, k.key), enabled: !rules.disabledKinds.includes(kindId(k.channel, k.key)) })),
+      disabledKinds,
+      kinds: MESSAGE_KINDS.map((k) => ({ ...k, id: kindId(k.channel, k.key), enabled: !disabledKinds.includes(kindId(k.channel, k.key)) })),
+      audiences: Object.entries(MESSAGE_AUDIENCES).map(([key, a]) => ({ key, ...a })),
       environment: this.environment(),
       updatedAt: row?.updatedAt ?? null,
       updatedById: row?.updatedById ?? null,
@@ -63,7 +67,7 @@ export class MessageDeliverySettingsService {
       this.delivery.rules(),
       this.prisma.messageDeliverySettings.findUnique({ where: { id: SETTINGS_ID }, select: { updatedAt: true, updatedById: true } }),
       this.prisma.messageDeliveryLog.groupBy({
-        by: ['channel', 'outcome'],
+        by: ['channel', 'kind', 'outcome'],
         where: { at: { gte: new Date(Date.now() - 86_400_000) } },
         _count: { _all: true },
       }),
@@ -71,16 +75,17 @@ export class MessageDeliverySettingsService {
     return {
       data: {
         ...this.view(rules, row),
-        last24h: counts.map((c) => ({ channel: c.channel, outcome: c.outcome, count: c._count._all })),
+        last24h: counts.map((c) => ({ channel: c.channel, kind: c.kind, outcome: c.outcome, count: c._count._all })),
         logDays: DELIVERY_LOG_DAYS,
       },
     };
   }
 
   async update(dto: UpdateMessageDeliveryDto, userId: string, meta: RequestAuditMeta) {
-    const before = await this.delivery.rules();
+    const before = { ...(await this.delivery.rules()) };
     const unknown = (dto.disabledKinds ?? []).filter((k) => !VALID_KIND_IDS.has(k));
     if (unknown.length) throw new BadRequestException(`Unknown message types: ${unknown.join(', ')}`);
+    before.disabledKinds = before.disabledKinds.filter((k) => VALID_KIND_IDS.has(k));
     const data: Prisma.MessageDeliverySettingsUncheckedCreateInput = { id: SETTINGS_ID, updatedById: userId };
     for (const k of ['emailEnabled', 'textEnabled', 'whatsappEnabled', 'pushEnabled', 'emailAudience', 'textAudience', 'pushAudience'] as const) {
       if (dto[k] !== undefined) (data as Record<string, unknown>)[k] = dto[k];

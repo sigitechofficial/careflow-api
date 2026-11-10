@@ -65,9 +65,9 @@ export class MessageDeliveryLogQueryDto {
   @IsIn(['EMAIL', 'TEXT', 'WHATSAPP', 'PUSH'])
   channel?: string;
 
-  @ApiPropertyOptional({ enum: ['SENT', 'HELD', 'REDIRECTED', 'FAILED'] })
+  @ApiPropertyOptional({ enum: ['SENT', 'HELD', 'REDIRECTED', 'SKIPPED', 'FAILED'] })
   @IsOptional()
-  @IsIn(['SENT', 'HELD', 'REDIRECTED', 'FAILED'])
+  @IsIn(['SENT', 'HELD', 'REDIRECTED', 'SKIPPED', 'FAILED'])
   outcome?: string;
 
   @ApiPropertyOptional({ description: 'Part of a recipient, subject or type' })

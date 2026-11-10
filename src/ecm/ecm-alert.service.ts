@@ -247,7 +247,7 @@ export class EcmAlertService {
       carerNote: contextString('message') ?? contextString('note'),
     });
     // Test alerts (Administration › Test office alerts) say so, everywhere they show.
-    const testPrefix = context.test === true ? '[TEST] ' : '';
+    const testPrefix = context.test === true && !row.title.startsWith('[TEST]') ? '[TEST] ' : '';
     const title = testPrefix + (isCarerSos
       ? `Carer SOS — ${suName}`
       : row.kind === 'LEFT_VISIT_AREA'

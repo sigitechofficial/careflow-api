@@ -124,7 +124,7 @@ describe('SurveyRemindersService — the survey job', () => {
     expect(mail.send).toHaveBeenCalledTimes(1);
     expect(mail.send.mock.calls[0][0].to).toBe('zara@example.test');
     expect(mail.send.mock.calls[0][0].text).toContain('https://care.example/survey/tok-1');
-    expect(texts.send).toHaveBeenCalledWith({ to: '+447700900123', body: expect.stringContaining('tok-1'), kind: 'surveys' });
+    expect(texts.send).toHaveBeenCalledWith({ to: '+447700900123', body: expect.stringContaining('tok-1'), kind: 'surveys-staff' });
     expect(prisma.surveyReminderRun.create).toHaveBeenCalledWith({ data: expect.objectContaining({ step: 1, people: 1, app: 1, email: 1, text: 1 }) });
     // Audit: counts only — no address, number, name or link.
     const row = JSON.stringify(audit.logAudit.mock.calls[0][0]);
@@ -276,7 +276,7 @@ describe('SurveyRemindersService — invitation texts and quiet hours', () => {
     expect(await svc.sendPendingInvitationTexts(new Date('2026-11-11T23:00:00Z'))).toBe(0);
     expect(texts.send).not.toHaveBeenCalled();
     expect(await svc.sendPendingInvitationTexts(new Date('2026-11-12T09:30:00Z'))).toBe(1);
-    expect(texts.send).toHaveBeenCalledWith({ to: '+447700900123', body: expect.stringContaining('tok-1'), kind: 'surveys' });
+    expect(texts.send).toHaveBeenCalledWith({ to: '+447700900123', body: expect.stringContaining('tok-1'), kind: 'surveys-staff' });
   });
 });
 
