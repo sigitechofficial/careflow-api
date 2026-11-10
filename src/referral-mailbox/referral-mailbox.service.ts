@@ -28,6 +28,8 @@ import { enquiryFromReferral } from './referral-to-enquiry.util';
 import { newFacts, threadBody } from './referral-follow-up.util';
 import { ReferralAutomationService } from './referral-automation.service';
 import { TEST_REFERRAL_SCENARIOS, buildTestReferralRaw } from './referral-test-email.util';
+import { mayGetCopy, referralTestCopyAddresses } from './referral-test-copies.util';
+import { MailService } from '../mail/mail.service';
 import { MailboxError, PROCESSED_MARK, type FetchedEmail } from './connectors/connector.types';
 import { GmailConnector } from './connectors/gmail.connector';
 import { ImapConnector, type ImapConfig } from './connectors/imap.connector';
@@ -83,6 +85,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     private readonly automation: ReferralAutomationService,
     private readonly connectors: ReferralConnectorsService,
     @Optional() private readonly jobRunner?: JobRunner,
+    @Optional() private readonly mail?: MailService,
   ) {}
 
   /* ─── mailboxes ──────────────────────────────────────────────── */
@@ -463,12 +466,28 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       : await this.prisma.referralMailbox.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'asc' } });
     if (!mb) throw new BadRequestException('No referrals mailbox is connected.');
     if (!mb.isActive) throw new BadRequestException('That mailbox is turned off.');
-    const { mime, subject } = await buildTestReferralRaw(mb.emailAddress, scenario);
+    const built = await buildTestReferralRaw(mb.emailAddress, scenario);
+    const { mime, subject } = built;
     if (mb.provider === ReferralMailboxProvider.INBOUND_WEBHOOK) {
       const [email] = await parseInboundPost(Buffer.from(mime, 'utf8'), 'message/rfc822', null);
       const saved = await this.saveFetched(mb, email);
       if (saved) void this.readInBackground([saved]);
-      return { message: `Test referral posted to ${mb.displayName ?? mb.emailAddress}: "${subject}"` };
+      // The same made-up email goes to the people who get copies, through the app's mail service.
+      const copied = await this.testCopyRecipients(mb.emailAddress);
+      if (copied.length && this.mail) {
+        await this.mail
+          .send({
+            to: copied,
+            subject: `[TEST referral copy] ${subject}`,
+            text: `From: ${built.fromName} <${built.fromEmail}>\nTo: ${mb.emailAddress}\n\n${built.body}`,
+            attachments: built.files,
+            skipBcc: true,
+          })
+          .catch((e: Error) => this.logger.warn(`Test referral copy to ${copied.join(', ')} failed: ${e.message}`));
+      }
+      return {
+        message: `Test referral posted to ${mb.displayName ?? mb.emailAddress}: "${subject}"${copied.length ? `; a copy was sent to ${copied.join(', ')}` : ''}`,
+      };
     }
     const c = this.connectors.connector(mb);
     try {
@@ -480,8 +499,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       // so they see exactly what CareFlow read.
       let copied: string[] = [];
       if (c instanceof GmailConnector) {
-        const settings = await this.prisma.referralAutomationSettings.findFirst({ select: { copyRepliesTo: true } });
-        copied = (settings?.copyRepliesTo ?? []).filter((x) => x.toLowerCase().endsWith('@allforcare.co.uk'));
+        copied = await this.testCopyRecipients(mb.emailAddress);
         for (const to of copied) {
           const copy = await buildTestReferralRaw(to, scenario, { subjectPrefix: '[TEST referral copy]' });
           await c.sendRaw(copy.mime).catch((e: Error) => this.logger.warn(`Test referral copy to ${to} failed: ${e.message}`));
@@ -496,6 +514,14 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     } finally {
       await c.close();
     }
+  }
+
+  /** Who gets a copy of a test referral: the reply-copy addresses allowed while testing, plus REFERRAL_TEST_COPY_TO. */
+  private async testCopyRecipients(mailboxAddress: string): Promise<string[]> {
+    const settings = await this.prisma.referralAutomationSettings.findFirst({ select: { copyRepliesTo: true } });
+    const all = [...(settings?.copyRepliesTo ?? []).map((x) => x.trim().toLowerCase()), ...referralTestCopyAddresses()];
+    const own = mailboxAddress.trim().toLowerCase();
+    return [...new Set(all)].filter((x) => x !== own && mayGetCopy(x));
   }
 
   testScenarios() {

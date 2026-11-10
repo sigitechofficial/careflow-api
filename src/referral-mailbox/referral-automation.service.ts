@@ -4,6 +4,7 @@ import { parseFromHeader } from './referral-email-parse.util';
 import { QuotationsService } from '../crm/quotations/quotations.service';
 import type { QuoteDraftDto } from '../crm/quotations/dto/quotation.dto';
 import { EMAIL_RE, htmlToPlain, sanitizeReplyHtml, textToHtml, type ReplyMime } from './referral-reply-mime.util';
+import { mayGetCopy, referralTestCopyAddresses } from './referral-test-copies.util';
 import { normaliseQuoteRates } from '../crm/quotations/quote-pricing.util';
 import { exampleVisitPrices, formatGbp, isCommissioned, standardRatesInWords, standardRatesList } from './referral-pricing.util';
 import { PrismaService } from '../prisma/prisma.service';
@@ -766,10 +767,16 @@ export class ReferralAutomationService {
         : null;
       const fromName = coverage?.replyManagerName ?? 'Referrals';
       const settings = (await this.settings()).data;
-      // Copies (e.g. the registered manager): Bcc in production; Cc while testing, and then only to our own addresses.
-      const copies = [...new Set(settings.copyRepliesTo.map((x) => x.trim().toLowerCase()).filter((x) => EMAIL_RE.test(x)))]
+      // Copies (e.g. the registered manager): Bcc in production; Cc while testing, and then only to our own addresses
+      // and the REFERRAL_TEST_COPY_TO testers (who always get one).
+      const copies = [
+        ...new Set([
+          ...settings.copyRepliesTo.map((x) => x.trim().toLowerCase()).filter((x) => EMAIL_RE.test(x)),
+          ...referralTestCopyAddresses(),
+        ]),
+      ]
         .filter((x) => x !== to.toLowerCase())
-        .filter((x) => production || x.endsWith('@allforcare.co.uk') || x === row.mailbox.emailAddress.toLowerCase());
+        .filter((x) => mayGetCopy(x, row.mailbox.emailAddress));
       const actor = await this.systemActor(sentById ?? row.mailbox.connectedById);
       const pdf =
         row.quotationId && row.quotationVersionId && row.enquiryId && actor

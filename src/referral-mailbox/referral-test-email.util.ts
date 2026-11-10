@@ -517,31 +517,38 @@ export async function buildTestReferralRaw(
   toEmail: string,
   scenarioIndex: number,
   opts: { subjectPrefix?: string } = {},
-): Promise<{ raw: string; mime: string; subject: string }> {
+): Promise<{
+  raw: string;
+  mime: string;
+  subject: string;
+  /** The same email as parts, for sending a copy through the app's mail service. */
+  fromName: string;
+  fromEmail: string;
+  body: string;
+  files: Array<{ filename: string; contentType: string; content: Buffer }>;
+}> {
   const s = SCENARIOS[Math.abs(scenarioIndex) % SCENARIOS.length];
   const boundary = `careflow-test-${Date.now()}`;
   const slug = (t: string) => t.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  const attachments: string[] = [];
+  const files: Array<{ filename: string; contentType: string; content: Buffer }> = [];
   if (s.carePlan) {
-    attachments.push(
-      `--${boundary}`,
-      'Content-Type: application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'Content-Transfer-Encoding: base64',
-      `Content-Disposition: attachment; filename="${slug(s.carePlan.title)}.docx"`,
-      '',
-      b64Lines(await docxBuffer(s.carePlan.title, s.carePlan.lines)),
-    );
+    files.push({
+      filename: `${slug(s.carePlan.title)}.docx`,
+      contentType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      content: await docxBuffer(s.carePlan.title, s.carePlan.lines),
+    });
   }
   if (s.discharge) {
-    attachments.push(
-      `--${boundary}`,
-      'Content-Type: application/pdf',
-      'Content-Transfer-Encoding: base64',
-      `Content-Disposition: attachment; filename="${slug(s.discharge.title)}.pdf"`,
-      '',
-      b64Lines(await pdfBuffer(s.discharge.title, s.discharge.lines)),
-    );
+    files.push({ filename: `${slug(s.discharge.title)}.pdf`, contentType: 'application/pdf', content: await pdfBuffer(s.discharge.title, s.discharge.lines) });
   }
+  const attachments = files.flatMap((f) => [
+    `--${boundary}`,
+    `Content-Type: ${f.contentType}`,
+    'Content-Transfer-Encoding: base64',
+    `Content-Disposition: attachment; filename="${f.filename}"`,
+    '',
+    b64Lines(f.content),
+  ]);
   const parts = [
     `From: "${s.fromName}" <${s.fromEmail}>`,
     `To: ${toEmail}`,
@@ -561,5 +568,13 @@ export async function buildTestReferralRaw(
     `--${boundary}--`,
     '',
   ].join('\r\n');
-  return { raw: Buffer.from(parts, 'utf8').toString('base64url'), mime: parts, subject: s.subject };
+  return {
+    raw: Buffer.from(parts, 'utf8').toString('base64url'),
+    mime: parts,
+    subject: s.subject,
+    fromName: s.fromName,
+    fromEmail: s.fromEmail,
+    body: s.body,
+    files,
+  };
 }
