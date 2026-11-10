@@ -1,8 +1,11 @@
 import {
   Injectable,
   Logger,
+  Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import { MessageDeliveryService } from '../message-delivery/message-delivery.service';
+import { MessageHeldError } from '../message-delivery/message-held.error';
 import { ConfigService } from '@nestjs/config';
 import { EmailClient, type EmailMessage } from '@azure/communication-email';
 import {
@@ -28,6 +31,11 @@ export type SendMailInput = {
   attachments?: MailAttachment[];
   /** Leave out the MAIL_BCC copy (emails carrying a login or password-reset link). */
   skipBcc?: boolean;
+  /**
+   * What kind of email this is (message-kinds.ts), so Administration › Message delivery can switch it off or limit
+   * who gets it. Leave it out for "Other emails".
+   */
+  kind?: string;
 };
 
 /** Resolved by send(): MAIL_BCC addresses not already in `to`. */
@@ -65,7 +73,10 @@ export class MailService {
   private transporter: Transporter | null = null;
   private acsClient: EmailClient | null = null;
 
-  constructor(private readonly config: ConfigService) {}
+  constructor(
+    private readonly config: ConfigService,
+    @Optional() private readonly delivery?: MessageDeliveryService,
+  ) {}
 
   isConfigured(): boolean {
     const mode = this.config.get<MailSendMode>('mail.mode', 'log');
@@ -254,7 +265,59 @@ export class MailService {
     return from;
   }
 
+  /**
+   * Sends an email, after Administration › Message delivery: recipients that are held back are left out (and the
+   * email goes to the held-emails inbox for them, when one is set). When nobody is left it throws MessageHeldError,
+   * so whoever sent it can tell staff it didn't go. Every recipient's outcome is written to the delivery log.
+   */
   async send(
+    input: SendMailInput,
+  ): Promise<{ messageId: string; mode: MailSendMode }> {
+    if (!this.delivery) return this.deliver(input);
+    const toList = (Array.isArray(input.to) ? input.to : [input.to]).filter(Boolean);
+    const decision = await this.delivery.decide('EMAIL', input.kind, toList);
+    const held = this.delivery.heldRows(decision);
+    let result: { messageId: string; mode: MailSendMode } | null = null;
+    if (decision.allowed.length) {
+      try {
+        result = await this.deliver({ ...input, to: decision.allowed });
+      } catch (err) {
+        await this.delivery.record(
+          'EMAIL',
+          decision.kind,
+          decision.allowed.map((recipient) => ({ recipient, outcome: 'FAILED' as const, reason: (err as Error).message })),
+          input.subject,
+        );
+        throw err;
+      }
+      await this.delivery.record('EMAIL', decision.kind, decision.allowed.map((recipient) => ({ recipient, outcome: 'SENT' as const })), input.subject);
+    }
+    if (held.length && decision.heldEmailsTo) {
+      // Testing: the held recipients' copy goes to the held-emails inbox, never a login link to a MAIL_BCC copy.
+      const redirected = await this.deliver({
+        ...input,
+        to: decision.heldEmailsTo,
+        subject: `[Held – for ${held.map((h) => h.recipient).join(', ')}] ${input.subject}`,
+        skipBcc: true,
+      }).catch((err: Error) => {
+        this.logger.warn(`Held email could not be sent to the held-emails inbox: ${err.message}`);
+        return null;
+      });
+      await this.delivery.record(
+        'EMAIL',
+        decision.kind,
+        held.map((h) => ({ ...h, outcome: redirected ? ('REDIRECTED' as const) : ('HELD' as const) })),
+        input.subject,
+      );
+      result ??= redirected;
+    } else {
+      await this.delivery.record('EMAIL', decision.kind, held, input.subject);
+    }
+    if (result) return result;
+    throw new MessageHeldError(decision.held[0]?.reason ?? 'NOT_ALLOWED');
+  }
+
+  private async deliver(
     input: SendMailInput,
   ): Promise<{ messageId: string; mode: MailSendMode }> {
     const mode = this.config.get<MailSendMode>('mail.mode', 'log');

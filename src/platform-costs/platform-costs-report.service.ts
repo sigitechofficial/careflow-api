@@ -226,7 +226,7 @@ ${budgetBar}
     if (!user?.email)
       throw new BadRequestException('Your account has no e-mail address');
     const report = await this.buildMonthlyReport(previousMonth(now));
-    const result = await this.mail.send({
+    const result = await this.mail.send({ kind: 'platform-reports',
       to: user.email,
       subject: `[Test] ${report.subject}`,
       text: report.text,
@@ -264,7 +264,7 @@ ${budgetBar}
       return 'skipped';
     }
     const report = await this.buildMonthlyReport(month);
-    await this.mail.send({
+    await this.mail.send({ kind: 'platform-reports',
       to: settings.monthlyReportRecipients,
       subject: report.subject,
       text: report.text,

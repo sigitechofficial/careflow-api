@@ -120,11 +120,11 @@ describe('SurveyRemindersService — the survey job', () => {
     const { svc, push, mail, texts, prisma, audit } = setup();
     const r = await svc.runDue(NOW);
     expect(r.reminded).toBe(1);
-    expect(push.sendToEmployees).toHaveBeenCalledWith(['e1'], expect.objectContaining({ data: expect.objectContaining({ token: 'tok-1' }) }));
+    expect(push.sendToEmployees).toHaveBeenCalledWith(['e1'], expect.objectContaining({ data: expect.objectContaining({ token: 'tok-1' }) }), 'surveys');
     expect(mail.send).toHaveBeenCalledTimes(1);
     expect(mail.send.mock.calls[0][0].to).toBe('zara@example.test');
     expect(mail.send.mock.calls[0][0].text).toContain('https://care.example/survey/tok-1');
-    expect(texts.send).toHaveBeenCalledWith({ to: '+447700900123', body: expect.stringContaining('tok-1') });
+    expect(texts.send).toHaveBeenCalledWith({ to: '+447700900123', body: expect.stringContaining('tok-1'), kind: 'surveys' });
     expect(prisma.surveyReminderRun.create).toHaveBeenCalledWith({ data: expect.objectContaining({ step: 1, people: 1, app: 1, email: 1, text: 1 }) });
     // Audit: counts only — no address, number, name or link.
     const row = JSON.stringify(audit.logAudit.mock.calls[0][0]);
@@ -276,7 +276,7 @@ describe('SurveyRemindersService — invitation texts and quiet hours', () => {
     expect(await svc.sendPendingInvitationTexts(new Date('2026-11-11T23:00:00Z'))).toBe(0);
     expect(texts.send).not.toHaveBeenCalled();
     expect(await svc.sendPendingInvitationTexts(new Date('2026-11-12T09:30:00Z'))).toBe(1);
-    expect(texts.send).toHaveBeenCalledWith({ to: '+447700900123', body: expect.stringContaining('tok-1') });
+    expect(texts.send).toHaveBeenCalledWith({ to: '+447700900123', body: expect.stringContaining('tok-1'), kind: 'surveys' });
   });
 });
 
@@ -287,7 +287,7 @@ describe('SurveyRemindersService — remind one person', () => {
     const res = await svc.remindOne(actor, 's1', 'r1');
     expect(res.data.reminded).toBe(true);
     expect(res.message).toBe('Reminder sent by the carer app, email and text message.');
-    expect(push.sendToEmployees).toHaveBeenCalledWith(['e1'], expect.anything());
+    expect(push.sendToEmployees).toHaveBeenCalledWith(['e1'], expect.anything(), 'surveys');
     expect(mail.send.mock.calls[0][0].text).toContain('/survey/tok-1');
     expect(audit.logAudit.mock.calls[0][0]).toMatchObject({ recordType: 'SurveyRecipient', recordId: 'r1', description: expect.stringContaining('one person') });
     expect(JSON.stringify(audit.logAudit.mock.calls[0][0])).not.toMatch(/zara|07700|tok-1/);

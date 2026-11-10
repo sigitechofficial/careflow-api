@@ -3,7 +3,14 @@ import { MAX_ATTACHMENT_BYTES, effectiveMimeType, parseGmailMessage } from '../r
 import { buildReplyMime, type ReplyMime } from '../referral-reply-mime.util';
 import { MailboxError, PROCESSED_MARK, type FetchedEmail, type MailboxConnector, type ReplyContext } from './connector.types';
 
-type GmailMailbox = { emailAddress: string; labelName: string; processedLabelId: string | null; refreshToken: string };
+type GmailMailbox = {
+  emailAddress: string;
+  labelName: string;
+  processedLabelId: string | null;
+  refreshToken: string;
+  /** When the mailbox was added to CareFlow. Reading the whole inbox starts a day before it, not from years back. */
+  connectedAt?: Date;
+};
 
 /** Gmail / Google Workspace through the Gmail API (Google sign-in). Reads one label; marks with "CareFlow-read". */
 export class GmailConnector implements MailboxConnector {
@@ -31,7 +38,11 @@ export class GmailConnector implements MailboxConnector {
   async listNew(max: number) {
     const label = this.mb.labelName.trim().replace(/\s+/g, '-');
     await this.processedLabel();
-    return (await this.s()).listMessageIds(`label:${label} -label:${PROCESSED_MARK}`, max);
+    // The whole inbox: only emails from a day before the mailbox was added, so years of old mail aren't all read
+    // (each read costs Claude time). A referrals label is read in full: staff put emails there on purpose.
+    const since =
+      label.toUpperCase() === 'INBOX' && this.mb.connectedAt ? ` after:${Math.floor(this.mb.connectedAt.getTime() / 1000) - 86_400}` : '';
+    return (await this.s()).listMessageIds(`label:${label} -label:${PROCESSED_MARK}${since}`, max);
   }
 
   async fetch(id: string): Promise<FetchedEmail> {

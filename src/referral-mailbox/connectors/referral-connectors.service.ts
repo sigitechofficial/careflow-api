@@ -51,6 +51,7 @@ export class ReferralConnectorsService {
           labelName: mb.labelName,
           processedLabelId: mb.processedLabelId,
           refreshToken: secret(mb.encryptedRefreshToken, 'Google sign-in'),
+          connectedAt: mb.createdAt,
         });
       case ReferralMailboxProvider.MICROSOFT:
         return new MicrosoftConnector({
@@ -112,7 +113,7 @@ export class ReferralConnectorsService {
         // Testing on a laptop with no relay: the copies (never the referrer) go through the app's own mail service.
         const copies = [...reply.cc, ...reply.bcc];
         if (!isProduction() && this.mail && copies.length) {
-          const sent = await this.mail.send({
+          const sent = await this.mail.send({ kind: 'referral-test-copies',
             to: copies,
             subject: reply.subject,
             text: reply.text,

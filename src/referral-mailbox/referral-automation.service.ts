@@ -1,4 +1,6 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException, Optional } from '@nestjs/common';
+import { MessageDeliveryService } from '../message-delivery/message-delivery.service';
+import { MessageHeldError } from '../message-delivery/message-held.error';
 import { EnquiryLostReason, EnquiryStage, Prisma, ReferralEmailStatus } from '@prisma/client';
 import { parseFromHeader } from './referral-email-parse.util';
 import { QuotationsService } from '../crm/quotations/quotations.service';
@@ -54,6 +56,7 @@ export class ReferralAutomationService {
     private readonly ai: ReferralExtractionService,
     private readonly quotations: QuotationsService,
     private readonly connectors: ReferralConnectorsService,
+    @Optional() private readonly delivery?: MessageDeliveryService,
   ) {}
 
   /* ─── rates and quotations ───────────────────────────────────── */
@@ -292,10 +295,21 @@ export class ReferralAutomationService {
     }
   }
 
+  /**
+   * A referral email with its whole mailbox row, which holds the encrypted sign-in secrets the connectors need to send.
+   * Loaded by its own query (never a relation include), stays on the server and is never returned.
+   */
+  private async emailWithMailbox(emailId: string) {
+    const email = await this.prisma.referralEmail.findUnique({ where: { id: emailId } });
+    if (!email) return null;
+    const mailbox = await this.prisma.referralMailbox.findUniqueOrThrow({ where: { id: email.mailboxId } });
+    return { ...email, mailbox };
+  }
+
   private readonly running = new Set<string>();
 
   private async processOnce(emailId: string) {
-    const row =await this.prisma.referralEmail.findUnique({ where: { id: emailId }, include: { mailbox: true } });
+    const row = await this.emailWithMailbox(emailId);
     if (!row?.extraction) return;
     const e = row.extraction as unknown as ReferralExtraction;
     const settings = (await this.settings()).data;
@@ -729,7 +743,7 @@ export class ReferralAutomationService {
 
   /** Send the reply in the referral's email thread (testing: only to the mailbox itself). */
   async sendReply(emailId: string, sentById: string | null, edited?: { subject?: string; text?: string; html?: string }) {
-    const row = await this.prisma.referralEmail.findUnique({ where: { id: emailId }, include: { mailbox: true } });
+    const row = await this.emailWithMailbox(emailId);
     if (!row) throw new NotFoundException('Referral email not found');
     if (row.replySentAt) throw new BadRequestException('The reply has already been sent.');
     // The formatted (HTML) reply wins; the plain-text part is made from it.
@@ -759,9 +773,11 @@ export class ReferralAutomationService {
       const realTo = t(parseFromHeader(thread.replyTo ?? '').email) || t(row.fromEmail);
       if (!realTo) throw new BadRequestException('There is no address to reply to.');
       const production = (process.env.NODE_ENV ?? 'development') === 'production';
-      // Outside production every reply goes to the mailbox itself, never to the referrer.
-      const to = production ? realTo : row.mailbox.emailAddress;
-      const finalSubject = production ? subject : `[TEST – would go to ${realTo}] ${subject}`;
+      // Outside production every reply goes to the mailbox itself, never to the referrer. So does a reply to a test
+      // referral on the live system: its made-up sender has a .test address, which can never be a real one.
+      const testReply = !production || /\.test$/i.test(realTo);
+      const to = testReply ? row.mailbox.emailAddress : realTo;
+      const finalSubject = testReply ? `[TEST – would go to ${realTo}] ${subject}` : subject;
       const coverage = row.locationId
         ? await this.prisma.referralBranchCoverage.findUnique({ where: { locationId: row.locationId } })
         : null;
@@ -777,6 +793,26 @@ export class ReferralAutomationService {
       ]
         .filter((x) => x !== to.toLowerCase())
         .filter((x) => mayGetCopy(x, row.mailbox.emailAddress));
+      // Administration › Message delivery: the mailbox's own address always counts as allowed (it is ours).
+      const own = row.mailbox.emailAddress.toLowerCase();
+      const gate = this.delivery
+        ? await this.delivery.decide('EMAIL', 'referral-replies', [to, ...copies].filter((x) => x.toLowerCase() !== own))
+        : null;
+      const allowedSet = new Set((gate?.allowed ?? []).map((x) => x.toLowerCase()));
+      const allowedAddr = (x: string) => !gate || x.toLowerCase() === own || allowedSet.has(x.toLowerCase());
+      const sendCopies = copies.filter(allowedAddr);
+      let sendTo = to;
+      let sendSubject = finalSubject;
+      let redirected = false;
+      if (!allowedAddr(to)) {
+        if (!gate?.heldEmailsTo) {
+          await this.delivery!.record('EMAIL', 'referral-replies', this.delivery!.heldRows(gate!), subject);
+          throw new MessageHeldError(gate!.held[0]?.reason ?? 'NOT_ALLOWED');
+        }
+        sendTo = gate.heldEmailsTo;
+        sendSubject = `[Held – for ${to}] ${finalSubject}`;
+        redirected = true;
+      }
       const actor = await this.systemActor(sentById ?? row.mailbox.connectedById);
       const pdf =
         row.quotationId && row.quotationVersionId && row.enquiryId && actor
@@ -784,10 +820,10 @@ export class ReferralAutomationService {
           : null;
       const reply: ReplyMime = {
         from: `"${fromName.replace(/"/g, '')}" <${row.mailbox.emailAddress}>`,
-        to,
-        cc: production ? [] : copies,
-        bcc: production ? copies : [],
-        subject: finalSubject,
+        to: sendTo,
+        cc: production ? [] : sendCopies,
+        bcc: production ? sendCopies : [],
+        subject: sendSubject,
         inReplyTo: thread.messageIdHeader,
         references: [thread.references, thread.messageIdHeader].filter(Boolean).join(' ') || null,
         text,
@@ -799,13 +835,25 @@ export class ReferralAutomationService {
         providerMessageId: row.providerMessageId,
         providerThreadId: row.providerThreadId,
       });
+      if (gate && this.delivery) {
+        await this.delivery.record(
+          'EMAIL',
+          'referral-replies',
+          [
+            { recipient: to, outcome: redirected ? ('REDIRECTED' as const) : ('SENT' as const), reason: redirected ? `Sent to ${sendTo} instead` : null },
+            ...sendCopies.map((recipient) => ({ recipient, outcome: 'SENT' as const })),
+            ...copies.filter((c) => !allowedAddr(c)).map((recipient) => ({ recipient, outcome: 'HELD' as const, reason: 'Not on the allowed list' })),
+          ],
+          subject,
+        );
+      }
       await this.prisma.referralEmail.update({
         where: { id: emailId },
         data: {
           replySentAt: new Date(),
           replySentById: sentById,
-          replySentTo: to,
-          replyCopiedTo: copies,
+          replySentTo: sendTo,
+          replyCopiedTo: sendCopies,
           replyError: null,
           replyClaimedAt: null,
           replyText: text,

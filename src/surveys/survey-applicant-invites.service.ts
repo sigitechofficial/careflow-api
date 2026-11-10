@@ -333,7 +333,7 @@ export class SurveyApplicantInvitesService {
           linkUntil,
           unsubscribeLink,
         });
-        await this.mail.send({ to: person.email, subject: m.subject, text: m.text, html: m.html, skipBcc: true });
+        await this.mail.send({ kind: 'surveys', to: person.email, subject: m.subject, text: m.text, html: m.html, skipBcc: true });
         sent += 1;
       } catch (e) {
         this.logger.warn(`Survey ${survey.id}: an applicant invitation email failed (${e instanceof Error ? e.name : 'error'})`);

@@ -777,12 +777,12 @@ export class SurveyOutsidePeopleService {
       const blocked = (ch: string) => Boolean(opt.get(c.id)?.has('ALL') || opt.get(c.id)?.has(ch));
       if (c.email && !blocked('EMAIL')) {
         try {
-          await this.mail.send({ to: c.email, subject: m.emailSubject, text: m.emailText, html: m.emailHtml, skipBcc: true });
+          await this.mail.send({ kind: 'surveys', to: c.email, subject: m.emailSubject, text: m.emailText, html: m.emailHtml, skipBcc: true });
         } catch (e) {
           this.logger.warn(`Survey ${survey.id}: an outside invitation email failed (${e instanceof Error ? e.name : 'error'})`);
         }
       }
-      if (textOn && c.mobile && !blocked('TEXT')) await this.texts.send({ to: c.mobile, body: m.text }).catch(() => null);
+      if (textOn && c.mobile && !blocked('TEXT')) await this.texts.send({ to: c.mobile, body: m.text, kind: 'surveys' }).catch(() => null);
     }
   }
 }

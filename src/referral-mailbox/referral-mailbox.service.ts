@@ -31,6 +31,7 @@ import { TEST_REFERRAL_SCENARIOS, buildTestReferralRaw } from './referral-test-e
 import { mayGetCopy, referralTestCopyAddresses } from './referral-test-copies.util';
 import { MailService } from '../mail/mail.service';
 import { uploadPath } from '../common/utils/upload-path.util';
+import { MessageDeliveryService } from '../message-delivery/message-delivery.service';
 import { MailboxError, PROCESSED_MARK, type FetchedEmail } from './connectors/connector.types';
 import { GmailConnector } from './connectors/gmail.connector';
 import { ImapConnector, type ImapConfig } from './connectors/imap.connector';
@@ -101,6 +102,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     private readonly connectors: ReferralConnectorsService,
     @Optional() private readonly jobRunner?: JobRunner,
     @Optional() private readonly mail?: MailService,
+    @Optional() private readonly delivery?: MessageDeliveryService,
   ) {}
 
   /* ─── mailboxes ──────────────────────────────────────────────── */
@@ -471,11 +473,12 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
   }
 
   /**
-   * Development only: place a made-up referral (Word care plan + PDF discharge summary) in a mailbox. Nothing is
-   * sent to anyone outside our own addresses. Webhook mailboxes take it as if it had been posted.
+   * Place a made-up referral (Word care plan + PDF discharge summary) in a mailbox. Webhook mailboxes take it as if it
+   * had been posted. On the live system only a Super Admin may: the made-up senders use .test addresses, which can't
+   * exist, and replies to them always go to the mailbox itself (referral-automation sendReply).
    */
-  async insertTestReferral(scenario = 0, mailboxId?: string) {
-    if (isProduction()) throw new NotFoundException();
+  async insertTestReferral(scenario = 0, mailboxId?: string, user?: { roles?: string[] }) {
+    this.assertTestReferralsAllowed(user);
     const mb = mailboxId
       ? await this.mailbox(mailboxId)
       : await this.prisma.referralMailbox.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'asc' } });
@@ -491,7 +494,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       const copied = await this.testCopyRecipients(mb.emailAddress);
       if (copied.length && this.mail) {
         await this.mail
-          .send({
+          .send({ kind: 'referral-test-copies',
             to: copied,
             subject: `[TEST referral copy] ${subject}`,
             text: `From: ${built.fromName} <${built.fromEmail}>\nTo: ${mb.emailAddress}\n\n${built.body}`,
@@ -515,6 +518,13 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       let copied: string[] = [];
       if (c instanceof GmailConnector) {
         copied = await this.testCopyRecipients(mb.emailAddress);
+        // Administration › Message delivery can switch these copies off or limit them like any email.
+        if (this.delivery && copied.length) {
+          const d = await this.delivery.decide('EMAIL', 'referral-test-copies', copied);
+          await this.delivery.record('EMAIL', d.kind, this.delivery.heldRows(d), `[TEST referral copy] ${subject}`);
+          await this.delivery.record('EMAIL', d.kind, d.allowed.map((recipient) => ({ recipient, outcome: 'SENT' as const })), `[TEST referral copy] ${subject}`);
+          copied = d.allowed;
+        }
         for (const to of copied) {
           const copy = await buildTestReferralRaw(to, scenario, { subjectPrefix: '[TEST referral copy]' });
           await c.sendRaw(copy.mime).catch((e: Error) => this.logger.warn(`Test referral copy to ${to} failed: ${e.message}`));
@@ -539,9 +549,14 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     return [...new Set(all)].filter((x) => x !== own && mayGetCopy(x));
   }
 
-  testScenarios() {
-    if (isProduction()) throw new NotFoundException();
+  testScenarios(user?: { roles?: string[] }) {
+    this.assertTestReferralsAllowed(user);
     return { data: TEST_REFERRAL_SCENARIOS };
+  }
+
+  /** Test referrals: anyone with crm.manage outside production; only a Super Admin on the live system. */
+  private assertTestReferralsAllowed(user?: { roles?: string[] }) {
+    if (isProduction() && !user?.roles?.includes('Super Admin')) throw new NotFoundException();
   }
 
   /* ─── checking the mailboxes ─────────────────────────────────── */

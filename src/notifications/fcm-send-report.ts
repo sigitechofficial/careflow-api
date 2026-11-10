@@ -1,5 +1,7 @@
 export type FcmSendReason =
   | 'SENT'
+  /** Held back by Administration › Message delivery (switched off, or not on the allowed list). */
+  | 'HELD'
   | 'FIREBASE_NOT_READY'
   | 'NO_DEVICE_TOKEN'
   | 'NO_EMPLOYEE'
