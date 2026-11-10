@@ -160,6 +160,16 @@ export class ImapConnector implements MailboxConnector {
     await testSmtp(this.smtp());
   }
 
+  /** The mailbox's folders, Inbox first; Sent, Drafts, Junk and Trash left out. */
+  async listFolders() {
+    const list = await (await this.c()).list();
+    const skip = new Set(['\\Sent', '\\Drafts', '\\Junk', '\\Trash', '\\All', '\\Archive', '\\Flagged']);
+    const folders = list
+      .filter((f) => !(f.specialUse && skip.has(f.specialUse)) && !f.flags?.has('\\Noselect'))
+      .map((f) => ({ name: f.path, ...(f.path.toUpperCase() === 'INBOX' ? { hint: 'Every email that arrives' } : {}) }));
+    return folders.sort((a, b) => (a.name.toUpperCase() === 'INBOX' ? -1 : b.name.toUpperCase() === 'INBOX' ? 1 : a.name.localeCompare(b.name)));
+  }
+
   async close() {
     const c = this.client;
     this.client = null;

@@ -40,9 +40,11 @@ export class GmailConnector implements MailboxConnector {
     await this.processedLabel();
     // The whole inbox: only emails from a day before the mailbox was added, so years of old mail aren't all read
     // (each read costs Claude time). A referrals label is read in full: staff put emails there on purpose.
-    const since =
-      label.toUpperCase() === 'INBOX' && this.mb.connectedAt ? ` after:${Math.floor(this.mb.connectedAt.getTime() / 1000) - 86_400}` : '';
-    return (await this.s()).listMessageIds(`label:${label} -label:${PROCESSED_MARK}${since}`, max);
+    const inbox = label.toUpperCase() === 'INBOX';
+    const since = inbox && this.mb.connectedAt ? ` after:${Math.floor(this.mb.connectedAt.getTime() / 1000) - 86_400}` : '';
+    // Gmail's Promotions, Social and Forums tabs never hold a care referral, and each email read costs Claude time.
+    const skip = inbox ? ' -category:promotions -category:social -category:forums' : '';
+    return (await this.s()).listMessageIds(`label:${label} -label:${PROCESSED_MARK}${since}${skip}`, max);
   }
 
   async fetch(id: string): Promise<FetchedEmail> {
@@ -94,6 +96,16 @@ export class GmailConnector implements MailboxConnector {
 
   async test() {
     await (await this.s()).profileEmail();
+  }
+
+  /** INBOX first, then the mailbox's own labels (Gmail's system labels and CareFlow's own mark left out). */
+  async listFolders() {
+    const labels = await (await this.s()).labels();
+    const own = labels
+      .filter((l) => !/^(CATEGORY_|CHAT$|SENT$|DRAFT$|SPAM$|TRASH$|UNREAD$|STARRED$|IMPORTANT$|INBOX$)/.test(l.id) && l.name !== PROCESSED_MARK)
+      .map((l) => ({ name: l.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return [{ name: 'INBOX', hint: 'Every email that arrives (Promotions, Social and Forums tabs left out)' }, ...own];
   }
 
   async close() {}
