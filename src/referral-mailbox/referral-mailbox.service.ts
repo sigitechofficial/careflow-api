@@ -30,6 +30,7 @@ import { ReferralAutomationService } from './referral-automation.service';
 import { TEST_REFERRAL_SCENARIOS, buildTestReferralRaw } from './referral-test-email.util';
 import { mayGetCopy, referralTestCopyAddresses } from './referral-test-copies.util';
 import { MailService } from '../mail/mail.service';
+import { uploadPath } from '../common/utils/upload-path.util';
 import { MailboxError, PROCESSED_MARK, type FetchedEmail } from './connectors/connector.types';
 import { GmailConnector } from './connectors/gmail.connector';
 import { ImapConnector, type ImapConfig } from './connectors/imap.connector';
@@ -37,7 +38,21 @@ import { GraphSession, microsoftAuthUrl, microsoftExchangeCode, microsoftOAuthCo
 import { hashWebhookToken, newWebhookToken, parseInboundPost, webhookTokenMatches } from './connectors/inbound-webhook';
 import { POLLED_PROVIDERS, ReferralConnectorsService, type RelayConfig } from './connectors/referral-connectors.service';
 
-const STORAGE_ROOT = path.join(process.cwd(), 'storage', 'referral-mailbox');
+/**
+ * Referral emails' attachments live in the uploads folder (a shared, persistent volume on Azure, unlike the container's
+ * own disk), in an area the public /files/uploads route refuses to serve: they are only given to signed-in staff.
+ */
+export const REFERRAL_UPLOAD_AREA = 'referral-mailbox';
+const storageRoot = () => uploadPath(REFERRAL_UPLOAD_AREA);
+/** Where attachments were saved before they moved to the uploads folder; still read from. */
+const LEGACY_STORAGE_ROOT = path.join(process.cwd(), 'storage', 'referral-mailbox');
+/** A saved attachment's file: the uploads folder, or the old folder for emails saved before the move. */
+async function storedFile(emailId: string, storedName: string): Promise<string> {
+  const current = path.join(storageRoot(), emailId, storedName);
+  const legacy = path.join(LEGACY_STORAGE_ROOT, emailId, storedName);
+  const exists = (f: string) => fs.access(f).then(() => true, () => false);
+  return (await exists(current)) || !(await exists(legacy)) ? current : legacy;
+}
 /** Where the browser lands after connecting a mailbox. */
 const ADMIN_ORIGIN = () => (process.env.ADMIN_APP_URL ?? 'http://localhost:5173').replace(/\/$/, '');
 const isProduction = () => (process.env.NODE_ENV ?? 'development') === 'production';
@@ -722,7 +737,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     const mailboxId = mb.id;
     if (email.fromEmail && email.fromEmail.toLowerCase() === mb.emailAddress.toLowerCase()) return null;
     const id = randomUUID();
-    const dir = path.join(STORAGE_ROOT, id);
+    const dir = path.join(storageRoot(), id);
     const attachments: StoredAttachment[] = [];
     for (const a of email.attachments) {
       if (a.size > MAX_ATTACHMENT_BYTES) {
@@ -842,7 +857,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     const inputs: ExtractionAttachment[] = [];
     for (const f of (row.attachments as unknown as StoredAttachment[]) ?? []) {
       if (!f.storedName) continue;
-      const data = await fs.readFile(path.join(STORAGE_ROOT, row.id, f.storedName));
+      const data = await fs.readFile(await storedFile(row.id, f.storedName));
       const text =
         f.mimeType === DOCX_MIME
           ? await docxToText(data).catch(() => '')
@@ -1104,7 +1119,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     const row = await this.prisma.referralEmail.findUnique({ where: { id }, select: { id: true, attachments: true } });
     const f = ((row?.attachments as unknown as StoredAttachment[]) ?? [])[index];
     if (!row || !f?.storedName) throw new NotFoundException('Attachment not found');
-    return { path: path.join(STORAGE_ROOT, row.id, f.storedName), fileName: f.fileName, mimeType: f.mimeType };
+    return { path: await storedFile(row.id, f.storedName), fileName: f.fileName, mimeType: f.mimeType };
   }
 
   /** The text of a Word attachment, so staff can read it on screen (browsers can't show .docx). */
