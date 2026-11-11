@@ -80,6 +80,10 @@ class CreateEnquiryFromReferralDto {
   locationId!: string;
 }
 
+class CreateFolderDto {
+  @IsString() @MaxLength(100) name!: string;
+}
+
 class UpdateReferralLabelDto {
   @IsString()
   @IsNotEmpty()
@@ -228,6 +232,13 @@ export class ReferralMailboxController {
   @ApiOperation({ summary: 'The labels or folders this mailbox can read, to choose from' })
   mailboxFolders(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.mailboxFolders(id);
+  }
+
+  @Post('mailboxes/:id/folders')
+  @Permissions('crm.manage')
+  @ApiOperation({ summary: 'Make a new label or folder in this mailbox' })
+  createMailboxFolder(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateFolderDto) {
+    return this.service.createMailboxFolder(id, dto.name);
   }
 
   @Post('mailboxes/:id/test')

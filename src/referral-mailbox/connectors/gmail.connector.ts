@@ -98,11 +98,16 @@ export class GmailConnector implements MailboxConnector {
     await (await this.s()).profileEmail();
   }
 
+  async createFolder(name: string) {
+    await (await this.s()).ensureLabel(name);
+  }
+
   /** INBOX first, then the mailbox's own labels (Gmail's system labels and CareFlow's own mark left out). */
   async listFolders() {
     const labels = await (await this.s()).labels();
     const own = labels
-      .filter((l) => !/^(CATEGORY_|CHAT$|SENT$|DRAFT$|SPAM$|TRASH$|UNREAD$|STARRED$|IMPORTANT$|INBOX$)/.test(l.id) && l.name !== PROCESSED_MARK)
+      // Only the mailbox's own labels: Gmail's system ones (stars, categories…) and old IMAP folders are left out.
+      .filter((l) => l.type === 'user' && l.name !== PROCESSED_MARK && !l.name.startsWith('[Imap]'))
       .map((l) => ({ name: l.name }))
       .sort((a, b) => a.name.localeCompare(b.name));
     return [{ name: 'INBOX', hint: 'Every email that arrives (Promotions, Social and Forums tabs left out)' }, ...own];
