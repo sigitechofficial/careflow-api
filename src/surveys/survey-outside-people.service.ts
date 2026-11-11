@@ -165,6 +165,8 @@ export class SurveyOutsidePeopleService {
         mobile: r.mobile,
         phone: r.phone,
         sourceType: r.sourceType,
+        // For a family member: their People involved record, so the screen can match them to "Families of…".
+        sourceId: r.sourceType === 'SERVICE_USER_CONTACT' ? r.sourceId : null,
         serviceUserId: r.serviceUserId,
         locationIds: r.locationIds,
         listIds: r.lists.map((l) => l.listId),
