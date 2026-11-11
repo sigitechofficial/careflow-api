@@ -1,11 +1,17 @@
-import { ServiceUserOverCareService } from './service-user-over-care.service';
+import {
+  ServiceUserOverCareService,
+  takeBackByWeek,
+} from './service-user-over-care.service';
 
-/** Over care taken back the next week (docs/SU_OVER_CARE_ADJUST_PLAN.md). Runs on Monday 9 Nov 2026. */
+/**
+ * Over care reviews (docs/SU_OVER_CARE_ADJUST_PLAN.md): the weekly check raises a review, and a
+ * manager cancels visits or marks it "no action needed". Runs on Monday 9 Nov 2026.
+ */
 /** `expect.objectContaining` typed as unknown (it returns any). */
 const containing = (o: Record<string, unknown>): unknown =>
   expect.objectContaining(o) as unknown;
 
-describe('ServiceUserOverCareService.runWeekly', () => {
+describe('ServiceUserOverCareService', () => {
   const SU = 'su-1';
 
   function week(weekStart: string, extra: Record<string, unknown> = {}) {
@@ -18,6 +24,7 @@ describe('ServiceUserOverCareService.runWeekly', () => {
       pendingMinutes: 0,
       scheduledMinutes: 0,
       awaitingMinutes: 0,
+      chargeableCancelMinutes: 0,
       ...extra,
     };
   }
@@ -49,8 +56,11 @@ describe('ServiceUserOverCareService.runWeekly', () => {
     };
     existing?: boolean;
     activePlan?: boolean;
-    toCancel?: Array<{ scheduledJobId: string; minutes: number }>;
-    stillOver?: number;
+    /** The review row for cancelVisits / markNoActionNeeded. */
+    review?: Record<string, unknown> | null;
+    /** Future visits a manager can cancel. */
+    candidates?: Array<Record<string, unknown>>;
+    claimCount?: number;
   }) {
     const rules = {
       adjustOverCareNextWeek: true,
@@ -59,10 +69,16 @@ describe('ServiceUserOverCareService.runWeekly', () => {
     };
     const prisma = {
       serviceUserOverCareAdjustment: {
-        findUnique: jest
+        findMany: jest
           .fn()
-          .mockResolvedValue(opts.existing ? { id: 'row' } : null),
+          .mockResolvedValue(opts.existing ? [{ serviceUserId: SU }] : []),
+        findUnique: jest.fn().mockResolvedValue(opts.review ?? null),
         create: jest.fn().mockResolvedValue({}),
+        update: jest.fn().mockResolvedValue({}),
+        updateMany: jest
+          .fn()
+          .mockResolvedValue({ count: opts.claimCount ?? 1 }),
+        count: jest.fn().mockResolvedValue(opts.review ? 1 : 0),
       },
       serviceUserVisitPlan: {
         findFirst: jest
@@ -116,25 +132,38 @@ describe('ServiceUserOverCareService.runWeekly', () => {
         ]),
       },
       scheduledJob: {
-        findMany: jest.fn().mockResolvedValue([
-          ...(opts.approvedJobMinutes
-            ? [job('job-approved', null, opts.approvedJobMinutes)]
-            : []),
-          ...(opts.approvedExtraMinutes
-            ? [
-                job(
-                  'job-extra',
-                  { visitPlanExceptionId: 'exc-1' },
-                  opts.approvedExtraMinutes,
-                ),
-              ]
-            : []),
-          ...(opts.approvedLonger
-            ? [job('job-longer', null, opts.approvedLonger.jobMinutes)]
-            : []),
-          // A visit of the week nobody approved: never left out.
-          job('job-plain', null, 45),
-        ]),
+        findMany: jest
+          .fn()
+          .mockImplementation((args: { where?: { id?: unknown } }) =>
+            args?.where?.id
+              ? Promise.resolve([
+                  {
+                    id: 'job-special',
+                    jobName: 'Special visit',
+                    serviceUserId: SU,
+                    allocations: [{ employeeId: 'emp-1' }],
+                  },
+                ])
+              : Promise.resolve([
+                  ...(opts.approvedJobMinutes
+                    ? [job('job-approved', null, opts.approvedJobMinutes)]
+                    : []),
+                  ...(opts.approvedExtraMinutes
+                    ? [
+                        job(
+                          'job-extra',
+                          { visitPlanExceptionId: 'exc-1' },
+                          opts.approvedExtraMinutes,
+                        ),
+                      ]
+                    : []),
+                  ...(opts.approvedLonger
+                    ? [job('job-longer', null, opts.approvedLonger.jobMinutes)]
+                    : []),
+                  // A visit of the week nobody approved: never left out.
+                  job('job-plain', null, 45),
+                ]),
+          ),
       },
     };
     const orgSettings = {
@@ -144,6 +173,7 @@ describe('ServiceUserOverCareService.runWeekly', () => {
         dateDisplayFormat: 'DD/MM/YYYY',
       }),
       setAdjustOverCareFrom: jest.fn().mockResolvedValue(undefined),
+      getOperationalTimezone: jest.fn().mockResolvedValue('Europe/London'),
     };
     const lastWeek = week('2026-11-02', opts.lastWeek);
     const timebank = {
@@ -169,24 +199,14 @@ describe('ServiceUserOverCareService.runWeekly', () => {
         ),
       }),
     };
-    const toCancel = (opts.toCancel ?? []).map((v) => ({
-      ...v,
-      date: '2026-11-15',
-    }));
     const dateChanges = {
-      planVisitCut: jest.fn().mockResolvedValue({
-        toCancel,
-        stillOverWeeks: opts.stillOver
-          ? [{ weekStart: '2026-11-09', minutes: opts.stillOver }]
-          : [],
-      }),
-      applyVisitCut: jest
-        .fn()
-        .mockResolvedValue({ cancelled: toCancel.length }),
+      listCutCandidates: jest.fn().mockResolvedValue(opts.candidates ?? []),
+      applyVisitCut: jest.fn().mockResolvedValue({ cancelled: 0 }),
     };
     const hook = {
-      notifyOverCareTakenBack: jest.fn().mockResolvedValue(undefined),
+      notifyOverCareReviewsRaised: jest.fn().mockResolvedValue(undefined),
     };
+    const carerPush = { notify: jest.fn() };
     const service = new ServiceUserOverCareService(
       prisma as never,
       orgSettings as never,
@@ -194,8 +214,11 @@ describe('ServiceUserOverCareService.runWeekly', () => {
       ledger as never,
       dateChanges as never,
       hook as never,
+      carerPush as never,
     );
-    return { service, prisma, orgSettings, dateChanges, hook };
+    // getReview is covered by the e2e check; here it only has to return.
+    jest.spyOn(service, 'getReview').mockResolvedValue({} as never);
+    return { service, prisma, orgSettings, dateChanges, hook, carerPush };
   }
 
   beforeEach(() => {
@@ -203,160 +226,294 @@ describe('ServiceUserOverCareService.runWeekly', () => {
   });
   afterEach(() => jest.useRealTimers());
 
-  it('cancels next week visits for the over care and records it once', async () => {
-    const { service, prisma, dateChanges, hook } = build({
-      lastWeek: { deliveredMinutes: 600, pendingMinutes: 120 },
-      toCancel: [{ scheduledJobId: 'job-sun', minutes: 120 }],
+  describe('runWeekly', () => {
+    it('raises one pending review for last week, cancels nothing and tells managers', async () => {
+      const { service, prisma, dateChanges, hook } = build({
+        lastWeek: { deliveredMinutes: 600, pendingMinutes: 120 },
+      });
+      expect(await service.runWeekly()).toEqual({ raised: 1 });
+      expect(prisma.serviceUserOverCareAdjustment.create).toHaveBeenCalledWith({
+        data: containing({
+          serviceUserId: SU,
+          status: 'PENDING',
+          raisedByUserId: null,
+          careGivenMinutes: 720,
+          overMinutes: 120,
+          excludedMinutes: 0,
+          cancelledJobIds: [],
+        }),
+      });
+      expect(dateChanges.applyVisitCut).not.toHaveBeenCalled();
+      expect(hook.notifyOverCareReviewsRaised).toHaveBeenCalledWith({
+        overWeekLabel: '02/11/2026',
+        rows: [{ label: 'Ray Okonkwo: 2h over' }],
+      });
     });
-    const res = await service.runWeekly('user-1');
-    expect(res).toEqual({ adjusted: 1, cancelledVisits: 1 });
-    // 10h this week − 2h over = 8h for the week of 9 Nov.
-    expect(dateChanges.planVisitCut).toHaveBeenCalledWith(SU, 480, {
-      onlyWeek: '2026-11-09',
-    });
-    const note = (dateChanges.applyVisitCut.mock.calls[0] as unknown[])[3];
-    expect(note).toBe('Over care adjustment — week of 02/11/2026 had 2h over');
-    expect(prisma.serviceUserOverCareAdjustment.create).toHaveBeenCalledWith({
-      data: containing({
-        serviceUserId: SU,
-        careGivenMinutes: 720,
-        overMinutes: 120,
-        excludedMinutes: 0,
-        cancelledMinutes: 120,
-        takenBackMinutes: 120,
-        notTakenBackMinutes: 0,
-        cancelledJobIds: ['job-sun'],
-      }),
-    });
-    expect(hook.notifyOverCareTakenBack).toHaveBeenCalledTimes(1);
-  });
 
-  it('leaves out timebank-paid and manager-approved over minutes', async () => {
-    const { service, dateChanges, prisma } = build({
-      lastWeek: { deliveredMinutes: 780 },
-      reserved: 60,
-      approvedJobMinutes: 60,
-      toCancel: [{ scheduledJobId: 'job-sun', minutes: 60 }],
+    it('counts a cancellation the service user is charged for as care given', async () => {
+      const { service, prisma } = build({
+        // 9h delivered + 2h late cancellation charged, against 10h.
+        lastWeek: { deliveredMinutes: 540, chargeableCancelMinutes: 120 },
+      });
+      await service.runWeekly();
+      expect(prisma.serviceUserOverCareAdjustment.create).toHaveBeenCalledWith({
+        data: containing({ careGivenMinutes: 660, overMinutes: 60 }),
+      });
     });
-    await service.runWeekly('user-1');
-    // 3h over − 1h bank − 1h approved = 1h taken back.
-    expect(dateChanges.planVisitCut).toHaveBeenCalledWith(SU, 540, {
-      onlyWeek: '2026-11-09',
-    });
-    expect(prisma.serviceUserOverCareAdjustment.create).toHaveBeenCalledWith({
-      data: containing({ overMinutes: 60, excludedMinutes: 120 }),
-    });
-  });
 
-  it('leaves out a visit plan extra visit a manager approved over the hours', async () => {
-    const { service, dateChanges, prisma } = build({
-      lastWeek: { deliveredMinutes: 780 },
-      approvedExtraMinutes: 60,
-      toCancel: [{ scheduledJobId: 'job-sun', minutes: 120 }],
-    });
-    await service.runWeekly('user-1');
-    // 3h over − 1h approved extra visit = 2h taken back.
-    expect(dateChanges.planVisitCut).toHaveBeenCalledWith(SU, 480, {
-      onlyWeek: '2026-11-09',
-    });
-    expect(prisma.serviceUserOverCareAdjustment.create).toHaveBeenCalledWith({
-      data: containing({ overMinutes: 120, excludedMinutes: 60 }),
-    });
-  });
-
-  it.each(['PLAN_TIME', 'EXTRA_EDIT'] as const)(
-    'leaves out only the extra minutes of a visit approved longer (%s)',
-    async (kind) => {
+    it('leaves out only hours paid from the timebank', async () => {
       const { service, prisma } = build({
         lastWeek: { deliveredMinutes: 780 },
-        // The visit is 45m now; the manager approved 15m more than it was.
-        approvedLonger: { kind, jobMinutes: 45, extra: 15 },
-        toCancel: [{ scheduledJobId: 'job-sun', minutes: 180 }],
+        reserved: 60,
       });
-      await service.runWeekly('user-1');
-      // 3h over − 15m approved = 2h 45m taken back (not the whole 45m visit).
+      await service.runWeekly();
+      // 3h over − 1h paid from the timebank = 2h over care.
       expect(prisma.serviceUserOverCareAdjustment.create).toHaveBeenCalledWith({
-        data: containing({ overMinutes: 165, excludedMinutes: 15 }),
+        data: containing({ overMinutes: 120, excludedMinutes: 60 }),
       });
-    },
-  );
+    });
 
-  it('records what the next week could not take back', async () => {
-    const { service, prisma } = build({
-      lastWeek: { deliveredMinutes: 780 },
-      toCancel: [{ scheduledJobId: 'job-sun', minutes: 60 }],
-      // After the cut the week still has 8h 30m against a 7h limit: 1h 30m not taken back.
-      stillOver: 510,
-    });
-    await service.runWeekly('user-1');
-    expect(prisma.serviceUserOverCareAdjustment.create).toHaveBeenCalledWith({
-      data: containing({
-        overMinutes: 180,
-        takenBackMinutes: 90,
-        notTakenBackMinutes: 90,
-      }),
-    });
-  });
-
-  it('counts over care above the whole next week as not taken back', async () => {
-    const { service, dateChanges, prisma } = build({
-      // 23h given against 10h: 13h over, more than the next week's 10h.
-      lastWeek: { deliveredMinutes: 1380 },
-      toCancel: [{ scheduledJobId: 'job-sun', minutes: 480 }],
-      // Limit 0; the Monday kept (2h) is still over it.
-      stillOver: 120,
-    });
-    await service.runWeekly('user-1');
-    expect(dateChanges.planVisitCut).toHaveBeenCalledWith(SU, 0, {
-      onlyWeek: '2026-11-09',
-    });
-    // 13h over, next week 10h: 3h above the week + 2h kept = 5h not taken back, 8h taken back.
-    expect(prisma.serviceUserOverCareAdjustment.create).toHaveBeenCalledWith({
-      data: containing({
-        overMinutes: 780,
-        cancelledMinutes: 480,
-        takenBackMinutes: 480,
-        notTakenBackMinutes: 300,
-      }),
-    });
-  });
-
-  it('does nothing when the setting is off', async () => {
-    const { service, dateChanges } = build({
-      rules: { adjustOverCareNextWeek: false },
-      lastWeek: { deliveredMinutes: 720 },
-    });
-    expect(await service.runWeekly('user-1')).toEqual({
-      adjusted: 0,
-      cancelledVisits: 0,
-    });
-    expect(dateChanges.applyVisitCut).not.toHaveBeenCalled();
-  });
-
-  it('first run only records the start day', async () => {
-    const { service, orgSettings, dateChanges } = build({
-      rules: { adjustOverCareFrom: null },
-      lastWeek: { deliveredMinutes: 720 },
-    });
-    await service.runWeekly('user-1');
-    expect(orgSettings.setAdjustOverCareFrom).toHaveBeenCalledWith(
-      '2026-11-09',
+    it.each([
+      ['an approved visit', { approvedJobMinutes: 60 }],
+      ['an approved visit plan extra visit', { approvedExtraMinutes: 60 }],
+      [
+        'a visit approved longer',
+        {
+          approvedLonger: {
+            kind: 'PLAN_TIME' as const,
+            jobMinutes: 45,
+            extra: 15,
+          },
+        },
+      ],
+    ])(
+      'counts %s like any delivered visit (10 Nov 2026)',
+      async (_label, opts) => {
+        const { service, prisma } = build({
+          lastWeek: { deliveredMinutes: 780 },
+          ...opts,
+        });
+        await service.runWeekly();
+        expect(
+          prisma.serviceUserOverCareAdjustment.create,
+        ).toHaveBeenCalledWith({
+          data: containing({ overMinutes: 180, excludedMinutes: 0 }),
+        });
+      },
     );
-    expect(dateChanges.applyVisitCut).not.toHaveBeenCalled();
-  });
 
-  it('skips a week before the start day, a week already done and a service user with no active plan', async () => {
-    for (const opts of [
-      { rules: { adjustOverCareFrom: '2026-11-03' } },
-      { existing: true },
-      { activePlan: false },
-    ]) {
-      const { service, dateChanges } = build({
-        ...opts,
+    it('runs whatever the old setting says (it is always on now)', async () => {
+      const { service, prisma } = build({
+        rules: { adjustOverCareNextWeek: false },
         lastWeek: { deliveredMinutes: 720 },
       });
-      await service.runWeekly('user-1');
-      expect(dateChanges.applyVisitCut).not.toHaveBeenCalled();
-    }
+      expect(await service.runWeekly()).toEqual({ raised: 1 });
+      expect(prisma.serviceUserOverCareAdjustment.create).toHaveBeenCalled();
+    });
+
+    it('first run only records the start day', async () => {
+      const { service, orgSettings, prisma } = build({
+        rules: { adjustOverCareFrom: null },
+        lastWeek: { deliveredMinutes: 720 },
+      });
+      await service.runWeekly();
+      expect(orgSettings.setAdjustOverCareFrom).toHaveBeenCalledWith(
+        '2026-11-09',
+      );
+      expect(
+        prisma.serviceUserOverCareAdjustment.create,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('skips a week before the start day, a week already raised and a week with no over care', async () => {
+      for (const opts of [
+        {
+          rules: { adjustOverCareFrom: '2026-11-03' },
+          lastWeek: { deliveredMinutes: 720 },
+        },
+        { existing: true, lastWeek: { deliveredMinutes: 720 } },
+        { lastWeek: { deliveredMinutes: 600 } },
+      ]) {
+        const { service, prisma, hook } = build(opts);
+        expect(await service.runWeekly()).toEqual({ raised: 0 });
+        expect(
+          prisma.serviceUserOverCareAdjustment.create,
+        ).not.toHaveBeenCalled();
+        expect(hook.notifyOverCareReviewsRaised).not.toHaveBeenCalled();
+      }
+    });
+  });
+
+  describe('cancelVisits', () => {
+    const review = {
+      id: 'rev-1',
+      serviceUserId: SU,
+      status: 'PENDING',
+      overWeekStart: new Date('2026-11-02T00:00:00Z'),
+      overMinutes: 120,
+    };
+    const visit = (
+      id: string,
+      date: string,
+      minutes: number,
+      kind = 'PLAN',
+    ) => ({
+      kind,
+      scheduledJobId: id,
+      visitPlanSlotId: kind === 'SPECIAL' ? null : 'slot-1',
+      date,
+      slotLabel: 'Lunch',
+      startDateTime: `${date}T12:00:00.000Z`,
+      endDateTime: `${date}T13:00:00.000Z`,
+      minutes,
+      timeCritical: false,
+    });
+
+    it('cancels the chosen visits with the over care reason and records who decided', async () => {
+      const { service, prisma, dateChanges } = build({
+        review,
+        candidates: [
+          visit('j1', '2026-11-12', 60),
+          visit('j2', '2026-11-17', 90),
+        ],
+      });
+      await service.cancelVisits('rev-1', 'mgr-1', {
+        scheduledJobIds: ['j1', 'j2'],
+        note: 'Agreed with family',
+      });
+      expect(
+        prisma.serviceUserOverCareAdjustment.updateMany,
+      ).toHaveBeenCalledWith({
+        where: { id: 'rev-1', status: 'PENDING' },
+        data: containing({ status: 'ACTION_TAKEN', decidedByUserId: 'mgr-1' }),
+      });
+      const call = dateChanges.applyVisitCut.mock.calls[0] as unknown[];
+      expect((call[2] as { toCancel: unknown[] }).toCancel).toHaveLength(2);
+      expect(call[3]).toBe(
+        'Over care adjustment — week of 02/11/2026 had 2h over: Agreed with family',
+      );
+      // 2h over: 1h from the week of 9 Nov, then 1h of the 1h 30m in the week of 16 Nov.
+      expect(prisma.serviceUserOverCareAdjustment.update).toHaveBeenCalledWith({
+        where: { id: 'rev-1' },
+        data: containing({
+          decisionNote: 'Agreed with family',
+          cancelledJobIds: ['j1', 'j2'],
+          cancelledMinutes: 150,
+          takenBackMinutes: 120,
+          notTakenBackMinutes: 0,
+          takenBackWeeks: [
+            { weekStart: '2026-11-09', minutes: 60 },
+            { weekStart: '2026-11-16', minutes: 60 },
+          ],
+        }),
+      });
+    });
+
+    it('tells the carers of a cancelled special visit', async () => {
+      const { service, carerPush } = build({
+        review,
+        candidates: [visit('job-special', '2026-11-12', 60, 'SPECIAL')],
+      });
+      await service.cancelVisits('rev-1', 'mgr-1', {
+        scheduledJobIds: ['job-special'],
+      });
+      expect(carerPush.notify).toHaveBeenCalledWith(
+        containing({ employeeIds: ['emp-1'], title: 'Visit cancelled' }),
+      );
+    });
+
+    it('refuses a visit that can no longer be cancelled, and a review already decided', async () => {
+      const a = build({ review, candidates: [visit('j1', '2026-11-12', 60)] });
+      await expect(
+        a.service.cancelVisits('rev-1', 'mgr-1', {
+          scheduledJobIds: ['j1', 'gone'],
+        }),
+      ).rejects.toThrow('can no longer be cancelled');
+      expect(a.dateChanges.applyVisitCut).not.toHaveBeenCalled();
+
+      const b = build({ review: { ...review, status: 'NO_ACTION_NEEDED' } });
+      await expect(
+        b.service.cancelVisits('rev-1', 'mgr-1', { scheduledJobIds: ['j1'] }),
+      ).rejects.toThrow('already been decided');
+
+      const c = build({
+        review,
+        candidates: [visit('j1', '2026-11-12', 60)],
+        claimCount: 0,
+      });
+      await expect(
+        c.service.cancelVisits('rev-1', 'mgr-1', { scheduledJobIds: ['j1'] }),
+      ).rejects.toThrow('already been decided');
+      expect(c.dateChanges.applyVisitCut).not.toHaveBeenCalled();
+    });
+
+    it('puts the review back to pending when cancelling fails', async () => {
+      const { service, prisma, dateChanges } = build({
+        review,
+        candidates: [visit('j1', '2026-11-12', 60)],
+      });
+      dateChanges.applyVisitCut.mockRejectedValueOnce(new Error('boom'));
+      await expect(
+        service.cancelVisits('rev-1', 'mgr-1', { scheduledJobIds: ['j1'] }),
+      ).rejects.toThrow('boom');
+      expect(
+        prisma.serviceUserOverCareAdjustment.updateMany,
+      ).toHaveBeenLastCalledWith({
+        where: { id: 'rev-1', status: 'ACTION_TAKEN' },
+        data: { status: 'PENDING', decidedByUserId: null, decidedAt: null },
+      });
+    });
+  });
+
+  describe('markNoActionNeeded', () => {
+    it('needs a reason and saves who decided', async () => {
+      const { service, prisma } = build({ review: { id: 'rev-1' } });
+      await expect(
+        service.markNoActionNeeded('rev-1', 'mgr-1', '  '),
+      ).rejects.toThrow('Enter a reason');
+      await service.markNoActionNeeded(
+        'rev-1',
+        'mgr-1',
+        ' Family asked for the extra visit ',
+      );
+      expect(
+        prisma.serviceUserOverCareAdjustment.updateMany,
+      ).toHaveBeenCalledWith({
+        where: { id: 'rev-1', status: 'PENDING' },
+        data: containing({
+          status: 'NO_ACTION_NEEDED',
+          decidedByUserId: 'mgr-1',
+          decisionNote: 'Family asked for the extra visit',
+        }),
+      });
+    });
+
+    it('refuses a review already decided', async () => {
+      const { service } = build({ review: { id: 'rev-1' }, claimCount: 0 });
+      await expect(
+        service.markNoActionNeeded('rev-1', 'mgr-1', 'x'),
+      ).rejects.toThrow('already been decided');
+    });
+  });
+});
+
+describe('takeBackByWeek', () => {
+  const v = (date: string, minutes: number) => ({
+    date,
+    startDateTime: `${date}T10:00:00.000Z`,
+    minutes,
+  });
+  it('takes the over care back from the earliest visits, week by week', () => {
+    expect(
+      takeBackByWeek([v('2026-11-18', 60), v('2026-11-12', 90)], 120),
+    ).toEqual([
+      { weekStart: '2026-11-09', minutes: 90 },
+      { weekStart: '2026-11-16', minutes: 30 },
+    ]);
+  });
+  it('never takes back more than the over care', () => {
+    expect(takeBackByWeek([v('2026-11-12', 300)], 60)).toEqual([
+      { weekStart: '2026-11-09', minutes: 60 },
+    ]);
   });
 });

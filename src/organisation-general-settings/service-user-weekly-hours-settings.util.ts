@@ -24,8 +24,9 @@ export type ServiceUserWeeklyHoursSettings = {
    */
   useTimebank: boolean;
   /**
-   * Over care (docs/SU_OVER_CARE_ADJUST_PLAN.md): Yes → care given over the weekly hours in a
-   * finished week is taken back the next week (its latest visits cancelled). No → only shown.
+   * Over care (docs/SU_OVER_CARE_ADJUST_PLAN.md): always true since 10 Nov 2026 (the Dom Rules
+   * setting was removed). Over care in a finished week raises a review for a manager (Workforce ›
+   * Over care reviews); nothing is cancelled by itself. A saved value is ignored.
    */
   adjustOverCareNextWeek: boolean;
   /**
@@ -34,8 +35,9 @@ export type ServiceUserWeeklyHoursSettings = {
    */
   adjustOverCareFrom: string | null;
   /**
-   * Timebank hours on the invoice (docs/SU_TIMEBANK_INVOICE_PLAN.md): Yes → a finished week's
-   * timebank hours are charged on the weekly invoice, and care later paid from them costs nothing.
+   * Timebank hours on the invoice (docs/SU_TIMEBANK_INVOICE_PLAN.md): a finished week's timebank
+   * hours are charged on the weekly invoice, and care later paid from them costs nothing.
+   * Always on since 10 Nov 2026 (the Dom Rules setting was removed): a saved `false` is ignored.
    */
   chargeTimebankOnInvoice: boolean;
   /** Set by the server: only weeks starting on or after it are charged (null until set). */
@@ -77,12 +79,14 @@ export function parseServiceUserWeeklyHoursSettings(
     visitsNeedApproval: bool(raw.visitsNeedApproval) ?? legacyVisits ?? d.visitsNeedApproval,
     specialVisitsCount: bool(raw.specialVisitsCount) ?? d.specialVisitsCount,
     useTimebank: bool(raw.useTimebank) ?? d.useTimebank,
-    adjustOverCareNextWeek: bool(raw.adjustOverCareNextWeek) ?? d.adjustOverCareNextWeek,
+    // Always on: over care always raises a review (Workforce › Over care reviews); no longer a setting.
+    adjustOverCareNextWeek: true,
     adjustOverCareFrom:
       typeof raw.adjustOverCareFrom === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.adjustOverCareFrom)
         ? raw.adjustOverCareFrom
         : d.adjustOverCareFrom,
-    chargeTimebankOnInvoice: bool(raw.chargeTimebankOnInvoice) ?? d.chargeTimebankOnInvoice,
+    // Always on: no longer a setting, so an old saved value (Yes or No) is not read.
+    chargeTimebankOnInvoice: true,
     chargeTimebankFrom:
       typeof raw.chargeTimebankFrom === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw.chargeTimebankFrom)
         ? raw.chargeTimebankFrom

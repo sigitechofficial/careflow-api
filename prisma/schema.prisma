@@ -3475,15 +3475,27 @@ model ServiceUserTimebankCharge {
   @@schema("billing")
 }
 
-/// Over care in a finished week taken back the next week (docs/SU_OVER_CARE_ADJUST_PLAN.md):
-/// one row per service user per over week, so a week is only adjusted once.
+/// Over care in a finished week (docs/SU_OVER_CARE_ADJUST_PLAN.md): one row per service user per
+/// over week. Since 10 Nov 2026 it is a review request (Workforce › Over care reviews): the weekly
+/// check raises it and a manager cancels visits or marks it "no action needed".
 model ServiceUserOverCareAdjustment {
-  id                  String   @id @default(uuid()) @db.Uuid
-  serviceUserId       String   @db.Uuid
+  id                   String                          @id @default(uuid()) @db.Uuid
+  serviceUserId        String                          @db.Uuid
   /// Monday of the week that got the over care (org day).
-  overWeekStart       DateTime @db.Date
-  /// Monday of the week the visits were cancelled in.
-  adjustWeekStart     DateTime @db.Date
+  overWeekStart        DateTime                        @db.Date
+  /// Monday of the week the visits were cancelled in (rows taken back by the old nightly run only).
+  adjustWeekStart      DateTime?                       @db.Date
+  status               ServiceUserOverCareReviewStatus @default(PENDING)
+  /// Who raised the request; null = the weekly over care check (system).
+  raisedByUserId       String?                         @db.Uuid
+  decidedByUserId      String?                         @db.Uuid
+  decidedAt            DateTime?
+  /// Taken back by the old nightly run itself (rows before 10 Nov 2026), not by a person.
+  decidedAutomatically Boolean                         @default(false)
+  /// Note on the cancelled visits, or the reason for "no action needed".
+  decisionNote         String?                         @db.Text
+  /// Action taken: over care taken back per week, [{ weekStart, minutes }] (lowers that week's hours).
+  takenBackWeeks       Json?
   weeklyMinutes       Int
   /// Delivered + done, not yet approved.
   careGivenMinutes    Int
@@ -3502,6 +3514,15 @@ model ServiceUserOverCareAdjustment {
 
   @@unique([serviceUserId, overWeekStart])
   @@index([adjustWeekStart])
+  @@index([status])
+  @@schema("service_users")
+}
+
+enum ServiceUserOverCareReviewStatus {
+  PENDING
+  ACTION_TAKEN
+  NO_ACTION_NEEDED
+
   @@schema("service_users")
 }
 

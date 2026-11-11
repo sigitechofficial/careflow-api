@@ -459,18 +459,7 @@ export class ServiceUserTimebankService {
       }),
     ]);
     const overCareBySu = groupBy(
-      overCareRows.map((a) => ({
-        serviceUserId: a.serviceUserId,
-        row: {
-          overWeekStart: a.overWeekStart.toISOString().slice(0, 10),
-          adjustWeekStart: a.adjustWeekStart.toISOString().slice(0, 10),
-          overMinutes: a.overMinutes,
-          takenBackMinutes: a.takenBackMinutes,
-          cancelledMinutes: a.cancelledMinutes,
-          cancelledVisits: a.cancelledJobIds.length,
-          notTakenBackMinutes: a.notTakenBackMinutes,
-        } satisfies TimebankOverCare,
-      })),
+      overCareRows.flatMap((a) => overCareTimebankRows(a)),
       (x) => x.serviceUserId,
     );
 
@@ -617,4 +606,66 @@ function groupBy<T>(items: T[], key: (item: T) => string): Map<string, T[]> {
 
 function sum<T>(items: T[], pick: (item: T) => number): number {
   return items.reduce((s, item) => s + pick(item), 0);
+}
+
+/**
+ * Timebank rows for one over care record (docs/SU_OVER_CARE_ADJUST_PLAN.md). The first row is the
+ * over week (adjustWeekStart = first week taken back in, '' when none); the over week is looked up
+ * with `find`, so it always gets this first row. Over care reviews (since 10 Nov 2026) can take it
+ * back in several weeks: one more row per further week, so each week's hours are lowered by what
+ * was taken back there. Pending and "no action
+ * needed" reviews take nothing back.
+ */
+function overCareTimebankRows(a: {
+  serviceUserId: string;
+  overWeekStart: Date;
+  adjustWeekStart: Date | null;
+  status: string;
+  overMinutes: number;
+  takenBackMinutes: number;
+  cancelledMinutes: number;
+  cancelledJobIds: string[];
+  notTakenBackMinutes: number;
+  takenBackWeeks: unknown;
+}): Array<{ serviceUserId: string; row: TimebankOverCare }> {
+  const overWeekStart = a.overWeekStart.toISOString().slice(0, 10);
+  const weeks = Array.isArray(a.takenBackWeeks)
+    ? (a.takenBackWeeks as Array<{ weekStart?: unknown; minutes?: unknown }>)
+        .filter(
+          (w) =>
+            typeof w.weekStart === 'string' &&
+            typeof w.minutes === 'number' &&
+            w.minutes > 0,
+        )
+        .map((w) => ({ weekStart: w.weekStart as string, minutes: w.minutes as number }))
+        .sort((x, y) => x.weekStart.localeCompare(y.weekStart))
+    : a.adjustWeekStart && a.status === 'ACTION_TAKEN'
+      ? [
+          {
+            weekStart: a.adjustWeekStart.toISOString().slice(0, 10),
+            minutes: a.takenBackMinutes,
+          },
+        ]
+      : [];
+  const head: TimebankOverCare = {
+    overWeekStart,
+    adjustWeekStart: weeks[0]?.weekStart ?? '',
+    overMinutes: a.overMinutes,
+    takenBackMinutes: weeks[0]?.minutes ?? 0,
+    cancelledMinutes: a.cancelledMinutes,
+    cancelledVisits: a.cancelledJobIds.length,
+    notTakenBackMinutes: a.notTakenBackMinutes,
+    reviewStatus: a.status,
+  };
+  return [
+    { serviceUserId: a.serviceUserId, row: head },
+    ...weeks.slice(1).map((w) => ({
+      serviceUserId: a.serviceUserId,
+      row: {
+        ...head,
+        adjustWeekStart: w.weekStart,
+        takenBackMinutes: w.minutes,
+      },
+    })),
+  ];
 }
