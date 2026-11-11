@@ -29,7 +29,7 @@ DEPLOY_IDENTITY=id-careflow-github-deploy
 KV=kv-careflow-prod
 STORAGE=stcareflowprod
 FUNC_APP=func-careflow-jobs-prod
-SCHEDULED_JOBS=(job-careflow-rolling-rota job-careflow-plan-end job-careflow-learning job-careflow-care-plan-reviews)
+SCHEDULED_JOBS=(job-careflow-rolling-rota job-careflow-plan-end job-careflow-learning job-careflow-care-plan-reviews job-careflow-over-care)
 
 SUB=$(az account show --query id -o tsv)
 RG_ID="/subscriptions/$SUB/resourceGroups/$RG"

@@ -18,6 +18,7 @@ import { VisitPlanRollingRotaJob } from '../service-user-visit-plans/visit-plan-
 import { VisitPlanScheduledEndJob } from '../service-user-visit-plans/visit-plan-scheduled-end.job';
 import { LearningJobs } from '../learning/learning-jobs';
 import { CarePlanReviewRemindersJob } from '../service-user-care-plans/care-plan-review-reminders.job';
+import { OverCareReviewJob } from '../service-user-visit-plans/over-care-review.job';
 import { jobSuccess } from './job-run.types';
 
 @Injectable()
@@ -53,7 +54,7 @@ describe('JobHandlerRegistry', () => {
 });
 
 describe('job classes', () => {
-  it('each of the 11 jobs has exactly one @JobHandler method', () => {
+  it('each of the 12 jobs has exactly one @JobHandler method', () => {
     const classes = [
       SurveyDistributionJob,
       VisitStartReminderJob,
@@ -66,6 +67,7 @@ describe('job classes', () => {
       VisitPlanScheduledEndJob,
       LearningJobs,
       CarePlanReviewRemindersJob,
+      OverCareReviewJob,
     ];
     const found: string[] = [];
     for (const cls of classes) {

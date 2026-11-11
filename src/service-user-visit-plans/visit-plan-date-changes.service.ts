@@ -215,6 +215,8 @@ export type ExtraVisitDateCheck = {
   overWeeklyHours?: boolean;
   /** Hours over the weekly hours the service user's timebank pays for (docs/SU_TIMEBANK_USE_PLAN.md). */
   fromTimebankMinutes?: number;
+  /** Over the weekly hours and the timebank was not used: weekend, bank holiday / special day or a different charge rate. */
+  timebankBlockedReason?: string;
   /**
    * Carers over their contracted weekly hours with this visit and what saving does
    * (Settings → Dom Rules "Carer over weekly hours"): wait for a manager, or go on to be confirmed.
@@ -1069,6 +1071,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         check.weekStart = h.weekStart;
         check.weekMinutes = h.weekMinutes;
         if (h.fromTimebankMinutes > 0) check.fromTimebankMinutes = h.fromTimebankMinutes;
+        if (h.timebankBlockedReason) check.timebankBlockedReason = h.timebankBlockedReason;
         if (!h.needsApproval) continue;
         if (rules.visitsNeedApproval) {
           check.needsApproval = true;
@@ -1096,6 +1099,7 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
           check.weekStart = hours.weekStart;
           check.weekMinutes = hours.weekMinutes;
           if (check.ok && hours.fromTimebankMinutes > 0) check.fromTimebankMinutes = hours.fromTimebankMinutes;
+          if (check.ok && hours.timebankBlockedReason) check.timebankBlockedReason = hours.timebankBlockedReason;
           if (check.ok && hours.over) {
             // With approval: saved as a request, the visit keeps its time until a manager approves.
             if (hours.blocked) {
@@ -1686,8 +1690,6 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     limitMinutes: number,
     opts: { onlyWeek?: string; fromDate?: string } = {},
   ): Promise<HoursDecreasePlan> {
-    const ctx = await this.weeklyHours.context();
-    const { today, edge } = await this.weeklyHours.window(ctx.timeZone);
     const summary = await this.weeklyHours.weeks(this.prisma, serviceUserId);
     const overWeeks = summary.weeks
       .filter((w) => w.minutes > limitMinutes && (!opts.onlyWeek || w.weekStart === opts.onlyWeek))
@@ -1705,10 +1707,43 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
     };
     if (!overWeeks.length) return result;
 
+    const candidates = await this.listCutCandidates(serviceUserId, active?.id ?? null, opts.fromDate);
+    for (const week of overWeeks) {
+      const weekEnd = addDaysIso(week.weekStart, 6);
+      const inWeek = candidates
+        .filter((v) => v.date >= week.weekStart && v.date <= weekEnd)
+        .sort((a, b) => b.startDateTime.localeCompare(a.startDateTime));
+      let minutes = week.minutes;
+      for (const visit of inWeek) {
+        if (minutes <= limitMinutes) break;
+        if (visit.minutes <= 0) continue;
+        minutes -= visit.minutes;
+        result.toCancel.push(visit);
+      }
+      if (minutes > limitMinutes) result.stillOverWeeks.push({ weekStart: week.weekStart, minutes });
+    }
+    return result;
+  }
+
+
+
+  /**
+   * Rota visits from tomorrow (or `fromDate`, never earlier) to the rota edge that a cut can cancel:
+   * plan and extra visits on the active plan, and special visits when they count towards the weekly
+   * hours. Used by `planVisitCut` and by Over care reviews (the manager picks the visits).
+   */
+  async listCutCandidates(
+    serviceUserId: string,
+    planId: string | null,
+    fromDate?: string,
+  ): Promise<HoursDecreaseVisit[]> {
+    const ctx = await this.weeklyHours.context();
+    const { today, edge } = await this.weeklyHours.window(ctx.timeZone);
+    const opts = { fromDate };
     const nextDay = addDaysIso(today, 1);
     const tomorrow = opts.fromDate && opts.fromDate > nextDay ? opts.fromDate : nextDay;
-    const planVisits = active
-      ? (await this.listCancellable(await this.getPlanOrThrow(serviceUserId, active.id), tomorrow, edge)).filter(
+    const planVisits = planId
+      ? (await this.listCancellable(await this.getPlanOrThrow(serviceUserId, planId), tomorrow, edge)).filter(
           (v) => v.status === 'ON_ROTA' && v.scheduledJobId,
         )
       : [];
@@ -1764,23 +1799,8 @@ export class VisitPlanDateChangesService implements ExtraVisitCreator {
         });
       }
     }
-    for (const week of overWeeks) {
-      const weekEnd = addDaysIso(week.weekStart, 6);
-      const inWeek = candidates
-        .filter((v) => v.date >= week.weekStart && v.date <= weekEnd)
-        .sort((a, b) => b.startDateTime.localeCompare(a.startDateTime));
-      let minutes = week.minutes;
-      for (const visit of inWeek) {
-        if (minutes <= limitMinutes) break;
-        if (visit.minutes <= 0) continue;
-        minutes -= visit.minutes;
-        result.toCancel.push(visit);
-      }
-      if (minutes > limitMinutes) result.stillOverWeeks.push({ weekStart: week.weekStart, minutes });
-    }
-    return result;
+    return candidates;
   }
-
 
   /**
    * Carers over their weekly hours with these new visits — Settings → Dom Rules "Carer weekly

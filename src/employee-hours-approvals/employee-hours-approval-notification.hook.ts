@@ -366,10 +366,12 @@ export class EmployeeHoursApprovalNotificationHook {
     }
   }
 
-  /** Over care taken back this week (docs/SU_OVER_CARE_ADJUST_PLAN.md): one notice per nightly run. */
-  async notifyOverCareTakenBack(params: {
+  /**
+   * Over care reviews raised by the weekly check (Workforce › Over care reviews): managers who can
+   * decide hours approvals are asked to review them. Nothing is cancelled until they do.
+   */
+  async notifyOverCareReviewsRaised(params: {
     overWeekLabel: string;
-    overWeekStart: string;
     rows: Array<{ label: string }>;
   }): Promise<void> {
     if (!this.notifications || !params.rows.length) return;
@@ -381,16 +383,17 @@ export class EmployeeHoursApprovalNotificationHook {
       await this.notifications.notifyUsers({
         recipientUserIds,
         type: NotificationType.SYSTEM_MESSAGE,
-        title: `Over care taken back: ${n} service user${n === 1 ? '' : 's'}`,
+        title: `Attention required: over care to review (${n} service user${n === 1 ? '' : 's'})`,
         message:
-          `Care given over the weekly hours in the week of ${params.overWeekLabel} was taken back this week (latest visits cancelled, no charge): ` +
-          `${shown.join('; ')}${n > shown.length ? ` and ${n - shown.length} more` : ''}. See Reports → Timebank.`,
+          `Care given over the weekly hours in the week of ${params.overWeekLabel}: ` +
+          `${shown.join('; ')}${n > shown.length ? ` and ${n - shown.length} more` : ''}. ` +
+          'Nothing has been cancelled. Review it in Workforce → Over care reviews.',
         module: NotificationModule.SERVICE_USER,
-        severity: NotificationSeverity.INFO,
-        metadata: { href: `/reports/timebank?week=${params.overWeekStart}` },
+        severity: NotificationSeverity.WARNING,
+        metadata: { href: '/over-care-reviews?tab=pending' },
       });
     } catch (err) {
-      this.logger.warn(`Over care notify failed: ${(err as Error).message}`);
+      this.logger.warn(`Over care review notify failed: ${(err as Error).message}`);
     }
   }
 

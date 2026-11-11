@@ -19,6 +19,7 @@ during the switch.
 | `job-careflow-plan-end` | `visit-plan-scheduled-end` | `30 0 * * *` |
 | `job-careflow-learning` | `learning-maintenance` | `30 2 * * *` |
 | `job-careflow-care-plan-reviews` | `care-plan-review-reminders` | `0 6 * * *` |
+| `job-careflow-over-care` | `over-care-review` | `45 2 * * *` |
 
 Each job uses 0.5 vCPU / 1 GiB, parallelism 1, `replicaRetryLimit` 1 and `replicaTimeout` 1800 s. It uses
 identity `id-careflow-api` and copies the env, Key Vault secrets and volumes of `allforcare-api`

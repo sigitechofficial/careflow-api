@@ -10,9 +10,9 @@ import {
 const def = (name: string) => getJobDefinition(name)!;
 
 describe('job catalogue', () => {
-  it('lists the 11 jobs once each, 7 functions + 4 container jobs', () => {
+  it('lists the 12 jobs once each, 7 functions + 5 container jobs', () => {
     expect(JOB_CATALOGUE.map((j) => j.name)).toEqual([...JOB_NAMES]);
-    expect(new Set(JOB_NAMES).size).toBe(11);
+    expect(new Set(JOB_NAMES).size).toBe(12);
     expect(
       JOB_CATALOGUE.filter((j) => j.trigger === 'function').map((j) => j.name),
     ).toEqual([
@@ -33,6 +33,7 @@ describe('job catalogue', () => {
       'visit-plan-scheduled-end',
       'learning-maintenance',
       'care-plan-review-reminders',
+      'over-care-review',
     ]);
   });
 
@@ -41,6 +42,7 @@ describe('job catalogue', () => {
     expect(def('visit-plan-scheduled-end').schedule.cron).toBe('30 0 * * *');
     expect(def('learning-maintenance').schedule.cron).toBe('30 2 * * *');
     expect(def('care-plan-review-reminders').schedule.cron).toBe('0 6 * * *');
+    expect(def('over-care-review').schedule.cron).toBe('45 2 * * *');
     expect(def('platform-costs-sync').schedule.cron).toBe('5 * * * *');
     expect(def('employee-payout-auto').schedule.cron).toBe('0 * * * *');
   });

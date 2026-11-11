@@ -7,6 +7,8 @@ import {
   VisitPlanNightDuty,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { ChargeCardsService } from '../billing/billing-cards.service';
+import { makeTimebankDayRule } from '../service-user-hours/timebank-day-rule.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { formatOrganisationIsoDate } from '../common/utils/organisation-display-format.util';
 import { currentServiceUserWeeklyHours } from '../service-user-dom-care/service-user-weekly-hours-sync.util';
@@ -15,6 +17,7 @@ import type { SlotWithRelations } from './visit-plan-generate-occurrence.util';
 import { buildVisitPlanOccurrence } from './visit-plan-generate-occurrence.util';
 import {
   addDaysToOperationalIso,
+  combineOperationalDateAndHm,
   dayKeyInTimeZone,
 } from '../common/utils/operational-day.util';
 import { clampRotaHorizonDays, parseRotaHorizonMode } from './visit-plan-rolling-rota.util';
@@ -100,6 +103,7 @@ export class VisitPlanWeeklyHoursService {
     private readonly prisma: PrismaService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     @Optional() private readonly timebankLedger?: ServiceUserTimebankLedgerService,
+    @Optional() private readonly chargeCards?: ChargeCardsService,
   ) {}
 
   /**
@@ -108,7 +112,23 @@ export class VisitPlanWeeklyHoursService {
    * are not counted as over again.
    */
   async timebankBudget(serviceUserId: string): Promise<TimebankBudget> {
-    return this.timebankLedger ? this.timebankLedger.budget(serviceUserId) : TimebankBudget.none();
+    if (!this.timebankLedger) return TimebankBudget.none();
+    const budget = await this.timebankLedger.budget(serviceUserId);
+    if (!budget.enabled) return budget;
+    // Timebank hours only pay for weekday care at the standard rate (decision 10 Nov 2026).
+    const timeZone = await this.orgSettings.getOperationalTimezone();
+    const card = this.chargeCards
+      ? ((await this.chargeCards.resolveForServiceUser(serviceUserId)).data.chargeCard ?? null)
+      : null;
+    return budget.withDayRule(
+      makeTimebankDayRule({
+        db: this.prisma,
+        timeZone,
+        card: card
+          ? { rules: card.rules ?? [], defaultChargeMethod: card.defaultChargeMethod ?? null }
+          : null,
+      }),
+    );
   }
 
   /** Writes RESERVED rows for visits whose hours over come from the timebank. */
@@ -403,7 +423,17 @@ export class VisitPlanWeeklyHoursService {
    * visits are over (held when Settings → Dom Rules needs approval). A week already over keeps
    * what it has, but gets nothing new.
    */
-  async classifyNewVisits<T extends { date: string; startsAt: string; minutes: number; noTimebank?: boolean }>(params: {
+  async classifyNewVisits<
+    T extends {
+      date: string;
+      startsAt: string;
+      minutes: number;
+      noTimebank?: boolean;
+      /** Clock time of the visit (for the timebank day / rate rule); else from startsAt + minutes. */
+      startAt?: Date;
+      endAt?: Date;
+    },
+  >(params: {
     client?: HoursClient;
     serviceUserId: string;
     fallbackHours?: string | null;
@@ -412,7 +442,16 @@ export class VisitPlanWeeklyHoursService {
     budget?: TimebankBudget;
   }): Promise<{
     limitWeeklyHours: number | null;
-    visits: Array<T & { weekStart: string; weekMinutes: number; over: boolean; fromTimebankMinutes: number }>;
+    visits: Array<
+      T & {
+        weekStart: string;
+        weekMinutes: number;
+        over: boolean;
+        fromTimebankMinutes: number;
+        /** Over, and the bank was not used because of the day or time (weekend, bank holiday…). */
+        timebankBlockedReason: string | null;
+      }
+    >;
   }> {
     const client = params.client ?? this.prisma;
     const limit = await this.limit(client, params.serviceUserId, params.fallbackHours);
@@ -426,12 +465,22 @@ export class VisitPlanWeeklyHoursService {
           weekMinutes: 0,
           over: false,
           fromTimebankMinutes: 0,
+          timebankBlockedReason: null,
         })),
       };
     }
     const limitMinutes = Math.round(limit * 60);
     const weekTotals = new Map<string, number>();
-    const out: Array<T & { weekStart: string; weekMinutes: number; over: boolean; fromTimebankMinutes: number }> = [];
+    const timeZone = params.budget?.enabled ? await this.orgSettings.getOperationalTimezone() : null;
+    const out: Array<
+      T & {
+        weekStart: string;
+        weekMinutes: number;
+        over: boolean;
+        fromTimebankMinutes: number;
+        timebankBlockedReason: string | null;
+      }
+    > = [];
     for (const v of sorted) {
       const weekStart = mondayOfIso(v.date);
       if (!weekTotals.has(weekStart)) {
@@ -442,17 +491,22 @@ export class VisitPlanWeeklyHoursService {
       const room = limitMinutes + (params.budget?.reservedIn(weekStart) ?? 0);
       let over = v.minutes > 0 && after > room;
       let fromTimebankMinutes = 0;
+      let timebankBlockedReason: string | null = null;
       // Night visits (sleeping / waking) never use the bank: their rate is not hourly
-      // (docs/SU_TIMEBANK_INVOICE_PLAN.md T4).
+      // (docs/SU_TIMEBANK_INVOICE_PLAN.md T4). Nor do weekends, bank holidays / special days or a
+      // time the charge card prices above the standard weekday rate (decision 10 Nov 2026).
       if (over && params.budget && !v.noTimebank) {
+        const startAt = v.startAt ?? visitStartFrom(v.date, v.startsAt, timeZone);
+        const endAt = v.endAt ?? new Date(startAt.getTime() + v.minutes * 60_000);
+        timebankBlockedReason = await params.budget.blockReason(startAt, endAt);
         const part = after - Math.max(before, room);
-        if (params.budget.cover(weekStart, part)) {
+        if (!timebankBlockedReason && params.budget.cover(weekStart, part)) {
           over = false;
           fromTimebankMinutes = part;
         }
       }
       if (!over) weekTotals.set(weekStart, after);
-      out.push({ ...v, weekStart, weekMinutes: after, over, fromTimebankMinutes });
+      out.push({ ...v, weekStart, weekMinutes: after, over, fromTimebankMinutes, timebankBlockedReason });
     }
     return { limitWeeklyHours: limit, visits: out };
   }
@@ -479,8 +533,10 @@ export class VisitPlanWeeklyHoursService {
       weekMinutes: number;
       needsApproval: boolean;
       fromTimebankMinutes: number;
+      timebankBlockedReason: string | null;
     }>;
   }> {
+    const timeZone = await this.orgSettings.getOperationalTimezone();
     const result = await this.classifyNewVisits({
       serviceUserId: params.serviceUserId,
       fallbackHours: params.fallbackHours,
@@ -490,6 +546,11 @@ export class VisitPlanWeeklyHoursService {
         startsAt: `${date}T${params.startTime}`,
         minutes: params.durationMinutes * Math.max(1, params.requiredCarers),
         noTimebank: isNightDutyVisit(params.nightDuty),
+        startAt: combineOperationalDateAndHm(date, params.startTime, timeZone),
+        endAt: new Date(
+          combineOperationalDateAndHm(date, params.startTime, timeZone).getTime() +
+            params.durationMinutes * 60_000,
+        ),
       })),
     });
     return {
@@ -500,6 +561,7 @@ export class VisitPlanWeeklyHoursService {
         weekMinutes: v.weekMinutes,
         needsApproval: v.over,
         fromTimebankMinutes: v.fromTimebankMinutes,
+        timebankBlockedReason: v.timebankBlockedReason,
       })),
     };
   }
@@ -526,13 +588,18 @@ export class VisitPlanWeeklyHoursService {
     over: boolean;
     blocked: boolean;
     fromTimebankMinutes: number;
+    timebankBlockedReason: string | null;
   } | null> {
     const original = await this.prisma.visitPlanSlotException.findFirst({
       where: { id: params.exceptionId, visitPlanSlot: { visitPlanId: params.planId } },
-      select: { exceptionDate: true, durationMinutes: true, requiredCarers: true },
+      select: { exceptionDate: true, durationMinutes: true, requiredCarers: true, plannedStartTime: true },
     });
     if (!original) return null;
     const ctx = await this.context();
+    const date = original.exceptionDate.toISOString().slice(0, 10);
+    const startAt = original.plannedStartTime
+      ? combineOperationalDateAndHm(date, original.plannedStartTime.slice(0, 5), ctx.timeZone)
+      : undefined;
     const check = await this.checkLongerVisit({
       serviceUserId: params.serviceUserId,
       fallbackHours: params.fallbackHours,
@@ -541,6 +608,8 @@ export class VisitPlanWeeklyHoursService {
       newMinutes: params.durationMinutes * Math.max(1, params.requiredCarers),
       budget: params.budget,
       noTimebank: isNightDutyVisit(params.nightDuty),
+      startAt,
+      endAt: startAt ? new Date(startAt.getTime() + params.durationMinutes * 60_000) : undefined,
     });
     return { ...check, blocked: check.over && ctx.rules.visitsNeedApproval };
   }
@@ -558,12 +627,16 @@ export class VisitPlanWeeklyHoursService {
     budget?: TimebankBudget;
     /** Sleeping / waking night: never paid from the bank. */
     noTimebank?: boolean;
+    /** The visit's new clock time (timebank day / rate rule); without it only the day is checked. */
+    startAt?: Date;
+    endAt?: Date;
   }): Promise<{
     limitWeeklyHours: number | null;
     weekStart: string;
     weekMinutes: number;
     over: boolean;
     fromTimebankMinutes: number;
+    timebankBlockedReason: string | null;
   }> {
     const limit = await this.limit(this.prisma, params.serviceUserId, params.fallbackHours);
     const week = await this.weekMinutes(this.prisma, params.serviceUserId, params.date);
@@ -571,14 +644,27 @@ export class VisitPlanWeeklyHoursService {
     const room = limit != null ? Math.round(limit * 60) + (params.budget?.reservedIn(week.weekStart) ?? 0) : null;
     let over = room != null && params.newMinutes > params.oldMinutes && after > room;
     let fromTimebankMinutes = 0;
+    let timebankBlockedReason: string | null = null;
     if (over && room != null && params.budget && !params.noTimebank) {
+      const timeZone = await this.orgSettings.getOperationalTimezone();
+      // No clock time: the whole day (weekend / bank holiday / special day only).
+      const startAt = params.startAt ?? combineOperationalDateAndHm(params.date, '00:00', timeZone);
+      const endAt = params.endAt ?? new Date(startAt.getTime() + 60_000);
+      timebankBlockedReason = await params.budget.blockReason(startAt, endAt);
       const part = after - Math.max(week.minutes, room);
-      if (params.budget.cover(week.weekStart, part)) {
+      if (!timebankBlockedReason && params.budget.cover(week.weekStart, part)) {
         over = false;
         fromTimebankMinutes = part;
       }
     }
-    return { limitWeeklyHours: limit, weekStart: week.weekStart, weekMinutes: after, over, fromTimebankMinutes };
+    return {
+      limitWeeklyHours: limit,
+      weekStart: week.weekStart,
+      weekMinutes: after,
+      over,
+      fromTimebankMinutes,
+      timebankBlockedReason,
+    };
   }
 
   /**
@@ -627,4 +713,14 @@ export class VisitPlanWeeklyHoursService {
       (weekMinutes > limitMinutes ? ` (${formatHoursMinutes(weekMinutes - limitMinutes)} over)` : '')
     );
   }
+}
+
+/**
+ * A visit's start for the timebank rule: `startsAt` is either an instant (ISO with Z / offset) or
+ * the org-local "YYYY-MM-DDTHH:mm".
+ */
+function visitStartFrom(date: string, startsAt: string, timeZone: string | null): Date {
+  if (/[zZ]$|[+-]\d{2}:?\d{2}$/.test(startsAt)) return new Date(startsAt);
+  const hm = /T(\d{2}:\d{2})/.exec(startsAt)?.[1] ?? '00:00';
+  return combineOperationalDateAndHm(date, hm, timeZone ?? undefined);
 }

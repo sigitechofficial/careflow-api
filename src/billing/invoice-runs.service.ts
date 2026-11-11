@@ -1749,6 +1749,8 @@ export class InvoiceRunsService {
             },
             serviceUserId: true,
             visitRef: true,
+            description: true,
+            lineType: true,
             funderId: true,
             amount: true,
           },
@@ -1963,7 +1965,11 @@ export class InvoiceRunsService {
       if (!recon) {
         exportLines.push(
           buildInvoiceExportVisitRow({
-            visitRef: cancelledJob ? `Late cancellation — ${line.visitRef ?? ''}` : line.visitRef,
+            // No visit: a late cancellation keeps its ref; other lines (timebank hours, paid from
+            // timebank, credits) carry their description so the emailed CSV says what they are.
+            visitRef: cancelledJob
+              ? `Late cancellation — ${line.visitRef ?? ''}`
+              : line.description?.trim() || line.visitRef,
             plannedStart: cancelledJob?.scheduledStartDateTime ?? row.periodStart,
             plannedEnd: cancelledJob?.scheduledEndDateTime ?? null,
             actualStart: null,
@@ -1983,9 +1989,15 @@ export class InvoiceRunsService {
         );
         continue;
       }
+      // The part of a visit paid from timebank hours already charged: same visit, minus amount,
+      // so the CSV says why next to the visit ref.
+      const reconRef = recon.visitRef || line.visitRef;
       exportLines.push(
         buildInvoiceExportVisitRow({
-          visitRef: recon.visitRef || line.visitRef,
+          visitRef:
+            line.lineType === InvoiceRunLineType.TIMEBANK_USED
+              ? `${reconRef ?? ''} — ${line.description}`.trim()
+              : reconRef,
           plannedStart: recon.plannedStartDateTime,
           plannedEnd: recon.plannedEndDateTime,
           actualStart: recon.actualStartDateTime,

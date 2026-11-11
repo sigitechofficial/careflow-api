@@ -1873,6 +1873,7 @@ export class ServiceUserVisitPlansService {
     const ctx = await this.weeklyHours.context();
     const budget = await this.weeklyHours.timebankBudget(serviceUserId);
     const { edge } = await this.weeklyHours.window(ctx.timeZone);
+    const bankBlocked: string[] = [];
     const bySlot = new Map(changes.map((c) => [c.slotId, c]));
     const jobs = (
       await this.prisma.scheduledJob.findMany({
@@ -1905,7 +1906,21 @@ export class ServiceUserVisitPlansService {
       const before = weekTotals.get(weekStart)!;
       const total = before + delta;
       const room = limitMinutes + budget.reservedIn(weekStart);
-      if (total > room && !change.night && budget.cover(weekStart, total - Math.max(before, room))) {
+      // Weekdays at the standard rate only (decision 10 Nov 2026): the new clock time is checked.
+      let blocked: string | null = null;
+      if (total > room && !change.night && budget.enabled) {
+        const startAt = combineOperationalDateAndHm(date, change.toStart, ctx.timeZone);
+        let endAt = combineOperationalDateAndHm(date, change.toEnd, ctx.timeZone);
+        if (endAt <= startAt) endAt = new Date(endAt.getTime() + 24 * 3_600_000);
+        blocked = await budget.blockReason(startAt, endAt);
+        if (blocked) bankBlocked.push(`${formatOrganisationIsoDate(date, ctx.dateDisplayFormat)} ${blocked}`);
+      }
+      if (
+        total > room &&
+        !change.night &&
+        !blocked &&
+        budget.cover(weekStart, total - Math.max(before, room))
+      ) {
         timebank.push({
           serviceUserId,
           scheduledJobId: job.id,
@@ -1927,9 +1942,17 @@ export class ServiceUserVisitPlansService {
       if (total > room) overWeeks.set(weekStart, total);
       weekTotals.set(weekStart, total);
     }
-    const timebankText = timebank.length
-      ? `${formatHoursMinutes(timebank.reduce((s, t) => s + t.minutes, 0))} over the weekly hours taken from the timebank.`
-      : null;
+    const timebankText =
+      [
+        timebank.length
+          ? `${formatHoursMinutes(timebank.reduce((s, t) => s + t.minutes, 0))} over the weekly hours taken from the timebank.`
+          : null,
+        bankBlocked.length
+          ? `Timebank not used for ${bankBlocked.length} visit${bankBlocked.length === 1 ? '' : 's'} (only weekdays at the standard rate): ${bankBlocked.slice(0, 3).join('; ')}${bankBlocked.length > 3 ? ` and ${bankBlocked.length - 3} more` : ''}.`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(' ') || null;
     if (!overWeeks.size) return { keepOldTime, message: timebankText, timebank };
     const weeksText = [...overWeeks]
       .map(([week, minutes]) => `week of ${formatOrganisationIsoDate(week, ctx.dateDisplayFormat)}: ${formatHoursMinutes(minutes)}`)
@@ -3114,10 +3137,12 @@ export class ServiceUserVisitPlansService {
         const before = weekTotals.get(weekStart)!;
         const after = before + visit.durationMinutes * Math.max(1, visit.requiredCarers);
         const limitMinutes = Math.round(hoursLimit * 60) + timebank.reservedIn(weekStart);
-        // Night visits never use the bank (docs/SU_TIMEBANK_INVOICE_PLAN.md T4).
+        // Night visits never use the bank (docs/SU_TIMEBANK_INVOICE_PLAN.md T4), nor weekends, bank
+        // holidays / special days or a time with a different charge rate (decision 10 Nov 2026).
         if (
           after > limitMinutes &&
           !isNightDutyVisit(slot.nightDuty) &&
+          !(await timebank.blockReason(visit.start, visit.end)) &&
           timebank.cover(weekStart, after - Math.max(before, limitMinutes))
         ) {
           timebankByKey.set(key, { weekStart, minutes: after - Math.max(before, limitMinutes) });
@@ -3679,6 +3704,8 @@ export class ServiceUserVisitPlansService {
       if (!covered || before > room) over.push(w);
     }
     let timebank = this.timebankRunText(fromBank, dateDisplayFormat, 'will be taken', limitMinutes, budget.availableMinutes);
+    // The run checks each visit: only weekday visits at the standard rate use the bank (10 Nov 2026).
+    if (timebank) timebank += ' (weekday visits at the standard rate only; weekend, bank holiday and special-day visits follow the weekly hours rule)';
     if (timebank && over.length && budget.availableMinutes > 0) {
       timebank += ', and is used only for a visit whose whole time over the hours it can pay';
     }

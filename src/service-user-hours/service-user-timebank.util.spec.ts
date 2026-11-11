@@ -498,9 +498,9 @@ describe('computeTimebankWeeks — over care taken back (docs/SU_OVER_CARE_ADJUS
   });
 });
 
-describe('computeTimebankWeeks — over care only from care given', () => {
-  it('a chargeable cancellation makes the week over contract but not over care', () => {
-    // 10h set: 8h delivered + a 3h visit cancelled late and charged → 1h over contract, no over care.
+describe('computeTimebankWeeks — over care from care given', () => {
+  it('a chargeable cancellation counts as care given, so it can make over care (10 Nov 2026)', () => {
+    // 10h set: 8h delivered + a 3h visit cancelled late and charged → 1h over contract and 1h over care.
     const charged = {
       party: 'SERVICE_USER' as const,
       reasonCode: 'CLIENT_REQUEST',
@@ -524,7 +524,7 @@ describe('computeTimebankWeeks — over care only from care given', () => {
     });
     expect(week.chargeableCancelMinutes).toBe(180);
     expect(week.overMinutes).toBe(60);
-    expect(week.overCareMinutes).toBe(0);
+    expect(week.overCareMinutes).toBe(60);
   });
 
   it('care given over the weekly hours is over care', () => {
