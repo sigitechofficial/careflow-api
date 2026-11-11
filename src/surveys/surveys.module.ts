@@ -52,7 +52,7 @@ import { SurveyAccessController, SurveyRecipientLinksController, SurveySectionsC
 import { SurveySectionsService } from './survey-sections.service';
 import { SurveyManagerCopiesController } from './survey-manager-copies.controller';
 import { SurveyManagerCopiesService } from './survey-manager-copies.service';
-import { SurveyReviewerGrantsController, SurveyReviewsController } from './survey-reviewers.controller';
+import { SurveyReviewerGrantsController, SurveyReviewersOverviewController, SurveyReviewsController } from './survey-reviewers.controller';
 import { SurveyReviewersService } from './survey-reviewers.service';
 import { SurveyRecipientLinksService } from './survey-recipient-links.service';
 import { SurveyLinkGuard } from './survey-link-guard';
@@ -93,6 +93,7 @@ import {
     SurveyManagerCopiesController,
     SurveyReviewerGrantsController,
     SurveyReviewsController,
+    SurveyReviewersOverviewController,
     SurveyRemindersController,
     SurveyContactPreferencesController,
     SurveysToCollectController,

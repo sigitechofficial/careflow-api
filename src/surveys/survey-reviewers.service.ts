@@ -91,6 +91,73 @@ export class SurveyReviewersService {
     };
   }
 
+  /**
+   * Every independent reviewer the person can see, across all surveys: each one's access (survey, dates,
+   * sample size, live or not) and how many answers they recorded there, newest first. Survey managers only.
+   */
+  async overview(actor: RequestUser) {
+    const accounts = await this.prisma.user.findMany({
+      where: this.reviewerAccountsWhere(actor),
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      select: { id: true, firstName: true, lastName: true, email: true, isActive: true, createdAt: true },
+    });
+    const ids = accounts.map((a) => a.id);
+    const [grants, recorded] = ids.length
+      ? await Promise.all([
+          this.prisma.surveyReviewerGrant.findMany({
+            where: { userId: { in: ids } },
+            orderBy: { validFrom: 'desc' },
+            include: { survey: { select: { id: true, title: true, clonedFromId: true } } },
+          }),
+          this.prisma.surveyResponse.groupBy({
+            by: ['recordedById', 'surveyId'],
+            where: { recordedById: { in: ids } },
+            _count: { _all: true },
+            _max: { submittedAt: true },
+          }),
+        ])
+      : [[], []];
+    const now = new Date();
+    const countOf = new Map(recorded.map((r) => [`${r.recordedById}:${r.surveyId}`, r]));
+    const reviewers = accounts.map((a) => {
+      const mine = grants.filter((g) => g.userId === a.id);
+      const access = mine.map((g) => {
+        const c = countOf.get(`${a.id}:${g.surveyId}`);
+        return {
+          grantId: g.id,
+          survey: { id: g.survey.id, title: g.survey.title },
+          validFrom: g.validFrom.toISOString(),
+          validTo: g.validTo.toISOString(),
+          status: g.revokedAt ? 'REVOKED' : g.validTo < now ? 'ENDED' : g.validFrom > now ? 'NOT_STARTED' : 'ACTIVE',
+          sampleSize: g.personIds.length,
+          answersRecorded: c?._count._all ?? 0,
+          lastRecordedAt: c?._max.submittedAt?.toISOString() ?? null,
+        };
+      });
+      return {
+        id: a.id,
+        name: fullName(a) || a.email,
+        email: a.email,
+        accountActive: a.isActive,
+        createdAt: a.createdAt.toISOString(),
+        liveAccess: access.filter((x) => x.status === 'ACTIVE').length,
+        answersRecorded: access.reduce((n, x) => n + x.answersRecorded, 0),
+        access,
+      };
+    });
+    return { message: 'Independent reviewers', data: { reviewers } };
+  }
+
+  /** The ids among these users that are independent reviewer accounts (to mark the answers they recorded). */
+  async reviewerIds(userIds: string[]): Promise<Set<string>> {
+    if (!userIds.length) return new Set();
+    const rows = await this.prisma.user.findMany({
+      where: { id: { in: userIds }, userRoles: { some: { role: { name: INDEPENDENT_REVIEWER_ROLE } } } },
+      select: { id: true },
+    });
+    return new Set(rows.map((r) => r.id));
+  }
+
   /** A repeating survey (not one of its periods): access is given to the period being run instead. */
   private async isRepeatingParent(survey: Pick<Survey, 'id' | 'clonedFromId' | 'recurrence'>): Promise<boolean> {
     if (survey.clonedFromId) return false;

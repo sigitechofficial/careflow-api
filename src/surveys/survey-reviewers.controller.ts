@@ -52,6 +52,22 @@ export class CreateSurveyReviewerAccountDto {
   email!: string;
 }
 
+/** Survey managers: every independent reviewer across all surveys, with what they recorded. */
+@ApiTags('Surveys')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Controller('survey-reviewers')
+export class SurveyReviewersOverviewController {
+  constructor(private readonly reviewers: SurveyReviewersService) {}
+
+  @Get()
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'All independent reviewers: their access on each survey and the answers they recorded' })
+  overview(@CurrentUser() user: RequestUser) {
+    return this.reviewers.overview(user);
+  }
+}
+
 /** Survey managers: who may record answers on a survey as an independent reviewer. */
 @ApiTags('Surveys')
 @ApiBearerAuth()
