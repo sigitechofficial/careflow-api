@@ -405,6 +405,25 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     }
   }
 
+  /** Make a label or folder in the mailbox, then list them again. */
+  async createMailboxFolder(id: string, name: string) {
+    const clean = name.trim().replace(/\s+/g, ' ');
+    if (!clean || clean.length > 100 || /[\\"]/.test(clean)) throw new BadRequestException('Enter a label name of up to 100 characters (no quotes or backslashes).');
+    const mb = await this.mailbox(id);
+    if (!POLLED_PROVIDERS.includes(mb.provider)) throw new BadRequestException('This mailbox receives posted emails: it has no labels or folders.');
+    const c = this.connectors.connector(mb);
+    try {
+      if (!c.createFolder) throw new BadRequestException('Labels can’t be made in this kind of mailbox.');
+      await c.createFolder(clean);
+    } catch (e) {
+      if (e instanceof BadRequestException) throw e;
+      throw new BadRequestException(`The label could not be made: ${(e as Error).message}`);
+    } finally {
+      await c.close();
+    }
+    return this.mailboxFolders(id);
+  }
+
   async testMailbox(id: string) {
     const mb = await this.mailbox(id);
     const results: string[] = [];

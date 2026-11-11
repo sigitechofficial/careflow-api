@@ -114,9 +114,9 @@ export class GmailSession {
     return p.emailAddress as string;
   }
 
-  async labels(): Promise<Array<{ id: string; name: string }>> {
+  async labels(): Promise<Array<{ id: string; name: string; type?: 'system' | 'user' }>> {
     const r = await this.call('/labels');
-    return (r.labels ?? []) as Array<{ id: string; name: string }>;
+    return (r.labels ?? []) as Array<{ id: string; name: string; type?: 'system' | 'user' }>;
   }
 
   /** The label's id, creating the label when it does not exist yet. */

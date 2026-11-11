@@ -160,6 +160,10 @@ export class ImapConnector implements MailboxConnector {
     await testSmtp(this.smtp());
   }
 
+  async createFolder(name: string) {
+    await (await this.c()).mailboxCreate(name);
+  }
+
   /** The mailbox's folders, Inbox first; Sent, Drafts, Junk and Trash left out. */
   async listFolders() {
     const list = await (await this.c()).list();
