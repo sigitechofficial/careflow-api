@@ -38,7 +38,7 @@ const reviewerAccount = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-function setup(opts: { survey?: any; grant?: any; account?: any; staffEmail?: boolean; inScope?: boolean; periods?: number; existingUser?: boolean } = {}) {
+function setup(opts: { survey?: any; grant?: any; account?: any; staffEmail?: boolean; inScope?: boolean; periods?: number; existingUser?: boolean; links?: { staff?: any[]; contacts?: any[] } } = {}) {
   const survey = opts.survey ?? namedSurvey;
   const grant = opts.grant === undefined ? { id: 'g1', surveyId: 's1', userId: 'rev-1', personIds: ['su-1', 'su-2'], validFrom: day(-1), validTo: day(10), survey } : opts.grant;
   const prisma: any = {
@@ -50,7 +50,13 @@ function setup(opts: { survey?: any; grant?: any; account?: any; staffEmail?: bo
       create: jest.fn(async (a: any) => ({ id: 'rev-new', email: a.data.email, firstName: a.data.firstName })),
     },
     role: { findFirst: jest.fn(async () => ({ id: 'role-ir' })) },
-    employeePersonalDetail: { findFirst: jest.fn(async () => (opts.staffEmail ? { employeeId: 'e1' } : null)) },
+    employeePersonalDetail: {
+      findFirst: jest.fn(async () => (opts.staffEmail ? { employeeId: 'e1' } : null)),
+      // Links to us (findReviewerLinks): nobody, unless a test says so.
+      findMany: jest.fn(async () => opts.links?.staff ?? []),
+    },
+    serviceUserContact: { findMany: jest.fn(async () => opts.links?.contacts ?? []) },
+    surveyExternalContact: { findMany: jest.fn(async () => []) },
     surveyReviewerGrant: {
       create: jest.fn(async (a: any) => ({ id: 'g-new', ...a.data })),
       findFirst: jest.fn(async () => grant),
@@ -58,7 +64,7 @@ function setup(opts: { survey?: any; grant?: any; account?: any; staffEmail?: bo
       update: jest.fn(async (a: any) => a),
     },
     serviceUser: {
-      findMany: jest.fn(async (a: any) => ['su-1', 'su-2', 'su-3'].filter((id) => a.where.id.in.includes(id)).map((id) => ({ id, firstName: 'Person', lastName: id }))),
+      findMany: jest.fn(async (a: any) => (a.where.id ? ['su-1', 'su-2', 'su-3'].filter((id) => a.where.id.in.includes(id)).map((id) => ({ id, firstName: 'Person', lastName: id })) : [])),
     },
     employee: { findMany: jest.fn(async () => []) },
     surveyRecipient: { findMany: jest.fn(async () => [{ serviceUserId: 'su-2', employeeId: null, status: 'COMPLETED' }]) },
@@ -85,6 +91,38 @@ describe('SurveyReviewersService: survey managers', () => {
     expect(prisma.surveyReviewerGrant.create.mock.calls[0][0].data).toMatchObject({ surveyId: 's1', userId: 'rev-1', personIds: ['su-1', 'su-3'], createdById: 'admin-1' });
     expect(audit.logAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'survey_reviewer_granted', metadata: expect.objectContaining({ sampleSize: 2, reviewerUserId: 'rev-1' }) }),
+    );
+  });
+
+  it('keeps people the reviewer is connected to out of their sample', async () => {
+    const family = [{ serviceUserId: 'su-3', firstName: 'Rita', lastName: 'Review', email: null, serviceUser: { firstName: 'Person', lastName: 'su-3' } }];
+    await expect(
+      setup({ links: { contacts: family } }).service.grant(admin, 's1', { userId: 'rev-1', personIds: ['su-1', 'su-3'], ...window }),
+    ).rejects.toThrow(/Take Person su-3 out of the sample/);
+    const { service, prisma } = setup({ links: { contacts: family } });
+    await service.grant(admin, 's1', { userId: 'rev-1', personIds: ['su-1'], ...window });
+    expect(prisma.surveyReviewerGrant.create).toHaveBeenCalled();
+  });
+
+  it('asks for a declaration when the new reviewer was previously involved with us, and records it', async () => {
+    const formerStaff = [{ employeeId: 'e9', firstName: 'Rita', lastName: 'Review', email: 'old@allforcare.co.uk', employee: { isActive: false } }];
+    const first = setup({ links: { staff: formerStaff } });
+    const refused = first.service.createAccount(admin, 's1', { firstName: 'Rita', lastName: 'Review', email: 'rita@review.example' });
+    await expect(refused).rejects.toBeInstanceOf(ConflictException);
+    await expect(refused).rejects.toMatchObject({ response: { links: [{ kind: 'FORMER_STAFF', match: 'NAME' }] } });
+    expect(first.prisma.user.create).not.toHaveBeenCalled();
+    const { service, audit } = setup({ links: { staff: formerStaff } });
+    await service.createAccount(admin, 's1', {
+      firstName: 'Rita',
+      lastName: 'Review',
+      email: 'rita@review.example',
+      declaration: 'Left in 2022, never worked with this branch',
+    });
+    expect(audit.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'survey_reviewer_account_created',
+        metadata: expect.objectContaining({ declaredLinks: ['Former member of staff: Rita Review'], declaration: 'Left in 2022, never worked with this branch' }),
+      }),
     );
   });
 

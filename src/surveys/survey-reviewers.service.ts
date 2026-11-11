@@ -7,6 +7,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { hashPassword } from '../common/utils/password.util';
 import { INDEPENDENT_REVIEWER_ROLE, SURVEY_REVIEW_PERMISSION, isReviewerOnly } from '../common/auth/independent-reviewer';
+import { findReviewerLinks } from './survey-reviewer-links';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
@@ -119,6 +120,19 @@ export class SurveyReviewersService {
       : [[], []];
     const now = new Date();
     const countOf = new Map(recorded.map((r) => [`${r.recordedById}:${r.surveyId}`, r]));
+    // What the manager declared when the reviewer was already connected to us (from the audit log).
+    const made = ids.length
+      ? await this.prisma.auditLog.findMany({
+          where: { action: AuditAction.SURVEY_REVIEWER_ACCOUNT_CREATED, recordId: { in: ids } },
+          select: { recordId: true, metadata: true },
+        })
+      : [];
+    const declared = new Map(
+      made.map((m) => {
+        const md = (m.metadata ?? {}) as { declaredLinks?: string[]; declaration?: string };
+        return [m.recordId ?? '', { links: md.declaredLinks ?? [], declaration: md.declaration ?? null }];
+      }),
+    );
     const reviewers = accounts.map((a) => {
       const mine = grants.filter((g) => g.userId === a.id);
       const access = mine.map((g) => {
@@ -141,11 +155,21 @@ export class SurveyReviewersService {
         accountActive: a.isActive,
         createdAt: a.createdAt.toISOString(),
         liveAccess: access.filter((x) => x.status === 'ACTIVE').length,
+        /** Connected to us when added, and what the manager declared. */
+        declaredLinks: declared.get(a.id)?.links ?? [],
+        declaration: declared.get(a.id)?.declaration ?? null,
         answersRecorded: access.reduce((n, x) => n + x.answersRecorded, 0),
         access,
       };
     });
     return { message: 'Independent reviewers', data: { reviewers } };
+  }
+
+  /** "Add a reviewer", before saving: how this person is already connected to us (each needs a declaration). */
+  async checkAccount(actor: RequestUser, surveyId: string, dto: { firstName: string; lastName: string; email: string }) {
+    await this.requireManagedSurvey(actor, surveyId);
+    const links = await findReviewerLinks(this.prisma, dto);
+    return { data: { links: links.map(({ kind, label, match }) => ({ kind, label, match })) } };
   }
 
   /** The ids among these users that are independent reviewer accounts (to mark the answers they recorded). */
@@ -209,7 +233,7 @@ export class SurveyReviewersService {
   async createAccount(
     actor: RequestUser,
     surveyId: string,
-    dto: { firstName: string; lastName: string; email: string },
+    dto: { firstName: string; lastName: string; email: string; declaration?: string },
     meta?: RequestAuditMeta,
   ) {
     await this.requireManagedSurvey(actor, surveyId);
@@ -230,6 +254,16 @@ export class SurveyReviewersService {
       throw new ConflictException('An account with this email already exists. Choose it from the list if it is a reviewer account; staff accounts cannot be used.');
     }
     if (!role) throw new BadRequestException('The Independent reviewer role is missing. Ask an admin to run the setup.');
+    // Previously involved with us (former staff, a person we support or their family, an outside contact):
+    // allowed only once the manager declares they have weighed it, with a reason (independence allows declared links).
+    const links = await findReviewerLinks(this.prisma, { firstName, lastName, email });
+    const declaration = dto.declaration?.trim() ?? '';
+    if (links.length && declaration.length < 10) {
+      throw new ConflictException({
+        message: 'This person is already connected to us. Check it, then declare why they are still independent enough for this review.',
+        links: links.map(({ kind, label, match }) => ({ kind, label, match })),
+      });
+    }
     // A random value nobody knows and nobody is shown: the account has no usable password until the
     // person chooses one through the emailed link.
     const passwordHash = await hashPassword(randomBytes(32).toString('base64url'));
@@ -246,7 +280,11 @@ export class SurveyReviewersService {
         recordType: 'User',
         recordId: created.id,
         description: `Independent reviewer account made for ${firstName} ${lastName}`,
-        metadata: { surveyId, role: INDEPENDENT_REVIEWER_ROLE },
+        metadata: {
+          surveyId,
+          role: INDEPENDENT_REVIEWER_ROLE,
+          ...(links.length ? { declaredLinks: links.map((l) => l.label), declaration: declaration.slice(0, 1000) } : {}),
+        },
         ...meta,
       });
       return created;
@@ -318,6 +356,16 @@ export class SurveyReviewersService {
       if (!personIds.length) throw new BadRequestException('Choose the people in the reviewer’s sample.');
       if (personIds.length > MAX_REVIEW_SAMPLE) throw new BadRequestException(`A sample can have at most ${MAX_REVIEW_SAMPLE} people.`);
       await this.assertSample(actor, survey, personIds);
+      // Never someone the reviewer is connected to (their relative, or themselves as a former employee or client).
+      const links = await findReviewerLinks(this.prisma, { firstName: account.firstName ?? '', lastName: account.lastName ?? '', email: account.email });
+      const tied = new Set(links.flatMap((l) => (survey.targetKind === SurveyTargetKind.SERVICE_USER ? l.serviceUserIds : l.employeeIds)));
+      const clash = personIds.filter((id) => tied.has(id));
+      if (clash.length) {
+        const names = await this.personNames(survey, clash);
+        throw new BadRequestException(
+          `Take ${clash.map((id) => names.get(id) ?? 'one person').join(', ')} out of the sample: the reviewer is connected to them.`,
+        );
+      }
     }
     const created = await this.prisma.surveyReviewerGrant.create({
       data: { surveyId, userId: account.id, personIds, validFrom, validTo, createdById: actor.id },
