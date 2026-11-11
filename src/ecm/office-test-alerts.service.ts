@@ -88,7 +88,7 @@ export class OfficeTestAlertsService {
     };
   }
 
-  /** A recent visit to hang the alerts on: one in progress if there is one, else the latest that has started. */
+  /** A visit to hang the alerts on: one in progress, else the latest that has started, else the next one coming up. */
   private async pickVisit(scheduledJobId?: string) {
     const select = {
       id: true,
@@ -115,7 +115,9 @@ export class OfficeTestAlertsService {
         select,
       })) ??
       (await this.prisma.scheduledJob.findFirst({ where: { ...recent, allocations: { some: { deletedAt: null, isActive: true } } }, orderBy: { scheduledStartDateTime: 'desc' }, select })) ??
-      (await this.prisma.scheduledJob.findFirst({ where: { deletedAt: null, status: { notIn: CLOSED_JOB }, scheduledStartDateTime: { lte: now } }, orderBy: { scheduledStartDateTime: 'desc' }, select }))
+      (await this.prisma.scheduledJob.findFirst({ where: { deletedAt: null, status: { notIn: CLOSED_JOB }, scheduledStartDateTime: { lte: now } }, orderBy: { scheduledStartDateTime: 'desc' }, select })) ??
+      // A new system whose rota only runs ahead: the next visit coming up.
+      (await this.prisma.scheduledJob.findFirst({ where: { deletedAt: null, status: { notIn: CLOSED_JOB }, scheduledStartDateTime: { gt: now } }, orderBy: { scheduledStartDateTime: 'asc' }, select }))
     );
   }
 
