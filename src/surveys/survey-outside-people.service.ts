@@ -17,7 +17,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { surveyVisibleInScope } from './survey-scope.util';
 import { SurveyContactRuleService } from './survey-contact-rule.service';
 import { freeFromDay, librarySentWith } from './survey-contact-rule.util';
-import { SURVEY_UNSUBSCRIBE_REASON, outsideContactBlocks } from './survey-eligibility.util';
+import { SURVEY_UNSUBSCRIBE_REASON, outsideContactBlocks, surveyConsentContactIds } from './survey-eligibility.util';
 import { surveyContactMessages } from './survey-contact-messages.util';
 import { surveyEmailBranding, surveyEmailFacts } from './survey-email-branding';
 import { readContactPlan } from './survey-contact-plan.util';
@@ -339,8 +339,8 @@ export class SurveyOutsidePeopleService {
   }
 
   /**
-   * Families of these people we support (People involved): those who agreed to be contacted ("Can receive care
-   * updates"), with an email or mobile. Each becomes (or stays) one outside person, read again from the record.
+   * Families of these people we support (People involved): those who agreed to our surveys (a "Surveys" sharing
+   * line in Privacy), with an email or mobile. Each becomes (or stays) one outside person, read again from the record.
    */
   async familiesOf(actor: RequestUser, serviceUserIds: string[]) {
     const scope = this.orgScope.fromRequestUser(actor);
@@ -355,6 +355,7 @@ export class SurveyOutsidePeopleService {
       include: { relationshipType: { select: { name: true } } },
       orderBy: [{ isPrimary: 'desc' }, { firstName: 'asc' }],
     });
+    const agreed = await surveyConsentContactIds(this.prisma, contacts.map((c) => c.id));
     const out: Array<{ contactId: string | null; sourceId: string; serviceUserId: string; name: string; relationship: string | null; email: string | null; mobile: string | null; consent: boolean; reachable: boolean }> = [];
     for (const c of contacts) {
       const mobile = normaliseUkMobile(c.mobile) ?? normaliseUkMobile(c.phone);
@@ -366,7 +367,7 @@ export class SurveyOutsidePeopleService {
         relationship: c.relationshipType?.name ?? null,
         email: c.email?.trim() || null,
         mobile,
-        consent: c.canReceiveUpdates,
+        consent: agreed.has(c.id),
         reachable: Boolean(c.email?.trim() || mobile),
       });
     }
@@ -508,10 +509,11 @@ export class SurveyOutsidePeopleService {
       const inScope = this.orgScope.serviceUserScopeWhere(scope);
       const contacts = await this.prisma.serviceUserContact.findMany({
         where: { id: { in: input.familyContactIds }, deletedAt: null, isActive: true, serviceUser: { AND: [{ deletedAt: null }, ...(inScope ? [inScope] : [])] } },
-        select: { id: true, canReceiveUpdates: true },
+        select: { id: true },
       });
+      const agreed = await surveyConsentContactIds(this.prisma, contacts.map((c) => c.id));
       for (const c of contacts) {
-        if (!c.canReceiveUpdates) {
+        if (!agreed.has(c.id)) {
           noConsent += 1;
           continue;
         }
