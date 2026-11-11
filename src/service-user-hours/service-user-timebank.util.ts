@@ -140,6 +140,8 @@ export type TimebankOverCare = {
   cancelledMinutes: number;
   cancelledVisits: number;
   notTakenBackMinutes: number;
+  /** Over care review (Workforce › Over care reviews): PENDING, ACTION_TAKEN or NO_ACTION_NEEDED. */
+  reviewStatus?: string;
 };
 
 export type TimebankWeekVisit = Omit<TimebankShortVisit, 'reason'> & {
@@ -173,9 +175,10 @@ export type TimebankWeek = {
   freeMinutes: number;
   overMinutes: number;
   /**
-   * Over the weekly hours in care given only (delivered + done; a week not finished adds what is
-   * still to come). Chargeable cancellations count in `overMinutes` but are not care given, so
-   * they never make over care (docs/SU_OVER_CARE_ADJUST_PLAN.md).
+   * Over the weekly hours in care given (delivered + done + chargeable cancellations; a week not
+   * finished adds what is still to come). Since 10 Nov 2026 a cancellation the service user is
+   * charged for counts as care given (user decision), so it can make over care
+   * (docs/SU_OVER_CARE_ADJUST_PLAN.md).
    */
   overCareMinutes: number;
   /** Finished weeks only: what the week put in the bank. */
@@ -398,8 +401,15 @@ export function computeTimebankWeeks(params: {
       monday === firstMonday ? daysBetween(params.startIso, sunday) + 1 : 7;
     const overCareAdjustment =
       params.overCare?.find((a) => a.overWeekStart === monday) ?? null;
-    const overCareTakenBack =
-      params.overCare?.find((a) => a.adjustWeekStart === monday) ?? null;
+    // Several over weeks can be taken back in one week (Over care reviews): their minutes add up.
+    const takenBackRows =
+      params.overCare?.filter((a) => a.adjustWeekStart === monday) ?? [];
+    const overCareTakenBack: TimebankOverCare | null = takenBackRows.length
+      ? {
+          ...takenBackRows[0],
+          takenBackMinutes: takenBackRows.reduce((s, a) => s + a.takenBackMinutes, 0),
+        }
+      : null;
     // A week taking back over care is set that much lower, so it is not short for it.
     const setMinutes = Math.max(
       0,
@@ -710,9 +720,11 @@ export function computeTimebankWeeks(params: {
       week.chargeableCancelMinutes;
     week.freeMinutes = Math.max(0, setMinutes - covered);
     week.overMinutes = Math.max(0, covered - setMinutes);
+    // A charged cancellation counts as care given (10 Nov 2026), the same as in Over care reviews.
     const careGiven =
       week.deliveredMinutes +
       week.pendingMinutes +
+      week.chargeableCancelMinutes +
       (status === 'complete' ? 0 : week.scheduledMinutes + week.awaitingMinutes);
     week.overCareMinutes = Math.max(0, careGiven - setMinutes);
     if (status === 'complete') {

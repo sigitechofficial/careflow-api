@@ -7,13 +7,12 @@ import { ServiceUserTimebankLedgerService } from '../service-user-hours/service-
 import type { TimebankWeek } from '../service-user-hours/service-user-timebank.util';
 import {
   dayKeyInTimeZone,
-  operationalDayBounds,
 } from '../common/utils/operational-day.util';
 import { formatOrganisationIsoDate } from '../common/utils/organisation-display-format.util';
 import { ChargeCardsService } from './billing-cards.service';
 import { buildFundingSplits, splitAmount } from './billing-run.util';
 import { lateCancellationAmount } from './invoice-late-cancellation.util';
-import { loadBankHolidayDateSet } from './visit-reconciliations.service';
+import { standardWeekdayTime } from '../service-user-hours/timebank-day-rule.util';
 
 /** Open runs (not locked): their lines can still change. */
 const OPEN_RUN_STATUSES: InvoiceRunStatus[] = [
@@ -288,6 +287,9 @@ export class InvoiceTimebankService {
   }> {
     const card = (await this.chargeCards.resolveForServiceUser(serviceUserId))
       .data.chargeCard;
+    // Every timebank hour is priced at the standard weekday rate (decision 10 Nov 2026): 10:00 on
+    // the week's first day that is not a bank holiday (Monday unless it is one, e.g. Easter Monday).
+    const weekdayAt = await standardWeekdayTime(this.prisma, week.weekStart, timeZone);
     const parts: Array<{ start: Date; minutes: number; description: string }> =
       [];
     let left = minutes;
@@ -299,17 +301,12 @@ export class InvoiceTimebankService {
       left -= take;
       const day = formatOrganisationIsoDate(v.day, dateFormat);
       parts.push({
-        start: new Date(v.start),
+        start: weekdayAt,
         minutes: take,
         description: `Timebank hours — ${day} ${v.jobName} ${hm(take)} · ${SHORT_LABEL[v.reason] ?? 'not delivered'} · kept in the timebank`,
       });
     }
     if (left > 0) {
-      // No visit time: the weekday rate (Monday 10:00 of that week).
-      const weekdayAt = new Date(
-        operationalDayBounds(week.weekStart, timeZone).start.getTime() +
-          10 * 3_600_000,
-      );
       parts.push({
         start: weekdayAt,
         minutes: left,
@@ -326,15 +323,8 @@ export class InvoiceTimebankService {
         issue: 'Charge card missing',
       };
     }
-    const starts = parts.map((p) => p.start.getTime());
-    const bankHolidays = await loadBankHolidayDateSet(
-      this.prisma,
-      new Date(Math.min(...starts)),
-      new Date(Math.max(...starts)),
-      timeZone,
-    );
-    const isBankHolidayFn = (d: Date) =>
-      bankHolidays.has(dayKeyInTimeZone(d, timeZone));
+    // The standard time is never a bank holiday (picked that way above).
+    const isBankHolidayFn = () => false;
     let issue: string | null = null;
     const items = parts.map((p) => {
       const amount = lateCancellationAmount({
@@ -444,6 +434,23 @@ export class InvoiceTimebankService {
       .reduce((s, c) => s + c.minutes, 0);
     let pool = chargedTotal + addedThisRun - usedTotal;
     if (pool <= 0) return 0;
+    // The rate the timebank hours were charged at (decision 10 Nov 2026): care paid from them is
+    // taken off at that rate, not the visit's own rate (a weekend visit is dearer than a weekday).
+    const thisRun = ctx.lineData.filter(
+      (l) =>
+        l.serviceUserId === serviceUserId &&
+        l.lineType === InvoiceRunLineType.TIMEBANK_HOURS &&
+        !l.exceptionMessage,
+    );
+    const chargedAmount =
+      charges
+        .filter((c) => c.kind === 'CHARGED')
+        .reduce((s, c) => s + c.amount, 0) +
+      thisRun.reduce((s, l) => s + Number(l.amount), 0);
+    const chargedMinutes =
+      chargedTotal + thisRun.reduce((s, l) => s + Number(l.minutes ?? 0), 0);
+    const ratePerMinute =
+      chargedMinutes > 0 ? Math.max(0, chargedAmount / chargedMinutes) : 0;
 
     const reconIds = [
       ...new Set(visitLines.map((l) => l.visitReconciliationId as string)),
@@ -473,13 +480,24 @@ export class InvoiceTimebankService {
       if (jobMinutes <= 0) continue;
       const free = Math.min(held.get(jobId)!, pool, jobMinutes);
       pool -= free;
+      // What these hours were charged at, never more than the visit costs; shared out across the
+      // visit's lines (funders) like the visit amount.
+      const jobLines = visitLines.filter((l) =>
+        jobRecons.some((r) => r.id === l.visitReconciliationId),
+      );
+      const visitTotal = jobLines.reduce((s, l) => s + Number(l.amount), 0);
+      const takeOff = Math.min(visitTotal, free * ratePerMinute);
       for (const recon of jobRecons) {
         for (const line of visitLines.filter(
           (l) => l.visitReconciliationId === recon.id,
         )) {
           const credit = -Math.min(
             Number(line.amount),
-            Math.round(((Number(line.amount) * free) / jobMinutes) * 100) / 100,
+            visitTotal > 0
+              ? Math.round(
+                  ((Number(line.amount) * takeOff) / visitTotal) * 100,
+                ) / 100
+              : 0,
           );
           if (credit === 0) continue;
           ctx.lineData.push({

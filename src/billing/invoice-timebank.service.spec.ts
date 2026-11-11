@@ -5,13 +5,13 @@ import { InvoiceTimebankService } from './invoice-timebank.service';
 describe('InvoiceTimebankService', () => {
   const SU = 'su-1';
 
-  function week(weekStart: string, bank: number) {
+  function week(weekStart: string, bank: number, shortVisits: unknown[] = []) {
     return {
       weekStart,
       weekEnd: '2026-11-01',
       status: 'short',
       addedToBankMinutes: bank,
-      shortVisits: [],
+      shortVisits,
     };
   }
 
@@ -30,6 +30,9 @@ describe('InvoiceTimebankService', () => {
       scheduledJobId: string;
       billableMinutes: number;
     }>;
+    shortVisits?: unknown[];
+    chargeCard?: unknown;
+    bankHolidays?: string[];
   }) {
     const prisma = {
       serviceUser: {
@@ -71,6 +74,13 @@ describe('InvoiceTimebankService', () => {
       visitReconciliation: {
         findMany: jest.fn().mockResolvedValue(opts.recons ?? []),
       },
+      bankHoliday: {
+        findMany: jest.fn().mockResolvedValue(
+          (opts.bankHolidays ?? []).map((d) => ({
+            holidayDate: new Date(`${d}T00:00:00Z`),
+          })),
+        ),
+      },
     };
     const orgSettings = {
       getServiceUserWeeklyHoursSettings: jest.fn().mockResolvedValue({
@@ -84,9 +94,9 @@ describe('InvoiceTimebankService', () => {
       setChargeTimebankFrom: jest.fn().mockResolvedValue(undefined),
     };
     const timebank = {
-      weeksForServiceUser: jest
-        .fn()
-        .mockResolvedValue({ weeks: [week('2026-10-26', opts.bank ?? 0)] }),
+      weeksForServiceUser: jest.fn().mockResolvedValue({
+        weeks: [week('2026-10-26', opts.bank ?? 0, opts.shortVisits)],
+      }),
     };
     const ledger = {
       heldByJob: jest.fn().mockResolvedValue(opts.held ?? new Map()),
@@ -94,7 +104,7 @@ describe('InvoiceTimebankService', () => {
     const chargeCards = {
       resolveForServiceUser: jest
         .fn()
-        .mockResolvedValue({ data: { chargeCard: null } }),
+        .mockResolvedValue({ data: { chargeCard: opts.chargeCard ?? null } }),
     };
     const service = new InvoiceTimebankService(
       prisma as never,
@@ -255,6 +265,111 @@ describe('InvoiceTimebankService', () => {
     expect(String(used[0].description)).toBe(
       'Used 1h of the timebank hours already paid (INV-1050) · no charge',
     );
+  });
+
+  describe('standard weekday rate (10 Nov 2026)', () => {
+    const hourly = (dayType: string, amount: number) => ({
+      dayType,
+      rateType: 'HOURLY',
+      chargeMethod: 'HOURLY_PRO_RATA',
+      amount: new Prisma.Decimal(amount),
+      chargeableFlag: true,
+      priority: 0,
+      sortOrder: 0,
+      startTime: null,
+      endTime: null,
+      serviceType: null,
+      minimumMinutes: null,
+      multiplier: null,
+    });
+    const card = {
+      defaultChargeMethod: 'HOURLY_PRO_RATA',
+      rules: [
+        hourly('WEEKDAY', 20),
+        hourly('SATURDAY', 30),
+        hourly('BANK_HOLIDAY', 40),
+      ],
+    };
+    // Saturday 31 Oct 2026, 18:00: a 1h evening visit missed.
+    const missedSaturday = {
+      jobId: 'job-sat',
+      jobName: 'Evening',
+      day: '2026-10-31',
+      start: '2026-10-31T18:00:00.000Z',
+      end: '2026-10-31T19:00:00.000Z',
+      plannedMinutes: 60,
+      deliveredMinutes: 0,
+      pendingMinutes: 0,
+      shortMinutes: 60,
+      reason: 'MISSED',
+    };
+    const timebankLines = (c: ReturnType<typeof ctx>) =>
+      c.lineData.filter(
+        (l) => l.lineType === InvoiceRunLineType.TIMEBANK_HOURS,
+      );
+
+    it('prices hours from a Saturday visit at the weekday rate, not the Saturday rate', async () => {
+      const { service } = build({
+        bank: 60,
+        shortVisits: [missedSaturday],
+        chargeCard: card,
+      });
+      const c = ctx();
+      await service.addLines(c);
+      const lines = timebankLines(c);
+      expect(lines).toHaveLength(1);
+      expect(Number(lines[0].amount)).toBe(20);
+      expect(String(lines[0].description)).toContain('Evening 1h');
+    });
+
+    it('skips a bank holiday Monday: the next weekday sets the rate', async () => {
+      const { service } = build({
+        bank: 60,
+        shortVisits: [missedSaturday],
+        chargeCard: card,
+        bankHolidays: ['2026-10-26'],
+      });
+      const c = ctx();
+      await service.addLines(c);
+      expect(Number(timebankLines(c)[0].amount)).toBe(20);
+    });
+
+    it('takes a dearer visit paid from the timebank off at the rate the hours were charged at', async () => {
+      // A Sunday visit: 2h for £60 (£30/h). The bank hours were charged at £20/h.
+      const sundayVisit = {
+        invoiceRunId: 'run-2',
+        visitReconciliationId: 'r1',
+        serviceUserId: SU,
+        serviceUserFundingId: 'f1',
+        funderId: null,
+        lineType: InvoiceRunLineType.VISIT_CHARGE,
+        description: 'Visit charge',
+        minutes: 120,
+        amount: 60,
+        exceptionMessage: null,
+      } as Prisma.InvoiceRunLineCreateManyInput;
+      const { service } = build({
+        bank: 120,
+        charges: [
+          {
+            kind: 'CHARGED',
+            minutes: 120,
+            amount: 40,
+            weekStart: '2026-10-26',
+          },
+        ],
+        held: new Map([['job-1', 120]]),
+        recons: [{ id: 'r1', scheduledJobId: 'job-1', billableMinutes: 120 }],
+      });
+      const c = ctx([sundayVisit]);
+      await service.addLines(c);
+      const used = c.lineData.filter(
+        (l) => l.lineType === InvoiceRunLineType.TIMEBANK_USED,
+      );
+      // −£40 (what was paid for the 2h), not −£60: the £20 Sunday difference is still charged.
+      expect(used).toHaveLength(1);
+      expect(Number(used[0].amount)).toBe(-40);
+    });
   });
 
   it('records charged and used hours on lock (split lines counted once)', async () => {
