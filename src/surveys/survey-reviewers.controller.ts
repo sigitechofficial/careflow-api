@@ -96,6 +96,20 @@ export class SurveyReviewerGrantsController {
     return this.reviewers.list(user, surveyId);
   }
 
+  @Get('survey-staff')
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'Staff whose role can record survey responses (they collect answers as the office, not as independent reviewers)' })
+  surveyStaff(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string) {
+    return this.reviewers.surveyStaff(user, surveyId);
+  }
+
+  @Get('known-people')
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'Add a reviewer: people already in CareFlow to choose from (outside contacts, family contacts, former staff)' })
+  knownPeople(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string, @Query('search') search?: string) {
+    return this.reviewers.knownPeople(user, surveyId, search ?? '');
+  }
+
   @Post('accounts/check')
   @HttpCode(200)
   @Permissions('surveys.manage')

@@ -165,6 +165,143 @@ export class SurveyReviewersService {
     return { message: 'Independent reviewers', data: { reviewers } };
   }
 
+  /**
+   * "Add a reviewer" → choose someone already in CareFlow: reviewers added before (used as they are), outside survey contacts
+   * (social workers, GPs, commissioners), family and other contacts of people we support, and former staff. Current
+   * staff are never offered (they can't be reviewers). Choosing one still goes through the declaration check.
+   */
+  async knownPeople(actor: RequestUser, surveyId: string, search: string) {
+    await this.requireManagedSurvey(actor, surveyId);
+    const q = search.trim();
+    if (q.length < 2) return { data: { people: [] } };
+    const has = { contains: q, mode: 'insensitive' as const };
+    const [reviewers, outside, contacts, former] = await Promise.all([
+      // Reviewers added before: chosen as they are (no new account), then given access.
+      this.prisma.user.findMany({
+        where: { AND: [this.reviewerAccountsWhere(actor), { OR: [{ firstName: has }, { lastName: has }, { email: has }] }] },
+        select: { id: true, firstName: true, lastName: true, email: true, isActive: true },
+        orderBy: { firstName: 'asc' },
+        take: 8,
+      }),
+      this.prisma.surveyExternalContact.findMany({
+        where: { deletedAt: null, OR: [{ name: has }, { email: has }] },
+        select: { id: true, name: true, email: true, role: true, kind: true, organisation: true },
+        orderBy: { name: 'asc' },
+        take: 8,
+      }),
+      this.prisma.serviceUserContact.findMany({
+        where: { deletedAt: null, OR: [{ firstName: has }, { lastName: has }, { email: has }] },
+        select: {
+          id: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          relationshipType: { select: { name: true } },
+          serviceUser: { select: { firstName: true, lastName: true } },
+        },
+        orderBy: { firstName: 'asc' },
+        take: 8,
+      }),
+      this.prisma.employeePersonalDetail.findMany({
+        where: { employee: { deletedAt: null, isActive: false }, OR: [{ firstName: has }, { lastName: has }, { email: has }] },
+        select: {
+          employeeId: true,
+          firstName: true,
+          lastName: true,
+          email: true,
+          employee: { select: { employment: { select: { jobTitle: { select: { name: true } }, endDate: true } } } },
+        },
+        orderBy: { firstName: 'asc' },
+        take: 8,
+      }),
+    ]);
+    // What each person is, in plain words, shown with their name ("Jane Doe · Independent reviewer").
+    const OUTSIDE_TYPE: Record<string, string> = { FAMILY: 'Family member', PROFESSIONAL: 'Professional', COMMISSIONER: 'Commissioner', OTHER: 'Outside contact' };
+    const yearLeft = (d?: Date | null) => (d ? `left ${d.getUTCFullYear()}` : '');
+    const split = (name: string) => {
+      const parts = name.trim().split(/\s+/);
+      return { firstName: parts.slice(0, -1).join(' ') || parts[0] || '', lastName: parts.length > 1 ? parts[parts.length - 1]! : '' };
+    };
+    const people = [
+      ...reviewers.map((r) => ({
+        id: `reviewer:${r.id}`,
+        firstName: r.firstName ?? '',
+        lastName: r.lastName ?? '',
+        email: r.email,
+        source: 'REVIEWER',
+        typeLabel: 'Independent reviewer',
+        detail: r.isActive ? 'Added before: no new account, just give access' : 'Account switched off',
+      })),
+      ...outside.map((o) => ({
+        id: `outside:${o.id}`,
+        ...split(o.name),
+        email: o.email ?? '',
+        source: 'OUTSIDE_CONTACT',
+        typeLabel: o.role?.trim() || OUTSIDE_TYPE[o.kind] || 'Outside contact',
+        detail: ['Outside contact on our surveys', o.organisation?.trim()].filter(Boolean).join(' · '),
+      })),
+      ...contacts.map((c) => ({
+        id: `contact:${c.id}`,
+        firstName: c.firstName,
+        lastName: c.lastName ?? '',
+        email: c.email ?? '',
+        source: 'FAMILY_CONTACT',
+        typeLabel: c.relationshipType?.name?.trim() ? `${c.relationshipType.name.trim()} of a person we support` : 'Family / contact of a person we support',
+        detail: `Contact of ${fullName(c.serviceUser) || 'a person we support'}`,
+      })),
+      ...former.map((e) => ({
+        id: `former:${e.employeeId}`,
+        firstName: e.firstName,
+        lastName: e.lastName,
+        email: e.email ?? '',
+        source: 'FORMER_STAFF',
+        typeLabel: 'Former staff',
+        detail: [e.employee.employment?.jobTitle?.name, yearLeft(e.employee.employment?.endDate)].filter(Boolean).join(' · ') || 'No longer works here',
+      })),
+    ];
+    return { data: { people } };
+  }
+
+  /**
+   * Staff whose role has the "Record survey responses" responsibility: they collect answers by phone, paper or in
+   * person (Surveys to collect), recorded as the office's answers. Listed so managers see who can already run a
+   * survey; staff are never given independent reviewer access (an independent review needs someone from outside).
+   */
+  async surveyStaff(actor: RequestUser, surveyId: string) {
+    await this.requireManagedSurvey(actor, surveyId);
+    const users = await this.prisma.user.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        userRoles: {
+          some: { role: { isActive: true, deletedAt: null, rolePermissions: { some: { permission: { key: 'surveys.responses.record' } } } } },
+          none: { role: { name: INDEPENDENT_REVIEWER_ROLE } },
+        },
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        userRoles: { select: { role: { select: { name: true } } } },
+        userLocations: { select: { location: { select: { name: true } } } },
+      },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+      take: 200,
+    });
+    return {
+      data: {
+        staff: users.map((u) => ({
+          id: u.id,
+          name: fullName(u) || u.email,
+          email: u.email,
+          roles: u.userRoles.map((r) => r.role.name),
+          branches: u.userLocations.map((l) => l.location.name),
+        })),
+      },
+    };
+  }
+
   /** "Add a reviewer", before saving: how this person is already connected to us (each needs a declaration). */
   async checkAccount(actor: RequestUser, surveyId: string, dto: { firstName: string; lastName: string; email: string }) {
     await this.requireManagedSurvey(actor, surveyId);
