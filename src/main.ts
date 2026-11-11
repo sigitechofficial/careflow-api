@@ -74,6 +74,11 @@ async function bootstrap() {
   app.use('/referral-mailbox/inbound', (req: never, res: never, next: (e?: unknown) => void) =>
     inboundJson(req, res, (err?: unknown) => (err ? next(err) : inboundRaw(req, res, next))),
   );
+  // Every other route: Nest's default (100 KB) was too small for long saves such as an Initial Assessment with its
+  // conversation transcript or a long policy draft ("request entity too large"). Registered after the route above,
+  // so inbound emails keep their own 40 MB limit. rawBody stays on (text message reply signatures).
+  app.useBodyParser('json', { limit: '10mb' });
+  app.useBodyParser('urlencoded', { extended: true, limit: '10mb' });
   app.useStaticAssets(uploadPath, {
     prefix: '/uploads/',
     setHeaders: uploadStaticHeaders,
