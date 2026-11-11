@@ -78,8 +78,9 @@ function setup(opts: { survey?: any; grant?: any; account?: any; staffEmail?: bo
     reviewerForm: jest.fn(async () => ({ message: 'Survey to record', data: { questions: [] } })),
   };
   const auth = { sendAccountInvite: jest.fn(async () => true) };
-  const service = new SurveyReviewersService(prisma, orgScope, audit as any, surveys as any, auth as any);
-  return { service, prisma, audit, surveys, auth };
+  const notifications = { notifyUsers: jest.fn() };
+  const service = new SurveyReviewersService(prisma, orgScope, audit as any, surveys as any, auth as any, notifications as any);
+  return { service, prisma, audit, surveys, auth, notifications };
 }
 
 const window = { validFrom: day(0).toISOString(), validTo: day(14).toISOString() };
@@ -369,5 +370,56 @@ describe('reviewer accounts reach only their account and "Surveys to record"', (
     await expect(guard.canActivate(contextFor(admin, SurveysController, 'results'))).resolves.toBe(true);
     // An account given another role is a staff account: not locked down (and never reviewing).
     await expect(guard.canActivate(contextFor({ ...reviewer, roles: [INDEPENDENT_REVIEWER_ROLE, 'Manager'] }, SurveysController, 'list'))).resolves.toBe(true);
+  });
+});
+
+describe('SurveyReviewersService: staff who run surveys', () => {
+  const branchSurvey = { ...namedSurvey, locationIds: ['loc-1'] };
+  const coordinator = {
+    id: 'u-1',
+    email: 'sam@care.example',
+    firstName: 'Sam',
+    lastName: 'Office',
+    isActive: true,
+    userRoles: [{ role: { name: 'Care coordinator' } }],
+    userLocations: [{ locationId: 'loc-1', location: { name: 'North' } }],
+  };
+  const withStaff = (survey: any = branchSurvey) => {
+    const s = setup({ survey });
+    s.prisma.user.findMany.mockResolvedValue([coordinator]);
+    return s;
+  };
+
+  it('lists staff who can record responses in the survey’s branches, never independent reviewers', async () => {
+    const { service, prisma } = withStaff();
+    const res = await service.surveyStaff(admin, 's1');
+    expect(res.data.staff).toEqual([{ id: 'u-1', name: 'Sam Office', email: 'sam@care.example', roles: ['Care coordinator'], branches: ['North'] }]);
+    const where = prisma.user.findMany.mock.calls[0][0].where;
+    expect(where.userRoles.none).toEqual({ role: { name: INDEPENDENT_REVIEWER_ROLE } });
+    expect(JSON.stringify(where)).toContain('surveys.responses.record');
+  });
+
+  it('leaves out staff whose branches do not cover the survey', async () => {
+    const { service } = withStaff({ ...namedSurvey, locationIds: ['loc-2'] });
+    expect((await service.surveyStaff(admin, 's1')).data.staff).toEqual([]);
+  });
+
+  it('asks chosen staff to collect answers: a notice linking to Surveys to collect, audited, no reviewer access', async () => {
+    const { service, notifications, audit, prisma } = withStaff();
+    await expect(service.askStaffToCollect(admin, 's1', ['u-1', 'u-1'], ' By Friday ')).resolves.toEqual({ data: { asked: 1 } });
+    expect(notifications.notifyUsers).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUserIds: ['u-1'],
+        message: expect.stringContaining('By Friday'),
+        metadata: expect.objectContaining({ href: '/surveys/to-collect', surveyId: 's1' }),
+      }),
+    );
+    expect(audit.logAudit).toHaveBeenCalledWith(expect.objectContaining({ description: expect.stringContaining('Asked Sam Office to collect answers') }));
+    expect(prisma.surveyReviewerGrant.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses anyone who is not on the staff list, and a survey that is not live', async () => {
+    await expect(withStaff().service.askStaffToCollect(admin, 's1', ['someone-else'])).rejects.toThrow('Only staff who can record');
+    await expect(withStaff({ ...branchSurvey, status: 'DRAFT' }).service.askStaffToCollect(admin, 's1', ['u-1'])).rejects.toThrow('not live');
   });
 });

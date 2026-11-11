@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, SurveyResponseChannel, SurveyStatus, SurveyTargetKind, type Survey } from '@prisma/client';
+import { NotificationModule, NotificationSeverity, NotificationType, Prisma, SurveyResponseChannel, SurveyStatus, SurveyTargetKind, type Survey } from '@prisma/client';
 import { randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { OrgScopeService } from '../common/org-scope/org-scope.service';
@@ -14,6 +14,8 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { AuthService } from '../auth/auth.service';
 import { surveyVisibleInScope } from './survey-scope.util';
 import { SurveysService } from './surveys.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { usersInSurveyBranches } from './survey-office-recipients';
 import type { RecordSurveyResponseDto } from './dto/record-survey-response.dto';
 
 /** The most people one reviewer's sample can hold (SUR-CQC-001 asks for 10 to 30). */
@@ -54,6 +56,7 @@ export class SurveyReviewersService {
     private readonly audit: AuditLogsService,
     private readonly surveys: SurveysService,
     private readonly auth: AuthService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   // ─── Survey managers ──────────────────────────────────────────────────────
@@ -268,8 +271,8 @@ export class SurveyReviewersService {
    * survey; staff are never given independent reviewer access (an independent review needs someone from outside).
    */
   async surveyStaff(actor: RequestUser, surveyId: string) {
-    await this.requireManagedSurvey(actor, surveyId);
-    const users = await this.prisma.user.findMany({
+    const survey = await this.requireManagedSurvey(actor, surveyId);
+    const found = await this.prisma.user.findMany({
       where: {
         deletedAt: null,
         isActive: true,
@@ -289,6 +292,9 @@ export class SurveyReviewersService {
       orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
       take: 200,
     });
+    // Only staff who work in the survey's branches (the same rule as the survey's office notices).
+    const inBranches = new Set(await usersInSurveyBranches(this.prisma, survey, found.map((u) => u.id)));
+    const users = found.filter((u) => inBranches.has(u.id));
     return {
       data: {
         staff: users.map((u) => ({
@@ -300,6 +306,45 @@ export class SurveyReviewersService {
         })),
       },
     };
+  }
+
+  /**
+   * "Who will record answers" → staff who run surveys: ask the chosen staff to collect answers for this survey.
+   * They get a CareFlow notice linking to the survey's list of people to collect from. Their answers are the office's.
+   */
+  async askStaffToCollect(actor: RequestUser, surveyId: string, userIds: string[], note?: string, meta?: RequestAuditMeta) {
+    const survey = await this.requireManagedSurvey(actor, surveyId);
+    if (survey.status !== SurveyStatus.ACTIVE) throw new BadRequestException('The survey is not live: start it before asking staff to collect answers.');
+    const allowed = new Map((await this.surveyStaff(actor, surveyId)).data.staff.map((s) => [s.id, s]));
+    const chosen = [...new Set(userIds)];
+    const notAllowed = chosen.filter((id) => !allowed.has(id));
+    if (!chosen.length) throw new BadRequestException('Choose at least one member of staff.');
+    if (notAllowed.length) throw new BadRequestException('Only staff who can record survey responses in this survey’s branches can be asked.');
+    const text = note?.trim();
+    await this.notifications.notifyUsers({
+      recipientUserIds: chosen,
+      type: NotificationType.SYSTEM_MESSAGE,
+      module: NotificationModule.SYSTEM,
+      severity: NotificationSeverity.INFO,
+      title: 'Please collect survey answers',
+      message: `Please collect answers for "${survey.title}" by phone, on paper or in person.${text ? ` ${text}` : ''}`.slice(0, 1000),
+      recordType: 'Survey',
+      recordId: survey.id,
+      metadata: { href: `/surveys/to-collect`, surveyId: survey.id, eventType: 'SURVEY_COLLECT_ASKED' },
+    });
+    const names = chosen.map((id) => allowed.get(id)!.name);
+    await this.audit.logAudit({
+      userId: actor.id,
+      module: AuditModule.SURVEY,
+      action: AuditAction.SURVEY_UPDATED,
+      recordType: 'Survey',
+      recordId: survey.id,
+      description: `Asked ${names.join(', ')} to collect answers for survey "${survey.title}"`,
+      newValues: { askedUserIds: chosen, note: text || null },
+      metadata: { surveyId: survey.id },
+      ...(meta ?? {}),
+    });
+    return { data: { asked: chosen.length } };
   }
 
   /** "Add a reviewer", before saving: how this person is already connected to us (each needs a declaration). */

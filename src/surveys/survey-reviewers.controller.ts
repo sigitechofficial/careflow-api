@@ -39,6 +39,20 @@ export class CheckSurveyReviewerDto {
   @IsString() @MaxLength(254) email!: string;
 }
 
+export class AskSurveyStaffDto {
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  userIds!: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
+
 export class CreateSurveyReviewerAccountDto {
   /** Needed when they are already connected to us: why they are still independent enough. */
   @ApiProperty({ required: false })
@@ -101,6 +115,19 @@ export class SurveyReviewerGrantsController {
   @ApiOperation({ summary: 'Staff whose role can record survey responses (they collect answers as the office, not as independent reviewers)' })
   surveyStaff(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string) {
     return this.reviewers.surveyStaff(user, surveyId);
+  }
+
+  @Post('survey-staff/ask')
+  @HttpCode(200)
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'Ask staff who can record survey responses to collect answers for this survey (sends them a notice)' })
+  askStaff(
+    @CurrentUser() user: RequestUser,
+    @Param('surveyId', ParseUUIDPipe) surveyId: string,
+    @Body() dto: AskSurveyStaffDto,
+    @Req() req: Request,
+  ) {
+    return this.reviewers.askStaffToCollect(user, surveyId, dto.userIds, dto.note, getRequestAuditMeta(req));
   }
 
   @Get('known-people')
