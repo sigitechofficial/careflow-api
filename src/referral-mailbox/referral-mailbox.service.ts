@@ -45,6 +45,8 @@ import { RecruitmentInboxService } from '../hr/recruitment/inbox/recruitment-inb
 export const MAILBOX_PURPOSES = ['REFERRALS', 'RECRUITMENT'] as const;
 export type MailboxPurpose = (typeof MAILBOX_PURPOSES)[number];
 const isRecruitment = (mb: { purpose: string }) => mb.purpose === 'RECRUITMENT';
+/** Where the browser goes back to after connecting a mailbox: the inbox it was connected from. */
+const inboxPath = (purpose: MailboxPurpose | undefined) => (purpose === 'RECRUITMENT' ? '/hr/recruitment-inbox' : '/crm/referral-inbox');
 
 /**
  * Referral emails' attachments live in the uploads folder (a shared, persistent volume on Azure, unlike the container's
@@ -81,6 +83,7 @@ export type ImapMailboxInput = ImapConfig & {
   folder?: string | null;
   password: string;
   defaultLocationId?: string | null;
+  purpose?: MailboxPurpose;
 };
 
 export type RelayInput = RelayConfig & { password?: string | null };
@@ -183,11 +186,11 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
    * A Google / Microsoft sign-in in progress, kept in the database (10-minute life, used once) so a restart or a
    * second API process can finish it. Only a hash of the state is stored.
    */
-  private async newState(userId: string, provider: 'GMAIL' | 'MICROSOFT') {
+  private async newState(userId: string, provider: 'GMAIL' | 'MICROSOFT', purpose: MailboxPurpose = 'REFERRALS') {
     await this.prisma.referralOAuthState.deleteMany({ where: { expiresAt: { lt: new Date() } } });
     const state = randomBytes(24).toString('base64url');
     await this.prisma.referralOAuthState.create({
-      data: { stateHash: hashOAuthState(state), provider, userId, expiresAt: new Date(Date.now() + 10 * 60_000) },
+      data: { stateHash: hashOAuthState(state), provider, userId, purpose, expiresAt: new Date(Date.now() + 10 * 60_000) },
     });
     return state;
   }
@@ -196,21 +199,23 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     if (!state) return null;
     // Deleting it is what makes it single-use: of two callbacks with the same state only one gets the row.
     const pending = await this.prisma.referralOAuthState.delete({ where: { stateHash: hashOAuthState(state) } }).catch(() => null);
-    return pending && pending.provider === provider && pending.expiresAt.getTime() >= Date.now() ? { userId: pending.userId } : null;
+    return pending && pending.provider === provider && pending.expiresAt.getTime() >= Date.now()
+      ? { userId: pending.userId, purpose: (pending.purpose === 'RECRUITMENT' ? 'RECRUITMENT' : 'REFERRALS') as MailboxPurpose }
+      : null;
   }
 
-  async startGmailConnect(userId: string) {
+  async startGmailConnect(userId: string, purpose: MailboxPurpose = 'REFERRALS') {
     const cfg = gmailOAuthConfig();
     if (!cfg) throw new ServiceUnavailableException('Gmail is not set up. Add the GOOGLE_OAUTH_* settings to the API .env file.');
-    return { data: { url: gmailAuthUrl(cfg, await this.newState(userId, 'GMAIL')) } };
+    return { data: { url: gmailAuthUrl(cfg, await this.newState(userId, 'GMAIL', purpose)) } };
   }
 
-  async startMicrosoftConnect(userId: string) {
+  async startMicrosoftConnect(userId: string, purpose: MailboxPurpose = 'REFERRALS') {
     const cfg = microsoftOAuthConfig();
     if (!cfg) {
       throw new ServiceUnavailableException('Microsoft 365 is not set up. Add the MICROSOFT_OAUTH_* settings to the API .env file.');
     }
-    return { data: { url: microsoftAuthUrl(cfg, await this.newState(userId, 'MICROSOFT')) } };
+    return { data: { url: microsoftAuthUrl(cfg, await this.newState(userId, 'MICROSOFT', purpose)) } };
   }
 
   /** Add the mailbox, or switch it back on with the new sign-in if it was connected before. */
@@ -219,7 +224,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     emailAddress: string,
     refreshToken: string,
     userId: string,
-    extra: { processedLabelId?: string | null; labelName?: string } = {},
+    extra: { processedLabelId?: string | null; labelName?: string; purpose?: MailboxPurpose } = {},
   ) {
     const existing = await this.prisma.referralMailbox.findFirst({ where: { provider, emailAddress }, select: { id: true } });
     const data = {
@@ -229,15 +234,20 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       lastError: null,
       connectedById: userId,
       ...(extra.processedLabelId !== undefined ? { processedLabelId: extra.processedLabelId } : {}),
+      // Connected from the recruitment inbox: for job applications (a reconnect from elsewhere keeps what it was).
+      ...(extra.purpose === 'RECRUITMENT' ? { purpose: extra.purpose } : {}),
     };
     if (existing) await this.prisma.referralMailbox.update({ where: { id: existing.id }, data });
-    else await this.prisma.referralMailbox.create({ data: { ...data, provider, emailAddress, labelName: extra.labelName ?? 'Referrals' } });
+    else
+      await this.prisma.referralMailbox.create({
+        data: { ...data, provider, emailAddress, labelName: extra.labelName ?? (extra.purpose === 'RECRUITMENT' ? 'Jobs' : 'Referrals') },
+      });
   }
 
   /** Google sends the browser back here. Returns where to send the browser next. */
   async finishGmailConnect(code: string | undefined, state: string | undefined, error: string | undefined): Promise<string> {
-    const back = (q: string) => `${ADMIN_ORIGIN()}/crm/referral-inbox?${q}`;
     const pending = await this.takeState(state, 'GMAIL');
+    const back = (q: string) => `${ADMIN_ORIGIN()}${inboxPath(pending?.purpose)}?${q}`;
     if (error) return back('gmail=cancelled');
     if (!code || !pending) return back('gmail=expired');
     const cfg = gmailOAuthConfig();
@@ -248,7 +258,10 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       const session = new GmailSession(tokens.accessToken);
       const emailAddress = (await session.profileEmail()).toLowerCase();
       const processedLabelId = await session.ensureLabel(PROCESSED_MARK);
-      await this.saveSignedInMailbox(ReferralMailboxProvider.GMAIL, emailAddress, tokens.refreshToken, pending.userId, { processedLabelId });
+      await this.saveSignedInMailbox(ReferralMailboxProvider.GMAIL, emailAddress, tokens.refreshToken, pending.userId, {
+        processedLabelId,
+        purpose: pending.purpose,
+      });
       return back('gmail=connected');
     } catch (e) {
       this.logger.warn(`Gmail connect failed: ${(e as Error).message}`);
@@ -258,8 +271,8 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
 
   /** Microsoft sends the browser back here. */
   async finishMicrosoftConnect(code: string | undefined, state: string | undefined, error: string | undefined): Promise<string> {
-    const back = (q: string) => `${ADMIN_ORIGIN()}/crm/referral-inbox?${q}`;
     const pending = await this.takeState(state, 'MICROSOFT');
+    const back = (q: string) => `${ADMIN_ORIGIN()}${inboxPath(pending?.purpose)}?${q}`;
     if (error) return back(`microsoft=${error === 'access_denied' ? 'cancelled' : 'failed'}`);
     if (!code || !pending) return back('microsoft=expired');
     const cfg = microsoftOAuthConfig();
@@ -269,7 +282,9 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       if (!tokens.refreshToken) return back('microsoft=no-offline-access');
       const me = await new GraphSession(tokens.accessToken).me();
       if (!me.email) return back('microsoft=no-mailbox');
-      await this.saveSignedInMailbox(ReferralMailboxProvider.MICROSOFT, me.email, tokens.refreshToken, pending.userId);
+      await this.saveSignedInMailbox(ReferralMailboxProvider.MICROSOFT, me.email, tokens.refreshToken, pending.userId, {
+        purpose: pending.purpose,
+      });
       return back('microsoft=connected');
     } catch (e) {
       this.logger.warn(`Microsoft connect failed: ${(e as Error).message}`);
@@ -313,6 +328,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       removedAt: null,
       lastError: null,
       connectedById: userId,
+      ...(dto.purpose === 'RECRUITMENT' ? { purpose: dto.purpose } : {}),
     };
     const mb = existing
       ? await this.prisma.referralMailbox.update({ where: { id: existing.id }, data })
@@ -324,7 +340,10 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
    * Add a mailbox that an email service posts to (Brevo inbound parsing, or raw emails). Returns the address to
    * paste into the service; its secret part is shown this once only.
    */
-  async addWebhook(userId: string, dto: { displayName?: string | null; emailAddress: string; apiKey?: string | null; defaultLocationId?: string | null }) {
+  async addWebhook(
+    userId: string,
+    dto: { displayName?: string | null; emailAddress: string; apiKey?: string | null; defaultLocationId?: string | null; purpose?: MailboxPurpose },
+  ) {
     const token = newWebhookToken();
     const mb = await this.prisma.referralMailbox.create({
       data: {
@@ -337,6 +356,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
         webhookTokenHash: hashWebhookToken(token),
         sendVia: 'SMTP_RELAY',
         connectedById: userId,
+        purpose: dto.purpose === 'RECRUITMENT' ? 'RECRUITMENT' : 'REFERRALS',
       },
     });
     return {

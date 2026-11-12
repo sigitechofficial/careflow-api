@@ -17819,6 +17819,8 @@ model ReferralOAuthState {
   stateHash String   @id
   provider  String
   userId    String   @db.Uuid
+  /// What the mailbox being connected is for (REFERRALS or RECRUITMENT).
+  purpose   String   @default("REFERRALS")
   expiresAt DateTime
   createdAt DateTime @default(now())
 
