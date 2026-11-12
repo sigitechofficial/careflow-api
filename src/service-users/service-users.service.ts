@@ -526,17 +526,33 @@ export class ServiceUsersService implements OnModuleInit {
     }
 
     if (query.search?.trim()) {
+      // Each word must match somewhere, so a full name ("Mary Jones") finds Mary Jones; an NHS number typed with
+      // spaces ("485 777 3456") is also tried as one.
       const s = query.search.trim();
-      where.OR = [
-        { firstName: { contains: s, mode: 'insensitive' } },
-        { lastName: { contains: s, mode: 'insensitive' } },
-        { preferredName: { contains: s, mode: 'insensitive' } },
-        { serviceUserNumber: { contains: s, mode: 'insensitive' } },
-        { nhsNumber: { contains: s, mode: 'insensitive' } },
-        { email: { contains: s, mode: 'insensitive' } },
-        { phone: { contains: s, mode: 'insensitive' } },
-        { mobile: { contains: s, mode: 'insensitive' } },
-      ];
+      const anyField = (t: string): Prisma.ServiceUserWhereInput => ({
+        OR: [
+          { firstName: { contains: t, mode: 'insensitive' } },
+          { lastName: { contains: t, mode: 'insensitive' } },
+          { preferredName: { contains: t, mode: 'insensitive' } },
+          { serviceUserNumber: { contains: t, mode: 'insensitive' } },
+          { nhsNumber: { contains: t, mode: 'insensitive' } },
+          { email: { contains: t, mode: 'insensitive' } },
+          { phone: { contains: t, mode: 'insensitive' } },
+          { mobile: { contains: t, mode: 'insensitive' } },
+        ],
+      });
+      const words = s.split(/\s+/).filter(Boolean);
+      const compact = s.replace(/\s+/g, '');
+      if (words.length <= 1) {
+        where.OR = anyField(s).OR;
+      } else {
+        where.OR = [
+          { AND: words.map(anyField) },
+          { nhsNumber: { contains: compact, mode: 'insensitive' } },
+          { phone: { contains: s, mode: 'insensitive' } },
+          { mobile: { contains: s, mode: 'insensitive' } },
+        ];
+      }
     }
 
     const sortBy = query.sortBy ?? 'createdAt';

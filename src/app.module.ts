@@ -16,6 +16,7 @@ import { MailModule } from './mail/mail.module';
 import { OrgScopeModule } from './common/org-scope/org-scope.module';
 import { AuthModule } from './auth/auth.module';
 import { SignInSessionsModule } from './auth/sign-in-sessions/sign-in-sessions.module';
+import { SearchModule } from './search/search.module';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { PermissionsModule } from './permissions/permissions.module';
@@ -181,6 +182,7 @@ import { JobsModule } from './jobs/jobs.module';
     MailModule,
     OrgScopeModule,
     SignInSessionsModule,
+    SearchModule,
     AuthModule,
     UsersModule,
     RolesModule,

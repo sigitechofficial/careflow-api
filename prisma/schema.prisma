@@ -1962,6 +1962,10 @@ model EmployeeDocument {
   uploadedById String?           @db.Uuid
   uploadedDate DateTime          @default(now())
   tags         String[]
+  /// The text inside the file (PDF, Word, text), for "Find anything". Filled after upload; null until read.
+  searchText   String?   @db.Text
+  /// When the file was last read for searchText (also set when it had no readable text).
+  searchTextAt DateTime?
   documentType HrDocumentType?
   complianceTypeId String?       @db.Uuid
   expiryDate   DateTime?
@@ -5460,6 +5464,10 @@ model ServiceUserDocumentRecord {
   fileName               String?
   fileSize               Int?
   mimeType               String?
+  /// The text inside the file (PDF, Word, text), for "Find anything". Filled after upload; null until read.
+  searchText             String?                         @db.Text
+  /// When the file was last read for searchText (also set when it had no readable text).
+  searchTextAt           DateTime?
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
