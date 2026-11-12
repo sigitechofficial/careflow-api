@@ -56,6 +56,14 @@ function setup(opts: { survey?: any; contacts?: any[]; optOuts?: any[]; last?: M
     },
     serviceUser: { count: jest.fn(async () => 1) },
     serviceUserContact: { findMany: jest.fn(async () => []), findFirst: jest.fn(async () => null) },
+    // Agreement to surveys: an active "Surveys" sharing line; here, for each mocked contact marked canReceiveUpdates.
+    serviceUserSharingAgreement: {
+      findMany: jest.fn(async ({ where }: any) =>
+        ((await prisma.serviceUserContact.findMany()) ?? [])
+          .filter((c: any) => c.canReceiveUpdates && where.contactId.in.includes(c.id))
+          .map((c: any) => ({ contactId: c.id, startsOn: new Date('2020-01-01T00:00:00Z'), endsOn: null, stoppedAt: null })),
+      ),
+    },
     companyProfile: { findFirst: jest.fn(async () => ({ displayName: 'Sunrise Care' })) },
   };
   prisma.$transaction = jest.fn(async (fn: any) => fn(prisma));

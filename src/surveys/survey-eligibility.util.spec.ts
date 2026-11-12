@@ -13,6 +13,7 @@ import {
   complaintFromContact,
   organisationDomains,
   personalEmail,
+  surveyConsentContactIds,
 } from './survey-eligibility.util';
 import { recipientStatusCounts } from './surveys.service';
 
@@ -23,9 +24,29 @@ const db = (opts: { sus?: any[]; emps?: any[]; exts?: any[]; contacts?: any[]; c
     surveyExternalContact: { findMany: jest.fn(async () => opts.exts ?? []) },
     serviceUserContact: { findMany: jest.fn(async () => opts.contacts ?? []) },
     feedbackRecord: { findMany: jest.fn(async () => opts.complaints ?? []) },
+    // Agreement to surveys: an active "Surveys" sharing line; here, for each contact marked canReceiveUpdates.
+    serviceUserSharingAgreement: { findMany: jest.fn(async () => agreedLines(opts.contacts)) },
   }) as any;
+const agreedLines = (contacts: any[] = []) =>
+  contacts.filter((c) => c.canReceiveUpdates).map((c) => ({ contactId: c.id, startsOn: new Date('2020-01-01T00:00:00Z'), endsOn: null, stoppedAt: null }));
 const su = (id: string, code: string | null, over: any = {}) => ({ id, deletedAt: null, dateOfDeath: null, status: code ? { code } : null, ...over });
 const r = (id: string, over: any) => ({ id, employeeId: null, serviceUserId: null, externalContactId: null, ...over });
+
+describe('agreement to surveys (Privacy → sharing, "Surveys" ticked)', () => {
+  it('only an active sharing line with Surveys counts: not stopped, ended or not yet started', async () => {
+    const day = (d: string) => new Date(`${d}T00:00:00Z`);
+    const findMany = jest.fn(async () => [
+      { contactId: 'c-on', startsOn: day('2026-01-01'), endsOn: null, stoppedAt: null },
+      { contactId: 'c-stopped', startsOn: day('2026-01-01'), endsOn: null, stoppedAt: new Date() },
+      { contactId: 'c-ended', startsOn: day('2026-01-01'), endsOn: day('2026-11-01'), stoppedAt: null },
+      { contactId: 'c-later', startsOn: day('2026-12-01'), endsOn: null, stoppedAt: null },
+    ]);
+    const agreed = await surveyConsentContactIds({ serviceUserSharingAgreement: { findMany } } as any, ['c-on', 'c-stopped', 'c-ended', 'c-later', 'c-none'], '2026-11-11');
+    expect([...agreed]).toEqual(['c-on']);
+    // Lines that share care information only (health, updates…) are never asked for.
+    expect(findMany).toHaveBeenCalledWith(expect.objectContaining({ where: expect.objectContaining({ categories: { has: 'SURVEYS' }, deletedAt: null }) }));
+  });
+});
 
 describe('who can still be sent a survey (the same rules as sending)', () => {
   it('people we support: died, inactive or not started never; care ended only when chosen by name or the survey is about care ending', async () => {
