@@ -1,3 +1,4 @@
+import { INDEPENDENT_REVIEWER_ROLE } from '../common/auth/independent-reviewer';
 import { copySurveyTranslations, translationsForAnswerPage } from './survey-translations.answer-page';
 import { suggestedSurveyLanguage } from '../service-user-privacy/service-user-privacy.util';
 import {
@@ -6125,6 +6126,18 @@ export class SurveysService {
     const recorderName = await this.loadUserNameMap(
       rows.map((r) => r.recordedById).filter((id): id is string => Boolean(id)),
     );
+    // Answers an independent reviewer recorded are marked, so managers can tell them from the office's.
+    const recorderIds = [...new Set(rows.map((r) => r.recordedById).filter((id): id is string => Boolean(id)))];
+    const reviewerIds = new Set(
+      recorderIds.length
+        ? (
+            await this.prisma.user.findMany({
+              where: { id: { in: recorderIds }, userRoles: { some: { role: { name: INDEPENDENT_REVIEWER_ROLE } } } },
+              select: { id: true },
+            })
+          ).map((u) => u.id)
+        : [],
+    );
 
     // Same rule as the results: anonymous written answers only once closed with enough answers.
     const responsesBySurvey = new Map(waiting.all);
@@ -6299,6 +6312,9 @@ export class SurveysService {
         /** Named survey: the person chose to answer without their name (online). */
         answeredWithoutName: withoutName,
         recordedByName: row.recordedById ? (recorderName.get(row.recordedById) ?? null) : null,
+        recordedById: row.recordedById ?? null,
+        /** Recorded by an independent reviewer (not office staff). */
+        recordedByReviewer: Boolean(row.recordedById && reviewerIds.has(row.recordedById)),
         contactedAt: hideIdentity ? null : toIso(row.contactedAt),
         contactNumber: hideIdentity ? null : row.contactNumber,
         contactNotes: contactNotesWithheld ? null : row.contactNotes,

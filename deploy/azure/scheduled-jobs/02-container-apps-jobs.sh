@@ -37,6 +37,7 @@ JOBS=(
   "job-careflow-plan-end|visit-plan-scheduled-end|30 0 * * *"
   "job-careflow-learning|learning-maintenance|30 2 * * *"
   "job-careflow-care-plan-reviews|care-plan-review-reminders|0 6 * * *"
+  "job-careflow-over-care|over-care-review|45 2 * * *"
 )
 
 command -v jq >/dev/null || { echo "jq is required"; exit 1; }

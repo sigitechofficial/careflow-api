@@ -1,28 +1,21 @@
-import { ConflictException, Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import type { Request } from 'express';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { randomUUID } from 'crypto';
-import { AuditStatus, SecuritySeverity } from '@prisma/client';
+import { AuditStatus } from '@prisma/client';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
-import { SecurityEventType } from '../audit-logs/enums/security-event.enum';
 import { EmployeePortalAccountsService } from '../employees/employee-portal-accounts.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
-import {
-  hashRefreshToken,
-  refreshTokenMatches,
-} from '../common/utils/refresh-token-hash.util';
+import { refreshTokenMatches } from '../common/utils/refresh-token-hash.util';
 import { burnPasswordCompare } from '../common/utils/password.util';
 import type { EmployeeAppLoginDto, EmployeeAppRefreshDto } from './dto/employee-app-auth.dto';
 import { FcmPushService } from '../notifications/fcm-push.service';
 import { PrismaService } from '../prisma/prisma.service';
-import {
-  EMPLOYEE_APP_SESSION_BLOCK_MESSAGE,
-  shouldBlockSecondEmployeeAppLogin,
-} from './employee-app-single-session.util';
+import { SignInSessionsService } from '../auth/sign-in-sessions/sign-in-sessions.service';
 
 @Injectable()
 export class EmployeeAppAuthService {
@@ -34,6 +27,7 @@ export class EmployeeAppAuthService {
     private readonly fcm: FcmPushService,
     private readonly orgSettings: OrganisationGeneralSettingsService,
     private readonly prisma: PrismaService,
+    private readonly sessions: SignInSessionsService,
   ) {}
 
   async login(dto: EmployeeAppLoginDto, req: Request) {
@@ -88,33 +82,11 @@ export class EmployeeAppAuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const [policyEnabled, pushTokensDead] = await Promise.all([
-      this.orgSettings.isSingleDeviceLoginCareApp(),
-      this.fcm.areEmployeePushTokensDead(row.employeeId),
-    ]);
-    if (
-      shouldBlockSecondEmployeeAppLogin({
-        policyEnabled,
-        hasRefreshToken: Boolean(row.refreshTokenHash),
-        lastSeenAt: row.lastSeenAt,
-        lastLoginAt: row.lastLoginAt,
-        pushTokensDead,
-      })
-    ) {
-      await this.auditLogs.logSecurityEvent({
-        eventType: SecurityEventType.FAILED_LOGIN,
-        severity: SecuritySeverity.LOW,
-        description: 'Employee app login blocked — other session active',
-        ipAddress: meta.ipAddress,
-        userAgent: meta.userAgent,
-        metadata: { portalAccountId: row.id, employeeId: row.employeeId, channel: 'employee_app' },
-      });
-      throw new ConflictException(EMPLOYEE_APP_SESSION_BLOCK_MESSAGE);
-    }
-
-    const tokens = await this.issueTokens(row.id);
-    const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
-    await this.portalAccounts.setRefreshTokenHash(row.id, refreshTokenHash);
+    // This phone's own sign-in. Over the organisation's Care app device limit, the oldest phone is signed out
+    // (the newest sign-in always wins) and told why.
+    const sessionId = this.sessions.newSessionId();
+    const tokens = await this.issueTokens(row.id, sessionId);
+    await this.sessions.start('EMPLOYEE_APP', row.id, sessionId, tokens.refreshToken, this.refreshExpiry(tokens.refreshToken), meta);
     await this.portalAccounts.activateSession(row.id, {
       ipAddress: meta.ipAddress,
       userAgent: meta.userAgent,
@@ -155,11 +127,11 @@ export class EmployeeAppAuthService {
 
   async refresh(dto: EmployeeAppRefreshDto, req: Request) {
     const meta = this.auditLogs.getRequestMeta(req);
-    let payload: { sub: string; typ?: string };
+    let payload: { sub: string; typ?: string; sid?: string };
     try {
       payload = (await this.jwtService.verifyAsync(dto.refreshToken, {
         secret: this.config.get<string>('JWT_REFRESH_TOKEN_SECRET'),
-      })) as { sub: string; typ?: string };
+      })) as { sub: string; typ?: string; sid?: string };
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }
@@ -169,14 +141,23 @@ export class EmployeeAppAuthService {
     }
 
     const row = await this.portalAccounts.findForRefresh(payload.sub);
-    if (!row?.refreshTokenHash) throw new UnauthorizedException('Invalid refresh token');
-    const ok = refreshTokenMatches(dto.refreshToken, row.refreshTokenHash);
-    if (!ok) throw new UnauthorizedException('Invalid refresh token');
+    if (!row) throw new UnauthorizedException('Invalid refresh token');
     this.portalAccounts.assertLoginable(row);
 
-    const tokens = await this.issueTokens(row.id);
-    const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
-    await this.portalAccounts.setRefreshTokenHash(row.id, refreshTokenHash);
+    let tokens: { accessToken: string; refreshToken: string };
+    if (payload.sid) {
+      tokens = await this.issueTokens(row.id, payload.sid);
+      await this.sessions.rotate('EMPLOYEE_APP', row.id, payload.sid, dto.refreshToken, tokens.refreshToken, this.refreshExpiry(tokens.refreshToken), meta);
+    } else {
+      // Signed in before per-phone sign-ins: the old single token, moved onto a sign-in of its own.
+      if (!row.refreshTokenHash || !refreshTokenMatches(dto.refreshToken, row.refreshTokenHash)) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      const sessionId = this.sessions.newSessionId();
+      tokens = await this.issueTokens(row.id, sessionId);
+      await this.sessions.start('EMPLOYEE_APP', row.id, sessionId, tokens.refreshToken, this.refreshExpiry(tokens.refreshToken), meta);
+      await this.portalAccounts.clearLegacyRefreshToken(row.id);
+    }
     await this.portalAccounts.touchLastSeen(row.id);
 
     await this.auditLogs.logLogin({
@@ -212,7 +193,9 @@ export class EmployeeAppAuthService {
     if (deviceToken?.trim() && user.employeeId) {
       await this.fcm.deleteToken(user.employeeId, deviceToken);
     }
-    await this.portalAccounts.clearRefreshToken(user.id);
+    // This phone only: other phones (where allowed) stay signed in.
+    await this.sessions.end(user.sessionId, 'SIGNED_OUT');
+    if (!(await this.sessions.activeCount('EMPLOYEE_APP', user.id))) await this.portalAccounts.clearRefreshToken(user.id);
     await this.auditLogs.logLogin({
       userId: undefined,
       email: user.email,
@@ -265,8 +248,15 @@ export class EmployeeAppAuthService {
     };
   }
 
-  private async issueTokens(accountId: string) {
-    const accessToken = await this.jwtService.signAsync({ sub: accountId, typ: 'emp' });
+  /** When a refresh token stops working (its exp), for the sign-in's expiry. */
+  private refreshExpiry(refreshToken: string): Date {
+    const exp = (this.jwtService.decode(refreshToken) as { exp?: number } | null)?.exp;
+    return new Date(exp ? exp * 1000 : Date.now() + 7 * 86400000);
+  }
+
+  /** Tokens for one signed-in phone (sid: the AuthSession), checked on every request and renewal. */
+  private async issueTokens(accountId: string, sessionId: string) {
+    const accessToken = await this.jwtService.signAsync({ sub: accountId, typ: 'emp', sid: sessionId });
 
     const refreshSignOptions = {
       secret: this.config.get<string>('JWT_REFRESH_TOKEN_SECRET'),
@@ -276,7 +266,7 @@ export class EmployeeAppAuthService {
     } as JwtSignOptions;
 
     const refreshToken = await this.jwtService.signAsync(
-      { sub: accountId, typ: 'emp' },
+      { sub: accountId, typ: 'emp', sid: sessionId },
       refreshSignOptions,
     );
 

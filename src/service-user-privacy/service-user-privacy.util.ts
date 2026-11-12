@@ -23,6 +23,8 @@ export const SHARING_CATEGORIES = {
   HEALTH_MEDICINES: 'Health and medicines',
   INCIDENTS: 'Incidents, falls and concerns',
   FINANCE: 'Money and invoices',
+  /** Agreed to be asked to take part in our surveys. Not part of "Everything": it is asking, not sharing. */
+  SURVEYS: 'Surveys about our care',
 } as const;
 export type SharingCategory = keyof typeof SHARING_CATEGORIES;
 export const SHARING_CATEGORY_KEYS = Object.keys(SHARING_CATEGORIES) as SharingCategory[];
@@ -330,10 +332,13 @@ export function carerSharingNotes(
   const active = lines.filter((l) => sharingIsActive(l, today));
   const notes = active.map((l) => {
     const who = l.recipientRole ? `${l.recipientName} (${l.recipientRole})` : l.recipientName;
-    const what = l.categories.includes('ALL')
+    const care = l.categories.filter((c) => c !== 'SURVEYS');
+    const what = care.includes('ALL')
       ? 'anything about their care'
-      : l.categories.map((c) => (SHARING_CATEGORIES[c as SharingCategory] ?? c).toLowerCase()).join(', ');
-    return `${who} may be told: ${what}${l.conditions ? `. ${l.conditions}` : ''}`;
+      : care.map((c) => (SHARING_CATEGORIES[c as SharingCategory] ?? c).toLowerCase()).join(', ');
+    const surveys = l.categories.includes('SURVEYS');
+    const told = what ? `may be told: ${what}${surveys ? '; and may be sent our surveys' : ''}` : 'may be sent our surveys';
+    return `${who} ${told}${l.conditions ? `. ${l.conditions}` : ''}`;
   });
   const activeNames = new Set(active.map((l) => l.contactId ?? l.recipientName));
   const stopped = new Set<string>();

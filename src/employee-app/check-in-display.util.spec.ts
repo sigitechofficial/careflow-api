@@ -2,6 +2,7 @@ import {
   buildAdminCheckInSummary,
   checkInMethodDetailLine,
   extractEmployeeAppCheckIn,
+  extractEmployeeAppCheckInsByEmployee,
   formatCheckInTimelineDetail,
   manualCheckInReasonLabel,
 } from './check-in-display.util';
@@ -35,6 +36,24 @@ describe('check-in-display.util', () => {
       nfcTagLabel: null,
     });
     expect(extractEmployeeAppCheckIn({})).toBeNull();
+  });
+
+  it('keeps every carer\'s own check-in on a shared visit', () => {
+    const byEmployee = extractEmployeeAppCheckInsByEmployee({
+      employeeApp: {
+        checkIn: { method: 'GPS', timingStatus: 'early', timingExceptionNotes: 'support reason' },
+        checkIns: {
+          lead: { method: 'GPS', timingStatus: 'early', timingExceptionNotes: 'lead reason' },
+          support: { method: 'GPS', timingStatus: 'early', timingExceptionNotes: 'support reason' },
+          broken: 'not an object',
+        },
+      },
+    });
+    expect(Object.keys(byEmployee).sort()).toEqual(['lead', 'support']);
+    expect(byEmployee.lead.timingExceptionNotes).toBe('lead reason');
+    expect(byEmployee.support.timingExceptionNotes).toBe('support reason');
+    expect(extractEmployeeAppCheckInsByEmployee({})).toEqual({});
+    expect(extractEmployeeAppCheckInsByEmployee(null)).toEqual({});
   });
 
   it('names the NFC tag in the admin summary and timeline', () => {

@@ -13,6 +13,10 @@ describe('EmployeePortalAccountsService session helpers', () => {
     employeePersonalDetail: {
       findFirst: jest.fn(),
     },
+    authSession: {
+      updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+      count: jest.fn().mockResolvedValue(0),
+    },
   };
   const auditLogs = { logSecurityEvent: jest.fn() };
   let service: EmployeePortalAccountsService;
@@ -71,6 +75,11 @@ describe('EmployeePortalAccountsService session helpers', () => {
         lastSeenAt: null,
         updatedById: 'admin-1',
       },
+    });
+    // Every phone is signed out, and told the office did it.
+    expect(prisma.authSession.updateMany).toHaveBeenCalledWith({
+      where: { kind: 'EMPLOYEE_APP', accountId: 'acct-1', revokedAt: null },
+      data: { revokedAt: expect.any(Date), revokedReason: 'ENDED_BY_OFFICE' },
     });
     expect(auditLogs.logSecurityEvent).toHaveBeenCalled();
     expect(status.hasActiveSession).toBe(false);

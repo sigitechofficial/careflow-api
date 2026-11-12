@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, ScheduledJobStatus, ServiceUserTimebankEntryKind } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import type { TimebankDayRule } from './timebank-day-rule.util';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
 import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
 import { ServiceUserTimebankService } from './service-user-timebank.service';
@@ -50,6 +51,23 @@ export class TimebankBudget {
 
   reservedIn(weekStart: string): number {
     return this.reserved.get(weekStart) ?? 0;
+  }
+
+  /** Set by the visit plans: which days and times the bank may pay for (weekday, standard rate). */
+  private dayRule: TimebankDayRule | null = null;
+
+  withDayRule(rule: TimebankDayRule): this {
+    this.dayRule = rule;
+    return this;
+  }
+
+  /**
+   * Why this visit cannot be paid from the bank (weekend, bank holiday / special day, a different
+   * rate on the charge card), or null. Checked before `cover`; with the setting off it is not asked.
+   */
+  async blockReason(start: Date, end: Date): Promise<string | null> {
+    if (!this.enabled || !this.dayRule) return null;
+    return this.dayRule(start, end);
   }
 
   cover(weekStart: string, overMinutes: number): boolean {

@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpCode, Param, ParseUUIDPipe, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiProperty, ApiPropertyOptional, ApiTags } from '@nestjs/swagger';
 import { ArrayMaxSize, IsArray, IsEmail, IsISO8601, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import type { Request } from 'express';
@@ -33,7 +33,34 @@ export class GrantSurveyReviewerDto {
   validTo!: string;
 }
 
+export class CheckSurveyReviewerDto {
+  @IsString() @MaxLength(100) firstName!: string;
+  @IsString() @MaxLength(100) lastName!: string;
+  @IsString() @MaxLength(254) email!: string;
+}
+
+export class AskSurveyStaffDto {
+  @ApiProperty({ type: [String] })
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  userIds!: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
+
 export class CreateSurveyReviewerAccountDto {
+  /** Needed when they are already connected to us: why they are still independent enough. */
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  declaration?: string;
+
   @ApiProperty()
   @IsString()
   @IsNotEmpty()
@@ -52,6 +79,22 @@ export class CreateSurveyReviewerAccountDto {
   email!: string;
 }
 
+/** Survey managers: every independent reviewer across all surveys, with what they recorded. */
+@ApiTags('Surveys')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+@Controller('survey-reviewers')
+export class SurveyReviewersOverviewController {
+  constructor(private readonly reviewers: SurveyReviewersService) {}
+
+  @Get()
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'All independent reviewers: their access on each survey and the answers they recorded' })
+  overview(@CurrentUser() user: RequestUser) {
+    return this.reviewers.overview(user);
+  }
+}
+
 /** Survey managers: who may record answers on a survey as an independent reviewer. */
 @ApiTags('Surveys')
 @ApiBearerAuth()
@@ -65,6 +108,41 @@ export class SurveyReviewerGrantsController {
   @ApiOperation({ summary: 'Independent reviewers on this survey, and the reviewer accounts that can be given access' })
   list(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string) {
     return this.reviewers.list(user, surveyId);
+  }
+
+  @Get('survey-staff')
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'Staff whose role can record survey responses (they collect answers as the office, not as independent reviewers)' })
+  surveyStaff(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string) {
+    return this.reviewers.surveyStaff(user, surveyId);
+  }
+
+  @Post('survey-staff/ask')
+  @HttpCode(200)
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'Ask staff who can record survey responses to collect answers for this survey (sends them a notice)' })
+  askStaff(
+    @CurrentUser() user: RequestUser,
+    @Param('surveyId', ParseUUIDPipe) surveyId: string,
+    @Body() dto: AskSurveyStaffDto,
+    @Req() req: Request,
+  ) {
+    return this.reviewers.askStaffToCollect(user, surveyId, dto.userIds, dto.note, getRequestAuditMeta(req));
+  }
+
+  @Get('known-people')
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'Add a reviewer: people already in CareFlow to choose from (outside contacts, family contacts, former staff)' })
+  knownPeople(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string, @Query('search') search?: string) {
+    return this.reviewers.knownPeople(user, surveyId, search ?? '');
+  }
+
+  @Post('accounts/check')
+  @HttpCode(200)
+  @Permissions('surveys.manage')
+  @ApiOperation({ summary: 'Before adding a reviewer: how they are already connected to us (former staff, a person we support or their family, an outside contact)' })
+  checkAccount(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string, @Body() dto: CheckSurveyReviewerDto) {
+    return this.reviewers.checkAccount(user, surveyId, dto);
   }
 
   @Post('accounts')

@@ -260,7 +260,7 @@ export class SpecialVisitsService {
     const check = await this.weeklyHours.classifyNewVisits({
       serviceUserId: dto.serviceUserId,
       fallbackHours: plan?.weeklyContractedHours ?? null,
-      visits: [{ date, startsAt: start.toISOString(), minutes }],
+      visits: [{ date, startsAt: start.toISOString(), minutes, startAt: start, endAt: end }],
       budget,
     });
     const visit = check.visits[0];
@@ -276,7 +276,11 @@ export class SpecialVisitsService {
         visit.weekStart,
         visit.weekMinutes,
         check.limitWeeklyHours,
-      )}`,
+      )}${
+        visit.timebankBlockedReason
+          ? `. Timebank not used: ${visit.timebankBlockedReason} (timebank hours are only for weekdays at the standard rate)`
+          : ''
+      }`,
       payload: {
         kind: 'SPECIAL_VISIT',
         date,

@@ -1,5 +1,7 @@
 import { Prisma, SurveyRecipientStatus, type PrismaClient } from '@prisma/client';
 import { readEventTrigger } from './survey-event-triggers.util';
+import { dayKeyInTimeZone } from '../common/utils/operational-day.util';
+import { sharingIsActive } from '../service-user-privacy/service-user-privacy.util';
 
 /**
  * Who may be sent a survey: one set of rules for sending (SurveysService.resolveTargets) and for everything
@@ -64,7 +66,25 @@ export function forLeavers(survey: EligibilitySurvey, owner: EligibilitySurvey):
 type Db = Pick<PrismaClient, 'serviceUser' | 'employee' | 'surveyExternalContact'> & {
   serviceUserContact?: Pick<PrismaClient['serviceUserContact'], 'findMany'>;
   feedbackRecord?: Pick<PrismaClient['feedbackRecord'], 'findMany'>;
+  serviceUserSharingAgreement?: Pick<PrismaClient['serviceUserSharingAgreement'], 'findMany'>;
 };
+
+/**
+ * People involved (family and friends) who agreed to be sent our surveys: an active sharing line in the person's
+ * Privacy with "Surveys" ticked. Other sharing (care updates, health…) is not agreement to surveys.
+ */
+export async function surveyConsentContactIds(
+  prisma: { serviceUserSharingAgreement?: Pick<PrismaClient['serviceUserSharingAgreement'], 'findMany'> },
+  contactIds: string[],
+  today: string = dayKeyInTimeZone(new Date(), 'Europe/London'),
+): Promise<Set<string>> {
+  if (!contactIds.length || !prisma.serviceUserSharingAgreement) return new Set();
+  const lines = await prisma.serviceUserSharingAgreement.findMany({
+    where: { contactId: { in: contactIds }, deletedAt: null, categories: { has: 'SURVEYS' } },
+    select: { contactId: true, startsOn: true, endsOn: true, stoppedAt: true },
+  });
+  return new Set(lines.filter((l) => l.contactId && sharingIsActive(l, today)).map((l) => l.contactId!));
+}
 
 /** The bereaved-family survey (SUR-FAM-002, or one sent on a death): the only survey a family is sent after the person died. */
 export function forBereavedFamilies(survey: EligibilitySurvey, owner: EligibilitySurvey): boolean {
@@ -130,10 +150,11 @@ export async function outsideContactBlocks(
     sourceIds.length && prisma.serviceUserContact
       ? await prisma.serviceUserContact.findMany({
           where: { id: { in: sourceIds } },
-          select: { id: true, deletedAt: true, isActive: true, canReceiveUpdates: true, serviceUserId: true, email: true, mobile: true, phone: true },
+          select: { id: true, deletedAt: true, isActive: true, serviceUserId: true, email: true, mobile: true, phone: true },
         })
       : [];
   const byId = new Map(contacts.map((c) => [c.id, c]));
+  const agreed = await surveyConsentContactIds(prisma, contacts.map((c) => c.id));
   const aboutId = survey.aboutServiceUserId ?? owner.aboutServiceUserId ?? null;
   const suIds = [...new Set([aboutId, ...family.map((f) => f.serviceUserId), ...contacts.map((c) => c.serviceUserId)].filter((x): x is string => Boolean(x)))];
   const sus = suIds.length
@@ -153,7 +174,7 @@ export async function outsideContactBlocks(
       : [];
   for (const f of family) {
     const c = f.sourceId ? byId.get(f.sourceId) : undefined;
-    if (!c || c.deletedAt || !c.isActive || !c.canReceiveUpdates) {
+    if (!c || c.deletedAt || !c.isActive || !agreed.has(c.id)) {
       out.set(f.id, 'NO_CONSENT');
       continue;
     }

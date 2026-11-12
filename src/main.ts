@@ -1,4 +1,5 @@
 import { NestFactory } from '@nestjs/core';
+import { DocumentTextIndexer } from './search/document-text-indexer.service';
 import { BadRequestException, Logger, ValidationPipe } from '@nestjs/common';
 import type { ValidationError } from '@nestjs/common';
 import { IoAdapter } from '@nestjs/platform-socket.io';
@@ -74,6 +75,11 @@ async function bootstrap() {
   app.use('/referral-mailbox/inbound', (req: never, res: never, next: (e?: unknown) => void) =>
     inboundJson(req, res, (err?: unknown) => (err ? next(err) : inboundRaw(req, res, next))),
   );
+  // Every other route: Nest's default (100 KB) was too small for long saves such as an Initial Assessment with its
+  // conversation transcript or a long policy draft ("request entity too large"). Registered after the route above,
+  // so inbound emails keep their own 40 MB limit. rawBody stays on (text message reply signatures).
+  app.useBodyParser('json', { limit: '10mb' });
+  app.useBodyParser('urlencoded', { extended: true, limit: '10mb' });
   app.useStaticAssets(uploadPath, {
     prefix: '/uploads/',
     setHeaders: uploadStaticHeaders,
@@ -141,6 +147,8 @@ async function bootstrap() {
   const host = config.get<string>('app.host', '0.0.0.0');
   const httpRequestTimeoutMs = config.get<number>('app.httpRequestTimeoutMs', 120_000);
   await app.listen(port, host);
+  // Make uploaded documents searchable by their text (web server only, not the command-line jobs).
+  app.get(DocumentTextIndexer).start();
   // eslint-disable-next-line no-console
   console.log(`CareAdmin API listening on http://${host}:${port} (use LAN IP from another device)`);
   const server = app.getHttpServer() as Server;

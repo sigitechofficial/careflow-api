@@ -28,7 +28,7 @@ ACTION_GROUP=ag-careflow-prod
 API_APP=allforcare-api
 FUNC_APP=func-careflow-jobs-prod
 JOB_PREFIX=job-careflow-
-SCHEDULED_JOBS="'job-careflow-rolling-rota','job-careflow-plan-end','job-careflow-learning','job-careflow-care-plan-reviews'"
+SCHEDULED_JOBS="'job-careflow-rolling-rota','job-careflow-plan-end','job-careflow-learning','job-careflow-care-plan-reviews','job-careflow-over-care'"
 ALERT_API=2021-08-01
 SKIP_STALE="${SKIP_STALE:-0}"
 

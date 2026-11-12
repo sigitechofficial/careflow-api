@@ -25,7 +25,6 @@ import { JobHandler } from '../jobs/job-handler.registry';
 import { CarerExtraHoursService } from '../employee-hours-approvals/carer-extra-hours.service';
 import { EmployeeHoursApprovalsService } from '../employee-hours-approvals/employee-hours-approvals.service';
 import { ServiceUserTimebankLedgerService } from '../service-user-hours/service-user-timebank-ledger.service';
-import { ServiceUserOverCareService } from './service-user-over-care.service';
 import {
   JobRunner,
   isExternalCronMode,
@@ -52,19 +51,7 @@ export class VisitPlanRollingRotaJob {
     @Optional() private readonly carerExtraHours?: CarerExtraHoursService,
     @Optional() private readonly hoursApprovals?: EmployeeHoursApprovalsService,
     @Optional() private readonly timebankLedger?: ServiceUserTimebankLedgerService,
-    @Optional() private readonly overCare?: ServiceUserOverCareService,
   ) {}
-
-  /** Last week's over care taken back this week (never fails the run). */
-  private async takeBackOverCare(userId: string): Promise<{ adjusted: number; cancelledVisits: number }> {
-    if (!this.overCare) return { adjusted: 0, cancelledVisits: 0 };
-    try {
-      return await this.overCare.runWeekly(userId);
-    } catch (err) {
-      this.logger.warn(`Rolling rota: over care step failed: ${(err as Error).message}`);
-      return { adjusted: 0, cancelledVisits: 0 };
-    }
-  }
 
   /** Carer requests back within the weekly hours are approved (never fails the run). */
   private async approveCarerRequestsBackWithinLimit(): Promise<number> {
@@ -189,8 +176,6 @@ export class VisitPlanRollingRotaJob {
 
     const plans = summarisePlanResults(planResults);
     const hoursRequestsApproved = await this.approveCarerRequestsBackWithinLimit();
-    // After the rota is made for the week, so the visits to take back exist.
-    const overCare = await this.takeBackOverCare(systemUser.id);
     // Plans over a service user's weekly contracted hours (Settings → Dom Rules decides warn or skip).
     for (const warning of [...new Set(weeklyHoursWarnings)].slice(0, MAX_LISTED)) {
       this.logger.warn(`Rolling rota: ${warning}`);
@@ -216,7 +201,6 @@ export class VisitPlanRollingRotaJob {
       failedPlans: plans.failures.slice(0, MAX_LISTED),
       weeklyHoursWarnings: [...new Set(weeklyHoursWarnings)].slice(0, MAX_LISTED),
       hoursRequestsApproved,
-      overCare,
     };
     if (plans.failed > 0) {
       // Visits for the other plans are kept; failing the run raises the alert and lets the
