@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { HrDocumentStatus } from '@prisma/client';
+import { EmployeeLifecycleStatus, HrDocumentStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -108,6 +108,85 @@ export class HrDocumentsService {
 
       return { message: 'HR document deleted', data: updated };
     });
+  }
+
+  /** Approve or reject an uploaded HR document. */
+  async updateStatus(userId: string, documentId: string, status: HrDocumentStatus, meta?: RequestAuditMeta) {
+    const doc = await this.prisma.employeeDocument.findFirst({
+      where: { id: documentId, deletedAt: null, documentType: { not: null } },
+    });
+    if (!doc) throw new NotFoundException('HR document not found');
+    if (doc.status === status) return { message: 'HR document unchanged', data: doc };
+
+    return this.prisma.$transaction(async (tx) => {
+      const updated = await tx.employeeDocument.update({
+        where: { id: documentId },
+        data: { status, updatedById: userId },
+      });
+
+      await this.audit.logAudit({
+        tx,
+        userId,
+        module: AuditModule.HR,
+        action: AuditAction.HR_DOCUMENT_STATUS_CHANGED,
+        recordType: 'EmployeeDocument',
+        recordId: documentId,
+        oldValues: auditSnapshot({ id: doc.id, employeeId: doc.employeeId, status: doc.status }),
+        newValues: auditSnapshot({ id: doc.id, employeeId: doc.employeeId, status }),
+        ipAddress: meta?.ipAddress ?? undefined,
+        userAgent: meta?.userAgent ?? undefined,
+      });
+
+      return { message: 'HR document updated', data: updated };
+    });
+  }
+
+  /**
+   * HR documents that have expired or expire within `days` (soonest first), for the HR dashboard.
+   * Rejected documents and people who have left are not included.
+   */
+  async expiring(days = 30) {
+    const now = new Date();
+    const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const until = new Date(today.getTime() + (days + 1) * 86_400_000);
+    const rows = await this.prisma.employeeDocument.findMany({
+      where: {
+        deletedAt: null,
+        documentType: { not: null },
+        expiryDate: { lt: until },
+        OR: [{ status: null }, { status: { not: HrDocumentStatus.REJECTED } }],
+        employee: {
+          deletedAt: null,
+          OR: [
+            { hrProfile: { is: null } },
+            {
+              hrProfile: {
+                is: { employeeLifecycleStatus: { notIn: [EmployeeLifecycleStatus.LEFT, EmployeeLifecycleStatus.ALUMNI] } },
+              },
+            },
+          ],
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        documentType: true,
+        status: true,
+        expiryDate: true,
+        employeeId: true,
+        employee: { select: { personalDetail: { select: { firstName: true, lastName: true } } } },
+      },
+      orderBy: { expiryDate: 'asc' },
+      take: 100,
+    });
+    return {
+      data: rows.map(({ employee, ...doc }) => ({
+        ...doc,
+        employeeName:
+          [employee.personalDetail?.firstName, employee.personalDetail?.lastName].filter(Boolean).join(' ') ||
+          'Unnamed employee',
+      })),
+    };
   }
 
   private async ensureEmployee(employeeId: string) {

@@ -110,6 +110,16 @@ enum VacancyStatus {
   @@schema("employees")
 }
 
+enum SalaryPeriod {
+  HOUR
+  DAY
+  WEEK
+  MONTH
+  YEAR
+
+  @@schema("employees")
+}
+
 enum RecruitmentEmploymentType {
   PERMANENT
   FIXED_TERM
@@ -127,16 +137,18 @@ enum CandidateSource {
   AGENCY
   INTERNAL
   MANUAL
+  /// Applied by email (recruitment inbox).
+  EMAIL
 
   @@schema("employees")
 }
 
+/// Recruitment steps in order: APPLIED → SCREENING → INTERVIEW → OFFER (conditional) →
+/// VETTING (pre-employment checks) → ACCEPTED (cleared to start; hired once converted).
 enum CandidateStage {
   APPLIED
   SCREENING
-  SHORTLISTED
   INTERVIEW
-  ASSESSMENT
   OFFER
   VETTING
   ACCEPTED
@@ -146,10 +158,70 @@ enum CandidateStage {
   @@schema("employees")
 }
 
+enum CandidateOfferStatus {
+  SENT
+  ACCEPTED
+  DECLINED
+
+  @@schema("employees")
+}
+
+enum CandidateInterviewMode {
+  IN_PERSON
+  PHONE
+  VIDEO
+
+  @@schema("employees")
+}
+
+enum CandidateInterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+
+  @@schema("employees")
+}
+
+enum CandidateInterviewOutcome {
+  HIRE
+  MAYBE
+  DO_NOT_HIRE
+
+  @@schema("employees")
+}
+
+enum CandidateCheckType {
+  PROOF_OF_ID
+  RIGHT_TO_WORK
+  DBS
+  REFERENCE_1
+  REFERENCE_2
+  QUALIFICATIONS
+  HEALTH_DECLARATION
+  OVERSEAS_POLICE_CHECK
+  DRIVING
+
+  @@schema("employees")
+}
+
+enum CandidateCheckStatus {
+  NOT_STARTED
+  REQUESTED
+  RECEIVED
+  VERIFIED
+  FAILED
+  NOT_REQUIRED
+
+  @@schema("employees")
+}
+
 enum CandidateDocumentType {
   CV
   CERTIFICATE
   ID_DOCUMENT
+  OFFER_LETTER
+  CHECK_EVIDENCE
   OTHER
 
   @@schema("employees")
@@ -1293,6 +1365,10 @@ model Vacancy {
   description       String?
   requirements      String?
   salaryRange       String?
+  /// What the salary is per (shown after the amount on the careers page, e.g. "per month").
+  salaryPeriod      SalaryPeriod?
+  /// Last day to apply (inclusive). After it the job leaves the careers page and stops taking applications.
+  closingDate       DateTime?                 @db.Date
   numberOfPositions Int                       @default(1)
   status            VacancyStatus             @default(OPEN)
   hiringManagerId   String?                   @db.Uuid
@@ -1340,6 +1416,36 @@ model Candidate {
   convertedAt           DateTime?
   convertedById         String?         @db.Uuid
 
+  /// Full employment history (CQC Schedule 3 #7): [{ kind: 'JOB' | 'GAP', from: 'YYYY-MM', to: 'YYYY-MM' | null,
+  /// employer?, jobTitle?, reasonForLeaving?, careRole?, explanation? }]. GAP rows explain time out of work.
+  employmentHistory Json?
+  /// Screening answers (null = not asked yet).
+  hasRightToWork    Boolean?
+  needsSponsorship  Boolean?
+  /// Will drive for work (needs a driving licence check).
+  drivesForWork     Boolean?
+  /// Lived or worked abroad for 6+ months in the last 5 years (needs an overseas police check).
+  livedOverseas     Boolean?
+  screeningNotes    String?
+  /// Conditional offer (made before the pre-employment checks).
+  offerStatus       CandidateOfferStatus?
+  offerStartDate    DateTime?
+  offerHoursPerWeek String?
+  offerPayRate      String?
+  offerNotes        String?
+  offerSentAt       DateTime?
+  offerRespondedAt  DateTime?
+  /// When the current offer terms were last emailed to the candidate (cleared when the offer changes).
+  offerEmailedAt    DateTime?
+  /// Why the candidate was rejected or withdrew.
+  outcomeReason     String?
+  /// When the candidate was emailed that they were not successful.
+  rejectionEmailedAt DateTime?
+  /// Manager sign-off that every check is satisfactory (fit and proper, Regulation 19).
+  clearedAt         DateTime?
+  clearedById       String?   @db.Uuid
+  clearanceNotes    String?
+
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1352,6 +1458,8 @@ model Candidate {
   convertedBy       User?                   @relation("CandidateConvertedBy", fields: [convertedById], references: [id])
   documents         CandidateDocument[]
   stageHistory      CandidateStageHistory[]
+  interviews        CandidateInterview[]
+  checks            CandidateCheck[]
 
   @@index([vacancyId])
   @@index([stage])
@@ -1371,6 +1479,8 @@ model CandidateDocument {
   status       CandidateDocumentStatus @default(UPLOADED)
   reviewNotes  String?
   uploadedById String?                 @db.Uuid
+  /// Evidence for a pre-employment check (DBS certificate, reference, ...).
+  checkId      String?                 @db.Uuid
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -1378,11 +1488,79 @@ model CandidateDocument {
   deletedAt   DateTime?
   createdById String?   @db.Uuid
 
-  candidate  Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  uploadedBy User?     @relation("CandidateDocumentUploadedBy", fields: [uploadedById], references: [id])
+  candidate  Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  uploadedBy User?           @relation("CandidateDocumentUploadedBy", fields: [uploadedById], references: [id])
+  check      CandidateCheck? @relation(fields: [checkId], references: [id], onDelete: SetNull)
 
   @@index([candidateId])
+  @@index([checkId])
   @@index([deletedAt])
+  @@schema("employees")
+}
+
+/// An interview with a candidate: when it is, then the scored answers and the panel's recommendation.
+model CandidateInterview {
+  id              String                    @id @default(uuid()) @db.Uuid
+  candidateId     String                    @db.Uuid
+  scheduledAt     DateTime
+  mode            CandidateInterviewMode    @default(IN_PERSON)
+  /// Address, phone number or video link.
+  location        String?
+  /// Who is on the panel (free text).
+  interviewers    String?
+  status          CandidateInterviewStatus  @default(SCHEDULED)
+  /// [{ question, score: 1-5, notes? }] — values-based questions.
+  answers         Json?
+  recommendation  CandidateInterviewOutcome?
+  /// Employment gaps were talked through with the candidate.
+  gapsDiscussed   Boolean                   @default(false)
+  notes           String?
+  completedAt     DateTime?
+  completedById   String?                   @db.Uuid
+  /// Last time the candidate was emailed about this interview (invite, change or cancellation).
+  candidateEmailedAt DateTime?
+  /// Calendar update number (iCalendar SEQUENCE): each change replaces the event in their calendar.
+  calendarSequence   Int       @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId, scheduledAt])
+  @@schema("employees")
+}
+
+/// One pre-employment check (CQC Schedule 3). Created when the candidate accepts the conditional offer.
+model CandidateCheck {
+  id              String               @id @default(uuid()) @db.Uuid
+  candidateId     String               @db.Uuid
+  type            CandidateCheckType
+  /// Must be verified (or marked not needed, with a reason) before the candidate can be cleared.
+  required        Boolean              @default(true)
+  status          CandidateCheckStatus @default(NOT_STARTED)
+  /// DBS certificate number, right-to-work share code, referee name, ...
+  referenceNumber String?
+  /// Referee / issuer details.
+  provider        String?
+  issueDate       DateTime?
+  expiryDate      DateTime?
+  notes           String?
+  requestedAt     DateTime?
+  receivedAt      DateTime?
+  verifiedAt      DateTime?
+  verifiedById    String?              @db.Uuid
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  candidate Candidate           @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  documents CandidateDocument[]
+
+  @@unique([candidateId, type])
   @@schema("employees")
 }
 
@@ -17615,6 +17793,8 @@ model ReferralMailbox {
   removedAt             DateTime?
   /// Only emails with this label/folder are read.
   labelName             String                  @default("Referrals")
+  /// REFERRALS (care referrals → CRM enquiries) or RECRUITMENT (job applications → candidates).
+  purpose               String                  @default("REFERRALS")
   /// Provider id of the label CareFlow adds once an email has been read ("CareFlow read").
   processedLabelId      String?
   lastCheckedAt         DateTime?
@@ -17626,7 +17806,8 @@ model ReferralMailbox {
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
 
-  emails ReferralEmail[]
+  emails            ReferralEmail[]
+  recruitmentEmails RecruitmentEmail[]
 
   @@index([isActive])
   @@schema("service_users")
@@ -17802,4 +17983,57 @@ model ReferralBranchCoverage {
   updatedAt         DateTime @updatedAt
 
   @@schema("service_users")
+}
+
+/// Where an email in the recruitment inbox is.
+enum RecruitmentEmailStatus {
+  /// Saved, waiting for Claude to read it.
+  RECEIVED
+  /// Claude has read it; waiting for staff.
+  READ
+  /// Reading failed (see error); can be read again.
+  FAILED
+  /// Claude judged it is not a job application; staff can still create a candidate.
+  NOT_AN_APPLICATION
+  /// Staff created a candidate from it.
+  CANDIDATE_CREATED
+  /// Staff dismissed it.
+  DISMISSED
+
+  @@schema("employees")
+}
+
+/// One email received in a recruitment mailbox (ReferralMailbox with purpose RECRUITMENT), and what Claude read from it.
+model RecruitmentEmail {
+  id                String                 @id @default(uuid()) @db.Uuid
+  mailboxId         String                 @db.Uuid
+  providerMessageId String
+  providerThreadId  String?
+  fromName          String?
+  fromEmail         String?
+  subject           String?
+  receivedAt        DateTime
+  bodyText          String                 @db.Text
+  /// [{ fileName, mimeType, size, storedName, skippedReason? }] — files in private storage, served only to signed-in staff.
+  attachments       Json                   @default("[]")
+  status            RecruitmentEmailStatus @default(RECEIVED)
+  /// The applicant's details Claude read from the email and CV (name, contact, vacancy, employment history…).
+  extraction        Json?
+  extractionModel   String?
+  extractionCostUsd Float?
+  error             String?                @db.Text
+  readAttempts      Int                    @default(0)
+  candidateId       String?                @db.Uuid
+  handledById       String?                @db.Uuid
+  handledAt         DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  mailbox ReferralMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+
+  @@unique([mailboxId, providerMessageId])
+  @@index([status])
+  @@index([receivedAt])
+  @@index([fromEmail])
+  @@schema("employees")
 }

@@ -110,7 +110,7 @@ export function complaintFromContact(fromContact: string | null | undefined, c: 
   const text = (fromContact ?? '').toLowerCase();
   if (!text.trim()) return false;
   const email = c.email?.trim().toLowerCase();
-  if (email && (text.match(/[^\s,;<>()]+@[^\s,;<>()]+/g) ?? []).some((e) => e.replace(/\.+$/, '') === email)) return true;
+  if (email && (text.match(/[^\s,;<>()]+@[^\s,;<>()]+/g) ?? []).some((e: string) => e.replace(/\.+$/, '') === email)) return true;
   const numbers = (text.match(/\+?\d[\d\s().-]{8,}\d/g) ?? []).map(digitsTail).filter((n): n is string => Boolean(n));
   return [c.mobile, c.phone].map(digitsTail).some((n) => Boolean(n && numbers.includes(n)));
 }

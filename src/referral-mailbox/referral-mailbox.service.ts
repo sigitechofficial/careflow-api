@@ -34,6 +34,12 @@ import { ImapConnector, type ImapConfig } from './connectors/imap.connector';
 import { GraphSession, microsoftAuthUrl, microsoftExchangeCode, microsoftOAuthConfig } from './connectors/microsoft.connector';
 import { hashWebhookToken, newWebhookToken, parseInboundPost, webhookTokenMatches } from './connectors/inbound-webhook';
 import { POLLED_PROVIDERS, ReferralConnectorsService, type RelayConfig } from './connectors/referral-connectors.service';
+import { RecruitmentInboxService } from '../hr/recruitment/inbox/recruitment-inbox.service';
+
+/** What a mailbox is for: care referrals (CRM enquiries) or job applications (recruitment inbox). */
+export const MAILBOX_PURPOSES = ['REFERRALS', 'RECRUITMENT'] as const;
+export type MailboxPurpose = (typeof MAILBOX_PURPOSES)[number];
+const isRecruitment = (mb: { purpose: string }) => mb.purpose === 'RECRUITMENT';
 
 const STORAGE_ROOT = path.join(process.cwd(), 'storage', 'referral-mailbox');
 /** Where the browser lands after connecting a mailbox. */
@@ -70,6 +76,8 @@ export type MailboxUpdateInput = {
   relay?: RelayInput | null;
   /** Inbound webhook: the Brevo API key (to download attachments). */
   apiKey?: string | null;
+  /** REFERRALS or RECRUITMENT. */
+  purpose?: MailboxPurpose;
 };
 
 @Injectable()
@@ -82,6 +90,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     private readonly crm: CrmService,
     private readonly automation: ReferralAutomationService,
     private readonly connectors: ReferralConnectorsService,
+    private readonly recruitmentInbox: RecruitmentInboxService,
     @Optional() private readonly jobRunner?: JobRunner,
   ) {}
 
@@ -97,6 +106,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       emailAddress: mb.emailAddress,
       displayName: mb.displayName,
       labelName: mb.labelName,
+      purpose: mb.purpose as MailboxPurpose,
       defaultLocationId: mb.defaultLocationId,
       defaultLocationName: mb.defaultLocationId ? (locations.get(mb.defaultLocationId) ?? null) : null,
       isActive: mb.isActive,
@@ -332,6 +342,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       data.labelName = name;
     }
     if (dto.defaultLocationId !== undefined) data.defaultLocationId = dto.defaultLocationId || null;
+    if (dto.purpose !== undefined) data.purpose = dto.purpose;
     if (dto.apiKey !== undefined) data.encryptedSecret = dto.apiKey?.trim() ? encryptFieldValue(dto.apiKey.trim()) : null;
 
     if (dto.imap) {
@@ -446,7 +457,7 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
 
   /** Older screens: change the label of the first mailbox. */
   async updateLabel(labelName: string) {
-    const first = await this.prisma.referralMailbox.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'asc' } });
+    const first = await this.prisma.referralMailbox.findFirst({ where: { isActive: true, purpose: 'REFERRALS' }, orderBy: { createdAt: 'asc' } });
     if (!first) throw new BadRequestException('No referrals mailbox is connected.');
     await this.updateMailbox(first.id, { labelName });
     return this.status();
@@ -460,8 +471,9 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
     if (isProduction()) throw new NotFoundException();
     const mb = mailboxId
       ? await this.mailbox(mailboxId)
-      : await this.prisma.referralMailbox.findFirst({ where: { isActive: true }, orderBy: { createdAt: 'asc' } });
+      : await this.prisma.referralMailbox.findFirst({ where: { isActive: true, purpose: 'REFERRALS' }, orderBy: { createdAt: 'asc' } });
     if (!mb) throw new BadRequestException('No referrals mailbox is connected.');
+    if (isRecruitment(mb)) throw new BadRequestException('That mailbox is for recruitment, not referrals.');
     if (!mb.isActive) throw new BadRequestException('That mailbox is turned off.');
     const { mime, subject } = await buildTestReferralRaw(mb.emailAddress, scenario);
     if (mb.provider === ReferralMailboxProvider.INBOUND_WEBHOOK) {
@@ -608,20 +620,24 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       // A wide window, then only the ones not saved yet (at most 20 per check): a mailbox whose server doesn't
       // keep CareFlow's mark can't get stuck on the same old emails.
       const listed = await connector.listNew(200);
-      const alreadySaved = new Set(
-        (
-          await this.prisma.referralEmail.findMany({
-            where: { mailboxId: mb.id, providerMessageId: { in: listed } },
-            select: { providerMessageId: true },
-          })
-        ).map((r) => r.providerMessageId),
-      );
+      // Recruitment mailboxes keep their emails in the recruitment inbox.
+      const alreadySaved = isRecruitment(mb)
+        ? await this.recruitmentInbox.savedIds(mb.id, listed)
+        : new Set(
+            (
+              await this.prisma.referralEmail.findMany({
+                where: { mailboxId: mb.id, providerMessageId: { in: listed } },
+                select: { providerMessageId: true },
+              })
+            ).map((r) => r.providerMessageId),
+          );
       // Saved but still unmarked ones are marked again (a few per check), in case marking failed last time.
       const ids = [...listed.filter((x) => !alreadySaved.has(x)).slice(0, 20), ...listed.filter((x) => alreadySaved.has(x)).slice(0, 20)];
       for (const messageId of ids) {
         const exists = alreadySaved.has(messageId);
         if (!exists) {
-          const savedId = await this.saveFetched(mb, await connector.fetch(messageId));
+          const fetched = await connector.fetch(messageId);
+          const savedId = isRecruitment(mb) ? await this.recruitmentInbox.save(mb, fetched) : await this.saveFetched(mb, fetched);
           if (savedId) newIds.push(savedId);
           saved += 1;
         }
@@ -643,7 +659,10 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       return { saved, busy: false, error: message };
     } finally {
       // Claude reads in the background so "Check now" returns straight away; the inbox shows "Being read".
-      if (newIds.length) void this.readInBackground(newIds);
+      if (newIds.length) {
+        if (isRecruitment(mb)) this.recruitmentInbox.readInBackground(newIds);
+        else void this.readInBackground(newIds);
+      }
       await connector?.close().catch(() => undefined);
       await this.prisma.referralMailbox
         .update({ where: { id: mb.id }, data: { checkLockedUntil: null } })
@@ -666,6 +685,15 @@ export class ReferralMailboxService implements OnApplicationBootstrap {
       throw new BadRequestException((e as Error).message);
     }
     const ids: string[] = [];
+    if (isRecruitment(mb)) {
+      for (const email of emails) {
+        const id = await this.recruitmentInbox.save(mb, email);
+        if (id) ids.push(id);
+      }
+      await this.prisma.referralMailbox.update({ where: { id: mb.id }, data: { lastCheckedAt: new Date(), lastError: null } });
+      if (ids.length) this.recruitmentInbox.readInBackground(ids);
+      return { message: `Received ${emails.length} email${emails.length === 1 ? '' : 's'}`, data: { saved: ids.length } };
+    }
     for (const email of emails) {
       const exists = await this.prisma.referralEmail.findUnique({
         where: { mailboxId_providerMessageId: { mailboxId: mb.id, providerMessageId: email.providerMessageId } },

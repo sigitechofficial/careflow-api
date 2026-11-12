@@ -131,6 +131,7 @@ class WebhookMailboxDto {
 
 class UpdateMailboxDto {
   @IsOptional() @IsString() @MaxLength(120) displayName?: string | null;
+  @IsOptional() @IsIn(['REFERRALS', 'RECRUITMENT']) purpose?: 'REFERRALS' | 'RECRUITMENT';
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(200) labelName?: string;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() defaultLocationId?: string | null;
   @IsOptional() @ValidateNested() @Type(() => ImapUpdateDto) imap?: ImapUpdateDto;

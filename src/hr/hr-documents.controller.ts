@@ -1,8 +1,10 @@
 import {
+  Body,
   Controller,
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   UploadedFile,
@@ -22,6 +24,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { CreateHrDocumentDto } from './dto/create-hr-document.dto';
+import { UpdateHrDocumentStatusDto } from './dto/update-hr-document-status.dto';
 import { HrDocumentsService } from './hr-documents.service';
 
 const UPLOAD_ROOT = join(process.cwd(), 'uploads', 'employees', 'hr-documents');
@@ -102,6 +105,25 @@ export class HrEmployeeDocumentsController {
 @Controller('hr/documents')
 export class HrDocumentsController {
   constructor(private readonly service: HrDocumentsService) {}
+
+  /** Expired, or expiring within 30 days. */
+  @Get('expiring')
+  @Permissions('hr.read')
+  expiring() {
+    return this.service.expiring(30);
+  }
+
+  /** Approve or reject (same permission as uploading, which can already set the status). */
+  @Patch(':id/status')
+  @Permissions('hr.documents.upload')
+  updateStatus(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateHrDocumentStatusDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateStatus(user.id, id, dto.status, getRequestAuditMeta(req));
+  }
 
   @Delete(':id')
   @Permissions('hr.documents.delete')
