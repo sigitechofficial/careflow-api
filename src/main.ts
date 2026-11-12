@@ -60,7 +60,9 @@ async function bootstrap() {
       p.startsWith('/uploads/initial-assessment-conversations/') ||
       p.startsWith('/files/uploads/initial-assessment-conversations/') ||
       p.startsWith('/uploads/referral-mailbox/') ||
-      p.startsWith('/files/uploads/referral-mailbox/')
+      p.startsWith('/files/uploads/referral-mailbox/') ||
+      p.startsWith('/uploads/recruitment-mailbox/') ||
+      p.startsWith('/files/uploads/recruitment-mailbox/')
     ) {
       return res.status(404).json({ success: false, message: 'Not found' });
     }

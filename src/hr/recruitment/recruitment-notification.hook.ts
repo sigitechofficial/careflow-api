@@ -106,34 +106,24 @@ export class RecruitmentNotificationHook {
     const managerIds = await this.userIdsForEmployee(params.hiringManagerId);
     const hrIds = await this.hrUserIds();
 
-    if (params.toStage === CandidateStage.SHORTLISTED) {
-      await this.notify(
-        managerIds,
-        NotificationType.HR_CANDIDATE_SHORTLISTED,
-        'Candidate shortlisted',
-        `${params.candidateName} was shortlisted for ${params.vacancyTitle}.`,
-        'Candidate',
-        params.candidateId,
-      );
-    }
-
     if (params.toStage === CandidateStage.INTERVIEW) {
       await this.notify(
         managerIds,
         NotificationType.HR_INTERVIEW_SCHEDULED,
-        'Candidate moved to interview',
-        `${params.candidateName} is ready for interview (${params.vacancyTitle}).`,
+        'Interview arranged',
+        `${params.candidateName} has an interview for ${params.vacancyTitle}.`,
         'Candidate',
         params.candidateId,
       );
     }
 
-    if (params.toStage === CandidateStage.ACCEPTED) {
+    // The conditional offer was accepted: the pre-employment checks start now.
+    if (params.toStage === CandidateStage.VETTING) {
       await this.notify(
         [...managerIds, ...hrIds],
         NotificationType.HR_OFFER_ACCEPTED,
         'Offer accepted',
-        `${params.candidateName} accepted the offer for ${params.vacancyTitle}.`,
+        `${params.candidateName} accepted the conditional offer for ${params.vacancyTitle}. Start the pre-employment checks.`,
         'Candidate',
         params.candidateId,
       );
