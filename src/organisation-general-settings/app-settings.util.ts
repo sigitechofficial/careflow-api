@@ -5,6 +5,12 @@ export type OrganisationAppSettings = {
   bookHolidaysCareApp: boolean;
   fingerprintLoginCareApp: boolean;
   singleDeviceLoginCareApp: boolean;
+  /** Care app: with more than one phone allowed, the most at once (0 = no limit). */
+  maxDevicesCareApp: number;
+  /** Office website: one person signed in on more than one browser or device. */
+  officeMultipleDeviceLogin: boolean;
+  /** Office website: with more than one allowed, the most at once (0 = no limit). */
+  officeMaxDevices: number;
 };
 
 export const DEFAULT_APP_SETTINGS: OrganisationAppSettings = {
@@ -14,6 +20,9 @@ export const DEFAULT_APP_SETTINGS: OrganisationAppSettings = {
   bookHolidaysCareApp: true,
   fingerprintLoginCareApp: true,
   singleDeviceLoginCareApp: false,
+  maxDevicesCareApp: 0,
+  officeMultipleDeviceLogin: true,
+  officeMaxDevices: 0,
 };
 
 export function parseOrganisationAppSettings(
@@ -24,6 +33,9 @@ export function parseOrganisationAppSettings(
     appSettingBookHolidaysCareApp: boolean;
     appSettingFingerprintLoginCareApp: boolean;
     appSettingSingleDeviceLoginCareApp: boolean;
+    appSettingMaxDevicesCareApp: number;
+    officeMultipleDeviceLogin: boolean;
+    officeMaxDevices: number;
   }>,
 ): OrganisationAppSettings {
   return {
@@ -38,5 +50,8 @@ export function parseOrganisationAppSettings(
       row.appSettingFingerprintLoginCareApp ?? DEFAULT_APP_SETTINGS.fingerprintLoginCareApp,
     singleDeviceLoginCareApp:
       row.appSettingSingleDeviceLoginCareApp ?? DEFAULT_APP_SETTINGS.singleDeviceLoginCareApp,
+    maxDevicesCareApp: row.appSettingMaxDevicesCareApp ?? DEFAULT_APP_SETTINGS.maxDevicesCareApp,
+    officeMultipleDeviceLogin: row.officeMultipleDeviceLogin ?? DEFAULT_APP_SETTINGS.officeMultipleDeviceLogin,
+    officeMaxDevices: row.officeMaxDevices ?? DEFAULT_APP_SETTINGS.officeMaxDevices,
   };
 }

@@ -5,6 +5,8 @@ import * as bcrypt from 'bcrypt';
 import { AuthService } from './auth.service';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { hashRefreshToken } from '../common/utils/refresh-token-hash.util';
+import { SignInSessionsService, endAllSignInSessions } from './sign-in-sessions/sign-in-sessions.service';
+import { fakeSignInPrisma } from './sign-in-sessions/sign-in-sessions.testing';
 
 const PASSWORD = 'Correct#Horse9';
 const WRONG_PASSWORD = 'Wrong#Battery7';
@@ -18,7 +20,10 @@ describe('AuthService (staff) — refresh-token revocation and failed-login audi
     isActive: boolean;
   };
   let service: AuthService;
+  let db: ReturnType<typeof fakeSignInPrisma>;
   const req = {} as never;
+  /** The signed-in device a token belongs to (as the JWT strategy puts it on the request). */
+  const sessionOf = (token: string) => (new JwtService({}).decode(token) as { sid: string }).sid;
 
   const settings: Record<string, string> = {
     JWT_REFRESH_TOKEN_SECRET: 'test-refresh-secret',
@@ -54,9 +59,10 @@ describe('AuthService (staff) — refresh-token revocation and failed-login audi
     clearRefreshToken: jest.fn(() => {
       user.refreshTokenHash = null;
     }),
-    updatePassword: jest.fn((_id: string, passwordHash: string) => {
+    updatePassword: jest.fn(async (_id: string, passwordHash: string) => {
       user.passwordHash = passwordHash;
       user.refreshTokenHash = null;
+      await endAllSignInSessions(db, 'USER', user.id, 'PASSWORD_CHANGED');
     }),
   };
 
@@ -74,6 +80,7 @@ describe('AuthService (staff) — refresh-token revocation and failed-login audi
     jest.clearAllMocks();
     user.refreshTokenHash = null;
     user.isActive = true;
+    db = fakeSignInPrisma();
     service = new AuthService(
       usersService as never,
       new JwtService({
@@ -84,6 +91,9 @@ describe('AuthService (staff) — refresh-token revocation and failed-login audi
       auditLogs as never,
       {} as never,
       {} as never,
+      {} as never,
+      {} as never,
+      new SignInSessionsService(db as never),
     );
   });
 
@@ -96,40 +106,66 @@ describe('AuthService (staff) — refresh-token revocation and failed-login audi
   }
 
   describe('refresh token revocation', () => {
-    it('stores a SHA-256 digest of the full refresh token', async () => {
+    it("stores a SHA-256 digest of the full refresh token, on this device's own sign-in", async () => {
       const r = await login();
-      expect(user.refreshTokenHash).toBe(hashRefreshToken(r));
-      expect(user.refreshTokenHash).toMatch(/^[0-9a-f]{64}$/);
+      const row = db.rows.find((x) => x.id === sessionOf(r))!;
+      expect(row).toMatchObject({ kind: 'USER', accountId: user.id, refreshTokenHash: hashRefreshToken(r), ipAddress: '2.2.2.2', userAgent: 'jest' });
+      expect(row.refreshTokenHash).toMatch(/^[0-9a-f]{64}$/);
     });
 
-    it('rejects an older refresh token of the same user (identical >72-byte prefix); accepts the current one', async () => {
+    it('signing in on a second device does not sign out the first; each device rotates its own token', async () => {
       const r1 = await login();
       const r2 = await login();
-      expect(r1).not.toBe(r2);
-      expect(r1.slice(0, 72)).toBe(r2.slice(0, 72));
+      expect(sessionOf(r1)).not.toBe(sessionOf(r2));
 
-      await expect(
-        service.refresh({ refreshToken: r1 }, req),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
-
-      const refreshed = await service.refresh({ refreshToken: r2 }, req);
-      expect(refreshed.message).toBe('Token refreshed');
-      // Rotation: the token just used is no longer valid.
-      await expect(
-        service.refresh({ refreshToken: r2 }, req),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
-      await expect(
-        service.refresh({ refreshToken: refreshed.data.refreshToken }, req),
-      ).resolves.toMatchObject({ message: 'Token refreshed' });
+      const a = await service.refresh({ refreshToken: r1 }, req);
+      const b = await service.refresh({ refreshToken: r2 }, req);
+      expect([a.message, b.message]).toEqual(['Token refreshed', 'Token refreshed']);
+      // Rotation: the token just used is no longer valid, on either device.
+      await expect(service.refresh({ refreshToken: r1 }, req)).rejects.toBeInstanceOf(UnauthorizedException);
+      await expect(service.refresh({ refreshToken: r2 }, req)).rejects.toBeInstanceOf(UnauthorizedException);
+      await expect(service.refresh({ refreshToken: a.data.refreshToken }, req)).resolves.toMatchObject({ message: 'Token refreshed' });
     });
 
-    it('rejects the refresh token after logout', async () => {
+    it('two renewals racing with the same token: only one wins', async () => {
       const r = await login();
-      await service.logout({ id: user.id, accountKind: 'staff' } as never, req);
+      const results = await Promise.allSettled([service.refresh({ refreshToken: r }, req), service.refresh({ refreshToken: r }, req)]);
+      expect(results.filter((x) => x.status === 'fulfilled')).toHaveLength(1);
+    });
+
+    it('office device limit: signing in over it signs the oldest device out, with the reason', async () => {
+      db.settings.officeMaxDevices = 2;
+      const r1 = await login();
+      const r2 = await login();
+      const r3 = await login();
+      await expect(service.refresh({ refreshToken: r1 }, req)).rejects.toThrow(/signed in on another device/);
+      await expect(service.refresh({ refreshToken: r2 }, req)).resolves.toMatchObject({ message: 'Token refreshed' });
+      await expect(service.refresh({ refreshToken: r3 }, req)).resolves.toMatchObject({ message: 'Token refreshed' });
+    });
+
+    it('one device only: the second sign-in signs the first out', async () => {
+      db.settings.officeMultipleDeviceLogin = false;
+      const r1 = await login();
+      const r2 = await login();
+      await expect(service.refresh({ refreshToken: r1 }, req)).rejects.toThrow(/signed in on another device/);
+      await expect(service.refresh({ refreshToken: r2 }, req)).resolves.toMatchObject({ message: 'Token refreshed' });
+    });
+
+    it('logout signs out this device only', async () => {
+      const r = await login();
+      const other = await login();
+      await service.logout({ id: user.id, accountKind: 'staff', sessionId: sessionOf(r) } as never, req);
+      await expect(service.refresh({ refreshToken: r }, req)).rejects.toBeInstanceOf(UnauthorizedException);
+      await expect(service.refresh({ refreshToken: other }, req)).resolves.toMatchObject({ message: 'Token refreshed' });
+    });
+
+    it('a token from before per-device sign-ins still renews once, onto a sign-in of its own', async () => {
+      const legacy = await new JwtService({}).signAsync({ sub: user.id }, { secret: 'test-refresh-secret', expiresIn: '7d', jwtid: 'legacy-1' });
+      user.refreshTokenHash = hashRefreshToken(legacy);
+      const res = await service.refresh({ refreshToken: legacy }, req);
+      expect(sessionOf(res.data.refreshToken)).toBeTruthy();
       expect(user.refreshTokenHash).toBeNull();
-      await expect(
-        service.refresh({ refreshToken: r }, req),
-      ).rejects.toBeInstanceOf(UnauthorizedException);
+      await expect(service.refresh({ refreshToken: legacy }, req)).rejects.toBeInstanceOf(UnauthorizedException);
     });
 
     it('rejects the refresh token after change-password', async () => {
@@ -145,10 +181,10 @@ describe('AuthService (staff) — refresh-token revocation and failed-login audi
     });
 
     it('rejects a legacy bcrypt-stored hash (forces one re-login)', async () => {
-      const r = await login();
-      user.refreshTokenHash = await bcrypt.hash(r, 4);
+      const legacy = await new JwtService({}).signAsync({ sub: user.id }, { secret: 'test-refresh-secret', expiresIn: '7d', jwtid: 'legacy-2' });
+      user.refreshTokenHash = await bcrypt.hash(legacy, 4);
       await expect(
-        service.refresh({ refreshToken: r }, req),
+        service.refresh({ refreshToken: legacy }, req),
       ).rejects.toBeInstanceOf(UnauthorizedException);
     });
   });
@@ -197,7 +233,7 @@ describe('AuthService (staff) — refresh-token revocation and failed-login audi
         });
         expect(allAuditPayloads()).not.toContain(password);
         expect(auditLogs.logAudit).not.toHaveBeenCalled();
-        expect(usersService.setRefreshTokenHash).not.toHaveBeenCalled();
+        expect(db.rows).toHaveLength(0);
       },
     );
 

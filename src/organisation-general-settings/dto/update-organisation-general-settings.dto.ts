@@ -782,6 +782,30 @@ export class UpdateOrganisationGeneralSettingsDto {
   @IsBoolean()
   appSettingSingleDeviceLoginCareApp?: boolean;
 
+  /** Care app: the most phones at once when more than one is allowed (0 = no limit). */
+  @ApiPropertyOptional({ minimum: 0, maximum: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(20)
+  appSettingMaxDevicesCareApp?: number;
+
+  /** Office website: allow one person to be signed in on more than one browser or device. */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  officeMultipleDeviceLogin?: boolean;
+
+  /** Office website: the most browsers or devices at once when more than one is allowed (0 = no limit). */
+  @ApiPropertyOptional({ minimum: 0, maximum: 20 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  @Max(20)
+  officeMaxDevices?: number;
+
   @ApiPropertyOptional({ minimum: 1, maximum: 3650 })
   @IsOptional()
   @Type(() => Number)

@@ -89,6 +89,9 @@ function createFakePrisma() {
         },
       ),
     },
+    authSession: {
+      updateMany: jest.fn(() => Promise.resolve({ count: 0 })),
+    },
     passwordResetToken: {
       count: jest.fn(({ where }: { where: Where }) =>
         Promise.resolve(state.tokens.filter((t) => matches(t, where)).length),
@@ -174,6 +177,7 @@ function setup(
     {} as ServiceUserPortalAccountsService,
     prisma as unknown as PrismaService,
     mail as unknown as MailService,
+    {} as never,
   );
   return { service, prisma, mail, auditLogs };
 }
@@ -405,6 +409,11 @@ describe('AuthService password reset', () => {
         false,
       );
       expect(user.refreshTokenHash).toBeNull();
+      // Every signed-in device of this person is signed out.
+      expect(prisma.authSession.updateMany).toHaveBeenCalledWith({
+        where: { kind: 'USER', accountId: user.id, revokedAt: null },
+        data: { revokedAt: expect.any(Date), revokedReason: 'PASSWORD_CHANGED' },
+      });
       expect(prisma.state.tokens.every((t) => t.usedAt !== null)).toBe(true);
 
       const completed = auditLogs.logSecurityEvent.mock.calls

@@ -1149,8 +1149,14 @@ model OrganisationGeneralSettings {
   appSettingViewPoliciesRosterApp      Boolean                    @default(true)
   appSettingBookHolidaysCareApp        Boolean                    @default(true)
   appSettingFingerprintLoginCareApp    Boolean                    @default(true)
-  /// When true, a second Care-app login is blocked while a refresh session is active.
+  /// Care app: when true, one phone only (signing in on another phone signs the first out).
   appSettingSingleDeviceLoginCareApp   Boolean                    @default(false)
+  /// Care app: when more than one phone is allowed, the most at once (0 = no limit). Over it, the oldest is signed out.
+  appSettingMaxDevicesCareApp          Int                        @default(0)
+  /// Office website: allow one person to be signed in on more than one browser or device.
+  officeMultipleDeviceLogin            Boolean                    @default(true)
+  /// Office website: when allowed, the most at once (0 = no limit). Over it, the oldest is signed out.
+  officeMaxDevices                     Int                        @default(0)
   privacyNonActiveServiceUserDays      Int                        @default(60)
   privacyNotifyInternalMessage         Boolean                    @default(true)
   privacyNotifyEmail                   Boolean                    @default(false)
@@ -17836,4 +17842,26 @@ model MessageDeliveryLog {
   @@index([at])
   @@index([channel, outcome, at])
   @@schema("platform")
+}
+
+/// One signed-in browser or phone (office website USER, Care app EMPLOYEE_APP). Each keeps its own refresh token,
+/// so signing in somewhere else never invalidates it, unless the organisation's device limit signs the oldest out.
+model AuthSession {
+  id               String    @id @db.Uuid
+  /// "USER" (office website) or "EMPLOYEE_APP" (Care app).
+  kind             String
+  /// identity.User id or employees.EmployeePortalAccount id, by kind.
+  accountId        String    @db.Uuid
+  refreshTokenHash String
+  userAgent        String?
+  ipAddress        String?
+  createdAt        DateTime  @default(now())
+  lastUsedAt       DateTime  @default(now())
+  expiresAt        DateTime
+  revokedAt        DateTime?
+  /// SIGNED_OUT, SIGNED_IN_ELSEWHERE (device limit), PASSWORD_CHANGED, ACCOUNT_DISABLED, ENDED_BY_OFFICE.
+  revokedReason    String?
+
+  @@index([kind, accountId, revokedAt])
+  @@schema("identity")
 }

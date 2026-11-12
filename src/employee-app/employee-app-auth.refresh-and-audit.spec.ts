@@ -3,6 +3,8 @@ import { JwtService } from '@nestjs/jwt';
 import type { ConfigService } from '@nestjs/config';
 import { EmployeeAppAuthService } from './employee-app-auth.service';
 import { hashRefreshToken } from '../common/utils/refresh-token-hash.util';
+import { SignInSessionsService } from '../auth/sign-in-sessions/sign-in-sessions.service';
+import { fakeSignInPrisma } from '../auth/sign-in-sessions/sign-in-sessions.testing';
 
 const PASSWORD = 'Correct#Horse9';
 
@@ -69,10 +71,13 @@ describe('EmployeeAppAuthService — refresh-token revocation and failed-login a
   };
   const req = {} as never;
   let service: EmployeeAppAuthService;
+  let db: ReturnType<typeof fakeSignInPrisma>;
+  const sessionOf = (token: string) => (new JwtService({}).decode(token) as { sid: string }).sid;
 
   beforeEach(() => {
     jest.clearAllMocks();
     account.refreshTokenHash = null;
+    db = fakeSignInPrisma();
     service = new EmployeeAppAuthService(
       new JwtService({
         secret: 'test-access-secret',
@@ -83,6 +88,8 @@ describe('EmployeeAppAuthService — refresh-token revocation and failed-login a
       portalAccounts as never,
       fcm as never,
       orgSettings as never,
+      {} as never,
+      new SignInSessionsService(db as never),
     );
   });
 
@@ -94,25 +101,25 @@ describe('EmployeeAppAuthService — refresh-token revocation and failed-login a
     return res.data.refreshToken;
   }
 
-  it('only the newest refresh token is accepted; logout revokes it', async () => {
+  it('each phone keeps its own token; renewal rotates it; logout signs out that phone only', async () => {
     const r1 = await login();
     const r2 = await login();
-    expect(account.refreshTokenHash).toBe(hashRefreshToken(r2));
-    expect(r1.slice(0, 72)).toBe(r2.slice(0, 72));
+    expect(db.rows.find((r) => r.id === sessionOf(r2))?.refreshTokenHash).toBe(hashRefreshToken(r2));
 
-    await expect(
-      service.refresh({ refreshToken: r1 }, req),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
     const refreshed = await service.refresh({ refreshToken: r2 }, req);
     const r3 = refreshed.data.refreshToken;
+    // Rotation: the token just used is no longer valid.
+    await expect(service.refresh({ refreshToken: r2 }, req)).rejects.toBeInstanceOf(UnauthorizedException);
 
     await service.logout(
-      { id: account.id, email: account.email, employeeId: 'emp-1' } as never,
+      { id: account.id, email: account.email, employeeId: 'emp-1', sessionId: sessionOf(r3) } as never,
       req,
     );
     await expect(
       service.refresh({ refreshToken: r3 }, req),
     ).rejects.toBeInstanceOf(UnauthorizedException);
+    // The other phone is still signed in.
+    await expect(service.refresh({ refreshToken: r1 }, req)).resolves.toMatchObject({ message: 'Token refreshed' });
   });
 
   it('bad password → Invalid credentials and a failed-login event without the password', async () => {

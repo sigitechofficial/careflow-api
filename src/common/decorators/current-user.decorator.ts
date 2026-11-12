@@ -5,6 +5,8 @@ export type AccountKind = 'user' | 'temporary_inspector' | 'service_user' | 'emp
 
 export type RequestUser = {
   id: string;
+  /** The signed-in device (office website and Care app sign-ins), for signing out just this one. */
+  sessionId?: string;
   email: string;
   roles: string[];
   permissions: string[];

@@ -1,17 +1,15 @@
-import { ConflictException, UnauthorizedException } from '@nestjs/common';
+import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
 import { EmployeeAppAuthService } from './employee-app-auth.service';
-import { EMPLOYEE_APP_SESSION_BLOCK_MESSAGE } from './employee-app-single-session.util';
+import { SignInSessionsService } from '../auth/sign-in-sessions/sign-in-sessions.service';
+import { fakeSignInPrisma } from '../auth/sign-in-sessions/sign-in-sessions.testing';
 
 jest.mock('bcrypt', () => ({
   hash: jest.fn().mockResolvedValue('hashed-refresh'),
   compare: jest.fn(),
 }));
-
-// A minute ago: a session seen this recently counts as live (a fixed date stops being recent as time passes).
-const recent = new Date(Date.now() - 60_000);
 
 function loginRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -35,9 +33,12 @@ function loginRow(overrides: Record<string, unknown> = {}) {
 }
 
 describe('EmployeeAppAuthService', () => {
+  let n = 0;
   const jwtService = {
-    signAsync: jest.fn().mockResolvedValue('jwt'),
+    // A different token each time, as real tokens are.
+    signAsync: jest.fn(async () => `jwt-${++n}`),
     verifyAsync: jest.fn(),
+    decode: jest.fn(() => ({ exp: Math.floor(Date.now() / 1000) + 7 * 86400 })),
   };
   const config = { get: jest.fn().mockReturnValue('secret') };
   const auditLogs = {
@@ -51,104 +52,72 @@ describe('EmployeeAppAuthService', () => {
     findByEmailForLogin: jest.fn(),
     assertLoginable: jest.fn(),
     verifyPassword: jest.fn(),
-    setRefreshTokenHash: jest.fn(),
     activateSession: jest.fn(),
     touchLastSeen: jest.fn(),
     clearRefreshToken: jest.fn(),
+    clearLegacyRefreshToken: jest.fn(),
     findForRefresh: jest.fn(),
   };
-  const fcm = { areEmployeePushTokensDead: jest.fn(), deleteToken: jest.fn() };
-  const orgSettings = { isSingleDeviceLoginCareApp: jest.fn() };
+  const fcm = { deleteToken: jest.fn() };
 
   const req = {} as never;
+  let db: ReturnType<typeof fakeSignInPrisma>;
   let service: EmployeeAppAuthService;
+  const login = () => service.login({ email: 'carer@example.com', password: 'secret12' }, req);
+  const active = () => db.rows.filter((r) => !r.revokedAt);
 
   beforeEach(() => {
     jest.clearAllMocks();
     (bcrypt.hash as jest.Mock).mockResolvedValue('hashed-refresh');
+    portalAccounts.findByEmailForLogin.mockResolvedValue(loginRow());
+    portalAccounts.verifyPassword.mockResolvedValue(true);
+    db = fakeSignInPrisma();
     service = new EmployeeAppAuthService(
       jwtService as unknown as JwtService,
       config as unknown as ConfigService,
       auditLogs as never,
       portalAccounts as never,
       fcm as never,
-      orgSettings as never,
       {} as never,
+      {} as never,
+      new SignInSessionsService(db as never),
     );
   });
 
-  it('issues tokens on first login', async () => {
-    portalAccounts.findByEmailForLogin.mockResolvedValue(loginRow());
-    portalAccounts.verifyPassword.mockResolvedValue(true);
-    orgSettings.isSingleDeviceLoginCareApp.mockResolvedValue(true);
-    fcm.areEmployeePushTokensDead.mockResolvedValue(false);
-
-    const result = await service.login(
-      { email: 'carer@example.com', password: 'secret12' },
-      req,
-    );
-
+  it('issues tokens on first login, on a sign-in of its own for this phone', async () => {
+    const result = await login();
     expect(result.message).toBe('Login successful');
-    expect(portalAccounts.setRefreshTokenHash).toHaveBeenCalled();
-    expect(portalAccounts.activateSession).toHaveBeenCalledWith('acct-1', {
-      ipAddress: '1.1.1.1',
-      userAgent: 'Dart',
-    });
+    expect(active()).toEqual([expect.objectContaining({ kind: 'EMPLOYEE_APP', accountId: 'acct-1', userAgent: 'Dart' })]);
+    expect(portalAccounts.activateSession).toHaveBeenCalledWith('acct-1', { ipAddress: '1.1.1.1', userAgent: 'Dart' });
   });
 
-  it('blocks a second login while another session is live', async () => {
-    portalAccounts.findByEmailForLogin.mockResolvedValue(
-      loginRow({ refreshTokenHash: 'existing', lastSeenAt: recent, lastLoginAt: recent }),
-    );
-    portalAccounts.verifyPassword.mockResolvedValue(true);
-    orgSettings.isSingleDeviceLoginCareApp.mockResolvedValue(true);
-    fcm.areEmployeePushTokensDead.mockResolvedValue(false);
-
-    await expect(
-      service.login({ email: 'carer@example.com', password: 'secret12' }, req),
-    ).rejects.toBeInstanceOf(ConflictException);
-
-    await expect(
-      service.login({ email: 'carer@example.com', password: 'secret12' }, req),
-    ).rejects.toThrow(EMPLOYEE_APP_SESSION_BLOCK_MESSAGE);
-
-    expect(portalAccounts.setRefreshTokenHash).not.toHaveBeenCalled();
+  it('more than one phone allowed (no limit): every phone stays signed in', async () => {
+    await login();
+    await login();
+    await login();
+    expect(active()).toHaveLength(3);
   });
 
-  it('allows a second login after logout (no refresh hash)', async () => {
-    portalAccounts.findByEmailForLogin.mockResolvedValue(
-      loginRow({ refreshTokenHash: null, lastLoginAt: recent }),
-    );
-    portalAccounts.verifyPassword.mockResolvedValue(true);
-    orgSettings.isSingleDeviceLoginCareApp.mockResolvedValue(true);
-    fcm.areEmployeePushTokensDead.mockResolvedValue(false);
-
-    await expect(
-      service.login({ email: 'carer@example.com', password: 'secret12' }, req),
-    ).resolves.toMatchObject({ message: 'Login successful' });
+  it('one phone only: signing in on a second phone signs the first out, with the reason', async () => {
+    db.settings.appSettingSingleDeviceLoginCareApp = true;
+    await login();
+    const first = db.rows[0];
+    await expect(login()).resolves.toMatchObject({ message: 'Login successful' });
+    expect(first).toMatchObject({ revokedReason: 'SIGNED_IN_ELSEWHERE' });
+    expect(active()).toHaveLength(1);
   });
 
-  it('allows a second login when push tokens are dead (uninstall path)', async () => {
-    portalAccounts.findByEmailForLogin.mockResolvedValue(
-      loginRow({ refreshTokenHash: 'existing', lastSeenAt: recent, lastLoginAt: recent }),
-    );
-    portalAccounts.verifyPassword.mockResolvedValue(true);
-    orgSettings.isSingleDeviceLoginCareApp.mockResolvedValue(true);
-    fcm.areEmployeePushTokensDead.mockResolvedValue(true);
-
-    await expect(
-      service.login({ email: 'carer@example.com', password: 'secret12' }, req),
-    ).resolves.toMatchObject({ message: 'Login successful' });
+  it('a limit of 2 phones: the third sign-in signs out the oldest', async () => {
+    db.settings.appSettingMaxDevicesCareApp = 2;
+    await login();
+    await login();
+    await login();
+    expect(db.rows.map((r) => r.revokedReason)).toEqual(['SIGNED_IN_ELSEWHERE', null, null]);
   });
 
-  it('rejects a bad password before the session check', async () => {
-    portalAccounts.findByEmailForLogin.mockResolvedValue(loginRow({ refreshTokenHash: 'existing' }));
+  it('rejects a bad password: no sign-in is made', async () => {
     portalAccounts.verifyPassword.mockResolvedValue(false);
-
-    await expect(
-      service.login({ email: 'carer@example.com', password: 'wrong' }, req),
-    ).rejects.toBeInstanceOf(UnauthorizedException);
-
-    expect(orgSettings.isSingleDeviceLoginCareApp).not.toHaveBeenCalled();
+    await expect(service.login({ email: 'carer@example.com', password: 'wrong' }, req)).rejects.toBeInstanceOf(UnauthorizedException);
+    expect(db.rows).toHaveLength(0);
   });
 });
