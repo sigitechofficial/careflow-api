@@ -106,6 +106,32 @@ describe('VisitPlanWeeklyHoursService (rota count)', () => {
     expect(budget.availableMinutes).toBe(30);
   });
 
+  it('timebank: a weekend / bank holiday visit is not paid from the bank (10 Nov 2026)', async () => {
+    // 5h limit, 5h on the rota: every new minute is over. The bank has plenty.
+    const { service } = build([job('2026-11-09T09:00:00Z', 300)]);
+    const rule = jest.fn((start: Date) =>
+      Promise.resolve(start.getUTCDay() === 6 ? 'weekend (Saturday)' : null),
+    );
+    const budget = new TimebankBudget(true, 600, new Map()).withDayRule(rule);
+    const result = await service.classifyNewVisits({
+      serviceUserId: 'su',
+      budget,
+      visits: [
+        { date: '2026-11-14', startsAt: '2026-11-14T10:00', minutes: 60 },
+        { date: '2026-11-12', startsAt: '2026-11-12T10:00', minutes: 60 },
+      ],
+    });
+    const byDate = new Map(result.visits.map((v) => [v.date, v]));
+    // Thursday: paid from the bank. Saturday: over, the bank untouched, the reason kept.
+    expect(byDate.get('2026-11-12')).toMatchObject({ over: false, fromTimebankMinutes: 60, timebankBlockedReason: null });
+    expect(byDate.get('2026-11-14')).toMatchObject({
+      over: true,
+      fromTimebankMinutes: 0,
+      timebankBlockedReason: 'weekend (Saturday)',
+    });
+    expect(budget.availableMinutes).toBe(540);
+  });
+
   it('no weekly hours set: nothing is over', async () => {
     const { service } = build([job('2026-11-09T09:00:00Z', 600)], { limit: null });
     const result = await service.classifyNewVisits({

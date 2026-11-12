@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, SecuritySeverity } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import { endAllSignInSessions } from '../auth/sign-in-sessions/sign-in-sessions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { hashPassword } from '../common/utils/password.util';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -75,6 +76,11 @@ export class EmployeePortalAccountsService {
       where: { id },
       data: { refreshTokenHash },
     });
+  }
+
+  /** The single token from before per-phone sign-ins, once it has been moved onto a sign-in of its own. */
+  async clearLegacyRefreshToken(id: string) {
+    await this.prisma.employeePortalAccount.update({ where: { id }, data: { refreshTokenHash: null } });
   }
 
   async clearRefreshToken(id: string) {
@@ -197,7 +203,9 @@ export class EmployeePortalAccountsService {
       lastLoginAt: row.lastLoginAt?.toISOString() ?? null,
       lastSeenAt: row.lastSeenAt?.toISOString() ?? null,
       lastLoginUserAgent: row.lastLoginUserAgent,
-      hasActiveSession: Boolean(row.refreshTokenHash),
+      hasActiveSession:
+        Boolean(row.refreshTokenHash) ||
+        (await this.prisma.authSession.count({ where: { kind: 'EMPLOYEE_APP', accountId: row.id, revokedAt: null, expiresAt: { gt: new Date() } } })) > 0,
     };
   }
 
@@ -248,6 +256,7 @@ export class EmployeePortalAccountsService {
           updatedById: actorUserId,
         },
       });
+      if (dto.isEnabled === false) await endAllSignInSessions(this.prisma, 'EMPLOYEE_APP', existing.id, 'ACCOUNT_DISABLED');
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
         throw new ConflictException('Employee app email already in use');
@@ -275,6 +284,7 @@ export class EmployeePortalAccountsService {
         updatedById: actorUserId,
       },
     });
+    await endAllSignInSessions(this.prisma, 'EMPLOYEE_APP', existing.id, 'PASSWORD_CHANGED');
     return { message: 'Employee app password updated', data: {} };
   }
 
@@ -293,6 +303,7 @@ export class EmployeePortalAccountsService {
         updatedById: actorUserId,
       },
     });
+    await endAllSignInSessions(this.prisma, 'EMPLOYEE_APP', existing.id, 'ENDED_BY_OFFICE');
     await this.auditLogs.logSecurityEvent({
       eventType: SecurityEventType.SESSION_REVOKED,
       severity: SecuritySeverity.MEDIUM,

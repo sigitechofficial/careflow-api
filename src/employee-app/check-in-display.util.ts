@@ -163,6 +163,27 @@ export function extractEmployeeAppCheckIn(metadata: unknown): EmployeeAppCheckIn
   return blobs[blobs.length - 1] ?? null;
 }
 
+/**
+ * Every carer's own clock-in blob on a shared visit (`employeeApp.checkIns[employeeId]`).
+ * `extractEmployeeAppCheckIn` returns only the latest one, which on a double-up
+ * hides the other carers' arrival reasons.
+ */
+export function extractEmployeeAppCheckInsByEmployee(
+  metadata: unknown,
+): Record<string, EmployeeAppCheckInBlob> {
+  const out: Record<string, EmployeeAppCheckInBlob> = {};
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return out;
+  const employeeApp = (metadata as Record<string, unknown>).employeeApp;
+  if (!employeeApp || typeof employeeApp !== 'object' || Array.isArray(employeeApp)) return out;
+  const checkIns = (employeeApp as Record<string, unknown>).checkIns;
+  if (!checkIns || typeof checkIns !== 'object' || Array.isArray(checkIns)) return out;
+  for (const [employeeId, raw] of Object.entries(checkIns as Record<string, unknown>)) {
+    const blob = parseCheckInBlob(raw);
+    if (blob) out[employeeId] = blob;
+  }
+  return out;
+}
+
 export function buildAdminCheckInSummary(
   blob: EmployeeAppCheckInBlob | null | undefined,
   inferFrom?: { scheduledStart?: string | Date | null; actualStart?: string | Date | null },

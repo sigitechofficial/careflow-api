@@ -38,7 +38,7 @@ const reviewerAccount = (over: Record<string, unknown> = {}) => ({
   ...over,
 });
 
-function setup(opts: { survey?: any; grant?: any; account?: any; staffEmail?: boolean; inScope?: boolean; periods?: number; existingUser?: boolean } = {}) {
+function setup(opts: { survey?: any; grant?: any; account?: any; staffEmail?: boolean; inScope?: boolean; periods?: number; existingUser?: boolean; links?: { staff?: any[]; contacts?: any[] } } = {}) {
   const survey = opts.survey ?? namedSurvey;
   const grant = opts.grant === undefined ? { id: 'g1', surveyId: 's1', userId: 'rev-1', personIds: ['su-1', 'su-2'], validFrom: day(-1), validTo: day(10), survey } : opts.grant;
   const prisma: any = {
@@ -50,7 +50,13 @@ function setup(opts: { survey?: any; grant?: any; account?: any; staffEmail?: bo
       create: jest.fn(async (a: any) => ({ id: 'rev-new', email: a.data.email, firstName: a.data.firstName })),
     },
     role: { findFirst: jest.fn(async () => ({ id: 'role-ir' })) },
-    employeePersonalDetail: { findFirst: jest.fn(async () => (opts.staffEmail ? { employeeId: 'e1' } : null)) },
+    employeePersonalDetail: {
+      findFirst: jest.fn(async () => (opts.staffEmail ? { employeeId: 'e1' } : null)),
+      // Links to us (findReviewerLinks): nobody, unless a test says so.
+      findMany: jest.fn(async () => opts.links?.staff ?? []),
+    },
+    serviceUserContact: { findMany: jest.fn(async () => opts.links?.contacts ?? []) },
+    surveyExternalContact: { findMany: jest.fn(async () => []) },
     surveyReviewerGrant: {
       create: jest.fn(async (a: any) => ({ id: 'g-new', ...a.data })),
       findFirst: jest.fn(async () => grant),
@@ -58,7 +64,7 @@ function setup(opts: { survey?: any; grant?: any; account?: any; staffEmail?: bo
       update: jest.fn(async (a: any) => a),
     },
     serviceUser: {
-      findMany: jest.fn(async (a: any) => ['su-1', 'su-2', 'su-3'].filter((id) => a.where.id.in.includes(id)).map((id) => ({ id, firstName: 'Person', lastName: id }))),
+      findMany: jest.fn(async (a: any) => (a.where.id ? ['su-1', 'su-2', 'su-3'].filter((id) => a.where.id.in.includes(id)).map((id) => ({ id, firstName: 'Person', lastName: id })) : [])),
     },
     employee: { findMany: jest.fn(async () => []) },
     surveyRecipient: { findMany: jest.fn(async () => [{ serviceUserId: 'su-2', employeeId: null, status: 'COMPLETED' }]) },
@@ -72,8 +78,9 @@ function setup(opts: { survey?: any; grant?: any; account?: any; staffEmail?: bo
     reviewerForm: jest.fn(async () => ({ message: 'Survey to record', data: { questions: [] } })),
   };
   const auth = { sendAccountInvite: jest.fn(async () => true) };
-  const service = new SurveyReviewersService(prisma, orgScope, audit as any, surveys as any, auth as any);
-  return { service, prisma, audit, surveys, auth };
+  const notifications = { notifyUsers: jest.fn() };
+  const service = new SurveyReviewersService(prisma, orgScope, audit as any, surveys as any, auth as any, notifications as any);
+  return { service, prisma, audit, surveys, auth, notifications };
 }
 
 const window = { validFrom: day(0).toISOString(), validTo: day(14).toISOString() };
@@ -85,6 +92,38 @@ describe('SurveyReviewersService: survey managers', () => {
     expect(prisma.surveyReviewerGrant.create.mock.calls[0][0].data).toMatchObject({ surveyId: 's1', userId: 'rev-1', personIds: ['su-1', 'su-3'], createdById: 'admin-1' });
     expect(audit.logAudit).toHaveBeenCalledWith(
       expect.objectContaining({ action: 'survey_reviewer_granted', metadata: expect.objectContaining({ sampleSize: 2, reviewerUserId: 'rev-1' }) }),
+    );
+  });
+
+  it('keeps people the reviewer is connected to out of their sample', async () => {
+    const family = [{ serviceUserId: 'su-3', firstName: 'Rita', lastName: 'Review', email: null, serviceUser: { firstName: 'Person', lastName: 'su-3' } }];
+    await expect(
+      setup({ links: { contacts: family } }).service.grant(admin, 's1', { userId: 'rev-1', personIds: ['su-1', 'su-3'], ...window }),
+    ).rejects.toThrow(/Take Person su-3 out of the sample/);
+    const { service, prisma } = setup({ links: { contacts: family } });
+    await service.grant(admin, 's1', { userId: 'rev-1', personIds: ['su-1'], ...window });
+    expect(prisma.surveyReviewerGrant.create).toHaveBeenCalled();
+  });
+
+  it('asks for a declaration when the new reviewer was previously involved with us, and records it', async () => {
+    const formerStaff = [{ employeeId: 'e9', firstName: 'Rita', lastName: 'Review', email: 'old@allforcare.co.uk', employee: { isActive: false } }];
+    const first = setup({ links: { staff: formerStaff } });
+    const refused = first.service.createAccount(admin, 's1', { firstName: 'Rita', lastName: 'Review', email: 'rita@review.example' });
+    await expect(refused).rejects.toBeInstanceOf(ConflictException);
+    await expect(refused).rejects.toMatchObject({ response: { links: [{ kind: 'FORMER_STAFF', match: 'NAME' }] } });
+    expect(first.prisma.user.create).not.toHaveBeenCalled();
+    const { service, audit } = setup({ links: { staff: formerStaff } });
+    await service.createAccount(admin, 's1', {
+      firstName: 'Rita',
+      lastName: 'Review',
+      email: 'rita@review.example',
+      declaration: 'Left in 2022, never worked with this branch',
+    });
+    expect(audit.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'survey_reviewer_account_created',
+        metadata: expect.objectContaining({ declaredLinks: ['Former member of staff: Rita Review'], declaration: 'Left in 2022, never worked with this branch' }),
+      }),
     );
   });
 
@@ -331,5 +370,56 @@ describe('reviewer accounts reach only their account and "Surveys to record"', (
     await expect(guard.canActivate(contextFor(admin, SurveysController, 'results'))).resolves.toBe(true);
     // An account given another role is a staff account: not locked down (and never reviewing).
     await expect(guard.canActivate(contextFor({ ...reviewer, roles: [INDEPENDENT_REVIEWER_ROLE, 'Manager'] }, SurveysController, 'list'))).resolves.toBe(true);
+  });
+});
+
+describe('SurveyReviewersService: staff who run surveys', () => {
+  const branchSurvey = { ...namedSurvey, locationIds: ['loc-1'] };
+  const coordinator = {
+    id: 'u-1',
+    email: 'sam@care.example',
+    firstName: 'Sam',
+    lastName: 'Office',
+    isActive: true,
+    userRoles: [{ role: { name: 'Care coordinator' } }],
+    userLocations: [{ locationId: 'loc-1', location: { name: 'North' } }],
+  };
+  const withStaff = (survey: any = branchSurvey) => {
+    const s = setup({ survey });
+    s.prisma.user.findMany.mockResolvedValue([coordinator]);
+    return s;
+  };
+
+  it('lists staff who can record responses in the survey’s branches, never independent reviewers', async () => {
+    const { service, prisma } = withStaff();
+    const res = await service.surveyStaff(admin, 's1');
+    expect(res.data.staff).toEqual([{ id: 'u-1', name: 'Sam Office', email: 'sam@care.example', roles: ['Care coordinator'], branches: ['North'] }]);
+    const where = prisma.user.findMany.mock.calls[0][0].where;
+    expect(where.userRoles.none).toEqual({ role: { name: INDEPENDENT_REVIEWER_ROLE } });
+    expect(JSON.stringify(where)).toContain('surveys.responses.record');
+  });
+
+  it('leaves out staff whose branches do not cover the survey', async () => {
+    const { service } = withStaff({ ...namedSurvey, locationIds: ['loc-2'] });
+    expect((await service.surveyStaff(admin, 's1')).data.staff).toEqual([]);
+  });
+
+  it('asks chosen staff to collect answers: a notice linking to Surveys to collect, audited, no reviewer access', async () => {
+    const { service, notifications, audit, prisma } = withStaff();
+    await expect(service.askStaffToCollect(admin, 's1', ['u-1', 'u-1'], ' By Friday ')).resolves.toEqual({ data: { asked: 1 } });
+    expect(notifications.notifyUsers).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipientUserIds: ['u-1'],
+        message: expect.stringContaining('By Friday'),
+        metadata: expect.objectContaining({ href: '/surveys/to-collect', surveyId: 's1' }),
+      }),
+    );
+    expect(audit.logAudit).toHaveBeenCalledWith(expect.objectContaining({ description: expect.stringContaining('Asked Sam Office to collect answers') }));
+    expect(prisma.surveyReviewerGrant.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses anyone who is not on the staff list, and a survey that is not live', async () => {
+    await expect(withStaff().service.askStaffToCollect(admin, 's1', ['someone-else'])).rejects.toThrow('Only staff who can record');
+    await expect(withStaff({ ...branchSurvey, status: 'DRAFT' }).service.askStaffToCollect(admin, 's1', ['u-1'])).rejects.toThrow('not live');
   });
 });

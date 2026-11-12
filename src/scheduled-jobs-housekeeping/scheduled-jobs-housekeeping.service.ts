@@ -252,6 +252,16 @@ export class ScheduledJobsHousekeepingService {
         ? (jobMeta.employeeApp as Record<string, unknown>)
         : null;
     const rolesByEntryId = logEntryRolesById(employeeAppMeta);
+    // Clock in / out rows: name the carer, and on shared visits their role,
+    // so three "Clocked in" rows can be told apart.
+    const allocationRoles = await this.prisma.jobAllocation.findMany({
+      where: { scheduledJobId: jobId, deletedAt: null },
+      select: { employeeId: true, isLeadCarer: true },
+    });
+    const sharedVisit = allocationRoles.length > 1;
+    const attendanceRoleById = new Map(
+      allocationRoles.map((a) => [a.employeeId, a.isLeadCarer ? ('lead' as const) : ('support' as const)]),
+    );
     const voiceGroups = await this.resolveJobVoiceNotes(jobId, employeeAppMeta);
     const voiceNotesByEventId = new Map<string, VisitVoiceNoteApiItem[]>();
     const otherVoiceNotes: VisitVoiceNoteGroupApi[] = [];
@@ -277,10 +287,14 @@ export class ScheduledJobsHousekeepingService {
           next = { ...item, detail: methodOnly, subtitle: methodOnly };
         }
         const authorId = authorIdByEventId.get(item.id);
-        if (authorId && AUTHORED_LOG_TYPES.has(item.type)) {
+        const isAttendance = item.type === 'clock_in' || item.type === 'clock_out';
+        if (authorId && (AUTHORED_LOG_TYPES.has(item.type) || isAttendance)) {
           const name = nameById.get(authorId) ?? 'Carer';
-          const role =
-            rolesByEntryId.get(item.logEntryId ?? '') ?? rolesByEntryId.get(item.sourceId) ?? null;
+          const role = isAttendance
+            ? sharedVisit
+              ? (attendanceRoleById.get(authorId) ?? null)
+              : null
+            : (rolesByEntryId.get(item.logEntryId ?? '') ?? rolesByEntryId.get(item.sourceId) ?? null);
           const author: VisitLogAuthor = {
             employeeId: authorId,
             name,

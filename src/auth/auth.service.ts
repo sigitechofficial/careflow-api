@@ -29,6 +29,7 @@ import {
 import { burnPasswordCompare } from '../common/utils/password.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { SignInSessionsService, endAllSignInSessions } from './sign-in-sessions/sign-in-sessions.service';
 
 export const PASSWORD_RESET_REQUESTED_MESSAGE =
   'If the email exists, a reset link will be sent';
@@ -62,6 +63,7 @@ export class AuthService {
     private readonly serviceUserPortalAccountsService: ServiceUserPortalAccountsService,
     private readonly prisma: PrismaService,
     private readonly mailService: MailService,
+    private readonly sessions: SignInSessionsService,
   ) {}
 
   async login(dto: LoginDto, req: Request) {
@@ -106,9 +108,10 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tokens = await this.issueTokens(user.id);
-    const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
-    await this.usersService.setRefreshTokenHash(user.id, refreshTokenHash);
+    // This browser's own sign-in: others stay signed in, up to the organisation's device limit.
+    const sessionId = this.sessions.newSessionId();
+    const tokens = await this.issueTokens(user.id, sessionId);
+    await this.sessions.start('USER', user.id, sessionId, tokens.refreshToken, this.refreshExpiry(tokens.refreshToken), meta);
 
     await this.auditLogs.logLogin({
       userId: user.id,
@@ -343,7 +346,7 @@ export class AuthService {
     const meta = this.auditLogs.getRequestMeta(req);
     const payload = (await this.jwtService.verifyAsync(dto.refreshToken, {
       secret: this.config.get<string>('JWT_REFRESH_TOKEN_SECRET'),
-    })) as { sub: string; typ?: string };
+    })) as { sub: string; typ?: string; sid?: string };
 
     if (payload.typ === 'ti') {
       const row = await this.temporaryInspectorsService.findForRefresh(payload.sub);
@@ -426,14 +429,22 @@ export class AuthService {
     }
 
     const user = await this.usersService.findById(payload.sub);
-    if (!user || !user.refreshTokenHash) throw new UnauthorizedException('Invalid refresh token');
+    if (!user || !user.isActive || user.deletedAt) throw new UnauthorizedException('Invalid refresh token');
 
-    const ok = refreshTokenMatches(dto.refreshToken, user.refreshTokenHash);
-    if (!ok) throw new UnauthorizedException('Invalid refresh token');
-
-    const tokens = await this.issueTokens(user.id);
-    const refreshTokenHash = hashRefreshToken(tokens.refreshToken);
-    await this.usersService.setRefreshTokenHash(user.id, refreshTokenHash);
+    let tokens: { accessToken: string; refreshToken: string };
+    if (payload.sid) {
+      tokens = await this.issueTokens(user.id, payload.sid);
+      await this.sessions.rotate('USER', user.id, payload.sid, dto.refreshToken, tokens.refreshToken, this.refreshExpiry(tokens.refreshToken), meta);
+    } else {
+      // Signed in before per-device sign-ins: the old single token, moved onto a sign-in of its own.
+      if (!user.refreshTokenHash || !refreshTokenMatches(dto.refreshToken, user.refreshTokenHash)) {
+        throw new UnauthorizedException('Invalid refresh token');
+      }
+      const sessionId = this.sessions.newSessionId();
+      tokens = await this.issueTokens(user.id, sessionId);
+      await this.sessions.start('USER', user.id, sessionId, tokens.refreshToken, this.refreshExpiry(tokens.refreshToken), meta);
+      await this.usersService.clearRefreshToken(user.id);
+    }
 
     await this.auditLogs.logLogin({
       userId: user.id,
@@ -617,7 +628,7 @@ export class AuthService {
         throw new BadRequestException(PASSWORD_RESET_INVALID_MESSAGE);
       }
 
-      // Same effect as UsersService.updatePassword: new hash + refresh token revoked (logs out all sessions).
+      // Same effect as UsersService.updatePassword: new hash, and every device signed out.
       const updated = await tx.user.updateMany({
         where: { id: row.userId, isActive: true, deletedAt: null },
         data: { passwordHash, refreshTokenHash: null },
@@ -625,6 +636,7 @@ export class AuthService {
       if (updated.count !== 1) {
         throw new BadRequestException(PASSWORD_RESET_INVALID_MESSAGE);
       }
+      await endAllSignInSessions(tx, 'USER', row.userId, 'PASSWORD_CHANGED');
 
       await tx.passwordResetToken.updateMany({
         where: { userId: row.userId, usedAt: null },
@@ -811,7 +823,8 @@ export class AuthService {
     }
 
     const dbUser = await this.usersService.findById(user.id);
-    await this.usersService.clearRefreshToken(user.id);
+    // This browser only: the person stays signed in on their other devices.
+    await this.sessions.end(user.sessionId, 'SIGNED_OUT');
     await this.auditLogs.logLogin({
       userId: user.id,
       email: dbUser?.email ?? user.email,
@@ -832,8 +845,15 @@ export class AuthService {
     return { message: 'Logout successful', data: {} };
   }
 
-  private async issueTokens(userId: string) {
-    const accessToken = await this.jwtService.signAsync({ sub: userId });
+  /** When a refresh token stops working (its exp), for the sign-in's expiry. */
+  private refreshExpiry(refreshToken: string): Date {
+    const exp = (this.jwtService.decode(refreshToken) as { exp?: number } | null)?.exp;
+    return new Date(exp ? exp * 1000 : Date.now() + 7 * 86400000);
+  }
+
+  /** Tokens for one signed-in browser (sid: the AuthSession), checked on every request and renewal. */
+  private async issueTokens(userId: string, sessionId: string) {
+    const accessToken = await this.jwtService.signAsync({ sub: userId, sid: sessionId });
 
     const refreshSignOptions = {
       secret: this.config.get<string>('JWT_REFRESH_TOKEN_SECRET'),
@@ -842,7 +862,7 @@ export class AuthService {
       jwtid: randomUUID(),
     } as JwtSignOptions;
 
-    const refreshToken = await this.jwtService.signAsync({ sub: userId }, refreshSignOptions);
+    const refreshToken = await this.jwtService.signAsync({ sub: userId, sid: sessionId }, refreshSignOptions);
 
     return { accessToken, refreshToken };
   }

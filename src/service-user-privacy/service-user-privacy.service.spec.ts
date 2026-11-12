@@ -42,7 +42,7 @@ function setup(opts: { lines?: Array<{ startsOn: Date; endsOn: Date | null; stop
 describe('ServiceUserPrivacyService', () => {
   it('stopping the last sharing with a contact stops their updates, keeps the line as history and audits it', async () => {
     const { service, tx, audit } = setup({
-      lines: [{ startsOn: new Date('2026-11-01T00:00:00Z'), endsOn: null, stoppedAt: new Date() }],
+      lines: [{ startsOn: new Date('2026-11-01T00:00:00Z'), endsOn: null, stoppedAt: new Date(), categories: ['CARE_UPDATES'] }],
       canReceiveUpdates: true,
     });
     await service.stopSharing('user-1', SU, LINE, { reason: 'She asked us to stop' });
@@ -56,8 +56,8 @@ describe('ServiceUserPrivacyService', () => {
   it('a contact still shared with on another line keeps getting updates', async () => {
     const { service, tx } = setup({
       lines: [
-        { startsOn: new Date('2026-11-01T00:00:00Z'), endsOn: null, stoppedAt: new Date() },
-        { startsOn: new Date('2026-01-01T00:00:00Z'), endsOn: null, stoppedAt: null },
+        { startsOn: new Date('2026-11-01T00:00:00Z'), endsOn: null, stoppedAt: new Date(), categories: ['CARE_UPDATES'] },
+        { startsOn: new Date('2026-01-01T00:00:00Z'), endsOn: null, stoppedAt: null, categories: ['HEALTH_MEDICINES'] },
       ],
       canReceiveUpdates: true,
     });
@@ -83,7 +83,7 @@ describe('ServiceUserPrivacyService', () => {
 
   it('sharing with a contact takes their name, ticks their updates and keeps "everything" on its own', async () => {
     const { service, tx } = setup({
-      lines: [{ startsOn: new Date('2026-11-01T00:00:00Z'), endsOn: null, stoppedAt: null }],
+      lines: [{ startsOn: new Date('2026-11-01T00:00:00Z'), endsOn: null, stoppedAt: null, categories: ['ALL'] }],
       canReceiveUpdates: false,
     });
     await service.createSharing('user-1', SU, {
@@ -97,6 +97,31 @@ describe('ServiceUserPrivacyService', () => {
     const created = tx.serviceUserSharingAgreement.create.mock.calls[0][0] as unknown as { data: Record<string, unknown> };
     expect(created.data).toMatchObject({ recipientName: 'Ann Smith', contactId: CONTACT, categories: ['ALL'], channels: ['PHONE'] });
     expect(tx.serviceUserContact.update).toHaveBeenCalledWith({ where: { id: CONTACT }, data: { canReceiveUpdates: true, updatedById: 'user-1' } });
+  });
+
+  it('"Surveys" is kept alongside "everything", and a surveys-only line does not turn on care updates', async () => {
+    const withAll = setup({ lines: [{ startsOn: new Date('2026-11-01T00:00:00Z'), endsOn: null, stoppedAt: null, categories: ['ALL', 'SURVEYS'] }], canReceiveUpdates: false });
+    await withAll.service.createSharing('user-1', SU, {
+      recipientKind: 'CONTACT',
+      contactId: CONTACT,
+      categories: ['ALL', 'FINANCE', 'SURVEYS'],
+      channels: ['EMAIL'],
+      basis: 'CONSENT',
+      startsOn: '2026-11-01',
+    });
+    const created = withAll.tx.serviceUserSharingAgreement.create.mock.calls[0][0] as unknown as { data: Record<string, unknown> };
+    expect(created.data).toMatchObject({ categories: ['ALL', 'SURVEYS'] });
+
+    const surveysOnly = setup({ lines: [{ startsOn: new Date('2026-11-01T00:00:00Z'), endsOn: null, stoppedAt: null, categories: ['SURVEYS'] }], canReceiveUpdates: false });
+    await surveysOnly.service.createSharing('user-1', SU, {
+      recipientKind: 'CONTACT',
+      contactId: CONTACT,
+      categories: ['SURVEYS'],
+      channels: ['EMAIL'],
+      basis: 'CONSENT',
+      startsOn: '2026-11-01',
+    });
+    expect(surveysOnly.tx.serviceUserContact.update).not.toHaveBeenCalled();
   });
 
   it('refuses an end date before the start, and sharing with nothing chosen', async () => {

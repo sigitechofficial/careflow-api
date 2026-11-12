@@ -180,3 +180,12 @@ Because it reads the jobs themselves, the cancel paths C1–C6 need no edits.
 - Admin Hours approvals: room = weekly hours + bank minutes. Row "13h that week (1h from the timebank)", over column "+4h" (was +5h), approve dialog "13h of 8h weekly contracted hours + 1h from the timebank", green "Now within…" note uses the same room.
 - Not changed: approve/reject rules; approving still makes the visit over the hours without the bank; auto-approve when weekly hours go up (`autoApproveServiceUserVisits`) still compares with the weekly hours only.
 - Live (Raymond, setting Yes): extra A 1h30 on 24 Nov → 60m from bank; extra B 4h on 25 Nov → approval (bank 3h34 < 4h). API payload + currentWeek `timebankMinutes: 60` ✔; screen row and approve dialog as above ✔. Green note not live-tested (same comparison as the over column). Clean-up: B rejected, A deleted (60m returned), setting No.
+
+## 9. Weekdays at the standard rate only (decision 10–11 Nov 2026, built)
+
+Timebank hours are charged at the standard weekday rate (SU_TIMEBANK_INVOICE_PLAN.md §10), so they only pay for care at that rate.
+- **Not used for:** Saturday / Sunday; a bank holiday or organisation special day (Finance › Billing management › Bank holidays, regions UK + ORGANISATION); a time the service user's charge card prices differently from the standard weekday time (e.g. an evening rate); night visits (as before). A visit touching any such day (past midnight) is not paid from the bank.
+- **Then:** the visit follows the weekly hours rule (approval / warning), as when the bank is empty. Reservations made before are left as they are.
+- **Code:** `service-user-hours/timebank-day-rule.util.ts` (`makeTimebankDayRule`, shared `standardWeekdayTime`); `TimebankBudget.withDayRule` / `blockReason`, set in `VisitPlanWeeklyHoursService.timebankBudget`; checked before `cover` in `classifyNewVisits` (extra visits, special visits), `checkLongerVisit` / `checkExtraEdit`, plan time change and rota generation. The reason (`timebankBlockedReason`) is shown in the extra visit dialog and the special visit message; the run preview says weekday visits only.
+- **Tests:** day rule spec 7, weekly hours spec weekend case. Local preview (Doreen, Croydon card, bank 29h 45m, Use timebank = Yes for the test, then No again): Thu 19 Nov 5h from the bank; Sat 21 Nov "weekend (Saturday)" → manager approval.
+- **Calendar:** bank holidays must be added for each year before its visits are made (the rota runs 28 days ahead: 2027 holidays by early December 2026).

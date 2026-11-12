@@ -27,7 +27,7 @@ env:
   APP: allforcare-api
   JOB: job-careflow-migrate
   # Scheduled Container Apps Jobs that run the API image as a CLI (node dist/src/jobs/run-job.js <name>).
-  SCHEDULED_JOBS: job-careflow-rolling-rota job-careflow-plan-end job-careflow-learning job-careflow-care-plan-reviews
+  SCHEDULED_JOBS: job-careflow-rolling-rota job-careflow-plan-end job-careflow-learning job-careflow-care-plan-reviews job-careflow-over-care
   # Whisper speech-to-text worker (Container Apps Job, deploy/azure/whisper). Its image is only built and
   # rolled out when the repo variable WHISPER_JOB_ENABLED is 'true'.
   WHISPER_JOB: job-careflow-whisper

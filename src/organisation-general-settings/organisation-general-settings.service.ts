@@ -207,6 +207,9 @@ type SettingsRow = {
   appSettingBookHolidaysCareApp: boolean;
   appSettingFingerprintLoginCareApp: boolean;
   appSettingSingleDeviceLoginCareApp: boolean;
+  appSettingMaxDevicesCareApp: number;
+  officeMultipleDeviceLogin: boolean;
+  officeMaxDevices: number;
   privacyNonActiveServiceUserDays: number;
   privacyNotifyInternalMessage: boolean;
   privacyNotifyEmail: boolean;
@@ -546,6 +549,9 @@ function buildUpdateData(
   set('appSettingBookHolidaysCareApp', dto.appSettingBookHolidaysCareApp);
   set('appSettingFingerprintLoginCareApp', dto.appSettingFingerprintLoginCareApp);
   set('appSettingSingleDeviceLoginCareApp', dto.appSettingSingleDeviceLoginCareApp);
+  set('appSettingMaxDevicesCareApp', dto.appSettingMaxDevicesCareApp);
+  set('officeMultipleDeviceLogin', dto.officeMultipleDeviceLogin);
+  set('officeMaxDevices', dto.officeMaxDevices);
 
   set('privacyNonActiveServiceUserDays', dto.privacyNonActiveServiceUserDays);
   set('privacyNotifyInternalMessage', dto.privacyNotifyInternalMessage);

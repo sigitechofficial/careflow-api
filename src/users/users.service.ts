@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { hashPassword } from '../common/utils/password.util';
+import { endAllSignInSessions } from '../auth/sign-in-sessions/sign-in-sessions.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditLogsService } from '../audit-logs/audit-logs.service';
 import { AuditModule } from '../audit-logs/enums/audit-module.enum';
@@ -108,6 +109,7 @@ export class UsersService {
       where: { id: userId },
       data: { passwordHash, refreshTokenHash: null },
     });
+    await endAllSignInSessions(this.prisma, 'USER', userId, 'PASSWORD_CHANGED');
   }
 
   async updateProfile(userId: string, data: { firstName?: string; lastName?: string }) {
@@ -187,6 +189,8 @@ export class UsersService {
         ...(passwordHash ? { passwordHash, refreshTokenHash: null } : {}),
       },
     });
+    // A new password signs this person out on every device.
+    if (passwordHash) await endAllSignInSessions(this.prisma, 'USER', userId, 'PASSWORD_CHANGED');
 
     await this.audit.logAudit({
       userId: actor.id,

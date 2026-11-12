@@ -17,7 +17,7 @@ import type { RequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { surveyVisibleInScope } from './survey-scope.util';
 import { SurveyContactRuleService } from './survey-contact-rule.service';
 import { freeFromDay, librarySentWith } from './survey-contact-rule.util';
-import { SURVEY_UNSUBSCRIBE_REASON, outsideContactBlocks } from './survey-eligibility.util';
+import { SURVEY_UNSUBSCRIBE_REASON, outsideContactBlocks, surveyConsentContactIds } from './survey-eligibility.util';
 import { surveyContactMessages } from './survey-contact-messages.util';
 import { surveyEmailBranding, surveyEmailFacts } from './survey-email-branding';
 import { readContactPlan } from './survey-contact-plan.util';
@@ -165,6 +165,8 @@ export class SurveyOutsidePeopleService {
         mobile: r.mobile,
         phone: r.phone,
         sourceType: r.sourceType,
+        // For a family member: their People involved record, so the screen can match them to "Families of…".
+        sourceId: r.sourceType === 'SERVICE_USER_CONTACT' ? r.sourceId : null,
         serviceUserId: r.serviceUserId,
         locationIds: r.locationIds,
         listIds: r.lists.map((l) => l.listId),
@@ -339,8 +341,8 @@ export class SurveyOutsidePeopleService {
   }
 
   /**
-   * Families of these people we support (People involved): those who agreed to be contacted ("Can receive care
-   * updates"), with an email or mobile. Each becomes (or stays) one outside person, read again from the record.
+   * Families of these people we support (People involved): those who agreed to our surveys (a "Surveys" sharing
+   * line in Privacy), with an email or mobile. Each becomes (or stays) one outside person, read again from the record.
    */
   async familiesOf(actor: RequestUser, serviceUserIds: string[]) {
     const scope = this.orgScope.fromRequestUser(actor);
@@ -355,6 +357,7 @@ export class SurveyOutsidePeopleService {
       include: { relationshipType: { select: { name: true } } },
       orderBy: [{ isPrimary: 'desc' }, { firstName: 'asc' }],
     });
+    const agreed = await surveyConsentContactIds(this.prisma, contacts.map((c) => c.id));
     const out: Array<{ contactId: string | null; sourceId: string; serviceUserId: string; name: string; relationship: string | null; email: string | null; mobile: string | null; consent: boolean; reachable: boolean }> = [];
     for (const c of contacts) {
       const mobile = normaliseUkMobile(c.mobile) ?? normaliseUkMobile(c.phone);
@@ -366,7 +369,7 @@ export class SurveyOutsidePeopleService {
         relationship: c.relationshipType?.name ?? null,
         email: c.email?.trim() || null,
         mobile,
-        consent: c.canReceiveUpdates,
+        consent: agreed.has(c.id),
         reachable: Boolean(c.email?.trim() || mobile),
       });
     }
@@ -508,10 +511,11 @@ export class SurveyOutsidePeopleService {
       const inScope = this.orgScope.serviceUserScopeWhere(scope);
       const contacts = await this.prisma.serviceUserContact.findMany({
         where: { id: { in: input.familyContactIds }, deletedAt: null, isActive: true, serviceUser: { AND: [{ deletedAt: null }, ...(inScope ? [inScope] : [])] } },
-        select: { id: true, canReceiveUpdates: true },
+        select: { id: true },
       });
+      const agreed = await surveyConsentContactIds(this.prisma, contacts.map((c) => c.id));
       for (const c of contacts) {
-        if (!c.canReceiveUpdates) {
+        if (!agreed.has(c.id)) {
           noConsent += 1;
           continue;
         }
@@ -545,14 +549,18 @@ export class SurveyOutsidePeopleService {
     const reachable: ExternalRow[] = [];
     let optedOut = 0;
     let noDetails = 0;
+    // Who cannot be reached by this survey, so the screen can say it next to their name.
+    const noDetailsPeople: Array<{ id: string; name: string; sourceType: string; sourceId: string | null; serviceUserId: string | null; hasMobile: boolean }> = [];
     for (const r of rows) {
       if (already.has(r.id)) continue;
       const email = r.email && !blocked(r, 'EMAIL');
       const text = textOn && r.mobile && !blocked(r, 'TEXT');
       if (opt.get(r.id)?.has('ALL')) optedOut += 1;
       else if (email || text) reachable.push(r);
-      else if (!r.email && !(textOn && r.mobile)) noDetails += 1;
-      else optedOut += 1;
+      else if (!r.email && !(textOn && r.mobile)) {
+        noDetails += 1;
+        noDetailsPeople.push({ id: r.id, name: r.name, sourceType: r.sourceType, sourceId: r.sourceId, serviceUserId: r.serviceUserId, hasMobile: Boolean(r.mobile) });
+      } else optedOut += 1;
     }
     // The 4-week rule, per real person.
     const tz = await this.timeZone();
@@ -585,6 +593,8 @@ export class SurveyOutsidePeopleService {
       already: already.size,
       optedOut,
       noDetails,
+      noDetailsPeople,
+      textOn,
       noConsent,
       died,
       total: rows.length + noConsent + died,
@@ -598,7 +608,21 @@ export class SurveyOutsidePeopleService {
     const r = await this.resolveOutside(actor, survey, input, now);
     return {
       message: 'Send check',
-      data: { total: r.total, sendNow: r.free.length, heldBack: r.held.length, held: r.held, already: r.already, optedOut: r.optedOut, noDetails: r.noDetails, noConsent: r.noConsent, died: r.died, afterDeath: r.afterDeath },
+      data: {
+        total: r.total,
+        sendNow: r.free.length,
+        heldBack: r.held.length,
+        held: r.held,
+        already: r.already,
+        optedOut: r.optedOut,
+        noDetails: r.noDetails,
+        // Named, and whether this survey also sends texts (if not, a mobile alone is not enough).
+        noDetailsPeople: r.noDetailsPeople,
+        textOn: r.textOn,
+        noConsent: r.noConsent,
+        died: r.died,
+        afterDeath: r.afterDeath,
+      },
     };
   }
 
@@ -691,7 +715,7 @@ export class SurveyOutsidePeopleService {
     const notes = [
       !override && r.held.length ? `${r.held.length} had another survey in the last 4 weeks and were not sent it` : '',
       r.optedOut ? `${r.optedOut} asked not to be contacted` : '',
-      r.noDetails ? `${r.noDetails} have no email${this.texts.isEnabled() ? ' or mobile' : ''}` : '',
+      r.noDetails ? `${r.noDetails} have no email${r.textOn ? ' or mobile' : ''}` : '',
       r.noConsent ? `${r.noConsent} family ${r.noConsent === 1 ? 'member has' : 'members have'} not agreed to be contacted` : '',
       r.died ? `${r.died} family ${r.died === 1 ? 'member was' : 'members were'} not sent it because the person we supported has died` : '',
       !deathReason && r.afterDeath ? `${r.afterDeath} ${r.afterDeath === 1 ? 'was' : 'were'} not sent it because the person this survey is about has died (send with a reason if it is needed)` : '',
