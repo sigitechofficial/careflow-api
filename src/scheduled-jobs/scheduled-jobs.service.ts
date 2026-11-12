@@ -45,6 +45,7 @@ import { visitCareNotDeliveredReasonLabel } from '../scheduling/visit-care-not-d
 import {
   buildAdminCheckInSummary,
   extractEmployeeAppCheckIn,
+  extractEmployeeAppCheckInsByEmployee,
 } from '../employee-app/check-in-display.util';
 
 const jobInclude = {
@@ -847,6 +848,18 @@ export class ScheduledJobsService {
         scheduledStart: timeline.scheduledStartDateTime,
         actualStart: timeline.actualStartDateTime,
       }),
+      /** Each carer's own clock-in method / arrival reason (shared visits). Keyed by employeeId. */
+      checkInsByEmployee: Object.fromEntries(
+        Object.entries(extractEmployeeAppCheckInsByEmployee(row.metadata)).map(
+          ([employeeId, blob]) => [
+            employeeId,
+            buildAdminCheckInSummary(blob, {
+              scheduledStart: timeline.scheduledStartDateTime,
+              actualStart: timeline.actualStartDateTime,
+            }),
+          ],
+        ),
+      ),
     };
   }
 }

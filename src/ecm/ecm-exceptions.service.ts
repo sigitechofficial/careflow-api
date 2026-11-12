@@ -25,6 +25,7 @@ import { scheduledJobLocationScope } from './ecm-location-scope.util';
 import { displayUserName, mapCarerSosAlert, parseCarerSosContext } from './carer-sos.util';
 import { mapVisitCheckInMethodGrant } from './visit-check-in-method-grant.util';
 import { loadCheckInMethodsByJobIds } from './ecm-check-in-method.util';
+import { buildEcmCarerReasons, ecmKindUsesCarerReasons } from './ecm-carer-reasons.util';
 import { loadVisitRefsByScheduledVisitIds } from '../scheduling/visit-ref-lookup.util';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import { fcmReport, type FcmSendReport } from '../notifications/fcm-send-report';
@@ -662,6 +663,23 @@ export class EcmExceptionsService {
       .map((row) => row.scheduledJob.visits[0]?.id)
       .filter((id): id is string => Boolean(id));
     const visitRefs = await loadVisitRefsByScheduledVisitIds(this.prisma, visitIds);
+    // Carer's own early / late / early-finish reason for the queue card (read-only).
+    const reasonJobIds = [
+      ...new Set(
+        rows.filter((row) => ecmKindUsesCarerReasons(row.kind)).map((row) => row.scheduledJobId),
+      ),
+    ];
+    const reasonJobMeta =
+      reasonJobIds.length === 0
+        ? new Map<string, unknown>()
+        : new Map(
+            (
+              await this.prisma.scheduledJob.findMany({
+                where: { id: { in: reasonJobIds } },
+                select: { id: true, metadata: true },
+              })
+            ).map((job) => [job.id, job.metadata as unknown] as const),
+          );
     const ackIds = [
       ...new Set(
         rows.map((row) => row.acknowledgedById).filter((id): id is string => Boolean(id)),
@@ -730,6 +748,16 @@ export class EcmExceptionsService {
             [r.scheduledJob.serviceUser.firstName, r.scheduledJob.serviceUser.lastName]
               .filter(Boolean)
               .join(' '),
+          /** Queue card heading: legal name with preferred name in brackets. */
+          serviceUserFullName: (() => {
+            const su = r.scheduledJob.serviceUser;
+            const legal = [su.firstName, su.lastName].filter(Boolean).join(' ').trim();
+            const preferred = su.preferredName?.trim();
+            const same = (a?: string | null) => Boolean(a && preferred && a.trim().toLowerCase() === preferred.toLowerCase());
+            return legal && preferred && !same(legal) && !same(su.firstName)
+              ? `${legal} (${preferred})`
+              : legal || preferred || '';
+          })(),
           clockedInAt:
             r.scheduledJob.visits[0]?.actualStartDateTime?.toISOString() ?? null,
           hasMockLocation:
@@ -768,6 +796,13 @@ export class EcmExceptionsService {
                     : null,
                 })
               : null,
+          carerReasons: ecmKindUsesCarerReasons(r.kind)
+            ? buildEcmCarerReasons({
+                kind: r.kind,
+                metadata: reasonJobMeta.get(r.scheduledJobId),
+                carers,
+              })
+            : [],
           checkInMethodRequest: r.checkInMethodGrant
             ? mapVisitCheckInMethodGrant(r.checkInMethodGrant, {
                 employeeName:
