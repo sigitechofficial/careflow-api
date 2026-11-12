@@ -19,6 +19,7 @@ import { randomUUID } from 'crypto';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { PrismaService } from '../../../prisma/prisma.service';
+import { uploadPath } from '../../../common/utils/upload-path.util';
 import type { RequestUser } from '../../../common/decorators/current-user.decorator';
 import type { FetchedEmail } from '../../../referral-mailbox/connectors/connector.types';
 import { DOCX_MIME, MAX_ATTACHMENT_BYTES, docxToText } from '../../../referral-mailbox/referral-email-parse.util';
@@ -30,9 +31,14 @@ import { RecruitmentExtractionService } from './recruitment-extraction.service';
 import { historyFromExtraction, splitName, yesNoToBool, type ApplicationExtraction } from './recruitment-inbox.util';
 import type { CreateCandidateFromEmailDto } from './recruitment-inbox.dto';
 
-const STORAGE_ROOT = path.join(process.cwd(), 'storage', 'recruitment-mailbox');
+/**
+ * Email attachments live in the uploads folder (the shared, persistent volume on Azure), in an area the public
+ * /uploads routes refuse to serve (main.ts): staff get them only through the signed-in attachment route.
+ */
+export const RECRUITMENT_UPLOAD_AREA = 'recruitment-mailbox';
+const STORAGE_ROOT = uploadPath(RECRUITMENT_UPLOAD_AREA);
 /** Candidate documents live here (same place as files staff upload on the candidate). */
-const CANDIDATE_UPLOAD_ROOT = path.join(process.cwd(), 'uploads', 'recruitment', 'candidates');
+const CANDIDATE_UPLOAD_ROOT = uploadPath('recruitment', 'candidates');
 
 type StoredAttachment = { fileName: string; mimeType: string; size: number; storedName: string | null; skippedReason?: string };
 

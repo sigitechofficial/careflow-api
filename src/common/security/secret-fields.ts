@@ -7,6 +7,7 @@ import type { Prisma } from '@prisma/client';
  *   ServiceUserPortalAccount, TemporaryInspector
  * - `tokenHash`: PasswordResetToken
  * - `gatewayTestPasswordEnc` / `gatewayLivePasswordEnc`: PayrollEmployerSettings (HMRC Gateway)
+ * - `encryptedSecret` / `encryptedRelaySecret` / `webhookTokenHash`: ReferralMailbox; `stateHash`: ReferralOAuthState
  *
  * Add a column here whenever the schema gains another one like these.
  * `secret-fields.spec.ts` fails if a column in the Prisma schema looks like a secret but isn't covered.
@@ -17,6 +18,12 @@ export const SECRET_FIELD_NAMES: ReadonlySet<string> = new Set([
   'tokenHash',
   'gatewayTestPasswordEnc',
   'gatewayLivePasswordEnc',
+  // ReferralMailbox: encrypted mailbox / relay passwords, the hash of the inbound webhook token
+  'encryptedSecret',
+  'encryptedRelaySecret',
+  'webhookTokenHash',
+  // ReferralOAuthState: hash of a Google / Microsoft sign-in state (single use, 10 minutes)
+  'stateHash',
 ]);
 
 /** Catches renamed or prefixed variants too, e.g. `portalPasswordHash` or `apiSecretHash`. */

@@ -193,5 +193,21 @@ export class MicrosoftConnector implements MailboxConnector {
     await this.folder();
   }
 
+  async createFolder(name: string) {
+    await (await this.s()).call('/mailFolders', { method: 'POST', body: JSON.stringify({ displayName: name }) });
+  }
+
+  /** Inbox, the top-level folders and the folders inside the Inbox (Sent, Drafts, Junk and Deleted left out). */
+  async listFolders() {
+    const s = await this.s();
+    const top = await s.call('/mailFolders?$top=100&$select=displayName');
+    const inInbox = await s.call('/mailFolders/inbox/childFolders?$top=100&$select=displayName').catch(() => ({ value: [] }));
+    const skip = /^(sent items|drafts|junk email|deleted items|outbox|conversation history|archive|inbox)$/i;
+    const names = [...(top.value ?? []), ...(inInbox.value ?? [])]
+      .map((f: { displayName?: string }) => f.displayName?.trim() ?? '')
+      .filter((n: string) => n && !skip.test(n));
+    return [{ name: 'Inbox', hint: 'Every email that arrives' }, ...[...new Set<string>(names)].sort().map((name) => ({ name }))];
+  }
+
   async close() {}
 }

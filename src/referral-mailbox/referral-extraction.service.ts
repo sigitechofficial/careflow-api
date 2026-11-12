@@ -7,6 +7,21 @@ import type { EmailKind } from './referral-rules.util';
 const MODEL = 'claude-opus-5-5';
 /** Claude Opus 5.5 list price, $ per million tokens. */
 const PRICE = { input: 4, output: 20 };
+/** The quick screening check: the smallest model, a few hundred words in, a sentence out. */
+const SCREEN_MODEL = 'claude-haiku-5-5';
+const SCREEN_PRICE = { input: 0.1, output: 0.5 };
+const SCREEN_SCHEMA = {
+  type: 'object',
+  properties: {
+    aboutCare: { type: 'boolean', description: 'true when the email could be about care or support for a person' },
+    reason: { type: 'string', description: 'A few words: why' },
+  },
+  required: ['aboutCare', 'reason'],
+  additionalProperties: false,
+};
+const SCREEN_SYSTEM_PROMPT = `You sort emails arriving at a UK home care provider (domiciliary care) before a person reads them.
+Answer aboutCare = true when the email could be about care or support for a person: a referral from a council, the NHS, a hospital, a GP, a social worker or another provider; a person or their family asking for care, prices or availability; a reply about a referral; a complaint or a safeguarding concern; news about someone already receiving care. When in doubt, answer true: a missed referral is far worse than an extra read.
+Answer aboutCare = false only for emails that are clearly something else: adverts, newsletters, sales and marketing (including from care-sector suppliers and software companies), account and security notifications, receipts and invoices from suppliers, social media, job applications and recruitment agencies, and spam.`;
 
 /** Care-plan areas used by the rota to match carer skills (visit-plan-carer-suggest.util). */
 export const CARE_AREA_OPTIONS = [
@@ -481,6 +496,51 @@ export class ReferralExtractionService {
     if (!apiKey) throw new ServiceUnavailableException('AI is not set up. Add AI_API_KEY to the API .env file and restart the API.');
     this.client ??= new Anthropic({ apiKey });
     return this.client;
+  }
+
+  /**
+   * The quick check before a full read: is this email about someone's care at all? Only the sender, subject and the
+   * first lines go to the smallest model, so it costs a tiny fraction of a full read. Errs towards "yes" when unsure.
+   */
+  async screen(email: { fromName: string | null; fromEmail: string | null; subject: string | null; bodyText: string }): Promise<{
+    aboutCare: boolean;
+    reason: string;
+    costUsd: number;
+  }> {
+    const message = await this.getClient().beta.messages.create({
+      model: SCREEN_MODEL,
+      max_tokens: 300,
+      thinking: { type: 'disabled' },
+      output_config: {
+        effort: 'low',
+        format: betaJSONSchemaOutputFormat(SCREEN_SCHEMA as Parameters<typeof betaJSONSchemaOutputFormat>[0]),
+      },
+      system: SCREEN_SYSTEM_PROMPT,
+      messages: [
+        {
+          role: 'user',
+          content: `<email>
+From: ${[email.fromName, email.fromEmail ? `<${email.fromEmail}>` : ''].filter(Boolean).join(' ')}
+Subject: ${email.subject ?? ''}
+
+${(email.bodyText ?? '').replace(/\s+/g, ' ').slice(0, 1200)}
+</email>`,
+        },
+      ],
+    });
+    let parsed: { aboutCare?: boolean; reason?: string } | null = null;
+    const text = message.content.find((b) => b.type === 'text');
+    try {
+      parsed = text && text.type === 'text' ? (JSON.parse(text.text) as { aboutCare?: boolean; reason?: string }) : null;
+    } catch {
+      parsed = null;
+    }
+    const costUsd = (message.usage.input_tokens * SCREEN_PRICE.input + message.usage.output_tokens * SCREEN_PRICE.output) / 1_000_000;
+    // A refusal or an unreadable answer: read it in full rather than risk losing a referral.
+    if (message.stop_reason === 'refusal' || typeof parsed?.aboutCare !== 'boolean') {
+      return { aboutCare: true, reason: 'The quick check gave no clear answer', costUsd };
+    }
+    return { aboutCare: parsed.aboutCare, reason: (parsed.reason ?? '').trim().slice(0, 200) || (parsed.aboutCare ? 'About care' : 'Not about care'), costUsd };
   }
 
   /** Draft the reply from the check results only (never from the raw email). */

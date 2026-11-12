@@ -200,6 +200,8 @@ export class LateVisitAlertJob {
             recordId: job.id,
             metadata: {
               kind: 'LATE_START',
+              // Opens the visit in Live visits › Exceptions.
+              href: `/ecm/live?tab=exceptions&period=today&jobId=${job.id}`,
               thresholdMinutes,
               scheduledStart: effectiveStart.toISOString(),
             },

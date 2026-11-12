@@ -145,6 +145,7 @@ import { RoleResponsibilitiesModule } from './role-responsibilities/role-respons
 import { LearningModule } from './learning/learning.module';
 import { PoliciesModule } from './policies/policies.module';
 import { PlatformCostsModule } from './platform-costs/platform-costs.module';
+import { MessageDeliveryModule } from './message-delivery/message-delivery.module';
 import { ServiceUserCommunicationNotesModule } from './service-user-communication-notes/service-user-communication-notes.module';
 import { JobsModule } from './jobs/jobs.module';
 
@@ -309,6 +310,7 @@ import { JobsModule } from './jobs/jobs.module';
     LearningModule,
     PoliciesModule,
     PlatformCostsModule,
+    MessageDeliveryModule,
     ServiceUserCommunicationNotesModule,
     JobsModule,
   ],

@@ -79,7 +79,7 @@ describe('ComplianceExpiryRemindersService', () => {
     expect(t.notifications.notifyUsers).toHaveBeenCalledWith(
       expect.objectContaining({ type: 'COMPLIANCE_EXPIRED', recordId: 'c' }),
     );
-    expect(t.push.sendToEmployees).toHaveBeenCalledWith(['emp-a'], expect.any(Object));
+    expect(t.push.sendToEmployees).toHaveBeenCalledWith(['emp-a'], expect.any(Object), 'compliance-reminders');
     expect(t.prisma.complianceReminder.update).toHaveBeenCalledWith(
       expect.objectContaining({ data: expect.objectContaining({ status: 'SENT' }) }),
     );

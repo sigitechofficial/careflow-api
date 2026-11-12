@@ -208,7 +208,7 @@ export class ComplianceExpiryRemindersService {
           title: `${typeName} ${expired ? 'has expired' : 'is expiring'}`,
           body: `Your ${typeName} ${when}. Please send the office your renewed document.`,
           data: { type, employeeComplianceId: record.id },
-        });
+        }, 'compliance-reminders');
         employeePushed = report.sent > 0;
       } catch (err) {
         this.logger.warn(`Compliance reminder ${record.id}: push failed: ${(err as Error).message}`);
@@ -263,7 +263,7 @@ export class ComplianceExpiryRemindersService {
     const body = base ? `${text}\n\nOpen the staff record: ${base}${href}` : text;
     try {
       // One message per person so staff never see each other's addresses.
-      for (const address of to) await this.mail.send({ to: address, subject, text: body });
+      for (const address of to) await this.mail.send({ kind: 'compliance-reminders', to: address, subject, text: body });
       return true;
     } catch (err) {
       this.logger.warn(`Compliance reminder email failed: ${(err as Error).message}`);

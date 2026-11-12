@@ -412,7 +412,7 @@ export class EmployeeAbsencesService {
       (notes?.trim() ? `- Notes: ${notes.trim()}\n` : '') +
       `\nIf anything looks wrong, please contact your manager.\n`;
     try {
-      await this.mail.send({ to: email, subject: `Absence recorded: ${absenceType}`, text });
+      await this.mail.send({ kind: 'absences', to: email, subject: `Absence recorded: ${absenceType}`, text });
     } catch (e) {
       this.logger.warn(
         `Failed to send absence notification: ${e instanceof Error ? e.message : String(e)}`,

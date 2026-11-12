@@ -151,7 +151,7 @@ export class PolicyAcknowledgementNotificationsService {
               title: `New policy to read: ${title}`,
               body: `Please read and acknowledge ${reference} (${label})${by}.`,
               data: { type: POLICY_ACKNOWLEDGEMENT_PUSH_TYPE, documentId },
-            },
+            }, 'policies'
           );
           summary.pushed += report.sent;
         } catch (err) {
@@ -304,7 +304,7 @@ export class PolicyAcknowledgementNotificationsService {
       try {
         const report = await this.push.sendToEmployees(
           group.claimed.map((c) => c.employeeId),
-          { title: heading, body: text, data: { type: POLICY_ACKNOWLEDGEMENT_PUSH_TYPE, documentId } },
+          { title: heading, body: text, data: { type: POLICY_ACKNOWLEDGEMENT_PUSH_TYPE, documentId } }, 'policies'
         );
         pushed = report.sent > 0;
       } catch (err) {

@@ -1,3 +1,5 @@
+import { OfficeTestAlertsController } from './office-test-alerts.controller';
+import { OfficeTestAlertsService } from './office-test-alerts.service';
 import { Module, forwardRef } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from '../prisma/prisma.module';
@@ -34,11 +36,12 @@ import { VisitCheckInMethodGrantService } from './visit-check-in-method-grant.se
     // Office attendance corrections are carried into carer pay (VisitReconciliationsService).
     BillingModule,
   ],
-  controllers: [EcmVisitsController],
+  controllers: [EcmVisitsController, OfficeTestAlertsController],
   providers: [
     EcmAuditService,
     EcmScheduleVersionService,
     EcmAlertService,
+    OfficeTestAlertsService,
     EcmExceptionsService,
     EcmThresholdLookupsService,
     VisitAreaLockService,

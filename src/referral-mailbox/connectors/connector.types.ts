@@ -45,6 +45,10 @@ export interface MailboxConnector {
   appendTest?(raw: string): Promise<void>;
   /** Check the connection works; throws with a readable message when it doesn't. */
   test(): Promise<void>;
+  /** The labels or folders staff can choose to read (Inbox first), so nobody has to type a name. */
+  listFolders?(): Promise<Array<{ name: string; hint?: string }>>;
+  /** Make a new label or folder in the mailbox (e.g. "Referrals"), so staff don't have to open Gmail or Outlook. */
+  createFolder?(name: string): Promise<void>;
   close(): Promise<void>;
 }
 

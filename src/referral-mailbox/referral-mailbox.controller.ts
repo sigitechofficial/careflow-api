@@ -56,6 +56,8 @@ class UpdateReferralSettingsDto {
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() unplacedLocationId?: string | null;
   /** Checked and cleaned by normaliseRules before it is saved. */
   @IsOptional() @IsObject() rules?: ReferralRules;
+  /** Checked and cleaned by normaliseScreening before it is saved. */
+  @IsOptional() @IsObject() screening?: Record<string, unknown>;
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => StandardRateDto) standardRates?: StandardRateDto[];
   @IsOptional() @IsArray() @ValidateNested({ each: true }) @Type(() => CoverageRowDto) coverage?: CoverageRowDto[];
 }
@@ -76,6 +78,10 @@ class StandardRateDto {
 class CreateEnquiryFromReferralDto {
   @IsUUID()
   locationId!: string;
+}
+
+class CreateFolderDto {
+  @IsString() @MaxLength(100) name!: string;
 }
 
 class UpdateReferralLabelDto {
@@ -222,6 +228,20 @@ export class ReferralMailboxController {
     return this.service.updateMailbox(id, dto);
   }
 
+  @Get('mailboxes/:id/folders')
+  @Permissions('crm.manage')
+  @ApiOperation({ summary: 'The labels or folders this mailbox can read, to choose from' })
+  mailboxFolders(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.mailboxFolders(id);
+  }
+
+  @Post('mailboxes/:id/folders')
+  @Permissions('crm.manage')
+  @ApiOperation({ summary: 'Make a new label or folder in this mailbox' })
+  createMailboxFolder(@Param('id', ParseUUIDPipe) id: string, @Body() dto: CreateFolderDto) {
+    return this.service.createMailboxFolder(id, dto.name);
+  }
+
   @Post('mailboxes/:id/test')
   @Permissions('crm.manage')
   @ApiOperation({ summary: 'Sign in to the mailbox (and its relay) without reading anything' })
@@ -287,16 +307,16 @@ export class ReferralMailboxController {
 
   @Post('test-email')
   @Permissions('crm.manage')
-  @ApiOperation({ summary: 'Development only: place a made-up test referral in the mailbox (a copy goes to the reply-copy addresses)' })
-  testEmail(@Query('scenario') scenario?: string, @Query('mailboxId') mailboxId?: string) {
-    return this.service.insertTestReferral(Number(scenario) || 0, mailboxId || undefined);
+  @ApiOperation({ summary: 'Place a made-up test referral in the mailbox (live system: Super Admin only; replies go to the mailbox itself)' })
+  testEmail(@CurrentUser() user: RequestUser, @Query('scenario') scenario?: string, @Query('mailboxId') mailboxId?: string) {
+    return this.service.insertTestReferral(Number(scenario) || 0, mailboxId || undefined, user);
   }
 
   @Get('test-emails')
   @Permissions('crm.manage')
-  @ApiOperation({ summary: 'Development only: the made-up test referrals that can be added' })
-  testScenarios() {
-    return this.service.testScenarios();
+  @ApiOperation({ summary: 'The made-up test referrals that can be added (live system: Super Admin only)' })
+  testScenarios(@CurrentUser() user: RequestUser) {
+    return this.service.testScenarios(user);
   }
 
   @Get('emails')

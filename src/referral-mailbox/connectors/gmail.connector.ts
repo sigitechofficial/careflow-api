@@ -3,7 +3,14 @@ import { MAX_ATTACHMENT_BYTES, effectiveMimeType, parseGmailMessage } from '../r
 import { buildReplyMime, type ReplyMime } from '../referral-reply-mime.util';
 import { MailboxError, PROCESSED_MARK, type FetchedEmail, type MailboxConnector, type ReplyContext } from './connector.types';
 
-type GmailMailbox = { emailAddress: string; labelName: string; processedLabelId: string | null; refreshToken: string };
+type GmailMailbox = {
+  emailAddress: string;
+  labelName: string;
+  processedLabelId: string | null;
+  refreshToken: string;
+  /** When the mailbox was added to CareFlow. Reading the whole inbox starts a day before it, not from years back. */
+  connectedAt?: Date;
+};
 
 /** Gmail / Google Workspace through the Gmail API (Google sign-in). Reads one label; marks with "CareFlow-read". */
 export class GmailConnector implements MailboxConnector {
@@ -31,7 +38,13 @@ export class GmailConnector implements MailboxConnector {
   async listNew(max: number) {
     const label = this.mb.labelName.trim().replace(/\s+/g, '-');
     await this.processedLabel();
-    return (await this.s()).listMessageIds(`label:${label} -label:${PROCESSED_MARK}`, max);
+    // The whole inbox: only emails from a day before the mailbox was added, so years of old mail aren't all read
+    // (each read costs Claude time). A referrals label is read in full: staff put emails there on purpose.
+    const inbox = label.toUpperCase() === 'INBOX';
+    const since = inbox && this.mb.connectedAt ? ` after:${Math.floor(this.mb.connectedAt.getTime() / 1000) - 86_400}` : '';
+    // Gmail's Promotions, Social and Forums tabs never hold a care referral, and each email read costs Claude time.
+    const skip = inbox ? ' -category:promotions -category:social -category:forums' : '';
+    return (await this.s()).listMessageIds(`label:${label} -label:${PROCESSED_MARK}${since}${skip}`, max);
   }
 
   async fetch(id: string): Promise<FetchedEmail> {
@@ -83,6 +96,21 @@ export class GmailConnector implements MailboxConnector {
 
   async test() {
     await (await this.s()).profileEmail();
+  }
+
+  async createFolder(name: string) {
+    await (await this.s()).ensureLabel(name);
+  }
+
+  /** INBOX first, then the mailbox's own labels (Gmail's system labels and CareFlow's own mark left out). */
+  async listFolders() {
+    const labels = await (await this.s()).labels();
+    const own = labels
+      // Only the mailbox's own labels: Gmail's system ones (stars, categories…) and old IMAP folders are left out.
+      .filter((l) => l.type === 'user' && l.name !== PROCESSED_MARK && !l.name.startsWith('[Imap]'))
+      .map((l) => ({ name: l.name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return [{ name: 'INBOX', hint: 'Every email that arrives (Promotions, Social and Forums tabs left out)' }, ...own];
   }
 
   async close() {}

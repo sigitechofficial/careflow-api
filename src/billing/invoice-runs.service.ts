@@ -3134,7 +3134,7 @@ export class InvoiceRunsService {
       .filter(Boolean)
       .join('\n');
 
-    const sent = await this.mail.send({
+    const sent = await this.mail.send({ kind: 'invoices',
       to,
       subject,
       text,

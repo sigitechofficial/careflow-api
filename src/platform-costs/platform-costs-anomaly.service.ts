@@ -156,7 +156,7 @@ export class PlatformCostsAnomalyService {
       );
     }
     try {
-      await this.mail.send({
+      await this.mail.send({ kind: 'platform-reports',
         to: recipients.map((r) => r.email),
         subject: `[Careflow] ${title}`,
         text: `${message}\n\nOpen Azure Pricing in the Careflow admin to review and acknowledge it.`,

@@ -88,6 +88,8 @@ export class EcmAlertService {
     exceptionId: string;
     criticality?: EcmCriticality | string | null;
     notify?: boolean;
+    /** Only these office users get the alert (test alerts: the person who asked for them). Default: the managers. */
+    recipientUserIds?: string[];
   }) {
     const row = await this.prisma.ecmException.findUnique({
       where: { id: params.exceptionId },
@@ -166,7 +168,7 @@ export class EcmAlertService {
     });
 
     if (params.notify !== false) {
-      await this.routeChannels(updated.id, row);
+      await this.routeChannels(updated.id, row, params.recipientUserIds);
     }
 
     return updated;
@@ -201,7 +203,7 @@ export class EcmAlertService {
     return open.length;
   }
 
-  private async routeChannels(exceptionId: string, row: AlertExceptionRow) {
+  private async routeChannels(exceptionId: string, row: AlertExceptionRow, onlyTo?: string[]) {
     const settings = await this.prisma.organisationGeneralSettings.findFirst({
       select: {
         domLateVisitAlertEmail: true,
@@ -244,7 +246,9 @@ export class EcmAlertService {
       reasonLabel: contextString('reasonLabel'),
       carerNote: contextString('message') ?? contextString('note'),
     });
-    const title = isCarerSos
+    // Test alerts (Administration › Test office alerts) say so, everywhere they show.
+    const testPrefix = context.test === true && !row.title.startsWith('[TEST]') ? '[TEST] ' : '';
+    const title = testPrefix + (isCarerSos
       ? `Carer SOS — ${suName}`
       : row.kind === 'LEFT_VISIT_AREA'
         ? `Carer left visit area — ${suName}`
@@ -254,12 +258,12 @@ export class EcmAlertService {
           ? `Wrong NFC tag scanned — ${suName}`
           : row.kind === 'OUTSIDE_AREA_CHECK_IN_REQUEST'
             ? `Manual check-in needs approval — ${suName}`
-            : `${row.title} — ${suName}`;
+            : `${row.title} — ${suName}`);
 
     let recipientCount = 0;
     if (channels.notification && this.notifications) {
       try {
-        const recipients = await this.managerUserIds();
+        const recipients = onlyTo ?? (await this.managerUserIds());
         if (recipients.length) {
           await this.notifications.notifyUsers({
             recipientUserIds: recipients,
@@ -279,6 +283,7 @@ export class EcmAlertService {
               kind: row.kind,
               scheduledJobId: row.scheduledJobId,
               href: ecmExceptionQueueHref(row.scheduledJobId),
+              ...(context.test === true ? { test: true } : {}),
             },
           });
           recipientCount = recipients.length;
@@ -292,6 +297,11 @@ export class EcmAlertService {
       }
     }
 
+    if (onlyTo) {
+      // Test alerts never go out by email or text.
+      this.logger.log(`ECM test alert routed exception=${exceptionId} recipients=${recipientCount}`);
+      return;
+    }
     if (channels.email) {
       this.logger.warn(`[ECM alert EMAIL channel] ${message}`);
     }
