@@ -505,7 +505,10 @@ export class ServiceUserPrivacyService {
       contactId,
       recipientName,
       recipientRole: (dto.recipientRole ?? '').trim(),
-      categories: dto.categories.includes('ALL') ? ['ALL'] : [...new Set(dto.categories)],
+      // "Everything" covers the care categories; Surveys is kept alongside it.
+      categories: dto.categories.includes('ALL')
+        ? ['ALL', ...(dto.categories.includes('SURVEYS') ? ['SURVEYS'] : [])]
+        : [...new Set(dto.categories)],
       channels: [...new Set(dto.channels)],
       basis: dto.basis,
       legalAuthorityId,
@@ -524,10 +527,12 @@ export class ServiceUserPrivacyService {
     if (!contactId) return;
     const lines = await tx.serviceUserSharingAgreement.findMany({
       where: { serviceUserId, contactId, deletedAt: null },
-      select: { startsOn: true, endsOn: true, stoppedAt: true },
+      select: { startsOn: true, endsOn: true, stoppedAt: true, categories: true },
     });
-    if (!lines.length) return;
-    const canReceiveUpdates = lines.some((l) => sharingIsActive(l, today));
+    // A surveys-only line says nothing about care updates.
+    const careLines = lines.filter((l) => l.categories.some((c) => c !== 'SURVEYS'));
+    if (!careLines.length) return;
+    const canReceiveUpdates = careLines.some((l) => sharingIsActive(l, today));
     const contact = await tx.serviceUserContact.findUnique({ where: { id: contactId }, select: { canReceiveUpdates: true } });
     if (!contact || contact.canReceiveUpdates === canReceiveUpdates) return;
     await tx.serviceUserContact.update({ where: { id: contactId }, data: { canReceiveUpdates, updatedById: userId } });

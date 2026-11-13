@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma, VacancyStatus } from '@prisma/client';
+import { Prisma, VacancyStatus, SalaryPeriod } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { buildPaginationMeta } from '../../../common/utils/pagination.util';
 import type { RequestUser } from '../../../common/decorators/current-user.decorator';
@@ -25,6 +25,8 @@ export class VacanciesService {
     description: string | null;
     requirements: string | null;
     salaryRange: string | null;
+    salaryPeriod: SalaryPeriod | null;
+    closingDate: Date | null;
     numberOfPositions: number;
     status: VacancyStatus;
     hiringManagerId: string | null;
@@ -64,6 +66,8 @@ export class VacanciesService {
       description: row.description,
       requirements: row.requirements,
       salaryRange: row.salaryRange,
+      salaryPeriod: row.salaryPeriod,
+      closingDate: row.closingDate ? row.closingDate.toISOString().slice(0, 10) : null,
       numberOfPositions: row.numberOfPositions,
       status: row.status,
       hiringManagerId: row.hiringManagerId,
@@ -85,6 +89,8 @@ export class VacanciesService {
         description: dto.description,
         requirements: dto.requirements,
         salaryRange: dto.salaryRange,
+        salaryPeriod: dto.salaryPeriod ?? null,
+        closingDate: dto.closingDate ?? null,
         numberOfPositions: dto.numberOfPositions ?? 1,
         hiringManagerId: dto.hiringManagerId,
         createdById: user.id,

@@ -307,3 +307,43 @@ export function toCsv(header: string[], rows: unknown[][]): string {
     '\r\n'
   );
 }
+
+/** Container Apps Job that runs Whisper (WHISPER_MODE=azure-job; deploy/azure/whisper). */
+export const DEFAULT_WHISPER_JOB_NAME = 'job-careflow-whisper';
+
+/** The Whisper job's name: last segment of WHISPER_JOB_RESOURCE_ID, else the default. */
+export function whisperJobName(
+  resourceId = process.env.WHISPER_JOB_RESOURCE_ID,
+): string {
+  const last = (resourceId ?? '').trim().split('/').filter(Boolean).pop();
+  return (last || DEFAULT_WHISPER_JOB_NAME).toLowerCase();
+}
+
+export type WhisperSpend = {
+  jobName: string;
+  monthToDate: number;
+  lastMonthTotal: number;
+  /** Share of this month's total platform spend, in percent. */
+  shareOfMonth: number;
+};
+
+/** Spend of the Whisper Container Apps Job, from the same daily cost rows as the rest of the page. */
+export function whisperSpend(
+  rows: CostRow[],
+  month: string,
+  jobName = whisperJobName(),
+): WhisperSpend {
+  const suffix = `/providers/microsoft.app/jobs/${jobName.toLowerCase()}`;
+  const mine = rows.filter((r) => r.resourceId.toLowerCase().endsWith(suffix));
+  const prev = addMonths(month, -1);
+  const mtd = sumCost(filterRange(mine, monthStart(month), monthEnd(month)));
+  const total = sumCost(filterRange(rows, monthStart(month), monthEnd(month)));
+  return {
+    jobName,
+    monthToDate: round2(mtd),
+    lastMonthTotal: round2(
+      sumCost(filterRange(mine, monthStart(prev), monthEnd(prev))),
+    ),
+    shareOfMonth: total > 0 ? round2((mtd / total) * 100) : 0,
+  };
+}
