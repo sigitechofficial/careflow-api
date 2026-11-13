@@ -3,6 +3,8 @@
 #   docker build -t careflow-api .                          API server (default target)
 #   docker build --target migrate -t careflow-migrate .     prisma migrate deploy + reference seeds
 #                                                          (run as a one-off Container Apps Job)
+#   docker build --target whisper-worker -t careflow-whisper .   Whisper speech-to-text worker
+#                                                          (Container Apps Job, WHISPER_MODE=azure-job)
 #
 # Settings come from the environment (Container Apps / Key Vault); no .env file is baked in.
 # Uploads are not baked in either: /app/uploads is where the Azure Files share is mounted.
@@ -41,6 +43,34 @@ RUN mv node_modules/.prisma /tmp/.prisma \
 FROM build AS migrate
 ENV NODE_ENV=production
 CMD ["sh", "-c", "npx prisma migrate deploy && bash prisma/scripts/run-azure-seeds.sh ."]
+
+# ---- whisper-worker: speech-to-text for Initial Assessment recordings ----------
+# Run as the Whisper Container Apps Job (WHISPER_MODE=azure-job on the API):
+#   docker build --target whisper-worker -t careflow-whisper .
+# Same app code as the API (it reads the queue in the database and saves the transcript attachment)
+# plus Python + faster-whisper and the model, downloaded at build time so a run never needs the
+# internet. No Chromium. Must stay ABOVE the `api` stage: the last stage is the default target.
+FROM base AS whisper-worker
+ARG WHISPER_MODEL=small
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends python3 python3-venv \
+ && rm -rf /var/lib/apt/lists/*
+ENV HF_HOME=/opt/whisper-models
+RUN python3 -m venv /opt/whisper \
+ && /opt/whisper/bin/pip install --no-cache-dir faster-whisper==1.2.1 \
+ && /opt/whisper/bin/python -c "from faster_whisper import WhisperModel; WhisperModel('${WHISPER_MODEL}', device='cpu', compute_type='int8')" \
+ && chmod -R a+rX /opt/whisper-models
+ENV NODE_ENV=production \
+    WHISPER_PYTHON=/opt/whisper/bin/python \
+    WHISPER_MODEL=${WHISPER_MODEL} \
+    HF_HUB_OFFLINE=1
+COPY --chown=node:node package.json ./
+COPY --from=prod-deps --chown=node:node /app/node_modules ./node_modules
+COPY --from=build --chown=node:node /app/dist ./dist
+COPY --chown=node:node scripts/whisper ./scripts/whisper
+RUN mkdir -p /app/uploads && chown node:node /app/uploads
+USER node
+CMD ["node", "dist/src/initial-assessments/run-transcription-worker.js"]
 
 # ---- api (default) -------------------------------------------------------------
 FROM base AS api

@@ -51,6 +51,7 @@ import {
 import { ScheduledJobsService } from '../scheduled-jobs/scheduled-jobs.service';
 import { VisitReconciliationsService } from '../billing/visit-reconciliations.service';
 import { OrganisationGeneralSettingsService } from '../organisation-general-settings/organisation-general-settings.service';
+import { hrDeploymentAllocationIssue } from '../hr/utils/hr-deployment-allocation.util';
 import { AllocationComplianceService } from '../employee-compliance/allocation-compliance.service';
 import {
   EMPTY_COMPLIANCE_ALLOCATION_RESULT,
@@ -980,6 +981,13 @@ export class ServiceUserVisitPlansService {
       if (!parentalLeaveByEmployee.has(r.employeeId)) parentalLeaveByEmployee.set(r.employeeId, r);
     }
 
+    // HR profile status: Red / left are not given visits (rule-blocked); Amber is a warning.
+    const hrStatusRows = await this.prisma.employeeHRProfile.findMany({
+      where: { employeeId: { in: employees.map((e) => e.id) }, deletedAt: null },
+      select: { employeeId: true, deploymentStatus: true, employeeLifecycleStatus: true },
+    });
+    const hrStatusByEmployee = new Map(hrStatusRows.map((r) => [r.employeeId, r]));
+
     const candidates = [];
 
     for (const emp of employees) {
@@ -1107,6 +1115,9 @@ export class ServiceUserVisitPlansService {
         });
       }
       const ruleBlockReasons = ruleHits.filter((h) => h.block).map((h) => h.message);
+      const hrIssue = hrDeploymentAllocationIssue(hrStatusByEmployee.get(emp.id) ?? null);
+      if (hrIssue.block) ruleBlockReasons.push(hrIssue.block);
+      if (hrIssue.warn) warnings.push(hrIssue.warn);
       // No contracted weekly hours: the carer can't be given visits until hours are set.
       const noContractedHours = contractedWeeklyHours == null || contractedWeeklyHours <= 0;
       if (noContractedHours) ruleBlockReasons.push(CARER_NO_CONTRACTED_HOURS_MESSAGE);

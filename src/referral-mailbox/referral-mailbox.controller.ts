@@ -91,7 +91,12 @@ class UpdateReferralLabelDto {
   labelName!: string;
 }
 
+class ConnectDto {
+  @IsOptional() @IsIn(['REFERRALS', 'RECRUITMENT']) purpose?: 'REFERRALS' | 'RECRUITMENT';
+}
+
 class ImapMailboxDto {
+  @IsOptional() @IsIn(['REFERRALS', 'RECRUITMENT']) purpose?: 'REFERRALS' | 'RECRUITMENT';
   @IsOptional() @IsString() @MaxLength(120) displayName?: string | null;
   @IsEmail() emailAddress!: string;
   @IsOptional() @IsString() @MaxLength(200) folder?: string | null;
@@ -129,6 +134,7 @@ class RelayDto {
 }
 
 class WebhookMailboxDto {
+  @IsOptional() @IsIn(['REFERRALS', 'RECRUITMENT']) purpose?: 'REFERRALS' | 'RECRUITMENT';
   @IsOptional() @IsString() @MaxLength(120) displayName?: string | null;
   @IsEmail() emailAddress!: string;
   @IsOptional() @IsString() @MaxLength(1000) apiKey?: string | null;
@@ -137,6 +143,7 @@ class WebhookMailboxDto {
 
 class UpdateMailboxDto {
   @IsOptional() @IsString() @MaxLength(120) displayName?: string | null;
+  @IsOptional() @IsIn(['REFERRALS', 'RECRUITMENT']) purpose?: 'REFERRALS' | 'RECRUITMENT';
   @IsOptional() @IsString() @IsNotEmpty() @MaxLength(200) labelName?: string;
   @IsOptional() @ValidateIf((_, v) => v !== null) @IsUUID() defaultLocationId?: string | null;
   @IsOptional() @ValidateNested() @Type(() => ImapUpdateDto) imap?: ImapUpdateDto;
@@ -195,15 +202,15 @@ export class ReferralMailboxController {
   @Post('google/connect')
   @Permissions('crm.manage')
   @ApiOperation({ summary: 'Start connecting a Gmail mailbox (returns the Google sign-in address)' })
-  connect(@CurrentUser() user: RequestUser) {
-    return this.service.startGmailConnect(user.id);
+  connect(@CurrentUser() user: RequestUser, @Body() dto: ConnectDto) {
+    return this.service.startGmailConnect(user.id, dto?.purpose);
   }
 
   @Post('microsoft/connect')
   @Permissions('crm.manage')
   @ApiOperation({ summary: 'Start connecting a Microsoft 365 / Outlook mailbox (returns the Microsoft sign-in address)' })
-  connectMicrosoft(@CurrentUser() user: RequestUser) {
-    return this.service.startMicrosoftConnect(user.id);
+  connectMicrosoft(@CurrentUser() user: RequestUser, @Body() dto: ConnectDto) {
+    return this.service.startMicrosoftConnect(user.id, dto?.purpose);
   }
 
   @Post('mailboxes/imap')

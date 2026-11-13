@@ -480,6 +480,7 @@ export enum AuditAction {
 
   HR_DOCUMENT_UPLOADED = 'hr_document_uploaded',
   HR_DOCUMENT_DELETED = 'hr_document_deleted',
+  HR_DOCUMENT_STATUS_CHANGED = 'hr_document_status_changed',
   HR_PROFILE_CREATED = 'hr_profile_created',
   HR_PROFILE_UPDATED = 'hr_profile_updated',
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { CandidateStage, VacancyStatus } from '@prisma/client';
+import { VacancyStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { RequestUser } from '../../common/decorators/current-user.decorator';
 import {
@@ -7,17 +7,7 @@ import {
   resolveRecruitmentScope,
   vacancyScopeWhere,
 } from './utils/recruitment-scope.util';
-
-const PIPELINE_STAGES: CandidateStage[] = [
-  CandidateStage.APPLIED,
-  CandidateStage.SCREENING,
-  CandidateStage.SHORTLISTED,
-  CandidateStage.INTERVIEW,
-  CandidateStage.ASSESSMENT,
-  CandidateStage.OFFER,
-  CandidateStage.VETTING,
-  CandidateStage.ACCEPTED,
-];
+import { FLOW_STAGES as PIPELINE_STAGES } from './utils/recruitment-flow.util';
 
 @Injectable()
 export class RecruitmentSummaryService {

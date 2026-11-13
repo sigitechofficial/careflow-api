@@ -27,6 +27,7 @@ import {
 import { adjacentVisits, hmDifferenceMinutes } from './allocation-job-rules.util';
 import { AllocationComplianceService } from '../employee-compliance/allocation-compliance.service';
 import { formatComplianceAllocationMessages } from '../employee-compliance/allocation-compliance.util';
+import { hrDeploymentAllocationIssue } from '../hr/utils/hr-deployment-allocation.util';
 import { dayKeyInTimeZone, getOperationalTimeZone } from '../common/utils/operational-day.util';
 import { weekdayIndexInTimeZone } from '../scheduling/schedule-date-range.util';
 import {
@@ -138,6 +139,7 @@ export class AllocationChecksService {
     await this.checkPreferredBlockedCarer(ctx, push, rules);
     await this.checkRoleMismatch(ctx, push);
     await this.checkCompliance(ctx, push);
+    await this.checkHrStatus(ctx, push);
 
     return results;
   }
@@ -633,6 +635,24 @@ export class AllocationChecksService {
         message: `Employee role does not match job requirement (${employment?.role?.name ?? 'unknown'})`,
         severity: 'warning',
       });
+    }
+  }
+
+  /** HR profile status: Red or left blocks (cannot be forced), Amber warns. */
+  async checkHrStatus(
+    ctx: AllocationCheckContext,
+    push: (w: AllocationWarning) => void,
+  ): Promise<void> {
+    const hr = await this.prisma.employeeHRProfile.findUnique({
+      where: { employeeId: ctx.employeeId },
+      select: { deploymentStatus: true, employeeLifecycleStatus: true, deletedAt: true },
+    });
+    const issue = hrDeploymentAllocationIssue(hr && !hr.deletedAt ? hr : null);
+    if (issue.block) {
+      push({ type: AllocationWarningType.HR_NOT_DEPLOYABLE, message: issue.block, severity: 'blocking', hardBlock: true });
+    }
+    if (issue.warn) {
+      push({ type: AllocationWarningType.HR_AT_RISK, message: issue.warn, severity: 'warning' });
     }
   }
 

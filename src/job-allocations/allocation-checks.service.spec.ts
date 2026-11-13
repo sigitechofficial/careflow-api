@@ -115,3 +115,45 @@ describe('genderPreferenceMismatch', () => {
     expect(genderPreferenceMismatch('male', null)).toBeNull();
   });
 });
+
+describe('AllocationChecksService.checkHrStatus — HR profile status', () => {
+  async function run(hr: { deploymentStatus: string; employeeLifecycleStatus: string; deletedAt: Date | null } | null) {
+    const prisma = { employeeHRProfile: { findUnique: jest.fn().mockResolvedValue(hr) } };
+    const service = new AllocationChecksService(prisma as never, {} as never, {} as never);
+    const out: AllocationWarning[] = [];
+    await service.checkHrStatus(
+      {
+        scheduledJobId: 'job1',
+        employeeId: 'emma',
+        serviceUserId: 'su1',
+        jobStart: new Date('2026-11-02T09:00:00Z'),
+        jobEnd: new Date('2026-11-02T10:00:00Z'),
+      },
+      (w) => out.push(w),
+    );
+    return { out, service };
+  }
+
+  it('Red is a hard block that cannot be forced', async () => {
+    const { out, service } = await run({ deploymentStatus: 'RED', employeeLifecycleStatus: 'ACTIVE', deletedAt: null });
+    expect(out).toEqual([expect.objectContaining({ type: AllocationWarningType.HR_NOT_DEPLOYABLE, severity: 'blocking', hardBlock: true })]);
+    expect(service.hasNonOverridableBlockingWarnings(out)).toBe(true);
+  });
+
+  it('someone who has left is blocked', async () => {
+    const { out } = await run({ deploymentStatus: 'GREEN', employeeLifecycleStatus: 'LEFT', deletedAt: null });
+    expect(out[0]?.type).toBe(AllocationWarningType.HR_NOT_DEPLOYABLE);
+  });
+
+  it('Amber is only a warning', async () => {
+    const { out, service } = await run({ deploymentStatus: 'AMBER', employeeLifecycleStatus: 'ACTIVE', deletedAt: null });
+    expect(out).toEqual([expect.objectContaining({ type: AllocationWarningType.HR_AT_RISK, severity: 'warning' })]);
+    expect(service.hasBlockingWarnings(out)).toBe(false);
+  });
+
+  it('Green, no profile or a deleted profile add nothing', async () => {
+    expect((await run({ deploymentStatus: 'GREEN', employeeLifecycleStatus: 'ACTIVE', deletedAt: null })).out).toEqual([]);
+    expect((await run(null)).out).toEqual([]);
+    expect((await run({ deploymentStatus: 'RED', employeeLifecycleStatus: 'ACTIVE', deletedAt: new Date() })).out).toEqual([]);
+  });
+});

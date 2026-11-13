@@ -51,6 +51,8 @@ import {
 } from './initial-assessment-transcription.service';
 import { InitialAssessmentAiFillService } from './initial-assessment-ai-fill.service';
 import { InitialAssessmentConversationFilesService } from './initial-assessment-conversation-files.service';
+import { TranscriptionQueueService } from './transcription-queue.service';
+import { transcriptionMode } from './transcription-job-starter';
 import { InitialAssessmentAiFillDto } from './dto/initial-assessment-ai-fill.dto';
 
 @ApiTags('Initial Assessments')
@@ -63,6 +65,7 @@ export class InitialAssessmentsController {
     private readonly transcription: InitialAssessmentTranscriptionService,
     private readonly aiFillService: InitialAssessmentAiFillService,
     private readonly conversationFiles: InitialAssessmentConversationFilesService,
+    private readonly transcriptionQueue: TranscriptionQueueService,
   ) {}
 
   @Get()
@@ -491,7 +494,7 @@ export class InitialAssessmentsController {
   @HttpCode(HttpStatus.ACCEPTED)
   @AnyPermission('service_users.initial_assessment.update', 'service_users.update')
   @ApiConsumes('multipart/form-data')
-  @ApiOperation({ summary: 'Transcribe a recorded conversation to text (Whisper, on this server)' })
+  @ApiOperation({ summary: 'Transcribe a recorded conversation to text (Whisper: on this server, or the Whisper job when WHISPER_MODE=azure-job)' })
   @ApiBody({ schema: { type: 'object', properties: { file: { type: 'string', format: 'binary' } }, required: ['file'] } })
   @UseInterceptors(FileInterceptor('file', transcriptionMulterOptions()))
   async startTranscription(
@@ -511,6 +514,11 @@ export class InitialAssessmentsController {
       throw e;
     }
     const recording = saved.attachment;
+    if (transcriptionMode() === 'azure-job')
+      return this.transcriptionQueue.start(user.id, serviceUserId, submissionId, {
+        originalName: file.originalname,
+        recordingAttachmentId: recording.id,
+      });
     return this.transcription.start(
       user.id,
       submissionId,
@@ -558,6 +566,8 @@ export class InitialAssessmentsController {
     @Param('jobId') jobId: string,
   ) {
     await this.service.assertSubmissionExists(serviceUserId, submissionId);
+    if (transcriptionMode() === 'azure-job')
+      return this.transcriptionQueue.get(submissionId, jobId);
     return this.transcription.get(submissionId, jobId);
   }
 
