@@ -12,6 +12,10 @@ export enum AllocationWarningType {
   GENDER_PREFERENCE = 'GENDER_PREFERENCE',
   COMPLIANCE_WARNING = 'COMPLIANCE_WARNING',
   COMPLIANCE_BLOCK = 'COMPLIANCE_BLOCK',
+  /** HR profile: Red (not deployable) or left. Cannot be forced. */
+  HR_NOT_DEPLOYABLE = 'HR_NOT_DEPLOYABLE',
+  /** HR profile: Amber (at risk). */
+  HR_AT_RISK = 'HR_AT_RISK',
   TIME_CONFLICT = 'TIME_CONFLICT',
   EMPLOYEE_ON_HOLIDAY = 'EMPLOYEE_ON_HOLIDAY',
   EMPLOYEE_ON_NCA = 'EMPLOYEE_ON_NCA',

@@ -10,6 +10,8 @@ import {
   resourceNameFromId,
   round2,
   toCsv,
+  whisperJobName,
+  whisperSpend,
   type CostRow,
 } from './platform-costs-aggregation.util';
 import { perUnit } from './platform-costs.service';
@@ -229,5 +231,55 @@ describe('dailySeriesByGroup', () => {
     expect(Object.keys(byRes[0].groups).every((k) => keys.includes(k))).toBe(
       true,
     );
+  });
+});
+
+describe('whisperSpend', () => {
+  const WHISPER =
+    '/subscriptions/s/resourceGroups/rg-careflow-prod/providers/Microsoft.App/jobs/job-careflow-whisper';
+  const OTHER_JOB =
+    '/subscriptions/s/resourcegroups/rg-careflow-prod/providers/microsoft.app/jobs/job-careflow-whisper-old';
+  const rows = [
+    row('2026-10-15', 'Azure Container Apps', WHISPER.toLowerCase(), 0.4),
+    row('2026-11-02', 'Azure Container Apps', WHISPER, 0.25),
+    row('2026-11-05', 'Azure Container Apps', WHISPER.toLowerCase(), 0.5),
+    row('2026-11-05', 'Azure Container Apps', OTHER_JOB, 9),
+    row('2026-11-05', 'Azure Database for PostgreSQL', PG, 5.25),
+  ];
+
+  it('sums only the Whisper job, this month and last month, case-insensitively', () => {
+    expect(whisperSpend(rows, '2026-11', 'job-careflow-whisper')).toEqual({
+      jobName: 'job-careflow-whisper',
+      monthToDate: 0.75,
+      lastMonthTotal: 0.4,
+      shareOfMonth: 5,
+    });
+  });
+
+  it('is zero when the job has no costs yet', () => {
+    expect(
+      whisperSpend(
+        [row('2026-11-05', 'PG', PG, 3)],
+        '2026-11',
+        'job-careflow-whisper',
+      ),
+    ).toEqual({
+      jobName: 'job-careflow-whisper',
+      monthToDate: 0,
+      lastMonthTotal: 0,
+      shareOfMonth: 0,
+    });
+    expect(
+      whisperSpend([], '2026-11', 'job-careflow-whisper').shareOfMonth,
+    ).toBe(0);
+  });
+
+  it('takes the job name from WHISPER_JOB_RESOURCE_ID', () => {
+    expect(whisperJobName(WHISPER)).toBe('job-careflow-whisper');
+    expect(
+      whisperJobName('/subscriptions/s/x/providers/Microsoft.App/jobs/My-Job'),
+    ).toBe('my-job');
+    expect(whisperJobName(undefined)).toBe('job-careflow-whisper');
+    expect(whisperJobName('')).toBe('job-careflow-whisper');
   });
 });
