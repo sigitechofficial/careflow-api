@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, VacancyStatus, SalaryPeriod } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { buildPaginationMeta } from '../../../common/utils/pagination.util';
@@ -8,6 +8,7 @@ import { UpdateVacancyDto } from './dto/update-vacancy.dto';
 import { UpdateVacancyStatusDto } from './dto/update-vacancy-status.dto';
 import { VacancyQueryDto } from './dto/vacancy-query.dto';
 import { formatVacancyReference } from '../utils/recruitment-reference.util';
+import { normaliseQuestions, payText, type ScreeningQuestion } from '../utils/vacancy-screening.util';
 import {
   resolveRecruitmentScope,
   vacancyScopeWhere,
@@ -30,6 +31,18 @@ export class VacanciesService {
     numberOfPositions: number;
     status: VacancyStatus;
     hiringManagerId: string | null;
+    workSetting: string | null;
+    hoursType: string | null;
+    hoursPerWeekMin: number | null;
+    hoursPerWeekMax: number | null;
+    startDate: Date | null;
+    payMin: Prisma.Decimal | null;
+    payMax: Prisma.Decimal | null;
+    shifts: string[];
+    benefits: string[];
+    screeningQuestions: Prisma.JsonValue;
+    cvRequirement: string;
+    notifyMode: string;
     jobTitleId: string | null;
     locationId: string | null;
     createdAt: Date;
@@ -69,6 +82,18 @@ export class VacanciesService {
       salaryPeriod: row.salaryPeriod,
       closingDate: row.closingDate ? row.closingDate.toISOString().slice(0, 10) : null,
       numberOfPositions: row.numberOfPositions,
+      workSetting: row.workSetting,
+      hoursType: row.hoursType,
+      hoursPerWeekMin: row.hoursPerWeekMin,
+      hoursPerWeekMax: row.hoursPerWeekMax,
+      startDate: row.startDate ? row.startDate.toISOString().slice(0, 10) : null,
+      payMin: row.payMin != null ? Number(row.payMin) : null,
+      payMax: row.payMax != null ? Number(row.payMax) : null,
+      shifts: row.shifts,
+      benefits: row.benefits,
+      screeningQuestions: (Array.isArray(row.screeningQuestions) ? row.screeningQuestions : []) as unknown as ScreeningQuestion[],
+      cvRequirement: row.cvRequirement,
+      notifyMode: row.notifyMode,
       status: row.status,
       hiringManagerId: row.hiringManagerId,
       hiringManagerName: managerName,
@@ -77,6 +102,38 @@ export class VacanciesService {
       createdAt: row.createdAt,
       updatedAt: row.updatedAt,
     };
+  }
+
+  /**
+   * The vacancy form's newer fields: questions checked and tidied, and pay numbers also written as the pay
+   * text the careers page shows. Only fields that were sent are returned (an update leaves the rest).
+   */
+  private formFields(dto: UpdateVacancyDto): Partial<Prisma.VacancyUncheckedCreateInput> {
+    const out: Record<string, unknown> = {};
+    for (const key of ['workSetting', 'hoursType', 'hoursPerWeekMin', 'hoursPerWeekMax', 'startDate', 'shifts', 'benefits', 'cvRequirement', 'notifyMode'] as const) {
+      if (dto[key] !== undefined) out[key] = dto[key];
+    }
+    if (dto.benefits) out.benefits = [...new Set(dto.benefits.map((b) => b.trim()).filter(Boolean))];
+    if (dto.hoursPerWeekMin != null && dto.hoursPerWeekMax != null && dto.hoursPerWeekMin > dto.hoursPerWeekMax) {
+      throw new BadRequestException('The lowest hours per week must not be more than the highest.');
+    }
+    if (dto.payMin !== undefined || dto.payMax !== undefined) {
+      const min = dto.payMin ?? null;
+      const max = dto.payMax ?? null;
+      if (min != null && max != null && min > max) throw new BadRequestException('The lowest pay must not be more than the highest.');
+      out.payMin = min;
+      out.payMax = max;
+      // Pay given as numbers: the careers page text follows them.
+      if (min != null || max != null) out.salaryRange = payText(min, max);
+    }
+    if (dto.screeningQuestions !== undefined) {
+      try {
+        out.screeningQuestions = normaliseQuestions(dto.screeningQuestions) as unknown as Prisma.InputJsonValue;
+      } catch (e) {
+        throw new BadRequestException((e as Error).message);
+      }
+    }
+    return out as Partial<Prisma.VacancyUncheckedCreateInput>;
   }
 
   async create(user: RequestUser, dto: CreateVacancyDto) {
@@ -93,6 +150,8 @@ export class VacanciesService {
         closingDate: dto.closingDate ?? null,
         numberOfPositions: dto.numberOfPositions ?? 1,
         hiringManagerId: dto.hiringManagerId,
+        status: dto.status === 'DRAFT' ? VacancyStatus.DRAFT : VacancyStatus.OPEN,
+        ...this.formFields(dto),
         createdById: user.id,
       },
       include: {
@@ -197,10 +256,13 @@ export class VacanciesService {
 
   async update(user: RequestUser, id: string, dto: UpdateVacancyDto) {
     await this.getById(user, id);
+    // Status changes go through updateStatus (publish, pause, close).
+    const { status: _status, screeningQuestions: _q, ...rest } = dto;
     const updated = await this.prisma.vacancy.update({
       where: { id },
       data: {
-        ...dto,
+        ...rest,
+        ...this.formFields(dto),
         updatedById: user.id,
       },
       include: {

@@ -10,9 +10,9 @@ import {
 const def = (name: string) => getJobDefinition(name)!;
 
 describe('job catalogue', () => {
-  it('lists the 16 jobs once each, 12 functions + 4 container jobs', () => {
+  it('lists the 17 jobs once each, 13 functions + 4 container jobs', () => {
     expect(JOB_CATALOGUE.map((j) => j.name)).toEqual([...JOB_NAMES]);
-    expect(new Set(JOB_NAMES).size).toBe(16);
+    expect(new Set(JOB_NAMES).size).toBe(17);
     expect(
       JOB_CATALOGUE.filter((j) => j.trigger === 'function').map((j) => j.name),
     ).toEqual([
@@ -28,6 +28,7 @@ describe('job catalogue', () => {
       'assessment-review-reminders',
       'policy-acknowledgement-reminders',
       'referral-mailbox-check',
+      'recruitment-application-summary',
     ]);
     expect(
       JOB_CATALOGUE.filter((j) => j.trigger === 'container-job').map(

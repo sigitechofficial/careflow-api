@@ -23,6 +23,9 @@ import {
 import { CandidateDocumentsService } from './candidates/candidate-documents.service';
 import { InterviewEmailService } from './candidates/interview-email.service';
 import { CandidateEmailService } from './candidates/candidate-email.service';
+import { ApplicationAlertsService } from './application-alerts.service';
+import { ApplicationSummaryJob } from './application-summary.job';
+import { OrganisationGeneralSettingsModule } from '../../organisation-general-settings/organisation-general-settings.module';
 
 @Module({
   imports: [
@@ -34,6 +37,7 @@ import { CandidateEmailService } from './candidates/candidate-email.service';
     EmployeeComplianceModule,
     MailModule,
     CompanyProfileModule,
+    OrganisationGeneralSettingsModule,
     forwardRef(() => HrModule),
   ],
   controllers: [
@@ -52,6 +56,8 @@ import { CandidateEmailService } from './candidates/candidate-email.service';
     CareersService,
     InterviewEmailService,
     CandidateEmailService,
+    ApplicationAlertsService,
+    ApplicationSummaryJob,
   ],
   exports: [CandidatesService, CareersService],
 })

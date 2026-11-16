@@ -140,6 +140,9 @@ export class CandidatesService {
       needsSponsorship: row.needsSponsorship,
       drivesForWork: row.drivesForWork,
       livedOverseas: row.livedOverseas,
+      // Answers to the vacancy's questions when applying, and the deal breakers missed (shown in red).
+      screeningAnswers: Array.isArray(row.screeningAnswers) ? row.screeningAnswers : [],
+      dealBreakersMissed: row.dealBreakersMissed ?? [],
       screeningNotes: row.screeningNotes,
       offerStatus: row.offerStatus,
       offerStartDate: row.offerStartDate,

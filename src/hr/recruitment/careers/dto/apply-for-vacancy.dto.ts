@@ -49,10 +49,11 @@ export class ApplyForVacancyDto {
   @MaxLength(500)
   address?: string;
 
-  @ApiProperty({ description: 'Has the right to work in the UK' })
+  @ApiPropertyOptional({ description: 'Has the right to work in the UK (vacancies without their own questions)' })
+  @IsOptional()
   @Transform(toBool)
   @IsBoolean({ message: 'Tell us if you have the right to work in the UK' })
-  hasRightToWork!: boolean;
+  hasRightToWork?: boolean;
 
   @ApiPropertyOptional({ description: 'Has a full driving licence and can drive for work' })
   @IsOptional()
@@ -71,6 +72,12 @@ export class ApplyForVacancyDto {
   @Transform(toBool)
   @Equals(true, { message: 'Please agree to us using your details for your application' })
   consent!: boolean;
+
+  @ApiPropertyOptional({ description: 'Answers to the vacancy questions, as JSON: { "<questionId>": "<answer>" }' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40_000)
+  answers?: string;
 
   /** Honeypot: hidden from people, filled in by bots. Must stay empty. */
   @ApiPropertyOptional()

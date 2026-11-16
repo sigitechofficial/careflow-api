@@ -103,6 +103,8 @@ enum HrDocumentStatus {
 }
 
 enum VacancyStatus {
+  /// Being written: not on the careers page and takes no applications.
+  DRAFT
   OPEN
   PAUSED
   CLOSED
@@ -1370,6 +1372,27 @@ model Vacancy {
   /// Last day to apply (inclusive). After it the job leaves the careers page and stops taking applications.
   closingDate       DateTime?                 @db.Date
   numberOfPositions Int                       @default(1)
+  /// Where the work is: HOME_VISITS, CARE_HOME, OFFICE, LIVE_IN, REMOTE.
+  workSetting       String?
+  /// FULL_TIME, PART_TIME or FLEXIBLE.
+  hoursType         String?
+  hoursPerWeekMin   Int?
+  hoursPerWeekMax   Int?
+  /// First day of work; null = as soon as possible.
+  startDate         DateTime?                 @db.Date
+  /// Pay as numbers (salaryRange keeps the text shown on the careers page, made from these when set).
+  payMin            Decimal?                  @db.Decimal(10, 2)
+  payMax            Decimal?                  @db.Decimal(10, 2)
+  /// Shifts worked: MORNINGS, AFTERNOONS, EVENINGS, NIGHTS, WEEKENDS, SLEEP_INS, LIVE_IN.
+  shifts            String[]                  @default([])
+  /// Benefits offered (free text chips, e.g. "Mileage paid", "Paid training").
+  benefits          String[]                  @default([])
+  /// Questions asked when applying: [{ id, kind, text, type: YES_NO | CHOICE | TEXT, options?, required, dealBreaker? }].
+  screeningQuestions Json                     @default("[]")
+  /// CV on the careers page: REQUIRED, OPTIONAL or HIDDEN.
+  cvRequirement     String                    @default("OPTIONAL")
+  /// Telling the hiring manager about applications: EACH (an email each), DAILY (one summary a day) or NONE (in-app only).
+  notifyMode        String                    @default("EACH")
   status            VacancyStatus             @default(OPEN)
   hiringManagerId   String?                   @db.Uuid
   createdById       String?                   @db.Uuid
@@ -1427,6 +1450,12 @@ model Candidate {
   /// Lived or worked abroad for 6+ months in the last 5 years (needs an overseas police check).
   livedOverseas     Boolean?
   screeningNotes    String?
+  /// Answers to the vacancy's questions when applying: [{ questionId, question, answer, dealBreakerMissed }].
+  screeningAnswers  Json?
+  /// The questions whose answer missed what the vacancy needs (shown in red; never rejected automatically).
+  dealBreakersMissed String[]       @default([])
+  /// Set once the application is in a hiring manager's daily summary email.
+  summaryEmailedAt  DateTime?
   /// Conditional offer (made before the pre-employment checks).
   offerStatus       CandidateOfferStatus?
   offerStartDate    DateTime?
