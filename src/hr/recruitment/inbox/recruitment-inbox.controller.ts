@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, ParseIntPipe, ParseUUIDPipe, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, ParseUUIDPipe, Post, Put, Query, Res, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard';
@@ -7,7 +7,7 @@ import { Permissions } from '../../../common/decorators/permissions.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { RequestUser } from '../../../common/decorators/current-user.decorator';
 import { RecruitmentInboxService } from './recruitment-inbox.service';
-import { CreateCandidateFromEmailDto } from './recruitment-inbox.dto';
+import { CreateCandidateFromEmailDto, RecruitmentInboxSettingsDto } from './recruitment-inbox.dto';
 
 /** Job applications received by email (mailboxes connected for Recruitment). */
 @ApiTags('HR / Recruitment inbox')
@@ -22,6 +22,19 @@ export class RecruitmentInboxController {
   @ApiOperation({ summary: 'Emails in a tab: open (default), created, closed' })
   list(@Query('tab') tab?: string) {
     return this.service.list(tab);
+  }
+
+  @Get('settings')
+  @Permissions('hr.candidates.read')
+  @ApiOperation({ summary: 'Screening settings: which new emails Claude reads in full' })
+  settings() {
+    return this.service.getSettings();
+  }
+
+  @Put('settings')
+  @Permissions('hr.candidates.update')
+  saveSettings(@CurrentUser() user: RequestUser, @Body() dto: RecruitmentInboxSettingsDto) {
+    return this.service.saveSettings(user, dto);
   }
 
   @Get(':id')

@@ -260,15 +260,16 @@ export class CareersService {
   }
 
   /** "Thank you for applying" — never fails the application if email is down. Also used by the recruitment inbox. */
-  async sendConfirmation(firstName: string, email: string, jobTitle: string, reference: string) {
+  /** Without a vacancy (an emailed application not yet matched to one) it thanks them for applying to work with us. */
+  async sendConfirmation(firstName: string, email: string, jobTitle: string | null, reference: string | null) {
     try {
       const brand = (await this.company.getBranding()).data;
       const org = brand.displayName || brand.companyName || 'our team';
-      const subject = `We have received your application — ${jobTitle}`;
+      const subject = jobTitle ? `We have received your application — ${jobTitle}` : 'We have received your application';
       const lines = [
-        `Hello ${firstName},`,
+        firstName ? `Hello ${firstName},` : 'Hello,',
         '',
-        `Thank you for applying for ${jobTitle} (${reference}) with ${org}.`,
+        jobTitle ? `Thank you for applying for ${jobTitle}${reference ? ` (${reference})` : ''} with ${org}.` : `Thank you for applying to work with ${org}.`,
         'We will look at your application and contact you about the next steps.',
         '',
         'If you have any questions, just reply to this email.',

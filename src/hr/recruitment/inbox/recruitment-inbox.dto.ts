@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsInt, IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, Min, ValidateIf } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsBoolean, IsEmail, IsInt, IsNotEmpty, IsObject, IsOptional, IsString, IsUUID, MaxLength, Min, ValidateIf } from 'class-validator';
 
 /** The checked form on the recruitment inbox: everything Claude read can be corrected before saving. */
 export class CreateCandidateFromEmailDto {
@@ -24,4 +24,15 @@ export class CreateCandidateFromEmailDto {
   @Min(0, { each: true })
   attachmentIndexes?: number[];
   @ApiPropertyOptional({ description: 'The attachment that is the CV.' }) @IsOptional() @IsString() @MaxLength(300) cvFileName?: string;
+}
+
+/** Recruitment inbox settings. */
+export class RecruitmentInboxSettingsDto {
+  /** { mode, trustedSenders, blockedSenders }: checked and cleaned by normaliseScreening before it is saved. */
+  @ApiPropertyOptional() @IsOptional() @IsObject() screening?: Record<string, unknown>;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() autoCreateCandidate?: boolean;
+  @ApiPropertyOptional() @IsOptional() @IsBoolean() autoAcknowledge?: boolean;
+  /** Outcome per rule: checked and cleaned by normaliseRecruitmentRules before it is saved. */
+  @ApiPropertyOptional() @IsOptional() @IsObject() rules?: Record<string, unknown>;
+  @ApiPropertyOptional({ type: [String] }) @IsOptional() @IsArray() @ArrayMaxSize(20) @IsEmail({}, { each: true }) notifyTo?: string[];
 }

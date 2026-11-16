@@ -22,16 +22,17 @@ export const DEFAULT_SCREENING: ScreeningSettings = {
   blockedSenders: [],
 };
 
-export function normaliseScreening(raw: unknown): ScreeningSettings {
+/** `defaults` fill what is not set (the recruitment inbox has its own). */
+export function normaliseScreening(raw: unknown, defaults: ScreeningSettings = DEFAULT_SCREENING): ScreeningSettings {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Partial<ScreeningSettings>;
   const list = (v: unknown, fallback: string[]) =>
     Array.isArray(v)
       ? [...new Set(v.map((x) => String(x).trim().toLowerCase()).filter((x) => /^(@|\.)?[^\s@]+(@[^\s@]+)?$/.test(x) && x.length <= 200))].slice(0, 300)
       : fallback;
   return {
-    mode: r.mode === 'OFF' || r.mode === 'RULES' || r.mode === 'RULES_AND_AI' ? r.mode : DEFAULT_SCREENING.mode,
-    trustedSenders: list(r.trustedSenders, DEFAULT_SCREENING.trustedSenders),
-    blockedSenders: list(r.blockedSenders, DEFAULT_SCREENING.blockedSenders),
+    mode: r.mode === 'OFF' || r.mode === 'RULES' || r.mode === 'RULES_AND_AI' ? r.mode : defaults.mode,
+    trustedSenders: list(r.trustedSenders, defaults.trustedSenders),
+    blockedSenders: list(r.blockedSenders, defaults.blockedSenders),
   };
 }
 

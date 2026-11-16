@@ -8,7 +8,22 @@ import type { ApplicationExtraction } from './recruitment-inbox.util';
 const MODEL = 'claude-sonnet-5-5';
 /** Claude Sonnet 5.5 list price, $ per million tokens. */
 const PRICE = { input: 2, output: 10 };
-const IMAGE_TYPES = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+/** The quick check (screening): the smallest model, Claude Haiku 5.5 list price. */
+const SCREEN_MODEL = 'claude-haiku-5-5';
+const SCREEN_PRICE = { input: 0.1, output: 0.5 };
+const SCREEN_SCHEMA = {
+  type: 'object',
+  properties: {
+    isApplication: { type: 'boolean', description: 'true when someone could be applying to work for us' },
+    reason: { type: 'string', description: 'A few words: why' },
+  },
+  required: ['isApplication', 'reason'],
+  additionalProperties: false,
+};
+const SCREEN_SYSTEM = `You sort emails arriving in a UK home care provider's recruitment mailbox before a person reads them.
+Answer isApplication = true when the email could be someone applying to work for this provider: a job application, a CV, a question about a job or vacancy with us, an applicant's reply about their application or interview, or a job board forwarding an applicant. When in doubt, answer true: a missed applicant is worse than an extra read.
+Answer isApplication = false only for emails that are clearly something else: job alerts and job recommendations sent to a job seeker, replies from other employers about the mailbox owner's own job search, adverts, newsletters, sales and marketing, recruitment agencies selling their services, account and security notifications, receipts and invoices, social media, and spam.`;
+const IMAGE_TYPES =['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
 
 const str = (description: string) => ({ type: 'string', description }) as const;
 const yesNo = (description: string) => ({ type: 'string', enum: ['YES', 'NO', 'UNKNOWN'], description }) as const;
@@ -148,5 +163,45 @@ export class RecruitmentExtractionService {
     // Only an id from the list given counts (the model must not invent one).
     if (parsed.vacancyId && !input.vacancies.some((v) => v.id === parsed.vacancyId)) parsed.vacancyId = '';
     return { extraction: parsed, model: message.model, costUsd };
+  }
+
+  /** The quick check for emails the free rules can't place: sender, subject and first lines, by the smallest model. */
+  async screen(email: { fromName: string | null; fromEmail: string | null; subject: string | null; bodyText: string }): Promise<{
+    isApplication: boolean;
+    reason: string;
+    costUsd: number;
+  }> {
+    const message = await this.getClient().beta.messages.create({
+      model: SCREEN_MODEL,
+      max_tokens: 300,
+      thinking: { type: 'disabled' },
+      output_config: { effort: 'low', format: betaJSONSchemaOutputFormat(SCREEN_SCHEMA as Parameters<typeof betaJSONSchemaOutputFormat>[0]) },
+      system: SCREEN_SYSTEM,
+      messages: [
+        {
+          role: 'user',
+          content: `<email>
+From: ${[email.fromName, email.fromEmail ? `<${email.fromEmail}>` : ''].filter(Boolean).join(' ')}
+Subject: ${email.subject ?? ''}
+
+${(email.bodyText ?? '').replace(/\s+/g, ' ').slice(0, 1200)}
+</email>`,
+        },
+      ],
+    });
+    let parsed: { isApplication?: boolean; reason?: string } | null = null;
+    const text = message.content.find((b) => b.type === 'text');
+    try {
+      parsed = text && text.type === 'text' ? (JSON.parse(text.text) as { isApplication?: boolean; reason?: string }) : null;
+    } catch {
+      parsed = null;
+    }
+    const costUsd = (message.usage.input_tokens * SCREEN_PRICE.input + message.usage.output_tokens * SCREEN_PRICE.output) / 1_000_000;
+    // A refusal or an unreadable answer: read it in full rather than risk losing an applicant.
+    if (message.stop_reason === 'refusal' || typeof parsed?.isApplication !== 'boolean') {
+      return { isApplication: true, reason: 'The quick check gave no clear answer', costUsd };
+    }
+    const reason = (parsed.reason ?? '').trim().slice(0, 200) || (parsed.isApplication ? 'Looks like an application' : 'Not an application');
+    return { isApplication: parsed.isApplication, reason, costUsd };
   }
 }

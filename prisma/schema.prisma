@@ -18096,6 +18096,10 @@ model RecruitmentEmail {
   readAttempts      Int                    @default(0)
   /// Free rules before Claude reads it (recruitment-inbox.util screenApplicationByRules): { decision READ | SKIP, reason, at }.
   screening         Json?
+  /// What the inbox settings did after Claude read it: { candidateCreated, acknowledged, notified, declined, held, at }.
+  automation        Json?
+  /// When the applicant was told we received it (so they are never told twice).
+  acknowledgedAt    DateTime?
   candidateId       String?                @db.Uuid
   handledById       String?                @db.Uuid
   handledAt         DateTime?
@@ -18108,6 +18112,26 @@ model RecruitmentEmail {
   @@index([status])
   @@index([receivedAt])
   @@index([fromEmail])
+  @@schema("employees")
+}
+
+/// Recruitment inbox settings (one row; with no row the defaults apply).
+model RecruitmentInboxSettings {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// Screening before Claude reads an email (referral-screening.util ScreeningSettings): mode, trusted and blocked senders.
+  screening           Json?
+  /// Create the candidate automatically when Claude read a name, email and vacancy and no rule needs staff.
+  autoCreateCandidate Boolean  @default(false)
+  /// Tell the applicant automatically that we received their application.
+  autoAcknowledge     Boolean  @default(false)
+  /// What an application must show (recruitment-inbox.util RecruitmentRules): outcome per rule.
+  rules               Json?
+  /// Each new application is also emailed to these addresses.
+  notifyTo            String[] @default([])
+  updatedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
   @@schema("employees")
 }
 

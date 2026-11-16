@@ -1,5 +1,5 @@
 import type { EmploymentHistoryEntry } from '../utils/recruitment-flow.util';
-import { AUTOMATED_SENDER, JUNK_SUBJECT } from '../../../referral-mailbox/referral-screening.util';
+import { AUTOMATED_SENDER, JUNK_SUBJECT, senderMatches, type ScreeningSettings } from '../../../referral-mailbox/referral-screening.util';
 
 type YesNo = 'YES' | 'NO' | 'UNKNOWN';
 
@@ -91,20 +91,81 @@ const JOB_ALERT_SENDER = /@(jobalerts?|match)\./i;
 /** Files a CV comes in. */
 const CV_FILE = /\.(pdf|docx?|odt|rtf|pages)$/i;
 
+/* ─── rules: what an application must show ─── */
+
+/** OFF: not checked. NOTE: shown to staff. STAFF: staff decide (no automatic candidate). DECLINE: set aside when the answer is no. */
+export type RecruitmentRuleOutcome = 'OFF' | 'NOTE' | 'STAFF' | 'DECLINE';
+export const RECRUITMENT_RULE_OUTCOMES: RecruitmentRuleOutcome[] = ['OFF', 'NOTE', 'STAFF', 'DECLINE'];
+
+export const RECRUITMENT_RULES = [
+  { key: 'rightToWork', label: 'Right to work in the UK', defaultOutcome: 'NOTE' },
+  { key: 'drivesForWork', label: 'Drives for work (licence and car)', defaultOutcome: 'OFF' },
+  { key: 'careExperience', label: 'Care experience', defaultOutcome: 'OFF' },
+] as const satisfies readonly { key: string; label: string; defaultOutcome: RecruitmentRuleOutcome }[];
+export type RecruitmentRuleKey = (typeof RECRUITMENT_RULES)[number]['key'];
+export type RecruitmentRules = Record<RecruitmentRuleKey, RecruitmentRuleOutcome>;
+
+export function normaliseRecruitmentRules(raw: unknown): RecruitmentRules {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  return Object.fromEntries(
+    RECRUITMENT_RULES.map((d) => [d.key, RECRUITMENT_RULE_OUTCOMES.includes(r[d.key] as RecruitmentRuleOutcome) ? r[d.key] : d.defaultOutcome]),
+  ) as RecruitmentRules;
+}
+
+export type RuleCheck = { key: RecruitmentRuleKey; label: string; answer: YesNo; outcome: RecruitmentRuleOutcome; met: boolean };
+
+/**
+ * The rules against what Claude read. Not stated (UNKNOWN) is never a decline: staff ask. `declined` is the first
+ * rule answered "no" that declines; `hold` the first one that needs staff (no automatic candidate).
+ */
+export function checkApplication(x: Pick<ApplicationExtraction, 'rightToWork' | 'drivesForWork' | 'employmentHistory'>, rules: RecruitmentRules): {
+  checks: RuleCheck[];
+  declined: string | null;
+  hold: string | null;
+} {
+  const jobs = (x.employmentHistory ?? []).filter((e) => e.kind === 'JOB');
+  const answers: Record<RecruitmentRuleKey, YesNo> = {
+    rightToWork: x.rightToWork ?? 'UNKNOWN',
+    drivesForWork: x.drivesForWork ?? 'UNKNOWN',
+    careExperience: jobs.some((j) => j.careRole) ? 'YES' : jobs.length ? 'NO' : 'UNKNOWN',
+  };
+  const checks = RECRUITMENT_RULES.filter((d) => rules[d.key] !== 'OFF').map((d) => ({
+    key: d.key,
+    label: d.label,
+    answer: answers[d.key],
+    outcome: rules[d.key],
+    met: answers[d.key] === 'YES',
+  }));
+  const declinedBy = checks.find((c) => c.outcome === 'DECLINE' && c.answer === 'NO');
+  const heldBy = checks.find((c) => !c.met && (c.outcome === 'STAFF' || c.outcome === 'DECLINE'));
+  const describe = (c: RuleCheck) => `${c.label}: ${c.answer === 'NO' ? 'no' : 'not stated'}`;
+  return { checks, declined: declinedBy ? describe(declinedBy) : null, hold: heldBy ? describe(heldBy) : null };
+}
+
+/** Recruitment inbox screening when nothing is saved: rules, then the quick check; no trusted or blocked senders yet. */
+export const DEFAULT_RECRUITMENT_SCREENING: ScreeningSettings = { mode: 'RULES_AND_AI', trustedSenders: [], blockedSenders: [] };
+
 /**
  * Free rules before Claude reads an email, so obvious junk (receipts, newsletters, no-reply notices) costs nothing.
- * Claude reads only emails that mention a job or carry a CV-like file; the rest is set aside unread, with the reason.
+ * Same settings as the referral inbox: trusted senders and people who applied before are always read; blocked
+ * senders, junk and job alerts are set aside unread, with the reason; emails that mention a job or carry a CV-like
+ * file are read. Anything else is UNSURE: the quick check decides, or (rules only) it is read.
  * A set-aside email can still be read with "Read again".
  */
-export function screenApplicationByRules(email: {
-  fromEmail: string | null;
-  subject: string | null;
-  bodyText: string;
-  attachments: { fileName: string }[];
-}): { decision: 'READ' | 'SKIP'; reason: string } {
+export function screenApplicationByRules(
+  email: { fromEmail: string | null; subject: string | null; bodyText: string; attachments: { fileName: string }[] },
+  settings: ScreeningSettings = DEFAULT_RECRUITMENT_SCREENING,
+  ctx: { knownSender: boolean } = { knownSender: false },
+): { decision: 'READ' | 'SKIP' | 'UNSURE'; reason: string } {
+  if (settings.mode === 'OFF') return { decision: 'READ', reason: 'Screening is off' };
   const from = (email.fromEmail ?? '').trim().toLowerCase();
   const subject = email.subject ?? '';
   const body = email.bodyText ?? '';
+  const trusted = from ? senderMatches(from, settings.trustedSenders) : null;
+  if (trusted) return { decision: 'READ', reason: `Trusted sender (${trusted})` };
+  if (ctx.knownSender) return { decision: 'READ', reason: 'Has applied to us before' };
+  const blocked = from ? senderMatches(from, settings.blockedSenders) : null;
+  if (blocked) return { decision: 'SKIP', reason: `Blocked sender (${blocked})` };
   if (JUNK_SUBJECT.test(subject) && !JOB_WORDS.test(subject)) return { decision: 'SKIP', reason: 'Subject is a newsletter, alert, receipt or offer' };
   const cv = email.attachments.find((a) => CV_FILE.test(a.fileName));
   if (!cv && (JOB_ALERT_SUBJECT.test(subject) || JOB_ALERT_SENDER.test(from))) return { decision: 'SKIP', reason: 'Job alert or job board advert' };
@@ -112,6 +173,5 @@ export function screenApplicationByRules(email: {
   if (cv) return { decision: 'READ', reason: `Has a document attached (${cv.fileName})` };
   if (from && AUTOMATED_SENDER.test(from)) return { decision: 'SKIP', reason: 'Automated sender (no-reply, notifications…)' };
   if (/\bunsubscribe\b/i.test(body)) return { decision: 'SKIP', reason: 'Mailing list (has an unsubscribe link)' };
-  // A mailbox that also gets other mail (bank alerts, appointments…): only job-like emails go to Claude.
-  return { decision: 'SKIP', reason: 'No sign of a job or CV' };
+  return { decision: 'UNSURE', reason: 'No clear sign either way' };
 }

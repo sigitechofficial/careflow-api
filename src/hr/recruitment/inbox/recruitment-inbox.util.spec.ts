@@ -1,4 +1,42 @@
-import { historyFromExtraction, screenApplicationByRules, splitName, yesNoToBool } from './recruitment-inbox.util';
+import {
+  checkApplication,
+  historyFromExtraction,
+  normaliseRecruitmentRules,
+  screenApplicationByRules,
+  splitName,
+  yesNoToBool,
+} from './recruitment-inbox.util';
+
+describe('checkApplication', () => {
+  const read = (over: Record<string, unknown> = {}) =>
+    ({ rightToWork: 'YES', drivesForWork: 'UNKNOWN', employmentHistory: [], ...over }) as Parameters<typeof checkApplication>[0];
+
+  it('uses defaults for unknown or missing outcomes', () => {
+    expect(normaliseRecruitmentRules({ rightToWork: 'NOPE', drivesForWork: 'DECLINE' })).toEqual({
+      rightToWork: 'NOTE',
+      drivesForWork: 'DECLINE',
+      careExperience: 'OFF',
+    });
+  });
+
+  it('declines only on a clear "no"; not stated needs staff', () => {
+    const rules = normaliseRecruitmentRules({ rightToWork: 'DECLINE', drivesForWork: 'STAFF' });
+    expect(checkApplication(read({ rightToWork: 'NO' }), rules).declined).toBe('Right to work in the UK: no');
+    const unknown = checkApplication(read({ rightToWork: 'UNKNOWN' }), rules);
+    expect(unknown.declined).toBeNull();
+    expect(unknown.hold).toBe('Right to work in the UK: not stated');
+    expect(checkApplication(read({ drivesForWork: 'YES' }), rules)).toMatchObject({ declined: null, hold: null });
+  });
+
+  it('works out care experience from the CV and leaves notes and switched-off rules alone', () => {
+    const rules = normaliseRecruitmentRules({ rightToWork: 'OFF', careExperience: 'NOTE' });
+    const job = { kind: 'JOB', careRole: false };
+    const none = checkApplication(read({ employmentHistory: [job] }), rules);
+    expect(none.checks).toEqual([expect.objectContaining({ key: 'careExperience', answer: 'NO', met: false })]);
+    expect(none.hold).toBeNull();
+    expect(checkApplication(read({ employmentHistory: [{ ...job, careRole: true }] }), rules).checks[0].answer).toBe('YES');
+  });
+});
 
 const job = (over: Record<string, unknown> = {}) => ({
   kind: 'JOB' as const,
@@ -85,9 +123,17 @@ describe('screenApplicationByRules', () => {
     expect(decide({ subject: 'New jobs for you', bodyText: 'Care worker roles near you' })).toBe('SKIP');
   });
 
-  it('sets aside everyday mail with no sign of a job (bank alerts, appointments…)', () => {
-    expect(screenApplicationByRules(email())).toEqual({ decision: 'SKIP', reason: 'No sign of a job or CV' });
-    expect(decide({ fromEmail: 'info@bank.example.com', subject: 'Login Alert', bodyText: 'You signed in to DigiBank.' })).toBe('SKIP');
+  it('leaves mail with no clear sign either way to the quick check', () => {
+    expect(screenApplicationByRules(email())).toEqual({ decision: 'UNSURE', reason: 'No clear sign either way' });
+    expect(decide({ fromEmail: 'info@bank.example.com', subject: 'Login Alert', bodyText: 'You signed in to DigiBank.' })).toBe('UNSURE');
+  });
+
+  it('follows the settings: off, trusted, blocked and people who applied before', () => {
+    const settings = { mode: 'RULES_AND_AI' as const, trustedSenders: ['@indeedemail.com'], blockedSenders: ['@spam.example.com'] };
+    expect(screenApplicationByRules(email({ subject: 'Security alert' }), { ...settings, mode: 'OFF' }).decision).toBe('READ');
+    expect(screenApplicationByRules(email({ fromEmail: 'x@indeedemail.com' }), settings)).toEqual({ decision: 'READ', reason: 'Trusted sender (@indeedemail.com)' });
+    expect(screenApplicationByRules(email({ fromEmail: 'a@spam.example.com', subject: 'Job application' }), settings).decision).toBe('SKIP');
+    expect(screenApplicationByRules(email(), settings, { knownSender: true }).reason).toBe('Has applied to us before');
   });
 
   it('sets aside receipts, newsletters and security notices', () => {

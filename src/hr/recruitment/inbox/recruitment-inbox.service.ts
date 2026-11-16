@@ -28,7 +28,10 @@ import { CandidatesService } from '../candidates/candidates.service';
 import { CareersService } from '../careers/careers.service';
 import { formatVacancyReference } from '../utils/recruitment-reference.util';
 import { RecruitmentExtractionService } from './recruitment-extraction.service';
-import { historyFromExtraction, screenApplicationByRules, splitName, yesNoToBool, type ApplicationExtraction } from './recruitment-inbox.util';
+import { normaliseScreening, type ScreeningSettings } from '../../../referral-mailbox/referral-screening.util';
+import { MailService } from '../../../mail/mail.service';
+import { checkApplication, normaliseRecruitmentRules, type RecruitmentRules } from './recruitment-inbox.util';
+import { DEFAULT_RECRUITMENT_SCREENING, historyFromExtraction, screenApplicationByRules, splitName, yesNoToBool, type ApplicationExtraction } from './recruitment-inbox.util';
 import type { CreateCandidateFromEmailDto } from './recruitment-inbox.dto';
 
 /**
@@ -65,6 +68,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
     private readonly extraction: RecruitmentExtractionService,
     private readonly candidates: CandidatesService,
     private readonly careers: CareersService,
+    private readonly mail: MailService,
   ) {}
 
   /* ─── saving and reading (called by the mailbox checker) ─── */
@@ -78,7 +82,6 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
     return new Set(rows.map((r) => r.providerMessageId));
   }
 
-  /** Save one email and its attachments. Returns the id to read, or null (our own sent email, or already saved). */
   /** Saves a new email. Returns its id when Claude should read it; null when it was already saved or set aside by the rules. */
   async save(mb: ReferralMailbox, email: FetchedEmail): Promise<string | null> {
     if (email.fromEmail && email.fromEmail.toLowerCase() === mb.emailAddress.toLowerCase()) return null;
@@ -105,11 +108,12 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
       await fs.writeFile(path.join(dir, storedName), data);
       attachments.push({ fileName: a.fileName, mimeType: a.mimeType, size: data.length, storedName });
     }
-    const screening = screenApplicationByRules(email);
+    const screening = await this.screen(email);
     await this.prisma.recruitmentEmail.create({
       data: {
         id,
         screening: { ...screening, at: new Date().toISOString() } as Prisma.InputJsonValue,
+        ...(screening.costUsd ? { extractionCostUsd: screening.costUsd } : {}),
         // Clear junk is set aside without spending a read; staff can still "Read again".
         ...(screening.decision === 'SKIP' ? { status: RecruitmentEmailStatus.NOT_AN_APPLICATION } : {}),
         mailboxId: mb.id,
@@ -126,11 +130,213 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
     return screening.decision === 'SKIP' ? null : id;
   }
 
+  /**
+   * Screening, before any money is spent on a new email: free rules (with the inbox settings), then for unclear emails
+   * the quick check (or, with rules only, a full read).
+   */
+  private async screen(email: FetchedEmail): Promise<{ decision: 'READ' | 'SKIP'; reason: string; by: 'RULE' | 'AI'; costUsd?: number }> {
+    const settings = await this.screeningSettings();
+    const from = email.fromEmail?.trim();
+    const knownSender = from
+      ? (await this.prisma.recruitmentEmail.count({
+          where: {
+            fromEmail: { equals: from, mode: 'insensitive' },
+            status: { in: [RecruitmentEmailStatus.READ, RecruitmentEmailStatus.CANDIDATE_CREATED] },
+          },
+        })) > 0
+      : false;
+    const rule = screenApplicationByRules(email, settings, { knownSender });
+    if (rule.decision !== 'UNSURE') return { decision: rule.decision, reason: rule.reason, by: 'RULE' };
+    if (settings.mode !== 'RULES_AND_AI' || !process.env.AI_API_KEY?.trim()) return { decision: 'READ', reason: rule.reason, by: 'RULE' };
+    const ai = await this.extraction.screen(email).catch((e: Error) => {
+      this.logger.warn(`Quick check of application email failed, reading it in full: ${e.message}`);
+      return null;
+    });
+    return ai
+      ? { decision: ai.isApplication ? 'READ' : 'SKIP', reason: ai.reason, by: 'AI', costUsd: ai.costUsd }
+      : { decision: 'READ', reason: 'The quick check failed, so it is read in full', by: 'RULE' };
+  }
+
+  /* ─── settings ─── */
+
+  private async screeningSettings(): Promise<ScreeningSettings> {
+    return (await this.inboxSettings()).screening;
+  }
+
+  /** All the inbox settings (defaults when none are saved). */
+  private async inboxSettings(): Promise<{
+    screening: ScreeningSettings;
+    autoCreateCandidate: boolean;
+    autoAcknowledge: boolean;
+    rules: RecruitmentRules;
+    notifyTo: string[];
+  }> {
+    const row = await this.prisma.recruitmentInboxSettings.findFirst();
+    return {
+      screening: normaliseScreening(row?.screening, DEFAULT_RECRUITMENT_SCREENING),
+      autoCreateCandidate: row?.autoCreateCandidate ?? false,
+      autoAcknowledge: row?.autoAcknowledge ?? false,
+      rules: normaliseRecruitmentRules(row?.rules),
+      notifyTo: row?.notifyTo ?? [],
+    };
+  }
+
+  async getSettings() {
+    return this.inboxSettings();
+  }
+
+  async saveSettings(
+    user: RequestUser,
+    dto: { screening?: unknown; autoCreateCandidate?: boolean; autoAcknowledge?: boolean; rules?: unknown; notifyTo?: string[] },
+  ) {
+    const data = {
+      ...(dto.screening ? { screening: normaliseScreening(dto.screening, DEFAULT_RECRUITMENT_SCREENING) as unknown as Prisma.InputJsonValue } : {}),
+      ...(dto.rules ? { rules: normaliseRecruitmentRules(dto.rules) as unknown as Prisma.InputJsonValue } : {}),
+      ...(dto.autoCreateCandidate !== undefined ? { autoCreateCandidate: dto.autoCreateCandidate } : {}),
+      ...(dto.autoAcknowledge !== undefined ? { autoAcknowledge: dto.autoAcknowledge } : {}),
+      ...(dto.notifyTo ? { notifyTo: [...new Set(dto.notifyTo.map((e) => e.trim().toLowerCase()).filter(Boolean))].slice(0, 20) } : {}),
+      updatedById: user.id,
+    };
+    const row = await this.prisma.recruitmentInboxSettings.findFirst({ select: { id: true } });
+    if (row) await this.prisma.recruitmentInboxSettings.update({ where: { id: row.id }, data });
+    else await this.prisma.recruitmentInboxSettings.create({ data });
+    return this.getSettings();
+  }
+
+  /* ─── automation (after Claude has read a new email) ─── */
+
+  /**
+   * What the settings say to do with a new application: decline it by the rules, email the copies, create the
+   * candidate, tell the applicant. Never throws; what happened is kept on the email for staff.
+   */
+  private async automate(id: string) {
+    const row = await this.prisma.recruitmentEmail.findUnique({ where: { id }, include: { mailbox: { select: { connectedById: true } } } });
+    if (!row?.extraction || row.status !== RecruitmentEmailStatus.READ) return;
+    const settings = await this.inboxSettings();
+    const x = row.extraction as unknown as ApplicationExtraction;
+    const { declined, hold } = checkApplication(x, settings.rules);
+    const done = {
+      at: new Date().toISOString(),
+      declined,
+      held: null as string | null,
+      candidateCreated: false,
+      acknowledged: false,
+      notified: [] as string[],
+    };
+    if (declined) {
+      // Set aside, nothing sent to the applicant: staff can move it back.
+      await this.prisma.recruitmentEmail.update({
+        where: { id },
+        data: { status: RecruitmentEmailStatus.DISMISSED, handledAt: new Date(), automation: done as unknown as Prisma.InputJsonValue },
+      });
+      return;
+    }
+    const detail = (await this.get(id)).data;
+    const draft = detail.draft;
+    if (settings.notifyTo.length) {
+      const sent = await this.notifyNew(id, detail, settings.notifyTo).catch((e: Error) => {
+        this.logger.warn(`Recruitment inbox: copy of application ${id} not sent: ${e.message}`);
+        return false;
+      });
+      if (sent) done.notified = settings.notifyTo;
+    }
+    if (settings.autoCreateCandidate) {
+      const actor = await this.systemActor(row.mailbox.connectedById);
+      done.held =
+        hold ??
+        (!draft.firstName || !draft.lastName ? 'No full name' : null) ??
+        (!draft.email ? 'No email address' : null) ??
+        (!draft.vacancyId ? 'Vacancy not clear' : null) ??
+        (detail.existingCandidates.length ? 'Already a candidate' : null) ??
+        (detail.existingEmployee ? 'Already an employee' : null) ??
+        (!actor ? 'No staff member to record it under (connect the mailbox again)' : null);
+      if (!done.held && actor) {
+        try {
+          const created = await this.createCandidate(actor, id, {
+            firstName: draft.firstName,
+            lastName: draft.lastName,
+            email: draft.email,
+            phone: draft.phone || undefined,
+            address: draft.address || undefined,
+            vacancyId: draft.vacancyId,
+            hasRightToWork: draft.hasRightToWork ?? undefined,
+            drivesForWork: draft.drivesForWork ?? undefined,
+            coverLetter: draft.coverLetter || undefined,
+            cvFileName: draft.cvFileName || undefined,
+            includeEmploymentHistory: true,
+          } as CreateCandidateFromEmailDto);
+          done.candidateCreated = true;
+          // createCandidate tells the applicant (once).
+          done.acknowledged = created.data.emailed;
+        } catch (e) {
+          done.held = `Could not create the candidate: ${(e as Error).message}`.slice(0, 300);
+        }
+      }
+    }
+    if (settings.autoAcknowledge && !done.candidateCreated && draft.email) done.acknowledged = await this.acknowledge(id, draft);
+    await this.prisma.recruitmentEmail.update({ where: { id }, data: { automation: done as unknown as Prisma.InputJsonValue } });
+  }
+
+  /** "We have received your application", at most once per email. */
+  private async acknowledge(id: string, draft: { firstName: string; email: string; vacancyId: string }): Promise<boolean> {
+    const claimed = await this.prisma.recruitmentEmail.updateMany({ where: { id, acknowledgedAt: null }, data: { acknowledgedAt: new Date() } });
+    if (!claimed.count) return false;
+    const vacancy = draft.vacancyId
+      ? await this.prisma.vacancy.findUnique({ where: { id: draft.vacancyId }, select: { title: true, recordNo: true } })
+      : null;
+    await this.careers.sendConfirmation(draft.firstName, draft.email, vacancy?.title ?? null, vacancy ? formatVacancyReference(vacancy.recordNo) : null);
+    return true;
+  }
+
+  /** A copy of each new application to the addresses in the settings, with a link to the inbox. */
+  private async notifyNew(
+    id: string,
+    detail: {
+      subject: string | null;
+      fromEmail: string | null;
+      draft: { firstName: string; lastName: string; email: string; vacancyId: string };
+      extraction: ApplicationExtraction | null;
+    },
+    to: string[],
+  ): Promise<boolean> {
+    const name = `${detail.draft.firstName} ${detail.draft.lastName}`.trim() || detail.fromEmail || 'Someone';
+    const vacancy = detail.draft.vacancyId
+      ? await this.prisma.vacancy.findUnique({ where: { id: detail.draft.vacancyId }, select: { title: true, recordNo: true } })
+      : null;
+    const job = vacancy ? `${vacancy.title} (${formatVacancyReference(vacancy.recordNo)})` : 'vacancy not clear';
+    const link = `${(process.env.ADMIN_APP_URL ?? 'http://localhost:5173').replace(/\/$/, '')}/hr/recruitment-inbox`;
+    const lines = [
+      `New job application by email: ${name}, ${job}.`,
+      detail.extraction?.summary ? `Summary: ${detail.extraction.summary}` : null,
+      detail.draft.email ? `Email: ${detail.draft.email}` : null,
+      `Subject: ${detail.subject ?? '(none)'}`,
+      '',
+      `Open the recruitment inbox: ${link}`,
+    ].filter((l): l is string => l !== null);
+    const esc = (v: string) => v.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    await this.mail.send({
+      to,
+      subject: `New job application: ${name}, ${vacancy?.title ?? 'vacancy not clear'}`,
+      text: lines.join('\n'),
+      html: lines.map((l) => (l ? `<p>${esc(l)}</p>` : '')).join(''),
+    });
+    this.logger.log(`Recruitment inbox: copy of application ${id} sent to ${to.length} address(es)`);
+    return true;
+  }
+
+  /** The member of staff who connected the mailbox: automatic candidates are recorded under them. */
+  private async systemActor(userId: string | null): Promise<RequestUser | null> {
+    if (!userId) return null;
+    const u = await this.prisma.user.findUnique({ where: { id: userId }, select: { id: true, email: true } });
+    if (!u) return null;
+    return { id: u.id, email: u.email, roles: [], permissions: [], accountKind: 'user' } as RequestUser;
+  }
+
   /** Claude reads in the background so a mailbox check returns straight away. */
-  readInBackground(ids: string[]) {
+  readInBackground(ids: string[], automate = true) {
     void (async () => {
       for (const id of ids) {
-        await this.read(id).catch((e: Error) => this.logger.warn(`Reading application email ${id} failed: ${e.message}`));
+        await this.read(id, { automate }).catch((e: Error) => this.logger.warn(`Reading application email ${id} failed: ${e.message}`));
       }
     })();
   }
@@ -173,7 +379,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
   }
 
   /** Claude reads the email and CV (also "Read again"). */
-  async read(id: string) {
+  async read(id: string, opts: { automate?: boolean } = {}) {
     const row = await this.prisma.recruitmentEmail.findUnique({ where: { id } });
     if (!row) throw new NotFoundException('Email not found');
     try {
@@ -209,6 +415,10 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
         data: { status: RecruitmentEmailStatus.FAILED, error: ((e as Error).message ?? 'Reading failed').slice(0, 2000), readAttempts: row.readAttempts + 1 },
       });
       throw e;
+    }
+    // The settings act only on a new email's first read (never on "Read again").
+    if (opts.automate && row.status === RecruitmentEmailStatus.RECEIVED && !row.automation) {
+      await this.automate(id).catch((e: Error) => this.logger.warn(`Recruitment inbox automation for ${id} failed: ${e.message}`));
     }
     return this.get(id);
   }
@@ -300,6 +510,11 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
         bodyText: row.bodyText,
         error: row.error,
         screening: screeningOf(row.screening),
+        /** What the inbox rules say about this application (current settings). */
+        checks: x ? checkApplication(x, (await this.inboxSettings()).rules).checks : [],
+        /** What the settings did when it arrived. */
+        automation: row.automation,
+        acknowledgedAt: row.acknowledgedAt,
         extractionCostUsd: row.extractionCostUsd,
         attachments: ((row.attachments as unknown as StoredAttachment[]) ?? []).map((a, index) => ({
           index,
@@ -405,8 +620,9 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
       data: { status: RecruitmentEmailStatus.CANDIDATE_CREATED, candidateId, handledById: user.id, handledAt: new Date() },
     });
 
-    // "We have received your application", like the careers page (a copy goes to the office).
-    if (email) {
+    // "We have received your application", like the careers page (a copy goes to the office); never twice.
+    const told = email ? await this.prisma.recruitmentEmail.updateMany({ where: { id, acknowledgedAt: null }, data: { acknowledgedAt: new Date() } }) : null;
+    if (email && told?.count) {
       const vacancy = await this.prisma.vacancy.findUnique({ where: { id: dto.vacancyId }, select: { title: true, recordNo: true } });
       if (vacancy) {
         void this.careers.sendConfirmation(dto.firstName.trim(), email, vacancy.title, formatVacancyReference(vacancy.recordNo));
@@ -415,7 +631,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
 
     return {
       message: 'Candidate created',
-      data: { candidateId, documentsCopied: copied, historyRows: history.length, emailed: Boolean(email) },
+      data: { candidateId, documentsCopied: copied, historyRows: history.length, emailed: Boolean(told?.count) },
     };
   }
 
@@ -491,7 +707,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
       data: { status: row.extraction ? RecruitmentEmailStatus.READ : RecruitmentEmailStatus.RECEIVED, handledById: null, handledAt: null },
     });
     // Set aside by the rules, never read: Claude reads it now.
-    if (!row.extraction) this.readInBackground([id]);
+    if (!row.extraction) this.readInBackground([id], false);
     return { message: 'Moved back to the inbox' };
   }
 }
