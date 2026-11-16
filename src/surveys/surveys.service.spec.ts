@@ -3063,6 +3063,70 @@ describe('SurveysService', () => {
       });
     });
 
+    describe('families / outside people survey: recording for someone it was sent to', () => {
+      const answers = [{ questionId: 'q1', booleanValue: true }];
+      beforeEach(() => {
+        givenSurvey(surveyRow({ targetKind: 'PUBLIC', status: 'ACTIVE' }));
+        prisma.surveyQuestion.findMany.mockResolvedValue([question()]);
+      });
+
+      it('lists the outside people it was sent to; someone who answered cannot be chosen again', async () => {
+        prisma.surveyRecipient.findMany.mockResolvedValue([
+          { status: 'SENT', externalContact: { id: 'x-henry', name: 'Henry Owen', role: null, kind: 'FAMILY', deletedAt: null } },
+          { status: 'COMPLETED', externalContact: { id: 'x-enid', name: 'Enid Morrison', role: 'Wife', kind: 'FAMILY', deletedAt: null } },
+          { status: 'SENT', externalContact: { id: 'x-gone', name: 'Removed', role: null, kind: 'OTHER', deletedAt: new Date() } },
+        ]);
+        const res = await service.listRecordCandidates(admin, 's1', 'en');
+        expect(res.data).toEqual([
+          expect.objectContaining({ id: 'x-enid', name: 'Enid Morrison (Wife)', hasResponse: true, statusHidden: false }),
+          expect.objectContaining({ id: 'x-henry', name: 'Henry Owen (Family member)', hasResponse: false, recipientStatus: 'SENT' }),
+        ]);
+        expect(prisma.surveyRecipient.findMany.mock.calls[0][0].where).toMatchObject({
+          surveyId: 's1',
+          externalContactId: { not: null },
+          externalContact: { AND: [{ name: { contains: 'en', mode: 'insensitive' } }] },
+        });
+        expect(prisma.employee.findMany).not.toHaveBeenCalled();
+      });
+
+      it('the answer is linked to them and their survey is marked Completed, as their own link would', async () => {
+        prisma.surveyRecipient.findFirst.mockResolvedValue({ id: 'r-henry', status: 'SENT' });
+        await service.recordResponse(admin, 's1', { channel: 'TELEPHONE', consentGiven: true, personId: 'x-henry', answers } as any);
+        expect(prisma.surveyRecipient.findFirst.mock.calls[0][0].where).toMatchObject({ surveyId: 's1', externalContactId: 'x-henry' });
+        expect(prisma.surveyRecipient.updateMany.mock.calls.at(-1)[0]).toMatchObject({ where: { id: 'r-henry' }, data: { status: 'COMPLETED' } });
+        expect(prisma.surveyRecipient.create).not.toHaveBeenCalled();
+        expect(prisma.surveyResponse.create.mock.calls[0][0].data).toMatchObject({ recipientId: 'r-henry', isAnonymous: false });
+      });
+
+      it('Anonymous ticked: linked to no one and nobody is marked Completed', async () => {
+        await service.recordResponse(admin, 's1', { channel: 'PAPER', isAnonymous: true, personId: 'x-henry', answers } as any);
+        expect(prisma.surveyRecipient.updateMany).not.toHaveBeenCalled();
+        expect(prisma.surveyResponse.create.mock.calls[0][0].data).toMatchObject({ recipientId: null, isAnonymous: true });
+      });
+
+      it('nobody chosen: recorded as anonymous, as before', async () => {
+        await service.recordResponse(admin, 's1', { channel: 'PAPER', answers } as any);
+        expect(prisma.surveyResponse.create.mock.calls[0][0].data).toMatchObject({ recipientId: null, isAnonymous: true });
+      });
+
+      it('someone it was not sent to is refused, and no recipient row is ever made', async () => {
+        prisma.surveyRecipient.findFirst.mockResolvedValue(null);
+        await expect(
+          service.recordResponse(admin, 's1', { channel: 'PAPER', personId: 'x-stranger', answers } as any),
+        ).rejects.toThrow(/sent to/);
+        expect(prisma.surveyRecipient.create).not.toHaveBeenCalled();
+        expect(prisma.surveyResponse.create).not.toHaveBeenCalled();
+      });
+
+      it('someone who already answered is refused', async () => {
+        prisma.surveyRecipient.findFirst.mockResolvedValue({ id: 'r-enid', status: 'COMPLETED' });
+        await expect(
+          service.recordResponse(admin, 's1', { channel: 'PAPER', personId: 'x-enid', answers } as any),
+        ).rejects.toThrow(/already answered/);
+        expect(prisma.surveyResponse.create).not.toHaveBeenCalled();
+      });
+    });
+
     it('correcting a recorded answer on an anonymous survey is audited against the survey', async () => {
       givenSurvey(surveyRow({ isAnonymous: true, status: 'ACTIVE' }));
       const existing = {

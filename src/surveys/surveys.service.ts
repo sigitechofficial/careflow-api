@@ -6357,16 +6357,56 @@ export class SurveysService {
   }
 
   /** People this survey can be recorded for (its target, within the user's branches). */
+  /**
+   * Families / outside people survey: the outside people it was sent to (only they can be chosen; the
+   * id is their outside contact). Their answer is linked to them as their own link's answer would be.
+   * On an anonymous survey whether they have answered is never shown.
+   */
+  private async outsideRecordCandidates(survey: Survey, words: string[]) {
+    const rows = await this.prisma.surveyRecipient.findMany({
+      where: {
+        surveyId: survey.id,
+        externalContactId: { not: null },
+        ...(words.length
+          ? { externalContact: { AND: words.map((w) => ({ name: { contains: w, mode: 'insensitive' as const } })) } }
+          : {}),
+      },
+      select: {
+        status: true,
+        externalContact: { select: { id: true, name: true, role: true, kind: true, deletedAt: true } },
+      },
+      take: 200,
+    });
+    const KIND: Record<string, string> = { FAMILY: 'Family member', PROFESSIONAL: 'Professional', COMMISSIONER: 'Commissioner' };
+    return rows
+      .filter((r) => r.externalContact && !r.externalContact.deletedAt)
+      .map((r) => {
+        const c = r.externalContact!;
+        const what = c.role?.trim() || KIND[c.kind] || null;
+        return {
+          id: c.id,
+          name: what ? `${c.name} (${what})` : c.name,
+          recipientStatus: survey.isAnonymous ? null : r.status,
+          hasResponse: survey.isAnonymous ? false : r.status === 'COMPLETED',
+          statusHidden: survey.isAnonymous,
+          hasPortal: null,
+          careEnded: null,
+        };
+      })
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .slice(0, 25);
+  }
+
   async listRecordCandidates(actor: RequestUser, surveyId: string, search?: string) {
     const survey = await this.requireSurvey(actor, surveyId);
     const scope = this.scopeOf(actor);
     const q = search?.trim();
     const forServiceUsers = survey.targetKind === SurveyTargetKind.SERVICE_USER;
-    if (survey.targetKind === SurveyTargetKind.PUBLIC) {
-      return { message: 'Survey record candidates', data: [] };
-    }
     const contains = (value: string) => ({ contains: value, mode: 'insensitive' as const });
     const words = (q ?? '').split(/\s+/).filter(Boolean).slice(0, 5);
+    if (survey.targetKind === SurveyTargetKind.PUBLIC) {
+      return { message: 'Survey record candidates', data: await this.outsideRecordCandidates(survey, words) };
+    }
 
     let people: Array<{ id: string; name: string; hasPortal?: boolean; careEnded?: boolean }>;
     if (forServiceUsers) {
@@ -6598,7 +6638,7 @@ export class SurveysService {
    */
   private async respondentSegment(
     db: Db,
-    person: { employeeId?: string | null; serviceUserId?: string | null },
+    person: { employeeId?: string | null; serviceUserId?: string | null; externalContactId?: string | null },
     anonymous: boolean,
   ): Promise<{ locationId: string | null; jobTitleId: string | null }> {
     if (person.employeeId) {
@@ -6656,7 +6696,13 @@ export class SurveysService {
     }
     const scope = this.scopeOf(actor);
     const forServiceUsers = survey.targetKind === SurveyTargetKind.SERVICE_USER;
-    const anonymous = Boolean(dto.isAnonymous) || survey.targetKind === SurveyTargetKind.PUBLIC;
+    // Families / outside people survey: the person is one of the outside people it was sent to (their
+    // outside contact id). Without one the answer is linked to no one, as before.
+    const forOutside = survey.targetKind === SurveyTargetKind.PUBLIC;
+    const anonymous = Boolean(dto.isAnonymous) || (forOutside && !dto.personId);
+    /** The person's recipient row on this survey. */
+    const personWhere = (id: string) =>
+      forServiceUsers ? { serviceUserId: id } : forOutside ? { externalContactId: id } : { employeeId: id };
     if (!anonymous && !dto.personId) {
       throw new BadRequestException(
         `Choose the ${forServiceUsers ? 'service user' : 'employee'} or record the response as anonymous`,
@@ -6689,6 +6735,13 @@ export class SurveysService {
             'Answers cannot be recorded for this person: they have died, are inactive, or their care has not started.',
           );
         }
+      } else if (forOutside) {
+        // Only someone this survey was sent to (never a new outside person from here).
+        const sentTo = await this.prisma.surveyRecipient.findFirst({
+          where: { surveyId, externalContactId: personId, externalContact: { deletedAt: null } },
+          select: { id: true },
+        });
+        if (!sentTo) throw new BadRequestException('Choose someone this survey was sent to, or record the response as anonymous.');
       } else {
         const employee = await this.prisma.employee.findFirst({
           where: { id: personId, deletedAt: null },
@@ -6701,9 +6754,7 @@ export class SurveysService {
       // hide it too), so recording behaves the same either way — no "already answered" refusal.
       if (!survey.isAnonymous) {
         const existing = await this.prisma.surveyRecipient.findFirst({
-          where: forServiceUsers
-            ? { surveyId, serviceUserId: personId }
-            : { surveyId, employeeId: personId },
+          where: { surveyId, ...personWhere(personId) },
           select: { status: true },
         });
         if (existing?.status === 'COMPLETED') {
@@ -6726,15 +6777,11 @@ export class SurveysService {
     const contactedRaw = dto.contactedAt ? new Date(dto.contactedAt) : isTelephone ? now : null;
     const contactedAt =
       contactedRaw && unlinked ? await this.anonymousTimestamp(contactedRaw) : contactedRaw;
-    const person = personId
-      ? forServiceUsers
-        ? { serviceUserId: personId }
-        : { employeeId: personId }
-      : null;
+    const person = personId ? personWhere(personId) : null;
 
     /** Marks the person's survey Completed (creating their recipient row if needed). */
     const markCompleted = async (db: Db) => {
-      const where = forServiceUsers ? { surveyId, serviceUserId: personId! } : { surveyId, employeeId: personId! };
+      const where = { surveyId, ...personWhere(personId!) };
       const existing = await db.surveyRecipient.findFirst({ where, select: { id: true, status: true } });
       if (existing) {
         // Not while the person's own unlinked answer ("without my name") is being submitted.
@@ -6747,6 +6794,8 @@ export class SurveysService {
         }
         return { recipientId: existing.id };
       }
+      // An outside person always has their row (checked above); it is never made here.
+      if (forOutside) throw new BadRequestException('Choose someone this survey was sent to.');
       const created = await db.surveyRecipient.create({
         data: {
           surveyId,
@@ -6770,7 +6819,7 @@ export class SurveysService {
       if (!personId) return false;
       const row = await this.prisma.surveyRecipient
         .findFirst({
-          where: forServiceUsers ? { surveyId, serviceUserId: personId } : { surveyId, employeeId: personId },
+          where: { surveyId, ...personWhere(personId) },
           select: { status: true },
         })
         .catch(() => null);
@@ -8245,7 +8294,7 @@ export class SurveysService {
    */
   private async claimForRecording(
     survey: Survey,
-    person: { employeeId: string } | { serviceUserId: string },
+    person: { employeeId: string } | { serviceUserId: string } | { externalContactId: string },
     actorId: string,
     now: Date,
     stamp: Date,
@@ -8258,6 +8307,8 @@ export class SurveysService {
       const claim = await claimRecipient(this.prisma, existing.id, { now, updatedAt: stamp });
       return claim ? { recipientId: existing.id, claim, created: false } : null;
     }
+    // An outside person's row is made only by sending the survey to them, never here.
+    if ('externalContactId' in person) return null;
     const claim = randomUUID();
     const created = await this.prisma.surveyRecipient.create({
       data: {
