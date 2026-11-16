@@ -18094,6 +18094,8 @@ model RecruitmentEmail {
   extractionCostUsd Float?
   error             String?                @db.Text
   readAttempts      Int                    @default(0)
+  /// Free rules before Claude reads it (recruitment-inbox.util screenApplicationByRules): { decision READ | SKIP, reason, at }.
+  screening         Json?
   candidateId       String?                @db.Uuid
   handledById       String?                @db.Uuid
   handledAt         DateTime?

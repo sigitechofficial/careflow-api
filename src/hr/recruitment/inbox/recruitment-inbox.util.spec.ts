@@ -1,4 +1,4 @@
-import { historyFromExtraction, splitName, yesNoToBool } from './recruitment-inbox.util';
+import { historyFromExtraction, screenApplicationByRules, splitName, yesNoToBool } from './recruitment-inbox.util';
 
 const job = (over: Record<string, unknown> = {}) => ({
   kind: 'JOB' as const,
@@ -53,5 +53,51 @@ describe('helpers', () => {
 
   it('turns YES / NO / UNKNOWN into true / false / null', () => {
     expect([yesNoToBool('YES'), yesNoToBool('NO'), yesNoToBool('UNKNOWN')]).toEqual([true, false, null]);
+  });
+});
+
+describe('screenApplicationByRules', () => {
+  const email = (over: Partial<Parameters<typeof screenApplicationByRules>[0]> = {}) => ({
+    fromEmail: 'jane@example.com',
+    subject: 'Hello',
+    bodyText: 'Hi there',
+    attachments: [] as { fileName: string }[],
+    ...over,
+  });
+  const decide = (over: Partial<Parameters<typeof screenApplicationByRules>[0]> = {}) => screenApplicationByRules(email(over)).decision;
+
+  it('reads an application', () => {
+    expect(decide({ subject: 'Application for Care Worker (VAC-0005)' })).toBe('READ');
+    expect(decide({ bodyText: 'Please find my CV attached.' })).toBe('READ');
+  });
+
+  it('reads a job board application from a no-reply sender', () => {
+    expect(decide({ fromEmail: 'noreply@indeed.com', subject: 'New application: Care Worker - Jane Smith' })).toBe('READ');
+  });
+
+  it('reads an email with a CV-like file even without job words', () => {
+    expect(decide({ attachments: [{ fileName: 'Jane Smith.docx' }] })).toBe('READ');
+  });
+
+  it('sets aside job alerts sent to job seekers', () => {
+    expect(decide({ fromEmail: 'alert@jobalert.indeed.com', subject: 'PHP Laravel Developer at BNZ Technologies. 20 more laravel jobs' })).toBe('SKIP');
+    expect(decide({ fromEmail: 'donotreply@match.indeed.com', subject: 'PHP Developer @ Compass Training' })).toBe('SKIP');
+    expect(decide({ subject: 'New jobs for you', bodyText: 'Care worker roles near you' })).toBe('SKIP');
+  });
+
+  it('sets aside everyday mail with no sign of a job (bank alerts, appointments…)', () => {
+    expect(screenApplicationByRules(email())).toEqual({ decision: 'SKIP', reason: 'No sign of a job or CV' });
+    expect(decide({ fromEmail: 'info@bank.example.com', subject: 'Login Alert', bodyText: 'You signed in to DigiBank.' })).toBe('SKIP');
+  });
+
+  it('sets aside receipts, newsletters and security notices', () => {
+    expect(decide({ subject: 'Your receipt from Tesco', attachments: [{ fileName: 'receipt.pdf' }] })).toBe('SKIP');
+    expect(decide({ subject: 'Security alert' })).toBe('SKIP');
+    expect(decide({ subject: 'November newsletter' })).toBe('SKIP');
+  });
+
+  it('sets aside automated senders and mailing lists with no sign of a job', () => {
+    expect(decide({ fromEmail: 'no-reply@accounts.google.com', subject: 'Storage almost full' })).toBe('SKIP');
+    expect(decide({ fromEmail: 'offers@shop.example.com', bodyText: 'Big savings. Unsubscribe here.' })).toBe('SKIP');
   });
 });

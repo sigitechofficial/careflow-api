@@ -48,10 +48,10 @@ export function senderMatches(address: string, entries: string[]): string | null
 }
 
 /** Senders that are machines, not people. */
-const AUTOMATED_SENDER = /^(no-?reply|do-?not-?reply|mailer-daemon|postmaster|bounces?|notifications?|alerts?|newsletters?|news|marketing|promotions?|updates|digest|automated|system)([+._-].*)?@/i;
+export const AUTOMATED_SENDER = /^(no-?reply|do-?not-?reply|mailer-daemon|postmaster|bounces?|notifications?|alerts?|newsletters?|news|marketing|promotions?|updates|digest|automated|system)([+._-].*)?@/i;
 
 /** Subjects that are never a care referral. */
-const JUNK_SUBJECT =
+export const JUNK_SUBJECT =
   /\b(newsletter|webinar|unsubscribe|security alert|sign[- ]?in (code|attempt)|verification code|verify your|confirm your (email|account)|password (reset|changed)|your (receipt|order|invoice|statement|subscription)|order confirmation|delivery (update|notification)|% off|black friday|cyber monday|free trial|limited time|special offer|livestream|account (was )?recovered)\b/i;
 
 /** Words that make an email about someone's care (subject or body). */

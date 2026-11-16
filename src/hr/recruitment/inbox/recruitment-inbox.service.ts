@@ -28,7 +28,7 @@ import { CandidatesService } from '../candidates/candidates.service';
 import { CareersService } from '../careers/careers.service';
 import { formatVacancyReference } from '../utils/recruitment-reference.util';
 import { RecruitmentExtractionService } from './recruitment-extraction.service';
-import { historyFromExtraction, splitName, yesNoToBool, type ApplicationExtraction } from './recruitment-inbox.util';
+import { historyFromExtraction, screenApplicationByRules, splitName, yesNoToBool, type ApplicationExtraction } from './recruitment-inbox.util';
 import type { CreateCandidateFromEmailDto } from './recruitment-inbox.dto';
 
 /**
@@ -41,6 +41,9 @@ const STORAGE_ROOT = uploadPath(RECRUITMENT_UPLOAD_AREA);
 const CANDIDATE_UPLOAD_ROOT = uploadPath('recruitment', 'candidates');
 
 type StoredAttachment = { fileName: string; mimeType: string; size: number; storedName: string | null; skippedReason?: string };
+
+const screeningOf = (v: Prisma.JsonValue | null): { decision: 'READ' | 'SKIP'; reason: string } | null =>
+  v && typeof v === 'object' && !Array.isArray(v) ? (v as { decision: 'READ' | 'SKIP'; reason: string }) : null;
 
 /** Tabs of the inbox: waiting for staff, made into candidates, and set aside. */
 const TAB_STATUSES: Record<string, RecruitmentEmailStatus[]> = {
@@ -76,6 +79,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
   }
 
   /** Save one email and its attachments. Returns the id to read, or null (our own sent email, or already saved). */
+  /** Saves a new email. Returns its id when Claude should read it; null when it was already saved or set aside by the rules. */
   async save(mb: ReferralMailbox, email: FetchedEmail): Promise<string | null> {
     if (email.fromEmail && email.fromEmail.toLowerCase() === mb.emailAddress.toLowerCase()) return null;
     const exists = await this.prisma.recruitmentEmail.findUnique({
@@ -101,9 +105,13 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
       await fs.writeFile(path.join(dir, storedName), data);
       attachments.push({ fileName: a.fileName, mimeType: a.mimeType, size: data.length, storedName });
     }
+    const screening = screenApplicationByRules(email);
     await this.prisma.recruitmentEmail.create({
       data: {
         id,
+        screening: { ...screening, at: new Date().toISOString() } as Prisma.InputJsonValue,
+        // Clear junk is set aside without spending a read; staff can still "Read again".
+        ...(screening.decision === 'SKIP' ? { status: RecruitmentEmailStatus.NOT_AN_APPLICATION } : {}),
         mailboxId: mb.id,
         providerMessageId: email.providerMessageId,
         providerThreadId: email.threadKey,
@@ -115,7 +123,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
         attachments: attachments as unknown as Prisma.InputJsonValue,
       },
     });
-    return id;
+    return screening.decision === 'SKIP' ? null : id;
   }
 
   /** Claude reads in the background so a mailbox check returns straight away. */
@@ -222,6 +230,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
           receivedAt: true,
           status: true,
           extraction: true,
+          screening: true,
           attachments: true,
           candidateId: true,
         },
@@ -242,7 +251,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
           receivedAt: r.receivedAt,
           status: r.status,
           applicantName: name || r.fromName || r.fromEmail || 'Unknown sender',
-          summary: x?.summary ?? null,
+          summary: x?.summary ?? (screeningOf(r.screening)?.decision === 'SKIP' ? `Not read: ${screeningOf(r.screening)!.reason}` : null),
           attachmentCount: ((r.attachments as unknown as StoredAttachment[]) ?? []).length,
           candidateId: r.candidateId,
         };
@@ -290,6 +299,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
         receivedAt: row.receivedAt,
         bodyText: row.bodyText,
         error: row.error,
+        screening: screeningOf(row.screening),
         extractionCostUsd: row.extractionCostUsd,
         attachments: ((row.attachments as unknown as StoredAttachment[]) ?? []).map((a, index) => ({
           index,
@@ -480,6 +490,8 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
       where: { id },
       data: { status: row.extraction ? RecruitmentEmailStatus.READ : RecruitmentEmailStatus.RECEIVED, handledById: null, handledAt: null },
     });
+    // Set aside by the rules, never read: Claude reads it now.
+    if (!row.extraction) this.readInBackground([id]);
     return { message: 'Moved back to the inbox' };
   }
 }

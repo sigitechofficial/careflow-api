@@ -1,4 +1,5 @@
 import type { EmploymentHistoryEntry } from '../utils/recruitment-flow.util';
+import { AUTOMATED_SENDER, JUNK_SUBJECT } from '../../../referral-mailbox/referral-screening.util';
 
 type YesNo = 'YES' | 'NO' | 'UNKNOWN';
 
@@ -77,4 +78,40 @@ export function splitName(fullName: string | null | undefined): { firstName: str
   if (parts.length === 0) return { firstName: '', lastName: '' };
   if (parts.length === 1) return { firstName: parts[0], lastName: '' };
   return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
+}
+
+/** Words that make an email look like someone applying for a job (subject or body). */
+const JOB_WORDS =
+  /\b(appl(y|ying|ied|ication|icant)|cv|r[eé]sum[eé]|cover letter|vacanc(y|ies)|vac-\d+|job|position|role|candidate|interview|care (worker|assistant)|carer|support worker|right to work|availability)\b/i;
+
+/** Job boards' alerts and suggestions to job seekers ("20 more laravel jobs", jobalert.indeed.com): not applications. */
+const JOB_ALERT_SUBJECT = /\b(job alerts?|jobs? (for|near) you|recommended jobs|new jobs|\d+ (more|new) [a-z ]*jobs)\b/i;
+const JOB_ALERT_SENDER = /@(jobalerts?|match)\./i;
+
+/** Files a CV comes in. */
+const CV_FILE = /\.(pdf|docx?|odt|rtf|pages)$/i;
+
+/**
+ * Free rules before Claude reads an email, so obvious junk (receipts, newsletters, no-reply notices) costs nothing.
+ * Claude reads only emails that mention a job or carry a CV-like file; the rest is set aside unread, with the reason.
+ * A set-aside email can still be read with "Read again".
+ */
+export function screenApplicationByRules(email: {
+  fromEmail: string | null;
+  subject: string | null;
+  bodyText: string;
+  attachments: { fileName: string }[];
+}): { decision: 'READ' | 'SKIP'; reason: string } {
+  const from = (email.fromEmail ?? '').trim().toLowerCase();
+  const subject = email.subject ?? '';
+  const body = email.bodyText ?? '';
+  if (JUNK_SUBJECT.test(subject) && !JOB_WORDS.test(subject)) return { decision: 'SKIP', reason: 'Subject is a newsletter, alert, receipt or offer' };
+  const cv = email.attachments.find((a) => CV_FILE.test(a.fileName));
+  if (!cv && (JOB_ALERT_SUBJECT.test(subject) || JOB_ALERT_SENDER.test(from))) return { decision: 'SKIP', reason: 'Job alert or job board advert' };
+  if (JOB_WORDS.test(subject) || JOB_WORDS.test(body.slice(0, 3000))) return { decision: 'READ', reason: 'Mentions a job or application' };
+  if (cv) return { decision: 'READ', reason: `Has a document attached (${cv.fileName})` };
+  if (from && AUTOMATED_SENDER.test(from)) return { decision: 'SKIP', reason: 'Automated sender (no-reply, notifications…)' };
+  if (/\bunsubscribe\b/i.test(body)) return { decision: 'SKIP', reason: 'Mailing list (has an unsubscribe link)' };
+  // A mailbox that also gets other mail (bank alerts, appointments…): only job-like emails go to Claude.
+  return { decision: 'SKIP', reason: 'No sign of a job or CV' };
 }
