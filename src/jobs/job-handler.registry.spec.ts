@@ -24,6 +24,7 @@ import { AssessmentReviewRemindersJob } from '../service-user-assessments/assess
 import { PolicyAcknowledgementRemindersJob } from '../policies/policy-acknowledgement-reminders.job';
 import { ReferralMailboxService } from '../referral-mailbox/referral-mailbox.service';
 import { OverCareReviewJob } from '../service-user-visit-plans/over-care-review.job';
+import { ApplicationSummaryJob } from '../hr/recruitment/application-summary.job';
 import { jobSuccess } from './job-run.types';
 
 @Injectable()
@@ -59,7 +60,7 @@ describe('JobHandlerRegistry', () => {
 });
 
 describe('job classes', () => {
-  it('each of the 17 jobs has exactly one @JobHandler method', () => {
+  it('each of the 18 jobs has exactly one @JobHandler method', () => {
     const classes = [
       SurveyDistributionJob,
       VisitStartReminderJob,
@@ -78,6 +79,7 @@ describe('job classes', () => {
       PolicyAcknowledgementRemindersJob,
       ReferralMailboxService,
       OverCareReviewJob,
+      ApplicationSummaryJob,
     ];
     const found: string[] = [];
     for (const cls of classes) {

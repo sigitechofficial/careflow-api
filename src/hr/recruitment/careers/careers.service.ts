@@ -1,10 +1,18 @@
 import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { CandidateDocumentType, CandidateSource, CandidateStage, VacancyStatus } from '@prisma/client';
+import { CandidateDocumentType, CandidateSource, CandidateStage, Prisma, VacancyStatus } from '@prisma/client';
 import { PrismaService } from '../../../prisma/prisma.service';
 import { MailService } from '../../../mail/mail.service';
 import { CompanyProfileService } from '../../../company-profile/company-profile.service';
 import { RecruitmentNotificationHook } from '../recruitment-notification.hook';
 import { formatVacancyReference } from '../utils/recruitment-reference.util';
+import { ApplicationAlertsService } from '../application-alerts.service';
+import {
+  evaluateAnswers,
+  normaliseQuestions,
+  publicQuestions,
+  yesNoAnswerOfKind,
+  type ScreeningQuestion,
+} from '../utils/vacancy-screening.util';
 import { ApplyForVacancyDto } from './dto/apply-for-vacancy.dto';
 
 const openVacancyInclude = {
@@ -23,6 +31,15 @@ type OpenVacancyRow = {
   salaryPeriod: string | null;
   closingDate: Date | null;
   numberOfPositions: number;
+  workSetting: string | null;
+  hoursType: string | null;
+  hoursPerWeekMin: number | null;
+  hoursPerWeekMax: number | null;
+  startDate: Date | null;
+  shifts: string[];
+  benefits: string[];
+  screeningQuestions: Prisma.JsonValue;
+  cvRequirement: string;
   createdAt: Date;
   location: { name: string } | null;
   jobTitle: { name: string } | null;
@@ -59,7 +76,17 @@ export class CareersService {
     private readonly notifications: RecruitmentNotificationHook,
     private readonly mail: MailService,
     private readonly company: CompanyProfileService,
+    private readonly alerts: ApplicationAlertsService,
   ) {}
+
+  /** The vacancy's questions as saved (tidied again in case of older or hand-edited data). */
+  private questionsOf(raw: Prisma.JsonValue): ScreeningQuestion[] {
+    try {
+      return normaliseQuestions(raw);
+    } catch {
+      return [];
+    }
+  }
 
   /** Only what an applicant should see (no hiring manager, no candidate counts). */
   private mapPublic(row: OpenVacancyRow) {
@@ -74,6 +101,16 @@ export class CareersService {
       salaryPeriod: row.salaryPeriod,
       closingDate: row.closingDate ? row.closingDate.toISOString().slice(0, 10) : null,
       numberOfPositions: row.numberOfPositions,
+      workSetting: row.workSetting,
+      hoursType: row.hoursType,
+      hoursPerWeekMin: row.hoursPerWeekMin,
+      hoursPerWeekMax: row.hoursPerWeekMax,
+      startDate: row.startDate ? row.startDate.toISOString().slice(0, 10) : null,
+      shifts: row.shifts,
+      benefits: row.benefits,
+      // Never which answers the job needs.
+      questions: publicQuestions(this.questionsOf(row.screeningQuestions)),
+      cvRequirement: row.cvRequirement,
       description: row.description,
       requirements: row.requirements,
       postedAt: row.createdAt,
@@ -114,7 +151,7 @@ export class CareersService {
 
     const vacancy = await this.prisma.vacancy.findFirst({
       where: { id: vacancyId, ...openForApplications() },
-      select: { id: true, title: true, recordNo: true, hiringManagerId: true },
+      select: { id: true, title: true, recordNo: true, hiringManagerId: true, screeningQuestions: true, cvRequirement: true },
     });
     if (!vacancy) throw new NotFoundException('This job is no longer open for applications.');
 
@@ -134,6 +171,29 @@ export class CareersService {
     if (dto.consent !== true) {
       throw new BadRequestException('Please agree to us using your details for your application.');
     }
+    if (vacancy.cvRequirement === 'REQUIRED' && !file) {
+      throw new BadRequestException('Please attach your CV.');
+    }
+
+    // The vacancy's questions: required ones answered, answers from the list; missed deal breakers are
+    // kept for staff (shown in red), never used to turn the application away.
+    const questions = this.questionsOf(vacancy.screeningQuestions);
+    let given: Record<string, unknown> = {};
+    if (dto.answers) {
+      try {
+        const parsed: unknown = JSON.parse(dto.answers);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) given = parsed as Record<string, unknown>;
+      } catch {
+        throw new BadRequestException('Your answers could not be read. Please try again.');
+      }
+    }
+    const screening = evaluateAnswers(questions, given);
+    if (screening.problems.length) throw new BadRequestException(screening.problems.join(' '));
+    const hasRightToWork = yesNoAnswerOfKind(questions, screening.answers, 'RIGHT_TO_WORK') ?? dto.hasRightToWork;
+    if (hasRightToWork === undefined) {
+      throw new BadRequestException('Tell us if you have the right to work in the UK');
+    }
+    const drivesForWork = yesNoAnswerOfKind(questions, screening.answers, 'DRIVING') ?? dto.drivesForWork ?? null;
 
     const created = await this.prisma.$transaction(async (tx) => {
       const candidate = await tx.candidate.create({
@@ -148,8 +208,14 @@ export class CareersService {
           stage: CandidateStage.APPLIED,
           coverLetter: dto.coverLetter ?? null,
           cvFileUrl: fileUrl,
-          hasRightToWork: dto.hasRightToWork,
-          drivesForWork: dto.drivesForWork ?? null,
+          hasRightToWork,
+          drivesForWork,
+          ...(questions.length
+            ? {
+                screeningAnswers: screening.answers as unknown as Prisma.InputJsonValue,
+                dealBreakersMissed: screening.missed,
+              }
+            : {}),
           dataProcessingConsent: true,
           consentDate: new Date(),
         },
@@ -187,6 +253,8 @@ export class CareersService {
     });
     // In the background: the applicant gets their answer straight away, even when email is slow.
     void this.sendConfirmation(created.firstName, email, vacancy.title, formatVacancyReference(vacancy.recordNo));
+    // The hiring manager, when the vacancy asks for an email for each application.
+    void this.alerts.onNewApplication(created.id);
 
     return { message: 'Application received', data: { reference: formatVacancyReference(vacancy.recordNo) } };
   }

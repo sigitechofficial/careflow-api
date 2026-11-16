@@ -1,5 +1,5 @@
 /**
- * Scheduled jobs catalogue — the single list of the 17 background jobs.
+ * Scheduled jobs catalogue — the single list of the 18 background jobs.
  * Names are the canonical IDs used everywhere (JobRun.jobName, POST /internal/jobs/:name,
  * the CLI, the Azure Functions and Container Apps Jobs, the admin System jobs screen).
  */
@@ -21,6 +21,7 @@ export const JOB_NAMES = [
   'policy-acknowledgement-reminders',
   'referral-mailbox-check',
   'over-care-review',
+  'recruitment-application-summary',
 ] as const;
 
 export type JobName = (typeof JOB_NAMES)[number];
@@ -247,7 +248,8 @@ export const JOB_CATALOGUE: readonly JobDefinition[] = [
     expectedIntervalMinutes: 2,
     period: { kind: 'minutes', minutes: 2 },
     retentionDays: MINUTE_JOB_RETENTION_DAYS,
-  },  {
+  },
+  {
     name: 'over-care-review',
     label: 'Over care reviews',
     description:
@@ -258,7 +260,17 @@ export const JOB_CATALOGUE: readonly JobDefinition[] = [
     period: { kind: 'org-date' },
     retentionDays: DAILY_JOB_RETENTION_DAYS,
   },
-
+  {
+    name: 'recruitment-application-summary',
+    label: 'Recruitment application summary',
+    description:
+      'Hourly check; at 08:00 (organisation time) emails each hiring manager the new applications for vacancies set to "one summary a day". Each application is in one summary only.',
+    trigger: 'function',
+    schedule: { cron: '40 * * * *', human: 'Hourly at :40 (sends in the 08:00 hour, organisation time)' },
+    expectedIntervalMinutes: 60,
+    period: { kind: 'minutes', minutes: 60 },
+    retentionDays: MINUTE_JOB_RETENTION_DAYS,
+  },
 ];
 
 const BY_NAME = new Map<string, JobDefinition>(
