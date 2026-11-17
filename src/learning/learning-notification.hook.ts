@@ -134,6 +134,127 @@ export class LearningNotificationHook {
     });
   }
 
+  /**
+   * Users who manage training for this carer: holders of learning.assignments.manage linked to the
+   * carer's branch; everyone with the permission when nobody is linked to that branch (16 Nov 2026).
+   */
+  async trainingManagerUserIds(employeeId: string): Promise<string[]> {
+    const perm = await this.prisma.permission.findFirst({
+      where: { key: 'learning.assignments.manage', deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    if (!perm) return [];
+    const roleLinks = await this.prisma.rolePermission.findMany({
+      where: { permissionId: perm.id, role: { deletedAt: null } },
+      select: { roleId: true },
+    });
+    if (!roleLinks.length) return [];
+    const holders = await this.prisma.userRole.findMany({
+      where: {
+        roleId: { in: roleLinks.map((r) => r.roleId) },
+        user: { deletedAt: null, isActive: true },
+      },
+      select: { userId: true },
+    });
+    const all = [...new Set(holders.map((h) => h.userId))];
+    if (!all.length) return [];
+    const jobs = await this.prisma.employeeEmployment.findMany({
+      where: { employeeId, isActive: true },
+      select: { locationId: true, baseLocationId: true },
+    });
+    const branches = [
+      ...new Set(jobs.flatMap((j) => [j.locationId, j.baseLocationId]).filter((x): x is string => !!x)),
+    ];
+    if (!branches.length) return all;
+    const linked = await this.prisma.userLocation.findMany({
+      where: { userId: { in: all }, locationId: { in: branches } },
+      select: { userId: true },
+    });
+    const branchManagers = [...new Set(linked.map((l) => l.userId))];
+    return branchManagers.length ? branchManagers : all;
+  }
+
+  private async employeeName(employeeId: string): Promise<string> {
+    const p = await this.prisma.employeePersonalDetail.findFirst({
+      where: { employeeId },
+      select: { firstName: true, lastName: true },
+    });
+    return `${p?.firstName ?? ''} ${p?.lastName ?? ''}`.trim() || 'A carer';
+  }
+
+  /** A course was finished after its due date. */
+  async notifyCompletedLate(params: {
+    assignmentId: string;
+    employeeId: string;
+    courseTitle: string;
+    dueAt: Date;
+    completedAt: Date;
+  }) {
+    if (!this.notifications) return;
+    const recipientUserIds = await this.trainingManagerUserIds(params.employeeId);
+    if (!recipientUserIds.length) return;
+    const display = await loadNotificationDisplay(this.prisma);
+    const name = await this.employeeName(params.employeeId);
+    await this.notifications.notifyUsers({
+      recipientUserIds,
+      type: NotificationType.SYSTEM_MESSAGE,
+      module: NotificationModule.SYSTEM,
+      severity: NotificationSeverity.WARNING,
+      title: 'Training completed late',
+      message: `${name} completed "${params.courseTitle}" late (due ${formatNotificationDate(params.dueAt, display)}, completed ${formatNotificationDate(params.completedAt, display)}). Review it in Learning › Assignments.`,
+      recordType: 'LearningAssignment',
+      recordId: params.assignmentId,
+      metadata: { eventType: 'COMPLETED_LATE' },
+    });
+  }
+
+  /** The carer said in the app why an overdue course is late. */
+  async notifyCarerLateReason(params: {
+    assignmentId: string;
+    employeeId: string;
+    courseTitle: string;
+    reason: string;
+  }) {
+    if (!this.notifications) return;
+    const recipientUserIds = await this.trainingManagerUserIds(params.employeeId);
+    if (!recipientUserIds.length) return;
+    const name = await this.employeeName(params.employeeId);
+    await this.notifications.notifyUsers({
+      recipientUserIds,
+      type: NotificationType.SYSTEM_MESSAGE,
+      module: NotificationModule.SYSTEM,
+      severity: NotificationSeverity.INFO,
+      title: 'Reason for overdue training',
+      message: `${name} says "${params.courseTitle}" is late: ${params.reason}. Review it in Learning › Assignments.`,
+      recordType: 'LearningAssignment',
+      recordId: params.assignmentId,
+      metadata: { eventType: 'CARER_LATE_REASON' },
+    });
+  }
+
+  /** Face to face / workplace course: the carer has done everything, the manager must decide. */
+  async notifyAwaitingOutcome(params: {
+    assignmentId: string;
+    employeeId: string;
+    courseTitle: string;
+  }) {
+    if (!this.notifications) return;
+    const recipientUserIds = await this.trainingManagerUserIds(params.employeeId);
+    if (!recipientUserIds.length) return;
+    const name = await this.employeeName(params.employeeId);
+    await this.notifications.notifyUsers({
+      recipientUserIds,
+      type: NotificationType.SYSTEM_MESSAGE,
+      module: NotificationModule.SYSTEM,
+      severity: NotificationSeverity.INFO,
+      title: 'Training outcome needed',
+      message: `${name} has finished "${params.courseTitle}". Record the outcome (Passed / Not passed) in Learning › Assignments.`,
+      recordType: 'LearningAssignment',
+      recordId: params.assignmentId,
+      metadata: { eventType: 'AWAITING_OUTCOME' },
+    });
+  }
+
   async isLearningModuleActive(): Promise<boolean> {
     const profile = await this.prisma.companyProfile.findFirst({
       select: { activeModules: true },

@@ -1,4 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import type { Request } from 'express';
+import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -35,20 +48,42 @@ export class LearningCompetenciesController {
 
   @Post('competencies')
   @Permissions('learning.competencies.manage')
-  create(@Body() dto: CreateCompetencyDto) {
-    return this.service.create(dto);
+  create(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: CreateCompetencyDto,
+    @Req() req: Request,
+  ) {
+    return this.service.create(dto, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
   }
 
   @Patch('competencies/:id')
   @Permissions('learning.competencies.manage')
-  update(@Param('id') id: string, @Body() dto: UpdateCompetencyDto) {
-    return this.service.update(id, dto);
+  update(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateCompetencyDto,
+    @Req() req: Request,
+  ) {
+    return this.service.update(id, dto, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
   }
 
   @Delete('competencies/:id')
   @Permissions('learning.competencies.manage')
-  remove(@Param('id') id: string) {
-    return this.service.softDelete(id);
+  remove(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.softDelete(id, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
   }
 
   @Get('competency-assessments')

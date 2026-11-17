@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -15,8 +16,21 @@ import {
   ManagerApprovalDto,
   SubmitAssessmentAttemptDto,
 } from './dto/learning.dto';
-import { calculateAttemptScore, gradeAnswer, stripCorrectFlags } from './learning-scoring.util';
+import { gradeAttempt, stripCorrectFlags } from './learning-scoring.util';
+import { quizIsRequired, quizLockReason } from './learning-quiz-progress.util';
+import {
+  LATE_REASON_REQUIRED_MESSAGE,
+  LOCK_OVERDUE_COURSES,
+  LOCKED_MESSAGE,
+} from './learning-review.catalog';
 import { LearningCompletionService } from './learning-completion.service';
+
+const CLOSED_ASSIGNMENT_STATUSES = new Set<LearningAssignmentStatus>([
+  LearningAssignmentStatus.CANCELLED,
+  LearningAssignmentStatus.EXEMPT,
+  LearningAssignmentStatus.COMPLETED,
+  LearningAssignmentStatus.PASSED,
+]);
 
 @Injectable()
 export class LearningMeService {
@@ -30,6 +44,40 @@ export class LearningMeService {
       throw new ForbiddenException('Employee context required');
     }
     return user.employeeId;
+  }
+
+  /**
+   * The learner's own assignment, still open for learning, and the course version it uses.
+   * Cancelled, exempt and completed assignments take no more lessons or quiz attempts.
+   */
+  private async loadOpenAssignment(assignmentId: string, employeeId: string) {
+    const assignment = await this.prisma.learningAssignment.findFirst({
+      where: { id: assignmentId, employeeId },
+      include: { progress: { select: { courseVersionId: true } } },
+    });
+    if (!assignment) throw new NotFoundException('Assignment not found');
+    if (CLOSED_ASSIGNMENT_STATUSES.has(assignment.status)) {
+      throw new BadRequestException('This training is no longer open');
+    }
+    const versionId =
+      assignment.courseVersionId ??
+      assignment.progress?.courseVersionId ??
+      null;
+    if (!versionId)
+      throw new BadRequestException('This training has no course version');
+    return { assignment, versionId };
+  }
+
+  /** Overdue course: the carer must give a late reason before going on (16 Nov 2026). */
+  private async assertLateReasonGiven(assignment: {
+    id: string;
+    status: LearningAssignmentStatus;
+  }) {
+    if (assignment.status !== LearningAssignmentStatus.OVERDUE) return;
+    const given = await this.prisma.learningAssignmentReview.count({
+      where: { assignmentId: assignment.id, kind: 'CARER_LATE_REASON' },
+    });
+    if (!given) throw new BadRequestException(LATE_REASON_REQUIRED_MESSAGE);
   }
 
   private assertSelf(user: RequestUser, employeeId: string) {
@@ -100,6 +148,7 @@ export class LearningMeService {
               include: { contentItems: { orderBy: { displayOrder: 'asc' } } },
             },
             assessments: {
+              orderBy: { displayOrder: 'asc' },
               include: {
                 questions: {
                   orderBy: { displayOrder: 'asc' },
@@ -112,6 +161,9 @@ export class LearningMeService {
       },
     });
     if (!row) throw new NotFoundException('Assignment not found');
+    const quizInput = row.progress
+      ? await this.completion.quizProgressInput(row.id)
+      : null;
 
     return {
       id: row.id,
@@ -121,6 +173,10 @@ export class LearningMeService {
       sections: row.courseVersion?.sections ?? [],
       assessments: (row.courseVersion?.assessments ?? []).map((a) => ({
         ...a,
+        // Module quiz (sectionId) or final assessment (null); final ones are always required.
+        isRequired: quizIsRequired(a),
+        isFinal: a.sectionId === null,
+        lockedReason: quizInput ? quizLockReason(a, quizInput) : null,
         questions: a.questions.map((q) => ({
           ...q,
           options: q.options.map((o) => stripCorrectFlags(o)),
@@ -131,10 +187,24 @@ export class LearningMeService {
 
   async completeContent(user: RequestUser, assignmentId: string, contentId: string, dto: CompleteContentDto) {
     const employeeId = this.requireEmployeeId(user);
-    const assignment = await this.prisma.learningAssignment.findFirst({
-      where: { id: assignmentId, employeeId },
+    const { versionId, assignment } = await this.loadOpenAssignment(
+      assignmentId,
+      employeeId,
+    );
+    // Overdue courses are locked until the office extends the due date (16 Nov 2026).
+    if (
+      LOCK_OVERDUE_COURSES &&
+      assignment.status === LearningAssignmentStatus.OVERDUE
+    ) {
+      throw new BadRequestException(LOCKED_MESSAGE);
+    }
+    await this.assertLateReasonGiven(assignment);
+    const item = await this.prisma.learningContentItem.findFirst({
+      where: { id: contentId, courseSection: { courseVersionId: versionId } },
+      select: { id: true },
     });
-    if (!assignment) throw new NotFoundException('Assignment not found');
+    if (!item)
+      throw new NotFoundException('Lesson not found in this course version');
 
     await this.prisma.learningContentItemCompletion.upsert({
       where: { assignmentId_contentItemId: { assignmentId, contentItemId: contentId } },
@@ -160,16 +230,52 @@ export class LearningMeService {
 
   async startAssessmentAttempt(user: RequestUser, assignmentId: string, assessmentId: string) {
     const employeeId = this.requireEmployeeId(user);
-    const assignment = await this.prisma.learningAssignment.findFirst({
-      where: { id: assignmentId, employeeId },
+    const { versionId, assignment } = await this.loadOpenAssignment(
+      assignmentId,
+      employeeId,
+    );
+    const assessment = await this.prisma.learningAssessment.findFirst({
+      where: { id: assessmentId, courseVersionId: versionId },
     });
-    if (!assignment) throw new NotFoundException('Assignment not found');
+    if (!assessment)
+      throw new NotFoundException('Quiz not found in this course version');
+
+    // Module quiz: after that module's lessons. Final: after all modules (agreed 13 Nov 2026).
+    const lockedReason = quizLockReason(
+      assessment,
+      await this.completion.quizProgressInput(assignmentId),
+    );
+    if (lockedReason) throw new BadRequestException(lockedReason);
 
     const latest = await this.prisma.learningAssessmentAttempt.findFirst({
       where: { assignmentId, assessmentId },
       orderBy: { attemptNumber: 'desc' },
     });
-    const attemptNumber = (latest?.attemptNumber ?? 0) + 1;
+    // An unfinished attempt is resumed, never duplicated. It may be finished even after the
+    // course went overdue; finishing the course then marks it late (16 Nov 2026).
+    if (latest?.result === LearningAssessmentResult.IN_PROGRESS) return latest;
+    if (
+      LOCK_OVERDUE_COURSES &&
+      assignment.status === LearningAssignmentStatus.OVERDUE
+    ) {
+      throw new BadRequestException(LOCKED_MESSAGE);
+    }
+    await this.assertLateReasonGiven(assignment);
+    const used = latest?.attemptNumber ?? 0;
+    if (
+      assessment.maximumAttempts != null &&
+      used >= assessment.maximumAttempts
+    ) {
+      throw new BadRequestException('No attempts left for this quiz');
+    }
+    if (latest?.submittedAt && assessment.retakeDelayMinutes) {
+      const retryAt =
+        latest.submittedAt.getTime() + assessment.retakeDelayMinutes * 60_000;
+      if (Date.now() < retryAt) {
+        throw new BadRequestException('You can retake this quiz later');
+      }
+    }
+    const attemptNumber = used + 1;
 
     return this.prisma.learningAssessmentAttempt.create({
       data: {
@@ -188,18 +294,19 @@ export class LearningMeService {
     dto: SubmitAssessmentAttemptDto,
   ) {
     const employeeId = this.requireEmployeeId(user);
-    const assignment = await this.prisma.learningAssignment.findFirst({
-      where: { id: assignmentId, employeeId },
-    });
-    if (!assignment) throw new NotFoundException('Assignment not found');
+    const { versionId } = await this.loadOpenAssignment(
+      assignmentId,
+      employeeId,
+    );
 
-    const assessment = await this.prisma.learningAssessment.findUnique({
-      where: { id: assessmentId },
+    const assessment = await this.prisma.learningAssessment.findFirst({
+      where: { id: assessmentId, courseVersionId: versionId },
       include: {
         questions: { include: { options: true } },
       },
     });
-    if (!assessment) throw new NotFoundException('Assessment not found');
+    if (!assessment)
+      throw new NotFoundException('Quiz not found in this course version');
 
     const latest = await this.prisma.learningAssessmentAttempt.findFirst({
       where: { assignmentId, assessmentId },
@@ -209,32 +316,23 @@ export class LearningMeService {
       throw new NotFoundException('No in-progress attempt found');
     }
 
-    const gradedAnswers = dto.answers.map((answer) => {
-      const question = assessment.questions.find((q) => q.id === answer.questionId);
-      if (!question) {
-        return { isCorrect: false, pointsAwarded: 0, maxPoints: 0 };
-      }
-      return gradeAnswer(
-        question.questionType,
-        answer.selectedOptionIds ?? [],
-        question.options,
-        question.points,
-      );
-    });
-
-    const summary = calculateAttemptScore(gradedAnswers, assessment.passingScore);
+    // Score over ALL questions of this quiz (unanswered = 0), not only what was sent.
+    const { graded: gradedQuestions, ...summary } = gradeAttempt(
+      assessment.questions,
+      dto.answers,
+      assessment.passingScore,
+    );
     const result = summary.passed ? LearningAssessmentResult.PASSED : LearningAssessmentResult.FAILED;
+    const answerByQuestion = new Map<string, (typeof dto.answers)[number]>();
+    for (const answer of dto.answers) {
+      if (!answerByQuestion.has(answer.questionId))
+        answerByQuestion.set(answer.questionId, answer);
+    }
 
     await this.prisma.$transaction(async (tx) => {
-      for (const answer of dto.answers) {
-        const question = assessment.questions.find((q) => q.id === answer.questionId);
-        if (!question) continue;
-        const graded = gradeAnswer(
-          question.questionType,
-          answer.selectedOptionIds ?? [],
-          question.options,
-          question.points,
-        );
+      for (const graded of gradedQuestions) {
+        const answer = answerByQuestion.get(graded.questionId);
+        if (!answer) continue;
         await tx.learningAssessmentAnswer.upsert({
           where: {
             assessmentAttemptId_questionId: {
@@ -271,7 +369,7 @@ export class LearningMeService {
       });
     });
 
-    await this.completion.recordAssessmentResult(assignmentId, summary.passed);
+    await this.completion.recordAssessmentResult(assignmentId);
     return { attemptId: latest.id, ...summary, result };
   }
 
