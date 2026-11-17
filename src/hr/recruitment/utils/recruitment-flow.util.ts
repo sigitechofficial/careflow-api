@@ -243,9 +243,8 @@ export function clearanceBlockerItems(input: ClearanceInput): ClearanceBlocker[]
     add('The candidate must be at the pre-employment checks step.', 'STAGE');
   }
   if (!input.dataProcessingConsent) add("Record the candidate's data processing consent.", 'CONSENT');
-  if (input.employmentHistory.length === 0) {
-    add('Add the full employment history.', 'EMPLOYMENT_HISTORY');
-  } else {
+  // Employment history is optional: none is fine, but rows that are entered must be complete and gaps explained.
+  if (input.employmentHistory.length > 0) {
     if (employmentHistoryErrors(input.employmentHistory).length > 0) {
       add('Fix the employment history rows that are incomplete.', 'EMPLOYMENT_HISTORY');
     }

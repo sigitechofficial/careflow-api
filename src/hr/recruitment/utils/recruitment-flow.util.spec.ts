@@ -107,9 +107,8 @@ describe('checks and clearance', () => {
     );
     expect(clearanceBlockers({ ...base, checks: qualificationsSkipped })).toEqual([]);
 
-    expect(clearanceBlockers({ ...base, employmentHistory: [] })).toEqual(['Add the full employment history.']);
-    expect(clearanceBlockerItems({ ...base, employmentHistory: [] })).toEqual([
-      { message: 'Add the full employment history.', target: 'EMPLOYMENT_HISTORY' },
-    ]);
+    // Employment history is optional.
+    expect(clearanceBlockers({ ...base, employmentHistory: [] })).toEqual([]);
+    expect(clearanceBlockerItems({ ...base, employmentHistory: [] })).toEqual([]);
   });
 });
