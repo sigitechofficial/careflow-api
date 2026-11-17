@@ -28,10 +28,9 @@ import { CandidatesService } from '../candidates/candidates.service';
 import { CareersService } from '../careers/careers.service';
 import { formatVacancyReference } from '../utils/recruitment-reference.util';
 import { RecruitmentExtractionService } from './recruitment-extraction.service';
-import { normaliseScreening, type ScreeningSettings } from '../../../referral-mailbox/referral-screening.util';
 import { MailService } from '../../../mail/mail.service';
 import { checkApplication, normaliseRecruitmentRules, type RecruitmentRules } from './recruitment-inbox.util';
-import { DEFAULT_RECRUITMENT_SCREENING, historyFromExtraction, screenApplicationByRules, splitName, yesNoToBool, type ApplicationExtraction } from './recruitment-inbox.util';
+import { historyFromExtraction, normaliseRecruitmentScreening, screenApplicationByRules, splitName, yesNoToBool, type ApplicationExtraction, type RecruitmentScreeningSettings } from './recruitment-inbox.util';
 import type { CreateCandidateFromEmailDto } from './recruitment-inbox.dto';
 
 /**
@@ -145,7 +144,8 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
           },
         })) > 0
       : false;
-    const rule = screenApplicationByRules(email, settings, { knownSender });
+    const openVacancies = settings.openVacanciesOnly ? await this.openVacancies() : [];
+    const rule = screenApplicationByRules(email, settings, { knownSender, openVacancies });
     if (rule.decision !== 'UNSURE') return { decision: rule.decision, reason: rule.reason, by: 'RULE' };
     if (settings.mode !== 'RULES_AND_AI' || !process.env.AI_API_KEY?.trim()) return { decision: 'READ', reason: rule.reason, by: 'RULE' };
     const ai = await this.extraction.screen(email).catch((e: Error) => {
@@ -159,13 +159,13 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
 
   /* ─── settings ─── */
 
-  private async screeningSettings(): Promise<ScreeningSettings> {
+  private async screeningSettings(): Promise<RecruitmentScreeningSettings> {
     return (await this.inboxSettings()).screening;
   }
 
   /** All the inbox settings (defaults when none are saved). */
   private async inboxSettings(): Promise<{
-    screening: ScreeningSettings;
+    screening: RecruitmentScreeningSettings;
     autoCreateCandidate: boolean;
     autoAcknowledge: boolean;
     rules: RecruitmentRules;
@@ -173,7 +173,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
   }> {
     const row = await this.prisma.recruitmentInboxSettings.findFirst();
     return {
-      screening: normaliseScreening(row?.screening, DEFAULT_RECRUITMENT_SCREENING),
+      screening: normaliseRecruitmentScreening(row?.screening),
       autoCreateCandidate: row?.autoCreateCandidate ?? false,
       autoAcknowledge: row?.autoAcknowledge ?? false,
       rules: normaliseRecruitmentRules(row?.rules),
@@ -190,7 +190,7 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
     dto: { screening?: unknown; autoCreateCandidate?: boolean; autoAcknowledge?: boolean; rules?: unknown; notifyTo?: string[] },
   ) {
     const data = {
-      ...(dto.screening ? { screening: normaliseScreening(dto.screening, DEFAULT_RECRUITMENT_SCREENING) as unknown as Prisma.InputJsonValue } : {}),
+      ...(dto.screening ? { screening: normaliseRecruitmentScreening(dto.screening) as unknown as Prisma.InputJsonValue } : {}),
       ...(dto.rules ? { rules: normaliseRecruitmentRules(dto.rules) as unknown as Prisma.InputJsonValue } : {}),
       ...(dto.autoCreateCandidate !== undefined ? { autoCreateCandidate: dto.autoCreateCandidate } : {}),
       ...(dto.autoAcknowledge !== undefined ? { autoAcknowledge: dto.autoAcknowledge } : {}),
@@ -247,6 +247,13 @@ export class RecruitmentInboxService implements OnApplicationBootstrap {
         (!draft.firstName || !draft.lastName ? 'No full name' : null) ??
         (!draft.email ? 'No email address' : null) ??
         (!draft.vacancyId ? 'Vacancy not clear' : null) ??
+        // Off for now (no AI for this yet): with "Only show applications for our open vacancies" on, an email the
+        // reader found no open vacancy for could be set aside too, instead of only holding the candidate:
+        // (settings.screening.openVacanciesOnly && !draft.vacancyId
+        //   ? await this.prisma.recruitmentEmail
+        //       .update({ where: { id }, data: { status: RecruitmentEmailStatus.NOT_AN_APPLICATION } })
+        //       .then(() => 'Not for one of our open vacancies')
+        //   : null) ??
         (detail.existingCandidates.length ? 'Already a candidate' : null) ??
         (detail.existingEmployee ? 'Already an employee' : null) ??
         (!actor ? 'No staff member to record it under (connect the mailbox again)' : null);
