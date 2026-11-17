@@ -4,6 +4,8 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  LearningAssessmentResult,
+  LearningAssignmentReviewKind,
   LearningAssignmentStatus,
   LearningAssignmentType,
   LearningCourseStatus,
@@ -20,12 +22,46 @@ import {
   CreateLearningAssignmentDto,
   ExemptAssignmentDto,
   ExtendDueDateDto,
+  LearningAssignmentListQueryDto,
   LearningListQueryDto,
   ReassignAssignmentDto,
 } from './dto/learning.dto';
 import { LearningNotificationHook } from './learning-notification.hook';
 import { LearningSettingsService } from './learning-settings.service';
+import { LearningPushService } from './learning-push.service';
 import { LearningComplianceService } from './learning-compliance.service';
+
+/** Status tabs on the admin Assignments page (16 Nov 2026). */
+export const ASSIGNMENT_STATUS_GROUPS: Record<
+  'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'OVERDUE' | 'COMPLETED' | 'NOT_COMPLETED' | 'CANCELLED',
+  LearningAssignmentStatus[]
+> = {
+  // Tabs (16 Nov 2026): All, Open, Completed, Not completed, Cancelled. ASSIGNED / IN_PROGRESS /
+  // OVERDUE are quick filters inside Open.
+  OPEN: [
+    LearningAssignmentStatus.ASSIGNED,
+    LearningAssignmentStatus.NOT_STARTED,
+    LearningAssignmentStatus.IN_PROGRESS,
+    LearningAssignmentStatus.AWAITING_ASSESSMENT,
+    LearningAssignmentStatus.AWAITING_APPROVAL,
+    LearningAssignmentStatus.OVERDUE,
+  ],
+  ASSIGNED: [LearningAssignmentStatus.ASSIGNED, LearningAssignmentStatus.NOT_STARTED],
+  IN_PROGRESS: [
+    LearningAssignmentStatus.IN_PROGRESS,
+    LearningAssignmentStatus.AWAITING_ASSESSMENT,
+    LearningAssignmentStatus.AWAITING_APPROVAL,
+  ],
+  OVERDUE: [LearningAssignmentStatus.OVERDUE],
+  COMPLETED: [LearningAssignmentStatus.COMPLETED, LearningAssignmentStatus.PASSED],
+  NOT_COMPLETED: [LearningAssignmentStatus.EXPIRED, LearningAssignmentStatus.FAILED],
+  CANCELLED: [LearningAssignmentStatus.CANCELLED, LearningAssignmentStatus.EXEMPT],
+};
+
+const CLOSED_RESULT_STATUSES: LearningAssignmentStatus[] = [
+  ...ASSIGNMENT_STATUS_GROUPS.COMPLETED,
+  ...ASSIGNMENT_STATUS_GROUPS.NOT_COMPLETED,
+];
 
 const ACTIVE_STATUSES: LearningAssignmentStatus[] = [
   LearningAssignmentStatus.ASSIGNED,
@@ -36,6 +72,11 @@ const ACTIVE_STATUSES: LearningAssignmentStatus[] = [
   LearningAssignmentStatus.OVERDUE,
 ];
 
+/** Carers are people whose job role name contains "carer" (Carer, Senior Carer). Agreed 13 Nov 2026. */
+const CARER_ROLE_FILTER = {
+  name: { contains: 'carer', mode: 'insensitive' as const },
+};
+
 @Injectable()
 export class LearningAssignmentsService {
   constructor(
@@ -44,6 +85,7 @@ export class LearningAssignmentsService {
     private readonly settings: LearningSettingsService,
     private readonly notifications: LearningNotificationHook,
     private readonly compliance: LearningComplianceService,
+    private readonly push: LearningPushService,
   ) {}
 
   private mapAssignment(
@@ -71,6 +113,7 @@ export class LearningAssignmentsService {
       assignmentReason: row.assignmentReason,
       status: row.status,
       completedAt: row.completedAt?.toISOString() ?? null,
+      completedLate: row.completedLate,
       cancelledAt: row.cancelledAt?.toISOString() ?? null,
       exemptAt: row.exemptAt?.toISOString() ?? null,
     };
@@ -85,15 +128,34 @@ export class LearningAssignmentsService {
   }
 
   private async resolveCourseVersionId(courseId: string, courseVersionId?: string | null) {
-    if (courseVersionId) return courseVersionId;
+    // The course must be open for new assignments, even when a version is named explicitly.
     const course = await this.prisma.learningCourse.findFirst({
       where: { id: courseId, deletedAt: null },
     });
     if (!course) throw new NotFoundException('Course not found');
+    if (course.status === LearningCourseStatus.WITHDRAWN) {
+      throw new BadRequestException(
+        'This course is withdrawn and cannot be assigned',
+      );
+    }
     if (course.status !== LearningCourseStatus.PUBLISHED || !course.currentVersionId) {
       throw new BadRequestException('Course has no published version');
     }
-    return course.currentVersionId;
+    if (courseVersionId && courseVersionId !== course.currentVersionId) {
+      const version = await this.prisma.learningCourseVersion.findFirst({
+        where: {
+          id: courseVersionId,
+          courseId,
+          status: LearningCourseStatus.PUBLISHED,
+        },
+        select: { id: true },
+      });
+      if (!version)
+        throw new BadRequestException(
+          'That course version is not published for this course',
+        );
+    }
+    return courseVersionId ?? course.currentVersionId;
   }
 
   private async hasActiveAssignment(employeeId: string, courseId: string) {
@@ -182,29 +244,75 @@ export class LearningAssignmentsService {
     return [...new Set(rows.map((r) => r.employeeId))];
   }
 
-  async list(query: LearningListQueryDto) {
+  /** Base filter for the list and its tab counts (location + search). */
+  private async listWhere(
+    query: LearningListQueryDto,
+  ): Promise<Prisma.LearningAssignmentWhereInput> {
+    const and: Prisma.LearningAssignmentWhereInput[] = [{ employeeId: { not: null } }];
+    if (query.locationId) {
+      and.push({
+        OR: [
+          { locationId: query.locationId },
+          { employeeId: { in: await this.employeeIdsForLocation(query.locationId) } },
+        ],
+      });
+    }
+    // Search by course title / code or carer name (the box was not used before, 16 Nov 2026).
+    const term = query.search?.trim();
+    if (term) {
+      const people = await this.prisma.employeePersonalDetail.findMany({
+        where: {
+          OR: [
+            { firstName: { contains: term, mode: 'insensitive' } },
+            { lastName: { contains: term, mode: 'insensitive' } },
+          ],
+        },
+        select: { employeeId: true },
+        take: 500,
+      });
+      and.push({
+        OR: [
+          { course: { title: { contains: term, mode: 'insensitive' } } },
+          { course: { code: { contains: term, mode: 'insensitive' } } },
+          { employeeId: { in: people.map((p) => p.employeeId) } },
+        ],
+      });
+    }
+    return { AND: and };
+  }
+
+  /** Counts per status tab, with the same location / search filter as the list. */
+  async statusCounts(query: LearningListQueryDto) {
+    const base = await this.listWhere(query);
+    const grouped = await this.prisma.learningAssignment.groupBy({
+      by: ['status'],
+      where: base,
+      _count: { _all: true },
+    });
+    const counts: Record<string, number> = { ALL: 0 };
+    for (const key of Object.keys(ASSIGNMENT_STATUS_GROUPS)) counts[key] = 0;
+    for (const g of grouped) {
+      counts.ALL += g._count._all;
+      for (const [key, statuses] of Object.entries(ASSIGNMENT_STATUS_GROUPS)) {
+        if (statuses.includes(g.status)) counts[key] += g._count._all;
+      }
+    }
+    return counts;
+  }
+
+  async list(query: LearningAssignmentListQueryDto) {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
-    const where: Prisma.LearningAssignmentWhereInput = {
-      employeeId: { not: null },
-    };
-
-    if (query.locationId) {
-      where.OR = [
-        { locationId: query.locationId },
-        {
-          employeeId: {
-            in: await this.employeeIdsForLocation(query.locationId),
-          },
-        },
-      ];
-    }
+    const base = await this.listWhere(query);
+    const where: Prisma.LearningAssignmentWhereInput = query.statusGroup
+      ? { AND: [base, { status: { in: ASSIGNMENT_STATUS_GROUPS[query.statusGroup] } }] }
+      : base;
 
     const [rows, total] = await Promise.all([
       this.prisma.learningAssignment.findMany({
         where,
         include: {
-          course: { select: { title: true, code: true } },
+          course: { select: { title: true, code: true, deliveryMethod: true } },
         },
         orderBy: { assignedAt: 'desc' },
         skip: (page - 1) * limit,
@@ -228,16 +336,85 @@ export class LearningAssignmentsService {
       ]),
     );
 
+    const results = await this.closedResults(rows);
+
     return {
-      data: rows.map((r) =>
-        this.mapAssignment(r, {
+      data: rows.map((r) => ({
+        ...this.mapAssignment(r, {
           employeeName: r.employeeId ? employeeNameById.get(r.employeeId) ?? null : null,
           courseTitle: r.course?.title ?? null,
           courseCode: r.course?.code ?? null,
         }),
-      ),
+        deliveryMethod: r.course?.deliveryMethod ?? null,
+        result: results.get(r.id) ?? null,
+      })),
       meta: buildPaginationMeta({ page, limit, total }),
     };
+  }
+
+  /**
+   * Pass / fail for finished rows (Completed and Not completed tabs, 16 Nov 2026):
+   * manager outcome for face to face / workplace, else the final quiz, else plain completion.
+   */
+  private async closedResults(rows: { id: string; status: LearningAssignmentStatus }[]) {
+    const out = new Map<
+      string,
+      {
+        result: 'PASSED' | 'NOT_PASSED' | 'EXPIRED';
+        by: 'MANAGER' | 'MANAGER_QUIZ' | 'QUIZ' | null;
+        score: number | null;
+      }
+    >();
+    const closed = rows.filter((r) => CLOSED_RESULT_STATUSES.includes(r.status));
+    if (!closed.length) return out;
+    const ids = closed.map((r) => r.id);
+    const [outcomes, attempts] = await Promise.all([
+      this.prisma.learningAssignmentReview.findMany({
+        where: {
+          assignmentId: { in: ids },
+          kind: {
+            in: [
+              LearningAssignmentReviewKind.OUTCOME_PASSED,
+              LearningAssignmentReviewKind.OUTCOME_PASSED_AFTER_QUIZ,
+              LearningAssignmentReviewKind.OUTCOME_NOT_PASSED,
+            ],
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { assignmentId: true, kind: true },
+      }),
+      this.prisma.learningAssessmentAttempt.findMany({
+        where: { assignmentId: { in: ids }, submittedAt: { not: null }, assessment: { sectionId: null } },
+        select: { assignmentId: true, percentage: true, result: true },
+      }),
+    ]);
+    const outcomeOf = new Map<string, LearningAssignmentReviewKind>();
+    for (const o of outcomes) if (!outcomeOf.has(o.assignmentId)) outcomeOf.set(o.assignmentId, o.kind);
+    const bestScore = new Map<string, number>();
+    const passedQuiz = new Set<string>();
+    for (const a of attempts) {
+      const pct = a.percentage == null ? null : Math.round(Number(a.percentage));
+      if (pct != null && pct > (bestScore.get(a.assignmentId) ?? -1)) bestScore.set(a.assignmentId, pct);
+      if (a.result === LearningAssessmentResult.PASSED) passedQuiz.add(a.assignmentId);
+    }
+    for (const r of closed) {
+      const outcome = outcomeOf.get(r.id);
+      const score = bestScore.get(r.id) ?? null;
+      if (r.status === LearningAssignmentStatus.EXPIRED) {
+        out.set(r.id, { result: 'EXPIRED', by: null, score: null });
+      } else if (r.status === LearningAssignmentStatus.FAILED) {
+        out.set(r.id, outcome === LearningAssignmentReviewKind.OUTCOME_NOT_PASSED
+          ? { result: 'NOT_PASSED', by: 'MANAGER', score: null }
+          : { result: 'NOT_PASSED', by: 'QUIZ', score });
+      } else if (outcome === LearningAssignmentReviewKind.OUTCOME_PASSED_AFTER_QUIZ) {
+        out.set(r.id, { result: 'PASSED', by: 'MANAGER_QUIZ', score });
+      } else if (outcome === LearningAssignmentReviewKind.OUTCOME_PASSED) {
+        out.set(r.id, { result: 'PASSED', by: 'MANAGER', score: null });
+      } else {
+        out.set(r.id, { result: 'PASSED', by: passedQuiz.has(r.id) ? 'QUIZ' : null, score: passedQuiz.has(r.id) ? score : null });
+      }
+    }
+    return out;
   }
 
   async getById(id: string) {
@@ -277,6 +454,11 @@ export class LearningAssignmentsService {
       courseTitle: course?.title ?? 'Course',
       dueAt,
     });
+    await this.push.assigned(
+      [{ employeeId: dto.employeeId, assignmentId: result.assignment.id }],
+      course?.title ?? 'Course',
+      dueAt,
+    );
 
     await this.audit.logAudit({
       userId,
@@ -345,6 +527,11 @@ export class LearningAssignmentsService {
       courseTitle: course?.title ?? 'Course',
       dueAt,
     });
+    await this.push.assigned(
+      [{ employeeId: params.employeeId, assignmentId: result.assignment.id }],
+      course?.title ?? 'Course',
+      dueAt,
+    );
 
     await this.audit.logAudit({
       userId,
@@ -375,6 +562,8 @@ export class LearningAssignmentsService {
           roleId: { in: dto.roleIds },
           isActive: true,
           employee: { deletedAt: null, isActive: true },
+          // For now training is assigned to carers only (agreed 13 Nov 2026).
+          role: CARER_ROLE_FILTER,
         },
         select: { employeeId: true },
       });
@@ -390,6 +579,8 @@ export class LearningAssignmentsService {
           ],
           isActive: true,
           employee: { deletedAt: null, isActive: true },
+          // For now training is assigned to carers only (agreed 13 Nov 2026).
+          role: CARER_ROLE_FILTER,
         },
         select: { employeeId: true },
       });
@@ -402,15 +593,29 @@ export class LearningAssignmentsService {
           workAreaId: { in: dto.workAreaIds },
           isActive: true,
           employee: { deletedAt: null, isActive: true },
+          // For now training is assigned to carers only (agreed 13 Nov 2026).
+          role: CARER_ROLE_FILTER,
         },
         select: { employeeId: true },
       });
       rows.forEach((r) => employeeIdSet.add(r.employeeId));
     }
 
+    // Individually chosen people must be carers too.
+    if (dto.employeeIds?.length) {
+      const carers = await this.prisma.employeeEmployment.findMany({
+        where: { employeeId: { in: dto.employeeIds }, role: CARER_ROLE_FILTER },
+        select: { employeeId: true },
+      });
+      const carerIds = new Set(carers.map((c) => c.employeeId));
+      for (const id of dto.employeeIds) {
+        if (!carerIds.has(id)) employeeIdSet.delete(id);
+      }
+    }
+
     if (employeeIdSet.size === 0) {
       throw new BadRequestException(
-        'No eligible employees matched the selected employees, roles, locations, or work areas',
+        'No carers matched the selected people, roles, locations or work areas. Training can only be assigned to carers for now.',
       );
     }
 
@@ -429,6 +634,11 @@ export class LearningAssignmentsService {
     const created: string[] = [];
     const skipped: Array<{ employeeId: string; reason: string }> = [];
 
+    // A carer's own due date wins over the one for everyone (13 Nov 2026).
+    const ownDueAt = new Map(
+      (dto.employeeDueDates ?? []).map((d) => [d.employeeId, new Date(d.dueAt)]),
+    );
+
     for (const employeeId of employeeIdSet) {
       const result = await this.createAssignmentForEmployee({
         employeeId,
@@ -436,7 +646,7 @@ export class LearningAssignmentsService {
         courseVersionId: versionId,
         assignedById: userId,
         assignmentType: LearningAssignmentType.BULK,
-        dueAt,
+        dueAt: ownDueAt.get(employeeId) ?? dueAt,
         assignmentReason: dto.assignmentReason,
         parentAssignmentId: parent.id,
       });
@@ -452,14 +662,33 @@ export class LearningAssignmentsService {
     if (created.length) {
       const assignments = await this.prisma.learningAssignment.findMany({
         where: { id: { in: created } },
-        select: { employeeId: true },
+        select: { id: true, employeeId: true, dueAt: true },
       });
-      await this.notifications.notifyAssignmentCreated({
-        employeeIds: assignments.map((a) => a.employeeId!).filter(Boolean),
-        assignmentId: parent.id,
-        courseTitle: course?.title ?? 'Course',
+      // In-app notice per due date, so each carer is told their own date.
+      const byDue = new Map<string, string[]>();
+      for (const a of assignments) {
+        if (!a.employeeId) continue;
+        const key = a.dueAt?.toISOString() ?? '';
+        byDue.set(key, [...(byDue.get(key) ?? []), a.employeeId]);
+      }
+      for (const [key, employeeIds] of byDue) {
+        await this.notifications.notifyAssignmentCreated({
+          employeeIds,
+          assignmentId: parent.id,
+          courseTitle: course?.title ?? 'Course',
+          dueAt: key ? new Date(key) : null,
+        });
+      }
+      // Phone push per carer, each opening their own assignment with their own due date.
+      await this.push.assigned(
+        assignments.map((a) => ({
+          employeeId: a.employeeId,
+          assignmentId: a.id,
+          dueAt: a.dueAt,
+        })),
+        course?.title ?? 'Course',
         dueAt,
-      });
+      );
     }
 
     await this.audit.logAudit({

@@ -8,6 +8,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LearningComplianceService } from './learning-compliance.service';
+import { LearningPushService } from './learning-push.service';
 import { LearningNotificationHook } from './learning-notification.hook';
 import { LearningSettingsService } from './learning-settings.service';
 import { JobHandler } from '../jobs/job-handler.registry';
@@ -23,6 +24,7 @@ export class LearningJobs {
     private readonly settingsService: LearningSettingsService,
     private readonly complianceService: LearningComplianceService,
     private readonly notifications: LearningNotificationHook,
+    private readonly push: LearningPushService,
     @Optional() private readonly jobRunner?: JobRunner,
   ) {}
 
@@ -91,7 +93,12 @@ export class LearningJobs {
     const certificates = await this.prisma.learningCertificate.findMany({
       where: {
         status: LearningCertificateStatus.EXPIRED,
-        course: { refresherFrequencyDays: { not: null }, deletedAt: null },
+        // No automatic refresher for withdrawn or archived courses (no new assignments).
+        course: {
+          refresherFrequencyDays: { not: null },
+          deletedAt: null,
+          status: { notIn: ['WITHDRAWN', 'ARCHIVED'] },
+        },
       },
       include: {
         course: { select: { id: true, title: true, refresherFrequencyDays: true, currentVersionId: true } },
@@ -181,6 +188,8 @@ export class LearningJobs {
           courseTitle: row.course.title,
           eventType: 'OVERDUE',
         });
+        // Sent once: the assignment only becomes OVERDUE once.
+        await this.push.overdue(row.employeeId, row.id, row.course.title);
       }
     }
     return overdue.length;

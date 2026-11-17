@@ -12,6 +12,7 @@ import {
   LEARNING_CATEGORY_CATALOG,
   LEARNING_COMPETENCY_CATALOG,
   LEARNING_COURSE_CATALOG,
+  RETIRED_LEARNING_CATEGORY_CODES,
 } from '../seed-data/learning-catalog';
 
 /**
@@ -142,6 +143,11 @@ export async function seedLearningCatalog(prisma: PrismaClient) {
           cpdMinutes: courseDef.cpdMinutes,
           certificateValidityDays: courseDef.certificateValidityDays,
           refresherFrequencyDays: courseDef.refresherFrequencyDays,
+          // Version carries its own completion / certificate rules (read by learners).
+          requiresAssessment: courseDef.requiresAssessment,
+          requiresPracticalAssessment: courseDef.requiresPracticalAssessment,
+          requiresManagerApproval: courseDef.requiresManagerApproval,
+          certificateEnabled: courseDef.certificateEnabled,
           status: LearningCourseStatus.PUBLISHED,
           publishedAt: new Date(),
           changeSummary: 'Initial care-sector catalogue seed',
@@ -227,6 +233,18 @@ export async function seedLearningCatalog(prisma: PrismaClient) {
         data: { currentVersionId: version.id },
       });
     });
+  }
+
+  // Earlier category codes: switch off (not delete) only when no live course or
+  // competency still points at them, so office-made links are never orphaned.
+  for (const code of RETIRED_LEARNING_CATEGORY_CODES) {
+    const retired = await prisma.learningCategory.findUnique({ where: { code } });
+    if (!retired || !retired.isActive) continue;
+    const inUse = await prisma.learningCourse.count({
+      where: { categoryId: retired.id, deletedAt: null },
+    });
+    if (inUse > 0) continue;
+    await prisma.learningCategory.update({ where: { id: retired.id }, data: { isActive: false } });
   }
 
   for (const comp of LEARNING_COMPETENCY_CATALOG) {

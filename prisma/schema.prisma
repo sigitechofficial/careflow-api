@@ -12113,6 +12113,8 @@ enum LearningCourseStatus {
   PUBLISHED
   SUPERSEDED
   ARCHIVED
+  /// Course only: no new assignments; carers already on it continue. Version stays PUBLISHED.
+  WITHDRAWN
 
   @@schema("learning")
 }
@@ -12466,6 +12468,15 @@ model LearningCourseVersion {
   cpdMinutes               Int?
   certificateValidityDays  Int?
   refresherFrequencyDays   Int?
+  /// Completion + certificate rules for learners on this version (snapshot at publish).
+  requiresAssessment          Boolean              @default(false)
+  requiresPracticalAssessment Boolean              @default(false)
+  requiresManagerApproval     Boolean              @default(false)
+  certificateEnabled          Boolean              @default(true)
+  learningObjectives          String?
+  /// Practical competency for this version; checklist frozen at publish.
+  competencyId                String?              @db.Uuid
+  competencyChecklistSnapshot Json?
   publishedAt              DateTime?
   publishedById            String?              @db.Uuid
   changeSummary            String?
@@ -12474,6 +12485,7 @@ model LearningCourseVersion {
   updatedAt                DateTime             @updatedAt
 
   course          LearningCourse             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  competency      LearningCompetency?        @relation(fields: [competencyId], references: [id], onDelete: SetNull)
   sections        LearningCourseSection[]
   assessments     LearningAssessment[]
   assignments     LearningAssignment[]
@@ -12486,6 +12498,25 @@ model LearningCourseVersion {
   @@index([courseId])
   @@index([status])
   @@index([publishedAt])
+  @@index([competencyId])
+  @@schema("learning")
+}
+
+/// Image / PDF / Word file attached to a lesson. Stored privately (storage/learning-files),
+/// served only through short-lived signed links.
+model LearningFile {
+  id           String    @id @default(uuid()) @db.Uuid
+  originalName String
+  mimeType     String
+  fileSize     Int
+  storagePath  String
+  uploadedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  contentItems LearningContentItem[]
+
+  @@index([deletedAt])
   @@schema("learning")
 }
 
@@ -12502,6 +12533,8 @@ model LearningCourseSection {
 
   courseVersion LearningCourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Cascade)
   contentItems  LearningContentItem[]
+  /// Module quizzes; final assessments have no section.
+  assessments   LearningAssessment[]
 
   @@index([courseVersionId])
   @@index([displayOrder])
@@ -12527,8 +12560,10 @@ model LearningContentItem {
   updatedAt                DateTime               @updatedAt
 
   courseSection LearningCourseSection           @relation(fields: [courseSectionId], references: [id], onDelete: Cascade)
+  file          LearningFile?                   @relation(fields: [fileId], references: [id], onDelete: SetNull)
   completions   LearningContentItemCompletion[]
 
+  @@index([fileId])
   @@index([courseSectionId])
   @@index([contentType])
   @@index([displayOrder])
@@ -12538,6 +12573,10 @@ model LearningContentItem {
 model LearningAssessment {
   id                 String   @id @default(uuid()) @db.Uuid
   courseVersionId    String   @db.Uuid
+  /// Module (section) the quiz belongs to; null = final assessment.
+  sectionId          String?  @db.Uuid
+  /// Order quizzes were added in, inside a module or among final assessments.
+  displayOrder       Int      @default(0)
   title              String
   instructions       String?
   passingScore       Int
@@ -12553,10 +12592,12 @@ model LearningAssessment {
   updatedAt          DateTime @updatedAt
 
   courseVersion LearningCourseVersion        @relation(fields: [courseVersionId], references: [id], onDelete: Cascade)
+  section       LearningCourseSection?       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   questions     LearningAssessmentQuestion[]
   attempts      LearningAssessmentAttempt[]
 
   @@index([courseVersionId])
+  @@index([sectionId])
   @@schema("learning")
 }
 
@@ -12679,6 +12720,8 @@ model LearningAssignment {
   assignmentReason        String?
   status                  LearningAssignmentStatus   @default(ASSIGNED)
   completedAt             DateTime?
+  /// Finished after the due date (16 Nov 2026).
+  completedLate           Boolean                    @default(false)
   cancelledAt             DateTime?
   cancelledById           String?                    @db.Uuid
   cancellationReason      String?
@@ -12698,6 +12741,8 @@ model LearningAssignment {
   assessmentAttempts    LearningAssessmentAttempt[]
   certificates          LearningCertificate[]
   competencyAssessments LearningCompetencyAssessment[]
+  sessionAttendees      LearningTrainingEventAttendee[]
+  reviews               LearningAssignmentReview[]
 
   @@index([courseId])
   @@index([courseVersionId])
@@ -12712,6 +12757,49 @@ model LearningAssignment {
   @@index([assignedAt])
   @@index([parentAssignmentId])
   @@index([sourceEntityType, sourceEntityId])
+  @@schema("learning")
+}
+
+/// Office review of an overdue / late / not completed assignment (16 Nov 2026). Append only.
+model LearningAssignmentReview {
+  id              String                       @id @default(uuid()) @db.Uuid
+  assignmentId    String                       @db.Uuid
+  employeeId      String                       @db.Uuid
+  kind            LearningAssignmentReviewKind
+  /// Codes from learning-review.catalog.ts.
+  reasonCode      String?
+  actionCodes     String[]                     @default([])
+  note            String?
+  previousDueAt   DateTime?
+  newDueAt        DateTime?
+  followUpAt      DateTime?
+  /// Policy version shown when the record was made.
+  policyVersionId String?                      @db.Uuid
+  createdById     String?                      @db.Uuid
+  createdAt       DateTime                     @default(now())
+
+  assignment LearningAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+  @@index([employeeId])
+  @@index([kind])
+  @@schema("learning")
+}
+
+enum LearningAssignmentReviewKind {
+  EXTENDED
+  REASON
+  NOT_COMPLETED
+  /// Reason the carer gave in the app for an overdue course (16 Nov 2026).
+  CARER_LATE_REASON
+  /// Manager's outcome for a face to face / workplace course (16 Nov 2026).
+  OUTCOME_PASSED
+  OUTCOME_NOT_PASSED
+  /// Practical passed; the carer must still pass the quiz (16 Nov 2026).
+  OUTCOME_PASSED_AFTER_QUIZ
+  /// Course given again after it was failed or not completed.
+  ASSIGNED_AGAIN
+
   @@schema("learning")
 }
 
@@ -12751,6 +12839,8 @@ model LearningContentItemCompletion {
   completedAt         DateTime?
   timeSpentSeconds    Int       @default(0)
   acknowledgementText String?
+  /// Face to face: the office user who marked the lesson done (null = the carer did).
+  markedById          String?   @db.Uuid
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -12832,6 +12922,7 @@ model LearningCompetency {
 
   category    LearningCategory?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   assessments LearningCompetencyAssessment[]
+  courseVersions LearningCourseVersion[]
 
   @@unique([code])
   @@index([categoryId])
@@ -13001,14 +13092,21 @@ model LearningTrainingEventAttendee {
   assessmentResult LearningAssessmentResult?
   completedAt      DateTime?
   certificateId    String?                   @db.Uuid
+  /// The carer's assignment this session is for; attended completes the classroom part.
+  assignmentId     String?                   @db.Uuid
+  /// Carer said "Can't attend" in the app (reason for the office).
+  cantAttendReason String?
+  cantAttendAt     DateTime?
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
 
   trainingEvent LearningTrainingEvent @relation(fields: [trainingEventId], references: [id], onDelete: Cascade)
   certificate   LearningCertificate?  @relation(fields: [certificateId], references: [id], onDelete: SetNull)
+  assignment    LearningAssignment?   @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
 
   @@unique([trainingEventId, employeeId])
   @@index([employeeId])
+  @@index([assignmentId])
   @@index([bookingStatus])
   @@index([attendanceStatus])
   @@schema("learning")
