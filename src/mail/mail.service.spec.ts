@@ -156,6 +156,24 @@ describe('MailService — Azure Communication Services (acs)', () => {
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
   });
 
+  it('counts an accepted email as sent when Azure gives no final status in time', async () => {
+    jest.useFakeTimers();
+    try {
+      const stopPolling = jest.fn();
+      beginSend.mockResolvedValue({ pollUntilDone: () => new Promise(() => undefined), stopPolling });
+      const svc = makeService({ mode: 'acs', acsEndpoint: 'https://x', from: 'a@b.test' });
+      const sending = svc.send({ to: 'c@d.test', subject: 's', text: 't' });
+      await jest.advanceTimersByTimeAsync(30_000);
+      const res = await sending;
+      const operationId = (beginSend.mock.calls[0][1] as { operationId: string }).operationId;
+      expect(operationId).toMatch(/^[0-9a-f-]{36}$/);
+      expect(res).toEqual({ messageId: operationId, mode: 'acs' });
+      expect(stopPolling).toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
   it('is not configured without ACS_ENDPOINT', () => {
     expect(makeService({ mode: 'acs' }).isConfigured()).toBe(false);
     expect(

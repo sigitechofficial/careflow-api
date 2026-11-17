@@ -7,6 +7,7 @@ import {
 import { MessageDeliveryService } from '../message-delivery/message-delivery.service';
 import { MessageHeldError } from '../message-delivery/message-held.error';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import { EmailClient, type EmailMessage } from '@azure/communication-email';
 import {
   ClientSecretCredential,
@@ -40,6 +41,9 @@ export type SendMailInput = {
 
 /** Resolved by send(): MAIL_BCC addresses not already in `to`. */
 type OutgoingMail = SendMailInput & { bcc: string[] };
+
+/** How long to wait for Azure's final status after it accepted an email. */
+const ACS_STATUS_WAIT_MS = 30_000;
 
 export type MailSendMode = 'acs' | 'api' | 'smtp' | 'log';
 
@@ -234,8 +238,25 @@ export class MailService {
       })),
     };
 
-    const poller = await this.acsClient.beginSend(message);
-    const result = await poller.pollUntilDone();
+    // Our own operation id, so an email Azure has accepted can be named even when its final status never comes.
+    const operationId = randomUUID();
+    const poller = await this.acsClient.beginSend(message, { operationId });
+    const done = poller.pollUntilDone();
+    // Polling can hang after Azure has accepted (and delivered) the email: then callers would never record it as
+    // sent. Wait a while, then count it as sent (Azure took it), stop polling and say so in the log.
+    done.catch(() => undefined);
+    let timer: NodeJS.Timeout | undefined;
+    const timedOut = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), ACS_STATUS_WAIT_MS);
+    });
+    const result = await Promise.race([done, timedOut]).finally(() => clearTimeout(timer));
+    if (!result) {
+      poller.stopPolling();
+      this.logger.warn(
+        `Azure email ${operationId} was accepted but gave no final status within ${ACS_STATUS_WAIT_MS / 1000}s; counted as sent`,
+      );
+      return { messageId: operationId };
+    }
     if (result.status !== 'Succeeded') {
       const reason = result.error?.message ?? result.status;
       this.logger.warn(`Azure email send ${result.id} did not succeed: ${reason}`);
