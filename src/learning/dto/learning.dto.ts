@@ -81,6 +81,23 @@ export class LearningListQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   locationId?: string;
+
+  /** Assignments list (17 Nov 2026): only courses given from another record, e.g. INCIDENT. */
+  @ApiPropertyOptional({ enum: ['INCIDENT'] })
+  @IsOptional()
+  @IsEnum(['INCIDENT'])
+  source?: 'INCIDENT';
+
+  /** Assignments list: one carer and/or one course (used by the incident course measure). */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  courseId?: string;
 }
 
 export class CreateLearningCategoryDto {
@@ -1245,6 +1262,12 @@ export class LearningCertificateQueryDto extends PaginationQueryDto {
   @IsUUID()
   employeeId?: string;
 
+  /** Certificates page tabs (17 Nov 2026). Expired also covers an active one past its date. */
+  @ApiPropertyOptional({ enum: ['ACTIVE', 'EXPIRED'] })
+  @IsOptional()
+  @IsEnum(['ACTIVE', 'EXPIRED'])
+  status?: 'ACTIVE' | 'EXPIRED';
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -1380,10 +1403,10 @@ export class CarerLateReasonDto {
 /** Assignments list with a status tab (16 Nov 2026). */
 export class LearningAssignmentListQueryDto extends LearningListQueryDto {
   @ApiPropertyOptional({
-    enum: ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'OVERDUE', 'COMPLETED', 'NOT_COMPLETED', 'CANCELLED'],
+    enum: ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'OVERDUE', 'COMPLETED', 'NOT_COMPLETED', 'NOT_PASSED', 'INCOMPLETE', 'CANCELLED'],
   })
   @IsOptional()
-  @IsEnum(['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'OVERDUE', 'COMPLETED', 'NOT_COMPLETED', 'CANCELLED'])
+  @IsEnum(['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'OVERDUE', 'COMPLETED', 'NOT_COMPLETED', 'NOT_PASSED', 'INCOMPLETE', 'CANCELLED'])
   statusGroup?:
     | 'OPEN'
     | 'ASSIGNED'
@@ -1391,6 +1414,8 @@ export class LearningAssignmentListQueryDto extends LearningListQueryDto {
     | 'OVERDUE'
     | 'COMPLETED'
     | 'NOT_COMPLETED'
+    | 'NOT_PASSED'
+    | 'INCOMPLETE'
     | 'CANCELLED';
 }
 

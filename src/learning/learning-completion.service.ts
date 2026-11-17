@@ -18,6 +18,7 @@ import {
 import { quizStepStatus } from './learning-quiz-progress.util';
 import { LearningCertificatesService } from './learning-certificates.service';
 import { LearningComplianceService } from './learning-compliance.service';
+import { LearningIncidentLinkService } from './learning-incident-link.service';
 
 @Injectable()
 export class LearningCompletionService {
@@ -26,6 +27,7 @@ export class LearningCompletionService {
     private readonly certificates: LearningCertificatesService,
     private readonly compliance: LearningComplianceService,
     @Optional() private readonly notifications?: LearningNotificationHook,
+    @Optional() private readonly incidentLink?: LearningIncidentLinkService,
   ) {}
 
   async countRequiredContentItems(courseVersionId: string): Promise<number> {
@@ -128,10 +130,14 @@ export class LearningCompletionService {
     });
 
     // Started but not finished: show it as In progress (was left as Assigned, 16 Nov 2026).
+    // A practical sign-off or manager outcome also counts as started (17 Nov 2026): "Practical
+    // passed – quiz to pass" left the course as Scheduled.
     const started =
       completedRequired > 0 ||
       sessionAttended ||
-      assignment.progress.assessmentStatus !== LearningProgressStatus.NOT_STARTED;
+      assignment.progress.assessmentStatus !== LearningProgressStatus.NOT_STARTED ||
+      assignment.progress.practicalAssessmentStatus !== LearningProgressStatus.NOT_STARTED ||
+      assignment.progress.managerApprovalStatus === LearningProgressStatus.COMPLETED;
     const waitingForManager =
       courseCompletionStatus === LearningProgressStatus.AWAITING_APPROVAL;
     const openStatuses: LearningAssignmentStatus[] = [
@@ -197,6 +203,8 @@ export class LearningCompletionService {
       if (rules.certificateEnabled) {
         await this.certificates.issueForAssignment(assignmentId, tx);
       }
+      // Given by an incident measure: complete that measure (17 Nov 2026).
+      if (firstTime) await this.incidentLink?.onAssignmentCompleted(assignmentId, db);
     }
 
     if (!tx) {

@@ -21,6 +21,7 @@ import {
 import { LearningAssignmentsService } from './learning-assignments.service';
 import { LearningComplianceService } from './learning-compliance.service';
 import { LearningPushService } from './learning-push.service';
+import { LearningIncidentLinkService } from './learning-incident-link.service';
 import { LearningCompletionService } from './learning-completion.service';
 import {
   courseNeedsManagerOutcome,
@@ -60,6 +61,7 @@ export class LearningAssignmentReviewsService {
     private readonly compliance: LearningComplianceService,
     private readonly push: LearningPushService,
     private readonly completion: LearningCompletionService,
+    private readonly incidentLink: LearningIncidentLinkService,
   ) {}
 
   options() {
@@ -164,6 +166,21 @@ export class LearningAssignmentReviewsService {
       assignedAt: a.assignedAt,
       assignedByName: a.assignedById ? (names.get(a.assignedById) ?? null) : null,
       assignmentReason: a.assignmentReason,
+      // Where the course came from, e.g. an incident's corrective measure (17 Nov 2026).
+      source:
+        a.sourceEntityType === 'Incident' && a.sourceEntityId
+          ? {
+              type: 'Incident' as const,
+              id: a.sourceEntityId,
+              reference:
+                (
+                  await this.prisma.incident.findUnique({
+                    where: { id: a.sourceEntityId },
+                    select: { referenceNumber: true },
+                  })
+                )?.referenceNumber ?? null,
+            }
+          : null,
       dueAt: a.dueAt,
       startedAt: a.progress?.startedAt ?? null,
       lastAccessedAt: a.progress?.lastAccessedAt ?? null,
@@ -455,6 +472,7 @@ export class LearningAssignmentReviewsService {
         meta,
       );
       reassignedId = created.id;
+      await this.incidentLink.carrySource(id, created.id);
     }
     return { ...(await this.detail(id)), reassignedAssignmentId: reassignedId };
   }
@@ -749,6 +767,7 @@ export class LearningAssignmentReviewsService {
         createdById: userId,
       },
     });
+    await this.incidentLink.carrySource(id, created.id as string);
     return { ...(await this.detail(id)), reassignedAssignmentId: created.id as string };
   }
 }

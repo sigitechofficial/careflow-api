@@ -33,7 +33,15 @@ import { LearningComplianceService } from './learning-compliance.service';
 
 /** Status tabs on the admin Assignments page (16 Nov 2026). */
 export const ASSIGNMENT_STATUS_GROUPS: Record<
-  'OPEN' | 'ASSIGNED' | 'IN_PROGRESS' | 'OVERDUE' | 'COMPLETED' | 'NOT_COMPLETED' | 'CANCELLED',
+  | 'OPEN'
+  | 'ASSIGNED'
+  | 'IN_PROGRESS'
+  | 'OVERDUE'
+  | 'COMPLETED'
+  | 'NOT_COMPLETED'
+  | 'NOT_PASSED'
+  | 'INCOMPLETE'
+  | 'CANCELLED',
   LearningAssignmentStatus[]
 > = {
   // Tabs (16 Nov 2026): All, Open, Completed, Not completed, Cancelled. ASSIGNED / IN_PROGRESS /
@@ -55,6 +63,9 @@ export const ASSIGNMENT_STATUS_GROUPS: Record<
   OVERDUE: [LearningAssignmentStatus.OVERDUE],
   COMPLETED: [LearningAssignmentStatus.COMPLETED, LearningAssignmentStatus.PASSED],
   NOT_COMPLETED: [LearningAssignmentStatus.EXPIRED, LearningAssignmentStatus.FAILED],
+  // Separate result tabs (17 Nov 2026): Not passed = failed quiz / trainer outcome; Incomplete = closed by the office.
+  NOT_PASSED: [LearningAssignmentStatus.FAILED],
+  INCOMPLETE: [LearningAssignmentStatus.EXPIRED],
   CANCELLED: [LearningAssignmentStatus.CANCELLED, LearningAssignmentStatus.EXEMPT],
 };
 
@@ -111,6 +122,8 @@ export class LearningAssignmentsService {
       priority: row.priority,
       isMandatory: row.isMandatory,
       assignmentReason: row.assignmentReason,
+      sourceEntityType: row.sourceEntityType,
+      sourceEntityId: row.sourceEntityId,
       status: row.status,
       completedAt: row.completedAt?.toISOString() ?? null,
       completedLate: row.completedLate,
@@ -249,6 +262,9 @@ export class LearningAssignmentsService {
     query: LearningListQueryDto,
   ): Promise<Prisma.LearningAssignmentWhereInput> {
     const and: Prisma.LearningAssignmentWhereInput[] = [{ employeeId: { not: null } }];
+    if (query.source === 'INCIDENT') and.push({ sourceEntityType: 'Incident' });
+    if (query.employeeId) and.push({ employeeId: query.employeeId });
+    if (query.courseId) and.push({ courseId: query.courseId });
     if (query.locationId) {
       and.push({
         OR: [

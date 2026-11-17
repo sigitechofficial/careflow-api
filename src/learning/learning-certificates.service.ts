@@ -128,7 +128,15 @@ export class LearningCertificatesService {
       employeeIdsFromSearch = matches.map((e) => e.id);
     }
 
+    const now = new Date();
+    const statusWhere: Prisma.LearningCertificateWhereInput =
+      query.status === 'ACTIVE'
+        ? { status: 'ACTIVE', OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] }
+        : query.status === 'EXPIRED'
+          ? { OR: [{ status: 'EXPIRED' }, { status: 'ACTIVE', expiresAt: { lt: now } }] }
+          : {};
     const where: Prisma.LearningCertificateWhereInput = {
+      ...(query.status ? { AND: [statusWhere] } : {}),
       ...(query.employeeId ? { employeeId: query.employeeId } : {}),
       ...(search
         ? {

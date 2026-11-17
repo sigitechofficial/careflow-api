@@ -1,3 +1,4 @@
+import { LearningIncidentLinkService } from './learning-incident-link.service';
 import { Module, forwardRef } from '@nestjs/common';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -79,6 +80,7 @@ import { LearningFilesService } from './learning-files.service';
     LearningCertificatePdfController,
   ],
   providers: [
+    LearningIncidentLinkService,
     LearningCategoriesService,
     LearningCoursesService,
     LearningContentService,
