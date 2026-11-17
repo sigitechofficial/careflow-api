@@ -1,5 +1,5 @@
 import type { EmploymentHistoryEntry } from '../utils/recruitment-flow.util';
-import { AUTOMATED_SENDER, JUNK_SUBJECT, senderMatches, type ScreeningSettings } from '../../../referral-mailbox/referral-screening.util';
+import { AUTOMATED_SENDER, JUNK_SUBJECT, normaliseScreening, senderMatches, type ScreeningSettings } from '../../../referral-mailbox/referral-screening.util';
 
 type YesNo = 'YES' | 'NO' | 'UNKNOWN';
 
@@ -142,8 +142,31 @@ export function checkApplication(x: Pick<ApplicationExtraction, 'rightToWork' | 
   return { checks, declined: declinedBy ? describe(declinedBy) : null, hold: heldBy ? describe(heldBy) : null };
 }
 
+/** The referral inbox screening, plus: only bring in emails that name one of our open vacancies. */
+export type RecruitmentScreeningSettings = ScreeningSettings & { openVacanciesOnly: boolean };
+
 /** Recruitment inbox screening when nothing is saved: rules, then the quick check; no trusted or blocked senders yet. */
-export const DEFAULT_RECRUITMENT_SCREENING: ScreeningSettings = { mode: 'RULES_AND_AI', trustedSenders: [], blockedSenders: [] };
+export const DEFAULT_RECRUITMENT_SCREENING: RecruitmentScreeningSettings = { mode: 'RULES_AND_AI', trustedSenders: [], blockedSenders: [], openVacanciesOnly: false };
+
+export function normaliseRecruitmentScreening(raw: unknown): RecruitmentScreeningSettings {
+  const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  return { ...normaliseScreening(raw, DEFAULT_RECRUITMENT_SCREENING), openVacanciesOnly: r.openVacanciesOnly === true };
+}
+
+const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** The open vacancy an email names by reference ("VAC-0012", "vac 12") or by its exact title, if any. */
+export function vacancyNamedIn(text: string, vacancies: { reference: string; title: string }[]): { reference: string; title: string } | null {
+  for (const v of vacancies) {
+    const no = Number(v.reference.replace(/\D/g, ''));
+    if (no && new RegExp(`\\bvac[-\\s]?0*${no}\\b`, 'i').test(text)) return v;
+  }
+  for (const v of vacancies) {
+    const title = v.title.trim().replace(/\s+/g, ' ');
+    if (title && new RegExp(`(?<!\\w)${escapeRegExp(title).replace(/ /g, '\\s+')}(?!\\w)`, 'i').test(text)) return v;
+  }
+  return null;
+}
 
 /**
  * Free rules before Claude reads an email, so obvious junk (receipts, newsletters, no-reply notices) costs nothing.
@@ -154,8 +177,8 @@ export const DEFAULT_RECRUITMENT_SCREENING: ScreeningSettings = { mode: 'RULES_A
  */
 export function screenApplicationByRules(
   email: { fromEmail: string | null; subject: string | null; bodyText: string; attachments: { fileName: string }[] },
-  settings: ScreeningSettings = DEFAULT_RECRUITMENT_SCREENING,
-  ctx: { knownSender: boolean } = { knownSender: false },
+  settings: ScreeningSettings & { openVacanciesOnly?: boolean } = DEFAULT_RECRUITMENT_SCREENING,
+  ctx: { knownSender: boolean; openVacancies?: { reference: string; title: string }[] } = { knownSender: false },
 ): { decision: 'READ' | 'SKIP' | 'UNSURE'; reason: string } {
   if (settings.mode === 'OFF') return { decision: 'READ', reason: 'Screening is off' };
   const from = (email.fromEmail ?? '').trim().toLowerCase();
@@ -166,6 +189,14 @@ export function screenApplicationByRules(
   if (ctx.knownSender) return { decision: 'READ', reason: 'Has applied to us before' };
   const blocked = from ? senderMatches(from, settings.blockedSenders) : null;
   if (blocked) return { decision: 'SKIP', reason: `Blocked sender (${blocked})` };
+  if (settings.openVacanciesOnly) {
+    // Free check only (no AI for now): the subject or the start of the body must name one of our open vacancies.
+    const named = vacancyNamedIn(`${subject}
+${body.slice(0, 3000)}`, ctx.openVacancies ?? []);
+    return named
+      ? { decision: 'READ', reason: `For our vacancy ${named.reference} (${named.title})` }
+      : { decision: 'SKIP', reason: 'Not for one of our open vacancies' };
+  }
   if (JUNK_SUBJECT.test(subject) && !JOB_WORDS.test(subject)) return { decision: 'SKIP', reason: 'Subject is a newsletter, alert, receipt or offer' };
   const cv = email.attachments.find((a) => CV_FILE.test(a.fileName));
   if (!cv && (JOB_ALERT_SUBJECT.test(subject) || JOB_ALERT_SENDER.test(from))) return { decision: 'SKIP', reason: 'Job alert or job board advert' };

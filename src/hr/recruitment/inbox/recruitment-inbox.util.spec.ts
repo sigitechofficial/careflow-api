@@ -2,6 +2,7 @@ import {
   checkApplication,
   historyFromExtraction,
   normaliseRecruitmentRules,
+  normaliseRecruitmentScreening,
   screenApplicationByRules,
   splitName,
   yesNoToBool,
@@ -134,6 +135,33 @@ describe('screenApplicationByRules', () => {
     expect(screenApplicationByRules(email({ fromEmail: 'x@indeedemail.com' }), settings)).toEqual({ decision: 'READ', reason: 'Trusted sender (@indeedemail.com)' });
     expect(screenApplicationByRules(email({ fromEmail: 'a@spam.example.com', subject: 'Job application' }), settings).decision).toBe('SKIP');
     expect(screenApplicationByRules(email(), settings, { knownSender: true }).reason).toBe('Has applied to us before');
+  });
+
+  it('with "open vacancies only", reads only emails that name one of our open vacancies', () => {
+    const settings = { mode: 'RULES_AND_AI' as const, trustedSenders: ['@indeedemail.com'], blockedSenders: [], openVacanciesOnly: true };
+    const openVacancies = [
+      { reference: 'VAC-0012', title: 'Care Assistant' },
+      { reference: 'VAC-0003', title: 'Senior Carer (Nights)' },
+    ];
+    const screen = (over: Partial<Parameters<typeof screenApplicationByRules>[0]>, knownSender = false) =>
+      screenApplicationByRules(email(over), settings, { knownSender, openVacancies });
+    expect(screen({ subject: 'Application for VAC-0012' })).toEqual({ decision: 'READ', reason: 'For our vacancy VAC-0012 (Care Assistant)' });
+    expect(screen({ subject: 'Applying', bodyText: 'Re your advert vac 12, CV attached' }).decision).toBe('READ');
+    expect(screen({ subject: 'Applying for the care  assistant role' }).decision).toBe('READ');
+    expect(screen({ bodyText: 'I would like the Senior Carer (Nights) job.' }).decision).toBe('READ');
+    expect(screen({ subject: 'Application for VAC-0120' })).toEqual({ decision: 'SKIP', reason: 'Not for one of our open vacancies' });
+    expect(screen({ subject: 'Application for Laravel developer', attachments: [{ fileName: 'cv.pdf' }] }).decision).toBe('SKIP');
+    // Trusted senders and people who applied before are still read.
+    expect(screen({ fromEmail: 'x@indeedemail.com', subject: 'New applicant' }).decision).toBe('READ');
+    expect(screen({ subject: 'Hello' }, true).decision).toBe('READ');
+    // No open vacancies: nothing is brought in.
+    expect(screenApplicationByRules(email({ subject: 'Application for VAC-0012' }), settings, { knownSender: false }).decision).toBe('SKIP');
+  });
+
+  it('keeps "open vacancies only" off unless it is set', () => {
+    expect(normaliseRecruitmentScreening(undefined).openVacanciesOnly).toBe(false);
+    expect(normaliseRecruitmentScreening({ openVacanciesOnly: 'yes' }).openVacanciesOnly).toBe(false);
+    expect(normaliseRecruitmentScreening({ mode: 'RULES', openVacanciesOnly: true })).toEqual({ mode: 'RULES', trustedSenders: [], blockedSenders: [], openVacanciesOnly: true });
   });
 
   it('sets aside receipts, newsletters and security notices', () => {
