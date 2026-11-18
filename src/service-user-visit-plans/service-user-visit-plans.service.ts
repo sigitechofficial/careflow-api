@@ -3360,6 +3360,12 @@ export class ServiceUserVisitPlansService {
             },
             orderBy: { scheduledStartDateTime: 'asc' },
           });
+          // A plan saved at 17:00 must not add that morning's visits: never create a visit that has already
+          // started, unless this is a backfill (Backfill past visits). Existing visits are left as they are.
+          if (!existingVisit && !isBackfillDay && start.getTime() < Date.now()) {
+            visitsSkipped += 1;
+            continue;
+          }
           if (!existingVisit && !restoreDeletedJobs) {
             const deletedVisit = await tx.scheduledVisit.findFirst({
               where: {
