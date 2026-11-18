@@ -2,6 +2,7 @@ import {
   BadRequestException,
   Injectable,
   Logger,
+  Optional,
 } from '@nestjs/common';
 import {
   Prisma,
@@ -9,6 +10,8 @@ import {
   VisitAttendanceVerificationMethod,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { VisitTimelineService } from '../employee-app/visit-timeline.service';
+import { officeClockTimelineEntry } from './office-clock-timeline.util';
 
 export type RecordAttendanceEventInput = {
   scheduledJobId: string;
@@ -35,7 +38,36 @@ export type RecordAttendanceEventInput = {
 export class VisitAttendanceService {
   private readonly logger = new Logger(VisitAttendanceService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @Optional() private readonly visitTimeline?: VisitTimelineService,
+  ) {}
+
+  /**
+   * Clock times the office records (completing a visit, or a manual attendance entry) go to the visit Log
+   * too, so the Log shows when the carer arrived and left however the time was captured. The carer app
+   * writes its own Log rows for its clock-ins; office rows use their own key so neither replaces the other.
+   */
+  private async logOfficeClockTime(event: {
+    scheduledJobId: string;
+    scheduledVisitId: string | null;
+    employeeId: string;
+    eventType: VisitAttendanceEventType;
+    verificationMethod: VisitAttendanceVerificationMethod;
+    occurredAt: Date;
+    notes: string | null;
+  }): Promise<void> {
+    if (!this.visitTimeline) return;
+    const entry = officeClockTimelineEntry(event);
+    if (!entry) return;
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: event.scheduledJobId,
+      scheduledVisitId: event.scheduledVisitId,
+      ...entry,
+      occurredAt: event.occurredAt,
+      createdByEmployeeId: event.employeeId,
+    });
+  }
 
   async recordEvent(input: RecordAttendanceEventInput) {
     const clientEventId = input.clientEventId?.trim() || null;
@@ -52,7 +84,7 @@ export class VisitAttendanceService {
     }
 
     try {
-      return await this.prisma.visitAttendanceEvent.create({
+      const created = await this.prisma.visitAttendanceEvent.create({
         data: {
           scheduledJobId: input.scheduledJobId,
           scheduledVisitId: input.scheduledVisitId ?? null,
@@ -80,6 +112,8 @@ export class VisitAttendanceService {
           notes: input.notes?.trim() || null,
         },
       });
+      await this.logOfficeClockTime(created);
+      return created;
     } catch (err) {
       if (
         err instanceof Prisma.PrismaClientKnownRequestError &&
