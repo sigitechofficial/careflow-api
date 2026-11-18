@@ -578,6 +578,8 @@ model User {
   firstName        String?
   lastName         String?
   refreshTokenHash String?
+  /// When the person chose their own password; null while their invitation link is unused.
+  passwordSetAt    DateTime?
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -586,6 +588,9 @@ model User {
   createdById String?   @db.Uuid
   updatedById String?   @db.Uuid
   deletedById String?   @db.Uuid
+
+  /// The same person's Care app account: one password for both (kept in step whenever either is set).
+  employeePortalAccount EmployeePortalAccount? @relation("EmployeePortalAccountUser")
 
   createdBy User? @relation("UserCreatedBy", fields: [createdById], references: [id])
   updatedBy User? @relation("UserUpdatedBy", fields: [updatedById], references: [id])
@@ -716,7 +721,10 @@ model User {
 /// Only the SHA-256 hash of the emailed token is stored.
 model PasswordResetToken {
   id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @db.Uuid
+  /// The office login this link sets the password of (null for a Care app account only).
+  userId      String?   @db.Uuid
+  /// The Care app account this link sets the password of. Both set: one link, one password for both.
+  employeePortalAccountId String? @db.Uuid
   tokenHash   String    @unique
   expiresAt   DateTime
   /// Set when consumed, or when superseded by a newer request / a completed reset.
@@ -724,9 +732,11 @@ model PasswordResetToken {
   createdAt   DateTime  @default(now())
   requestedIp String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeePortalAccount EmployeePortalAccount? @relation(fields: [employeePortalAccountId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([employeePortalAccountId, createdAt])
   @@index([userId, usedAt])
   @@index([expiresAt])
   @@schema("identity")
@@ -1711,6 +1721,10 @@ model EmployeePortalAccount {
   lastSeenAt         DateTime?
   lastLoginIp        String?
   lastLoginUserAgent String?
+  /// When the person chose their own password; null while their invitation link is unused.
+  passwordSetAt      DateTime?
+  /// The same person's office login: one password for both (kept in step whenever either is set).
+  userId             String?   @unique @db.Uuid
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1718,7 +1732,9 @@ model EmployeePortalAccount {
   createdById String?   @db.Uuid
   updatedById String?   @db.Uuid
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee            Employee             @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  user                User?                @relation("EmployeePortalAccountUser", fields: [userId], references: [id], onDelete: SetNull)
+  passwordResetTokens PasswordResetToken[]
 
   @@index([deletedAt])
   @@schema("employees")

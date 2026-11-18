@@ -12,6 +12,7 @@ import { RbacEmploymentSyncService } from './rbac-employment-sync.service';
 import { assertEmployeeDefaultPayCard } from '../billing/pay-card-assignment.util';
 import { recordEmployeePayCardChange } from '../billing/employee-pay-card-assignment.util';
 import { syncLeavingRecordFromEmployment } from './employee-leaving-sync.util';
+import { endStaffSignIns, leavingDateHasPassed } from '../staff-access/staff-access.util';
 
 @Injectable()
 export class EmployeeEmploymentService {
@@ -283,6 +284,23 @@ export class EmployeeEmploymentService {
         userAgent: meta?.userAgent ?? undefined,
       });
       await this.rbacEmploymentSync.syncUserRolesForEmployee(tx, employeeId);
+      // An end date already in the past: they have left, so their sign-ins end now (later ones: StaffLeaversAccessJob).
+      if (dto.endDate !== undefined && leavingDateHasPassed(employment.endDate)) {
+        const ended = await endStaffSignIns(tx, employeeId, 'LEFT', userId);
+        if (ended.description) {
+          await this.audit.logAudit({
+            tx,
+            userId,
+            module: AuditModule.EMPLOYEE,
+            action: AuditAction.STAFF_SIGN_IN_ACCESS_CHANGED,
+            recordType: 'Employee',
+            recordId: employeeId,
+            description: ended.description,
+            ipAddress: meta?.ipAddress ?? undefined,
+            userAgent: meta?.userAgent ?? undefined,
+          });
+        }
+      }
       return {
         message: 'Employment details updated',
         data: {

@@ -5,6 +5,8 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { randomBytes } from 'crypto';
+import { Prisma } from '@prisma/client';
 import { hashPassword } from '../common/utils/password.util';
 import { endAllSignInSessions } from '../auth/sign-in-sessions/sign-in-sessions.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -42,6 +44,28 @@ export class UsersService {
         passwordHash: data.passwordHash,
       },
     });
+  }
+
+  /** An office user waiting to choose their password (from the welcome email): nobody knows the one stored. */
+  async createInvited(data: { email: string; username?: string; firstName?: string; lastName?: string; password?: string }) {
+    try {
+      return await this.prisma.user.create({
+        data: {
+          email: data.email.trim(),
+          username: data.username?.trim() || undefined,
+          firstName: data.firstName?.trim() || undefined,
+          lastName: data.lastName?.trim() || undefined,
+          // A password typed by the office, else one nobody knows until they choose theirs from the email.
+          passwordHash: await hashPassword(data.password ?? `unset:${randomBytes(32).toString('base64url')}`),
+          passwordSetAt: data.password ? new Date() : null,
+        },
+      });
+    } catch (e) {
+      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+        throw new ConflictException('Another office user already uses this email or username');
+      }
+      throw e;
+    }
   }
 
   /**
@@ -144,8 +168,8 @@ export class UsersService {
   }
 
   /**
-   * Admin edit of an office user: name, sign-in email and (optionally) a new password.
-   * Same privilege / branch rules as changing roles; a new password signs the user out.
+   * Admin edit of an office user: name and sign-in email. Same privilege / branch rules as changing roles.
+   * Nobody sets someone else's password: they choose it from an emailed link.
    */
   async updateOfficeUser(
     actor: {
@@ -172,9 +196,7 @@ export class UsersService {
     const emailChanged =
       Boolean(email) && email!.toLowerCase() !== target.email.toLowerCase();
     if (emailChanged) await this.assertEmailAvailable(email!, userId);
-    const passwordHash = data.password
-      ? await hashPassword(data.password)
-      : undefined;
+    const passwordHash = data.password ? await hashPassword(data.password) : undefined;
 
     const updated = await this.prisma.user.update({
       where: { id: userId },
@@ -186,11 +208,21 @@ export class UsersService {
           ? { lastName: data.lastName.trim() || null }
           : {}),
         ...(emailChanged ? { email } : {}),
-        ...(passwordHash ? { passwordHash, refreshTokenHash: null } : {}),
+        ...(passwordHash ? { passwordHash, passwordSetAt: new Date(), refreshTokenHash: null } : {}),
       },
     });
-    // A new password signs this person out on every device.
-    if (passwordHash) await endAllSignInSessions(this.prisma, 'USER', userId, 'PASSWORD_CHANGED');
+    if (passwordHash) {
+      // A new password signs them out on every device; one password: their linked Care app account gets it too.
+      await endAllSignInSessions(this.prisma, 'USER', userId, 'PASSWORD_CHANGED');
+      const linked = await this.prisma.employeePortalAccount.findFirst({ where: { userId, deletedAt: null }, select: { id: true } });
+      if (linked) {
+        await this.prisma.employeePortalAccount.update({
+          where: { id: linked.id },
+          data: { passwordHash, passwordSetAt: new Date(), refreshTokenHash: null, lastSeenAt: null },
+        });
+        await endAllSignInSessions(this.prisma, 'EMPLOYEE_APP', linked.id, 'PASSWORD_CHANGED');
+      }
+    }
 
     await this.audit.logAudit({
       userId: actor.id,
@@ -198,7 +230,7 @@ export class UsersService {
       action: AuditAction.USER_PROFILE_UPDATED,
       recordType: 'User',
       recordId: userId,
-      description: `Office user ${updated.email} updated${passwordHash ? ' (new password set)' : ''}`,
+      description: `Office user ${updated.email} updated${passwordHash ? ' (new password set by the office)' : ''}`,
       oldValues: {
         firstName: target.firstName,
         lastName: target.lastName,
@@ -411,6 +443,7 @@ export class UsersService {
         lastName: true,
         isActive: true,
         createdAt: true,
+        passwordSetAt: true,
         userRoles: { select: { role: { select: { id: true, name: true } } } },
         userLocations: {
           select: { locationId: true, location: { select: { id: true, name: true } } },
@@ -426,6 +459,8 @@ export class UsersService {
       lastName: u.lastName,
       isActive: u.isActive,
       createdAt: u.createdAt,
+      /** Invited, and has not chosen a password yet. */
+      invitePending: !u.passwordSetAt,
       roles: u.userRoles.map((ur) => ur.role),
       locations: u.userLocations.map((ul) => ul.location),
       scopeType: resolveScopeType(u.userRoles.map((ur) => ur.role.name)),

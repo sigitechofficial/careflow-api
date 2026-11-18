@@ -30,7 +30,6 @@ import { CreateEmployeeDto } from './dto/create-employee.dto';
 import { UpdateEmployeeDto } from './dto/update-employee.dto';
 import { UpdateEmployeeStatusDto } from './dto/update-employee-status.dto';
 import {
-  SetEmployeePortalPasswordDto,
   UpsertEmployeePortalAccountDto,
 } from './dto/employee-portal-account.dto';
 import { EmployeeVisitsQueryDto } from './dto/employee-visits-query.dto';
@@ -114,18 +113,6 @@ export class EmployeesController {
     @Body() dto: UpsertEmployeePortalAccountDto,
   ) {
     return this.portalAccountsService.upsertAdmin(user.id, id, dto);
-  }
-
-  @Post(':id/portal-account/set-password')
-  @HttpCode(HttpStatus.OK)
-  @Permissions('employees.update')
-  @ApiOperation({ summary: 'Set or reset employee app password (admin)' })
-  setPortalPassword(
-    @CurrentUser() user: RequestUser,
-    @Param('id') id: string,
-    @Body() dto: SetEmployeePortalPasswordDto,
-  ) {
-    return this.portalAccountsService.setPassword(user.id, id, dto.password);
   }
 
   @Post(':id/portal-account/revoke-session')

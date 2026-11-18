@@ -31,6 +31,7 @@ import type { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact
 import { mapEmployeeListRow } from './mappers/employee.mapper';
 import { loadEmployeeListHolidaySnapshots } from './employee-list-enrichment.util';
 import { parseEmployeeVisaTypes } from '../organisation-general-settings/employee-visa-types.util';
+import { endStaffSignIns, type EndAccessReason } from '../staff-access/staff-access.util';
 
 export type EmployeeAuditMeta = RequestAuditMeta & { actorUserId: string };
 
@@ -290,6 +291,10 @@ export class EmployeesService {
         userAgent: meta?.userAgent ?? undefined,
       });
 
+      if (before?.isActive && dto.isActive === false) {
+        await this.endSignInsInTx(tx, id, 'INACTIVE', userId, meta);
+      }
+
       let scheduleImpact: ScheduleImpactResult | undefined;
       if (before?.isActive && dto.isActive === false) {
         scheduleImpact = await this.scheduleImpact.unallocateEmployeeFutureJobs(
@@ -330,6 +335,7 @@ export class EmployeesService {
         where: { id },
         data: { deletedAt: now, deletedById: userId, isActive: false },
       });
+      await this.endSignInsInTx(tx, id, 'DELETED', userId, meta);
       // Drop payroll readiness so deleted staff are not auto-enrolled on UK runs.
       await tx.employeePayrollProfile.updateMany({
         where: { employeeId: id, deletedAt: null },
@@ -354,6 +360,30 @@ export class EmployeesService {
     });
   }
 
+  /** Leaving or inactive staff: switch off their office login and Care app access, and sign them out everywhere. */
+  private async endSignInsInTx(
+    tx: Prisma.TransactionClient,
+    employeeId: string,
+    reason: EndAccessReason,
+    userId: string,
+    meta?: RequestAuditMeta,
+  ): Promise<void> {
+    const ended = await endStaffSignIns(tx, employeeId, reason, userId);
+    if (!ended.description) return;
+    await this.audit.logAudit({
+      tx,
+      userId,
+      module: AuditModule.EMPLOYEE,
+      action: AuditAction.STAFF_SIGN_IN_ACCESS_CHANGED,
+      recordType: 'Employee',
+      recordId: employeeId,
+      description: ended.description,
+      newValues: { website: ended.website ? 'off' : undefined, app: ended.app ? 'off' : undefined, reason },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
+    });
+  }
+
   async updateStatus(userId: string, id: string, dto: UpdateEmployeeStatusDto, meta?: RequestAuditMeta) {
     await this.ensureExists(id);
     const inactiveStatus = await this.prisma.employeeStatus.findFirst({
@@ -372,6 +402,10 @@ export class EmployeesService {
           meta,
           tx,
         );
+      }
+
+      if (inactiveStatus && dto.statusId === inactiveStatus.id) {
+        await this.endSignInsInTx(tx, id, 'INACTIVE', userId, meta);
       }
 
       const beforePd = await tx.employeePersonalDetail.findUnique({

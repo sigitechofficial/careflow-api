@@ -10,7 +10,6 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { SetUserRolesDto } from './dto/set-user-roles.dto';
 import { SetUserLocationsDto } from './dto/set-user-locations.dto';
-import { hashPassword } from '../common/utils/password.util';
 
 @ApiTags('Users')
 @ApiBearerAuth()
@@ -38,13 +37,17 @@ export class UsersController {
 
   @Post()
   @Permissions('users.create')
+  @ApiOperation({
+    summary: 'Add an office user (no password)',
+    description: 'They choose their own password from the welcome email: save their roles and branches, then POST /users/:id/send-invite.',
+  })
   async create(@Body() dto: CreateUserDto) {
-    const user = await this.usersService.create({
+    const user = await this.usersService.createInvited({
       email: dto.email,
       username: dto.username,
       firstName: dto.firstName,
       lastName: dto.lastName,
-      passwordHash: await hashPassword(dto.password),
+      password: dto.password,
     });
     return { message: 'User created', data: { id: user.id } };
   }
