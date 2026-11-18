@@ -1536,6 +1536,33 @@ export class ScheduledJobsHousekeepingService {
       }
     }
 
+    // Notes typed when the office completes the visit go in the visit Log too (the Log, and the carer
+    // app's visit history, read the timeline, not the job's own notes field). One row per visit: saving
+    // again updates it.
+    const officeNote = dto.notes?.trim();
+    if (officeNote) {
+      try {
+        const author = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { firstName: true, lastName: true, email: true },
+        });
+        const who = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || author?.email || 'office';
+        await this.visitTimeline.upsertEvent({
+          scheduledJobId: id,
+          scheduledVisitId: existing.visits?.[0]?.id ?? null,
+          eventType: 'visit_note',
+          sourceType: 'log_note',
+          sourceId: 'office_visit_note',
+          title: `Visit note (office, ${who})`,
+          detail: officeNote,
+          tone: 'ink',
+          occurredAt: new Date(),
+        });
+      } catch {
+        // The outcome is saved; a Log row failing must not undo it.
+      }
+    }
+
     // ECM evaluation is a derived cache — rebuild from workspace after every outcome write.
     await this.ecmEvaluation.evaluateJobSafe(id, {
       confirmedMissed: markingMissed || undefined,
