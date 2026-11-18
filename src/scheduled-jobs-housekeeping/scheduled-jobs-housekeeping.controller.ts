@@ -123,6 +123,13 @@ export class ScheduledJobsHousekeepingController {
     return this.service.getVisitObservations(user, id);
   }
 
+  @Get('jobs/:id/previous-visit-notes')
+  @Permissions('scheduled_jobs_housekeeping.read')
+  @ApiOperation({ summary: "Notes, handover and concerns from this person's last visit before this one" })
+  previousVisitNotes(@CurrentUser() user: RequestUser, @Param('id') id: string) {
+    return this.service.getPreviousVisitNotes(user, id);
+  }
+
   @Get('jobs/:id/timeline')
   @Permissions('scheduled_jobs_housekeeping.read')
   @ApiOperation({

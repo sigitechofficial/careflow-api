@@ -35,6 +35,7 @@ import {
   loadVisitTaskPlacement,
 } from '../visit-tasks/visit-task-window.util';
 
+import { sortTitlesByUse } from '../common/utils/titles-by-use.util';
 const ABOUT_ME_REF_TYPE = 'SU_ABOUT_ME_V1';
 
 const portalFullInclude = {
@@ -151,11 +152,9 @@ export class ServiceUserPortalService {
 
   async getLookups() {
     const [titles, genders, maritalStatuses, relationshipTypes, allergies] = await Promise.all([
-      this.prisma.serviceUserTitle.findMany({
-        where: { isActive: true },
-        orderBy: { name: 'asc' },
-        select: { id: true, name: true },
-      }),
+      this.prisma.serviceUserTitle
+        .findMany({ where: { isActive: true }, select: { id: true, name: true, _count: { select: { serviceUsers: true } } } })
+        .then(sortTitlesByUse),
       this.prisma.serviceUserGender.findMany({
         where: { isActive: true },
         orderBy: { name: 'asc' },

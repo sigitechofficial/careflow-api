@@ -213,6 +213,11 @@ export class ScheduledJobsHousekeepingService {
    * carer app shows (clock in/out, tasks, medication, observations, visit
    * notes, handovers, concerns, incidents), oldest → newest.
    */
+  async getPreviousVisitNotes(user: RequestUser, jobId: string) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    return { data: await this.visitTimeline.previousVisitNotes(jobId) };
+  }
+
   async getVisitTimeline(user: RequestUser, jobId: string) {
     await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
     const job = await this.prisma.scheduledJob.findFirst({

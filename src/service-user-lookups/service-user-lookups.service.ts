@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
+import { sortTitlesByUse } from '../common/utils/titles-by-use.util';
 @Injectable()
 export class ServiceUserLookupsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -24,7 +25,7 @@ export class ServiceUserLookupsService {
       sexualOrientations,
     ] = await Promise.all([
       this.prisma.serviceUserStatus.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
-      this.prisma.serviceUserTitle.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
+      this.prisma.serviceUserTitle.findMany({ where: { isActive: true }, include: { _count: { select: { serviceUsers: true } } } }),
       this.prisma.serviceUserGender.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.serviceUserMaritalStatus.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.serviceUserCareType.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } }),
@@ -48,7 +49,7 @@ export class ServiceUserLookupsService {
     return {
       data: {
         statuses,
-        titles,
+        titles: sortTitlesByUse(titles),
         genders,
         maritalStatuses,
         careTypes,
@@ -69,8 +70,10 @@ export class ServiceUserLookupsService {
   statuses() {
     return this.prisma.serviceUserStatus.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
   }
-  titles() {
-    return this.prisma.serviceUserTitle.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });
+  async titles() {
+    return sortTitlesByUse(
+      await this.prisma.serviceUserTitle.findMany({ where: { isActive: true }, include: { _count: { select: { serviceUsers: true } } } }),
+    );
   }
   genders() {
     return this.prisma.serviceUserGender.findMany({ where: { isActive: true }, orderBy: { name: 'asc' } });

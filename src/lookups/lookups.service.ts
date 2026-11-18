@@ -56,6 +56,7 @@ import {
   OTHER_LEFT_AREA_ALLOW_REASON_CODE,
 } from './left-area-allow-reasons.defaults';
 
+import { sortTitlesByUse } from '../common/utils/titles-by-use.util';
 @Injectable()
 export class LookupsService implements OnModuleInit {
   private readonly logger = new Logger(LookupsService.name);
@@ -97,8 +98,13 @@ export class LookupsService implements OnModuleInit {
     }
   }
 
-  titles() {
-    return this.prisma.title.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } });
+  async titles() {
+    return sortTitlesByUse(
+      await this.prisma.title.findMany({
+        where: { deletedAt: null, isActive: true },
+        include: { _count: { select: { employeePersonalDetails: true } } },
+      }),
+    );
   }
   genders() {
     return this.prisma.gender.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } });
@@ -2146,7 +2152,10 @@ export class LookupsService implements OnModuleInit {
       roles,
       ethnicities,
     ] = await this.prisma.$transaction([
-      this.prisma.title.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } }),
+      this.prisma.title.findMany({
+        where: { deletedAt: null, isActive: true },
+        include: { _count: { select: { employeePersonalDetails: true } } },
+      }),
       this.prisma.gender.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.nationality.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } }),
       this.prisma.workArea.findMany({ where: { deletedAt: null, isActive: true }, orderBy: { name: 'asc' } }),
@@ -2170,7 +2179,7 @@ export class LookupsService implements OnModuleInit {
 
     return {
       data: {
-        titles,
+        titles: sortTitlesByUse(titles),
         genders,
         nationalities,
         employeeStatuses,

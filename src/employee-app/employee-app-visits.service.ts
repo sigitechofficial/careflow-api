@@ -775,7 +775,7 @@ export class EmployeeAppVisitsService {
    */
   async getVisitDetails(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [workspace, tasks, medication, observations, log, bodyMap, welfareOutcomes, careConsent] =
+    const [workspace, tasks, medication, observations, log, bodyMap, welfareOutcomes, careConsent, previousVisitNotes] =
       await Promise.all([
         this.getWorkspace(employeeId, jobId),
         this.getTasks(employeeId, jobId),
@@ -785,6 +785,7 @@ export class EmployeeAppVisitsService {
         this.getBodyMapWizard(employeeId, jobId),
         this.getWelfareOutcomes(),
         this.getCareConsent(employeeId, ctx.primaryVisit.id),
+        this.visitTimeline.previousVisitNotes(jobId).catch(() => null),
       ]);
 
     return {
@@ -798,6 +799,8 @@ export class EmployeeAppVisitsService {
         tasks: tasks.data,
         medication: medication.data,
         observations: observations.data,
+        /** Notes, handover and concerns from this person's last visit (null when none were written). */
+        previousVisitNotes,
         log: log.data,
         bodyMap: bodyMap.data,
         clockInSettings: workspace.data.clockInSettings,
