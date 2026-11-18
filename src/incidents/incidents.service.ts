@@ -5364,7 +5364,7 @@ export class IncidentsService {
   private async managerUserIds(): Promise<string[]> {
     const roles = await this.prisma.role.findMany({
       where: {
-        name: { in: ['Admin', 'Manager', 'Care Coordinator'] },
+        name: { in: ['Admin', 'Manager', 'Care Coordinator', 'Super Admin'] },
         deletedAt: null,
       },
       select: { id: true },
