@@ -1549,7 +1549,9 @@ export class ScheduledJobsHousekeepingService {
 
     // The visit Log (and the carer app's visit history) reads the timeline, not the job's own fields, so an
     // outcome recorded from the visit window adds rows there too: what the office recorded, and their notes.
-    // One row of each per visit: recording again updates them.
+    // One row of each per visit: recording again updates them. Only for office staff: the carer app
+    // calls completeJob('') and writes its own clock-out, handover and note rows.
+    if (userId?.trim()) {
     try {
       const author = await this.prisma.user.findUnique({
         where: { id: userId },
@@ -1591,6 +1593,7 @@ export class ScheduledJobsHousekeepingService {
       }
     } catch {
       // The outcome is saved; a Log row failing must not undo it.
+    }
     }
 
     // ECM evaluation is a derived cache — rebuild from workspace after every outcome write.

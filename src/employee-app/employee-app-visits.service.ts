@@ -2740,6 +2740,8 @@ export class EmployeeAppVisitsService {
       writeIdempotencyKey: dto.idempotencyKey,
     });
 
+    await this.recordClockOutHandover(employeeId, jobId, ctx, dto);
+
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
     this.carerPush.notify({
@@ -4470,6 +4472,52 @@ export class EmployeeAppVisitsService {
     assertBodyOrVoiceNote(dto, 'Enter a handover message or record a voice note before saving');
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    return this.saveHandover(employeeId, jobId, ctx, dto);
+  }
+
+  /**
+   * A handover typed on the clock-out screen is the carer's handover for the visit: it goes to the
+   * visit Log, the next carer's "Last handover" and the office handover report, exactly as one saved
+   * from the Log tab. Skipped when the carer already saved the same words from the Log tab.
+   */
+  private async recordClockOutHandover(
+    employeeId: string,
+    jobId: string,
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    dto: EmployeeAppVisitCompleteDto,
+  ): Promise<void> {
+    const body = dto.handoverNote?.trim();
+    if (!body) return;
+    try {
+      const ea = await this.readEmployeeAppMeta(jobId);
+      const isSupport =
+        resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations) === 'support';
+      const supportHandovers =
+        typeof ea.supportHandovers === 'object' && ea.supportHandovers && !Array.isArray(ea.supportHandovers)
+          ? (ea.supportHandovers as Record<string, unknown>)
+          : {};
+      const own = isSupport ? supportHandovers[employeeId] : ea.handoverNote;
+      const ownBody =
+        typeof own === 'object' && own && typeof (own as Record<string, unknown>).body === 'string'
+          ? ((own as Record<string, unknown>).body as string).trim()
+          : '';
+      if (ownBody === body) return;
+      await this.saveHandover(employeeId, jobId, ctx, {
+        body,
+        deviceRecordedAt: dto.deviceRecordedAt ?? new Date().toISOString(),
+        idempotencyKey: `${dto.idempotencyKey ?? randomUUID()}:handover`,
+      });
+    } catch {
+      // The visit is completed; its notes are still on the visit and in the handover report.
+    }
+  }
+
+  private async saveHandover(
+    employeeId: string,
+    jobId: string,
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    dto: EmployeeAppLogHandoverDto,
+  ) {
     /**
      * Handover is a visit singleton. POST is always upsert: reuse of the same
      * `idempotencyKey` / `clientEntryId` applies the latest body, priority,
