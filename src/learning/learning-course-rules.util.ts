@@ -8,11 +8,12 @@ import { LearningCourseType, LearningDeliveryMethod } from '@prisma/client';
 export const COURSE_TYPE_DELIVERY_METHODS: Partial<
   Record<LearningCourseType, LearningDeliveryMethod[]>
 > = {
+  // One "Course type" in the admin (17 Nov 2026): Online, Face to face or Workplace. Virtual and
+  // Blended are retired; Assessment only / Practical stay for existing courses only.
   [LearningCourseType.COURSE]: [
     LearningDeliveryMethod.ONLINE,
     LearningDeliveryMethod.FACE_TO_FACE,
-    LearningDeliveryMethod.VIRTUAL,
-    // BLENDED removed for new courses (user, 16 Nov 2026); existing blended courses keep working.
+    LearningDeliveryMethod.WORKPLACE,
   ],
   [LearningCourseType.ASSESSMENT]: [LearningDeliveryMethod.ONLINE],
   [LearningCourseType.PRACTICAL_COMPETENCY]: [

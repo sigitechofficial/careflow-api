@@ -156,10 +156,17 @@ export function checkPublishable(input: PublishCheckInput): PublishCheckResult {
 
   // Course outline: modules and their lessons
   const lessons = input.sections.flatMap((s) => s.lessons);
-  if (course.courseType === LearningCourseType.COURSE && lessons.length === 0) {
+  // A course needs something to do (17 Nov 2026): lessons, a quiz (an online quiz-only course)
+  // or a practical test (a workplace sign-off).
+  if (
+    course.courseType === LearningCourseType.COURSE &&
+    lessons.length === 0 &&
+    input.quizzes.length === 0 &&
+    !version.requiresPracticalAssessment
+  ) {
     block(
       'no_lessons',
-      'A training course needs at least one lesson',
+      'Add at least one lesson, a quiz or a practical test',
       'Course outline',
     );
   }
@@ -268,13 +275,6 @@ export function checkPublishable(input: PublishCheckInput): PublishCheckResult {
     warn(
       'practical_not_required',
       'The practical assessment is not required to finish',
-      'Finish and certificate',
-    );
-  }
-  if (version.requiresPracticalAssessment) {
-    warn(
-      'practical_signoff',
-      'The assessor sign-off screen is not built yet, so carers cannot finish this course',
       'Finish and certificate',
     );
   }

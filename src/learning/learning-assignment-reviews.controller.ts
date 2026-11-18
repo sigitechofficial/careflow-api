@@ -12,6 +12,7 @@ import {
   ExtendAssignmentWithReasonDto,
   MarkLessonsDto,
   RecordOutcomeDto,
+  PracticalSignoffDto,
   RecordAssignmentReviewDto,
 } from './dto/learning.dto';
 import { LearningAssignmentReviewsService } from './learning-assignment-reviews.service';
@@ -72,6 +73,18 @@ export class LearningAssignmentReviewsController {
     @Req() req: Request,
   ) {
     return this.service.recordOutcome(id, user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post('assignments/:id/practical-signoff')
+  @Permissions('learning.assignments.manage')
+  @ApiOperation({ summary: 'Practical test sign-off: checklist + competent / not yet competent' })
+  practicalSignoff(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PracticalSignoffDto,
+    @Req() req: Request,
+  ) {
+    return this.service.practicalSignoff(id, user.id, dto, getRequestAuditMeta(req));
   }
 
   @Post('assignments/:id/start')
