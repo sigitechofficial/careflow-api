@@ -137,6 +137,7 @@ import {
   type DeliveredCarePlanDetailPayload,
 } from './visit-care-plan-delivery.util';
 
+import { visitPurposeForJob } from '../employee-app/visit-purpose.util';
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
   AllocationStatus.ALLOCATED,
@@ -213,6 +214,11 @@ export class ScheduledJobsHousekeepingService {
    * carer app shows (clock in/out, tasks, medication, observations, visit
    * notes, handovers, concerns, incidents), oldest → newest.
    */
+  async getVisitPurpose(user: RequestUser, jobId: string) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    return { data: await visitPurposeForJob(this.prisma, jobId) };
+  }
+
   async getPreviousVisitNotes(user: RequestUser, jobId: string) {
     await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
     return { data: await this.visitTimeline.previousVisitNotes(jobId) };
