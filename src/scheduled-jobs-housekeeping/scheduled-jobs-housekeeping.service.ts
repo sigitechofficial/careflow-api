@@ -293,7 +293,9 @@ export class ScheduledJobsHousekeepingService {
       otherVoiceNotes,
       timeline: timeline.map((item) => {
         let next = item;
-        if (item.type === 'clock_in' && item.detail) {
+        // The carer's "Clocked in" row: method only (reasons show on Overview). Other clock-in rows, such as
+        // "On arrival" and office-entered times, keep every line.
+        if (item.type === 'clock_in' && item.detail && item.sourceId.startsWith('check_in:')) {
           const methodOnly = item.detail.split('\n')[0]?.trim() || item.detail;
           next = { ...item, detail: methodOnly, subtitle: methodOnly };
         }
