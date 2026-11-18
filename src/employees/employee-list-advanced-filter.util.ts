@@ -42,6 +42,9 @@ export async function findEmployeeIdsForBranchScopeKinds(
         SELECT emp."locationId" AS loc_id
         WHERE emp."locationId" IS NOT NULL
         UNION
+        SELECT emp."baseLocationId" AS loc_id
+        WHERE emp."baseLocationId" IS NOT NULL
+        UNION
         SELECT fl."locationId" AS loc_id
         FROM employees."EmployeeEmploymentFloorLocation" fl
         WHERE fl."employmentId" = emp."id"
@@ -58,7 +61,16 @@ export async function findEmployeeIdsForBranchScopeKinds(
     OR (${includeMultiple} AND scoped.access_all_zones = false AND scoped.branch_count > 1)
   `);
 
-  return rows.map((row) => row.employeeId);
+  const ids = rows.map((row) => row.employeeId);
+  if (includeNone) {
+    // Staff with no employment details yet are not assigned to any branch either.
+    const withoutEmployment = await prisma.employee.findMany({
+      where: { deletedAt: null, employment: null },
+      select: { id: true },
+    });
+    for (const row of withoutEmployment) ids.push(row.id);
+  }
+  return ids;
 }
 
 export async function findEmployeeIdsForComplianceFilter(

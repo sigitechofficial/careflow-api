@@ -41,7 +41,7 @@ export class SurveyRemindersController {
   @Permissions('surveys.manage')
   @ApiOperation({ summary: 'Remind everyone who has not answered now' })
   remindNow(@CurrentUser() user: RequestUser, @Param('surveyId', ParseUUIDPipe) surveyId: string, @Req() req: Request) {
-    return this.reminders.remindNow(user, surveyId, getRequestAuditMeta(req));
+    return this.reminders.remindNow(user, surveyId, getRequestAuditMeta(req), req.headers.origin);
   }
 
   @Post('recipients/:recipientId/reminder')
@@ -53,7 +53,7 @@ export class SurveyRemindersController {
     @Param('recipientId', ParseUUIDPipe) recipientId: string,
     @Req() req: Request,
   ) {
-    return this.reminders.remindOne(user, surveyId, recipientId, getRequestAuditMeta(req));
+    return this.reminders.remindOne(user, surveyId, recipientId, getRequestAuditMeta(req), req.headers.origin);
   }
 
   @Post('recipients/:recipientId/resend')

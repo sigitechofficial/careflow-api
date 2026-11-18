@@ -10,6 +10,14 @@ import {
   summarizeTimelineDetail,
 } from './visit-timeline.util';
 
+const PREVIOUS_NOTE_TYPES = ['visit_note', 'handover', 'concern'] as const;
+export type PreviousVisitNoteKind = (typeof PREVIOUS_NOTE_TYPES)[number];
+export type PreviousVisitNotes = {
+  jobId: string;
+  visitStart: string;
+  notes: { kind: PreviousVisitNoteKind; title: string; text: string; at: string }[];
+};
+
 @Injectable()
 export class VisitTimelineService {
   private readonly logger = new Logger(VisitTimelineService.name);
@@ -125,5 +133,54 @@ export class VisitTimelineService {
       if (!detail || detail === item.detail) return item;
       return { ...item, detail, subtitle: detail };
     });
+  }
+
+  /**
+   * Notes from this person's last visit before this one: visit notes, handover and concerns, plus the
+   * notes on the visit record itself (office completion). Skips visits with nothing written.
+   * Shown at the top of the admin visit window and in the carer app's visit details.
+   */
+  async previousVisitNotes(jobId: string): Promise<PreviousVisitNotes | null> {
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: jobId, deletedAt: null },
+      select: { serviceUserId: true, scheduledStartDateTime: true },
+    });
+    if (!job) return null;
+    const earlier = await this.prisma.scheduledJob.findMany({
+      where: {
+        serviceUserId: job.serviceUserId,
+        deletedAt: null,
+        id: { not: jobId },
+        scheduledStartDateTime: { lt: job.scheduledStartDateTime },
+        OR: [
+          { notes: { not: null } },
+          { timelineEvents: { some: { isDraft: false, eventType: { in: [...PREVIOUS_NOTE_TYPES] } } } },
+        ],
+      },
+      orderBy: { scheduledStartDateTime: 'desc' },
+      take: 5,
+      select: {
+        id: true,
+        scheduledStartDateTime: true,
+        notes: true,
+        timelineEvents: {
+          where: { isDraft: false, eventType: { in: [...PREVIOUS_NOTE_TYPES] } },
+          orderBy: { occurredAt: 'asc' },
+          select: { eventType: true, title: true, detail: true, occurredAt: true },
+        },
+      },
+    });
+    for (const prev of earlier) {
+      const notes: PreviousVisitNotes['notes'] = prev.timelineEvents
+        .filter((e) => (e.detail ?? '').trim())
+        .map((e) => ({ kind: e.eventType as PreviousVisitNoteKind, title: e.title, text: e.detail!.trim(), at: e.occurredAt.toISOString() }));
+      const own = prev.notes?.trim();
+      // Office completion notes are also mirrored as a visit_note row; don't show them twice.
+      if (own && !notes.some((n) => n.text === own) && !own.startsWith('MANUAL:')) {
+        notes.push({ kind: 'visit_note', title: 'Visit note', text: own, at: prev.scheduledStartDateTime.toISOString() });
+      }
+      if (notes.length) return { jobId: prev.id, visitStart: prev.scheduledStartDateTime.toISOString(), notes };
+    }
+    return null;
   }
 }

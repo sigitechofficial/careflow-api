@@ -103,9 +103,21 @@ enum HrDocumentStatus {
 }
 
 enum VacancyStatus {
+  /// Being written: not on the careers page and takes no applications.
+  DRAFT
   OPEN
   PAUSED
   CLOSED
+
+  @@schema("employees")
+}
+
+enum SalaryPeriod {
+  HOUR
+  DAY
+  WEEK
+  MONTH
+  YEAR
 
   @@schema("employees")
 }
@@ -127,16 +139,18 @@ enum CandidateSource {
   AGENCY
   INTERNAL
   MANUAL
+  /// Applied by email (recruitment inbox).
+  EMAIL
 
   @@schema("employees")
 }
 
+/// Recruitment steps in order: APPLIED → SCREENING → INTERVIEW → OFFER (conditional) →
+/// VETTING (pre-employment checks) → ACCEPTED (cleared to start; hired once converted).
 enum CandidateStage {
   APPLIED
   SCREENING
-  SHORTLISTED
   INTERVIEW
-  ASSESSMENT
   OFFER
   VETTING
   ACCEPTED
@@ -146,10 +160,70 @@ enum CandidateStage {
   @@schema("employees")
 }
 
+enum CandidateOfferStatus {
+  SENT
+  ACCEPTED
+  DECLINED
+
+  @@schema("employees")
+}
+
+enum CandidateInterviewMode {
+  IN_PERSON
+  PHONE
+  VIDEO
+
+  @@schema("employees")
+}
+
+enum CandidateInterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+
+  @@schema("employees")
+}
+
+enum CandidateInterviewOutcome {
+  HIRE
+  MAYBE
+  DO_NOT_HIRE
+
+  @@schema("employees")
+}
+
+enum CandidateCheckType {
+  PROOF_OF_ID
+  RIGHT_TO_WORK
+  DBS
+  REFERENCE_1
+  REFERENCE_2
+  QUALIFICATIONS
+  HEALTH_DECLARATION
+  OVERSEAS_POLICE_CHECK
+  DRIVING
+
+  @@schema("employees")
+}
+
+enum CandidateCheckStatus {
+  NOT_STARTED
+  REQUESTED
+  RECEIVED
+  VERIFIED
+  FAILED
+  NOT_REQUIRED
+
+  @@schema("employees")
+}
+
 enum CandidateDocumentType {
   CV
   CERTIFICATE
   ID_DOCUMENT
+  OFFER_LETTER
+  CHECK_EVIDENCE
   OTHER
 
   @@schema("employees")
@@ -504,6 +578,8 @@ model User {
   firstName        String?
   lastName         String?
   refreshTokenHash String?
+  /// When the person chose their own password; null while their invitation link is unused.
+  passwordSetAt    DateTime?
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -512,6 +588,9 @@ model User {
   createdById String?   @db.Uuid
   updatedById String?   @db.Uuid
   deletedById String?   @db.Uuid
+
+  /// The same person's Care app account: one password for both (kept in step whenever either is set).
+  employeePortalAccount EmployeePortalAccount? @relation("EmployeePortalAccountUser")
 
   createdBy User? @relation("UserCreatedBy", fields: [createdById], references: [id])
   updatedBy User? @relation("UserUpdatedBy", fields: [updatedById], references: [id])
@@ -642,7 +721,10 @@ model User {
 /// Only the SHA-256 hash of the emailed token is stored.
 model PasswordResetToken {
   id          String    @id @default(uuid()) @db.Uuid
-  userId      String    @db.Uuid
+  /// The office login this link sets the password of (null for a Care app account only).
+  userId      String?   @db.Uuid
+  /// The Care app account this link sets the password of. Both set: one link, one password for both.
+  employeePortalAccountId String? @db.Uuid
   tokenHash   String    @unique
   expiresAt   DateTime
   /// Set when consumed, or when superseded by a newer request / a completed reset.
@@ -650,9 +732,11 @@ model PasswordResetToken {
   createdAt   DateTime  @default(now())
   requestedIp String?
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user                  User?                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employeePortalAccount EmployeePortalAccount? @relation(fields: [employeePortalAccountId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
+  @@index([employeePortalAccountId, createdAt])
   @@index([userId, usedAt])
   @@index([expiresAt])
   @@schema("identity")
@@ -1299,7 +1383,32 @@ model Vacancy {
   description       String?
   requirements      String?
   salaryRange       String?
+  /// What the salary is per (shown after the amount on the careers page, e.g. "per month").
+  salaryPeriod      SalaryPeriod?
+  /// Last day to apply (inclusive). After it the job leaves the careers page and stops taking applications.
+  closingDate       DateTime?                 @db.Date
   numberOfPositions Int                       @default(1)
+  /// Where the work is: HOME_VISITS, CARE_HOME, OFFICE, LIVE_IN, REMOTE.
+  workSetting       String?
+  /// FULL_TIME, PART_TIME or FLEXIBLE.
+  hoursType         String?
+  hoursPerWeekMin   Int?
+  hoursPerWeekMax   Int?
+  /// First day of work; null = as soon as possible.
+  startDate         DateTime?                 @db.Date
+  /// Pay as numbers (salaryRange keeps the text shown on the careers page, made from these when set).
+  payMin            Decimal?                  @db.Decimal(10, 2)
+  payMax            Decimal?                  @db.Decimal(10, 2)
+  /// Shifts worked: MORNINGS, AFTERNOONS, EVENINGS, NIGHTS, WEEKENDS, SLEEP_INS, LIVE_IN.
+  shifts            String[]                  @default([])
+  /// Benefits offered (free text chips, e.g. "Mileage paid", "Paid training").
+  benefits          String[]                  @default([])
+  /// Questions asked when applying: [{ id, kind, text, type: YES_NO | CHOICE | TEXT, options?, required, dealBreaker? }].
+  screeningQuestions Json                     @default("[]")
+  /// CV on the careers page: REQUIRED, OPTIONAL or HIDDEN.
+  cvRequirement     String                    @default("OPTIONAL")
+  /// Telling the hiring manager about applications: EACH (an email each), DAILY (one summary a day) or NONE (in-app only).
+  notifyMode        String                    @default("EACH")
   status            VacancyStatus             @default(OPEN)
   hiringManagerId   String?                   @db.Uuid
   createdById       String?                   @db.Uuid
@@ -1346,6 +1455,42 @@ model Candidate {
   convertedAt           DateTime?
   convertedById         String?         @db.Uuid
 
+  /// Full employment history (CQC Schedule 3 #7): [{ kind: 'JOB' | 'GAP', from: 'YYYY-MM', to: 'YYYY-MM' | null,
+  /// employer?, jobTitle?, reasonForLeaving?, careRole?, explanation? }]. GAP rows explain time out of work.
+  employmentHistory Json?
+  /// Screening answers (null = not asked yet).
+  hasRightToWork    Boolean?
+  needsSponsorship  Boolean?
+  /// Will drive for work (needs a driving licence check).
+  drivesForWork     Boolean?
+  /// Lived or worked abroad for 6+ months in the last 5 years (needs an overseas police check).
+  livedOverseas     Boolean?
+  screeningNotes    String?
+  /// Answers to the vacancy's questions when applying: [{ questionId, question, answer, dealBreakerMissed }].
+  screeningAnswers  Json?
+  /// The questions whose answer missed what the vacancy needs (shown in red; never rejected automatically).
+  dealBreakersMissed String[]       @default([])
+  /// Set once the application is in a hiring manager's daily summary email.
+  summaryEmailedAt  DateTime?
+  /// Conditional offer (made before the pre-employment checks).
+  offerStatus       CandidateOfferStatus?
+  offerStartDate    DateTime?
+  offerHoursPerWeek String?
+  offerPayRate      String?
+  offerNotes        String?
+  offerSentAt       DateTime?
+  offerRespondedAt  DateTime?
+  /// When the current offer terms were last emailed to the candidate (cleared when the offer changes).
+  offerEmailedAt    DateTime?
+  /// Why the candidate was rejected or withdrew.
+  outcomeReason     String?
+  /// When the candidate was emailed that they were not successful.
+  rejectionEmailedAt DateTime?
+  /// Manager sign-off that every check is satisfactory (fit and proper, Regulation 19).
+  clearedAt         DateTime?
+  clearedById       String?   @db.Uuid
+  clearanceNotes    String?
+
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1358,6 +1503,8 @@ model Candidate {
   convertedBy       User?                   @relation("CandidateConvertedBy", fields: [convertedById], references: [id])
   documents         CandidateDocument[]
   stageHistory      CandidateStageHistory[]
+  interviews        CandidateInterview[]
+  checks            CandidateCheck[]
 
   @@index([vacancyId])
   @@index([stage])
@@ -1377,6 +1524,8 @@ model CandidateDocument {
   status       CandidateDocumentStatus @default(UPLOADED)
   reviewNotes  String?
   uploadedById String?                 @db.Uuid
+  /// Evidence for a pre-employment check (DBS certificate, reference, ...).
+  checkId      String?                 @db.Uuid
 
   isActive    Boolean   @default(true)
   createdAt   DateTime  @default(now())
@@ -1384,11 +1533,79 @@ model CandidateDocument {
   deletedAt   DateTime?
   createdById String?   @db.Uuid
 
-  candidate  Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-  uploadedBy User?     @relation("CandidateDocumentUploadedBy", fields: [uploadedById], references: [id])
+  candidate  Candidate       @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  uploadedBy User?           @relation("CandidateDocumentUploadedBy", fields: [uploadedById], references: [id])
+  check      CandidateCheck? @relation(fields: [checkId], references: [id], onDelete: SetNull)
 
   @@index([candidateId])
+  @@index([checkId])
   @@index([deletedAt])
+  @@schema("employees")
+}
+
+/// An interview with a candidate: when it is, then the scored answers and the panel's recommendation.
+model CandidateInterview {
+  id              String                    @id @default(uuid()) @db.Uuid
+  candidateId     String                    @db.Uuid
+  scheduledAt     DateTime
+  mode            CandidateInterviewMode    @default(IN_PERSON)
+  /// Address, phone number or video link.
+  location        String?
+  /// Who is on the panel (free text).
+  interviewers    String?
+  status          CandidateInterviewStatus  @default(SCHEDULED)
+  /// [{ question, score: 1-5, notes? }] — values-based questions.
+  answers         Json?
+  recommendation  CandidateInterviewOutcome?
+  /// Employment gaps were talked through with the candidate.
+  gapsDiscussed   Boolean                   @default(false)
+  notes           String?
+  completedAt     DateTime?
+  completedById   String?                   @db.Uuid
+  /// Last time the candidate was emailed about this interview (invite, change or cancellation).
+  candidateEmailedAt DateTime?
+  /// Calendar update number (iCalendar SEQUENCE): each change replaces the event in their calendar.
+  calendarSequence   Int       @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  createdById String?  @db.Uuid
+  updatedById String?  @db.Uuid
+
+  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+
+  @@index([candidateId, scheduledAt])
+  @@schema("employees")
+}
+
+/// One pre-employment check (CQC Schedule 3). Created when the candidate accepts the conditional offer.
+model CandidateCheck {
+  id              String               @id @default(uuid()) @db.Uuid
+  candidateId     String               @db.Uuid
+  type            CandidateCheckType
+  /// Must be verified (or marked not needed, with a reason) before the candidate can be cleared.
+  required        Boolean              @default(true)
+  status          CandidateCheckStatus @default(NOT_STARTED)
+  /// DBS certificate number, right-to-work share code, referee name, ...
+  referenceNumber String?
+  /// Referee / issuer details.
+  provider        String?
+  issueDate       DateTime?
+  expiryDate      DateTime?
+  notes           String?
+  requestedAt     DateTime?
+  receivedAt      DateTime?
+  verifiedAt      DateTime?
+  verifiedById    String?              @db.Uuid
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  updatedById String?  @db.Uuid
+
+  candidate Candidate           @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  documents CandidateDocument[]
+
+  @@unique([candidateId, type])
   @@schema("employees")
 }
 
@@ -1504,6 +1721,10 @@ model EmployeePortalAccount {
   lastSeenAt         DateTime?
   lastLoginIp        String?
   lastLoginUserAgent String?
+  /// When the person chose their own password; null while their invitation link is unused.
+  passwordSetAt      DateTime?
+  /// The same person's office login: one password for both (kept in step whenever either is set).
+  userId             String?   @unique @db.Uuid
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -1511,7 +1732,9 @@ model EmployeePortalAccount {
   createdById String?   @db.Uuid
   updatedById String?   @db.Uuid
 
-  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employee            Employee             @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  user                User?                @relation("EmployeePortalAccountUser", fields: [userId], references: [id], onDelete: SetNull)
+  passwordResetTokens PasswordResetToken[]
 
   @@index([deletedAt])
   @@schema("employees")
@@ -12149,6 +12372,8 @@ enum LearningCourseStatus {
   PUBLISHED
   SUPERSEDED
   ARCHIVED
+  /// Course only: no new assignments; carers already on it continue. Version stays PUBLISHED.
+  WITHDRAWN
 
   @@schema("learning")
 }
@@ -12502,6 +12727,15 @@ model LearningCourseVersion {
   cpdMinutes               Int?
   certificateValidityDays  Int?
   refresherFrequencyDays   Int?
+  /// Completion + certificate rules for learners on this version (snapshot at publish).
+  requiresAssessment          Boolean              @default(false)
+  requiresPracticalAssessment Boolean              @default(false)
+  requiresManagerApproval     Boolean              @default(false)
+  certificateEnabled          Boolean              @default(true)
+  learningObjectives          String?
+  /// Practical competency for this version; checklist frozen at publish.
+  competencyId                String?              @db.Uuid
+  competencyChecklistSnapshot Json?
   publishedAt              DateTime?
   publishedById            String?              @db.Uuid
   changeSummary            String?
@@ -12510,6 +12744,7 @@ model LearningCourseVersion {
   updatedAt                DateTime             @updatedAt
 
   course          LearningCourse             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  competency      LearningCompetency?        @relation(fields: [competencyId], references: [id], onDelete: SetNull)
   sections        LearningCourseSection[]
   assessments     LearningAssessment[]
   assignments     LearningAssignment[]
@@ -12522,6 +12757,25 @@ model LearningCourseVersion {
   @@index([courseId])
   @@index([status])
   @@index([publishedAt])
+  @@index([competencyId])
+  @@schema("learning")
+}
+
+/// Image / PDF / Word file attached to a lesson. Stored privately (storage/learning-files),
+/// served only through short-lived signed links.
+model LearningFile {
+  id           String    @id @default(uuid()) @db.Uuid
+  originalName String
+  mimeType     String
+  fileSize     Int
+  storagePath  String
+  uploadedById String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  deletedAt    DateTime?
+
+  contentItems LearningContentItem[]
+
+  @@index([deletedAt])
   @@schema("learning")
 }
 
@@ -12538,6 +12792,8 @@ model LearningCourseSection {
 
   courseVersion LearningCourseVersion @relation(fields: [courseVersionId], references: [id], onDelete: Cascade)
   contentItems  LearningContentItem[]
+  /// Module quizzes; final assessments have no section.
+  assessments   LearningAssessment[]
 
   @@index([courseVersionId])
   @@index([displayOrder])
@@ -12563,8 +12819,10 @@ model LearningContentItem {
   updatedAt                DateTime               @updatedAt
 
   courseSection LearningCourseSection           @relation(fields: [courseSectionId], references: [id], onDelete: Cascade)
+  file          LearningFile?                   @relation(fields: [fileId], references: [id], onDelete: SetNull)
   completions   LearningContentItemCompletion[]
 
+  @@index([fileId])
   @@index([courseSectionId])
   @@index([contentType])
   @@index([displayOrder])
@@ -12574,6 +12832,10 @@ model LearningContentItem {
 model LearningAssessment {
   id                 String   @id @default(uuid()) @db.Uuid
   courseVersionId    String   @db.Uuid
+  /// Module (section) the quiz belongs to; null = final assessment.
+  sectionId          String?  @db.Uuid
+  /// Order quizzes were added in, inside a module or among final assessments.
+  displayOrder       Int      @default(0)
   title              String
   instructions       String?
   passingScore       Int
@@ -12589,10 +12851,12 @@ model LearningAssessment {
   updatedAt          DateTime @updatedAt
 
   courseVersion LearningCourseVersion        @relation(fields: [courseVersionId], references: [id], onDelete: Cascade)
+  section       LearningCourseSection?       @relation(fields: [sectionId], references: [id], onDelete: Cascade)
   questions     LearningAssessmentQuestion[]
   attempts      LearningAssessmentAttempt[]
 
   @@index([courseVersionId])
+  @@index([sectionId])
   @@schema("learning")
 }
 
@@ -12715,6 +12979,8 @@ model LearningAssignment {
   assignmentReason        String?
   status                  LearningAssignmentStatus   @default(ASSIGNED)
   completedAt             DateTime?
+  /// Finished after the due date (16 Nov 2026).
+  completedLate           Boolean                    @default(false)
   cancelledAt             DateTime?
   cancelledById           String?                    @db.Uuid
   cancellationReason      String?
@@ -12734,6 +13000,8 @@ model LearningAssignment {
   assessmentAttempts    LearningAssessmentAttempt[]
   certificates          LearningCertificate[]
   competencyAssessments LearningCompetencyAssessment[]
+  sessionAttendees      LearningTrainingEventAttendee[]
+  reviews               LearningAssignmentReview[]
 
   @@index([courseId])
   @@index([courseVersionId])
@@ -12748,6 +13016,49 @@ model LearningAssignment {
   @@index([assignedAt])
   @@index([parentAssignmentId])
   @@index([sourceEntityType, sourceEntityId])
+  @@schema("learning")
+}
+
+/// Office review of an overdue / late / not completed assignment (16 Nov 2026). Append only.
+model LearningAssignmentReview {
+  id              String                       @id @default(uuid()) @db.Uuid
+  assignmentId    String                       @db.Uuid
+  employeeId      String                       @db.Uuid
+  kind            LearningAssignmentReviewKind
+  /// Codes from learning-review.catalog.ts.
+  reasonCode      String?
+  actionCodes     String[]                     @default([])
+  note            String?
+  previousDueAt   DateTime?
+  newDueAt        DateTime?
+  followUpAt      DateTime?
+  /// Policy version shown when the record was made.
+  policyVersionId String?                      @db.Uuid
+  createdById     String?                      @db.Uuid
+  createdAt       DateTime                     @default(now())
+
+  assignment LearningAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+
+  @@index([assignmentId])
+  @@index([employeeId])
+  @@index([kind])
+  @@schema("learning")
+}
+
+enum LearningAssignmentReviewKind {
+  EXTENDED
+  REASON
+  NOT_COMPLETED
+  /// Reason the carer gave in the app for an overdue course (16 Nov 2026).
+  CARER_LATE_REASON
+  /// Manager's outcome for a face to face / workplace course (16 Nov 2026).
+  OUTCOME_PASSED
+  OUTCOME_NOT_PASSED
+  /// Practical passed; the carer must still pass the quiz (16 Nov 2026).
+  OUTCOME_PASSED_AFTER_QUIZ
+  /// Course given again after it was failed or not completed.
+  ASSIGNED_AGAIN
+
   @@schema("learning")
 }
 
@@ -12787,6 +13098,8 @@ model LearningContentItemCompletion {
   completedAt         DateTime?
   timeSpentSeconds    Int       @default(0)
   acknowledgementText String?
+  /// Face to face: the office user who marked the lesson done (null = the carer did).
+  markedById          String?   @db.Uuid
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -12868,6 +13181,7 @@ model LearningCompetency {
 
   category    LearningCategory?              @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   assessments LearningCompetencyAssessment[]
+  courseVersions LearningCourseVersion[]
 
   @@unique([code])
   @@index([categoryId])
@@ -13037,14 +13351,21 @@ model LearningTrainingEventAttendee {
   assessmentResult LearningAssessmentResult?
   completedAt      DateTime?
   certificateId    String?                   @db.Uuid
+  /// The carer's assignment this session is for; attended completes the classroom part.
+  assignmentId     String?                   @db.Uuid
+  /// Carer said "Can't attend" in the app (reason for the office).
+  cantAttendReason String?
+  cantAttendAt     DateTime?
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
 
   trainingEvent LearningTrainingEvent @relation(fields: [trainingEventId], references: [id], onDelete: Cascade)
   certificate   LearningCertificate?  @relation(fields: [certificateId], references: [id], onDelete: SetNull)
+  assignment    LearningAssignment?   @relation(fields: [assignmentId], references: [id], onDelete: SetNull)
 
   @@unique([trainingEventId, employeeId])
   @@index([employeeId])
+  @@index([assignmentId])
   @@index([bookingStatus])
   @@index([attendanceStatus])
   @@schema("learning")
@@ -17650,6 +17971,8 @@ model ReferralMailbox {
   removedAt             DateTime?
   /// Only emails with this label/folder are read.
   labelName             String                  @default("Referrals")
+  /// REFERRALS (care referrals → CRM enquiries) or RECRUITMENT (job applications → candidates).
+  purpose               String                  @default("REFERRALS")
   /// Provider id of the label CareFlow adds once an email has been read ("CareFlow read").
   processedLabelId      String?
   lastCheckedAt         DateTime?
@@ -17661,7 +17984,8 @@ model ReferralMailbox {
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
 
-  emails ReferralEmail[]
+  emails            ReferralEmail[]
+  recruitmentEmails RecruitmentEmail[]
 
   @@index([isActive])
   @@schema("service_users")
@@ -17673,6 +17997,8 @@ model ReferralOAuthState {
   stateHash String   @id
   provider  String
   userId    String   @db.Uuid
+  /// What the mailbox being connected is for (REFERRALS or RECRUITMENT).
+  purpose   String   @default("REFERRALS")
   expiresAt DateTime
   createdAt DateTime @default(now())
 
@@ -17842,6 +18168,85 @@ model ReferralBranchCoverage {
   updatedAt         DateTime @updatedAt
 
   @@schema("service_users")
+}
+
+/// Where an email in the recruitment inbox is.
+enum RecruitmentEmailStatus {
+  /// Saved, waiting for Claude to read it.
+  RECEIVED
+  /// Claude has read it; waiting for staff.
+  READ
+  /// Reading failed (see error); can be read again.
+  FAILED
+  /// Claude judged it is not a job application; staff can still create a candidate.
+  NOT_AN_APPLICATION
+  /// Staff created a candidate from it.
+  CANDIDATE_CREATED
+  /// Staff dismissed it.
+  DISMISSED
+
+  @@schema("employees")
+}
+
+/// One email received in a recruitment mailbox (ReferralMailbox with purpose RECRUITMENT), and what Claude read from it.
+model RecruitmentEmail {
+  id                String                 @id @default(uuid()) @db.Uuid
+  mailboxId         String                 @db.Uuid
+  providerMessageId String
+  providerThreadId  String?
+  fromName          String?
+  fromEmail         String?
+  subject           String?
+  receivedAt        DateTime
+  bodyText          String                 @db.Text
+  /// [{ fileName, mimeType, size, storedName, skippedReason? }] — files in private storage, served only to signed-in staff.
+  attachments       Json                   @default("[]")
+  status            RecruitmentEmailStatus @default(RECEIVED)
+  /// The applicant's details Claude read from the email and CV (name, contact, vacancy, employment history…).
+  extraction        Json?
+  extractionModel   String?
+  extractionCostUsd Float?
+  error             String?                @db.Text
+  readAttempts      Int                    @default(0)
+  /// Free rules before Claude reads it (recruitment-inbox.util screenApplicationByRules): { decision READ | SKIP, reason, at }.
+  screening         Json?
+  /// What the inbox settings did after Claude read it: { candidateCreated, acknowledged, notified, declined, held, at }.
+  automation        Json?
+  /// When the applicant was told we received it (so they are never told twice).
+  acknowledgedAt    DateTime?
+  candidateId       String?                @db.Uuid
+  handledById       String?                @db.Uuid
+  handledAt         DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  mailbox ReferralMailbox @relation(fields: [mailboxId], references: [id], onDelete: Cascade)
+
+  @@unique([mailboxId, providerMessageId])
+  @@index([status])
+  @@index([receivedAt])
+  @@index([fromEmail])
+  @@schema("employees")
+}
+
+/// Recruitment inbox settings (one row; with no row the defaults apply).
+model RecruitmentInboxSettings {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// Screening before Claude reads an email (referral-screening.util ScreeningSettings): mode, trusted and blocked senders.
+  screening           Json?
+  /// Create the candidate automatically when Claude read a name, email and vacancy and no rule needs staff.
+  autoCreateCandidate Boolean  @default(false)
+  /// Tell the applicant automatically that we received their application.
+  autoAcknowledge     Boolean  @default(false)
+  /// What an application must show (recruitment-inbox.util RecruitmentRules): outcome per rule.
+  rules               Json?
+  /// Each new application is also emailed to these addresses.
+  notifyTo            String[] @default([])
+  updatedById String?  @db.Uuid
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@schema("employees")
 }
 
 /// Who CareFlow may send emails, texts, WhatsApp messages and push notifications to (Administration › Message delivery).

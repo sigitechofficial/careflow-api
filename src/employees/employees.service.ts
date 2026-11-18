@@ -13,7 +13,11 @@ import { OrgScopeService } from '../common/org-scope/org-scope.service';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
 import type { EmployeeDocumentsRegistryQueryDto } from './dto/employee-documents-registry-query.dto';
 import { buildEmployeeListOrderBy } from './employee-list-order.util';
-import { buildEmployeeListWhere, hasEmployeeListCohortFilters } from './employee-list-where.util';
+import {
+  buildEmployeeListWhere,
+  hasEmployeeListCohortFilters,
+  type EmployeeListWhereOptions,
+} from './employee-list-where.util';
 import { buildEmployeeListEmploymentWhere } from './employee-list-filter.util';
 import {
   buildEmployeeListFacets,
@@ -31,6 +35,7 @@ import type { ScheduleImpactPreviewQueryDto } from '../schedule-lifecycle-impact
 import { mapEmployeeListRow } from './mappers/employee.mapper';
 import { loadEmployeeListHolidaySnapshots } from './employee-list-enrichment.util';
 import { parseEmployeeVisaTypes } from '../organisation-general-settings/employee-visa-types.util';
+import { endStaffSignIns, type EndAccessReason } from '../staff-access/staff-access.util';
 
 export type EmployeeAuditMeta = RequestAuditMeta & { actorUserId: string };
 
@@ -58,7 +63,11 @@ export class EmployeesService {
       };
     }
 
-    const { listWhere, isEmpty } = await buildEmployeeListWhere(this.prisma, scopedQuery);
+    const { listWhere, isEmpty } = await buildEmployeeListWhere(
+      this.prisma,
+      scopedQuery,
+      await this.unassignedStaffOptions(scopedQuery, actor),
+    );
 
     if (isEmpty) {
       return {
@@ -128,7 +137,12 @@ export class EmployeesService {
       };
     }
     const locationCatalogIds = await loadEmployeeListFacetLocationIds(this.prisma);
-    const data = await buildEmployeeListFacets(this.prisma, scopedQuery, locationCatalogIds);
+    const data = await buildEmployeeListFacets(
+      this.prisma,
+      scopedQuery,
+      locationCatalogIds,
+      await this.unassignedStaffOptions(scopedQuery, actor),
+    );
     return { data };
   }
 
@@ -290,6 +304,10 @@ export class EmployeesService {
         userAgent: meta?.userAgent ?? undefined,
       });
 
+      if (before?.isActive && dto.isActive === false) {
+        await this.endSignInsInTx(tx, id, 'INACTIVE', userId, meta);
+      }
+
       let scheduleImpact: ScheduleImpactResult | undefined;
       if (before?.isActive && dto.isActive === false) {
         scheduleImpact = await this.scheduleImpact.unallocateEmployeeFutureJobs(
@@ -310,7 +328,7 @@ export class EmployeesService {
     });
   }
 
-  async softDelete(userId: string, id: string, meta?: RequestAuditMeta) {
+  async softDelete(userId: string, id: string, meta?: RequestAuditMeta, reason?: string) {
     await this.ensureExists(id);
     return this.prisma.$transaction(async (tx) => {
       const scheduleImpact = await this.scheduleImpact.unallocateEmployeeFutureJobs(
@@ -330,6 +348,7 @@ export class EmployeesService {
         where: { id },
         data: { deletedAt: now, deletedById: userId, isActive: false },
       });
+      await this.endSignInsInTx(tx, id, 'DELETED', userId, meta);
       // Drop payroll readiness so deleted staff are not auto-enrolled on UK runs.
       await tx.employeePayrollProfile.updateMany({
         where: { employeeId: id, deletedAt: null },
@@ -342,6 +361,7 @@ export class EmployeesService {
         action: AuditAction.EMPLOYEE_DELETED,
         recordType: 'Employee',
         recordId: id,
+        description: reason?.trim() ? `Reason: ${reason.trim()}` : undefined,
         oldValues: auditSnapshot(before),
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
@@ -351,6 +371,30 @@ export class EmployeesService {
         data: {},
         ...(scheduleImpact.jobsUnallocated ? { scheduleImpact } : {}),
       };
+    });
+  }
+
+  /** Leaving or inactive staff: switch off their office login and Care app access, and sign them out everywhere. */
+  private async endSignInsInTx(
+    tx: Prisma.TransactionClient,
+    employeeId: string,
+    reason: EndAccessReason,
+    userId: string,
+    meta?: RequestAuditMeta,
+  ): Promise<void> {
+    const ended = await endStaffSignIns(tx, employeeId, reason, userId);
+    if (!ended.description) return;
+    await this.audit.logAudit({
+      tx,
+      userId,
+      module: AuditModule.EMPLOYEE,
+      action: AuditAction.STAFF_SIGN_IN_ACCESS_CHANGED,
+      recordType: 'Employee',
+      recordId: employeeId,
+      description: ended.description,
+      newValues: { website: ended.website ? 'off' : undefined, app: ended.app ? 'off' : undefined, reason },
+      ipAddress: meta?.ipAddress ?? undefined,
+      userAgent: meta?.userAgent ?? undefined,
     });
   }
 
@@ -372,6 +416,10 @@ export class EmployeesService {
           meta,
           tx,
         );
+      }
+
+      if (inactiveStatus && dto.statusId === inactiveStatus.id) {
+        await this.endSignInsInTx(tx, id, 'INACTIVE', userId, meta);
       }
 
       const beforePd = await tx.employeePersonalDetail.findUnique({
@@ -506,6 +554,7 @@ export class EmployeesService {
     const { listWhere, wherePersonal, isEmpty } = await buildEmployeeListWhere(
       this.prisma,
       scopedQuery,
+      await this.unassignedStaffOptions(scopedQuery, actor),
     );
 
     const emptySummary = {
@@ -677,6 +726,23 @@ export class EmployeesService {
   private async ensureExists(id: string) {
     const exists = await this.prisma.employee.findFirst({ where: { id, deletedAt: null } });
     if (!exists) throw new NotFoundException('Employee not found');
+  }
+
+  /**
+   * When the list is limited to branches (by the viewer's own branch access or a branch they chose),
+   * staff not assigned to any branch yet still show if they were added by the viewer or by an office
+   * user assigned to one of those branches. They carry `branchAssigned: false` so the screen can say
+   * "Not assigned to a branch yet". Staff added by someone from another branch never show.
+   */
+  private async unassignedStaffOptions(
+    scopedQuery: EmployeeQueryDto,
+    actor?: RequestUser,
+  ): Promise<EmployeeListWhereOptions> {
+    const locationIds = scopedQuery.locationIds ?? [];
+    if (!locationIds.length) return {};
+    return {
+      unassignedStaffCreatorIds: await this.orgScope.unassignedStaffCreatorIds(locationIds, actor?.id),
+    };
   }
 
   /**

@@ -57,6 +57,7 @@ import {
 } from './policy-upload.util';
 import { existsSync } from 'fs';
 import { PolicyAcknowledgementNotificationsService } from './policy-acknowledgement-notifications.service';
+import { INDEPENDENT_REVIEWER_ROLE } from '../common/auth/independent-reviewer';
 import {
   assertApplicabilityShape,
   assertAudienceShape,
@@ -77,6 +78,9 @@ import {
 
 type Db = PrismaService | Prisma.TransactionClient;
 
+/** Sign-in roles that are not a group of employees, so not offered as a policy audience. */
+const NOT_STAFF_AUDIENCE_ROLES = new Set(['Super Admin', INDEPENDENT_REVIEWER_ROLE, 'CQC Inspector']);
+
 @Injectable()
 export class PoliciesService {
   private readonly logger = new Logger(PoliciesService.name);
@@ -86,6 +90,21 @@ export class PoliciesService {
     private readonly audit: AuditLogsService,
     @Optional() private readonly acknowledgementNotifications?: PolicyAcknowledgementNotificationsService,
   ) {}
+
+  /**
+   * Sign-in roles (Admin → Roles & permissions) for a policy's audience. Saving checks audience roles
+   * against these, and acknowledgement matches staff by them. staff: false for roles that are not a
+   * group of employees (Super Admin, Independent reviewer, CQC Inspector); the page lists those only
+   * when a policy already uses one, so it can be removed.
+   */
+  async audienceRoles(): Promise<Array<{ id: string; name: string; staff: boolean }>> {
+    const roles = await this.prisma.role.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+    return roles.map((r) => ({ ...r, staff: !NOT_STAFF_AUDIENCE_ROLES.has(r.name) }));
+  }
 
   /** Staff read-and-acknowledge: PENDING rows + "new policy to read" notices. Never fails the publish. */
   private async notifyStaffToAcknowledge(documentId: string, versionId: string) {

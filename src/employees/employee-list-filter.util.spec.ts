@@ -9,7 +9,7 @@ describe('buildEmployeeListEmploymentWhere', () => {
     expect(whereEmployment.roleId).toEqual({ in: ['role-a', 'role-b'] });
   });
 
-  it('adds branch filter with access-all-zones and floor locations', () => {
+  it('adds branch filter with access-all-zones, branch, base branch and floor locations', () => {
     const { whereEmployment, hasEmploymentFilters } = buildEmployeeListEmploymentWhere({
       locationIds: ['loc-1', 'loc-2'],
     });
@@ -19,6 +19,7 @@ describe('buildEmployeeListEmploymentWhere', () => {
         OR: [
           { accessAllZones: true },
           { locationId: { in: ['loc-1', 'loc-2'] } },
+          { baseLocationId: { in: ['loc-1', 'loc-2'] } },
           { floorLocations: { some: { locationId: { in: ['loc-1', 'loc-2'] } } } },
         ],
       },

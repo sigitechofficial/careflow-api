@@ -266,28 +266,6 @@ export class EmployeePortalAccountsService {
     return this.getAdminStatus(employeeId);
   }
 
-  async setPassword(actorUserId: string, employeeId: string, password: string) {
-    if (password.length < 8) throw new BadRequestException('Password must be at least 8 characters');
-    await this.ensureEmployeeExists(employeeId);
-    const existing = await this.prisma.employeePortalAccount.findFirst({
-      where: { employeeId, deletedAt: null },
-    });
-    if (!existing) throw new NotFoundException('Employee app account not configured for this employee');
-
-    const passwordHash = await hashPassword(password);
-    await this.prisma.employeePortalAccount.update({
-      where: { id: existing.id },
-      data: {
-        passwordHash,
-        refreshTokenHash: null,
-        lastSeenAt: null,
-        updatedById: actorUserId,
-      },
-    });
-    await endAllSignInSessions(this.prisma, 'EMPLOYEE_APP', existing.id, 'PASSWORD_CHANGED');
-    return { message: 'Employee app password updated', data: {} };
-  }
-
   async revokeSession(actorUserId: string, employeeId: string) {
     await this.ensureEmployeeExists(employeeId);
     const existing = await this.prisma.employeePortalAccount.findFirst({

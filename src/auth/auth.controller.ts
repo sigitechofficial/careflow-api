@@ -9,7 +9,6 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { AllowIndependentReviewer } from '../common/auth/independent-reviewer';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -44,12 +43,8 @@ export class AuthController {
     return this.authService.serviceUserPortalLogin(dto, req);
   }
 
-  @Public()
-  @Post('register')
-  @Throttle({ default: { limit: 10, ttl: 60_000 } })
-  register(@Body() dto: RegisterDto, @Req() req: Request) {
-    return this.authService.register(dto, req);
-  }
+  // There is deliberately no public POST /auth/register. Office logins are only made by an
+  // administrator (POST /users, or from a staff record), never by self-registration.
 
   @Public()
   @Post('refresh')

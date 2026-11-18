@@ -133,9 +133,15 @@ export class SurveyRemindersService {
     return (await this.prisma.survey.findUnique({ where: { id: survey.clonedFromId } })) ?? survey;
   }
 
-  private appBase(): string | null {
+  /**
+   * The web address personal survey links start with: ADMIN_APP_URL, or else (reminders sent by hand)
+   * the address of the page they were sent from, as invitations do. Without one, no link and no button.
+   */
+  private appBase(requestOrigin?: string): string | null {
     const base = this.config.get<string>('app.adminAppUrl', '') || '';
-    return base ? base.replace(/\/+$/, '') : null;
+    if (base) return base.replace(/\/+$/, '');
+    const origin = requestOrigin?.trim().replace(/\/+$/, '');
+    return origin && /^https?:\/\/[^/\s]+$/i.test(origin) ? origin : null;
   }
 
   private async organisationName(): Promise<string | null> {
@@ -316,7 +322,7 @@ export class SurveyRemindersService {
    * "Remind now": everyone not marked Completed who has had fewer than three reminders and none in
    * the last two days. Never one person on an anonymous survey (there is no way to ask for one).
    */
-  async remindNow(actor: RequestUser, surveyId: string, meta?: RequestAuditMeta) {
+  async remindNow(actor: RequestUser, surveyId: string, meta?: RequestAuditMeta, requestOrigin?: string) {
     const survey = await this.requireSurvey(actor, surveyId);
     if (survey.targetKind === SurveyTargetKind.PUBLIC && survey.isAnonymous) {
       throw new BadRequestException('Public surveys are answered through their shared link, so there is no one to remind.');
@@ -350,7 +356,7 @@ export class SurveyRemindersService {
         data: { reminded: access.results && !survey.isAnonymous ? 0 : null },
       };
     }
-    const counts = await this.remind(survey, plan, due, { step: null, manual: true, actorId: actor.id, now, tz, meta });
+    const counts = await this.remind(survey, plan, due, { step: null, manual: true, actorId: actor.id, now, tz, meta, requestOrigin });
     return {
       message: survey.isAnonymous
         ? 'Reminders are on their way to everyone who has not answered and can be reminded now.'
@@ -367,7 +373,7 @@ export class SurveyRemindersService {
    * survey's individual responses access (who has answered is part of them). The same limits as
    * every reminder: three at most, two days apart, quiet hours, opt-outs.
    */
-  async remindOne(actor: RequestUser, surveyId: string, recipientId: string, meta?: RequestAuditMeta) {
+  async remindOne(actor: RequestUser, surveyId: string, recipientId: string, meta?: RequestAuditMeta, requestOrigin?: string) {
     const survey = await this.requireSurvey(actor, surveyId);
     if (survey.isAnonymous) {
       throw new BadRequestException('On an anonymous survey you can only remind everyone who has not answered, never one person.');
@@ -404,7 +410,7 @@ export class SurveyRemindersService {
       );
     }
     if (!plan.channels.length) throw new BadRequestException('Choose at least one way to send reminders first.');
-    const counts = await this.remind(survey, plan, [recipient], { step: null, manual: true, actorId: actor.id, now, tz, meta, recipientId: recipient.id });
+    const counts = await this.remind(survey, plan, [recipient], { step: null, manual: true, actorId: actor.id, now, tz, meta, recipientId: recipient.id, requestOrigin });
     const ways = [
       counts.app ? 'the carer app' : null,
       counts.email ? 'email' : null,
@@ -467,7 +473,17 @@ export class SurveyRemindersService {
     survey: Survey,
     plan: SurveyContactPlan,
     people: Array<Person & { reminderCount: number; remindedAt?: Date | null }>,
-    opts: { step: number | null; manual: boolean; actorId: string | null; now: Date; tz: string; meta?: RequestAuditMeta; recipientId?: string },
+    opts: {
+      step: number | null;
+      manual: boolean;
+      actorId: string | null;
+      now: Date;
+      tz: string;
+      meta?: RequestAuditMeta;
+      recipientId?: string;
+      /** The page a reminder was sent by hand from: the links' web address when ADMIN_APP_URL is not set. */
+      requestOrigin?: string;
+    },
   ): Promise<Counts> {
     people = await this.keepEligible(survey, people);
     if (!people.length) return zero();
@@ -485,7 +501,9 @@ export class SurveyRemindersService {
     }
     const takenSet = new Set(taken);
     const chosen = people.filter((p) => takenSet.has(p.id));
-    const counts = chosen.length ? await this.deliver(survey, plan.channels, chosen, { reminder: true }) : zero();
+    const counts = chosen.length
+      ? await this.deliver(survey, plan.channels, chosen, { reminder: true, requestOrigin: opts.requestOrigin })
+      : zero();
     if (!chosen.length) return counts;
     if (opts.recipientId && !counts.people) {
       // One chosen person who could not be reached: nothing was sent, so it does not count as a reminder.
@@ -528,10 +546,10 @@ export class SurveyRemindersService {
     survey: Survey,
     channels: SurveyContactChannel[],
     people: Person[],
-    opts: { reminder: boolean },
+    opts: { reminder: boolean; requestOrigin?: string },
   ): Promise<Counts> {
     const counts = zero();
-    const base = this.appBase();
+    const base = this.appBase(opts.requestOrigin);
     const organisation = await this.organisationName();
     const tz = await this.timeZone();
     // The same branded email as invitations: office contact for other formats, logo, how long it takes.

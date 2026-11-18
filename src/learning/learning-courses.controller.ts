@@ -12,7 +12,9 @@ import {
   CreateLearningCourseVersionDto,
   LearningCourseQueryDto,
   PublishLearningCourseDto,
+  SuggestCourseCodeQueryDto,
   UpdateLearningCourseDto,
+  WithdrawLearningCourseDto,
 } from './dto/learning.dto';
 import { LearningCoursesService } from './learning-courses.service';
 
@@ -28,6 +30,26 @@ export class LearningCoursesController {
   @ApiOperation({ summary: 'List learning courses' })
   list(@Query() query: LearningCourseQueryDto) {
     return this.service.list(query);
+  }
+
+  @Get('status-counts')
+  @Permissions('learning.courses.read')
+  @ApiOperation({
+    summary:
+      'Number of courses per status tab (same search and category filter as the list)',
+  })
+  statusCounts(@Query() query: LearningCourseQueryDto) {
+    return this.service.statusCounts(query);
+  }
+
+  @Get('code-suggestion')
+  @Permissions('learning.courses.manage')
+  @ApiOperation({
+    summary:
+      'Suggest the next free course code for a category (e.g. SAFEGUARDING-003)',
+  })
+  suggestCode(@Query() query: SuggestCourseCodeQueryDto) {
+    return this.service.suggestCode(query.categoryId);
   }
 
   @Get(':id')
@@ -60,6 +82,15 @@ export class LearningCoursesController {
     return this.service.update(id, user.id, dto, getRequestAuditMeta(req));
   }
 
+  @Get(':id/publish-check')
+  @Permissions('learning.courses.manage')
+  @ApiOperation({
+    summary: 'Check the DRAFT version before publishing: blockers and warnings',
+  })
+  publishCheck(@Param('id') id: string) {
+    return this.service.publishCheck(id);
+  }
+
   @Post(':id/publish')
   @Permissions('learning.courses.manage')
   @ApiOperation({ summary: 'Publish current DRAFT version' })
@@ -84,11 +115,46 @@ export class LearningCoursesController {
     return this.service.createVersion(id, user.id, dto, getRequestAuditMeta(req));
   }
 
-  @Post(':id/unpublish')
+  @Post(':id/withdraw')
   @Permissions('learning.courses.manage')
-  @ApiOperation({ summary: 'Unpublish course back to Draft (stops new assignments until republished)' })
-  unpublish(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
-    return this.service.unpublish(id, user.id, getRequestAuditMeta(req));
+  @ApiOperation({
+    summary:
+      'Withdraw from new assignments. Carers already on the course continue; the published version stays locked.',
+  })
+  withdraw(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: WithdrawLearningCourseDto,
+    @Req() req: Request,
+  ) {
+    return this.service.withdraw(id, user.id, dto, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/reactivate')
+  @Permissions('learning.courses.manage')
+  @ApiOperation({
+    summary: 'Re-activate a withdrawn course for new assignments',
+  })
+  reactivate(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.reactivate(id, user.id, getRequestAuditMeta(req));
+  }
+
+  @Post(':id/unarchive')
+  @Permissions('learning.courses.manage')
+  @ApiOperation({
+    summary:
+      'Bring an archived course back (Published if it has a published version, else Draft)',
+  })
+  unarchive(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
+    return this.service.unarchive(id, user.id, getRequestAuditMeta(req));
   }
 
   @Post(':id/archive')
