@@ -8,12 +8,16 @@ import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { UpsertLearningSettingsDto } from './dto/learning.dto';
 import { LearningSettingsService } from './learning-settings.service';
 
+import { LearningTasksService } from './learning-tasks.service';
 @ApiTags('Learning — Settings')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('learning/settings')
 export class LearningSettingsController {
-  constructor(private readonly service: LearningSettingsService) {}
+  constructor(
+    private readonly service: LearningSettingsService,
+    private readonly tasks: LearningTasksService,
+  ) {}
 
   @Get()
   @Permissions('learning.settings.manage')
@@ -25,7 +29,11 @@ export class LearningSettingsController {
   @Patch()
   @Permissions('learning.settings.manage')
   @ApiOperation({ summary: 'Upsert learning settings' })
-  upsert(@CurrentUser() user: RequestUser, @Body() dto: UpsertLearningSettingsDto) {
-    return this.service.upsert(user.id, dto);
+  async upsert(@CurrentUser() user: RequestUser, @Body() dto: UpsertLearningSettingsDto) {
+    const before = (await this.service.getOrCreate()).taskRoleId;
+    const result = await this.service.upsert(user.id, dto);
+    // New task role: move the open Learning tasks to it (18 Nov 2026).
+    if (dto.taskRoleId !== undefined && dto.taskRoleId !== before) await this.tasks.reconcileAll();
+    return result;
   }
 }

@@ -60,6 +60,32 @@ export function calculateContentProgressPercentage(snapshot: ProgressSnapshot): 
   );
 }
 
+/**
+ * Whole-course progress for the carer (18 Nov 2026, user decision): every required step counts
+ * the same – each required lesson, each required quiz, the session (if any) and the office
+ * outcome / sign-off (if any). Optional lessons and quizzes are not counted.
+ */
+export function calculateCourseProgressPercentage(steps: {
+  lessonsDone: number;
+  lessonsTotal: number;
+  quizzesDone: number;
+  quizzesTotal: number;
+  sessionRequired: boolean;
+  sessionDone: boolean;
+  officeRequired: boolean;
+  officeDone: boolean;
+}): number {
+  const total =
+    steps.lessonsTotal + steps.quizzesTotal + (steps.sessionRequired ? 1 : 0) + (steps.officeRequired ? 1 : 0);
+  if (total <= 0) return 100;
+  const done =
+    Math.min(steps.lessonsDone, steps.lessonsTotal) +
+    Math.min(steps.quizzesDone, steps.quizzesTotal) +
+    (steps.sessionRequired && steps.sessionDone ? 1 : 0) +
+    (steps.officeRequired && steps.officeDone ? 1 : 0);
+  return Math.min(100, Math.round((done / total) * 100));
+}
+
 export function isContentComplete(snapshot: ProgressSnapshot): boolean {
   if (snapshot.totalRequiredContentItems <= 0) return true;
   return snapshot.completedRequiredContentItems >= snapshot.totalRequiredContentItems;

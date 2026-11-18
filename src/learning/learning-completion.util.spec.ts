@@ -112,3 +112,48 @@ describe('learning-completion.util', () => {
     });
   });
 });
+
+describe('calculateCourseProgressPercentage (whole course, 18 Nov 2026)', () => {
+  const { calculateCourseProgressPercentage } = require('./learning-completion.util');
+  const base = {
+    lessonsDone: 0,
+    lessonsTotal: 0,
+    quizzesDone: 0,
+    quizzesTotal: 0,
+    sessionRequired: false,
+    sessionDone: false,
+    officeRequired: false,
+    officeDone: false,
+  };
+
+  it('3 lessons done, quiz not passed = 75%, not 100%', () => {
+    expect(calculateCourseProgressPercentage({ ...base, lessonsDone: 3, lessonsTotal: 3, quizzesTotal: 1 })).toBe(75);
+  });
+
+  it('quiz passed too = 100%', () => {
+    expect(
+      calculateCourseProgressPercentage({ ...base, lessonsDone: 3, lessonsTotal: 3, quizzesDone: 1, quizzesTotal: 1 }),
+    ).toBe(100);
+  });
+
+  it('face to face: lessons + session + office outcome', () => {
+    expect(
+      calculateCourseProgressPercentage({
+        ...base,
+        lessonsDone: 2,
+        lessonsTotal: 2,
+        sessionRequired: true,
+        sessionDone: true,
+        officeRequired: true,
+      }),
+    ).toBe(75);
+  });
+
+  it('quiz-only online course starts at 0%, not 100%', () => {
+    expect(calculateCourseProgressPercentage({ ...base, quizzesTotal: 1 })).toBe(0);
+  });
+
+  it('nothing required = 100%', () => {
+    expect(calculateCourseProgressPercentage(base)).toBe(100);
+  });
+});

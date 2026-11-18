@@ -9,13 +9,13 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import {
-  calculateContentProgressPercentage,
+  calculateCourseProgressPercentage,
   courseNeedsManagerOutcome,
   courseNeedsSession,
   deriveCourseCompletionStatus,
   isCourseFullyComplete,
 } from './learning-completion.util';
-import { quizStepStatus } from './learning-quiz-progress.util';
+import { quizIsRequired, quizStepStatus } from './learning-quiz-progress.util';
 import { LearningCertificatesService } from './learning-certificates.service';
 import { LearningComplianceService } from './learning-compliance.service';
 import { LearningIncidentLinkService } from './learning-incident-link.service';
@@ -49,8 +49,8 @@ export class LearningCompletionService {
     });
   }
 
-  async refreshProgress(assignmentId: string, tx?: Prisma.TransactionClient) {
-    const db = tx ?? this.prisma;
+  /** Where the carer is on the course: completion rules, current steps and whole-course %. */
+  private async evaluateProgress(assignmentId: string, db: Prisma.TransactionClient | PrismaService) {
     const assignment = await db.learningAssignment.findUnique({
       where: { id: assignmentId },
       include: {
@@ -112,7 +112,71 @@ export class LearningCompletionService {
       requiresManagerApproval: rules.requiresManagerApproval || needsOutcome,
     };
 
-    const progressPercentage = calculateContentProgressPercentage(snapshot);
+    // Whole course, not only lessons (18 Nov 2026): required quizzes, session and office step count too.
+    let quizzesTotal = 0;
+    let quizzesDone = 0;
+    if (requirements.requiresAssessment) {
+      const { quizzes, attempts } = await this.quizProgressInput(assignmentId, db);
+      const required = quizzes.filter((q) => quizIsRequired(q));
+      quizzesTotal = required.length;
+      quizzesDone = required.filter((q) =>
+        attempts.some((a) => a.assessmentId === q.id && a.result === LearningAssessmentResult.PASSED),
+      ).length;
+    }
+    const officeRequired = requirements.requiresManagerApproval || requirements.requiresPracticalAssessment;
+    const officeDone =
+      (!requirements.requiresManagerApproval || snapshot.managerApprovalStatus === LearningProgressStatus.COMPLETED) &&
+      (!requirements.requiresPracticalAssessment ||
+        snapshot.practicalAssessmentStatus === LearningProgressStatus.COMPLETED);
+    const progressPercentage = calculateCourseProgressPercentage({
+      lessonsDone: completedRequired,
+      lessonsTotal: totalRequired,
+      quizzesDone,
+      quizzesTotal,
+      sessionRequired: requiresSession,
+      sessionDone: sessionAttended,
+      officeRequired,
+      officeDone,
+    });
+    return {
+      // Spread keeps the non-null progress narrowing for callers.
+      assignment: { ...assignment, progress: assignment.progress },
+      rules,
+      sessionAttended,
+      totalRequired,
+      completedRequired,
+      snapshot,
+      requirements,
+      progressPercentage,
+    };
+  }
+
+  /**
+   * Only the % (18 Nov 2026): fixes courses saved under the old lessons-only rule without
+   * touching started / status. Returns true when it changed.
+   */
+  async recalculatePercentage(assignmentId: string): Promise<boolean> {
+    const { assignment, progressPercentage } = await this.evaluateProgress(assignmentId, this.prisma);
+    if (Number(assignment.progress.progressPercentage) === progressPercentage) return false;
+    await this.prisma.learningEmployeeProgress.update({
+      where: { assignmentId },
+      data: { progressPercentage },
+    });
+    return true;
+  }
+
+  async refreshProgress(assignmentId: string, tx?: Prisma.TransactionClient) {
+    const db = tx ?? this.prisma;
+    const {
+      assignment,
+      rules,
+      sessionAttended,
+      totalRequired,
+      completedRequired,
+      snapshot,
+      requirements,
+      progressPercentage,
+    } = await this.evaluateProgress(assignmentId, db);
     const courseCompletionStatus = deriveCourseCompletionStatus(requirements, snapshot);
     const complete = isCourseFullyComplete(requirements, snapshot);
 

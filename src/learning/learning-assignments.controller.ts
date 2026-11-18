@@ -20,12 +20,16 @@ import {
 } from './dto/learning.dto';
 import { LearningAssignmentsService } from './learning-assignments.service';
 
+import { LearningTasksService } from './learning-tasks.service';
 @ApiTags('Learning — Assignments')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('learning/assignments')
 export class LearningAssignmentsController {
-  constructor(private readonly service: LearningAssignmentsService) {}
+  constructor(
+    private readonly service: LearningAssignmentsService,
+    private readonly tasks: LearningTasksService,
+  ) {}
 
   @Get()
   @Permissions('learning.assignments.read')
@@ -79,7 +83,7 @@ export class LearningAssignmentsController {
     @Body() dto: UpdateAssignmentDto,
     @Req() req: Request,
   ) {
-    return this.service.update(id, user.id, dto, getRequestAuditMeta(req));
+    return this.tasks.after(id, this.service.update(id, user.id, dto, getRequestAuditMeta(req)));
   }
 
   @Post(':id/cancel')
@@ -91,7 +95,7 @@ export class LearningAssignmentsController {
     @Body() dto: CancelAssignmentDto,
     @Req() req: Request,
   ) {
-    return this.service.unassign(id, user.id, dto, getRequestAuditMeta(req));
+    return this.tasks.after(id, this.service.unassign(id, user.id, dto, getRequestAuditMeta(req)));
   }
 
   @Post(':id/exempt')
@@ -103,7 +107,7 @@ export class LearningAssignmentsController {
     @Body() dto: ExemptAssignmentDto,
     @Req() req: Request,
   ) {
-    return this.service.exempt(id, user.id, dto, getRequestAuditMeta(req));
+    return this.tasks.after(id, this.service.exempt(id, user.id, dto, getRequestAuditMeta(req)));
   }
 
   @Post(':id/extend-due-date')
@@ -127,6 +131,6 @@ export class LearningAssignmentsController {
     @Body() dto: ReassignAssignmentDto,
     @Req() req: Request,
   ) {
-    return this.service.reassign(id, user.id, dto, getRequestAuditMeta(req));
+    return this.tasks.after(id, this.service.reassign(id, user.id, dto, getRequestAuditMeta(req)));
   }
 }

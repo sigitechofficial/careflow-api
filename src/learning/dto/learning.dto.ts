@@ -1261,6 +1261,11 @@ export class UpsertLearningSettingsDto {
   @IsOptional()
   @IsString()
   complianceCalculationMode?: string;
+
+  @ApiPropertyOptional({ description: 'Role that gets Learning tasks in My tasks; null = Admin' })
+  @IsOptional()
+  @IsUUID()
+  taskRoleId?: string | null;
 }
 
 export class LearningComplianceQueryDto extends PaginationQueryDto {

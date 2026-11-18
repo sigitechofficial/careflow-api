@@ -13433,6 +13433,8 @@ model LearningSettings {
   allowCourseAccessAfterExpiry              Boolean  @default(false)
   allowCourseRetakeAfterPass                Boolean  @default(false)
   complianceCalculationMode                 String   @default("HYBRID")
+  /// Role that gets Learning tasks in My tasks (18 Nov 2026). Null = the Admin role.
+  taskRoleId                                String?  @db.Uuid
   createdAt                                 DateTime @default(now())
   updatedAt                                 DateTime @updatedAt
   updatedById                               String?  @db.Uuid
