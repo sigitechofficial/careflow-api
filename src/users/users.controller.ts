@@ -38,8 +38,9 @@ export class UsersController {
 
   @Post()
   @Permissions('users.create')
-  async create(@Body() dto: CreateUserDto) {
+  async create(@CurrentUser() actor: RequestUser, @Body() dto: CreateUserDto) {
     const user = await this.usersService.create({
+      createdById: actor.id,
       email: dto.email,
       username: dto.username,
       firstName: dto.firstName,

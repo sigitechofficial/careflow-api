@@ -282,7 +282,7 @@ export class EmployeeEmploymentService {
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
-      await this.rbacEmploymentSync.syncUserRolesForEmployee(tx, employeeId);
+      await this.rbacEmploymentSync.syncUserRolesForEmployee(tx, employeeId, userId);
       return {
         message: 'Employment details updated',
         data: {
