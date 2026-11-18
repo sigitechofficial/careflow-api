@@ -64,11 +64,19 @@ through the real Care app endpoints over HTTP. The endpoint list with every fiel
 2. **Visit window Log cut the "On arrival" row to its first line.** Only the carer's own "Clocked in" row is shortened now.
 3. **Idle/travel hover on the rota repeated the times.** Now: title, time range, length, "Before …".
 
+## Welfare alert (added after the run)
+
+A worrying arrival now raises an ECM exception **Welfare concern on arrival**: a welfare outcome marked amber or red
+in Settings, the person not seen, or the carer asking for a manager review. It is time-critical for "red" answers and
+for a person not seen; it sits at the top of the ECM exception queue (never hidden by the page limit), is never
+auto-cleared, shows as a red "Welfare" chip and banner on the rota board and a "Welfare" count on the queue tab, and
+sends the office an in-app alert with sound. Tested end to end: a second visit at 09:30, clock-in with "Found on the
+floor" raised the exception, put it first in the queue, and notified 5 office users.
+
 ## Needs a decision
 
-1. **No alert for a worrying arrival.** "Found on the floor" or "Needs a manager to review" is saved and shown, but nothing alerts the office (no ECM exception, no notification).
-2. **Welfare outcomes list is empty by default.** Until it's filled in (Settings), carers can't record how they found the person.
-3. **No home position means "within area".** Without a home address the area check passes every clock-in instead of saying it couldn't check.
-4. **Refused out-of-area clock-ins leave no trace.** The office never sees that a carer tried to clock in 320 m away.
-5. **Early/late clock-out reasons are empty locally**, but an early clock-out requires one; the app must fall back to "Other".
-6. **One visit note per visit.** A second note replaces the first (by design: the app edits the same note).
+1. **Welfare outcomes list is empty by default.** Until it's filled in (Settings), carers can't record how they found the person.
+2. **No home position means "within area".** Without a home address the area check passes every clock-in instead of saying it couldn't check.
+3. **Refused out-of-area clock-ins leave no trace.** The office never sees that a carer tried to clock in 320 m away.
+4. **Early/late clock-out reasons are empty locally**, but an early clock-out requires one; the app must fall back to "Other".
+5. **One visit note per visit.** A second note replaces the first (by design: the app edits the same note).

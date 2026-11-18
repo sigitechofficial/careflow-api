@@ -40,6 +40,18 @@ export type ArrivalAnswers = {
   requiresManagerReview?: boolean | null;
 };
 
+/**
+ * Answers that must reach the office at once: a welfare outcome marked amber or red in Settings, the person not
+ * seen, or the carer asking for a manager to review the visit.
+ */
+export function isWorryingArrival(a: {
+  welfareTone?: string | null;
+  personSeen?: boolean | null;
+  requiresManagerReview?: boolean | null;
+}): boolean {
+  return a.welfareTone === 'bad' || a.welfareTone === 'warn' || a.personSeen === false || Boolean(a.requiresManagerReview);
+}
+
 /** "On arrival: Well and comfortable" + seen / key safe / review lines. Null when the carer answered nothing. */
 export function arrivalEntry(employeeId: string, a: ArrivalAnswers): SafetyTimelineEntry | null {
   const label = a.welfareOutcomeLabel?.trim() || null;

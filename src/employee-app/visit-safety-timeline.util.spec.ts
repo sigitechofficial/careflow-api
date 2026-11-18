@@ -1,4 +1,5 @@
 import {
+  isWorryingArrival,
   areaAllowedEntry,
   areaLockedEntry,
   arrivalEntry,
@@ -61,5 +62,14 @@ describe('visit safety Log rows', () => {
       detail: 'Went to the pharmacy for the client',
       tone: 'success',
     });
+  });
+
+  it('alerts the office for amber or red answers, a person not seen, or a manager review', () => {
+    expect(isWorryingArrival({ welfareTone: 'bad' })).toBe(true);
+    expect(isWorryingArrival({ welfareTone: 'warn' })).toBe(true);
+    expect(isWorryingArrival({ welfareTone: 'ok', personSeen: false })).toBe(true);
+    expect(isWorryingArrival({ welfareTone: 'ok', requiresManagerReview: true })).toBe(true);
+    expect(isWorryingArrival({ welfareTone: 'ok', personSeen: true })).toBe(false);
+    expect(isWorryingArrival({})).toBe(false);
   });
 });

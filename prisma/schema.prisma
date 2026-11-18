@@ -9102,6 +9102,8 @@ enum EcmExceptionKind {
   UNABLE_TO_START
   /// Carer scanned an NFC tag that is not an active tag of this visit's client.
   NFC_TAG_MISMATCH
+  /// Carer's answers at clock-in were worrying: welfare outcome amber/red, person not seen, or manager review asked.
+  WELFARE_ON_ARRIVAL
   OTHER
 
   @@schema("scheduling")

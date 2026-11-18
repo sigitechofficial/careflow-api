@@ -59,6 +59,10 @@ export function buildEcmAlertMessage(input: EcmAlertMessageInput): string {
     }
     case 'NFC_TAG_MISMATCH':
       return `${who} scanned an NFC tag that is not registered for ${visit}.`;
+    case 'WELFARE_ON_ARRIVAL': {
+      const reason = input.reasonLabel?.trim();
+      return `${who} reported a welfare concern on arrival at ${visit}${reason ? `: ${reason}` : ''}.`;
+    }
   }
 
   return carer

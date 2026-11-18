@@ -285,7 +285,7 @@ import {
   taskOutcomeTimelineDetail,
   taskOutcomeTimelineTone,
 } from './visit-timeline.util';
-import { arrivalEntry, mockLocationEntry, outsideAreaEntry } from './visit-safety-timeline.util';
+import { arrivalEntry, isWorryingArrival, mockLocationEntry, outsideAreaEntry } from './visit-safety-timeline.util';
 import { mapClockInArrivalReasonRow } from './employee-app-check-in-arrival-reasons';
 import {
   buildUnableToStartBlock,
@@ -549,6 +549,18 @@ export class EmployeeAppVisitsService {
           ...entry,
           occurredAt,
           createdByEmployeeId: employeeId,
+        });
+      }
+      // Worrying answers alert the office straight away (ECM queue, in-app alert with sound).
+      if (isWorryingArrival({ welfareTone: welfare?.tone ?? null, personSeen: a.personSeen, requiresManagerReview: a.requiresManagerReview })) {
+        await this.ecmExceptions.raiseWelfareOnArrival({
+          scheduledJobId: jobId,
+          employeeId,
+          welfareLabel: welfare?.label ?? null,
+          welfareTone: welfare?.tone ?? null,
+          personSeen: a.personSeen,
+          requiresManagerReview: a.requiresManagerReview,
+          accessViaKeySafe: a.accessViaKeySafe,
         });
       }
     } catch (err) {
