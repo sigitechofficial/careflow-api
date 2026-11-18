@@ -63,6 +63,8 @@ export function emailImageUrl(url: string | null | undefined, env: Record<string
   const u = url?.trim();
   if (!u || /[\s"'<>]/.test(u)) return null;
   if (/^https:\/\//i.test(u)) return u;
+  // An image sent inside the email (see mail/inline-email-images).
+  if (/^cid:[\w.-]+$/i.test(u)) return u;
   if (env.NODE_ENV !== 'production' && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?\//i.test(u)) return u;
   return null;
 }

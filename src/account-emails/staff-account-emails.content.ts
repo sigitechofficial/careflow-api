@@ -63,28 +63,43 @@ function textOf(v: EmailText): string {
   return typeof v === 'string' ? v : v.__html.replace(/<[^>]+>/g, '').replace(/&amp;/g, '&').replace(/&#39;/g, "'").replace(/&quot;/g, '"');
 }
 
-/** The Care app section: official store badges (via /get-app, which deep-links), then how to sign in. */
+/**
+ * The Care app section. Each official store badge links straight to that store's page, so it works on any phone
+ * without our website; a store shows only once the app is published there (CARE_APP_IOS_APP_ID /
+ * CARE_APP_ANDROID_PACKAGE). With neither set, a plain "Get the Care app" link goes to /get-app.
+ */
 function appBlock(b: AccountEmailBranding, email: string): { html: SafeHtml; text: string[] } {
   const getApp = `${b.siteUrl}/get-app`;
-  const apple = emailImageUrl(b.appStoreBadgeUrl);
-  const google = emailImageUrl(b.googlePlayBadgeUrl);
-  const badges =
-    apple && google
-      ? html`<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-<td><a href="${getApp}?store=apple" target="_blank"><img src="${apple}" alt="Download on the App Store" width="150" height="50" style="display:block;width:150px;height:50px;border:0;"></a></td>
-<td width="10"></td>
-<td><a href="${getApp}?store=google" target="_blank"><img src="${google}" alt="Get it on Google Play" width="168" height="65" style="display:block;width:168px;height:65px;border:0;margin-top:-7px;margin-bottom:-8px;"></a></td>
-</tr></table>`
-      : html`<p style="margin:0;font-size:15px;line-height:23px;">${emailLink('Get the Care app', getApp, { bold: true })}</p>`;
+  const apple = b.appStoreUrl ? emailImageUrl(b.appStoreBadgeUrl) : null;
+  const google = b.playStoreUrl ? emailImageUrl(b.googlePlayBadgeUrl) : null;
+  const cells: SafeHtml[] = [];
+  if (apple && b.appStoreUrl) {
+    cells.push(html`<td><a href="${b.appStoreUrl}" target="_blank"><img src="${apple}" alt="Download on the App Store" width="150" height="50" style="display:block;width:150px;height:50px;border:0;"></a></td>`);
+  }
+  if (google && b.playStoreUrl) {
+    if (cells.length) cells.push(html`<td width="10"></td>`);
+    cells.push(html`<td><a href="${b.playStoreUrl}" target="_blank"><img src="${google}" alt="Get it on Google Play" width="168" height="65" style="display:block;width:168px;height:65px;border:0;margin-top:-7px;margin-bottom:-8px;"></a></td>`);
+  }
+  const badges = cells.length
+    ? html`<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>${{ __html: cells.map((c) => c.__html).join('') }}</tr></table>`
+    : html`<p style="margin:0;font-size:15px;line-height:23px;">${emailLink('Get the Care app', getApp, { bold: true })}</p>`;
+  const storeLines = [
+    b.playStoreUrl ? `Android (Google Play): ${b.playStoreUrl}` : null,
+    b.appStoreUrl ? `iPhone (App Store): ${b.appStoreUrl}` : null,
+  ].filter((x): x is string => Boolean(x));
+  const iphoneLater = b.playStoreUrl && !b.appStoreUrl
+    ? emailParagraph('The iPhone app is on its way; we will let you know when it is ready.', { size: 13, colour: '#6b7280', margin: '12px 0 0' })
+    : html``;
   return {
     html: html`${emailSectionLabel('On your phone: the Care app')}
 ${emailParagraph(html`Your visits, care plans and messages from the office. Install it, then sign in with ${emailBold(email)}.`)}
 ${badges}
-${emailParagraph(html`On your phone already? ${emailLink('Open the Care app', getApp, {})}, which opens it if it’s installed, or takes you to your phone’s store.`, { size: 13, colour: '#6b7280', margin: '12px 0 0' })}`,
+${iphoneLater}`,
     text: [
       'ON YOUR PHONE: THE CARE APP',
       `Your visits, care plans and messages from the office. Install it, then sign in with ${email}.`,
-      `Get the Care app (App Store or Google Play): ${getApp}`,
+      ...(storeLines.length ? storeLines : [`Get the Care app: ${getApp}`]),
+      ...(b.playStoreUrl && !b.appStoreUrl ? ['The iPhone app is on its way; we will let you know when it is ready.'] : []),
     ],
   };
 }

@@ -1,6 +1,8 @@
 import type { PrismaService } from '../prisma/prisma.service';
 import { everydayOrganisationName } from '../surveys/survey-email-branding';
 
+import { inlineImageSrc } from '../mail/inline-email-images';
+import { careAppLinks } from '../staff-access/care-app-links';
 /**
  * Everything an account email shows about the organisation and where its links go, from real settings:
  * - name, logo, legal line, registered address and website: Company Details (CompanyProfile);
@@ -9,7 +11,7 @@ import { everydayOrganisationName } from '../surveys/survey-email-branding';
  *
  * Logo: Company Details › Company logo, else the display logo, else MAIL_LOGO_URL. An uploaded logo is stored as
  * /uploads/…, which the API serves publicly: it is made absolute with API_PUBLIC_URL (inboxes need a full https
- * address). Store badges are served from the admin site's /email folder.
+ * address). Store badges travel inside the email as inline images.
  */
 export type AccountEmailBranding = {
   /** Everyday name for greetings and sign-off: "Allfor Care". */
@@ -26,6 +28,9 @@ export type AccountEmailBranding = {
   setPasswordUrlBase: string;
   appStoreBadgeUrl: string;
   googlePlayBadgeUrl: string;
+  /** Store pages for the Care app (null until that store has the app: CARE_APP_IOS_APP_ID / CARE_APP_ANDROID_PACKAGE). */
+  appStoreUrl: string | null;
+  playStoreUrl: string | null;
 };
 
 export type BranchContact = { name: string; phone: string | null };
@@ -112,8 +117,11 @@ export async function loadAccountEmailBranding(prisma: Db, env: Env = process.en
     companyPhone: p?.phoneNumber?.trim() || null,
     siteUrl,
     setPasswordUrlBase: setPasswordBase,
-    appStoreBadgeUrl: `${siteUrl}/email/app-store-badge.png`,
-    googlePlayBadgeUrl: `${siteUrl}/email/google-play-badge.png`,
+    // Sent inside the email (see mail/inline-email-images): no website has to be reachable for them to show.
+    appStoreBadgeUrl: inlineImageSrc('careflow-app-store-badge'),
+    googlePlayBadgeUrl: inlineImageSrc('careflow-google-play-badge'),
+    appStoreUrl: careAppLinks(env).appStoreUrl,
+    playStoreUrl: careAppLinks(env).playStoreUrl,
   };
 }
 

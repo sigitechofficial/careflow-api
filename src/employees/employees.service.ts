@@ -328,7 +328,7 @@ export class EmployeesService {
     });
   }
 
-  async softDelete(userId: string, id: string, meta?: RequestAuditMeta) {
+  async softDelete(userId: string, id: string, meta?: RequestAuditMeta, reason?: string) {
     await this.ensureExists(id);
     return this.prisma.$transaction(async (tx) => {
       const scheduleImpact = await this.scheduleImpact.unallocateEmployeeFutureJobs(
@@ -361,6 +361,7 @@ export class EmployeesService {
         action: AuditAction.EMPLOYEE_DELETED,
         recordType: 'Employee',
         recordId: id,
+        description: reason?.trim() ? `Reason: ${reason.trim()}` : undefined,
         oldValues: auditSnapshot(before),
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,

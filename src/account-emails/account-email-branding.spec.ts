@@ -33,7 +33,7 @@ describe('account email branding', () => {
       website: 'https://www.allforcare.co.uk',
       siteUrl: 'https://careflow.example.test',
       setPasswordUrlBase: 'https://careflow.example.test',
-      appStoreBadgeUrl: 'https://careflow.example.test/email/app-store-badge.png',
+      appStoreBadgeUrl: 'cid:careflow-app-store-badge',
     });
   });
 

@@ -11,8 +11,10 @@ const branding: AccountEmailBranding = {
   companyPhone: '0208 930 3085',
   siteUrl: 'https://careflow.example.test',
   setPasswordUrlBase: 'https://careflow.example.test',
-  appStoreBadgeUrl: 'https://careflow.example.test/email/app-store-badge.png',
-  googlePlayBadgeUrl: 'https://careflow.example.test/email/google-play-badge.png',
+  appStoreBadgeUrl: 'cid:careflow-app-store-badge',
+  googlePlayBadgeUrl: 'cid:careflow-google-play-badge',
+  appStoreUrl: 'https://apps.apple.com/gb/app/id1234567890',
+  playStoreUrl: 'https://play.google.com/store/apps/details?id=com.careflow.carer',
 };
 
 function input(over: Partial<WelcomeEmailInput> = {}): WelcomeEmailInput {
@@ -49,18 +51,19 @@ describe('staff welcome emails', () => {
     expect(e.html).toContain('lang="en-GB"');
   });
 
-  it('B · Care app: store badges through /get-app and the app forgot-password hint', () => {
+  it('B · Care app: store badges link straight to each store, and the app forgot-password hint', () => {
     const e = buildWelcomeEmail(input({ access: 'app', firstName: 'Amir', link: setPasswordLink('https://careflow.example.test', 'T0K', false) }));
     expect(e.subject).toBe('Set up your Allfor Care app');
     expect(e.html).toContain('Welcome to the team, Amir');
     expect(e.html).toContain('href="https://careflow.example.test/app/set-password?token=T0K"');
-    expect(e.html).toContain('href="https://careflow.example.test/get-app?store=apple"');
-    expect(e.html).toContain('href="https://careflow.example.test/get-app?store=google"');
-    expect(e.html).toContain('src="https://careflow.example.test/email/app-store-badge.png"');
+    expect(e.html).toContain('href="https://apps.apple.com/gb/app/id1234567890"');
+    expect(e.html).toContain('src="cid:careflow-app-store-badge"');
+    expect(e.html).toContain('href="https://play.google.com/store/apps/details?id=com.careflow.carer"');
     expect(e.html).toContain('Forgot password');
     expect(e.html).toContain('>Role<');
     expect(e.html).not.toContain('Access level');
-    expect(e.text).toContain('Get the Care app (App Store or Google Play): https://careflow.example.test/get-app');
+    expect(e.text).toContain('Android (Google Play): https://play.google.com/store/apps/details?id=com.careflow.carer');
+    expect(e.text).toContain('iPhone (App Store): https://apps.apple.com/gb/app/id1234567890');
   });
 
   it('C · both: one password for the website and the app', () => {
@@ -68,7 +71,7 @@ describe('staff welcome emails', () => {
     expect(e.subject).toBe('Your CareFlow account and Care app are ready');
     expect(e.html).toContain('Choose one password. It works for both the CareFlow website and the Care app.');
     expect(e.html).toContain('>Website<');
-    expect(e.html).toContain('get-app?store=apple');
+    expect(e.html).toContain('href="https://apps.apple.com/gb/app/id1234567890"');
     expect(e.text).toContain('Website: https://careflow.example.test');
   });
 
@@ -167,5 +170,19 @@ describe('email helpers', () => {
   it('set-password links: website page when they have an office login, else the app page', () => {
     expect(setPasswordLink('https://s.test', 'a b', true)).toBe('https://s.test/auth/reset-password?token=a%20b');
     expect(setPasswordLink('https://s.test', 'tok', false)).toBe('https://s.test/app/set-password?token=tok');
+  });
+});
+
+describe('Care app badges follow which stores have the app', () => {
+  it('Android only (iPhone in review): only the Google Play badge, linking straight to the store', () => {
+    const e = buildWelcomeEmail({
+      access: 'app', firstName: 'Devon', email: 'devon@example.test', link: 'https://careflow.example.test/app/set-password?token=t', linkHours: 72,
+      employment: { jobTitle: 'Carer', role: 'Carer', workArea: 'Care', accessLevel: 'Carer/Domestic' }, branch: null,
+      branding: { ...branding, appStoreUrl: null },
+    });
+    expect(e.html).toContain('href="https://play.google.com/store/apps/details?id=com.careflow.carer"');
+    expect(e.html).not.toContain('cid:careflow-app-store-badge');
+    expect(e.html).toContain('The iPhone app is on its way');
+    expect(e.text).toContain('Android (Google Play): https://play.google.com/store/apps/details?id=com.careflow.carer');
   });
 });
