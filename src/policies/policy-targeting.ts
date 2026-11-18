@@ -79,6 +79,7 @@ export const POLICY_LINK_ALLOWED_SCOPES: Record<PolicyLinkModuleType, readonly P
   [PolicyLinkModuleType.HR]: [PolicyLinkScope.MODULE, PolicyLinkScope.RECORD],
   [PolicyLinkModuleType.TRAINING]: [
     PolicyLinkScope.MODULE,
+    PolicyLinkScope.SECTION,
     PolicyLinkScope.FORM_TEMPLATE,
     PolicyLinkScope.RECORD,
   ],

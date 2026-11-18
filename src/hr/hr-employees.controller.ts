@@ -35,6 +35,12 @@ export class HrEmployeesController {
     return this.hrProfileService.list(query);
   }
 
+  @Get('summary')
+  @Permissions('hr.read')
+  summary() {
+    return this.hrProfileService.summary();
+  }
+
   @Post(':employeeId/hr-profile')
   @Permissions('hr.profile.create')
   createProfile(

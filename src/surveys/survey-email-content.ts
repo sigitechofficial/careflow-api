@@ -80,7 +80,7 @@ export function surveyEmail(
   // One clear action: a named survey's own link, or a sign-in page that holds no token.
   const webOnlyLink = staff && !link && input.staffPlaces?.web && !input.staffPlaces.app ? input.staffPlaces.webLink : null;
   const button = link
-    ? { label: input.reminder ? 'Answer the survey' : supported ? 'Open your survey' : 'Start the survey', href: link }
+    ? { label: supported ? 'Open your survey' : 'Start the survey', href: link } // reminders: the same button as the invitation
     : supported && input.portalLink && !input.paperOnly
       ? { label: 'Open your survey', href: input.portalLink }
       : webOnlyLink

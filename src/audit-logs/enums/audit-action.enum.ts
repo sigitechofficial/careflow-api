@@ -16,6 +16,10 @@ export enum AuditAction {
   PERMISSION_ASSIGNED = 'permission_assigned',
   PERMISSION_REMOVED = 'permission_removed',
   USER_ROLE_CHANGED = 'user_role_changed',
+  /** Office login roles aligned from a staff record's RBAC level (employment save). */
+  USER_ROLE_SYNCED_FROM_EMPLOYMENT = 'user_role_synced_from_employment',
+  /** Employment RBAC sync deliberately did not change an office login (unapproved account or admin-level role). */
+  USER_ROLE_SYNC_SKIPPED = 'user_role_sync_skipped',
   USER_LOCATION_ASSIGNED = 'user_location_assigned',
   USER_LOCATION_REMOVED = 'user_location_removed',
   EMPLOYEE_CREATED = 'employee_created',
@@ -26,6 +30,10 @@ export enum AuditAction {
   EMPLOYEE_PIN_VIEWED = 'employee_pin_viewed',
   EMPLOYEE_PIN_REGENERATED = 'employee_pin_regenerated',
   ACTIVATION_EMAIL_RESENT = 'activation_email_resent',
+  /** Office login or Care app access switched on or off from the staff record (or ended when they left). */
+  STAFF_SIGN_IN_ACCESS_CHANGED = 'staff_sign_in_access_changed',
+  /** A welcome email with a set-password link was sent (staff record or Roles & permissions › Office users). */
+  ACCOUNT_INVITE_SENT = 'account_invite_sent',
   EMPLOYEE_DOCUMENT_UPLOADED = 'employee_document_uploaded',
   EMPLOYEE_DOCUMENT_DOWNLOADED = 'employee_document_downloaded',
   EMPLOYEE_DOCUMENT_DELETED = 'employee_document_deleted',
@@ -480,6 +488,7 @@ export enum AuditAction {
 
   HR_DOCUMENT_UPLOADED = 'hr_document_uploaded',
   HR_DOCUMENT_DELETED = 'hr_document_deleted',
+  HR_DOCUMENT_STATUS_CHANGED = 'hr_document_status_changed',
   HR_PROFILE_CREATED = 'hr_profile_created',
   HR_PROFILE_UPDATED = 'hr_profile_updated',
 

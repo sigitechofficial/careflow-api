@@ -39,7 +39,14 @@ export function mapEmployeeListRow(
     isInCountry: emp?.isInCountry ?? true,
     locationId: emp?.locationId ?? null,
     location: emp?.location ? { id: emp.location.id, name: emp.location.name } : null,
-    baseLocationIds: floorLocationIds,
+    /** Base branch plus any extra branches (employment floor locations), without duplicates. */
+    baseLocationIds: Array.from(
+      new Set([...(emp?.baseLocationId ? [emp.baseLocationId as string] : []), ...floorLocationIds]),
+    ),
+    /** False when the person has no branch at all yet (no employment details, or no branch set). */
+    branchAssigned: Boolean(
+      emp && (emp.accessAllZones || emp.locationId || emp.baseLocationId || floorLocationIds.length),
+    ),
     accessAllZones: emp?.accessAllZones ?? false,
     employmentEndDate: emp?.endDate ?? null,
     leavingReason: emp?.leavingReason

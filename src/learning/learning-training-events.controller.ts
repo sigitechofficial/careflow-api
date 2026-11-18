@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
@@ -30,9 +30,16 @@ export class LearningTrainingEventsController {
 
   @Get(':id')
   @Permissions('learning.training_events.read')
-  @ApiOperation({ summary: 'Get training event' })
-  getById(@Param('id') id: string) {
+  @ApiOperation({ summary: 'Get training event with attendees' })
+  getById(@Param('id', ParseUUIDPipe) id: string) {
     return this.service.getById(id);
+  }
+
+  @Get(':id/eligible-attendees')
+  @Permissions('learning.training_events.read')
+  @ApiOperation({ summary: 'Carers with this course assigned who are not on this session yet' })
+  eligibleAttendees(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.eligibleAttendees(id);
   }
 
   @Post()
@@ -75,5 +82,12 @@ export class LearningTrainingEventsController {
   @ApiOperation({ summary: 'Update training event attendee' })
   updateAttendee(@Param('attendeeId') attendeeId: string, @Body() dto: UpdateTrainingEventAttendeeDto) {
     return this.service.updateAttendee(attendeeId, dto);
+  }
+
+  @Delete('attendees/:attendeeId')
+  @Permissions('learning.training_events.manage')
+  @ApiOperation({ summary: 'Remove a carer from a training event' })
+  removeAttendee(@Param('attendeeId', ParseUUIDPipe) attendeeId: string) {
+    return this.service.removeAttendee(attendeeId);
   }
 }

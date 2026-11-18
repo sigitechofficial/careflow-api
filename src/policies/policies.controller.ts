@@ -25,7 +25,7 @@ import type { Request, Response } from 'express';
 import { memoryStorage } from 'multer';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
-import { Permissions } from '../common/decorators/permissions.decorator';
+import { AnyPermission, Permissions } from '../common/decorators/permissions.decorator';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
@@ -70,6 +70,15 @@ export class PoliciesController {
   @ApiOperation({ summary: 'List policies in the library' })
   list(@CurrentUser() user: RequestUser, @Query() query: PolicyListQueryDto) {
     return this.service.list(user, query);
+  }
+
+  @Get('audience-roles')
+  @AnyPermission('policies.read', 'policies.create', 'policies.update')
+  @ApiOperation({
+    summary: 'Sign-in roles a policy audience can target (the roles saving and acknowledgement matching use)',
+  })
+  async audienceRoles() {
+    return { data: await this.service.audienceRoles() };
   }
 
   @Get('applicable')

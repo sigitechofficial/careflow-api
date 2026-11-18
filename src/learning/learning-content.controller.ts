@@ -1,11 +1,28 @@
-import { Body, Controller, Delete, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Param,
+  Patch,
+  Post,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import type { Request } from 'express';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Permissions } from '../common/decorators/permissions.decorator';
+import {
+  CurrentUser,
+  type RequestUser,
+} from '../common/decorators/current-user.decorator';
+import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../common/guards/permissions.guard';
 import {
   CreateLearningContentItemDto,
   CreateLearningSectionDto,
+  MoveLearningContentDto,
+  ReorderLearningContentDto,
   ReorderLearningSectionsDto,
   UpdateLearningContentItemDto,
   UpdateLearningSectionDto,
@@ -22,49 +39,135 @@ export class LearningContentController {
   @Post('learning/course-versions/:versionId/sections')
   @Permissions('learning.courses.manage')
   @ApiOperation({ summary: 'Create section on DRAFT version' })
-  createSection(@Param('versionId') versionId: string, @Body() dto: CreateLearningSectionDto) {
-    return this.service.createSection(versionId, dto);
+  createSection(
+    @CurrentUser() user: RequestUser,
+    @Param('versionId') versionId: string,
+    @Body() dto: CreateLearningSectionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createSection(versionId, dto, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
   }
 
   @Patch('learning/sections/:sectionId')
   @Permissions('learning.courses.manage')
   @ApiOperation({ summary: 'Update section' })
-  updateSection(@Param('sectionId') sectionId: string, @Body() dto: UpdateLearningSectionDto) {
-    return this.service.updateSection(sectionId, dto);
+  updateSection(
+    @CurrentUser() user: RequestUser,
+    @Param('sectionId') sectionId: string,
+    @Body() dto: UpdateLearningSectionDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateSection(sectionId, dto, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
   }
 
   @Delete('learning/sections/:sectionId')
   @Permissions('learning.courses.manage')
   @ApiOperation({ summary: 'Delete section' })
-  deleteSection(@Param('sectionId') sectionId: string) {
-    return this.service.deleteSection(sectionId);
+  deleteSection(
+    @CurrentUser() user: RequestUser,
+    @Param('sectionId') sectionId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteSection(sectionId, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
   }
 
   @Post('learning/sections/:sectionId/content')
   @Permissions('learning.courses.manage')
   @ApiOperation({ summary: 'Create content item' })
-  createContent(@Param('sectionId') sectionId: string, @Body() dto: CreateLearningContentItemDto) {
-    return this.service.createContentItem(sectionId, dto);
+  createContent(
+    @CurrentUser() user: RequestUser,
+    @Param('sectionId') sectionId: string,
+    @Body() dto: CreateLearningContentItemDto,
+    @Req() req: Request,
+  ) {
+    return this.service.createContentItem(sectionId, dto, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
   }
 
   @Patch('learning/content/:contentId')
   @Permissions('learning.courses.manage')
   @ApiOperation({ summary: 'Update content item' })
-  updateContent(@Param('contentId') contentId: string, @Body() dto: UpdateLearningContentItemDto) {
-    return this.service.updateContentItem(contentId, dto);
+  updateContent(
+    @CurrentUser() user: RequestUser,
+    @Param('contentId') contentId: string,
+    @Body() dto: UpdateLearningContentItemDto,
+    @Req() req: Request,
+  ) {
+    return this.service.updateContentItem(contentId, dto, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
   }
 
   @Delete('learning/content/:contentId')
   @Permissions('learning.courses.manage')
   @ApiOperation({ summary: 'Delete content item' })
-  deleteContent(@Param('contentId') contentId: string) {
-    return this.service.deleteContentItem(contentId);
+  deleteContent(
+    @CurrentUser() user: RequestUser,
+    @Param('contentId') contentId: string,
+    @Req() req: Request,
+  ) {
+    return this.service.deleteContentItem(contentId, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
   }
 
   @Post('learning/course-versions/:versionId/reorder')
   @Permissions('learning.courses.manage')
   @ApiOperation({ summary: 'Reorder sections' })
-  reorder(@Param('versionId') versionId: string, @Body() dto: ReorderLearningSectionsDto) {
-    return this.service.reorderSections(versionId, dto);
+  reorder(
+    @CurrentUser() user: RequestUser,
+    @Param('versionId') versionId: string,
+    @Body() dto: ReorderLearningSectionsDto,
+    @Req() req: Request,
+  ) {
+    return this.service.reorderSections(versionId, dto, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
+  }
+
+  @Post('learning/sections/:sectionId/reorder-content')
+  @Permissions('learning.courses.manage')
+  @ApiOperation({ summary: 'Reorder the lessons of a DRAFT section' })
+  reorderContent(
+    @CurrentUser() user: RequestUser,
+    @Param('sectionId') sectionId: string,
+    @Body() dto: ReorderLearningContentDto,
+    @Req() req: Request,
+  ) {
+    return this.service.reorderContent(sectionId, dto, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
+  }
+
+  @Post('learning/content/:contentId/move')
+  @Permissions('learning.courses.manage')
+  @ApiOperation({
+    summary: 'Move a lesson to another section of the same DRAFT version',
+  })
+  moveContent(
+    @CurrentUser() user: RequestUser,
+    @Param('contentId') contentId: string,
+    @Body() dto: MoveLearningContentDto,
+    @Req() req: Request,
+  ) {
+    return this.service.moveContent(contentId, dto, {
+      userId: user.id,
+      meta: getRequestAuditMeta(req),
+    });
   }
 }

@@ -1,5 +1,5 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
+import { ApiPropertyOptional } from '@nestjs/swagger';
+import { IsBoolean, IsEmail, IsOptional } from 'class-validator';
 
 export class UpsertEmployeePortalAccountDto {
   @ApiPropertyOptional()
@@ -11,11 +11,4 @@ export class UpsertEmployeePortalAccountDto {
   @IsOptional()
   @IsBoolean()
   isEnabled?: boolean;
-}
-
-export class SetEmployeePortalPasswordDto {
-  @ApiProperty({ minLength: 8 })
-  @IsString()
-  @MinLength(8)
-  password!: string;
 }

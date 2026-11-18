@@ -1,4 +1,9 @@
-import { ApiProperty, ApiPropertyOptional, PartialType } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptional,
+  OmitType,
+  PartialType,
+} from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
@@ -12,6 +17,12 @@ import {
   Max,
   Min,
   ValidateNested,
+  IsNotEmpty,
+  MaxLength,
+  ValidateIf,
+  ArrayNotEmpty,
+  ArrayMaxSize,
+  MinLength,
 } from 'class-validator';
 import {
   LearningAssignmentPriority,
@@ -70,6 +81,23 @@ export class LearningListQueryDto extends PaginationQueryDto {
   @IsOptional()
   @IsUUID()
   locationId?: string;
+
+  /** Assignments list (17 Nov 2026): only courses given from another record, e.g. INCIDENT. */
+  @ApiPropertyOptional({ enum: ['INCIDENT'] })
+  @IsOptional()
+  @IsEnum(['INCIDENT'])
+  source?: 'INCIDENT';
+
+  /** Assignments list: one carer and/or one course (used by the incident course measure). */
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  courseId?: string;
 }
 
 export class CreateLearningCategoryDto {
@@ -113,18 +141,37 @@ export class LearningCourseQueryDto extends LearningListQueryDto {
 }
 
 export class CreateLearningCourseDto {
-  @ApiPropertyOptional()
-  @IsOptional()
+  /** Required for new courses (PartialType keeps it optional on update). */
+  @ApiProperty()
   @IsUUID()
-  categoryId?: string;
+  categoryId!: string;
 
   @ApiProperty()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
   title!: string;
 
-  @ApiProperty()
+  @ApiProperty({ example: 'SAFEGUARDING-001' })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(60)
   code!: string;
+
+  @ApiPropertyOptional({
+    description:
+      'What the learner should know or be able to do. Stored on the draft version.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(4000)
+  learningObjectives?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -155,13 +202,16 @@ export class CreateLearningCourseDto {
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(1)
   estimatedDurationMinutes?: number;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  cpdMinutes?: number;
+  @Min(0)
+  @Max(10000)
+  cpdMinutes?: number | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -218,20 +268,62 @@ export class CreateLearningCourseDto {
   @Min(1)
   certificateValidityDays?: number | null;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Set = a refresher is assigned when the certificate expires; null = none',
+  })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
-  refresherFrequencyDays?: number;
+  @Min(1)
+  refresherFrequencyDays?: number | null;
 }
 
-export class UpdateLearningCourseDto extends PartialType(CreateLearningCourseDto) {}
+export class UpdateLearningCourseDto extends PartialType(
+  CreateLearningCourseDto,
+) {
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Practical competency linked to the draft version; null removes it',
+  })
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @IsUUID()
+  competencyId?: string | null;
+}
 
 export class PublishLearningCourseDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   changeSummary?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Withdrawn course only: re-activate it in the same step, so new assignments get this version',
+  })
+  @IsOptional()
+  @IsBoolean()
+  reactivate?: boolean;
+}
+
+export class SuggestCourseCodeQueryDto {
+  @ApiProperty()
+  @IsUUID()
+  categoryId!: string;
+}
+
+export class WithdrawLearningCourseDto {
+  @ApiProperty({
+    description:
+      'Why the course is withdrawn from new assignments (kept in the audit log).',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(500)
+  reason!: string;
 }
 
 export class CreateLearningCourseVersionDto {
@@ -331,6 +423,18 @@ export class CreateLearningContentItemDto {
   @Type(() => Number)
   @IsInt()
   minimumTimeSpentSeconds?: number;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Rough time for the carer, in minutes',
+  })
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(600)
+  estimatedDurationMinutes?: number | null;
 }
 
 export class UpdateLearningContentItemDto extends PartialType(CreateLearningContentItemDto) {}
@@ -342,28 +446,74 @@ export class ReorderLearningSectionsDto {
   sectionIds!: string[];
 }
 
+export class ReorderLearningContentDto {
+  @ApiProperty({
+    type: [String],
+    description: 'Every lesson id of the section, in the new order',
+  })
+  @IsArray()
+  @IsUUID('4', { each: true })
+  contentIds!: string[];
+}
+
+export class MoveLearningContentDto {
+  @ApiProperty({
+    description:
+      'Section (same draft version) to move the lesson to; it goes to the end',
+  })
+  @IsUUID()
+  sectionId!: string;
+}
+
 export class CreateLearningAssessmentDto {
+  @ApiPropertyOptional({
+    description:
+      'Module (course section) of the same draft version; leave out for a final assessment',
+  })
+  @IsOptional()
+  @IsUUID()
+  sectionId?: string;
+
   @ApiProperty()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
   title!: string;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   instructions?: string;
 
   @ApiProperty()
   @Type(() => Number)
   @IsInt()
-  @Min(0)
+  @Min(1)
   @Max(100)
   passingScore!: number;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true, description: 'Null = no limit' })
   @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
   @Type(() => Number)
   @IsInt()
-  maximumAttempts?: number;
+  @Min(1)
+  maximumAttempts?: number | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description: 'Minutes to wait before another attempt; null = no wait',
+  })
+  @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
+  retakeDelayMinutes?: number | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -387,11 +537,14 @@ export class CreateLearningAssessmentDto {
   isRequired?: boolean;
 }
 
-export class UpdateLearningAssessmentDto extends PartialType(CreateLearningAssessmentDto) {}
+export class UpdateLearningAssessmentDto extends PartialType(
+  OmitType(CreateLearningAssessmentDto, ['sectionId'] as const),
+) {}
 
 export class CreateAssessmentOptionDto {
   @ApiProperty()
   @IsString()
+  @MaxLength(500)
   optionText!: string;
 
   @ApiPropertyOptional({ default: false })
@@ -413,17 +566,21 @@ export class CreateAssessmentQuestionDto {
 
   @ApiProperty()
   @IsString()
+  @MaxLength(1000)
   questionText!: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: 'Shown to the carer after answering' })
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   explanation?: string;
 
   @ApiPropertyOptional({ default: 1 })
   @IsOptional()
   @Type(() => Number)
   @IsInt()
+  @Min(1)
+  @Max(100)
   points?: number;
 
   @ApiPropertyOptional({ default: 0 })
@@ -441,6 +598,17 @@ export class CreateAssessmentQuestionDto {
 }
 
 export class UpdateAssessmentQuestionDto extends PartialType(CreateAssessmentQuestionDto) {}
+
+export class ReorderAssessmentQuestionsDto {
+  @ApiProperty({
+    type: [String],
+    description: 'Every question id of the quiz, in the new order',
+  })
+  @IsArray()
+  @ArrayNotEmpty()
+  @IsUUID('4', { each: true })
+  questionIds!: string[];
+}
 
 export class CreateLearningPathwayDto {
   @ApiProperty()
@@ -581,6 +749,17 @@ export class CreateLearningAssignmentDto {
   assignmentReason?: string;
 }
 
+export class EmployeeDueDateDto {
+  @ApiProperty()
+  @IsUUID()
+  employeeId!: string;
+
+  @ApiProperty()
+  @Transform(toIsoDateTime)
+  @IsDateString()
+  dueAt!: string;
+}
+
 export class BulkLearningAssignmentDto {
   @ApiProperty()
   @IsUUID()
@@ -627,6 +806,15 @@ export class BulkLearningAssignmentDto {
   @Transform(emptyToUndefined)
   @IsString()
   assignmentReason?: string;
+
+  /** Own due date per chosen carer (13 Nov 2026); others get `dueAt` or the settings default. */
+  @ApiPropertyOptional({ type: () => [EmployeeDueDateDto] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(1000)
+  @ValidateNested({ each: true })
+  @Type(() => EmployeeDueDateDto)
+  employeeDueDates?: EmployeeDueDateDto[];
 }
 
 export class CancelAssignmentDto {
@@ -704,11 +892,21 @@ export class SubmitAssessmentAttemptDto {
 
 export class CreateCompetencyDto {
   @ApiProperty()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
   name!: string;
 
   @ApiProperty()
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(60)
   code!: string;
 
   @ApiPropertyOptional()
@@ -719,13 +917,27 @@ export class CreateCompetencyDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
+  @MaxLength(2000)
   description?: string;
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ nullable: true })
   @IsOptional()
+  @ValidateIf((_o, v) => v !== null)
   @Type(() => Number)
   @IsInt()
-  validityDays?: number;
+  @Min(1)
+  validityDays?: number | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Checklist the assessor signs off',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsString({ each: true })
+  @MaxLength(300, { each: true })
+  assessmentCriteria?: string[];
 }
 
 export class UpdateCompetencyDto extends PartialType(CreateCompetencyDto) {
@@ -1050,6 +1262,12 @@ export class LearningCertificateQueryDto extends PaginationQueryDto {
   @IsUUID()
   employeeId?: string;
 
+  /** Certificates page tabs (17 Nov 2026). Expired also covers an active one past its date. */
+  @ApiPropertyOptional({ enum: ['ACTIVE', 'EXPIRED'] })
+  @IsOptional()
+  @IsEnum(['ACTIVE', 'EXPIRED'])
+  status?: 'ACTIVE' | 'EXPIRED';
+
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -1083,4 +1301,172 @@ export class ManagerApprovalDto {
   @IsOptional()
   @IsString()
   notes?: string;
+}
+
+/** Carer app: "Can't attend" a training session (13 Nov 2026). */
+export class CantAttendSessionDto {
+  @ApiProperty({ minLength: 3, maxLength: 500 })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @MinLength(3)
+  @MaxLength(500)
+  reason!: string;
+}
+
+/** New due date with a reason (overdue review, 16 Nov 2026). */
+export class ExtendAssignmentWithReasonDto {
+  @ApiProperty()
+  @Transform(toIsoDateTime)
+  @IsDateString()
+  dueAt!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  reasonCode?: string;
+
+  @ApiProperty({ description: 'Why the due date is extended' })
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @MinLength(3)
+  @MaxLength(1000)
+  note!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  policyVersionId?: string;
+}
+
+/** Reason / actions for an overdue or late course, or mark it not completed (16 Nov 2026). */
+export class RecordAssignmentReviewDto {
+  @ApiProperty({ enum: ['REASON', 'NOT_COMPLETED'] })
+  @IsEnum(['REASON', 'NOT_COMPLETED'])
+  kind!: 'REASON' | 'NOT_COMPLETED';
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  reasonCode?: string;
+
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @IsString({ each: true })
+  actionCodes?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @Transform(toIsoDateTime)
+  @IsDateString()
+  followUpAt?: string;
+
+  @ApiPropertyOptional({ description: 'Re-assign the course with this due date (NOT_COMPLETED only)' })
+  @IsOptional()
+  @Transform(toIsoDateTime)
+  @IsDateString()
+  reassignDueAt?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  policyVersionId?: string;
+}
+
+/** Carer app: why an overdue course is late (16 Nov 2026). */
+export class CarerLateReasonDto {
+  @ApiProperty()
+  @IsString()
+  @MaxLength(60)
+  reasonCode!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
+
+/** Assignments list with a status tab (16 Nov 2026). */
+export class LearningAssignmentListQueryDto extends LearningListQueryDto {
+  @ApiPropertyOptional({
+    enum: ['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'OVERDUE', 'COMPLETED', 'NOT_COMPLETED', 'NOT_PASSED', 'INCOMPLETE', 'CANCELLED'],
+  })
+  @IsOptional()
+  @IsEnum(['OPEN', 'ASSIGNED', 'IN_PROGRESS', 'OVERDUE', 'COMPLETED', 'NOT_COMPLETED', 'NOT_PASSED', 'INCOMPLETE', 'CANCELLED'])
+  statusGroup?:
+    | 'OPEN'
+    | 'ASSIGNED'
+    | 'IN_PROGRESS'
+    | 'OVERDUE'
+    | 'COMPLETED'
+    | 'NOT_COMPLETED'
+    | 'NOT_PASSED'
+    | 'INCOMPLETE'
+    | 'CANCELLED';
+}
+
+/** Manager outcome for a face to face / workplace course (16 Nov 2026). */
+export class RecordOutcomeDto {
+  /** PASSED_AFTER_QUIZ: practical passed, the course completes when the carer passes the quiz. */
+  @ApiProperty({ enum: ['PASSED', 'PASSED_AFTER_QUIZ', 'NOT_PASSED'] })
+  @IsEnum(['PASSED', 'PASSED_AFTER_QUIZ', 'NOT_PASSED'])
+  result!: 'PASSED' | 'PASSED_AFTER_QUIZ' | 'NOT_PASSED';
+
+  @ApiPropertyOptional({ description: 'Required (3+ chars) when not passed' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
+
+  @ApiPropertyOptional({ description: 'Not passed: give the course again with this due date' })
+  @IsOptional()
+  @Transform(toIsoDateTime)
+  @IsDateString()
+  reassignDueAt?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  policyVersionId?: string;
+}
+
+/** Face to face: the office marks lessons done (16 Nov 2026). Empty lessonIds = all lessons. */
+export class MarkLessonsDto {
+  @ApiPropertyOptional({ type: [String] })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  lessonIds?: string[];
+
+  @ApiProperty()
+  @IsBoolean()
+  done!: boolean;
+}
+
+/** Give a failed / not completed course again (16 Nov 2026). */
+export class AssignAgainDto {
+  @ApiProperty()
+  @Transform(toIsoDateTime)
+  @IsDateString()
+  dueAt!: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  note?: string;
 }

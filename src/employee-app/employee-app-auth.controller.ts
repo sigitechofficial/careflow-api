@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Post, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
@@ -10,6 +10,9 @@ import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
 import { EmployeeAppAuthService } from './employee-app-auth.service';
 import { EmployeeAppLoginDto, EmployeeAppRefreshDto } from './dto/employee-app-auth.dto';
 import { EmployeeAppLogoutDto } from './dto/employee-app-device-token.dto';
+import { AuthService } from '../auth/auth.service';
+import { ForgotPasswordDto } from '../auth/dto/forgot-password.dto';
+import { ResetPasswordDto } from '../auth/dto/reset-password.dto';
 
 /**
  * Carer / employee mobile app auth — kept separate from web `/auth/*`.
@@ -17,7 +20,10 @@ import { EmployeeAppLogoutDto } from './dto/employee-app-device-token.dto';
 @ApiTags('Employee App Auth')
 @Controller('employee-app/auth')
 export class EmployeeAppAuthController {
-  constructor(private readonly authService: EmployeeAppAuthService) {}
+  constructor(
+    private readonly authService: EmployeeAppAuthService,
+    private readonly passwords: AuthService,
+  ) {}
 
   @Public()
   @Post('login')
@@ -33,6 +39,32 @@ export class EmployeeAppAuthController {
   @ApiOperation({ summary: 'Refresh employee app access token' })
   refresh(@Body() dto: EmployeeAppRefreshDto, @Req() req: Request) {
     return this.authService.refresh(dto, req);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 5, ttl: 15 * 60_000 } })
+  @ApiOperation({
+    summary: 'Care app: email a link to choose a new password',
+    description:
+      'Always answers 200 with the same message, whether or not the email has app access. The link (60 minutes, ' +
+      'single use) opens the set-password page; when the person also has an office login it sets one password for both.',
+  })
+  forgotPassword(@Body() dto: ForgotPasswordDto, @Req() req: Request) {
+    return this.passwords.forgotAppPassword(dto, req);
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  @Throttle({ default: { limit: 15, ttl: 60_000 } })
+  @ApiOperation({
+    summary: 'Care app: choose a new password with the token from the emailed link',
+    description: 'Same as POST /auth/reset-password: any set-password token works on either route.',
+  })
+  resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
+    return this.passwords.resetPassword(dto, req);
   }
 
   @Post('logout')

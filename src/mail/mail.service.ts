@@ -7,6 +7,7 @@ import {
 import { MessageDeliveryService } from '../message-delivery/message-delivery.service';
 import { MessageHeldError } from '../message-delivery/message-held.error';
 import { ConfigService } from '@nestjs/config';
+import { randomUUID } from 'crypto';
 import { EmailClient, type EmailMessage } from '@azure/communication-email';
 import {
   ClientSecretCredential,
@@ -17,10 +18,13 @@ import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
+import { inlineImagesFor } from './inline-email-images';
 export type MailAttachment = {
   filename: string;
   content: string | Buffer;
   contentType?: string;
+  /** Set for an image shown inside the email (the HTML refers to it as src="cid:<contentId>"). */
+  contentId?: string;
 };
 
 export type SendMailInput = {
@@ -40,6 +44,9 @@ export type SendMailInput = {
 
 /** Resolved by send(): MAIL_BCC addresses not already in `to`. */
 type OutgoingMail = SendMailInput & { bcc: string[] };
+
+/** How long to wait for Azure's final status after it accepted an email. */
+const ACS_STATUS_WAIT_MS = 30_000;
 
 export type MailSendMode = 'acs' | 'api' | 'smtp' | 'log';
 
@@ -138,9 +145,18 @@ export class MailService {
       textbody: input.text,
     };
 
-    if (input.attachments?.length) {
-      body.attachments = input.attachments.map((a) => ({
+    const files = (input.attachments ?? []).filter((a) => !a.contentId);
+    const inlineImages = (input.attachments ?? []).filter((a) => a.contentId);
+    if (files.length) {
+      body.attachments = files.map((a) => ({
         name: a.filename,
+        content: toBase64(a.content),
+        mime_type: a.contentType ?? 'application/octet-stream',
+      }));
+    }
+    if (inlineImages.length) {
+      body.inline_images = inlineImages.map((a) => ({
+        cid: a.contentId,
         content: toBase64(a.content),
         mime_type: a.contentType ?? 'application/octet-stream',
       }));
@@ -231,11 +247,29 @@ export class MailService {
         name: a.filename,
         contentType: a.contentType ?? 'application/octet-stream',
         contentInBase64: toBase64(a.content),
+        ...(a.contentId ? { contentId: a.contentId } : {}),
       })),
     };
 
-    const poller = await this.acsClient.beginSend(message);
-    const result = await poller.pollUntilDone();
+    // Our own operation id, so an email Azure has accepted can be named even when its final status never comes.
+    const operationId = randomUUID();
+    const poller = await this.acsClient.beginSend(message, { operationId });
+    const done = poller.pollUntilDone();
+    // Polling can hang after Azure has accepted (and delivered) the email: then callers would never record it as
+    // sent. Wait a while, then count it as sent (Azure took it), stop polling and say so in the log.
+    done.catch(() => undefined);
+    let timer: NodeJS.Timeout | undefined;
+    const timedOut = new Promise<null>((resolve) => {
+      timer = setTimeout(() => resolve(null), ACS_STATUS_WAIT_MS);
+    });
+    const result = await Promise.race([done, timedOut]).finally(() => clearTimeout(timer));
+    if (!result) {
+      poller.stopPolling();
+      this.logger.warn(
+        `Azure email ${operationId} was accepted but gave no final status within ${ACS_STATUS_WAIT_MS / 1000}s; counted as sent`,
+      );
+      return { messageId: operationId };
+    }
     if (result.status !== 'Succeeded') {
       const reason = result.error?.message ?? result.status;
       this.logger.warn(`Azure email send ${result.id} did not succeed: ${reason}`);
@@ -318,8 +352,15 @@ export class MailService {
   }
 
   private async deliver(
-    input: SendMailInput,
+    rawInput: SendMailInput,
   ): Promise<{ messageId: string; mode: MailSendMode }> {
+    // Bundled images the HTML refers to (src="cid:…") travel inside the email, so they show in every inbox.
+    const inline = inlineImagesFor(rawInput.html).filter(
+      (img) => !(rawInput.attachments ?? []).some((a) => a.contentId === img.contentId),
+    );
+    let input: SendMailInput = inline.length
+      ? { ...rawInput, attachments: [...(rawInput.attachments ?? []), ...inline] }
+      : rawInput;
     const mode = this.config.get<MailSendMode>('mail.mode', 'log');
     const redirectTo = this.config.get<string | undefined>('mail.redirectTo');
     if (redirectTo) {
@@ -370,6 +411,7 @@ export class MailService {
         filename: a.filename,
         content: a.content,
         contentType: a.contentType,
+        ...(a.contentId ? { cid: a.contentId } : {}),
       })),
     });
     return { messageId: String(info.messageId ?? ''), mode: 'smtp' };

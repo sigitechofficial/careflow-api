@@ -12,13 +12,14 @@ import {
 import { ReferralMailboxService } from './referral-mailbox.service';
 import { ReferralExtractionService } from './referral-extraction.service';
 import { ReferralConnectorsService } from './connectors/referral-connectors.service';
+import { RecruitmentInboxModule } from '../hr/recruitment/inbox/recruitment-inbox.module';
 
 /**
  * Reads referral emails from connected mailboxes (Gmail, Microsoft 365, IMAP/SMTP, or posted by an email service),
  * has Claude read them, and turns them into enquiries.
  */
 @Module({
-  imports: [PrismaModule, CrmModule, ServiceUserVisitPlansModule],
+  imports: [PrismaModule, CrmModule, ServiceUserVisitPlansModule, RecruitmentInboxModule],
   controllers: [
     ReferralMailboxController,
     ReferralMailboxCallbackController,

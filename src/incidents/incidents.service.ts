@@ -3850,9 +3850,14 @@ export class IncidentsService {
       select: { id: true, title: true, code: true },
     });
     const byId = new Map(courses.map((c) => [c.id, c]));
+    const learningById = await this.courseLearningStatus(
+      rows.map((r) => r.learningAssignmentId).filter((id): id is string => !!id),
+    );
     return rows.map((row) => {
       const course = byId.get(row.courseId);
       return {
+        // Live state of the carer's learning assignment (17 Nov 2026).
+        learning: row.learningAssignmentId ? (learningById.get(row.learningAssignmentId) ?? null) : null,
         id: row.id,
         incidentId: row.incidentId,
         employeeId: row.employeeId,
@@ -3866,6 +3871,64 @@ export class IncidentsService {
         createdAt: row.createdAt.toISOString(),
       };
     });
+  }
+
+  /** Status, lessons done, best quiz score and certificate for each learning assignment. */
+  private async courseLearningStatus(assignmentIds: string[]) {
+    const out = new Map<
+      string,
+      {
+        status: string;
+        dueAt: string | null;
+        completedAt: string | null;
+        lessonsDone: number;
+        lessonsTotal: number;
+        quizPercent: number | null;
+        certificateNumber: string | null;
+      }
+    >();
+    if (!assignmentIds.length) return out;
+    const [assignments, attempts, certificates] = await Promise.all([
+      this.prisma.learningAssignment.findMany({
+        where: { id: { in: assignmentIds } },
+        select: {
+          id: true,
+          status: true,
+          dueAt: true,
+          completedAt: true,
+          progress: { select: { completedContentItems: true, totalRequiredContentItems: true } },
+        },
+      }),
+      this.prisma.learningAssessmentAttempt.findMany({
+        where: { assignmentId: { in: assignmentIds }, submittedAt: { not: null } },
+        select: { assignmentId: true, percentage: true },
+      }),
+      this.prisma.learningCertificate.findMany({
+        where: { assignmentId: { in: assignmentIds } },
+        orderBy: { issuedAt: 'desc' },
+        select: { assignmentId: true, certificateNumber: true },
+      }),
+    ]);
+    const best = new Map<string, number>();
+    for (const a of attempts) {
+      if (a.percentage == null) continue;
+      const v = Math.round(Number(a.percentage));
+      best.set(a.assignmentId, Math.max(best.get(a.assignmentId) ?? 0, v));
+    }
+    const cert = new Map<string, string>();
+    for (const c of certificates) if (c.assignmentId && !cert.has(c.assignmentId)) cert.set(c.assignmentId, c.certificateNumber);
+    for (const a of assignments) {
+      out.set(a.id, {
+        status: a.status,
+        dueAt: a.dueAt?.toISOString() ?? null,
+        completedAt: a.completedAt?.toISOString() ?? null,
+        lessonsDone: a.progress?.completedContentItems ?? 0,
+        lessonsTotal: a.progress?.totalRequiredContentItems ?? 0,
+        quizPercent: best.get(a.id) ?? null,
+        certificateNumber: cert.get(a.id) ?? null,
+      });
+    }
+    return out;
   }
 
   // ---------------------------------------------------------------------------

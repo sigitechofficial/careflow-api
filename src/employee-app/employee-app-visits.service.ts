@@ -309,6 +309,7 @@ import {
 import type { EmployeeAppCoCarerPresenceDto } from './dto/employee-app-co-carer-presence.dto';
 import { CARER_VISIBLE_RISK_WHERE, findCarerVisibleIa } from './employee-app-ia-source.util';
 
+import { visitPurposeForJob } from './visit-purpose.util';
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
   AllocationStatus.ALLOCATED,
@@ -775,7 +776,7 @@ export class EmployeeAppVisitsService {
    */
   async getVisitDetails(employeeId: string, jobId: string) {
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
-    const [workspace, tasks, medication, observations, log, bodyMap, welfareOutcomes, careConsent] =
+    const [workspace, tasks, medication, observations, log, bodyMap, welfareOutcomes, careConsent, previousVisitNotes, visitPurpose] =
       await Promise.all([
         this.getWorkspace(employeeId, jobId),
         this.getTasks(employeeId, jobId),
@@ -785,6 +786,8 @@ export class EmployeeAppVisitsService {
         this.getBodyMapWizard(employeeId, jobId),
         this.getWelfareOutcomes(),
         this.getCareConsent(employeeId, ctx.primaryVisit.id),
+        this.visitTimeline.previousVisitNotes(jobId).catch(() => null),
+        visitPurposeForJob(this.prisma, jobId).catch(() => null),
       ]);
 
     return {
@@ -798,6 +801,10 @@ export class EmployeeAppVisitsService {
         tasks: tasks.data,
         medication: medication.data,
         observations: observations.data,
+        /** Notes, handover and concerns from this person's last visit (null when none were written). */
+        previousVisitNotes,
+        /** What this visit is for, from the visit plan (null when nothing was written). */
+        visitPurpose,
         log: log.data,
         bodyMap: bodyMap.data,
         clockInSettings: workspace.data.clockInSettings,

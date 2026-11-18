@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { CandidateStage } from '@prisma/client';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsBoolean, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class UpdateCandidateStageDto {
   @ApiProperty({ enum: CandidateStage })
@@ -12,4 +12,9 @@ export class UpdateCandidateStageDto {
   @IsString()
   @MaxLength(2000)
   notes?: string;
+
+  @ApiPropertyOptional({ description: 'When rejecting: email the candidate that they were not successful. Default: false.' })
+  @IsOptional()
+  @IsBoolean()
+  notifyCandidate?: boolean;
 }

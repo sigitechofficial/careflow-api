@@ -27,12 +27,16 @@ export class CandidateDocumentsService {
     file: Express.Multer.File;
     fileUrl: string;
   }) {
-    await this.candidatesService.getById(params.user, params.candidateId);
+    const candidate = (await this.candidatesService.getById(params.user, params.candidateId)).data;
+    if (params.dto.checkId && !candidate.checks.some((c) => c.id === params.dto.checkId)) {
+      throw new NotFoundException('Check not found');
+    }
 
     const created = await this.prisma.candidateDocument.create({
       data: {
         candidateId: params.candidateId,
-        documentType: params.dto.documentType,
+        checkId: params.dto.checkId ?? null,
+        documentType: params.dto.checkId ? 'CHECK_EVIDENCE' : params.dto.documentType,
         fileUrl: params.fileUrl,
         fileName: params.file.filename,
         fileSize: params.file.size,

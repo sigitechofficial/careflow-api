@@ -137,6 +137,7 @@ import {
   type DeliveredCarePlanDetailPayload,
 } from './visit-care-plan-delivery.util';
 
+import { visitPurposeForJob } from '../employee-app/visit-purpose.util';
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
   AllocationStatus.ALLOCATED,
@@ -213,6 +214,16 @@ export class ScheduledJobsHousekeepingService {
    * carer app shows (clock in/out, tasks, medication, observations, visit
    * notes, handovers, concerns, incidents), oldest → newest.
    */
+  async getVisitPurpose(user: RequestUser, jobId: string) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    return { data: await visitPurposeForJob(this.prisma, jobId) };
+  }
+
+  async getPreviousVisitNotes(user: RequestUser, jobId: string) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    return { data: await this.visitTimeline.previousVisitNotes(jobId) };
+  }
+
   async getVisitTimeline(user: RequestUser, jobId: string) {
     await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
     const job = await this.prisma.scheduledJob.findFirst({
@@ -1533,6 +1544,33 @@ export class ScheduledJobsHousekeepingService {
         });
       } catch {
         // Non-fatal — MANUAL_OFFICE events + officeCompleted option still drive Manual.
+      }
+    }
+
+    // Notes typed when the office completes the visit go in the visit Log too (the Log, and the carer
+    // app's visit history, read the timeline, not the job's own notes field). One row per visit: saving
+    // again updates it.
+    const officeNote = dto.notes?.trim();
+    if (officeNote) {
+      try {
+        const author = await this.prisma.user.findUnique({
+          where: { id: userId },
+          select: { firstName: true, lastName: true, email: true },
+        });
+        const who = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || author?.email || 'office';
+        await this.visitTimeline.upsertEvent({
+          scheduledJobId: id,
+          scheduledVisitId: existing.visits?.[0]?.id ?? null,
+          eventType: 'visit_note',
+          sourceType: 'log_note',
+          sourceId: 'office_visit_note',
+          title: `Visit note (office, ${who})`,
+          detail: officeNote,
+          tone: 'ink',
+          occurredAt: new Date(),
+        });
+      } catch {
+        // The outcome is saved; a Log row failing must not undo it.
       }
     }
 

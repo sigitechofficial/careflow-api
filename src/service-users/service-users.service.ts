@@ -1000,7 +1000,7 @@ export class ServiceUsersService implements OnModuleInit {
     });
   }
 
-  async softDelete(userId: string, id: string, meta?: RequestAuditMeta) {
+  async softDelete(userId: string, id: string, meta?: RequestAuditMeta, reason?: string) {
     await this.ensureExists(id);
     const now = new Date();
     return this.prisma.$transaction(async (tx) => {
@@ -1072,6 +1072,37 @@ export class ServiceUsersService implements OnModuleInit {
         data: { deletedAt: now, deletedById: userId, isActive: false },
       });
 
+      // Nothing more happens for someone who has been deleted: future visits that have not started are cancelled,
+      // active or suspended visit plans end, and portal access is switched off.
+      const futureJobs = await tx.scheduledJob.findMany({
+        where: {
+          serviceUserId: id,
+          deletedAt: null,
+          scheduledStartDateTime: { gt: now },
+          status: { in: ['DRAFT', 'UNALLOCATED', 'ALLOCATED', 'NEEDS_ATTENTION'] },
+        },
+        select: { id: true },
+      });
+      const futureJobIds = futureJobs.map((j) => j.id);
+      if (futureJobIds.length) {
+        await tx.scheduledVisit.updateMany({
+          where: { scheduledJobId: { in: futureJobIds }, deletedAt: null, status: 'PLANNED' },
+          data: { status: 'CANCELLED', updatedById: userId },
+        });
+        await tx.scheduledJob.updateMany({
+          where: { id: { in: futureJobIds } },
+          data: { status: 'CANCELLED', updatedById: userId },
+        });
+      }
+      const endedPlans = await tx.serviceUserVisitPlan.updateMany({
+        where: { serviceUserId: id, status: { in: ['ACTIVE', 'SUSPENDED', 'DRAFT'] } },
+        data: { status: 'ENDED', effectiveTo: now },
+      });
+      await tx.serviceUserPortalAccount.updateMany({
+        where: { serviceUserId: id, deletedAt: null },
+        data: { isEnabled: false, refreshTokenHash: null, deletedAt: now },
+      });
+
       await this.audit.logAudit({
         tx,
         userId,
@@ -1079,12 +1110,17 @@ export class ServiceUsersService implements OnModuleInit {
         action: AuditAction.SERVICE_USER_DELETED,
         recordType: 'ServiceUser',
         recordId: id,
+        description: [
+          reason?.trim() ? `Reason: ${reason.trim()}` : null,
+          futureJobIds.length ? `${futureJobIds.length} future visit(s) cancelled` : null,
+          endedPlans.count ? `${endedPlans.count} visit plan(s) ended` : null,
+        ].filter(Boolean).join('. ') || undefined,
         oldValues: auditSnapshot(before),
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });
 
-      return { message: 'Service user deleted', data: {} };
+      return { message: 'Service user deleted', data: { visitsCancelled: futureJobIds.length, plansEnded: endedPlans.count } };
     });
   }
 

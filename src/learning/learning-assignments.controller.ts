@@ -13,6 +13,7 @@ import {
   CreateLearningAssignmentDto,
   ExemptAssignmentDto,
   ExtendDueDateDto,
+  LearningAssignmentListQueryDto,
   LearningListQueryDto,
   ReassignAssignmentDto,
 } from './dto/learning.dto';
@@ -28,8 +29,15 @@ export class LearningAssignmentsController {
   @Get()
   @Permissions('learning.assignments.read')
   @ApiOperation({ summary: 'List learning assignments' })
-  list(@Query() query: LearningListQueryDto) {
+  list(@Query() query: LearningAssignmentListQueryDto) {
     return this.service.list(query);
+  }
+
+  @Get('status-counts')
+  @Permissions('learning.assignments.read')
+  @ApiOperation({ summary: 'How many assignments are in each status tab' })
+  statusCounts(@Query() query: LearningListQueryDto) {
+    return this.service.statusCounts(query);
   }
 
   @Post('bulk')

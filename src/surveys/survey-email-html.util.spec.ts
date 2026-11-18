@@ -93,7 +93,8 @@ describe('survey emails (agreed wording and layout)', () => {
     expect(surveyContactMessages({ ...base, reminder: true, daysLeft: null }).emailSubject).toBe('Reminder: Your working hours and availability');
     const m = surveyContactMessages({ ...base, reminder: true });
     expect(m.emailHtml).toContain('Just a reminder that our survey');
-    expect(m.emailHtml).toContain('Answer the survey');
+    // The same button as the invitation.
+    expect(m.emailHtml).toContain('Start the survey');
     expect(m.emailHtml).toContain('already answered, thank you');
     expect(m.emailHtml).not.toContain('What happens to your answers');
   });

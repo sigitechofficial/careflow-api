@@ -23,6 +23,7 @@ export const FUNCTION_JOBS = [
   { name: 'assessment-review-reminders', schedule: '0 25 * * * *', description: 'hourly at :25' },
   { name: 'policy-acknowledgement-reminders', schedule: '0 35 * * * *', description: 'hourly at :35' },
   { name: 'referral-mailbox-check', schedule: '0 */2 * * * *', description: 'every 2 minutes' },
+  { name: 'recruitment-application-summary', schedule: '0 40 * * * *', description: 'hourly at :40' },
 ] as const;
 
 export type FunctionJobName = (typeof FUNCTION_JOBS)[number]['name'];

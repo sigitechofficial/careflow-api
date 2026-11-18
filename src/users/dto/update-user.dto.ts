@@ -26,7 +26,7 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional({
     minLength: 8,
-    description: 'Set a new password (signs the user out everywhere)',
+    description: 'Set a new password (also their Care app password when linked; signs them out everywhere). Only its hash is stored.',
   })
   @IsOptional()
   @IsString()
@@ -34,4 +34,3 @@ export class UpdateUserDto {
   @MaxLength(128)
   password?: string;
 }
-

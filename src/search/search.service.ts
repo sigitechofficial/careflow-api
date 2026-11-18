@@ -203,7 +203,10 @@ export class SearchService {
       run: async (_actor, q) =>
         (
           await this.prisma.learningCourse.findMany({
-            where: { deletedAt: null, AND: everyWord(q, ['title', 'shortDescription']) },
+            where: {
+              deletedAt: null,
+              AND: everyWord(q, ['title', 'description', 'shortDescription']),
+            },
             select: { id: true, title: true, status: true },
             take: PER_SOURCE,
           })

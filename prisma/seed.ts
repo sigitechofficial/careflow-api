@@ -105,6 +105,7 @@ async function main() {
     'Mrs',
     'Miss',
     'Ms',
+    'Mx',
     'Dr',
     'Professor',
     'Lord',
@@ -125,7 +126,7 @@ async function main() {
   for (const name of ['Care', 'Kitchen', 'Domestic', 'Maintenance', 'Administration'])
     await upsertLookup(prisma.workArea, name);
 
-  for (const name of ['Carer', 'Senior Carer'])
+  for (const name of ['Carer', 'Senior Carer', 'Care Coordinator', 'Field Supervisor', 'Office Administrator', 'Branch Manager', 'Registered Manager'])
     await upsertLookup(prisma.employeeRoleLookup, name);
 
   for (const name of defaultJobTitles) await upsertLookup(prisma.jobTitle, name);
@@ -160,7 +161,6 @@ async function main() {
     await upsertLookup(prisma.visitStatusReason, name);
 
   for (const name of [
-    'Grade1',
     'Grade 1',
     'Grade 2',
     'Grade 3',
@@ -1760,6 +1760,7 @@ async function main() {
     ['Mrs', 'MRS'],
     ['Miss', 'MISS'],
     ['Ms', 'MS'],
+    ['Mx', 'MX'],
     ['Dr', 'DR'],
     ['Professor', 'PROFESSOR'],
     ['Lord', 'LORD'],

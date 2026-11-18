@@ -45,7 +45,7 @@ const survey = (over: Record<string, unknown> = {}) => ({
 
 type Rec = { id: string; token: string; status: string; employeeId: string | null; serviceUserId: string | null; sentAt: Date; reminderCount: number; remindedAt: Date | null };
 
-function setup(opts: { survey?: Record<string, unknown>; recipients?: Rec[]; optOuts?: Array<{ subjectKind: string; subjectId: string; channel: string }>; textMode?: string } = {}) {
+function setup(opts: { survey?: Record<string, unknown>; recipients?: Rec[]; optOuts?: Array<{ subjectKind: string; subjectId: string; channel: string }>; textMode?: string; adminAppUrl?: string } = {}) {
   const s = survey(opts.survey);
   const recipients: Rec[] = opts.recipients ?? [
     { id: 'r1', token: 'tok-1', status: 'SENT', employeeId: 'e1', serviceUserId: null, sentAt: new Date(NOW.getTime() - 4 * DAY), reminderCount: 0, remindedAt: null },
@@ -94,7 +94,7 @@ function setup(opts: { survey?: Record<string, unknown>; recipients?: Rec[]; opt
     user: { findMany: jest.fn().mockResolvedValue([]) },
   };
   const audit = { logAudit: jest.fn() };
-  const config = { get: (k: string, d?: unknown) => (k === 'app.adminAppUrl' ? 'https://care.example' : k === 'TEXT_MESSAGE_MODE' ? opts.textMode : d) };
+  const config = { get: (k: string, d?: unknown) => (k === 'app.adminAppUrl' ? (opts.adminAppUrl ?? 'https://care.example') : k === 'TEXT_MESSAGE_MODE' ? opts.textMode : d) };
   const mail = { send: jest.fn().mockResolvedValue({}) };
   const push = { sendToEmployees: jest.fn().mockResolvedValue({ sent: 1 }) };
   const texts = { isEnabled: () => opts.textMode !== 'off', supportsReplies: () => false, providerName: () => 'log', send: jest.fn().mockResolvedValue({ sent: true, messageId: 'x' }) };
@@ -292,6 +292,34 @@ describe('SurveyRemindersService — remind one person', () => {
     expect(audit.logAudit.mock.calls[0][0]).toMatchObject({ recordType: 'SurveyRecipient', recordId: 'r1', description: expect.stringContaining('one person') });
     expect(JSON.stringify(audit.logAudit.mock.calls[0][0])).not.toMatch(/zara|07700|tok-1/);
     expect(prisma.surveyRecipient.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('has the Start the survey button with their own link, like the invitation', async () => {
+    const { svc, mail, prisma } = setup();
+    prisma.surveyRecipient.updateMany = jest.fn();
+    await svc.remindOne(actor, 's1', 'r1');
+    const sent = mail.send.mock.calls[0][0];
+    expect(sent.html).toContain('Start the survey');
+    expect(sent.html).toContain('href="https://care.example/survey/tok-1"');
+    expect(sent.text).toContain('Start the survey: https://care.example/survey/tok-1');
+  });
+
+  it('without ADMIN_APP_URL, uses the page it was sent from for the button (as invitations do)', async () => {
+    const { svc, mail, prisma } = setup({ adminAppUrl: '' });
+    prisma.surveyRecipient.updateMany = jest.fn();
+    await svc.remindOne(actor, 's1', 'r1', undefined, 'http://localhost:5173');
+    const sent = mail.send.mock.calls[0][0];
+    expect(sent.html).toContain('href="http://localhost:5173/survey/tok-1"');
+    expect(sent.html).toContain('Start the survey');
+  });
+
+  it('never takes an address that is not a plain web origin', async () => {
+    const { svc, mail, prisma } = setup({ adminAppUrl: '' });
+    prisma.surveyRecipient.updateMany = jest.fn();
+    await svc.remindOne(actor, 's1', 'r1', undefined, 'javascript:alert(1)');
+    const sent = mail.send.mock.calls[0][0];
+    expect(sent.html).not.toContain('Start the survey');
+    expect(sent.html).not.toContain('javascript:');
   });
 
   it('is never possible on an anonymous survey', async () => {

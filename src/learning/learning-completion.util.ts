@@ -4,6 +4,8 @@ export type CourseCompletionRequirements = {
   requiresAssessment: boolean;
   requiresPracticalAssessment: boolean;
   requiresManagerApproval: boolean;
+  /** Classroom / virtual part: the trainer must mark the carer Attended (agreed 13 Nov 2026). */
+  requiresSession?: boolean;
 };
 
 export type ProgressSnapshot = {
@@ -12,7 +14,39 @@ export type ProgressSnapshot = {
   assessmentStatus: LearningProgressStatus;
   practicalAssessmentStatus: LearningProgressStatus;
   managerApprovalStatus: LearningProgressStatus;
+  sessionAttended?: boolean;
 };
+
+/**
+ * Face to face and workplace courses are only finished when a manager records the outcome
+ * as Passed (user decision, 16 Nov 2026). Virtual courses are not included.
+ */
+export function courseNeedsManagerOutcome(
+  deliveryMethod: string | null | undefined,
+): boolean {
+  return deliveryMethod === 'FACE_TO_FACE' || deliveryMethod === 'WORKPLACE';
+}
+
+/** Face to face: the trainer / office marks the lessons, not the carer (16 Nov 2026). */
+export function trainerMarksLessons(deliveryMethod: string | null | undefined): boolean {
+  return deliveryMethod === 'FACE_TO_FACE';
+}
+
+/**
+ * A training course delivered face to face, virtually or blended has a session the carer
+ * must attend. Practical competencies are signed off by an assessor instead.
+ */
+export function courseNeedsSession(
+  courseType: string | null | undefined,
+  deliveryMethod: string | null | undefined,
+): boolean {
+  return (
+    courseType === 'COURSE' &&
+    (deliveryMethod === 'FACE_TO_FACE' ||
+      deliveryMethod === 'VIRTUAL' ||
+      deliveryMethod === 'BLENDED')
+  );
+}
 
 export function calculateContentProgressPercentage(snapshot: ProgressSnapshot): number {
   const { completedRequiredContentItems, totalRequiredContentItems } = snapshot;
@@ -60,6 +94,10 @@ export function deriveCourseCompletionStatus(
     return snapshot.completedRequiredContentItems > 0
       ? LearningProgressStatus.IN_PROGRESS
       : LearningProgressStatus.NOT_STARTED;
+  }
+
+  if (requirements.requiresSession && !snapshot.sessionAttended) {
+    return LearningProgressStatus.IN_PROGRESS;
   }
 
   if (!isAssessmentComplete(requirements, snapshot.assessmentStatus)) {

@@ -1,6 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { LearningNotificationHook } from './learning-notification.hook';
 import {
   LearningAssessmentResult,
+  LearningAssignmentReviewKind,
   LearningAssignmentStatus,
   LearningProgressStatus,
   Prisma,
@@ -8,11 +10,15 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import {
   calculateContentProgressPercentage,
+  courseNeedsManagerOutcome,
+  courseNeedsSession,
   deriveCourseCompletionStatus,
   isCourseFullyComplete,
 } from './learning-completion.util';
+import { quizStepStatus } from './learning-quiz-progress.util';
 import { LearningCertificatesService } from './learning-certificates.service';
 import { LearningComplianceService } from './learning-compliance.service';
+import { LearningIncidentLinkService } from './learning-incident-link.service';
 
 @Injectable()
 export class LearningCompletionService {
@@ -20,6 +26,8 @@ export class LearningCompletionService {
     private readonly prisma: PrismaService,
     private readonly certificates: LearningCertificatesService,
     private readonly compliance: LearningComplianceService,
+    @Optional() private readonly notifications?: LearningNotificationHook,
+    @Optional() private readonly incidentLink?: LearningIncidentLinkService,
   ) {}
 
   async countRequiredContentItems(courseVersionId: string): Promise<number> {
@@ -47,13 +55,24 @@ export class LearningCompletionService {
       where: { id: assignmentId },
       include: {
         course: true,
-        progress: true,
+        progress: { include: { courseVersion: true } },
       },
     });
     if (!assignment || !assignment.progress) throw new NotFoundException('Assignment progress not found');
+    // Rules come from the version this learner is on (frozen at publish), not the live course.
+    const rules = assignment.progress.courseVersion ?? assignment.course;
 
     const totalRequired = await this.countRequiredContentItems(assignment.progress.courseVersionId);
     const completedRequired = await this.countCompletedContentItems(assignmentId);
+    const requiresSession = courseNeedsSession(
+      assignment.course.courseType,
+      assignment.course.deliveryMethod,
+    );
+    const sessionAttended = requiresSession
+      ? (await db.learningTrainingEventAttendee.count({
+          where: { assignmentId, attendanceStatus: 'ATTENDED' },
+        })) > 0
+      : false;
 
     const snapshot = {
       completedRequiredContentItems: completedRequired,
@@ -61,12 +80,36 @@ export class LearningCompletionService {
       assessmentStatus: assignment.progress.assessmentStatus,
       practicalAssessmentStatus: assignment.progress.practicalAssessmentStatus,
       managerApprovalStatus: assignment.progress.managerApprovalStatus,
+      sessionAttended,
     };
 
+    // Face to face / workplace: a manager records the outcome; Passed also covers the
+    // practical sign-off (user decision, 16 Nov 2026).
+    const needsOutcome = courseNeedsManagerOutcome(assignment.course.deliveryMethod);
+    // Face to face / workplace: plain "Passed" completes the course without the quiz;
+    // "Passed, quiz to pass" keeps the quiz required (user decision, 16 Nov 2026).
+    const lastOutcome = needsOutcome
+      ? await db.learningAssignmentReview.findFirst({
+          where: {
+            assignmentId,
+            kind: {
+              in: [
+                LearningAssignmentReviewKind.OUTCOME_PASSED,
+                LearningAssignmentReviewKind.OUTCOME_PASSED_AFTER_QUIZ,
+                LearningAssignmentReviewKind.OUTCOME_NOT_PASSED,
+              ],
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+          select: { kind: true },
+        })
+      : null;
+    const plainPass = lastOutcome?.kind === LearningAssignmentReviewKind.OUTCOME_PASSED;
     const requirements = {
-      requiresAssessment: assignment.course.requiresAssessment,
-      requiresPracticalAssessment: assignment.course.requiresPracticalAssessment,
-      requiresManagerApproval: assignment.course.requiresManagerApproval,
+      requiresSession,
+      requiresAssessment: plainPass ? false : rules.requiresAssessment,
+      requiresPracticalAssessment: needsOutcome ? false : rules.requiresPracticalAssessment,
+      requiresManagerApproval: rules.requiresManagerApproval || needsOutcome,
     };
 
     const progressPercentage = calculateContentProgressPercentage(snapshot);
@@ -86,18 +129,82 @@ export class LearningCompletionService {
       },
     });
 
+    // Started but not finished: show it as In progress (was left as Assigned, 16 Nov 2026).
+    // A practical sign-off or manager outcome also counts as started (17 Nov 2026): "Practical
+    // passed – quiz to pass" left the course as Scheduled.
+    const started =
+      completedRequired > 0 ||
+      sessionAttended ||
+      assignment.progress.assessmentStatus !== LearningProgressStatus.NOT_STARTED ||
+      assignment.progress.practicalAssessmentStatus !== LearningProgressStatus.NOT_STARTED ||
+      assignment.progress.managerApprovalStatus === LearningProgressStatus.COMPLETED;
+    const waitingForManager =
+      courseCompletionStatus === LearningProgressStatus.AWAITING_APPROVAL;
+    const openStatuses: LearningAssignmentStatus[] = [
+      LearningAssignmentStatus.ASSIGNED,
+      LearningAssignmentStatus.NOT_STARTED,
+      LearningAssignmentStatus.IN_PROGRESS,
+    ];
+    if (!complete && waitingForManager && openStatuses.includes(assignment.status)) {
+      // Everything else is done: waiting for the manager's outcome ("Awaiting sign-off").
+      await db.learningAssignment.update({
+        where: { id: assignmentId },
+        data: { status: LearningAssignmentStatus.AWAITING_APPROVAL },
+      });
+      if (assignment.employeeId) {
+        await this.notifications
+          ?.notifyAwaitingOutcome({
+            assignmentId,
+            employeeId: assignment.employeeId,
+            courseTitle: assignment.course.title,
+          })
+          .catch(() => undefined);
+      }
+    } else if (
+      !complete &&
+      started &&
+      (assignment.status === LearningAssignmentStatus.ASSIGNED ||
+        assignment.status === LearningAssignmentStatus.NOT_STARTED)
+    ) {
+      await db.learningAssignment.update({
+        where: { id: assignmentId },
+        data: { status: LearningAssignmentStatus.IN_PROGRESS },
+      });
+    }
+
     if (complete) {
+      const firstTime =
+        assignment.status !== LearningAssignmentStatus.COMPLETED &&
+        assignment.status !== LearningAssignmentStatus.PASSED;
+      const completedAt = assignment.completedAt ?? new Date();
+      // Finished after the due date: flag it and tell the managers (16 Nov 2026).
+      const late =
+        firstTime && !!assignment.dueAt && completedAt > assignment.dueAt;
       await db.learningAssignment.update({
         where: { id: assignmentId },
         data: {
           status: LearningAssignmentStatus.COMPLETED,
-          completedAt: assignment.completedAt ?? new Date(),
+          completedAt,
+          ...(late ? { completedLate: true } : {}),
         },
       });
+      if (late && assignment.employeeId) {
+        await this.notifications
+          ?.notifyCompletedLate({
+            assignmentId,
+            employeeId: assignment.employeeId,
+            courseTitle: assignment.course.title,
+            dueAt: assignment.dueAt!,
+            completedAt,
+          })
+          .catch(() => undefined);
+      }
 
-      if (assignment.course.certificateEnabled) {
+      if (rules.certificateEnabled) {
         await this.certificates.issueForAssignment(assignmentId, tx);
       }
+      // Given by an incident measure: complete that measure (17 Nov 2026).
+      if (firstTime) await this.incidentLink?.onAssignmentCompleted(assignmentId, db);
     }
 
     if (!tx) {
@@ -107,22 +214,79 @@ export class LearningCompletionService {
     return updated;
   }
 
+  /**
+   * Everything the quiz rules need for one assignment: its version's quizzes, the carer's
+   * attempts, the required lessons (with their module) and which lessons are done.
+   */
+  async quizProgressInput(
+    assignmentId: string,
+    db: Prisma.TransactionClient | PrismaService = this.prisma,
+  ) {
+    const progress = await db.learningEmployeeProgress.findUnique({
+      where: { assignmentId },
+      select: { courseVersionId: true },
+    });
+    if (!progress) throw new NotFoundException('Assignment progress not found');
+    const versionId = progress.courseVersionId;
+    const [quizzes, attempts, requiredLessons, completions] = await Promise.all(
+      [
+        db.learningAssessment.findMany({
+          where: { courseVersionId: versionId },
+          select: {
+            id: true,
+            sectionId: true,
+            isRequired: true,
+            maximumAttempts: true,
+          },
+        }),
+        db.learningAssessmentAttempt.findMany({
+          where: { assignmentId },
+          select: { assessmentId: true, result: true },
+        }),
+        db.learningContentItem.findMany({
+          where: {
+            isRequired: true,
+            courseSection: { courseVersionId: versionId, isRequired: true },
+          },
+          select: { id: true, courseSectionId: true },
+        }),
+        db.learningContentItemCompletion.findMany({
+          where: { assignmentId, completedAt: { not: null } },
+          select: { contentItemId: true },
+        }),
+      ],
+    );
+    return {
+      quizzes,
+      attempts,
+      requiredLessons: requiredLessons.map((l) => ({
+        id: l.id,
+        sectionId: l.courseSectionId,
+      })),
+      completedLessonIds: new Set(completions.map((c) => c.contentItemId)),
+    };
+  }
+
+  /**
+   * After a quiz attempt: the quiz step is done when every required quiz is passed, and the
+   * assignment fails only when a required quiz has no tries left (agreed 13 Nov 2026).
+   */
   async recordAssessmentResult(
     assignmentId: string,
-    passed: boolean,
     tx?: Prisma.TransactionClient,
   ) {
     const db = tx ?? this.prisma;
+    const { quizzes, attempts } = await this.quizProgressInput(
+      assignmentId,
+      db,
+    );
+    const status = quizStepStatus(quizzes, attempts);
     await db.learningEmployeeProgress.update({
       where: { assignmentId },
-      data: {
-        assessmentStatus: passed
-          ? LearningProgressStatus.COMPLETED
-          : LearningProgressStatus.FAILED,
-      },
+      data: { assessmentStatus: status },
     });
 
-    if (!passed) {
+    if (status === LearningProgressStatus.FAILED) {
       await db.learningAssignment.update({
         where: { id: assignmentId },
         data: { status: LearningAssignmentStatus.FAILED },
@@ -178,7 +342,9 @@ export class LearningCompletionService {
     });
     if (!attempt) throw new NotFoundException('Attempt not found');
 
-    await this.recordAssessmentResult(attempt.assignmentId, passed);
+    void result;
+    void passed;
+    await this.recordAssessmentResult(attempt.assignmentId);
     return attempt;
   }
 }
