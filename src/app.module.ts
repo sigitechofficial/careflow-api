@@ -113,6 +113,7 @@ import { ScheduleFiltersModule } from './schedule-filters/schedule-filters.modul
 import { ScheduledJobsHousekeepingModule } from './scheduled-jobs-housekeeping/scheduled-jobs-housekeeping.module';
 import { CallOffVisitsModule } from './call-off-visits/call-off-visits.module';
 import { ScheduleReportsModule } from './schedule-reports/schedule-reports.module';
+import { AddressLookupModule } from './address-lookup/address-lookup.module';
 import { CompanyProfileModule } from './company-profile/company-profile.module';
 import { OrganisationGeneralSettingsModule } from './organisation-general-settings/organisation-general-settings.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -282,6 +283,7 @@ import { JobsModule } from './jobs/jobs.module';
     CallOffVisitsModule,
     ScheduleReportsModule,
     CompanyProfileModule,
+    AddressLookupModule,
     OrganisationGeneralSettingsModule,
     DashboardModule,
     LocationManagementModule,
