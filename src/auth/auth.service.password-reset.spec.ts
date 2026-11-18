@@ -73,6 +73,10 @@ function createFakePrisma() {
 
   const client = {
     state,
+    // No Care app accounts here: one password for both is covered in staff-access tests.
+    employeePortalAccount: {
+      findFirst: jest.fn(() => Promise.resolve(null)),
+    },
     user: {
       findMany: jest.fn(({ where }: { where: Where }) =>
         Promise.resolve(
@@ -266,7 +270,7 @@ describe('AuthService password reset', () => {
         html: string;
       };
       expect(msg.to).toBe(user.email);
-      expect(msg.subject).toBe('Reset your Careflow password');
+      expect(msg.subject).toBe('Reset your CareFlow password');
       const raw = tokenFromMail(mail);
       expect(Buffer.from(raw, 'base64url')).toHaveLength(32);
       expect(msg.text).toContain(
@@ -399,7 +403,7 @@ describe('AuthService password reset', () => {
       );
       expect(res).toEqual({
         message: PASSWORD_RESET_COMPLETED_MESSAGE,
-        data: {},
+        data: { accounts: ['website'] },
       });
 
       expect(await bcrypt.compare('BrandNewPass9', user.passwordHash)).toBe(
