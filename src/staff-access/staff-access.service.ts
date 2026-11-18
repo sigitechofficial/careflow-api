@@ -499,7 +499,7 @@ export class StaffAccessService {
       select: { employeeId: true },
     });
     const emp = personal ? await this.loadEmployee(personal.employeeId).catch(() => null) : null;
-    const first = user.firstName?.trim() || 'They';
+    const first = user.firstName?.trim() || 'them';
 
     let employment: StaffEmployment;
     let branch: BranchContact | null;
