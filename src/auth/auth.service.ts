@@ -11,7 +11,6 @@ import { AuditModule } from '../audit-logs/enums/audit-module.enum';
 import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { SecurityEventType } from '../audit-logs/enums/security-event.enum';
 import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ForgotPasswordDto } from './dto/forgot-password.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
@@ -313,33 +312,6 @@ export class AuthService {
         refreshToken: tokens.refreshToken,
       },
     };
-  }
-
-  async register(dto: RegisterDto, req: Request) {
-    const meta = this.auditLogs.getRequestMeta(req);
-    const existing = await this.usersService.findByEmail(dto.email);
-    if (existing) throw new BadRequestException('Email already in use');
-
-    const passwordHash = await bcrypt.hash(dto.password, 12);
-    const user = await this.usersService.create({
-      email: dto.email,
-      username: dto.username,
-      firstName: dto.firstName,
-      lastName: dto.lastName,
-      passwordHash,
-    });
-
-    await this.auditLogs.logAudit({
-      userId: user.id,
-      module: AuditModule.USER,
-      action: AuditAction.USER_REGISTERED,
-      recordType: 'User',
-      recordId: user.id,
-      ipAddress: meta.ipAddress,
-      userAgent: meta.userAgent,
-    });
-
-    return { message: 'User registered', data: { id: user.id, email: user.email } };
   }
 
   async refresh(dto: RefreshTokenDto, req: Request) {

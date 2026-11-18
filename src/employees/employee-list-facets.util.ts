@@ -1,7 +1,7 @@
 import type { Prisma } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { EmployeeQueryDto } from './dto/employee-query.dto';
-import { buildEmployeeListWhere } from './employee-list-where.util';
+import { buildEmployeeListWhere, type EmployeeListWhereOptions } from './employee-list-where.util';
 
 export type EmployeeListFacetCount = {
   id: string;
@@ -23,6 +23,7 @@ export type EmployeeListFacets = {
 type EmploymentBranchSlice = {
   accessAllZones: boolean;
   locationId: string | null;
+  baseLocationId?: string | null;
   floorLocations: { locationId: string }[];
 };
 
@@ -33,6 +34,7 @@ export function employeeEmploymentMatchesBranch(
   if (!employment) return false;
   if (employment.accessAllZones) return true;
   if (employment.locationId === locationId) return true;
+  if (employment.baseLocationId === locationId) return true;
   return employment.floorLocations.some((row) => row.locationId === locationId);
 }
 
@@ -64,6 +66,7 @@ export async function buildEmployeeListFacets(
   prisma: PrismaService,
   query: EmployeeQueryDto,
   locationCatalogIds: string[],
+  options: EmployeeListWhereOptions = {},
 ): Promise<EmployeeListFacets> {
   const queryForBranchCounts: EmployeeQueryDto = { ...query, locationIds: undefined };
 
@@ -74,6 +77,7 @@ export async function buildEmployeeListFacets(
   const { listWhere: facetCohortWhere, isEmpty: facetCohortEmpty } = await buildEmployeeListWhere(
     prisma,
     query,
+    options,
   );
 
   if (branchCohortEmpty && facetCohortEmpty) {
@@ -90,6 +94,7 @@ export async function buildEmployeeListFacets(
               select: {
                 accessAllZones: true,
                 locationId: true,
+                baseLocationId: true,
                 floorLocations: { select: { locationId: true } },
               },
             },

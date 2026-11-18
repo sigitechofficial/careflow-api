@@ -13,7 +13,11 @@ import { OrgScopeService } from '../common/org-scope/org-scope.service';
 import { EmployeeQueryDto } from './dto/employee-query.dto';
 import type { EmployeeDocumentsRegistryQueryDto } from './dto/employee-documents-registry-query.dto';
 import { buildEmployeeListOrderBy } from './employee-list-order.util';
-import { buildEmployeeListWhere, hasEmployeeListCohortFilters } from './employee-list-where.util';
+import {
+  buildEmployeeListWhere,
+  hasEmployeeListCohortFilters,
+  type EmployeeListWhereOptions,
+} from './employee-list-where.util';
 import { buildEmployeeListEmploymentWhere } from './employee-list-filter.util';
 import {
   buildEmployeeListFacets,
@@ -58,7 +62,11 @@ export class EmployeesService {
       };
     }
 
-    const { listWhere, isEmpty } = await buildEmployeeListWhere(this.prisma, scopedQuery);
+    const { listWhere, isEmpty } = await buildEmployeeListWhere(
+      this.prisma,
+      scopedQuery,
+      await this.unassignedStaffOptions(scopedQuery, actor),
+    );
 
     if (isEmpty) {
       return {
@@ -128,7 +136,12 @@ export class EmployeesService {
       };
     }
     const locationCatalogIds = await loadEmployeeListFacetLocationIds(this.prisma);
-    const data = await buildEmployeeListFacets(this.prisma, scopedQuery, locationCatalogIds);
+    const data = await buildEmployeeListFacets(
+      this.prisma,
+      scopedQuery,
+      locationCatalogIds,
+      await this.unassignedStaffOptions(scopedQuery, actor),
+    );
     return { data };
   }
 
@@ -506,6 +519,7 @@ export class EmployeesService {
     const { listWhere, wherePersonal, isEmpty } = await buildEmployeeListWhere(
       this.prisma,
       scopedQuery,
+      await this.unassignedStaffOptions(scopedQuery, actor),
     );
 
     const emptySummary = {
@@ -677,6 +691,23 @@ export class EmployeesService {
   private async ensureExists(id: string) {
     const exists = await this.prisma.employee.findFirst({ where: { id, deletedAt: null } });
     if (!exists) throw new NotFoundException('Employee not found');
+  }
+
+  /**
+   * When the list is limited to branches (by the viewer's own branch access or a branch they chose),
+   * staff not assigned to any branch yet still show if they were added by the viewer or by an office
+   * user assigned to one of those branches. They carry `branchAssigned: false` so the screen can say
+   * "Not assigned to a branch yet". Staff added by someone from another branch never show.
+   */
+  private async unassignedStaffOptions(
+    scopedQuery: EmployeeQueryDto,
+    actor?: RequestUser,
+  ): Promise<EmployeeListWhereOptions> {
+    const locationIds = scopedQuery.locationIds ?? [];
+    if (!locationIds.length) return {};
+    return {
+      unassignedStaffCreatorIds: await this.orgScope.unassignedStaffCreatorIds(locationIds, actor?.id),
+    };
   }
 
   /**

@@ -16,6 +16,10 @@ export enum AuditAction {
   PERMISSION_ASSIGNED = 'permission_assigned',
   PERMISSION_REMOVED = 'permission_removed',
   USER_ROLE_CHANGED = 'user_role_changed',
+  /** Office login roles aligned from a staff record's RBAC level (employment save). */
+  USER_ROLE_SYNCED_FROM_EMPLOYMENT = 'user_role_synced_from_employment',
+  /** Employment RBAC sync deliberately did not change an office login (unapproved account or admin-level role). */
+  USER_ROLE_SYNC_SKIPPED = 'user_role_sync_skipped',
   USER_LOCATION_ASSIGNED = 'user_location_assigned',
   USER_LOCATION_REMOVED = 'user_location_removed',
   EMPLOYEE_CREATED = 'employee_created',

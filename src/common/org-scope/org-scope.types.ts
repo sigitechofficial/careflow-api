@@ -20,6 +20,8 @@ export type OrgScope = {
   scopeType: OrgScopeType;
   roles: string[];
   permissions: string[];
+  /** The signed-in office user (set by `fromRequestUser`); used for "staff I added" visibility. */
+  userId?: string;
 };
 
 /** Identity role names (must match `identity.Role.name`). */

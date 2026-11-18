@@ -32,9 +32,12 @@ export class UsersService {
     firstName?: string;
     lastName?: string;
     passwordHash: string;
+    /** The signed-in office user who made this login (marks it as admin-approved). */
+    createdById?: string;
   }) {
     return this.prisma.user.create({
       data: {
+        createdById: data.createdById,
         email: data.email,
         username: data.username,
         firstName: data.firstName,
