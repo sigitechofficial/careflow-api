@@ -18314,3 +18314,16 @@ model AuthSession {
   @@index([kind, accountId, revokedAt])
   @@schema("identity")
 }
+
+/// The addresses at a UK postcode, as the address list service (Ideal Postcodes) returned them. Kept 30 days so
+/// each postcode is paid for at most once a month, across restarts and every API server. Holds no personal data.
+model PostcodeAddressCache {
+  /// "TW3 2DL" (upper case, one space).
+  postcode  String   @id @db.VarChar(10)
+  /// The PostcodeAddresses answer sent to the admin.
+  payload   Json
+  fetchedAt DateTime @default(now())
+
+  @@index([fetchedAt])
+  @@schema("platform")
+}
