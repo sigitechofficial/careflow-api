@@ -2,6 +2,7 @@ import type { Prisma } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { EmployeeQueryDto } from './dto/employee-query.dto';
 import {
+  UNASSIGNED_TO_BRANCH_EMPLOYEE_WHERE,
   buildEmployeeListEmploymentWhere,
   normalizeEmployeeListUuidIds,
 } from './employee-list-filter.util';
@@ -17,9 +18,18 @@ export type EmployeeListWhereBuildResult = {
   isEmpty: boolean;
 };
 
+export type EmployeeListWhereOptions = {
+  /**
+   * When the list is limited to branches, staff not assigned to any branch yet are still listed
+   * if one of these office users added them (see `resolveUnassignedStaffCreatorIds`).
+   */
+  unassignedStaffCreatorIds?: string[];
+};
+
 export async function buildEmployeeListWhere(
   prisma: PrismaService,
   query: EmployeeQueryDto,
+  options: EmployeeListWhereOptions = {},
 ): Promise<EmployeeListWhereBuildResult> {
   const wherePersonal: Prisma.EmployeePersonalDetailWhereInput = { deletedAt: null };
   const statusIds = normalizeEmployeeListUuidIds(query.statusId, query.statusIds);
@@ -38,7 +48,12 @@ export async function buildEmployeeListWhere(
     }));
   }
 
-  const { whereEmployment, hasEmploymentFilters } = buildEmployeeListEmploymentWhere(query);
+  const {
+    whereEmployment,
+    hasEmploymentFilters,
+    whereEmploymentWithoutBranch,
+    hasNonBranchEmploymentFilters,
+  } = buildEmployeeListEmploymentWhere(query);
 
   const branchScopeIds = query.branchScopeKinds?.length
     ? await findEmployeeIdsForBranchScopeKinds(prisma, query.branchScopeKinds)
@@ -61,11 +76,32 @@ export async function buildEmployeeListWhere(
     whereEmployee.id = { in: intersectedEmployeeIds };
   }
 
-  const employmentWhere: Prisma.EmployeeWhereInput = hasEmploymentFilters
-    ? { employment: { is: whereEmployment } }
-    : {
-        OR: [{ employment: null }, { employment: { is: whereEmployment } }],
-      };
+  const creatorIds = options.unassignedStaffCreatorIds?.filter(Boolean) ?? [];
+  const branchLimited = Boolean(query.locationIds?.length);
+  let employmentWhere: Prisma.EmployeeWhereInput;
+  if (branchLimited && creatorIds.length) {
+    // Branch-limited list: staff at these branches, plus staff not assigned to any branch yet
+    // whom someone from these branches added (so a new starter is not invisible to their office).
+    const unassigned: Prisma.EmployeeWhereInput = {
+      AND: [
+        UNASSIGNED_TO_BRANCH_EMPLOYEE_WHERE as Prisma.EmployeeWhereInput,
+        { createdById: { in: creatorIds } },
+        ...(hasNonBranchEmploymentFilters
+          ? [{ employment: { is: whereEmploymentWithoutBranch } } as Prisma.EmployeeWhereInput]
+          : []),
+      ],
+    };
+    employmentWhere = { OR: [{ employment: { is: whereEmployment } }, unassigned] };
+  } else {
+    // A "branch type" filter alone is applied through the employee id list above, which may include
+    // staff with no employment details yet (type "none"), so those rows must not be dropped here.
+    const onlyBranchTypeFilter = !hasNonBranchEmploymentFilters && !branchLimited;
+    employmentWhere = hasEmploymentFilters && !onlyBranchTypeFilter
+      ? { employment: { is: whereEmployment } }
+      : {
+          OR: [{ employment: null }, { employment: { is: whereEmployment } }],
+        };
+  }
 
   const listWhere: Prisma.EmployeeWhereInput = {
     ...whereEmployee,

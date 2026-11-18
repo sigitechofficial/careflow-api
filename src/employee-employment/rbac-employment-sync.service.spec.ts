@@ -167,6 +167,14 @@ describe('RbacEmploymentSyncService (security)', () => {
     }
   });
 
+  it('leaves roles alone when the staff record has no access level yet (no silent stripping)', async () => {
+    const { tx, roleNames } = fakeTx({ user: adminMade, userRoleNames: ['Manager'], rbacLevel: null });
+    const out = await service.syncUserRolesForEmployee(tx as never, 'emp-1', 'u-admin');
+    expect(out).toMatchObject({ kind: 'skipped', reason: 'no_access_level' });
+    expect(roleNames()).toEqual(['Manager']);
+    expect(tx.userRole.deleteMany).not.toHaveBeenCalled();
+  });
+
   it('does nothing when no login has the email', async () => {
     const { tx } = fakeTx({ user: null, rbacLevel: 'Manager' });
     const out = await service.syncUserRolesForEmployee(tx as never, 'emp-1', 'u-admin');

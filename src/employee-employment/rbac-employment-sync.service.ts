@@ -15,7 +15,6 @@ const SUPER_ADMIN_ROLE_NAME = 'Super Admin';
 
 export type RbacSyncOutcome =
   | { kind: 'skipped'; reason: string; userId?: string }
-  | { kind: 'cleared'; userId: string }
   | { kind: 'assigned'; userId: string; roleName: string };
 
 @Injectable()
@@ -36,6 +35,8 @@ export class RbacEmploymentSyncService {
    * - Admin-level roles ({@link ADMIN_LEVEL_IDENTITY_ROLE_NAMES}) are never granted silently: if the
    *   RBAC level maps to one the login does not already hold, nothing changes and the skip is
    *   audited, so an administrator must give that role on purpose in Office users.
+   * - With no access level on the staff record (new starter, employment not filled in) roles are left
+   *   as they are; the sync never strips access just because the level is blank.
    * Every change or deliberate skip is written to the audit log.
    * Runs inside the caller's transaction for atomicity with employment save.
    */
@@ -95,6 +96,12 @@ export class RbacEmploymentSyncService {
       return { kind: 'skipped', reason: 'independent_reviewer', userId: user.id };
     }
 
+    // No access level on the staff record (e.g. a new starter whose employment is not filled in yet):
+    // leave the login's roles alone rather than stripping access an administrator gave.
+    if (!targetRoleName) {
+      return { kind: 'skipped', reason: 'no_access_level', userId: user.id };
+    }
+
     const adminApproved = Boolean(user.createdById) || heldRoleNames.size > 0;
     if (!adminApproved) {
       return skip(
@@ -122,35 +129,28 @@ export class RbacEmploymentSyncService {
     const managedRoleIds = managedRoles.map((r) => r.id);
     const before = Array.from(heldRoleNames).sort();
 
-    let targetRole: { id: string } | null = null;
-    if (targetRoleName) {
-      targetRole = await tx.role.findFirst({
-        where: { name: targetRoleName, deletedAt: null, isActive: true },
-        select: { id: true },
-      });
-      if (!targetRole) {
-        this.logger.warn(
-          `RBAC sync could not assign role "${targetRoleName}" — no active identity Role with that name (employee ${employeeId}).`,
-        );
-        return { kind: 'skipped', reason: 'target_role_missing', userId: user.id };
-      }
+    const targetRole = await tx.role.findFirst({
+      where: { name: targetRoleName, deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    if (!targetRole) {
+      this.logger.warn(
+        `RBAC sync could not assign role "${targetRoleName}" — no active identity Role with that name (employee ${employeeId}).`,
+      );
+      return { kind: 'skipped', reason: 'target_role_missing', userId: user.id };
     }
 
-    if (managedRoleIds.length > 0) {
+    const otherManagedRoleIds = managedRoleIds.filter((id) => id !== targetRole.id);
+    if (otherManagedRoleIds.length > 0) {
       await tx.userRole.deleteMany({
-        where: {
-          userId: user.id,
-          roleId: { in: targetRole ? managedRoleIds.filter((id) => id !== targetRole!.id) : managedRoleIds },
-        },
+        where: { userId: user.id, roleId: { in: otherManagedRoleIds } },
       });
     }
-    if (targetRole) {
-      await tx.userRole.upsert({
-        where: { userId_roleId: { userId: user.id, roleId: targetRole.id } },
-        update: {},
-        create: { userId: user.id, roleId: targetRole.id },
-      });
-    }
+    await tx.userRole.upsert({
+      where: { userId_roleId: { userId: user.id, roleId: targetRole.id } },
+      update: {},
+      create: { userId: user.id, roleId: targetRole.id },
+    });
 
     const afterRows = await tx.userRole.findMany({
       where: { userId: user.id },
@@ -165,22 +165,16 @@ export class RbacEmploymentSyncService {
         action: AuditAction.USER_ROLE_SYNCED_FROM_EMPLOYMENT,
         recordType: 'User',
         recordId: user.id,
-        description: targetRoleName
-          ? `Office login roles set from staff record access level "${rbacLevelName}".`
-          : 'Office login roles from the staff record cleared (no access level set).',
+        description: `Office login roles set from staff record access level "${rbacLevelName}".`,
         oldValues: { roles: before },
         newValues: { roles: after },
         metadata: { employeeId, rbacLevel: rbacLevelName, targetRole: targetRoleName },
       });
     }
     this.logger.log(
-      targetRoleName
-        ? `RBAC sync set identity role "${targetRoleName}" for user ${user.id} from employee ${employeeId}.`
-        : `RBAC sync cleared managed identity roles for user ${user.id} (employee ${employeeId}).`,
+      `RBAC sync set identity role "${targetRoleName}" for user ${user.id} from employee ${employeeId}.`,
     );
-    return targetRoleName
-      ? { kind: 'assigned', userId: user.id, roleName: targetRoleName }
-      : { kind: 'cleared', userId: user.id };
+    return { kind: 'assigned', userId: user.id, roleName: targetRoleName };
   }
 
   private resolveTargetIdentityRoleName(rbacLevelName: string | null): string | null {

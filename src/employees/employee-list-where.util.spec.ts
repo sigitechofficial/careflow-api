@@ -30,3 +30,43 @@ describe('buildEmployeeListWhere search', () => {
     expect(wherePersonal.OR).toBeUndefined();
   });
 });
+
+describe('buildEmployeeListWhere branch scope and staff not assigned to a branch yet', () => {
+  it('without a branch limit lists everyone, including staff with no employment details', async () => {
+    const { listWhere } = await buildEmployeeListWhere(prisma, {});
+    expect(listWhere.OR).toEqual([{ employment: null }, { employment: { is: { deletedAt: null } } }]);
+  });
+
+  it('a branch-limited list without creator ids only lists staff at those branches', async () => {
+    const { listWhere } = await buildEmployeeListWhere(prisma, { locationIds: ['loc-a'] });
+    expect(listWhere.OR).toBeUndefined();
+    expect(listWhere.employment).toEqual({ is: expect.objectContaining({ deletedAt: null }) });
+  });
+
+  it('a branch-limited list also includes unassigned staff added by the given office users only', async () => {
+    const { listWhere } = await buildEmployeeListWhere(
+      prisma,
+      { locationIds: ['loc-a'] },
+      { unassignedStaffCreatorIds: ['u-manager-a'] },
+    );
+    const or = listWhere.OR as Array<Record<string, unknown>>;
+    expect(or).toHaveLength(2);
+    expect(or[0]).toEqual({ employment: { is: expect.objectContaining({ deletedAt: null }) } });
+    const unassigned = or[1].AND as Array<Record<string, unknown>>;
+    expect(unassigned).toContainEqual({ createdById: { in: ['u-manager-a'] } });
+    expect(JSON.stringify(unassigned[0])).toContain('"employment":null');
+    expect(JSON.stringify(unassigned[0])).toContain('"baseLocationId":null');
+  });
+
+  it('applies role / job filters to unassigned staff too (no unfiltered leak)', async () => {
+    const { listWhere } = await buildEmployeeListWhere(
+      prisma,
+      { locationIds: ['loc-a'], roleIds: ['role-carer'] },
+      { unassignedStaffCreatorIds: ['u-manager-a'] },
+    );
+    const unassigned = (listWhere.OR as Array<{ AND?: unknown[] }>)[1].AND!;
+    expect(unassigned).toContainEqual({
+      employment: { is: { deletedAt: null, roleId: { in: ['role-carer'] } } },
+    });
+  });
+});

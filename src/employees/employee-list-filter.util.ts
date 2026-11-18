@@ -12,9 +12,33 @@ export function normalizeEmployeeListUuidIds(
   return ids.size ? [...ids] : undefined;
 }
 
+/**
+ * Prisma `Employee` where for staff who are not tied to any branch yet: no employment row, or an
+ * employment with no branch, no base branch, no extra branches and not "all branches".
+ */
+export const UNASSIGNED_TO_BRANCH_EMPLOYEE_WHERE = {
+  OR: [
+    { employment: null },
+    {
+      employment: {
+        is: {
+          locationId: null,
+          baseLocationId: null,
+          accessAllZones: false,
+          floorLocations: { none: {} },
+        },
+      },
+    },
+  ],
+};
+
 export function buildEmployeeListEmploymentWhere(query: EmployeeQueryDto): {
   whereEmployment: Record<string, unknown>;
   hasEmploymentFilters: boolean;
+  /** Same employment filters without the branch clause (role, job title, grade, …). */
+  whereEmploymentWithoutBranch: Record<string, unknown>;
+  /** True when any non-branch employment filter is set. */
+  hasNonBranchEmploymentFilters: boolean;
 } {
   const whereEmployment: Record<string, unknown> = { deletedAt: null };
 
@@ -35,11 +59,14 @@ export function buildEmployeeListEmploymentWhere(query: EmployeeQueryDto): {
   if (visaTypeIds?.length) whereEmployment.visaTypeId = { in: visaTypeIds };
   if (query.isInCountry !== undefined) whereEmployment.isInCountry = query.isInCountry;
 
+  const whereEmploymentWithoutBranch = { ...whereEmployment };
+
   if (locationIds?.length) {
     const locationClause = {
       OR: [
         { accessAllZones: true },
         { locationId: { in: locationIds } },
+        { baseLocationId: { in: locationIds } },
         { floorLocations: { some: { locationId: { in: locationIds } } } },
       ],
     };
@@ -60,5 +87,19 @@ export function buildEmployeeListEmploymentWhere(query: EmployeeQueryDto): {
       query.branchScopeKinds?.length,
   );
 
-  return { whereEmployment, hasEmploymentFilters };
+  const hasNonBranchEmploymentFilters = Boolean(
+    roleIds?.length ||
+      jobTitleIds?.length ||
+      gradeIds?.length ||
+      contractTypeIds?.length ||
+      visaTypeIds?.length ||
+      query.isInCountry !== undefined,
+  );
+
+  return {
+    whereEmployment,
+    hasEmploymentFilters,
+    whereEmploymentWithoutBranch,
+    hasNonBranchEmploymentFilters,
+  };
 }
