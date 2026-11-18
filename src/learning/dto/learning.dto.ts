@@ -1444,6 +1444,68 @@ export class RecordOutcomeDto {
   policyVersionId?: string;
 }
 
+/** One checklist point of a practical test (17 Nov 2026). */
+export class PracticalCriterionResultDto {
+  @ApiProperty()
+  @IsString()
+  @MaxLength(500)
+  criterion!: string;
+
+  @ApiProperty()
+  @IsBoolean()
+  met!: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  comment?: string;
+}
+
+/**
+ * Practical test sign-off (17 Nov 2026): whoever is logged in to the admin with
+ * learning.assignments.manage watches the carer and fills the checklist. One step.
+ */
+export class PracticalSignoffDto {
+  @ApiProperty({ description: 'Date the carer was observed (YYYY-MM-DD)' })
+  @IsDateString()
+  assessmentDate!: string;
+
+  @ApiPropertyOptional({ description: 'Where / how it was observed' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  location?: string;
+
+  @ApiProperty({ type: [PracticalCriterionResultDto] })
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PracticalCriterionResultDto)
+  results!: PracticalCriterionResultDto[];
+
+  @ApiProperty({ description: 'Competent (pass) or not yet competent (fail)' })
+  @IsBoolean()
+  competent!: boolean;
+
+  @ApiPropertyOptional({ description: 'Required (3+ chars) when not competent' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  note?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  nextSteps?: string;
+
+  @ApiPropertyOptional({ description: 'Not competent: give the course again with this due date' })
+  @IsOptional()
+  @Transform(toIsoDateTime)
+  @IsDateString()
+  reassignDueAt?: string;
+}
+
 /** Face to face: the office marks lessons done (16 Nov 2026). Empty lessonIds = all lessons. */
 export class MarkLessonsDto {
   @ApiPropertyOptional({ type: [String] })

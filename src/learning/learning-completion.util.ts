@@ -27,9 +27,12 @@ export function courseNeedsManagerOutcome(
   return deliveryMethod === 'FACE_TO_FACE' || deliveryMethod === 'WORKPLACE';
 }
 
-/** Face to face: the trainer / office marks the lessons, not the carer (16 Nov 2026). */
+/**
+ * Face to face and workplace: the trainer / office marks the lessons, not the carer
+ * (16 Nov 2026; workplace added 17 Nov 2026).
+ */
 export function trainerMarksLessons(deliveryMethod: string | null | undefined): boolean {
-  return deliveryMethod === 'FACE_TO_FACE';
+  return deliveryMethod === 'FACE_TO_FACE' || deliveryMethod === 'WORKPLACE';
 }
 
 /**
