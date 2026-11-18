@@ -93,6 +93,23 @@ export class LearningPushService {
     );
   }
 
+  /** Office changed the due date of a course that is still open (18 Nov 2026). */
+  async dueDateChanged(params: {
+    employeeId: string;
+    assignmentId: string;
+    courseTitle: string;
+    dueAt: Date;
+  }) {
+    const display = await loadNotificationDisplay(this.prisma);
+    await this.send(
+      params.employeeId,
+      params.assignmentId,
+      'New due date',
+      `"${params.courseTitle}" is now due ${formatNotificationDate(params.dueAt, display)}.`,
+      'training-due',
+    );
+  }
+
   async outcome(params: {
     employeeId: string;
     assignmentId: string;

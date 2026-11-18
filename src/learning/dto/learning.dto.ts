@@ -823,6 +823,30 @@ export class CancelAssignmentDto {
   cancellationReason!: string;
 }
 
+/** Edit an open assignment before its due date (18 Nov 2026). Course and carer only before it is started. */
+export class UpdateAssignmentDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  courseId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUUID()
+  employeeId?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsDateString()
+  dueAt?: string;
+
+  @ApiPropertyOptional({ description: 'Why it was changed (optional)' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
+}
+
 export class ExtendDueDateDto {
   @ApiProperty()
   @IsDateString()

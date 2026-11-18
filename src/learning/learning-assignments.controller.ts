@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -16,6 +16,7 @@ import {
   LearningAssignmentListQueryDto,
   LearningListQueryDto,
   ReassignAssignmentDto,
+  UpdateAssignmentDto,
 } from './dto/learning.dto';
 import { LearningAssignmentsService } from './learning-assignments.service';
 
@@ -69,16 +70,28 @@ export class LearningAssignmentsController {
     return this.service.getById(id);
   }
 
+  @Patch(':id')
+  @Permissions('learning.assignments.manage')
+  @ApiOperation({ summary: 'Edit an open assignment before its due date (course and carer only before it is started)' })
+  update(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateAssignmentDto,
+    @Req() req: Request,
+  ) {
+    return this.service.update(id, user.id, dto, getRequestAuditMeta(req));
+  }
+
   @Post(':id/cancel')
   @Permissions('learning.assignments.manage')
-  @ApiOperation({ summary: 'Cancel assignment' })
+  @ApiOperation({ summary: 'Unassign an open course before its due date (kept as Cancelled)' })
   cancel(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: CancelAssignmentDto,
     @Req() req: Request,
   ) {
-    return this.service.cancel(id, user.id, dto, getRequestAuditMeta(req));
+    return this.service.unassign(id, user.id, dto, getRequestAuditMeta(req));
   }
 
   @Post(':id/exempt')
