@@ -67,9 +67,10 @@ export class LookupsService implements OnModuleInit {
   async onModuleInit() {
     try {
       for (const name of DEFAULT_JOB_TITLES) {
+        // Only add missing titles: one a manager switched off stays off.
         await this.prisma.jobTitle.upsert({
           where: { name },
-          update: { isActive: true, deletedAt: null },
+          update: {},
           create: { name, isActive: true },
         });
       }

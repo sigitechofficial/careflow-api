@@ -161,7 +161,6 @@ async function main() {
     await upsertLookup(prisma.visitStatusReason, name);
 
   for (const name of [
-    'Grade1',
     'Grade 1',
     'Grade 2',
     'Grade 3',
