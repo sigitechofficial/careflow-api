@@ -24,6 +24,7 @@ import { EmployeesModule } from './employees/employees.module';
 import { EmployeePersonalDetailsModule } from './employee-personal-details/employee-personal-details.module';
 import { EmployeeEmergencyContactsModule } from './employee-emergency-contacts/employee-emergency-contacts.module';
 import { EmployeeEmploymentModule } from './employee-employment/employee-employment.module';
+import { StaffAccessModule } from './staff-access/staff-access.module';
 import { EmployeeSkillsModule } from './employee-skills/employee-skills.module';
 import { EmployeeCertificationsModule } from './employee-certifications/employee-certifications.module';
 import { EmployeeDocumentsModule } from './employee-documents/employee-documents.module';
@@ -112,6 +113,7 @@ import { ScheduleFiltersModule } from './schedule-filters/schedule-filters.modul
 import { ScheduledJobsHousekeepingModule } from './scheduled-jobs-housekeeping/scheduled-jobs-housekeeping.module';
 import { CallOffVisitsModule } from './call-off-visits/call-off-visits.module';
 import { ScheduleReportsModule } from './schedule-reports/schedule-reports.module';
+import { AddressLookupModule } from './address-lookup/address-lookup.module';
 import { CompanyProfileModule } from './company-profile/company-profile.module';
 import { OrganisationGeneralSettingsModule } from './organisation-general-settings/organisation-general-settings.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -191,6 +193,7 @@ import { JobsModule } from './jobs/jobs.module';
     EmployeePersonalDetailsModule,
     EmployeeEmergencyContactsModule,
     EmployeeEmploymentModule,
+    StaffAccessModule,
     EmployeeSkillsModule,
     EmployeeCertificationsModule,
     EmployeeDocumentsModule,
@@ -280,6 +283,7 @@ import { JobsModule } from './jobs/jobs.module';
     CallOffVisitsModule,
     ScheduleReportsModule,
     CompanyProfileModule,
+    AddressLookupModule,
     OrganisationGeneralSettingsModule,
     DashboardModule,
     LocationManagementModule,

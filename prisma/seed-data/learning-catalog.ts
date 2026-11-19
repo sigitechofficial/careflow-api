@@ -41,68 +41,87 @@ export type LearningCourseSeed = {
   acknowledgementText?: string;
 };
 
+/**
+ * Learning categories only organise courses. Mandatory status and renewal
+ * periods live on each course (isMandatory, certificateValidityDays,
+ * refresherFrequencyDays), never on the category.
+ * Topics follow the Care Certificate standards (2025) and the Skills for Care
+ * statutory and mandatory training guide (Dec 2025).
+ */
 export const LEARNING_CATEGORY_CATALOG: LearningCategorySeed[] = [
   {
-    code: 'MANDATORY',
-    name: 'Mandatory Training',
-    description: 'Core statutory and mandatory training required for care workers.',
+    code: 'CORE_CARE',
+    name: 'Core Care & Person-Centred Practice',
+    description: 'Personal care, communication, dignity and privacy, nutrition and hydration, equality and diversity, mental capacity (Care Certificate standards 4–8).',
     displayOrder: 10,
   },
   {
-    code: 'CARE_CERTIFICATE',
-    name: 'Care Certificate',
-    description: 'Care Certificate standards and induction learning for new starters.',
+    code: 'SAFEGUARDING',
+    name: 'Safeguarding & Protection',
+    description: 'Safeguarding adults and children (Care Certificate standards 10–11).',
     displayOrder: 20,
   },
   {
-    code: 'SAFEGUARDING',
-    name: 'Safeguarding',
-    description: 'Adult and child safeguarding, MCA, DoLS and related protection training.',
-    displayOrder: 30,
-  },
-  {
-    code: 'MEDICATION',
-    name: 'Medication',
-    description: 'Medication awareness, administration and competency-related learning.',
-    displayOrder: 40,
-  },
-  {
     code: 'HEALTH_SAFETY',
-    name: 'Health & Safety',
-    description: 'Workplace health and safety, fire, food hygiene and infection control.',
-    displayOrder: 50,
+    name: 'Health, Safety & Infection Control',
+    description: 'Health and safety, fire safety, infection prevention and control, food hygiene, lone working.',
+    displayOrder: 30,
   },
   {
     code: 'MOVING_HANDLING',
     name: 'Moving & Handling',
-    description: 'Manual handling, hoisting and practical mobility support training.',
-    displayOrder: 60,
+    description: 'Moving and handling objects, assisting and moving people, hoists.',
+    displayOrder: 40,
   },
   {
-    code: 'CLINICAL',
-    name: 'Clinical Skills',
-    description: 'Clinical awareness topics commonly required in domiciliary and residential care.',
-    displayOrder: 70,
+    code: 'MEDICATION',
+    name: 'Medication Management',
+    description: 'Medication administration, eMAR recording and medication competency.',
+    displayOrder: 50,
+  },
+  {
+    code: 'FIRST_AID',
+    name: 'First Aid & Emergency Response',
+    description: 'Basic life support and first aid (Care Certificate standard 12).',
+    displayOrder: 60,
   },
   {
     code: 'DEMENTIA_MH',
     name: 'Dementia & Mental Health',
-    description: 'Dementia, mental health awareness and person-centred support approaches.',
+    description: 'Dementia awareness and mental health support (Care Certificate standard 9).',
+    displayOrder: 70,
+  },
+  {
+    code: 'LD_AUTISM',
+    name: 'Learning Disability & Autism',
+    description: 'Learning disability and autism training, e.g. Oliver McGowan (Health and Care Act 2022 s.181; Care Certificate standard 16).',
     displayOrder: 80,
   },
   {
-    code: 'POLICIES',
-    name: 'Policies & Governance',
-    description: 'Organisation policies, GDPR, code of conduct and whistleblowing.',
+    code: 'CLINICAL',
+    name: 'Clinical & Specialist Care',
+    description: 'Specific conditions and health needs, e.g. diabetes, epilepsy, pressure care, falls, end of life.',
     displayOrder: 90,
   },
   {
-    code: 'INDUCTION',
-    name: 'Induction',
-    description: 'New starter induction pathways and organisation orientation.',
+    code: 'PROFESSIONAL',
+    name: 'Professional Practice, Information & Governance',
+    description: 'Own role, duty of care, personal development, handling information and GDPR, code of conduct, whistleblowing (Care Certificate standards 1–3, 14).',
     displayOrder: 100,
   },
+  {
+    code: 'INDUCTION',
+    name: 'Induction & Onboarding',
+    description: 'New starter induction and onboarding. The Care Certificate itself is a 16-standard programme, best run as a pathway.',
+    displayOrder: 110,
+  },
 ];
+
+/**
+ * Category codes from the earlier list. Re-running the seed switches these off
+ * (isActive = false, not deleted) once their courses have moved.
+ */
+export const RETIRED_LEARNING_CATEGORY_CODES = ['MANDATORY', 'CARE_CERTIFICATE', 'POLICIES'] as const;
 
 export const LEARNING_COURSE_CATALOG: LearningCourseSeed[] = [
   {
@@ -163,7 +182,7 @@ export const LEARNING_COURSE_CATALOG: LearningCourseSeed[] = [
   },
   {
     code: 'MCA_DOLS',
-    categoryCode: 'SAFEGUARDING',
+    categoryCode: 'CORE_CARE',
     title: 'Mental Capacity Act & DoLS',
     shortDescription: 'Apply the MCA principles and understand deprivation of liberty safeguards.',
     description:
@@ -275,7 +294,7 @@ export const LEARNING_COURSE_CATALOG: LearningCourseSeed[] = [
   },
   {
     code: 'BASIC_LIFE_SUPPORT',
-    categoryCode: 'MANDATORY',
+    categoryCode: 'FIRST_AID',
     title: 'Basic Life Support',
     shortDescription: 'Adult basic life support and emergency response essentials.',
     description:
@@ -415,7 +434,7 @@ export const LEARNING_COURSE_CATALOG: LearningCourseSeed[] = [
   },
   {
     code: 'EQUALITY_DIVERSITY',
-    categoryCode: 'MANDATORY',
+    categoryCode: 'CORE_CARE',
     title: 'Equality, Diversity and Inclusion',
     shortDescription: 'Promote equality and challenge discrimination in care.',
     description:
@@ -443,7 +462,7 @@ export const LEARNING_COURSE_CATALOG: LearningCourseSeed[] = [
   },
   {
     code: 'GDPR_INFO_GOV',
-    categoryCode: 'POLICIES',
+    categoryCode: 'PROFESSIONAL',
     title: 'GDPR & Information Governance',
     shortDescription: 'Protect personal data and share information safely.',
     description:
@@ -471,7 +490,7 @@ export const LEARNING_COURSE_CATALOG: LearningCourseSeed[] = [
   },
   {
     code: 'WHISTLEBLOWING',
-    categoryCode: 'POLICIES',
+    categoryCode: 'PROFESSIONAL',
     title: 'Whistleblowing Policy',
     shortDescription: 'How to raise concerns about unsafe or unlawful practice.',
     description:
@@ -501,7 +520,7 @@ export const LEARNING_COURSE_CATALOG: LearningCourseSeed[] = [
   },
   {
     code: 'CODE_OF_CONDUCT',
-    categoryCode: 'POLICIES',
+    categoryCode: 'PROFESSIONAL',
     title: 'Code of Conduct',
     shortDescription: 'Professional behaviours expected of care workers.',
     description:
@@ -727,7 +746,7 @@ export const LEARNING_COURSE_CATALOG: LearningCourseSeed[] = [
   },
   {
     code: 'CARE_CERT_OVERVIEW',
-    categoryCode: 'CARE_CERTIFICATE',
+    categoryCode: 'INDUCTION',
     title: 'Care Certificate Overview',
     shortDescription: 'Introduction to the 15 Care Certificate standards.',
     description:
@@ -862,7 +881,7 @@ export const LEARNING_COMPETENCY_CATALOG: LearningCompetencySeed[] = [
   },
   {
     code: 'BLS_COMP',
-    categoryCode: 'MANDATORY',
+    categoryCode: 'FIRST_AID',
     name: 'Basic Life Support Practical',
     description: 'Practical CPR and emergency response competence.',
     validityDays: 365,

@@ -18,10 +18,13 @@ import * as nodemailer from 'nodemailer';
 import type { Transporter } from 'nodemailer';
 import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 
+import { inlineImagesFor } from './inline-email-images';
 export type MailAttachment = {
   filename: string;
   content: string | Buffer;
   contentType?: string;
+  /** Set for an image shown inside the email (the HTML refers to it as src="cid:<contentId>"). */
+  contentId?: string;
 };
 
 export type SendMailInput = {
@@ -142,9 +145,18 @@ export class MailService {
       textbody: input.text,
     };
 
-    if (input.attachments?.length) {
-      body.attachments = input.attachments.map((a) => ({
+    const files = (input.attachments ?? []).filter((a) => !a.contentId);
+    const inlineImages = (input.attachments ?? []).filter((a) => a.contentId);
+    if (files.length) {
+      body.attachments = files.map((a) => ({
         name: a.filename,
+        content: toBase64(a.content),
+        mime_type: a.contentType ?? 'application/octet-stream',
+      }));
+    }
+    if (inlineImages.length) {
+      body.inline_images = inlineImages.map((a) => ({
+        cid: a.contentId,
         content: toBase64(a.content),
         mime_type: a.contentType ?? 'application/octet-stream',
       }));
@@ -235,6 +247,7 @@ export class MailService {
         name: a.filename,
         contentType: a.contentType ?? 'application/octet-stream',
         contentInBase64: toBase64(a.content),
+        ...(a.contentId ? { contentId: a.contentId } : {}),
       })),
     };
 
@@ -339,8 +352,15 @@ export class MailService {
   }
 
   private async deliver(
-    input: SendMailInput,
+    rawInput: SendMailInput,
   ): Promise<{ messageId: string; mode: MailSendMode }> {
+    // Bundled images the HTML refers to (src="cid:…") travel inside the email, so they show in every inbox.
+    const inline = inlineImagesFor(rawInput.html).filter(
+      (img) => !(rawInput.attachments ?? []).some((a) => a.contentId === img.contentId),
+    );
+    let input: SendMailInput = inline.length
+      ? { ...rawInput, attachments: [...(rawInput.attachments ?? []), ...inline] }
+      : rawInput;
     const mode = this.config.get<MailSendMode>('mail.mode', 'log');
     const redirectTo = this.config.get<string | undefined>('mail.redirectTo');
     if (redirectTo) {
@@ -391,6 +411,7 @@ export class MailService {
         filename: a.filename,
         content: a.content,
         contentType: a.contentType,
+        ...(a.contentId ? { cid: a.contentId } : {}),
       })),
     });
     return { messageId: String(info.messageId ?? ''), mode: 'smtp' };

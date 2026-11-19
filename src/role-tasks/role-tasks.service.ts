@@ -353,6 +353,12 @@ export class RoleTasksService {
       );
     }
 
+    // Learning tasks close themselves when the work is done in Learning (18 Nov 2026), so they
+    // are never marked done or reopened from the task list.
+    if (task.sourceType?.startsWith('LEARNING_') && (dto.status === RoleTaskStatus.DONE || task.status === RoleTaskStatus.DONE)) {
+      throw new BadRequestException('This Learning task closes itself when the work is done in Learning (Open page).');
+    }
+
     const now = new Date();
     const data: Prisma.RoleTaskUpdateInput = { status: dto.status };
     if (dto.note !== undefined) data.note = dto.note?.trim() || null;

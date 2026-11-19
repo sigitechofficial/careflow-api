@@ -18,6 +18,8 @@ export type SupervisionReminderSummary = {
   reviewsChecked: number;
   sent: number;
   alreadySent: number;
+  /** Due before the person was added to CareFlow (e.g. staff with an older start date): recorded by the office, not chased. */
+  beforeAdded: number;
   skippedBooked: number;
   noRecipients: number;
   failed: number;
@@ -27,6 +29,8 @@ type Candidate = ReviewDue;
 
 type CarerInfo = {
   label: string;
+  /** When the person was added to CareFlow: anything due before then is past history, not a reminder. */
+  addedAt: Date;
   locationId: string | null;
   supervisor: { id: string; email: string } | null;
 };
@@ -65,6 +69,7 @@ export class SupervisionRemindersService {
       reviewsChecked: 0,
       sent: 0,
       alreadySent: 0,
+      beforeAdded: 0,
       skippedBooked: 0,
       noRecipients: 0,
       failed: 0,
@@ -89,6 +94,12 @@ export class SupervisionRemindersService {
       const carer = carers.get(c.employeeId);
       if (!carer) continue;
       const dueIso = c.nextDue.toISOString().slice(0, 10);
+      // Someone added with an earlier start date has years of reviews "due" before CareFlow knew them: those are
+      // recorded on their record by the office, never sent as reminders (they were arriving as "overdue by 1,700 days").
+      if (dueIso < carer.addedAt.toISOString().slice(0, 10)) {
+        summary.beforeAdded += 1;
+        continue;
+      }
       const bookedAt = booked.get(`${c.employeeId}:${c.reviewTypeId}`) ?? null;
       for (const reminder of remindersDue(daysUntil(dueIso, today), settings)) {
         if (reminder.beforeDue && bookedAt && bookedAt.toISOString().slice(0, 10) <= dueIso) {
@@ -104,7 +115,8 @@ export class SupervisionRemindersService {
           continue;
         }
         const outcome = await this.deliver(c, carer, reminder, [...staff], audience.carer, bookedAt, settings, timeZone);
-        summary[outcome] += 1;
+        if (outcome === 'reachedNobody') summary.noRecipients += 1;
+        else summary[outcome] += 1;
       }
     }
     this.logger.log(
@@ -119,6 +131,7 @@ export class SupervisionRemindersService {
       where: { id: { in: employeeIds } },
       select: {
         id: true,
+        createdAt: true,
         personalDetail: { select: { firstName: true, lastName: true, username: true } },
         employment: {
           select: {
@@ -139,6 +152,7 @@ export class SupervisionRemindersService {
       const sup = e.employment?.supervisor;
       map.set(e.id, {
         label: `${name} (${ref})`,
+        addedAt: e.createdAt,
         locationId: e.employment?.locationId ?? e.employment?.baseLocationId ?? null,
         supervisor: sup && sup.isActive && !sup.deletedAt ? { id: sup.id, email: sup.email } : null,
       });
@@ -180,7 +194,7 @@ export class SupervisionRemindersService {
     bookedAt: Date | null,
     settings: SupervisionSettings,
     timeZone: string,
-  ): Promise<'sent' | 'alreadySent' | 'failed'> {
+  ): Promise<'sent' | 'alreadySent' | 'failed' | 'reachedNobody'> {
     let logId: string;
     try {
       const log = await this.prisma.supervisionReminderLog.create({
@@ -215,6 +229,8 @@ export class SupervisionRemindersService {
     const optedOut = await this.optedOut(staffUserIds);
     const staff = staffUserIds.filter((id) => !optedOut.has(id));
     let notified: string[] = [];
+    // Only a sending error is worth another try next hour; nobody to reach (no phone signed in, no managers) is not.
+    let sendError = false;
     if (staff.length) {
       try {
         await this.notifications.notifyUsers({
@@ -230,6 +246,7 @@ export class SupervisionRemindersService {
         });
         notified = staff;
       } catch (err) {
+        sendError = true;
         this.logger.warn(`Supervision reminder ${c.employeeId}/${c.reviewTypeId} ${reminder.kind}: in-app failed: ${(err as Error).message}`);
       }
     }
@@ -246,6 +263,7 @@ export class SupervisionRemindersService {
         }, 'supervision-reminders');
         carerPushed = report.sent > 0;
       } catch (err) {
+        sendError = true;
         this.logger.warn(`Supervision reminder ${c.employeeId}/${c.reviewTypeId}: push failed: ${(err as Error).message}`);
       }
     }
@@ -253,8 +271,14 @@ export class SupervisionRemindersService {
     const emailed = settings.emailReminders && staff.length ? await this.email(staff, title, message, href) : false;
 
     if (!notified.length && !carerPushed && !emailed) {
-      await this.prisma.supervisionReminderLog.delete({ where: { id: logId } }).catch(() => undefined);
-      return 'failed';
+      if (sendError) {
+        // Try again next hour.
+        await this.prisma.supervisionReminderLog.delete({ where: { id: logId } }).catch(() => undefined);
+        return 'failed';
+      }
+      // Nobody could get it (no phone signed in to the Care app, no supervisor or managers): keep it as handled, so
+      // the same reminder is not tried, and logged as "not delivered", every hour.
+      return 'reachedNobody';
     }
     await this.prisma.supervisionReminderLog.update({
       where: { id: logId },

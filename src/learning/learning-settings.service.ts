@@ -18,6 +18,7 @@ export class LearningSettingsService {
     allowCourseAccessAfterExpiry: boolean;
     allowCourseRetakeAfterPass: boolean;
     complianceCalculationMode: string;
+    taskRoleId: string | null;
     updatedAt: Date;
   }) {
     return {
@@ -32,6 +33,7 @@ export class LearningSettingsService {
       allowCourseAccessAfterExpiry: row.allowCourseAccessAfterExpiry,
       allowCourseRetakeAfterPass: row.allowCourseRetakeAfterPass,
       complianceCalculationMode: row.complianceCalculationMode,
+      taskRoleId: row.taskRoleId,
       updatedAt: row.updatedAt.toISOString(),
     };
   }
@@ -45,7 +47,13 @@ export class LearningSettingsService {
 
   async get() {
     const row = await this.getOrCreate();
-    return this.map(row);
+    // Roles for "Learning tasks go to" (18 Nov 2026).
+    const roles = await this.prisma.role.findMany({
+      where: { deletedAt: null, isActive: true },
+      select: { id: true, name: true },
+      orderBy: { name: 'asc' },
+    });
+    return { ...this.map(row), taskRoleOptions: roles };
   }
 
   async upsert(userId: string, dto: UpsertLearningSettingsDto) {

@@ -1,3 +1,4 @@
+import { VisitTimelineService } from '../employee-app/visit-timeline.service';
 import { OfficeTestAlertsController } from './office-test-alerts.controller';
 import { OfficeTestAlertsService } from './office-test-alerts.service';
 import { Module, forwardRef } from '@nestjs/common';
@@ -45,6 +46,7 @@ import { VisitCheckInMethodGrantService } from './visit-check-in-method-grant.se
     EcmExceptionsService,
     EcmThresholdLookupsService,
     VisitAreaLockService,
+    VisitTimelineService,
     VisitCheckInMethodGrantService,
     EcmEvaluationService,
     EcmVisitsService,

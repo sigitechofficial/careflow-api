@@ -296,6 +296,7 @@ export class EcmExceptionsService {
         row.kind !== EcmExceptionKind.OUTSIDE_AREA_CHECK_IN_REQUEST &&
         row.kind !== EcmExceptionKind.UNABLE_TO_START &&
         row.kind !== EcmExceptionKind.NFC_TAG_MISMATCH &&
+        row.kind !== EcmExceptionKind.WELFARE_ON_ARRIVAL &&
         !keep.has(row.kind),
     );
     if (stale.length === 0) return;
@@ -405,6 +406,96 @@ export class EcmExceptionsService {
     await this.alerts.applySlaAndAlert({
       exceptionId: exception.id,
       criticality: job?.ecmEvaluation?.criticality ?? 'PRIORITY',
+      notify: true,
+    });
+    return exception;
+  }
+
+  /**
+   * The carer's answers at clock-in were worrying (welfare outcome amber or red, the person not seen, or the
+   * carer asked for a manager to review). One open alert per visit; a later clock-in on the same visit adds to it.
+   */
+  async raiseWelfareOnArrival(params: {
+    scheduledJobId: string;
+    employeeId: string;
+    welfareLabel: string | null;
+    welfareTone: string | null;
+    personSeen: boolean | null;
+    requiresManagerReview: boolean;
+    accessViaKeySafe: boolean | null;
+  }) {
+    const reasons = [
+      params.welfareLabel ? params.welfareLabel : null,
+      params.personSeen === false ? 'Person not seen' : null,
+      params.requiresManagerReview ? 'Needs a manager to review' : null,
+    ].filter((r): r is string => Boolean(r));
+    const title = `Welfare concern on arrival${params.welfareLabel ? ` — ${params.welfareLabel}` : ''}`;
+    const detail = [
+      ...reasons,
+      params.accessViaKeySafe ? 'Got in using the key safe' : null,
+    ].filter(Boolean).join('. ') + '.';
+    const context = {
+      employeeId: params.employeeId,
+      reasonLabel: reasons.join(', '),
+      welfareLabel: params.welfareLabel,
+      welfareTone: params.welfareTone,
+      personSeen: params.personSeen,
+      requiresManagerReview: params.requiresManagerReview,
+    };
+
+    const existing = await this.prisma.ecmException.findFirst({
+      where: {
+        scheduledJobId: params.scheduledJobId,
+        kind: EcmExceptionKind.WELFARE_ON_ARRIVAL,
+        lifecycle: { in: OPEN_LIFECYCLES },
+      },
+      select: { id: true },
+    });
+    if (existing) {
+      return this.prisma.ecmException.update({
+        where: { id: existing.id },
+        data: { title, detail, context: context as Prisma.InputJsonValue },
+        select: { id: true },
+      });
+    }
+
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: params.scheduledJobId, deletedAt: null },
+      select: { ecmEvaluation: { select: { id: true, criticality: true } } },
+    });
+    // A person found on the floor or not seen is urgent whatever the visit's usual criticality.
+    const criticality =
+      params.welfareTone === 'bad' || params.personSeen === false
+        ? 'TIME_CRITICAL'
+        : (job?.ecmEvaluation?.criticality ?? 'PRIORITY');
+    const sla = slaTargetsForCriticality(criticality);
+    const exception = await this.prisma.ecmException.create({
+      data: {
+        scheduledJobId: params.scheduledJobId,
+        ecmVisitEvaluationId: job?.ecmEvaluation?.id ?? null,
+        kind: EcmExceptionKind.WELFARE_ON_ARRIVAL,
+        lifecycle: EcmExceptionLifecycle.DETECTED,
+        title,
+        detail,
+        context: context as Prisma.InputJsonValue,
+        responseTargetMinutes: sla.responseTargetMinutes,
+        escalationDeadlineAt:
+          sla.escalationMinutes > 0
+            ? new Date(Date.now() + sla.escalationMinutes * 60_000)
+            : new Date(),
+      },
+    });
+    await this.audit.append({
+      eventType: EcmAuditEventType.EXCEPTION_DETECTED,
+      scheduledJobId: params.scheduledJobId,
+      ecmExceptionId: exception.id,
+      actorUserId: null,
+      summary: title,
+      detail: context,
+    });
+    await this.alerts.applySlaAndAlert({
+      exceptionId: exception.id,
+      criticality,
       notify: true,
     });
     return exception;
@@ -551,11 +642,21 @@ export class EcmExceptionsService {
     } as const;
     // Every visit's LEFT_VISIT_AREA card must appear — do not let the page
     // limit hide a later same-day lock behind older exceptions.
-    const [sosRows, areaRows, mockRows, checkInRequestRows, unableToStartRows, nfcMismatchRows, otherRows] =
+    const [sosRows, welfareRows, areaRows, mockRows, checkInRequestRows, unableToStartRows, nfcMismatchRows, otherRows] =
       await Promise.all([
       this.prisma.ecmException.findMany({
         where: {
           kind: EcmExceptionKind.CARER_SOS,
+          lifecycle: { in: OPEN_LIFECYCLES },
+          ...suWhere,
+        },
+        orderBy: [{ createdAt: 'desc' }],
+        include,
+      }),
+      // A worrying arrival (found on the floor, not seen, manager review asked) is never hidden by the page limit.
+      this.prisma.ecmException.findMany({
+        where: {
+          kind: EcmExceptionKind.WELFARE_ON_ARRIVAL,
           lifecycle: { in: OPEN_LIFECYCLES },
           ...suWhere,
         },
@@ -613,6 +714,7 @@ export class EcmExceptionsService {
           kind: {
             notIn: [
               EcmExceptionKind.CARER_SOS,
+              EcmExceptionKind.WELFARE_ON_ARRIVAL,
               EcmExceptionKind.LEFT_VISIT_AREA,
               EcmExceptionKind.MOCK_LOCATION,
               EcmExceptionKind.OUTSIDE_AREA_CHECK_IN_REQUEST,
@@ -631,6 +733,7 @@ export class EcmExceptionsService {
     const reservedIds = new Set(
       [
         ...sosRows,
+        ...welfareRows,
         ...areaRows,
         ...mockRows,
         ...checkInRequestRows,
@@ -642,6 +745,7 @@ export class EcmExceptionsService {
     );
     const rows = [
       ...sosRows,
+      ...welfareRows,
       ...areaRows,
       ...mockRows,
       ...checkInRequestRows,

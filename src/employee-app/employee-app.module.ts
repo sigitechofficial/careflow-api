@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { EmployeesModule } from '../employees/employees.module';
+import { AuthModule } from '../auth/auth.module';
 import { AuditLogsModule } from '../audit-logs/audit-logs.module';
 import { BillingModule } from '../billing/billing.module';
 import { ServiceUserObservationsModule } from '../service-user-observations/service-user-observations.module';
@@ -43,6 +44,7 @@ import { EmployeeAppPoliciesController } from './employee-app-policies.controlle
 @Module({
   imports: [
     EmployeesModule,
+    AuthModule,
     AuditLogsModule,
     BillingModule,
     ServiceUserObservationsModule,

@@ -3850,9 +3850,14 @@ export class IncidentsService {
       select: { id: true, title: true, code: true },
     });
     const byId = new Map(courses.map((c) => [c.id, c]));
+    const learningById = await this.courseLearningStatus(
+      rows.map((r) => r.learningAssignmentId).filter((id): id is string => !!id),
+    );
     return rows.map((row) => {
       const course = byId.get(row.courseId);
       return {
+        // Live state of the carer's learning assignment (17 Nov 2026).
+        learning: row.learningAssignmentId ? (learningById.get(row.learningAssignmentId) ?? null) : null,
         id: row.id,
         incidentId: row.incidentId,
         employeeId: row.employeeId,
@@ -3866,6 +3871,64 @@ export class IncidentsService {
         createdAt: row.createdAt.toISOString(),
       };
     });
+  }
+
+  /** Status, lessons done, best quiz score and certificate for each learning assignment. */
+  private async courseLearningStatus(assignmentIds: string[]) {
+    const out = new Map<
+      string,
+      {
+        status: string;
+        dueAt: string | null;
+        completedAt: string | null;
+        lessonsDone: number;
+        lessonsTotal: number;
+        quizPercent: number | null;
+        certificateNumber: string | null;
+      }
+    >();
+    if (!assignmentIds.length) return out;
+    const [assignments, attempts, certificates] = await Promise.all([
+      this.prisma.learningAssignment.findMany({
+        where: { id: { in: assignmentIds } },
+        select: {
+          id: true,
+          status: true,
+          dueAt: true,
+          completedAt: true,
+          progress: { select: { completedContentItems: true, totalRequiredContentItems: true } },
+        },
+      }),
+      this.prisma.learningAssessmentAttempt.findMany({
+        where: { assignmentId: { in: assignmentIds }, submittedAt: { not: null } },
+        select: { assignmentId: true, percentage: true },
+      }),
+      this.prisma.learningCertificate.findMany({
+        where: { assignmentId: { in: assignmentIds } },
+        orderBy: { issuedAt: 'desc' },
+        select: { assignmentId: true, certificateNumber: true },
+      }),
+    ]);
+    const best = new Map<string, number>();
+    for (const a of attempts) {
+      if (a.percentage == null) continue;
+      const v = Math.round(Number(a.percentage));
+      best.set(a.assignmentId, Math.max(best.get(a.assignmentId) ?? 0, v));
+    }
+    const cert = new Map<string, string>();
+    for (const c of certificates) if (c.assignmentId && !cert.has(c.assignmentId)) cert.set(c.assignmentId, c.certificateNumber);
+    for (const a of assignments) {
+      out.set(a.id, {
+        status: a.status,
+        dueAt: a.dueAt?.toISOString() ?? null,
+        completedAt: a.completedAt?.toISOString() ?? null,
+        lessonsDone: a.progress?.completedContentItems ?? 0,
+        lessonsTotal: a.progress?.totalRequiredContentItems ?? 0,
+        quizPercent: best.get(a.id) ?? null,
+        certificateNumber: cert.get(a.id) ?? null,
+      });
+    }
+    return out;
   }
 
   // ---------------------------------------------------------------------------
@@ -5301,7 +5364,7 @@ export class IncidentsService {
   private async managerUserIds(): Promise<string[]> {
     const roles = await this.prisma.role.findMany({
       where: {
-        name: { in: ['Admin', 'Manager', 'Care Coordinator'] },
+        name: { in: ['Admin', 'Manager', 'Care Coordinator', 'Super Admin'] },
         deletedAt: null,
       },
       select: { id: true },
@@ -5312,6 +5375,44 @@ export class IncidentsService {
       select: { userId: true },
     });
     return [...new Set(links.map((l) => l.userId))];
+  }
+
+  /** Names shown on the new-incident notification (person, site, subtype). */
+  private async incidentNotificationDetails(incident: IncidentWithRefs): Promise<{
+    personName: string | null;
+    locationName: string | null;
+    subtypeLabel: string | null;
+  }> {
+    let personName: string | null = null;
+    if (incident.primaryServiceUserId) {
+      const su = await this.prisma.serviceUser.findFirst({
+        where: { id: incident.primaryServiceUserId },
+        select: { firstName: true, lastName: true, preferredName: true },
+      });
+      personName =
+        su?.preferredName?.trim() ||
+        [su?.firstName, su?.lastName].filter(Boolean).join(' ').trim() ||
+        null;
+    } else if (incident.primaryEmployeeId) {
+      const pd = await this.prisma.employeePersonalDetail.findFirst({
+        where: { employeeId: incident.primaryEmployeeId },
+        select: { firstName: true, lastName: true },
+      });
+      personName = pd ? `${pd.firstName} ${pd.lastName}`.trim() : null;
+    } else if (incident.primaryPersonName?.trim()) {
+      personName = incident.primaryPersonName.trim();
+    }
+    const location = incident.locationId
+      ? await this.prisma.location.findUnique({
+          where: { id: incident.locationId },
+          select: { name: true },
+        })
+      : null;
+    return {
+      personName,
+      locationName: location?.name ?? null,
+      subtypeLabel: incident.subtype?.label ?? null,
+    };
   }
 
   /** `reporterId` is a platform User id, or null for carer-app reports (no User row). */
@@ -5327,15 +5428,16 @@ export class IncidentsService {
       HIGH: NotificationSeverity.ERROR,
       CRITICAL: NotificationSeverity.CRITICAL,
     };
+    const details = await this.incidentNotificationDetails(incident);
+    // Confidential details stay inside the permission-checked incident record.
+    const normal = incident.privacyLevel === IncidentPrivacyLevel.NORMAL;
     await this.notifications.notifyUsers({
       recipientUserIds: recipients,
       type: NotificationType.INCIDENT_REPORTED,
       title: `${incident.category.label} reported — ${incident.referenceNumber}`,
-      // Confidential details stay inside the permission-checked incident record.
-      message:
-        incident.privacyLevel === IncidentPrivacyLevel.NORMAL
-          ? incident.description.slice(0, 240) || 'A new incident has been reported.'
-          : 'A confidential incident has been reported. Open it to view the details.',
+      message: normal
+        ? incident.description.slice(0, 240) || 'A new incident has been reported.'
+        : 'A confidential incident has been reported. Open it to view the details.',
       module: NotificationModule.SERVICE_CARE,
       severity: severityToNotify[incident.severity],
       recordType: 'Incident',
@@ -5343,7 +5445,12 @@ export class IncidentsService {
       metadata: {
         referenceNumber: incident.referenceNumber,
         severity: incident.severity,
+        severityLabel: INCIDENT_SEVERITY_LABELS[incident.severity],
         categoryKey: incident.category.key,
+        categoryLabel: incident.category.label,
+        subtypeLabel: details.subtypeLabel,
+        locationName: details.locationName,
+        personName: normal ? details.personName : null,
       },
       createdById: reporterId ?? undefined,
     });

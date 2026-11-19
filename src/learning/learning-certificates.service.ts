@@ -13,9 +13,25 @@ import {
   VerifyCertificateDto,
 } from './dto/learning.dto';
 import { LearningSettingsService } from './learning-settings.service';
+import { buildCertificatePdf, type CertificatePdfData } from './learning-certificate-pdf.util';
+import { signedCertificatePdfUrl } from './learning-file.util';
+import { CAREFLOW_LOGO_PNG } from './learning-certificate-logo';
+import { readFile } from 'fs/promises';
+import { safeUploadPath } from '../common/utils/upload-path.util';
+
+const DELIVERY_LABEL: Record<string, string> = {
+  ONLINE: 'Online',
+  FACE_TO_FACE: 'Face to face',
+  VIRTUAL: 'Virtual (live online)',
+  WORKPLACE: 'Workplace assessment',
+  BLENDED: 'Blended',
+};
 
 type CertificateRow = Prisma.LearningCertificateGetPayload<{
-  include: { course: { select: { title: true; code: true; cpdMinutes: true } } };
+  include: {
+    course: { select: { title: true; code: true; cpdMinutes: true } };
+    courseVersion: { select: { titleSnapshot: true; cpdMinutes: true } };
+  };
 }>;
 
 @Injectable()
@@ -28,7 +44,15 @@ export class LearningCertificatesService {
 
   private map(
     row: Prisma.LearningCertificateGetPayload<object> & {
-      course?: { title: string; code: string; cpdMinutes?: number | null } | null;
+      course?: {
+        title: string;
+        code: string;
+        cpdMinutes?: number | null;
+      } | null;
+      courseVersion?: {
+        titleSnapshot: string;
+        cpdMinutes: number | null;
+      } | null;
     },
     extras?: { employeeName?: string | null },
   ) {
@@ -38,9 +62,13 @@ export class LearningCertificatesService {
       employeeName: extras?.employeeName ?? null,
       assignmentId: row.assignmentId,
       courseId: row.courseId,
-      courseTitle: row.course?.title ?? null,
+      // Title and CPD as they were on the version the learner completed.
+      courseTitle:
+        row.courseVersion?.titleSnapshot ?? row.course?.title ?? null,
       courseCode: row.course?.code ?? null,
-      cpdMinutes: row.course?.cpdMinutes ?? null,
+      cpdMinutes: row.courseVersion
+        ? row.courseVersion.cpdMinutes
+        : (row.course?.cpdMinutes ?? null),
       courseVersionId: row.courseVersionId,
       certificateNumber: row.certificateNumber,
       issuedAt: row.issuedAt.toISOString(),
@@ -100,7 +128,15 @@ export class LearningCertificatesService {
       employeeIdsFromSearch = matches.map((e) => e.id);
     }
 
+    const now = new Date();
+    const statusWhere: Prisma.LearningCertificateWhereInput =
+      query.status === 'ACTIVE'
+        ? { status: 'ACTIVE', OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] }
+        : query.status === 'EXPIRED'
+          ? { OR: [{ status: 'EXPIRED' }, { status: 'ACTIVE', expiresAt: { lt: now } }] }
+          : {};
     const where: Prisma.LearningCertificateWhereInput = {
+      ...(query.status ? { AND: [statusWhere] } : {}),
       ...(query.employeeId ? { employeeId: query.employeeId } : {}),
       ...(search
         ? {
@@ -119,7 +155,10 @@ export class LearningCertificatesService {
     const [rows, total] = await Promise.all([
       this.prisma.learningCertificate.findMany({
         where,
-        include: { course: { select: { title: true, code: true, cpdMinutes: true } } },
+        include: {
+          course: { select: { title: true, code: true, cpdMinutes: true } },
+          courseVersion: { select: { titleSnapshot: true, cpdMinutes: true } },
+        },
         orderBy: { issuedAt: 'desc' },
         skip: (page - 1) * limit,
         take: limit,
@@ -136,23 +175,146 @@ export class LearningCertificatesService {
   async getById(id: string) {
     const row = await this.prisma.learningCertificate.findUnique({
       where: { id },
-      include: { course: { select: { title: true, code: true, cpdMinutes: true } } },
+      include: {
+        course: { select: { title: true, code: true, cpdMinutes: true } },
+        courseVersion: { select: { titleSnapshot: true, cpdMinutes: true } },
+      },
     });
     if (!row) throw new NotFoundException('Certificate not found');
     const names = await this.resolveEmployeeNames([row.employeeId]);
     return this.map(row, { employeeName: names.get(row.employeeId) ?? null });
   }
 
+  /** Signed link to the certificate PDF. employeeId set = the carer may only open their own. */
+  async pdfLink(id: string, employeeId?: string) {
+    const row = await this.prisma.learningCertificate.findUnique({
+      where: { id },
+      select: { id: true, employeeId: true },
+    });
+    if (!row || (employeeId && row.employeeId !== employeeId)) {
+      throw new NotFoundException('Certificate not found');
+    }
+    return { url: signedCertificatePdfUrl(row.id) };
+  }
+
+  /** The certificate as a PDF (17 Nov 2026, first design — to be finalised). */
+  async pdf(id: string): Promise<{ buffer: Buffer; fileName: string }> {
+    const data = await this.pdfData(id);
+    const safe = (v: string) => v.replace(/[^A-Za-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    return {
+      buffer: await buildCertificatePdf(data),
+      fileName: `Certificate-${safe(data.carerName)}-${safe(data.courseCode ?? data.courseTitle)}.pdf`,
+    };
+  }
+
+  private async pdfData(id: string): Promise<CertificatePdfData> {
+    const row = await this.prisma.learningCertificate.findUnique({
+      where: { id },
+      include: {
+        course: { select: { title: true, code: true, cpdMinutes: true, deliveryMethod: true } },
+        courseVersion: { select: { titleSnapshot: true, cpdMinutes: true } },
+        assignment: {
+          select: {
+            completedAt: true,
+            reviews: {
+              where: { kind: { in: ['OUTCOME_PASSED', 'OUTCOME_PASSED_AFTER_QUIZ'] } },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              select: { kind: true, createdById: true },
+            },
+            assessmentAttempts: {
+              where: { result: 'PASSED', assessment: { sectionId: null } },
+              select: { percentage: true },
+            },
+            sessionAttendees: {
+              where: { attendanceStatus: 'ATTENDED' },
+              select: { trainingEvent: { select: { trainerName: true } } },
+            },
+          },
+        },
+      },
+    });
+    if (!row) throw new NotFoundException('Certificate not found');
+    const [names, profile] = await Promise.all([
+      this.resolveEmployeeNames([row.employeeId]),
+      this.prisma.companyProfile.findFirst({
+        select: { displayName: true, companyName: true, displayLogoUrl: true, companyLogoUrl: true },
+      }),
+    ]);
+    const outcome = row.assignment?.reviews[0] ?? null;
+    const signerId = outcome?.createdById ?? row.issuedById ?? null;
+    const signer = signerId
+      ? await this.prisma.user.findFirst({ where: { id: signerId }, select: { firstName: true, lastName: true } })
+      : null;
+    const signerName = signer ? [signer.firstName, signer.lastName].filter(Boolean).join(' ').trim() : null;
+    const best = (row.assignment?.assessmentAttempts ?? [])
+      .map((a) => (a.percentage == null ? null : Math.round(Number(a.percentage))))
+      .filter((x): x is number => x != null)
+      .sort((a, b) => b - a)[0];
+    const quizPart = best != null ? `passed the final assessment with ${best}%` : null;
+    const resultLine = outcome
+      ? `Assessed as competent${signerName ? ` by ${signerName}` : ''}${
+          outcome.kind === 'OUTCOME_PASSED_AFTER_QUIZ' && quizPart ? ` and ${quizPart}` : ''
+        }.`
+      : quizPart
+        ? `${quizPart.charAt(0).toUpperCase()}${quizPart.slice(1)}.`
+        : 'Completed all required learning.';
+    const trainer = row.assignment?.sessionAttendees.find((s) => s.trainingEvent?.trainerName)?.trainingEvent
+      ?.trainerName;
+    return {
+      organisationName: profile?.displayName?.trim() || profile?.companyName?.trim() || 'Care provider',
+      // Organisation's own logo when uploaded, otherwise the Careflow app logo (user, 17 Nov 2026).
+      logo:
+        (await this.companyLogo(profile?.displayLogoUrl || profile?.companyLogoUrl || null)) ??
+        CAREFLOW_LOGO_PNG,
+      carerName: names.get(row.employeeId) ?? 'Carer',
+      courseTitle: row.courseVersion?.titleSnapshot || row.course.title,
+      courseCode: row.course.code ?? null,
+      deliveryLabel: row.course.deliveryMethod ? (DELIVERY_LABEL[row.course.deliveryMethod] ?? null) : null,
+      completedAt: row.assignment?.completedAt ?? row.issuedAt,
+      issuedAt: row.issuedAt,
+      expiresAt: row.expiresAt,
+      cpdMinutes: row.courseVersion?.cpdMinutes ?? row.course.cpdMinutes ?? null,
+      resultLine,
+      trainerName: trainer ?? null,
+      signedByName: signerName,
+      signedByRole: outcome ? 'Assessed by' : 'Issued by',
+      certificateNumber: row.certificateNumber,
+      verificationCode: row.verificationCode,
+      status: row.status,
+      revocationReason: row.revocationReason ?? null,
+    };
+  }
+
+  /** Company logo from the uploads folder (PNG or JPEG only; same rule as policy exports). */
+  private async companyLogo(stored: string | null): Promise<Buffer | null> {
+    const path = safeUploadPath(stored);
+    if (!path) return null;
+    try {
+      const data = await readFile(path);
+      const png = data.length > 8 && data.readUInt32BE(0) === 0x89504e47;
+      const jpg = data.length > 2 && data[0] === 0xff && data[1] === 0xd8;
+      return png || jpg ? data : null;
+    } catch {
+      return null;
+    }
+  }
+
   async issueForAssignment(assignmentId: string, tx?: Prisma.TransactionClient) {
     const db = tx ?? this.prisma;
     const assignment = await db.learningAssignment.findUnique({
       where: { id: assignmentId },
-      include: { course: true, progress: true },
+      include: { course: true, progress: { include: { courseVersion: true } } },
     });
     if (!assignment?.employeeId || !assignment.progress) {
       throw new NotFoundException('Assignment not found');
     }
-    if (!assignment.course.certificateEnabled) return null;
+    // Certificate rules come from the learner's version (frozen at publish).
+    const version = assignment.progress.courseVersion;
+    const certificateEnabled = version
+      ? version.certificateEnabled
+      : assignment.course.certificateEnabled;
+    if (!certificateEnabled) return null;
 
     const progress = assignment.progress;
 
@@ -166,7 +328,10 @@ export class LearningCertificatesService {
 
     const settings = await this.settings.getOrCreate();
     const validityDays =
-      assignment.course.certificateValidityDays ?? settings.defaultCertificateValidityDays;
+      (version
+        ? version.certificateValidityDays
+        : assignment.course.certificateValidityDays) ??
+      settings.defaultCertificateValidityDays;
     const expiresAt = validityDays
       ? new Date(Date.now() + validityDays * 86_400_000)
       : null;
@@ -212,7 +377,11 @@ export class LearningCertificatesService {
     if (!course || course.deletedAt) {
       throw new NotFoundException('Course not found');
     }
-    if (course.status !== LearningCourseStatus.PUBLISHED && course.status !== LearningCourseStatus.ARCHIVED) {
+    if (
+      course.status !== LearningCourseStatus.PUBLISHED &&
+      course.status !== LearningCourseStatus.ARCHIVED &&
+      course.status !== LearningCourseStatus.WITHDRAWN
+    ) {
       throw new BadRequestException('Certificate can only be issued for a published or archived course');
     }
 
@@ -276,7 +445,10 @@ export class LearningCertificatesService {
         issuedById: userId,
         issueNotes: dto.issueNotes?.trim() || null,
       },
-      include: { course: { select: { title: true, code: true, cpdMinutes: true } } },
+      include: {
+        course: { select: { title: true, code: true, cpdMinutes: true } },
+        courseVersion: { select: { titleSnapshot: true, cpdMinutes: true } },
+      },
     });
 
     const mapped = this.map(row, { employeeName });
@@ -304,7 +476,10 @@ export class LearningCertificatesService {
         revokedById: userId,
         revocationReason: dto.revocationReason,
       },
-      include: { course: { select: { title: true, code: true, cpdMinutes: true } } },
+      include: {
+        course: { select: { title: true, code: true, cpdMinutes: true } },
+        courseVersion: { select: { titleSnapshot: true, cpdMinutes: true } },
+      },
     });
 
     await this.audit.logAudit({
@@ -325,7 +500,10 @@ export class LearningCertificatesService {
   async verify(dto: VerifyCertificateDto) {
     const row = await this.prisma.learningCertificate.findUnique({
       where: { verificationCode: dto.verificationCode },
-      include: { course: { select: { title: true, code: true, cpdMinutes: true } } },
+      include: {
+        course: { select: { title: true, code: true, cpdMinutes: true } },
+        courseVersion: { select: { titleSnapshot: true, cpdMinutes: true } },
+      },
     });
     if (!row) throw new NotFoundException('Certificate not found');
     const names = await this.resolveEmployeeNames([row.employeeId]);

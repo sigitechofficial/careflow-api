@@ -137,6 +137,7 @@ import {
   type DeliveredCarePlanDetailPayload,
 } from './visit-care-plan-delivery.util';
 
+import { visitPurposeForJob } from '../employee-app/visit-purpose.util';
 const ACTIVE_ALLOCATION: AllocationStatus[] = [
   AllocationStatus.PENDING_CONFIRMATION,
   AllocationStatus.ALLOCATED,
@@ -213,6 +214,16 @@ export class ScheduledJobsHousekeepingService {
    * carer app shows (clock in/out, tasks, medication, observations, visit
    * notes, handovers, concerns, incidents), oldest → newest.
    */
+  async getVisitPurpose(user: RequestUser, jobId: string) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    return { data: await visitPurposeForJob(this.prisma, jobId) };
+  }
+
+  async getPreviousVisitNotes(user: RequestUser, jobId: string) {
+    await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
+    return { data: await this.visitTimeline.previousVisitNotes(jobId) };
+  }
+
   async getVisitTimeline(user: RequestUser, jobId: string) {
     await this.orgScope.assertScheduledJobInScope(this.orgScope.fromRequestUser(user), jobId);
     const job = await this.prisma.scheduledJob.findFirst({
@@ -282,7 +293,9 @@ export class ScheduledJobsHousekeepingService {
       otherVoiceNotes,
       timeline: timeline.map((item) => {
         let next = item;
-        if (item.type === 'clock_in' && item.detail) {
+        // The carer's "Clocked in" row: method only (reasons show on Overview). Other clock-in rows, such as
+        // "On arrival" and office-entered times, keep every line.
+        if (item.type === 'clock_in' && item.detail && item.sourceId.startsWith('check_in:')) {
           const methodOnly = item.detail.split('\n')[0]?.trim() || item.detail;
           next = { ...item, detail: methodOnly, subtitle: methodOnly };
         }
@@ -1534,6 +1547,55 @@ export class ScheduledJobsHousekeepingService {
       } catch {
         // Non-fatal — MANUAL_OFFICE events + officeCompleted option still drive Manual.
       }
+    }
+
+    // The visit Log (and the carer app's visit history) reads the timeline, not the job's own fields, so an
+    // outcome recorded from the visit window adds rows there too: what the office recorded, and their notes.
+    // One row of each per visit: recording again updates them. Only for office staff: the carer app
+    // calls completeJob('') and writes its own clock-out, handover and note rows.
+    if (userId?.trim()) {
+    try {
+      const author = await this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { firstName: true, lastName: true, email: true },
+      });
+      const who = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || author?.email || 'office';
+      const visitId = existing.visits?.[0]?.id ?? null;
+      const outcomeLabel: Record<string, string> = {
+        COMPLETED: 'completed',
+        PARTIALLY_COMPLETED: 'partly completed',
+        MISSED: 'missed',
+        STARTED: 'started',
+        PLANNED: 'planned again',
+      };
+      await this.visitTimeline.upsertEvent({
+        scheduledJobId: id,
+        scheduledVisitId: visitId,
+        eventType: completing || markingMissed ? 'clock_out' : 'clock_in',
+        sourceType: 'complete',
+        sourceId: 'office_outcome',
+        title: `Marked ${outcomeLabel[visitStatus] ?? String(visitStatus).toLowerCase()} by the office (${who})`,
+        detail: 'Recorded from the visit window.',
+        tone: markingMissed ? 'danger' : 'success',
+        occurredAt: new Date(),
+      });
+      const officeNote = dto.notes?.trim();
+      if (officeNote) {
+        await this.visitTimeline.upsertEvent({
+          scheduledJobId: id,
+          scheduledVisitId: visitId,
+          eventType: 'visit_note',
+          sourceType: 'log_note',
+          sourceId: 'office_visit_note',
+          title: `Visit note (office, ${who})`,
+          detail: officeNote,
+          tone: 'ink',
+          occurredAt: new Date(),
+        });
+      }
+    } catch {
+      // The outcome is saved; a Log row failing must not undo it.
+    }
     }
 
     // ECM evaluation is a derived cache — rebuild from workspace after every outcome write.

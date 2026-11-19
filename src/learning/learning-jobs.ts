@@ -8,8 +8,11 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { LearningComplianceService } from './learning-compliance.service';
+import { LearningPushService } from './learning-push.service';
 import { LearningNotificationHook } from './learning-notification.hook';
 import { LearningSettingsService } from './learning-settings.service';
+import { LearningCompletionService } from './learning-completion.service';
+import { LearningTasksService } from './learning-tasks.service';
 import { JobHandler } from '../jobs/job-handler.registry';
 import { JobRunner, runCronTick } from '../jobs/job-runner.service';
 import { jobSkipped, jobSuccess, type JobOutcome } from '../jobs/job-run.types';
@@ -23,6 +26,9 @@ export class LearningJobs {
     private readonly settingsService: LearningSettingsService,
     private readonly complianceService: LearningComplianceService,
     private readonly notifications: LearningNotificationHook,
+    private readonly push: LearningPushService,
+    private readonly completion: LearningCompletionService,
+    private readonly tasks: LearningTasksService,
     @Optional() private readonly jobRunner?: JobRunner,
   ) {}
 
@@ -45,9 +51,14 @@ export class LearningJobs {
     const refresherAssignmentsCreated = await this.createRefresherAssignments();
     const assignmentsMarkedOverdue = await this.markOverdueAssignments();
     const reminders = await this.sendReminders();
+    const progressRecalculated = await this.recalculateOpenProgress();
+    // My tasks: open / close Learning tasks after overdue, expiry and reminders (18 Nov 2026).
+    const tasksChecked = await this.tasks.reconcileAll();
     this.logger.log('Learning daily maintenance completed');
     return jobSuccess({
       certificatesExpired,
+      progressRecalculated,
+      tasksChecked,
       refresherAssignmentsCreated,
       assignmentsMarkedOverdue,
       dueSoonReminders: reminders.dueSoon,
@@ -62,7 +73,7 @@ export class LearningJobs {
         status: LearningCertificateStatus.ACTIVE,
         expiresAt: { lt: now },
       },
-      select: { id: true, employeeId: true, certificateNumber: true },
+      select: { id: true, employeeId: true, certificateNumber: true, course: { select: { title: true } } },
     });
 
     if (expired.length === 0) return 0;
@@ -78,6 +89,16 @@ export class LearningJobs {
         certificateId: cert.id,
         certificateNumber: cert.certificateNumber,
       });
+      try {
+        await this.notifications.notifyManagersCertificateExpired({
+          employeeId: cert.employeeId,
+          certificateId: cert.id,
+          certificateNumber: cert.certificateNumber,
+          courseTitle: cert.course?.title ?? 'Course',
+        });
+      } catch (e) {
+        this.logger.warn(`Expired notice to managers failed for certificate ${cert.id}: ${e instanceof Error ? e.message : e}`);
+      }
     }
     return expired.length;
   }
@@ -91,7 +112,12 @@ export class LearningJobs {
     const certificates = await this.prisma.learningCertificate.findMany({
       where: {
         status: LearningCertificateStatus.EXPIRED,
-        course: { refresherFrequencyDays: { not: null }, deletedAt: null },
+        // No automatic refresher for withdrawn or archived courses (no new assignments).
+        course: {
+          refresherFrequencyDays: { not: null },
+          deletedAt: null,
+          status: { notIn: ['WITHDRAWN', 'ARCHIVED'] },
+        },
       },
       include: {
         course: { select: { id: true, title: true, refresherFrequencyDays: true, currentVersionId: true } },
@@ -150,6 +176,38 @@ export class LearningJobs {
     return created;
   }
 
+  /**
+   * Open courses: bring the stored % in line with the whole-course rule (18 Nov 2026), e.g. after
+   * the rule changed or a course was edited. Only the % changes; never status or started.
+   */
+  private async recalculateOpenProgress(): Promise<number> {
+    const open = await this.prisma.learningAssignment.findMany({
+      where: {
+        status: {
+          in: [
+            LearningAssignmentStatus.ASSIGNED,
+            LearningAssignmentStatus.NOT_STARTED,
+            LearningAssignmentStatus.IN_PROGRESS,
+            LearningAssignmentStatus.AWAITING_ASSESSMENT,
+            LearningAssignmentStatus.AWAITING_APPROVAL,
+            LearningAssignmentStatus.OVERDUE,
+          ],
+        },
+        progress: { isNot: null },
+      },
+      select: { id: true },
+    });
+    let changed = 0;
+    for (const row of open) {
+      try {
+        if (await this.completion.recalculatePercentage(row.id)) changed += 1;
+      } catch (e) {
+        this.logger.warn(`Progress % not recalculated for assignment ${row.id}: ${e instanceof Error ? e.message : e}`);
+      }
+    }
+    return changed;
+  }
+
   private async markOverdueAssignments(): Promise<number> {
     const now = new Date();
     const overdue = await this.prisma.learningAssignment.findMany({
@@ -181,6 +239,18 @@ export class LearningJobs {
           courseTitle: row.course.title,
           eventType: 'OVERDUE',
         });
+        // Sent once: the assignment only becomes OVERDUE once.
+        await this.push.overdue(row.employeeId, row.id, row.course.title);
+        try {
+          await this.notifications.notifyManagersOverdue({
+            employeeId: row.employeeId,
+            assignmentId: row.id,
+            courseTitle: row.course.title,
+            dueAt: row.dueAt,
+          });
+        } catch (e) {
+          this.logger.warn(`Overdue notice to managers failed for assignment ${row.id}: ${e instanceof Error ? e.message : e}`);
+        }
       }
     }
     return overdue.length;
@@ -218,15 +288,32 @@ export class LearningJobs {
         status: LearningCertificateStatus.ACTIVE,
         expiresAt: { gte: now, lte: horizon },
       },
+      include: { course: { select: { title: true } } },
     });
 
+    // Carer and the carer's training managers, each once per certificate (18 Nov 2026).
     for (const cert of expiringCerts) {
-      await this.notifications.notifyCertificateExpiring({
-        employeeId: cert.employeeId,
-        certificateId: cert.id,
-        certificateNumber: cert.certificateNumber,
-        expiresAt: cert.expiresAt!,
-      });
+      try {
+        await this.notifications.notifyCertificateExpiring({
+          employeeId: cert.employeeId,
+          certificateId: cert.id,
+          certificateNumber: cert.certificateNumber,
+          expiresAt: cert.expiresAt!,
+        });
+      } catch (e) {
+        this.logger.warn(`Expiry warning to carer failed for certificate ${cert.id}: ${e instanceof Error ? e.message : e}`);
+      }
+      try {
+        await this.notifications.notifyManagersCertificateExpiring({
+          employeeId: cert.employeeId,
+          certificateId: cert.id,
+          certificateNumber: cert.certificateNumber,
+          courseTitle: cert.course?.title ?? 'Course',
+          expiresAt: cert.expiresAt!,
+        });
+      } catch (e) {
+        this.logger.warn(`Expiry warning to managers failed for certificate ${cert.id}: ${e instanceof Error ? e.message : e}`);
+      }
     }
     return {
       dueSoon: dueSoon.length,

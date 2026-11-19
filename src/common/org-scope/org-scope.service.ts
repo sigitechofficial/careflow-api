@@ -55,7 +55,26 @@ export class OrgScopeService {
       scopeType,
       roles,
       permissions: user.permissions ?? [],
+      userId: user.id,
     };
+  }
+
+  /**
+   * Office users whose new, not-yet-assigned staff a branch-limited view may see: anyone assigned to
+   * one of these branches (UserLocation), plus the viewer themselves. A new starter with no branch
+   * yet is visible to the office that added them, never to other branches.
+   */
+  async unassignedStaffCreatorIds(locationIds: string[], viewerUserId?: string | null): Promise<string[]> {
+    const ids = new Set<string>();
+    if (viewerUserId) ids.add(viewerUserId);
+    if (locationIds.length) {
+      const rows = await this.prisma.userLocation.findMany({
+        where: { locationId: { in: locationIds } },
+        select: { userId: true },
+      });
+      for (const row of rows) ids.add(row.userId);
+    }
+    return [...ids];
   }
 
   /**
@@ -98,17 +117,38 @@ export class OrgScopeService {
   async assertEmployeeInScope(scope: OrgScope, employeeId: string): Promise<void> {
     if (scope.locationIds === null) return;
 
-    const employment = await this.prisma.employeeEmployment.findFirst({
-      where: { employeeId, employee: { deletedAt: null } },
+    const employee = await this.prisma.employee.findFirst({
+      where: { id: employeeId, deletedAt: null },
       select: {
-        locationId: true,
-        baseLocationId: true,
-        accessAllZones: true,
-        floorLocations: { select: { locationId: true } },
+        createdById: true,
+        employment: {
+          select: {
+            locationId: true,
+            baseLocationId: true,
+            accessAllZones: true,
+            floorLocations: { select: { locationId: true } },
+          },
+        },
       },
     });
+    if (!employee) {
+      throw new NotFoundException('Employee not found');
+    }
+    const employment = employee.employment;
 
-    if (!employment) {
+    // Not assigned to any branch yet (new starter): visible to the office that added them.
+    const unassigned =
+      !employment ||
+      (!employment.accessAllZones &&
+        !employment.locationId &&
+        !employment.baseLocationId &&
+        employment.floorLocations.length === 0);
+    if (unassigned) {
+      const creatorId = employee.createdById;
+      if (creatorId) {
+        const allowedCreators = await this.unassignedStaffCreatorIds(scope.locationIds, scope.userId);
+        if (allowedCreators.includes(creatorId)) return;
+      }
       throw new NotFoundException('Employee not found');
     }
 

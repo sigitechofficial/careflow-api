@@ -9,6 +9,9 @@ import {
   LearningCompetencyOutcome,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditLogsService } from '../audit-logs/audit-logs.service';
+import { logLearningChange, type LearningActor } from './learning-audit.util';
+import { checkedCompetencyCriteria } from './learning-quiz-rules.util';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import {
   CreateCompetencyAssessmentDto,
@@ -20,7 +23,10 @@ import {
 
 @Injectable()
 export class LearningCompetenciesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditLogsService,
+  ) {}
 
   async list(query: LearningListQueryDto) {
     const page = query.page ?? 1;
@@ -44,23 +50,93 @@ export class LearningCompetenciesService {
     return row;
   }
 
-  async create(dto: CreateCompetencyDto) {
+  private async assertActiveCategory(categoryId: string) {
+    const category = await this.prisma.learningCategory.findFirst({
+      where: { id: categoryId, deletedAt: null, isActive: true },
+      select: { id: true },
+    });
+    if (!category) throw new BadRequestException('Choose an active category');
+  }
+
+  async create(dto: CreateCompetencyDto, actor?: LearningActor) {
     const existing = await this.prisma.learningCompetency.findFirst({ where: { code: dto.code } });
     if (existing) throw new ConflictException('Competency code already exists');
-    return this.prisma.learningCompetency.create({ data: dto });
-  }
-
-  async update(id: string, dto: UpdateCompetencyDto) {
-    await this.getById(id);
-    return this.prisma.learningCompetency.update({ where: { id }, data: dto });
-  }
-
-  async softDelete(id: string) {
-    await this.getById(id);
-    return this.prisma.learningCompetency.update({
-      where: { id },
-      data: { deletedAt: new Date(), isActive: false },
+    if (dto.categoryId) await this.assertActiveCategory(dto.categoryId);
+    const assessmentCriteria = checkedCompetencyCriteria(
+      dto.assessmentCriteria,
+    );
+    const row = await this.prisma.learningCompetency.create({
+      data: {
+        ...dto,
+        description: dto.description?.trim() || null,
+        assessmentCriteria,
+        createdById: actor?.userId,
+        updatedById: actor?.userId,
+      },
     });
+    await logLearningChange(this.audit, actor, {
+      action: 'learning_competency_created',
+      recordType: 'LearningCompetency',
+      recordId: row.id,
+      newValues: row,
+    });
+    return row;
+  }
+
+  async update(id: string, dto: UpdateCompetencyDto, actor?: LearningActor) {
+    const before = await this.getById(id);
+    if (dto.code && dto.code !== before.code) {
+      const clash = await this.prisma.learningCompetency.findFirst({
+        where: { code: dto.code },
+      });
+      if (clash) throw new ConflictException('Competency code already exists');
+    }
+    if (dto.categoryId && dto.categoryId !== before.categoryId)
+      await this.assertActiveCategory(dto.categoryId);
+    const row = await this.prisma.learningCompetency.update({
+      where: { id },
+      data: {
+        ...dto,
+        ...(dto.description !== undefined
+          ? { description: dto.description?.trim() || null }
+          : {}),
+        ...(dto.assessmentCriteria !== undefined
+          ? {
+              assessmentCriteria: checkedCompetencyCriteria(
+                dto.assessmentCriteria,
+              ),
+            }
+          : {}),
+        updatedById: actor?.userId,
+      },
+    });
+    await logLearningChange(this.audit, actor, {
+      action: 'learning_competency_updated',
+      recordType: 'LearningCompetency',
+      recordId: id,
+      oldValues: before,
+      newValues: row,
+    });
+    return row;
+  }
+
+  async softDelete(id: string, actor?: LearningActor) {
+    const before = await this.getById(id);
+    const row = await this.prisma.learningCompetency.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        isActive: false,
+        deletedById: actor?.userId,
+      },
+    });
+    await logLearningChange(this.audit, actor, {
+      action: 'learning_competency_deleted',
+      recordType: 'LearningCompetency',
+      recordId: id,
+      oldValues: before,
+    });
+    return row;
   }
 
   async createAssessment(dto: CreateCompetencyAssessmentDto) {

@@ -20,3 +20,10 @@ export const RBAC_LEVEL_TO_IDENTITY_ROLE_NAME: Record<string, string> = {
 export const IDENTITY_ROLES_MANAGED_BY_EMPLOYMENT_RBAC = new Set(
   Array.from(new Set(Object.values(RBAC_LEVEL_TO_IDENTITY_ROLE_NAME))),
 )
+
+/**
+ * Identity roles the employment RBAC sync never grants on its own. If a staff record's RBAC level
+ * maps to one of these and the login does not already hold it, an administrator must give it
+ * on purpose in Office users (the sync audits the skip).
+ */
+export const ADMIN_LEVEL_IDENTITY_ROLE_NAMES = new Set<string>(['Admin', 'Branch Admin', 'Super Admin'])

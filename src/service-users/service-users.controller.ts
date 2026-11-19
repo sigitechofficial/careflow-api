@@ -118,8 +118,13 @@ export class ServiceUsersController {
   @Delete(':id')
   @Permissions('service_users.delete')
   @ApiOperation({ summary: 'Soft-delete service user' })
-  remove(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
-    return this.serviceUsersService.softDelete(user.id, id, getRequestAuditMeta(req));
+  remove(
+    @CurrentUser() user: RequestUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+    @Query('reason') reason?: string,
+  ) {
+    return this.serviceUsersService.softDelete(user.id, id, getRequestAuditMeta(req), reason?.slice(0, 500));
   }
 
   @Patch(':id/status')

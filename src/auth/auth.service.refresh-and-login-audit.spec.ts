@@ -91,7 +91,8 @@ describe('AuthService (staff) — refresh-token revocation and failed-login audi
       auditLogs as never,
       {} as never,
       {} as never,
-      {} as never,
+      // No linked Care app account (one password for both is covered in auth.service.password-reset.spec.ts).
+      { employeePortalAccount: { findFirst: async () => null } } as never,
       {} as never,
       new SignInSessionsService(db as never),
     );

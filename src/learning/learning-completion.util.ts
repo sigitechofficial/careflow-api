@@ -4,6 +4,8 @@ export type CourseCompletionRequirements = {
   requiresAssessment: boolean;
   requiresPracticalAssessment: boolean;
   requiresManagerApproval: boolean;
+  /** Classroom / virtual part: the trainer must mark the carer Attended (agreed 13 Nov 2026). */
+  requiresSession?: boolean;
 };
 
 export type ProgressSnapshot = {
@@ -12,7 +14,42 @@ export type ProgressSnapshot = {
   assessmentStatus: LearningProgressStatus;
   practicalAssessmentStatus: LearningProgressStatus;
   managerApprovalStatus: LearningProgressStatus;
+  sessionAttended?: boolean;
 };
+
+/**
+ * Face to face and workplace courses are only finished when a manager records the outcome
+ * as Passed (user decision, 16 Nov 2026). Virtual courses are not included.
+ */
+export function courseNeedsManagerOutcome(
+  deliveryMethod: string | null | undefined,
+): boolean {
+  return deliveryMethod === 'FACE_TO_FACE' || deliveryMethod === 'WORKPLACE';
+}
+
+/**
+ * Face to face and workplace: the trainer / office marks the lessons, not the carer
+ * (16 Nov 2026; workplace added 17 Nov 2026).
+ */
+export function trainerMarksLessons(deliveryMethod: string | null | undefined): boolean {
+  return deliveryMethod === 'FACE_TO_FACE' || deliveryMethod === 'WORKPLACE';
+}
+
+/**
+ * A training course delivered face to face, virtually or blended has a session the carer
+ * must attend. Practical competencies are signed off by an assessor instead.
+ */
+export function courseNeedsSession(
+  courseType: string | null | undefined,
+  deliveryMethod: string | null | undefined,
+): boolean {
+  return (
+    courseType === 'COURSE' &&
+    (deliveryMethod === 'FACE_TO_FACE' ||
+      deliveryMethod === 'VIRTUAL' ||
+      deliveryMethod === 'BLENDED')
+  );
+}
 
 export function calculateContentProgressPercentage(snapshot: ProgressSnapshot): number {
   const { completedRequiredContentItems, totalRequiredContentItems } = snapshot;
@@ -21,6 +58,32 @@ export function calculateContentProgressPercentage(snapshot: ProgressSnapshot): 
     100,
     Math.round((completedRequiredContentItems / totalRequiredContentItems) * 100),
   );
+}
+
+/**
+ * Whole-course progress for the carer (18 Nov 2026, user decision): every required step counts
+ * the same – each required lesson, each required quiz, the session (if any) and the office
+ * outcome / sign-off (if any). Optional lessons and quizzes are not counted.
+ */
+export function calculateCourseProgressPercentage(steps: {
+  lessonsDone: number;
+  lessonsTotal: number;
+  quizzesDone: number;
+  quizzesTotal: number;
+  sessionRequired: boolean;
+  sessionDone: boolean;
+  officeRequired: boolean;
+  officeDone: boolean;
+}): number {
+  const total =
+    steps.lessonsTotal + steps.quizzesTotal + (steps.sessionRequired ? 1 : 0) + (steps.officeRequired ? 1 : 0);
+  if (total <= 0) return 100;
+  const done =
+    Math.min(steps.lessonsDone, steps.lessonsTotal) +
+    Math.min(steps.quizzesDone, steps.quizzesTotal) +
+    (steps.sessionRequired && steps.sessionDone ? 1 : 0) +
+    (steps.officeRequired && steps.officeDone ? 1 : 0);
+  return Math.min(100, Math.round((done / total) * 100));
 }
 
 export function isContentComplete(snapshot: ProgressSnapshot): boolean {
@@ -60,6 +123,10 @@ export function deriveCourseCompletionStatus(
     return snapshot.completedRequiredContentItems > 0
       ? LearningProgressStatus.IN_PROGRESS
       : LearningProgressStatus.NOT_STARTED;
+  }
+
+  if (requirements.requiresSession && !snapshot.sessionAttended) {
+    return LearningProgressStatus.IN_PROGRESS;
   }
 
   if (!isAssessmentComplete(requirements, snapshot.assessmentStatus)) {

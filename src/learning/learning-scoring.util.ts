@@ -52,6 +52,62 @@ export function calculateAttemptScore(
   return { score, percentage, passed: percentage >= passingScore };
 }
 
+export type ScoringQuestion = {
+  id: string;
+  questionType: LearningQuestionType;
+  points: number;
+  options: ScoringOption[];
+};
+
+export type SubmittedAnswer = {
+  questionId: string;
+  selectedOptionIds?: string[] | null;
+};
+
+/**
+ * Grade a whole attempt against EVERY question of the quiz. A question left unanswered
+ * scores 0 but still counts towards the total, answers to questions that are not in this
+ * quiz are ignored, and a question answered twice is graded once (first answer wins).
+ * Free-text questions are not auto-marked and do not count towards the percentage.
+ */
+export function gradeAttempt(
+  questions: ScoringQuestion[],
+  answers: SubmittedAnswer[],
+  passingScore: number,
+): {
+  graded: Array<{ questionId: string; answered: boolean } & GradeAnswerResult>;
+  score: number;
+  percentage: number;
+  passed: boolean;
+} {
+  const firstAnswer = new Map<string, SubmittedAnswer>();
+  for (const answer of answers) {
+    if (!firstAnswer.has(answer.questionId))
+      firstAnswer.set(answer.questionId, answer);
+  }
+  const graded = questions.map((question) => {
+    const answer = firstAnswer.get(question.id);
+    const result = gradeAnswer(
+      question.questionType,
+      answer?.selectedOptionIds ?? [],
+      question.options,
+      question.points,
+    );
+    // Unanswered choice questions are wrong, not skipped.
+    const isCorrect =
+      result.isCorrect === null ? null : answer ? result.isCorrect : false;
+    return {
+      questionId: question.id,
+      answered: Boolean(answer),
+      ...result,
+      isCorrect,
+      pointsAwarded: answer ? result.pointsAwarded : 0,
+    };
+  });
+  const summary = calculateAttemptScore(graded, passingScore);
+  return { graded, ...summary };
+}
+
 export function stripCorrectFlags<T extends { isCorrect?: boolean }>(option: T): Omit<T, 'isCorrect'> {
   const { isCorrect: _removed, ...rest } = option;
   return rest;
