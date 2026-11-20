@@ -23,6 +23,14 @@ export enum AuditAction {
   USER_LOCATION_ASSIGNED = 'user_location_assigned',
   USER_LOCATION_REMOVED = 'user_location_removed',
   EMPLOYEE_CREATED = 'employee_created',
+  /** A carer made their own account in the Care app (waits for office approval). */
+  CARER_SIGNUP_REQUESTED = 'carer_signup_requested',
+  CARER_SIGNUP_APPROVED = 'carer_signup_approved',
+  CARER_SIGNUP_DECLINED = 'carer_signup_declined',
+  /** A carer asked in the Care app for their account to be deleted (waits for a manager). */
+  CARER_DELETION_REQUESTED = 'carer_deletion_requested',
+  CARER_DELETION_APPROVED = 'carer_deletion_approved',
+  CARER_DELETION_DECLINED = 'carer_deletion_declined',
   EMPLOYEE_UPDATED = 'employee_updated',
   EMPLOYEE_DELETED = 'employee_deleted',
   EMPLOYEE_STATUS_CHANGED = 'employee_status_changed',

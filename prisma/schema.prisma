@@ -1265,6 +1265,8 @@ model Employee {
   createdById String?   @db.Uuid
   updatedById String?   @db.Uuid
   deletedById String?   @db.Uuid
+  /// How the record was made: by the office (ADMIN), or by the carer in the Care app (CARE_APP_SIGNUP).
+  creationSource EmployeeCreationSource @default(ADMIN)
 
   personalDetail    EmployeePersonalDetail?
   emergencyContacts EmployeeEmergencyContact[]
@@ -1315,8 +1317,54 @@ model Employee {
   supervisionAttendances             SupervisionAttendee[]
   supervisionActions                 SupervisionAction[]
   policyAcknowledgements             PolicyAcknowledgement[]
+  accountDeletionRequests            EmployeeAccountDeletionRequest[]
 
   @@index([deletedAt])
+  @@index([creationSource])
+  @@schema("employees")
+}
+
+enum EmployeeCreationSource {
+  ADMIN
+  CARE_APP_SIGNUP
+
+  @@schema("employees")
+}
+
+/// Care app account approval. Office-made accounts are APPROVED; a carer's own sign-up waits as PENDING.
+enum EmployeeAppApprovalStatus {
+  APPROVED
+  PENDING
+  DECLINED
+
+  @@schema("employees")
+}
+
+enum EmployeeAccountDeletionStatus {
+  PENDING
+  APPROVED
+  DECLINED
+
+  @@schema("employees")
+}
+
+/// A carer asking, in the Care app, for their account to be deleted. Nothing is deleted until a manager approves.
+model EmployeeAccountDeletionRequest {
+  id           String                        @id @default(uuid()) @db.Uuid
+  employeeId   String                        @db.Uuid
+  reason       String                        @db.Text
+  status       EmployeeAccountDeletionStatus @default(PENDING)
+  requestedAt  DateTime                      @default(now())
+  decidedAt    DateTime?
+  decidedById  String?                       @db.Uuid
+  decisionNote String?                       @db.Text
+  createdAt    DateTime                      @default(now())
+  updatedAt    DateTime                      @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, status])
+  @@index([status])
   @@schema("employees")
 }
 
@@ -1725,6 +1773,11 @@ model EmployeePortalAccount {
   passwordSetAt      DateTime?
   /// The same person's office login: one password for both (kept in step whenever either is set).
   userId             String?   @unique @db.Uuid
+  /// Office approval of a Care app sign-up. Accounts the office made are APPROVED.
+  approvalStatus     EmployeeAppApprovalStatus @default(APPROVED)
+  approvalDecidedAt  DateTime?
+  approvalDecidedById String?  @db.Uuid
+  approvalNote       String?   @db.Text
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt

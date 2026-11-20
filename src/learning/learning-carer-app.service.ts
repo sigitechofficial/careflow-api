@@ -27,6 +27,7 @@ import {
   OVERDUE_MESSAGE,
 } from './learning-review.catalog';
 import { LearningMeService } from './learning-me.service';
+import { LearningCompletionService } from './learning-completion.service';
 import {
   quizIsRequired,
   quizLockReason,
@@ -84,6 +85,7 @@ export class LearningCarerAppService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly me: LearningMeService,
+    private readonly completion: LearningCompletionService,
     @Optional() private readonly notifications?: LearningNotificationHook,
   ) {}
 
@@ -132,13 +134,18 @@ export class LearningCarerAppService {
           },
           _count: { select: { assessments: true } },
           assessments: {
-            select: { id: true, sectionId: true, isRequired: true },
+            select: { id: true, sectionId: true, isRequired: true, maximumAttempts: true },
           },
         },
       },
+      // Finished attempts only: passed, or failed (20 Nov 2026, "to take" vs "to retry").
       assessmentAttempts: {
-        where: { result: LearningAssessmentResult.PASSED },
-        select: { assessmentId: true },
+        where: {
+          result: {
+            in: [LearningAssessmentResult.PASSED, LearningAssessmentResult.FAILED],
+          },
+        },
+        select: { assessmentId: true, result: true },
       },
       reviews: {
         where: {
@@ -173,6 +180,15 @@ export class LearningCarerAppService {
       (s) => s.contentItems,
     );
     const done = new Set(r.contentCompletions.map((c) => c.contentItemId));
+    const passedQuizIds = new Set(
+      r.assessmentAttempts
+        .filter((t) => t.result === LearningAssessmentResult.PASSED)
+        .map((t) => t.assessmentId),
+    );
+    const triedQuizIds = new Set(r.assessmentAttempts.map((t) => t.assessmentId));
+    const quizzesLeft = (r.courseVersion?.assessments ?? []).filter(
+      (q) => quizIsRequired(q) && !passedQuizIds.has(q.id),
+    );
     const sessions = r.sessionAttendees.map((a) => this.session(a, now));
     const lateReview = r.reviews.find((x) => x.kind === 'CARER_LATE_REASON');
     const outcomeReview = r.reviews.find(
@@ -261,12 +277,14 @@ export class LearningCarerAppService {
       lessonCount: lessons.length,
       lessonsDone: lessons.filter((l) => done.has(l.id)).length,
       quizCount: r.courseVersion?._count.assessments ?? 0,
-      // Required quizzes / final assessments not passed yet (shown as "N quizzes left").
-      requiredQuizzesLeft: (r.courseVersion?.assessments ?? []).filter(
-        (q) =>
-          quizIsRequired(q) &&
-          !r.assessmentAttempts.some((t) => t.assessmentId === q.id),
+      // Required quizzes / final assessments not passed yet.
+      requiredQuizzesLeft: quizzesLeft.length,
+      // Split for the carer (20 Nov 2026): not tried yet vs tried and failed.
+      quizzesToTake: quizzesLeft.filter((q) => !triedQuizIds.has(q.id)).length,
+      quizzesToRetry: quizzesLeft.filter(
+        (q) => triedQuizIds.has(q.id) && !quizOutOfTries(q, r.assessmentAttempts),
       ).length,
+      quizzesOutOfTries: quizzesLeft.filter((q) => quizOutOfTries(q, r.assessmentAttempts)).length,
       needsSession: courseNeedsSession(
         r.course.courseType,
         r.course.deliveryMethod,
@@ -358,7 +376,7 @@ export class LearningCarerAppService {
         })
       : null;
 
-    const [attempts, certificate] = await Promise.all([
+    const [attempts, certificate, progressSteps] = await Promise.all([
       this.prisma.learningAssessmentAttempt.findMany({
         where: { assignmentId },
         select: {
@@ -372,6 +390,8 @@ export class LearningCarerAppService {
         where: { assignmentId, employeeId },
         orderBy: { issuedAt: 'desc' },
       }),
+      // Same steps as the % (20 Nov 2026): the app moves the bar for lessons not sent yet.
+      this.completion.progressSteps(assignmentId),
     ]);
 
     const completedLessonIds = new Set(
@@ -413,6 +433,7 @@ export class LearningCarerAppService {
       passingScore: version?.passingScore ?? row.course.passingScore ?? null,
       certificateEnabled:
         version?.certificateEnabled ?? row.course.certificateEnabled,
+      progressSteps,
       modules: sections.map((s) => ({
         id: s.id,
         title: s.title,
@@ -437,6 +458,8 @@ export class LearningCarerAppService {
               : null,
           estimatedDurationMinutes: l.estimatedDurationMinutes ?? null,
           isRequired: l.isRequired,
+          // Counts towards progressSteps (required lesson in a required module).
+          countsForProgress: s.isRequired && l.isRequired,
           completed: completedLessonIds.has(l.id),
         })),
         quizzes: quizzes.filter((q) => q.sectionId === s.id).map(stripSection),

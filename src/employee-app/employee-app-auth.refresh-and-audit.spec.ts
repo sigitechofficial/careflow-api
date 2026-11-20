@@ -1,4 +1,4 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import type { ConfigService } from '@nestjs/config';
 import { EmployeeAppAuthService } from './employee-app-auth.service';
@@ -47,6 +47,14 @@ describe('EmployeeAppAuthService — refresh-token revocation and failed-login a
       email.trim().toLowerCase() === account.email ? account : null,
     ),
     assertLoginable: jest.fn(),
+    // Care app sign-ups waiting for (or refused) office approval.
+    findAwaitingApproval: jest.fn((email: string) =>
+      email.trim().toLowerCase() === 'pending@example.com'
+        ? { id: 'pending-1', passwordHash: 'x', approvalStatus: 'PENDING' }
+        : email.trim().toLowerCase() === 'declined@example.com'
+          ? { id: 'declined-1', passwordHash: 'x', approvalStatus: 'DECLINED' }
+          : null,
+    ),
     verifyPassword: jest.fn(
       (_row: unknown, plain: string) => plain === PASSWORD,
     ),
@@ -137,6 +145,18 @@ describe('EmployeeAppAuthService — refresh-token revocation and failed-login a
     expect(JSON.stringify(auditLogs.logFailedLogin.mock.calls)).not.toContain(
       'Wrong#Battery7',
     );
+  });
+
+  it('a sign-up waiting for approval says so, but only with the right password', async () => {
+    const pending = service.login({ email: 'pending@example.com', password: PASSWORD }, req);
+    await expect(pending).rejects.toBeInstanceOf(ForbiddenException);
+    await expect(pending).rejects.toMatchObject({ response: { code: 'ACCOUNT_PENDING_APPROVAL' } });
+    await expect(
+      service.login({ email: 'declined@example.com', password: PASSWORD }, req),
+    ).rejects.toMatchObject({ response: { code: 'ACCOUNT_DECLINED' } });
+    await expect(
+      service.login({ email: 'pending@example.com', password: 'Wrong#Battery7' }, req),
+    ).rejects.toThrow(new UnauthorizedException('Invalid credentials'));
   });
 
   it('unknown and inactive accounts give the same response with their own reason', async () => {

@@ -65,7 +65,7 @@ export function calculateContentProgressPercentage(snapshot: ProgressSnapshot): 
  * the same – each required lesson, each required quiz, the session (if any) and the office
  * outcome / sign-off (if any). Optional lessons and quizzes are not counted.
  */
-export function calculateCourseProgressPercentage(steps: {
+export type CourseProgressStepsInput = {
   lessonsDone: number;
   lessonsTotal: number;
   quizzesDone: number;
@@ -74,15 +74,26 @@ export function calculateCourseProgressPercentage(steps: {
   sessionDone: boolean;
   officeRequired: boolean;
   officeDone: boolean;
-}): number {
+};
+
+/**
+ * Required steps done / in total – the same count the % is made from. The carer app uses it
+ * to move the bar at once for lessons still waiting to send (20 Nov 2026).
+ */
+export function calculateCourseProgressSteps(steps: CourseProgressStepsInput): { done: number; total: number } {
   const total =
     steps.lessonsTotal + steps.quizzesTotal + (steps.sessionRequired ? 1 : 0) + (steps.officeRequired ? 1 : 0);
-  if (total <= 0) return 100;
   const done =
     Math.min(steps.lessonsDone, steps.lessonsTotal) +
     Math.min(steps.quizzesDone, steps.quizzesTotal) +
     (steps.sessionRequired && steps.sessionDone ? 1 : 0) +
     (steps.officeRequired && steps.officeDone ? 1 : 0);
+  return { done, total };
+}
+
+export function calculateCourseProgressPercentage(steps: CourseProgressStepsInput): number {
+  const { done, total } = calculateCourseProgressSteps(steps);
+  if (total <= 0) return 100;
   return Math.min(100, Math.round((done / total) * 100));
 }
 
