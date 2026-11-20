@@ -77,3 +77,21 @@ describe('inspectorScopeIds', () => {
     expect(inspectorScopeIds(['1', '4'])).toEqual(['00000000-0000-0000-0000-000000000000']);
   });
 });
+
+describe('audit rows written as an inspector', () => {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { AuditLogsService } = require('../audit-logs/audit-logs.service');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { rememberInspectorId } = require('./inspector-ids');
+
+  it('link no office user and name the inspector instead; office users are unchanged', async () => {
+    const create = jest.fn(async (a: unknown) => a);
+    const service = new AuditLogsService({ dataAccessLog: { create } } as never);
+    rememberInspectorId('ti-9');
+    await service.logDataAccess({ userId: 'ti-9', module: 'M', accessType: 'VIEW', metadata: { detail: 'x' } });
+    await service.logDataAccess({ userId: 'user-1', module: 'M', accessType: 'VIEW' });
+    expect((create.mock.calls[0]![0] as any).data).toMatchObject({ metadata: { detail: 'x', temporaryInspectorId: 'ti-9' } });
+    expect((create.mock.calls[0]![0] as any).data.userId).toBeUndefined();
+    expect((create.mock.calls[1]![0] as any).data.userId).toBe('user-1');
+  });
+});

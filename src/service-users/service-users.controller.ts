@@ -92,7 +92,9 @@ export class ServiceUsersController {
   @ApiResponse({ status: 200 })
   get(@CurrentUser() user: RequestUser, @Param('id') id: string, @Req() req: Request) {
     const m = getRequestAuditMeta(req);
-    return this.serviceUsersService.getById(id, { actorUserId: user.id, ...m }, user);
+    // A temporary inspector only reads: no branch-link tidy-up written under their id.
+    const actorUserId = user.accountKind === 'user' ? user.id : undefined;
+    return this.serviceUsersService.getById(id, { actorUserId, ...m }, user);
   }
 
   @Post()

@@ -43,6 +43,9 @@ export const INSPECTOR_READ_PERMISSIONS = [
   'service_users.visit_plan.read',
   'service_users.visit_tasks.read',
   'incidents.read',
+  // Display settings and lookup lists the screens read (the routes are limited to reference data below).
+  'settings.general.read',
+  'lookups.read',
 ] as const;
 
 /** Parts of a service user's record an inspector never sees (money, portal and sales). */

@@ -51,7 +51,7 @@ import {
 } from './service-user-date-of-death.util';
 import { syncServiceUserActiveFlag } from './service-user-active-flag.util';
 
-export type ServiceUserAuditMeta = RequestAuditMeta & { actorUserId: string };
+export type ServiceUserAuditMeta = RequestAuditMeta & { actorUserId?: string };
 
 const detailInclude = {
   title: true,

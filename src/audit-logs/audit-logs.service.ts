@@ -23,6 +23,7 @@ import {
   type AuditLogContext,
 } from './audit-log-context.util';
 import { resolveAuditEventType } from './audit-event-type.util';
+import { isInspectorId } from '../temporary-inspectors/inspector-ids';
 import { AuditEventType } from '@prisma/client';
 import { AuditModule } from './enums/audit-module.enum';
 import { AuditAction } from './enums/audit-action.enum';
@@ -246,7 +247,22 @@ export class AuditLogsService {
     return tx ?? this.prisma;
   }
 
-  async logAudit(params: LogAuditParams) {
+  /**
+   * A temporary inspector is not an office user: rows written "as" them link no user and name the inspector in
+   * their metadata (otherwise the user link fails and the read they were doing fails with it).
+   */
+  private asInspector<T extends { userId?: string | null; metadata?: unknown }>(params: T): T {
+    const inspectorId = params.userId;
+    if (!inspectorId || !isInspectorId(inspectorId)) return params;
+    const metadata =
+      params.metadata && typeof params.metadata === 'object' && !Array.isArray(params.metadata)
+        ? { ...(params.metadata as Record<string, unknown>), temporaryInspectorId: inspectorId }
+        : { temporaryInspectorId: inspectorId, ...(params.metadata !== undefined ? { detail: params.metadata } : {}) };
+    return { ...params, userId: null, metadata };
+  }
+
+  async logAudit(input: LogAuditParams) {
+    const params = this.asInspector(input);
     const client = this.db(params.tx);
     const eventType = resolveAuditEventType(
       params.action,
@@ -410,7 +426,8 @@ export class AuditLogsService {
     }
   }
 
-  async logDataAccess(params: LogDataAccessParams) {
+  async logDataAccess(input: LogDataAccessParams) {
+    const params = this.asInspector(input);
     const client = this.db(params.tx);
     return client.dataAccessLog.create({
       data: {

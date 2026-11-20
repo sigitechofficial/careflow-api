@@ -5,6 +5,7 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
 import type { RequestUser } from '../decorators/current-user.decorator';
 import { REVIEWER_ALLOWED_KEY, isReviewerOnly } from '../auth/independent-reviewer';
 import { inspectorDecision } from '../../temporary-inspectors/inspector-access';
+import { rememberInspectorId } from '../../temporary-inspectors/inspector-ids';
 
 const inspectorLog = new Logger('InspectorAccess');
 
@@ -40,6 +41,7 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         throw new ForbiddenException(decision.message);
       }
       req.inspectorView = decision;
+      rememberInspectorId(user.id);
     }
     if (user?.accountKind === 'user' && isReviewerOnly(user.roles)) {
       const allowed = this.reflector.getAllAndOverride<boolean>(REVIEWER_ALLOWED_KEY, [
