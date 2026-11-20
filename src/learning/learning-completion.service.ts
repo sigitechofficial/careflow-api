@@ -10,6 +10,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import {
   calculateCourseProgressPercentage,
+  calculateCourseProgressSteps,
   courseNeedsManagerOutcome,
   courseNeedsSession,
   deriveCourseCompletionStatus,
@@ -128,7 +129,7 @@ export class LearningCompletionService {
       (!requirements.requiresManagerApproval || snapshot.managerApprovalStatus === LearningProgressStatus.COMPLETED) &&
       (!requirements.requiresPracticalAssessment ||
         snapshot.practicalAssessmentStatus === LearningProgressStatus.COMPLETED);
-    const progressPercentage = calculateCourseProgressPercentage({
+    const stepInput = {
       lessonsDone: completedRequired,
       lessonsTotal: totalRequired,
       quizzesDone,
@@ -137,7 +138,9 @@ export class LearningCompletionService {
       sessionDone: sessionAttended,
       officeRequired,
       officeDone,
-    });
+    };
+    const progressPercentage = calculateCourseProgressPercentage(stepInput);
+    const progressSteps = calculateCourseProgressSteps(stepInput);
     return {
       // Spread keeps the non-null progress narrowing for callers.
       assignment: { ...assignment, progress: assignment.progress },
@@ -148,7 +151,21 @@ export class LearningCompletionService {
       snapshot,
       requirements,
       progressPercentage,
+      progressSteps,
     };
+  }
+
+  /**
+   * Required steps done / in total for the carer app (20 Nov 2026): lets the phone move the bar
+   * for lessons it has not sent yet. Read-only; null when the course has no progress row yet.
+   */
+  async progressSteps(assignmentId: string): Promise<{ done: number; total: number } | null> {
+    try {
+      return (await this.evaluateProgress(assignmentId, this.prisma)).progressSteps;
+    } catch (e) {
+      if (e instanceof NotFoundException) return null;
+      throw e;
+    }
   }
 
   /**
