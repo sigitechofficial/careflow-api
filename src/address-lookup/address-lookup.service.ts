@@ -1,10 +1,14 @@
-import { BadRequestException, Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, Optional, ServiceUnavailableException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
 
 /**
  * UK address lookup, the same pair of services the laundry platform uses:
  * - postcodes.io (free, no key): postcode suggestions while typing, and where a postcode is (town, county, map position).
  * - Ideal Postcodes (paid, IDEAL_POSTCODES_API_KEY): every address at a postcode.
  * The key stays on the server; the browser only ever calls CareFlow.
+ * Each postcode's address list is kept for 30 days (in memory, and in the database so restarts, deploys and every
+ * API server share it): the paid service is asked about a postcode at most once a month.
  */
 export type LookupAddress = {
   id: string;
@@ -32,7 +36,9 @@ export type PostcodeAddresses = {
 const POSTCODES_IO = 'https://api.postcodes.io';
 const IDEAL = 'https://api.ideal-postcodes.co.uk/v1';
 const TIMEOUT_MS = 8_000;
-const ADDRESS_CACHE_MS = 24 * 60 * 60 * 1000;
+/** How long an address list is reused before asking the paid service again. */
+export const ADDRESS_CACHE_DAYS = 30;
+const ADDRESS_CACHE_MS = ADDRESS_CACHE_DAYS * 24 * 60 * 60 * 1000;
 const SUGGEST_CACHE_MS = 60 * 60 * 1000;
 const CACHE_MAX = 2_000;
 
@@ -109,6 +115,36 @@ export class AddressLookupService {
   private readonly addressCache = new TtlCache<PostcodeAddresses>(ADDRESS_CACHE_MS);
   private readonly suggestCache = new TtlCache<string[]>(SUGGEST_CACHE_MS);
 
+  constructor(@Optional() private readonly prisma?: PrismaService) {}
+
+  /** A stored address list younger than 30 days, or null. Never fails the lookup. */
+  private async storedAddresses(postcode: string): Promise<PostcodeAddresses | null> {
+    if (!this.prisma) return null;
+    try {
+      const row = await this.prisma.postcodeAddressCache.findUnique({ where: { postcode } });
+      if (!row || Date.now() - row.fetchedAt.getTime() > ADDRESS_CACHE_MS) return null;
+      const payload = row.payload as unknown as PostcodeAddresses;
+      return Array.isArray(payload?.addresses) ? payload : null;
+    } catch (e) {
+      this.logger.warn(`Address cache read failed: ${(e as Error).message}`);
+      return null;
+    }
+  }
+
+  private async storeAddresses(payload: PostcodeAddresses): Promise<void> {
+    if (!this.prisma) return;
+    try {
+      const json = payload as unknown as Prisma.InputJsonValue;
+      await this.prisma.postcodeAddressCache.upsert({
+        where: { postcode: payload.postcode },
+        create: { postcode: payload.postcode, payload: json, fetchedAt: new Date() },
+        update: { payload: json, fetchedAt: new Date() },
+      });
+    } catch (e) {
+      this.logger.warn(`Address cache write failed: ${(e as Error).message}`);
+    }
+  }
+
   private get idealKey(): string | null {
     return process.env.IDEAL_POSTCODES_API_KEY?.trim() || null;
   }
@@ -175,6 +211,13 @@ export class AddressLookupService {
     if (cached) return cached;
 
     const key = this.idealKey;
+    if (key) {
+      const stored = await this.storedAddresses(postcode);
+      if (stored) {
+        this.addressCache.set(postcode, stored);
+        return stored;
+      }
+    }
     const area = await this.postcodeArea(postcode);
     if (!key) {
       if (!area) throw new BadRequestException(`We couldn't find the postcode ${postcode}. Check it, or type the address.`);
@@ -204,6 +247,7 @@ export class AddressLookupService {
       area,
     };
     this.addressCache.set(postcode, payload);
+    await this.storeAddresses(payload);
     return payload;
   }
 }

@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { ForbiddenException, Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  SIGNUP_DECLINED_CODE,
+  SIGNUP_DECLINED_MESSAGE,
+  SIGNUP_PENDING_CODE,
+  SIGNUP_PENDING_MESSAGE,
+} from '../carer-signup/carer-signup.constants';
 import type { Request } from 'express';
 import { JwtService, type JwtSignOptions } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
@@ -34,7 +40,18 @@ export class EmployeeAppAuthService {
     const meta = this.auditLogs.getRequestMeta(req);
     const row = await this.portalAccounts.findByEmailForLogin(dto.email);
     if (!row) {
-      await burnPasswordCompare(dto.password);
+      // A Care app sign-up still waiting for (or refused) office approval: with the right password,
+      // say so instead of "Invalid credentials". A wrong password gets the usual answer.
+      const awaiting = await this.portalAccounts.findAwaitingApproval(dto.email);
+      if (awaiting && (await this.portalAccounts.verifyPassword(awaiting, dto.password))) {
+        const declined = awaiting.approvalStatus === 'DECLINED';
+        throw new ForbiddenException({
+          statusCode: 403,
+          code: declined ? SIGNUP_DECLINED_CODE : SIGNUP_PENDING_CODE,
+          message: declined ? SIGNUP_DECLINED_MESSAGE : SIGNUP_PENDING_MESSAGE,
+        });
+      }
+      if (!awaiting) await burnPasswordCompare(dto.password);
       await this.auditLogs.logFailedLogin({
         channel: 'employee_app',
         reason: 'unknown_user',

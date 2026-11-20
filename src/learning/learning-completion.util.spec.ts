@@ -112,3 +112,89 @@ describe('learning-completion.util', () => {
     });
   });
 });
+
+describe('calculateCourseProgressPercentage (whole course, 18 Nov 2026)', () => {
+  const { calculateCourseProgressPercentage } = require('./learning-completion.util');
+  const base = {
+    lessonsDone: 0,
+    lessonsTotal: 0,
+    quizzesDone: 0,
+    quizzesTotal: 0,
+    sessionRequired: false,
+    sessionDone: false,
+    officeRequired: false,
+    officeDone: false,
+  };
+
+  it('3 lessons done, quiz not passed = 75%, not 100%', () => {
+    expect(calculateCourseProgressPercentage({ ...base, lessonsDone: 3, lessonsTotal: 3, quizzesTotal: 1 })).toBe(75);
+  });
+
+  it('quiz passed too = 100%', () => {
+    expect(
+      calculateCourseProgressPercentage({ ...base, lessonsDone: 3, lessonsTotal: 3, quizzesDone: 1, quizzesTotal: 1 }),
+    ).toBe(100);
+  });
+
+  it('face to face: lessons + session + office outcome', () => {
+    expect(
+      calculateCourseProgressPercentage({
+        ...base,
+        lessonsDone: 2,
+        lessonsTotal: 2,
+        sessionRequired: true,
+        sessionDone: true,
+        officeRequired: true,
+      }),
+    ).toBe(75);
+  });
+
+  it('quiz-only online course starts at 0%, not 100%', () => {
+    expect(calculateCourseProgressPercentage({ ...base, quizzesTotal: 1 })).toBe(0);
+  });
+
+  it('nothing required = 100%', () => {
+    expect(calculateCourseProgressPercentage(base)).toBe(100);
+  });
+});
+
+describe('calculateCourseProgressSteps (carer app offline bar, 20 Nov 2026)', () => {
+  const { calculateCourseProgressSteps, calculateCourseProgressPercentage } = require('./learning-completion.util');
+  const base = {
+    lessonsDone: 0,
+    lessonsTotal: 0,
+    quizzesDone: 0,
+    quizzesTotal: 0,
+    sessionRequired: false,
+    sessionDone: false,
+    officeRequired: false,
+    officeDone: false,
+  };
+
+  it('4 lessons + 1 quiz, 2 lessons done = 2 of 5 (40%)', () => {
+    const input = { ...base, lessonsDone: 2, lessonsTotal: 4, quizzesTotal: 1 };
+    expect(calculateCourseProgressSteps(input)).toEqual({ done: 2, total: 5 });
+    expect(calculateCourseProgressPercentage(input)).toBe(40);
+  });
+
+  it('counts session and office steps', () => {
+    expect(
+      calculateCourseProgressSteps({
+        ...base,
+        lessonsDone: 2,
+        lessonsTotal: 2,
+        sessionRequired: true,
+        sessionDone: true,
+        officeRequired: true,
+      }),
+    ).toEqual({ done: 3, total: 4 });
+  });
+
+  it('never more done than total', () => {
+    expect(calculateCourseProgressSteps({ ...base, lessonsDone: 5, lessonsTotal: 3 })).toEqual({ done: 3, total: 3 });
+  });
+
+  it('nothing required = 0 of 0', () => {
+    expect(calculateCourseProgressSteps(base)).toEqual({ done: 0, total: 0 });
+  });
+});

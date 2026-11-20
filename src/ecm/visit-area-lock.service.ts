@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import {
   CarerVisitPushKind,
@@ -18,6 +19,8 @@ import { EcmAlertService } from './ecm-alert.service';
 import { slaTargetsForCriticality } from './ecm-sla.util';
 import { CarerVisitPushHook } from '../notifications/carer-visit-push.hook';
 import { composeManualAuthorisationOfficeNote } from './visit-check-in-method-grant.util';
+import { VisitTimelineService } from '../employee-app/visit-timeline.service';
+import { areaAllowedEntry, areaLockedEntry } from '../employee-app/visit-safety-timeline.util';
 
 export type VisitAreaLockState = {
   operationsLocked: boolean;
@@ -34,7 +37,28 @@ export class VisitAreaLockService {
     private readonly audit: EcmAuditService,
     private readonly alerts: EcmAlertService,
     private readonly carerPush: CarerVisitPushHook,
+    @Optional() private readonly visitTimeline?: VisitTimelineService,
   ) {}
+
+  /** The visit Log shows the lock and the office's allow, so the whole visit reads in one place. */
+  private async logAreaLock(
+    scheduledJobId: string,
+    employeeId: string,
+    entry: ReturnType<typeof areaLockedEntry>,
+    occurredAt: Date,
+  ): Promise<void> {
+    if (!this.visitTimeline) return;
+    const visit = await this.prisma.scheduledVisit
+      .findFirst({ where: { scheduledJobId, deletedAt: null }, select: { id: true }, orderBy: { scheduledStartDateTime: 'asc' } })
+      .catch(() => null);
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId,
+      scheduledVisitId: visit?.id ?? null,
+      ...entry,
+      occurredAt,
+      createdByEmployeeId: employeeId,
+    });
+  }
 
   async getState(scheduledJobId: string): Promise<VisitAreaLockState> {
     const [locked, allowed] = await Promise.all([
@@ -157,6 +181,7 @@ export class VisitAreaLockService {
       },
     });
 
+    await this.logAreaLock(input.scheduledJobId, input.employeeId, areaLockedEntry(lock), lockedAt);
     await this.audit.append({
       eventType: EcmAuditEventType.EXCEPTION_DETECTED,
       scheduledJobId: input.scheduledJobId,
@@ -256,6 +281,7 @@ export class VisitAreaLockService {
       });
     }
 
+    await this.logAreaLock(scheduledJobId, lock.employeeId, areaAllowedEntry(updated), allowedAt);
     await this.audit.append({
       eventType: EcmAuditEventType.MANUAL_OVERRIDE,
       scheduledJobId,

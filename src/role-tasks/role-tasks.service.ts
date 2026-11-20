@@ -10,6 +10,7 @@ import {
   RoleTaskStatus,
   type RoleTaskTemplate,
 } from '@prisma/client';
+import { branchLabelsById } from '../location-management/location-management.util';
 import { PrismaService } from '../prisma/prisma.service';
 import { surveysWithoutResultsAccess } from '../surveys/survey-access';
 import { surveyVisibleInScope } from '../surveys/survey-scope.util';
@@ -84,6 +85,20 @@ export class RoleTasksService {
       select: { id: true },
     });
     return roles.map((r) => r.id);
+  }
+
+  /** Every branch the user can see, "Zone · Branch" labels, for the My tasks Branch filter (19 Nov 2026). */
+  private async branchFilterOptions(user: RequestUser): Promise<Array<{ id: string; label: string }>> {
+    const locations = await this.prisma.location.findMany({
+      where: {
+        deletedAt: null,
+        isActive: true,
+        ...(user.assignedLocationIds ? { id: { in: user.assignedLocationIds } } : {}),
+      },
+      select: { id: true },
+    });
+    const labels = await branchLabelsById(this.prisma, locations.map((l) => l.id));
+    return [...labels.entries()].map(([id, label]) => ({ id, label })).sort((a, b) => a.label.localeCompare(b.label));
   }
 
   /** Branch-restricted users only see all-branch tasks and their own branches. */
@@ -171,6 +186,123 @@ export class RoleTasksService {
     return today;
   }
 
+  /**
+   * The carer each feature-raised task is about, and its course (19 Nov 2026):
+   * Care app sign-up (sourceId = employee), delete request (sourceId = request), Learning
+   * (sourceId = assignment, or certificate for certificate tasks). Others: nothing.
+   */
+  private async taskSubjects(
+    rows: TaskRow[],
+  ): Promise<Map<string, { about: { kind: 'CARER'; name: string } | null; course: string | null; futureVisits?: number; decision?: string | null }>> {
+    const ids = (pred: (r: TaskRow) => boolean) =>
+      [...new Set(rows.filter((r) => pred(r) && r.sourceId).map((r) => r.sourceId!))];
+    const signupIds = ids((r) => r.sourceType === 'CARER_SIGNUP');
+    const deletionIds = ids((r) => r.sourceType === 'CARER_DELETION_REQUEST');
+    const certificateIds = ids((r) => r.sourceType === 'LEARNING_CERTIFICATE');
+    const assignmentIds = ids(
+      (r) => !!r.sourceType?.startsWith('LEARNING_') && r.sourceType !== 'LEARNING_CERTIFICATE',
+    );
+    const [deletions, assignments, certificates] = await Promise.all([
+      deletionIds.length
+        ? this.prisma.employeeAccountDeletionRequest.findMany({
+            where: { id: { in: deletionIds } },
+            select: { id: true, employeeId: true, status: true },
+          })
+        : Promise.resolve([] as Array<{ id: string; employeeId: string; status: string }>),
+      assignmentIds.length
+        ? this.prisma.learningAssignment.findMany({
+            where: { id: { in: assignmentIds } },
+            select: { id: true, employeeId: true, course: { select: { title: true } } },
+          })
+        : [],
+      certificateIds.length
+        ? this.prisma.learningCertificate.findMany({
+            where: { id: { in: certificateIds } },
+            select: { id: true, employeeId: true, course: { select: { title: true } } },
+          })
+        : [],
+    ]);
+    const employeeIds = [
+      ...signupIds,
+      ...deletions.map((d) => d.employeeId),
+      ...assignments.map((a) => a.employeeId).filter((id): id is string => !!id),
+      ...certificates.map((c) => c.employeeId),
+    ];
+    const people = employeeIds.length
+      ? await this.prisma.employeePersonalDetail.findMany({
+          where: { employeeId: { in: [...new Set(employeeIds)] } },
+          select: { employeeId: true, firstName: true, lastName: true },
+        })
+      : [];
+    const nameOf = new Map(
+      people.map((p) => [p.employeeId, [p.firstName, p.lastName].filter(Boolean).join(' ').trim()]),
+    );
+    const deletionEmployee = new Map(deletions.map((d) => [d.id, d.employeeId]));
+    // Sign-ups: the office's decision (APPROVED / DECLINED / PENDING), shown on the Done card.
+    const signupStatus = new Map(
+      (signupIds.length
+        ? await this.prisma.employeePortalAccount.findMany({
+            where: { employeeId: { in: signupIds } },
+            select: { employeeId: true, approvalStatus: true },
+          })
+        : []
+      ).map((a) => [a.employeeId, a.approvalStatus as string]),
+    );
+    // Waiting delete requests: how many future visits would lose this carer (shown on the task card).
+    const pendingDeletionEmployees = [...new Set(deletions.filter((d) => d.status === 'PENDING').map((d) => d.employeeId))];
+    const futureByEmployee = new Map<string, number>();
+    if (pendingDeletionEmployees.length) {
+      const grouped = await this.prisma.jobAllocation.groupBy({
+        by: ['employeeId'],
+        where: {
+          employeeId: { in: pendingDeletionEmployees },
+          deletedAt: null,
+          isActive: true,
+          status: { in: ['PENDING_CONFIRMATION', 'ALLOCATED', 'CONFIRMED'] },
+          scheduledJob: {
+            deletedAt: null,
+            isActive: true,
+            scheduledStartDateTime: { gte: new Date() },
+            status: { notIn: ['DRAFT', 'CANCELLED', 'CALLED_OFF'] },
+          },
+        },
+        _count: { _all: true },
+      });
+      for (const g of grouped) futureByEmployee.set(g.employeeId, g._count._all);
+    }
+    const assignmentById = new Map(assignments.map((a) => [a.id, a]));
+    const certificateById = new Map(certificates.map((c) => [c.id, c]));
+    const carer = (employeeId: string | null | undefined) => {
+      const name = employeeId ? nameOf.get(employeeId) : undefined;
+      return name ? { kind: 'CARER' as const, name } : null;
+    };
+
+    const out = new Map<string, { about: { kind: 'CARER'; name: string } | null; course: string | null; futureVisits?: number; decision?: string | null }>();
+    for (const r of rows) {
+      if (!r.sourceId || !r.sourceType) continue;
+      if (r.sourceType === 'CARER_SIGNUP')
+        out.set(r.id, { about: carer(r.sourceId), course: null, decision: signupStatus.get(r.sourceId) ?? null });
+      else if (r.sourceType === 'CARER_DELETION_REQUEST') {
+        const employeeId = deletionEmployee.get(r.sourceId);
+        const pending = deletions.find((d) => d.id === r.sourceId)?.status === 'PENDING';
+        out.set(r.id, {
+          about: carer(employeeId),
+          course: null,
+          decision: deletions.find((d) => d.id === r.sourceId)?.status ?? null,
+          ...(pending && employeeId ? { futureVisits: futureByEmployee.get(employeeId) ?? 0 } : {}),
+        });
+      }
+      else if (r.sourceType === 'LEARNING_CERTIFICATE') {
+        const c = certificateById.get(r.sourceId);
+        out.set(r.id, { about: carer(c?.employeeId), course: c?.course.title ?? null });
+      } else if (r.sourceType.startsWith('LEARNING_')) {
+        const a = assignmentById.get(r.sourceId);
+        out.set(r.id, { about: carer(a?.employeeId), course: a?.course.title ?? null });
+      }
+    }
+    return out;
+  }
+
   private async serializeTasks(rows: TaskRow[], today: string) {
     const userIds = [
       ...new Set(
@@ -189,12 +321,28 @@ export class RoleTasksService {
         [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email,
       ]),
     );
+    // "Zone · Branch", the same as the staff record's branch picker (19 Nov 2026).
+    const branchLabels = await branchLabelsById(
+      this.prisma,
+      rows.map((r) => r.locationId).filter((id): id is string => !!id),
+    );
+    const subjects = await this.taskSubjects(rows);
+    const timeZone = await this.timeZone();
     return rows.map((r) => {
       const due = toIso(r.dueDate);
       const open = OPEN_STATUSES.includes(r.status);
       return {
         id: r.id,
         templateId: r.templateId,
+        /** What raised it (e.g. CARER_SIGNUP, LEARNING_OVERDUE, SURVEY_ALERT); null for a role task. */
+        sourceType: r.sourceType,
+        /** Who the task is about (a carer, by name) and the course, when the source says so. */
+        about: subjects.get(r.id)?.about ?? null,
+        course: subjects.get(r.id)?.course ?? null,
+        /** Waiting delete request: future visits that would be unassigned. */
+        futureVisits: subjects.get(r.id)?.futureVisits ?? null,
+        /** Care app sign-up / delete request: the office's decision (APPROVED, DECLINED or PENDING). */
+        decision: subjects.get(r.id)?.decision ?? null,
         title: r.title,
         description: r.description,
         link: r.link,
@@ -209,9 +357,12 @@ export class RoleTasksService {
         status: r.status,
         note: r.note,
         role: r.role,
-        location: r.location,
+        location: r.location ? { ...r.location, label: branchLabels.get(r.location.id) ?? r.location.name } : null,
         startedAt: r.startedAt?.toISOString() ?? null,
         completedAt: r.completedAt?.toISOString() ?? null,
+        /** Done on a later day than it was due (organisation's day), for compliance reporting. */
+        completedLate:
+          r.status === 'DONE' && !!r.completedAt && operationalTodayIso(r.completedAt, timeZone) > due,
         completedByName: r.completedById
           ? (nameById.get(r.completedById) ?? null)
           : null,
@@ -285,7 +436,11 @@ export class RoleTasksService {
     });
     return {
       message: 'My tasks',
-      data: { today, tasks: await this.serializeTasks(await this.withoutHiddenSurveyTasks(user, rows), today) },
+      data: {
+        today,
+        tasks: await this.serializeTasks(await this.withoutHiddenSurveyTasks(user, rows), today),
+        branches: await this.branchFilterOptions(user),
+      },
     };
   }
 
@@ -336,6 +491,16 @@ export class RoleTasksService {
     }
     // A survey alert is closed on its follow-up, which asks what was done (and, for a contact
     // request, whether the person was reached): never here, where that would be skipped.
+    // Care app sign-ups and delete requests close only by Approve / Decline on the staff record (20 Nov 2026):
+    // closing or reopening the task here would leave the request out of step with its task.
+    if (task.sourceType === 'CARER_SIGNUP' || task.sourceType === 'CARER_DELETION_REQUEST') {
+      if (dto.status === RoleTaskStatus.DONE) {
+        throw new BadRequestException('Approve or decline this request on the carer’s record (Review).');
+      }
+      if (task.status === RoleTaskStatus.DONE) {
+        throw new BadRequestException('This request was decided on the carer’s record, so its task cannot be reopened.');
+      }
+    }
     if (task.sourceType === 'SURVEY_ACTION' && dto.status === RoleTaskStatus.DONE) {
       throw new BadRequestException('Close a survey action on its page (Open page), saying what was done.');
     }
@@ -351,6 +516,12 @@ export class RoleTasksService {
       throw new BadRequestException(
         'Close a survey follow-up on its page (Open page), saying what was done.',
       );
+    }
+
+    // Learning tasks close themselves when the work is done in Learning (18 Nov 2026), so they
+    // are never marked done or reopened from the task list.
+    if (task.sourceType?.startsWith('LEARNING_') && (dto.status === RoleTaskStatus.DONE || task.status === RoleTaskStatus.DONE)) {
+      throw new BadRequestException('This Learning task closes itself when the work is done in Learning (Open page).');
     }
 
     const now = new Date();

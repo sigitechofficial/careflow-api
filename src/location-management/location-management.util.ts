@@ -1,3 +1,4 @@
+import type { PrismaClient } from '@prisma/client';
 export const ZONE_MARKER_COLORS = [
   '#EAB308',
   '#F97316',
@@ -182,4 +183,48 @@ export function toLocationAudit(row: {
 export function normalizeOptionalLocationId(locationId?: string | null): string | undefined {
   const trimmed = locationId?.trim();
   return trimmed ? trimmed : undefined;
+}
+
+/**
+ * Branch label shown to the office, the same as the staff record's Zones/Branches picker:
+ * "Zone · Branch" (e.g. "London · Bexley"). Zone: the schedule area's parent zone, else its zone,
+ * else the part of the location name before " - ". Branch: the schedule area's name, else the part
+ * after " - ", else the location name.
+ */
+export function branchDisplayParts(
+  locationName: string,
+  area?: { name?: string | null; parentZoneName?: string | null; zone?: { name: string } | null } | null,
+): { zoneName: string; branchName: string } {
+  const parsed = parseLocationName(locationName);
+  const zoneName = area?.parentZoneName?.trim() || area?.zone?.name || parsed.zoneName || locationName;
+  const branchName = area?.name || parsed.roomName || locationName;
+  return { zoneName, branchName };
+}
+
+export function branchDisplayLabel(
+  locationName: string,
+  area?: { name?: string | null; parentZoneName?: string | null; zone?: { name: string } | null } | null,
+): string {
+  const { zoneName, branchName } = branchDisplayParts(locationName, area);
+  return zoneName && zoneName !== branchName ? `${zoneName} · ${branchName}` : branchName;
+}
+
+/** "Zone · Branch" labels for these locations (see branchDisplayLabel). */
+export async function branchLabelsById(
+  prisma: Pick<PrismaClient, 'location' | 'scheduleArea'>,
+  locationIds: string[],
+): Promise<Map<string, string>> {
+  const ids = [...new Set(locationIds.filter(Boolean))];
+  if (!ids.length) return new Map();
+  const [locations, areas] = await Promise.all([
+    prisma.location.findMany({ where: { id: { in: ids } }, select: { id: true, name: true } }),
+    prisma.scheduleArea.findMany({
+      where: { locationId: { in: ids }, deletedAt: null },
+      select: { locationId: true, name: true, parentZoneName: true, zone: { select: { name: true } } },
+      orderBy: { sortOrder: 'asc' },
+    }),
+  ]);
+  const areaByLocation = new Map<string, (typeof areas)[number]>();
+  for (const a of areas) if (a.locationId && !areaByLocation.has(a.locationId)) areaByLocation.set(a.locationId, a);
+  return new Map(locations.map((l) => [l.id, branchDisplayLabel(l.name, areaByLocation.get(l.id))]));
 }

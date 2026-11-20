@@ -252,6 +252,8 @@ export class EcmAlertService {
       ? `Carer SOS — ${suName}`
       : row.kind === 'LEFT_VISIT_AREA'
         ? `Carer left visit area — ${suName}`
+        : row.kind === 'WELFARE_ON_ARRIVAL'
+          ? `Welfare concern on arrival — ${suName}`
         : row.kind === 'UNABLE_TO_START'
           ? `Unable to start visit — ${suName}`
           : row.kind === 'NFC_TAG_MISMATCH'

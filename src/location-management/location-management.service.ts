@@ -30,6 +30,7 @@ import {
   parentZoneFromGroupId,
   parentZoneFromLocationName,
   parseLocationName,
+  branchDisplayParts,
   parsePostcodeList,
   parseUserIdList,
   resolveParentZoneName,
@@ -1144,13 +1145,7 @@ export class LocationManagementService {
     >();
     for (const loc of locations) {
       const area = areaByLocationId.get(loc.id);
-      const parsed = parseLocationName(loc.name);
-      const zoneName =
-        area?.parentZoneName?.trim() ||
-        area?.zone?.name ||
-        parsed.zoneName ||
-        loc.name;
-      const branchName = area?.name || parsed.roomName || loc.name;
+      const { zoneName, branchName } = branchDisplayParts(loc.name, area);
       const zoneKey = zoneName || loc.name;
       const zone = zoneMap.get(zoneKey) ?? { id: zoneKey, name: zoneKey, branches: [] };
       const nestedAreas = area

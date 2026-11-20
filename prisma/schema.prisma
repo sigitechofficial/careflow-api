@@ -1265,6 +1265,8 @@ model Employee {
   createdById String?   @db.Uuid
   updatedById String?   @db.Uuid
   deletedById String?   @db.Uuid
+  /// How the record was made: by the office (ADMIN), or by the carer in the Care app (CARE_APP_SIGNUP).
+  creationSource EmployeeCreationSource @default(ADMIN)
 
   personalDetail    EmployeePersonalDetail?
   emergencyContacts EmployeeEmergencyContact[]
@@ -1315,8 +1317,54 @@ model Employee {
   supervisionAttendances             SupervisionAttendee[]
   supervisionActions                 SupervisionAction[]
   policyAcknowledgements             PolicyAcknowledgement[]
+  accountDeletionRequests            EmployeeAccountDeletionRequest[]
 
   @@index([deletedAt])
+  @@index([creationSource])
+  @@schema("employees")
+}
+
+enum EmployeeCreationSource {
+  ADMIN
+  CARE_APP_SIGNUP
+
+  @@schema("employees")
+}
+
+/// Care app account approval. Office-made accounts are APPROVED; a carer's own sign-up waits as PENDING.
+enum EmployeeAppApprovalStatus {
+  APPROVED
+  PENDING
+  DECLINED
+
+  @@schema("employees")
+}
+
+enum EmployeeAccountDeletionStatus {
+  PENDING
+  APPROVED
+  DECLINED
+
+  @@schema("employees")
+}
+
+/// A carer asking, in the Care app, for their account to be deleted. Nothing is deleted until a manager approves.
+model EmployeeAccountDeletionRequest {
+  id           String                        @id @default(uuid()) @db.Uuid
+  employeeId   String                        @db.Uuid
+  reason       String                        @db.Text
+  status       EmployeeAccountDeletionStatus @default(PENDING)
+  requestedAt  DateTime                      @default(now())
+  decidedAt    DateTime?
+  decidedById  String?                       @db.Uuid
+  decisionNote String?                       @db.Text
+  createdAt    DateTime                      @default(now())
+  updatedAt    DateTime                      @updatedAt
+
+  employee Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([employeeId, status])
+  @@index([status])
   @@schema("employees")
 }
 
@@ -1725,6 +1773,11 @@ model EmployeePortalAccount {
   passwordSetAt      DateTime?
   /// The same person's office login: one password for both (kept in step whenever either is set).
   userId             String?   @unique @db.Uuid
+  /// Office approval of a Care app sign-up. Accounts the office made are APPROVED.
+  approvalStatus     EmployeeAppApprovalStatus @default(APPROVED)
+  approvalDecidedAt  DateTime?
+  approvalDecidedById String?  @db.Uuid
+  approvalNote       String?   @db.Text
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -9102,6 +9155,8 @@ enum EcmExceptionKind {
   UNABLE_TO_START
   /// Carer scanned an NFC tag that is not an active tag of this visit's client.
   NFC_TAG_MISMATCH
+  /// Carer's answers at clock-in were worrying: welfare outcome amber/red, person not seen, or manager review asked.
+  WELFARE_ON_ARRIVAL
   OTHER
 
   @@schema("scheduling")
@@ -13431,6 +13486,8 @@ model LearningSettings {
   allowCourseAccessAfterExpiry              Boolean  @default(false)
   allowCourseRetakeAfterPass                Boolean  @default(false)
   complianceCalculationMode                 String   @default("HYBRID")
+  /// Role that gets Learning tasks in My tasks (18 Nov 2026). Null = the Admin role.
+  taskRoleId                                String?  @db.Uuid
   createdAt                                 DateTime @default(now())
   updatedAt                                 DateTime @updatedAt
   updatedById                               String?  @db.Uuid
@@ -18313,4 +18370,17 @@ model AuthSession {
 
   @@index([kind, accountId, revokedAt])
   @@schema("identity")
+}
+
+/// The addresses at a UK postcode, as the address list service (Ideal Postcodes) returned them. Kept 30 days so
+/// each postcode is paid for at most once a month, across restarts and every API server. Holds no personal data.
+model PostcodeAddressCache {
+  /// "TW3 2DL" (upper case, one space).
+  postcode  String   @id @db.VarChar(10)
+  /// The PostcodeAddresses answer sent to the admin.
+  payload   Json
+  fetchedAt DateTime @default(now())
+
+  @@index([fetchedAt])
+  @@schema("platform")
 }

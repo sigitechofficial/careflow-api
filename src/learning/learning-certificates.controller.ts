@@ -12,12 +12,16 @@ import { LearningCertificateQueryDto, IssueManualCertificateDto, RevokeCertifica
 import { LearningCertificatesService } from './learning-certificates.service';
 import { verifyCertificatePdfSignature } from './learning-file.util';
 
+import { LearningTasksService } from './learning-tasks.service';
 @ApiTags('Learning — Certificates')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('learning/certificates')
 export class LearningCertificatesController {
-  constructor(private readonly service: LearningCertificatesService) {}
+  constructor(
+    private readonly service: LearningCertificatesService,
+    private readonly tasks: LearningTasksService,
+  ) {}
 
   @Get()
   @Permissions('learning.certificates.read')
@@ -29,12 +33,15 @@ export class LearningCertificatesController {
   @Post('issue')
   @Permissions('learning.certificates.manage')
   @ApiOperation({ summary: 'Manually issue a certificate to an employee for a course' })
-  issue(
+  async issue(
     @CurrentUser() user: RequestUser,
     @Body() dto: IssueManualCertificateDto,
     @Req() req: Request,
   ) {
-    return this.service.issueManual(user.id, dto, getRequestAuditMeta(req));
+    const result = await this.service.issueManual(user.id, dto, getRequestAuditMeta(req));
+    // A new certificate closes the expiring / expired task of the old one.
+    await this.tasks.syncCertificatesFor(dto.employeeId, dto.courseId);
+    return result;
   }
 
   @Post('verify')
@@ -61,13 +68,15 @@ export class LearningCertificatesController {
   @Post(':id/revoke')
   @Permissions('learning.certificates.manage')
   @ApiOperation({ summary: 'Revoke certificate' })
-  revoke(
+  async revoke(
     @CurrentUser() user: RequestUser,
     @Param('id') id: string,
     @Body() dto: RevokeCertificateDto,
     @Req() req: Request,
   ) {
-    return this.service.revoke(id, user.id, dto, getRequestAuditMeta(req));
+    const result = await this.service.revoke(id, user.id, dto, getRequestAuditMeta(req));
+    await this.tasks.syncCertificate(id);
+    return result;
   }
 }
 

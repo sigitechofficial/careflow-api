@@ -29,6 +29,7 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { SaveVisitJobTasksDto } from '../scheduled-jobs-housekeeping/dto/save-visit-job-tasks.dto';
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
+import { EmployeeAppFutureVisitReadOnlyGuard } from './guards/employee-app-future-visit-read-only.guard';
 import { EmployeeAppVisitsService } from './employee-app-visits.service';
 import { EmployeeAppVisitCheckInDto } from './dto/employee-app-visit-check-in.dto';
 import { EmployeeAppAreaPresenceDto } from './dto/employee-app-area-presence.dto';
@@ -55,7 +56,7 @@ import { VISIT_VOICE_NOTE_MAX_BYTES } from './visit-voice-note.util';
 
 @ApiTags('Employee App Visits')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, EmployeeAppAuthGuard)
+@UseGuards(JwtAuthGuard, EmployeeAppAuthGuard, EmployeeAppFutureVisitReadOnlyGuard)
 @Controller('employee-app/visits')
 export class EmployeeAppVisitsController {
   constructor(private readonly visitsService: EmployeeAppVisitsService) {}

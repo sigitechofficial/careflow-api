@@ -18,8 +18,8 @@ describe('learning-course-rules.util', () => {
         LearningCourseType.COURSE,
         LearningDeliveryMethod.WORKPLACE,
       ),
-    ).not.toBeNull();
-    // Blended removed for new training courses (16 Nov 2026); face to face and virtual stay.
+    ).toBeNull();
+    // One course type (17 Nov 2026): Online, Face to face, Workplace; Blended and Virtual retired.
     expect(
       courseTypeDeliveryError(
         LearningCourseType.COURSE,
@@ -37,7 +37,7 @@ describe('learning-course-rules.util', () => {
         LearningCourseType.COURSE,
         LearningDeliveryMethod.VIRTUAL,
       ),
-    ).toBeNull();
+    ).not.toBeNull();
     expect(
       courseTypeDeliveryError(
         LearningCourseType.ASSESSMENT,
