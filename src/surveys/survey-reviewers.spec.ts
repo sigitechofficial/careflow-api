@@ -324,9 +324,9 @@ describe('reviewer accounts: the permission follows the grant', () => {
 
   it('a Temporary Inspector login never gets it (those logins can open care records)', async () => {
     const prisma: any = {
-      temporaryInspector: { findFirst: jest.fn(async () => ({ id: 'ti-1', firstName: 'T', lastName: 'I', username: 'ti', validFrom: day(-1), validTo: day(1) })) },
+      temporaryInspector: { findFirst: jest.fn(async () => ({ id: 'ti-1', firstName: 'T', lastName: 'I', username: 'ti', validFrom: day(-1), validTo: day(1), serviceUserKeys: [] })) },
     };
-    expect((await new TemporaryInspectorsService(prisma, {} as never).getAuthContextForJwt('ti-1'))?.permissions).toEqual(['temporary_inspector.session']);
+    expect((await new TemporaryInspectorsService(prisma, {} as never).getAuthContextForJwt('ti-1'))?.permissions).not.toContain(SURVEY_REVIEW_PERMISSION);
   });
 });
 

@@ -12,8 +12,8 @@ import { hashPassword } from '../common/utils/password.util';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { CreateTemporaryInspectorDto } from './dto/create-temporary-inspector.dto';
 import { OrgScopeService } from '../common/org-scope/org-scope.service';
+import { INSPECTOR_READ_PERMISSIONS } from './inspector-access';
 
-const TI_PERMISSIONS = ['temporary_inspector.session'] as const;
 
 function isWithinValidity(validFrom: Date, validTo: Date, now = new Date()): boolean {
   return validFrom.getTime() <= now.getTime() && now.getTime() <= validTo.getTime();
@@ -41,6 +41,16 @@ function formatExpireLabel(d: Date): string {
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export type InspectorServiceUserOption = { id: string; name: string };
+
+/** No service user has this id: a scope saved from the old sample list ("1"…"13") shows nobody, not everybody. */
+const NOBODY = '00000000-0000-0000-0000-000000000000';
+
+/** The ids a session is limited to (empty = all service users). */
+export function inspectorScopeIds(keys: string[]): string[] {
+  if (!keys.length) return [];
+  const ids = keys.filter((k) => UUID.test(k));
+  return ids.length ? ids : [NOBODY];
+}
 
 /** "First Last" (the number too, so two people with the same name can be told apart). */
 export function serviceUserOptionName(su: {
@@ -127,6 +137,7 @@ export class TemporaryInspectorsService {
         username: true,
         validFrom: true,
         validTo: true,
+        serviceUserKeys: true,
       },
     });
     if (!row) return null;
@@ -140,8 +151,9 @@ export class TemporaryInspectorsService {
       id: row.id,
       email,
       roles: ['Temporary Inspector'],
-      permissions: [...TI_PERMISSIONS],
+      permissions: [...INSPECTOR_READ_PERMISSIONS],
       accountKind: 'temporary_inspector',
+      inspectorAccess: { serviceUserIds: inspectorScopeIds(row.serviceUserKeys), validTo: row.validTo.toISOString() },
       firstName: row.firstName,
       lastName: row.lastName,
       username: row.username,
