@@ -12,17 +12,22 @@ import {
   ExtendAssignmentWithReasonDto,
   MarkLessonsDto,
   RecordOutcomeDto,
+  PracticalSignoffDto,
   RecordAssignmentReviewDto,
 } from './dto/learning.dto';
 import { LearningAssignmentReviewsService } from './learning-assignment-reviews.service';
 
 /** Overdue / late training: full record, extend, reasons and actions (16 Nov 2026). */
+import { LearningTasksService } from './learning-tasks.service';
 @ApiTags('Learning — Assignment reviews')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('learning')
 export class LearningAssignmentReviewsController {
-  constructor(private readonly service: LearningAssignmentReviewsService) {}
+  constructor(
+    private readonly service: LearningAssignmentReviewsService,
+    private readonly tasks: LearningTasksService,
+  ) {}
 
   @Get('assignment-review-options')
   @Permissions('learning.assignments.read')
@@ -47,7 +52,7 @@ export class LearningAssignmentReviewsController {
     @Body() dto: ExtendAssignmentWithReasonDto,
     @Req() req: Request,
   ) {
-    return this.service.extend(id, user.id, dto, getRequestAuditMeta(req));
+    return this.tasks.after(id, this.service.extend(id, user.id, dto, getRequestAuditMeta(req)));
   }
 
   @Post('assignments/:id/reviews')
@@ -59,7 +64,7 @@ export class LearningAssignmentReviewsController {
     @Body() dto: RecordAssignmentReviewDto,
     @Req() req: Request,
   ) {
-    return this.service.record(id, user.id, dto, getRequestAuditMeta(req));
+    return this.tasks.after(id, this.service.record(id, user.id, dto, getRequestAuditMeta(req)));
   }
 
   @Post('assignments/:id/outcome')
@@ -71,14 +76,26 @@ export class LearningAssignmentReviewsController {
     @Body() dto: RecordOutcomeDto,
     @Req() req: Request,
   ) {
-    return this.service.recordOutcome(id, user.id, dto, getRequestAuditMeta(req));
+    return this.tasks.after(id, this.service.recordOutcome(id, user.id, dto, getRequestAuditMeta(req)));
+  }
+
+  @Post('assignments/:id/practical-signoff')
+  @Permissions('learning.assignments.manage')
+  @ApiOperation({ summary: 'Practical test sign-off: checklist + competent / not yet competent' })
+  practicalSignoff(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: PracticalSignoffDto,
+    @Req() req: Request,
+  ) {
+    return this.tasks.after(id, this.service.practicalSignoff(id, user.id, dto, getRequestAuditMeta(req)));
   }
 
   @Post('assignments/:id/start')
   @Permissions('learning.assignments.manage')
   @ApiOperation({ summary: 'Face to face: the office starts the course for the carer' })
   start(@CurrentUser() user: RequestUser, @Param('id', ParseUUIDPipe) id: string, @Req() req: Request) {
-    return this.service.startCourse(id, user.id, getRequestAuditMeta(req));
+    return this.tasks.after(id, this.service.startCourse(id, user.id, getRequestAuditMeta(req)));
   }
 
   @Post('assignments/:id/lessons/mark')
@@ -90,7 +107,7 @@ export class LearningAssignmentReviewsController {
     @Body() dto: MarkLessonsDto,
     @Req() req: Request,
   ) {
-    return this.service.markLessons(id, user.id, dto, getRequestAuditMeta(req));
+    return this.tasks.after(id, this.service.markLessons(id, user.id, dto, getRequestAuditMeta(req)));
   }
 
   @Post('assignments/:id/assign-again')
@@ -102,6 +119,6 @@ export class LearningAssignmentReviewsController {
     @Body() dto: AssignAgainDto,
     @Req() req: Request,
   ) {
-    return this.service.assignAgain(id, user.id, dto, getRequestAuditMeta(req));
+    return this.tasks.after(id, this.service.assignAgain(id, user.id, dto, getRequestAuditMeta(req)));
   }
 }

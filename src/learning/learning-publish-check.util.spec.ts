@@ -164,10 +164,20 @@ describe('checkPublishable', () => {
     ).toBe(true);
   });
 
+  it('an online course can be quiz only; a course with nothing to do is blocked (17 Nov 2026)', () => {
+    expect(
+      codes(checkPublishable(base({ sections: [], quizzes: [quiz()] })).blockers),
+    ).not.toContain('no_lessons');
+    expect(
+      codes(checkPublishable(base({ sections: [], quizzes: [] })).blockers),
+    ).toContain('no_lessons');
+  });
+
   it('blocks a wrong type/delivery pair, a refresher without certificate, and v2 without a change summary', () => {
+    // Training + Virtual is retired (17 Nov 2026).
     const course = {
       ...base().course,
-      deliveryMethod: LearningDeliveryMethod.WORKPLACE,
+      deliveryMethod: LearningDeliveryMethod.VIRTUAL,
     };
     expect(codes(checkPublishable(base({ course })).blockers)).toContain(
       'type_delivery',
@@ -204,8 +214,8 @@ describe('checkPublishable', () => {
       }),
     );
     expect(r.canPublish).toBe(true);
-    expect(r.warnings.map((w) => w.code)).toEqual(
-      expect.arrayContaining(['practical_signoff', 'no_certificate']),
-    );
+    // The sign-off screen exists now (17 Nov 2026): no practical_signoff warning.
+    expect(r.warnings.map((w) => w.code)).toEqual(expect.arrayContaining(['no_certificate']));
+    expect(r.warnings.map((w) => w.code)).not.toContain('practical_signoff');
   });
 });

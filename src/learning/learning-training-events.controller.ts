@@ -14,12 +14,16 @@ import {
 } from './dto/learning.dto';
 import { LearningTrainingEventsService } from './learning-training-events.service';
 
+import { LearningTasksService } from './learning-tasks.service';
 @ApiTags('Learning — Training events')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('learning/training-events')
 export class LearningTrainingEventsController {
-  constructor(private readonly service: LearningTrainingEventsService) {}
+  constructor(
+    private readonly service: LearningTrainingEventsService,
+    private readonly tasks: LearningTasksService,
+  ) {}
 
   @Get()
   @Permissions('learning.training_events.read')
@@ -80,8 +84,11 @@ export class LearningTrainingEventsController {
   @Patch('attendees/:attendeeId')
   @Permissions('learning.training_events.manage')
   @ApiOperation({ summary: 'Update training event attendee' })
-  updateAttendee(@Param('attendeeId') attendeeId: string, @Body() dto: UpdateTrainingEventAttendeeDto) {
-    return this.service.updateAttendee(attendeeId, dto);
+  async updateAttendee(@Param('attendeeId') attendeeId: string, @Body() dto: UpdateTrainingEventAttendeeDto) {
+    const result = await this.service.updateAttendee(attendeeId, dto);
+    // Attendance can finish the carer's part: open the outcome task (18 Nov 2026).
+    await this.tasks.syncAttendee(attendeeId);
+    return result;
   }
 
   @Delete('attendees/:attendeeId')

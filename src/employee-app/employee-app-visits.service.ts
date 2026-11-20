@@ -285,6 +285,7 @@ import {
   taskOutcomeTimelineDetail,
   taskOutcomeTimelineTone,
 } from './visit-timeline.util';
+import { arrivalEntry, isWorryingArrival, mockLocationEntry, outsideAreaEntry } from './visit-safety-timeline.util';
 import { mapClockInArrivalReasonRow } from './employee-app-check-in-arrival-reasons';
 import {
   buildUnableToStartBlock,
@@ -499,6 +500,92 @@ export class EmployeeAppVisitsService {
    * Log singletons (visit note, handover) are one timeline row per visit; a support
    * carer gets their own row so they never replace the lead's.
    */
+  /**
+   * After clock-in: how the person was found, and any location warning, as their own Log rows (see
+   * visit-safety-timeline.util). Never fails the clock-in.
+   */
+  private async logArrivalAndLocation(
+    jobId: string,
+    visitId: string,
+    employeeId: string,
+    occurredAt: Date,
+    a: {
+      welfareOutcomeId: string | null;
+      personSeen: boolean | null;
+      accessViaKeySafe: boolean | null;
+      requiresManagerReview: boolean;
+      isMockLocation: boolean;
+      outsideArea: boolean;
+      distanceMeters: number | null;
+      outsideAreaReason: string | null;
+    },
+  ): Promise<void> {
+    try {
+      const welfare = a.welfareOutcomeId
+        ? await this.prisma.visitWelfareOutcomeCatalog.findFirst({
+            where: /^[0-9a-f-]{36}$/i.test(a.welfareOutcomeId)
+              ? { OR: [{ id: a.welfareOutcomeId }, { code: a.welfareOutcomeId }] }
+              : { code: a.welfareOutcomeId },
+            select: { label: true, tone: true },
+          })
+        : null;
+      const entries = [
+        arrivalEntry(employeeId, {
+          welfareOutcomeLabel: welfare?.label ?? null,
+          welfareOutcomeTone: welfare?.tone ?? null,
+          personSeen: a.personSeen,
+          accessViaKeySafe: a.accessViaKeySafe,
+          requiresManagerReview: a.requiresManagerReview,
+        }),
+        a.isMockLocation ? mockLocationEntry(employeeId, 'in') : null,
+        a.outsideArea
+          ? outsideAreaEntry(employeeId, { distanceMeters: a.distanceMeters, reason: a.outsideAreaReason })
+          : null,
+      ].filter((e): e is NonNullable<typeof e> => Boolean(e));
+      for (const entry of entries) {
+        await this.visitTimeline.upsertEvent({
+          scheduledJobId: jobId,
+          scheduledVisitId: visitId,
+          ...entry,
+          occurredAt,
+          createdByEmployeeId: employeeId,
+        });
+      }
+      // Worrying answers alert the office straight away (ECM queue, in-app alert with sound).
+      if (isWorryingArrival({ welfareTone: welfare?.tone ?? null, personSeen: a.personSeen, requiresManagerReview: a.requiresManagerReview })) {
+        await this.ecmExceptions.raiseWelfareOnArrival({
+          scheduledJobId: jobId,
+          employeeId,
+          welfareLabel: welfare?.label ?? null,
+          welfareTone: welfare?.tone ?? null,
+          personSeen: a.personSeen,
+          requiresManagerReview: a.requiresManagerReview,
+          accessViaKeySafe: a.accessViaKeySafe,
+        });
+      }
+    } catch (err) {
+      this.logger.warn(`Arrival Log rows failed for job=${jobId}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+  }
+
+  /** Clock-out with a fake (mock) phone location gets its own Log row. */
+  private async logMockLocationAtClockOut(
+    jobId: string,
+    visitId: string | null,
+    employeeId: string,
+    isMockLocation: boolean,
+    occurredAt: Date,
+  ): Promise<void> {
+    if (!isMockLocation) return;
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: visitId,
+      ...mockLocationEntry(employeeId, 'out'),
+      occurredAt,
+      createdByEmployeeId: employeeId,
+    });
+  }
+
   private perCarerLogSourceId(
     baseSourceId: string,
     employeeId: string,
@@ -1454,6 +1541,17 @@ export class EmployeeAppVisitsService {
       occurredAt,
       createdByEmployeeId: employeeId,
       writeIdempotencyKey: idempotencyKey,
+    });
+
+    await this.logArrivalAndLocation(jobId, visit.id, employeeId, occurredAt, {
+      welfareOutcomeId: checkInPayload.welfareOutcomeId,
+      personSeen: checkInPayload.personSeen,
+      accessViaKeySafe: checkInPayload.accessViaKeySafe,
+      requiresManagerReview: checkInPayload.requiresManagerReview,
+      isMockLocation: checkInPayload.isMockLocation,
+      outsideArea: checkInPayload.outsideGeofence && checkInMethod === 'GPS',
+      distanceMeters: checkInPayload.distanceMeters,
+      outsideAreaReason: checkInPayload.outsideGeofenceReason,
     });
 
     const refreshed = await this.loadJobForEmployee(employeeId, jobId);
@@ -2740,6 +2838,9 @@ export class EmployeeAppVisitsService {
       writeIdempotencyKey: dto.idempotencyKey,
     });
 
+    await this.logMockLocationAtClockOut(jobId, ctx.primaryVisit.id, employeeId, dto.isMockedLocation ?? dto.isMockLocation ?? false, parseOccurredAt(dto.deviceRecordedAt, now));
+    await this.recordClockOutHandover(employeeId, jobId, ctx, dto);
+
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
     this.carerPush.notify({
@@ -2918,6 +3019,7 @@ export class EmployeeAppVisitsService {
       createdByEmployeeId: employeeId,
       writeIdempotencyKey: dto.idempotencyKey,
     });
+    await this.logMockLocationAtClockOut(jobId, visit.id, employeeId, dto.isMockedLocation ?? dto.isMockLocation ?? false, parseOccurredAt(dto.deviceRecordedAt, endAt));
 
     await this.ecmEvaluation.evaluateJobSafe(jobId);
 
@@ -3041,6 +3143,7 @@ export class EmployeeAppVisitsService {
       createdByEmployeeId: employeeId,
       writeIdempotencyKey: dto.idempotencyKey,
     });
+    await this.logMockLocationAtClockOut(jobId, visit.id, employeeId, dto.isMockedLocation ?? dto.isMockLocation ?? false, endAt);
 
     // The row was priced when the lead closed the visit. Refreshing it re-evaluates it on this
     // carer's own times: an automatic approval given for the earlier times is withdrawn (R-18).
@@ -4470,6 +4573,80 @@ export class EmployeeAppVisitsService {
     assertBodyOrVoiceNote(dto, 'Enter a handover message or record a voice note before saving');
     await this.assertOperationsUnlocked(employeeId, jobId);
     const ctx = await this.loadJobForEmployee(employeeId, jobId);
+    return this.saveHandover(employeeId, jobId, ctx, dto);
+  }
+
+  /**
+   * A handover typed on the clock-out screen is the carer's handover for the visit: it goes to the
+   * visit Log, the next carer's "Last handover" and the office handover report, exactly as one saved
+   * from the Log tab. Skipped when the carer already saved the same words from the Log tab.
+   */
+  private async recordClockOutHandover(
+    employeeId: string,
+    jobId: string,
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    dto: EmployeeAppVisitCompleteDto,
+  ): Promise<void> {
+    const body = dto.handoverNote?.trim();
+    if (!body) return;
+    try {
+      const ea = await this.readEmployeeAppMeta(jobId);
+      const isSupport =
+        resolveCarerRole(employeeId, ctx.job.requiredCarers, ctx.job.allocations) === 'support';
+      const supportHandovers =
+        typeof ea.supportHandovers === 'object' && ea.supportHandovers && !Array.isArray(ea.supportHandovers)
+          ? (ea.supportHandovers as Record<string, unknown>)
+          : {};
+      const own = isSupport ? supportHandovers[employeeId] : ea.handoverNote;
+      const ownBody =
+        typeof own === 'object' && own && typeof (own as Record<string, unknown>).body === 'string'
+          ? ((own as Record<string, unknown>).body as string).trim()
+          : '';
+      if (ownBody === body) return;
+      if (ownBody) {
+        // A handover was already saved from the Log tab (it may be high priority, with an outstanding action):
+        // keep it, and add the clock-out words as their own Log row and to what the next carer reads.
+        await this.visitTimeline.upsertEvent({
+          scheduledJobId: jobId,
+          scheduledVisitId: ctx.primaryVisit.id,
+          eventType: 'handover',
+          sourceType: 'handover',
+          sourceId: `${this.perCarerLogSourceId(HANDOVER_TIMELINE_SOURCE_ID, employeeId, ctx)}:clock_out`,
+          title: 'Handover (at clock-out)',
+          detail: body,
+          tone: 'ink',
+          occurredAt: parseOccurredAt(dto.deviceRecordedAt, new Date()),
+          createdByEmployeeId: employeeId,
+        });
+        if (!isSupport) {
+          await this.mergeEmployeeAppMeta(jobId, (meta) => {
+            const last =
+              typeof meta.lastHandover === 'object' && meta.lastHandover
+                ? (meta.lastHandover as Record<string, unknown>)
+                : null;
+            if (!last) return meta;
+            const message = [String(last.message ?? last.body ?? '').trim(), body].filter(Boolean).join('\n\n');
+            return { ...meta, lastHandover: { ...last, message, body: message } };
+          });
+        }
+        return;
+      }
+      await this.saveHandover(employeeId, jobId, ctx, {
+        body,
+        deviceRecordedAt: dto.deviceRecordedAt ?? new Date().toISOString(),
+        idempotencyKey: `${dto.idempotencyKey ?? randomUUID()}:handover`,
+      });
+    } catch {
+      // The visit is completed; its notes are still on the visit and in the handover report.
+    }
+  }
+
+  private async saveHandover(
+    employeeId: string,
+    jobId: string,
+    ctx: Awaited<ReturnType<typeof this.loadJobForEmployee>>,
+    dto: EmployeeAppLogHandoverDto,
+  ) {
     /**
      * Handover is a visit singleton. POST is always upsert: reuse of the same
      * `idempotencyKey` / `clientEntryId` applies the latest body, priority,

@@ -1,6 +1,7 @@
 /** Field events that always notify the office (in-app + sound), independent of late-visit flags. */
 export const URGENT_OFFICE_ALERT_KINDS = [
   'CARER_SOS',
+  'WELFARE_ON_ARRIVAL',
   'LEFT_VISIT_AREA',
   'UNABLE_TO_START',
   'OUTSIDE_AREA_CHECK_IN_REQUEST',

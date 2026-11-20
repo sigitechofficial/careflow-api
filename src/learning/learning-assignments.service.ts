@@ -25,6 +25,7 @@ import {
   LearningAssignmentListQueryDto,
   LearningListQueryDto,
   ReassignAssignmentDto,
+  UpdateAssignmentDto,
 } from './dto/learning.dto';
 import { LearningNotificationHook } from './learning-notification.hook';
 import { LearningSettingsService } from './learning-settings.service';
@@ -72,6 +73,13 @@ export const ASSIGNMENT_STATUS_GROUPS: Record<
 const CLOSED_RESULT_STATUSES: LearningAssignmentStatus[] = [
   ...ASSIGNMENT_STATUS_GROUPS.COMPLETED,
   ...ASSIGNMENT_STATUS_GROUPS.NOT_COMPLETED,
+];
+
+/** Statuses the office can edit or unassign (18 Nov 2026). */
+const EDITABLE_STATUSES: LearningAssignmentStatus[] = [
+  LearningAssignmentStatus.ASSIGNED,
+  LearningAssignmentStatus.NOT_STARTED,
+  LearningAssignmentStatus.IN_PROGRESS,
 ];
 
 const ACTIVE_STATUSES: LearningAssignmentStatus[] = [
@@ -353,6 +361,7 @@ export class LearningAssignmentsService {
     );
 
     const results = await this.closedResults(rows);
+    const locks = await this.courseCarerLocks(rows);
 
     return {
       data: rows.map((r) => ({
@@ -363,6 +372,7 @@ export class LearningAssignmentsService {
         }),
         deliveryMethod: r.course?.deliveryMethod ?? null,
         result: results.get(r.id) ?? null,
+        courseCarerLock: locks.get(r.id) ?? null,
       })),
       meta: buildPaginationMeta({ page, limit, total }),
     };
@@ -747,6 +757,179 @@ export class LearningAssignmentsService {
     });
 
     return this.mapAssignment(row);
+  }
+
+  /**
+   * Office edit of an open course before its due date (18 Nov 2026, user decision):
+   * due date any time; course and carer only while the carer has not started it.
+   */
+  async update(id: string, userId: string, dto: UpdateAssignmentDto, meta?: RequestAuditMeta) {
+    const row = await this.prisma.learningAssignment.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException('Assignment not found');
+    this.assertEditable(row);
+
+    const courseChanged = !!dto.courseId && dto.courseId !== row.courseId;
+    const carerChanged = !!dto.employeeId && dto.employeeId !== row.employeeId;
+    const newDueAt = dto.dueAt ? new Date(dto.dueAt) : null;
+    const dueChanged = !!newDueAt && newDueAt.getTime() !== row.dueAt?.getTime();
+    if (!courseChanged && !carerChanged && !dueChanged) return this.mapAssignment(row);
+
+    if (newDueAt && dueChanged && newDueAt.getTime() <= Date.now()) {
+      throw new BadRequestException('The due date must be in the future');
+    }
+
+    const courseId = dto.courseId ?? row.courseId;
+    const employeeId = dto.employeeId ?? row.employeeId;
+    let courseVersionId = row.courseVersionId;
+    if (courseChanged || carerChanged) {
+      if (await this.hasStarted(row.id, row.status)) {
+        throw new BadRequestException(
+          'The carer has started this course. Only the due date can be changed. To give a different course or carer, unassign it and assign again.',
+        );
+      }
+      const booked = await this.prisma.learningTrainingEventAttendee.count({
+        where: { assignmentId: row.id, bookingStatus: { not: 'CANCELLED' } },
+      });
+      if (booked) {
+        throw new BadRequestException(
+          'This course is booked on a session. Only the due date can be changed. To give a different course or carer, unassign it and assign again.',
+        );
+      }
+      if (!employeeId) throw new BadRequestException('Choose a carer');
+      if (carerChanged) await this.validateActiveEmployee(employeeId);
+      if (courseChanged) courseVersionId = await this.resolveCourseVersionId(courseId);
+      const duplicate = await this.prisma.learningAssignment.findFirst({
+        where: { employeeId, courseId, status: { in: ACTIVE_STATUSES }, id: { not: row.id } },
+        select: { id: true },
+      });
+      if (duplicate) throw new BadRequestException('This carer already has this course');
+    }
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const next = await tx.learningAssignment.update({
+        where: { id },
+        data: {
+          courseId,
+          courseVersionId,
+          employeeId,
+          ...(dueChanged ? { dueAt: newDueAt } : {}),
+        },
+      });
+      if (courseChanged || carerChanged) {
+        await tx.learningEmployeeProgress.updateMany({
+          where: { assignmentId: id },
+          data: {
+            employeeId: employeeId!,
+            ...(courseVersionId ? { courseVersionId } : {}),
+          },
+        });
+        // The compliance row for the old carer/course came only from this assignment.
+        await tx.learningComplianceSnapshot.deleteMany({
+          where: { assignmentId: id, NOT: { employeeId: employeeId!, courseId } },
+        });
+      }
+      return next;
+    });
+
+    await this.compliance.recalculateForAssignment(id);
+
+    const course = await this.prisma.learningCourse.findUnique({ where: { id: courseId }, select: { title: true } });
+    const title = course?.title ?? 'Course';
+    if ((courseChanged || carerChanged) && employeeId) {
+      await this.notifications.notifyAssignmentCreated({
+        employeeIds: [employeeId],
+        assignmentId: id,
+        courseTitle: title,
+        dueAt: updated.dueAt ?? undefined,
+      });
+      await this.push.assigned([{ employeeId, assignmentId: id }], title, updated.dueAt);
+    } else if (dueChanged && employeeId && updated.dueAt) {
+      await this.push.dueDateChanged({ employeeId, assignmentId: id, courseTitle: title, dueAt: updated.dueAt });
+    }
+
+    const changed = [courseChanged && 'course', carerChanged && 'carer', dueChanged && 'due date'].filter(Boolean);
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.LEARNING,
+      action: 'learning_assignment_updated',
+      recordType: 'LearningAssignment',
+      recordId: id,
+      description: `Assignment edited (${changed.join(', ')})${dto.note?.trim() ? `: ${dto.note.trim()}` : ''}`,
+      oldValues: this.mapAssignment(row),
+      newValues: this.mapAssignment(updated),
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+
+    return this.mapAssignment(updated);
+  }
+
+  /** Office unassigns an open course before its due date (18 Nov 2026). Record kept as Cancelled. */
+  async unassign(id: string, userId: string, dto: CancelAssignmentDto, meta?: RequestAuditMeta) {
+    const row = await this.prisma.learningAssignment.findUnique({ where: { id } });
+    if (!row) throw new NotFoundException('Assignment not found');
+    this.assertEditable(row);
+    if (!dto.cancellationReason?.trim()) throw new BadRequestException('Write why the course is unassigned');
+    const result = await this.cancel(id, userId, { cancellationReason: dto.cancellationReason.trim() }, meta);
+    await this.prisma.learningTrainingEventAttendee.updateMany({
+      where: { assignmentId: id, bookingStatus: { not: 'CANCELLED' } },
+      data: { bookingStatus: 'CANCELLED' },
+    });
+    return result;
+  }
+
+  /**
+   * Why course and carer can't be edited on an open row (18 Nov 2026), using the same rules as
+   * update(): STARTED (status, progress or a quiz attempt) or BOOKED (on a session).
+   */
+  private async courseCarerLocks(rows: { id: string; status: LearningAssignmentStatus }[]) {
+    const out = new Map<string, 'STARTED' | 'BOOKED'>();
+    const open = rows.filter((r) => EDITABLE_STATUSES.includes(r.status));
+    for (const r of open) {
+      if (r.status === LearningAssignmentStatus.IN_PROGRESS) out.set(r.id, 'STARTED');
+    }
+    const ids = open.filter((r) => !out.has(r.id)).map((r) => r.id);
+    if (!ids.length) return out;
+    const [progress, attempts, bookings] = await Promise.all([
+      this.prisma.learningEmployeeProgress.findMany({
+        where: { assignmentId: { in: ids }, OR: [{ startedAt: { not: null } }, { completedContentItems: { gt: 0 } }] },
+        select: { assignmentId: true },
+      }),
+      this.prisma.learningAssessmentAttempt.findMany({
+        where: { assignmentId: { in: ids } },
+        select: { assignmentId: true },
+        distinct: ['assignmentId'],
+      }),
+      this.prisma.learningTrainingEventAttendee.findMany({
+        where: { assignmentId: { in: ids }, bookingStatus: { not: 'CANCELLED' } },
+        select: { assignmentId: true },
+      }),
+    ]);
+    for (const r of [...progress, ...attempts]) out.set(r.assignmentId, 'STARTED');
+    for (const r of bookings) if (r.assignmentId && !out.has(r.assignmentId)) out.set(r.assignmentId, 'BOOKED');
+    return out;
+  }
+
+  /** Open (not finished) and the due date has not passed. */
+  private assertEditable(row: { status: LearningAssignmentStatus; dueAt: Date | null }) {
+    if (!EDITABLE_STATUSES.includes(row.status)) {
+      throw new BadRequestException('Only a scheduled or in-progress course can be changed');
+    }
+    if (row.dueAt && row.dueAt.getTime() <= Date.now()) {
+      throw new BadRequestException('The due date has passed. Use Review on the course record instead.');
+    }
+  }
+
+  private async hasStarted(id: string, status: LearningAssignmentStatus) {
+    if (status !== LearningAssignmentStatus.ASSIGNED && status !== LearningAssignmentStatus.NOT_STARTED) return true;
+    const [progress, attempts] = await Promise.all([
+      this.prisma.learningEmployeeProgress.findUnique({
+        where: { assignmentId: id },
+        select: { startedAt: true, completedContentItems: true },
+      }),
+      this.prisma.learningAssessmentAttempt.count({ where: { assignmentId: id } }),
+    ]);
+    return !!progress?.startedAt || (progress?.completedContentItems ?? 0) > 0 || attempts > 0;
   }
 
   async exempt(id: string, userId: string, dto: ExemptAssignmentDto, meta?: RequestAuditMeta) {

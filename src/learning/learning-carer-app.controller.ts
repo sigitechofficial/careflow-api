@@ -22,6 +22,7 @@ import { LearningCarerAppService } from './learning-carer-app.service';
 import { LearningCertificatesService } from './learning-certificates.service';
 
 /** Carer app → Learn. Only the signed-in carer's own training (docs/LEARNING_CARER_APP_API.md). */
+import { LearningTasksService } from './learning-tasks.service';
 @ApiTags('Employee App Learning')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, EmployeeAppAuthGuard)
@@ -30,6 +31,7 @@ export class LearningCarerAppController {
   constructor(
     private readonly service: LearningCarerAppService,
     private readonly certificateService: LearningCertificatesService,
+    private readonly tasks: LearningTasksService,
   ) {}
 
   @Get()
@@ -68,7 +70,7 @@ export class LearningCarerAppController {
     @CurrentUser() user: RequestUser,
     @Param('id', ParseUUIDPipe) id: string,
   ) {
-    return this.service.start(user.employeeId!, id);
+    return this.tasks.after(id, this.service.start(user.employeeId!, id));
   }
 
   @Post('assignments/:id/late-reason')
@@ -78,7 +80,7 @@ export class LearningCarerAppController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: CarerLateReasonDto,
   ) {
-    return this.service.giveLateReason(user.employeeId!, id, dto.reasonCode, dto.note);
+    return this.tasks.after(id, this.service.giveLateReason(user.employeeId!, id, dto.reasonCode, dto.note));
   }
 
   @Post('assignments/:id/lessons/:lessonId/complete')
@@ -89,12 +91,12 @@ export class LearningCarerAppController {
     @Param('lessonId', ParseUUIDPipe) lessonId: string,
     @Body() dto: CompleteContentDto,
   ) {
-    return this.service.completeLesson(
+    return this.tasks.after(id, this.service.completeLesson(
       user.employeeId!,
       id,
       lessonId,
       dto.timeSpentSeconds,
-    );
+    ));
   }
 
   @Get('assignments/:id/quizzes/:quizId')
@@ -125,7 +127,7 @@ export class LearningCarerAppController {
     @Param('quizId', ParseUUIDPipe) quizId: string,
     @Body() dto: SubmitAssessmentAttemptDto,
   ) {
-    return this.service.submitQuiz(user.employeeId!, id, quizId, dto);
+    return this.tasks.after(id, this.service.submitQuiz(user.employeeId!, id, quizId, dto));
   }
 
   @Post('sessions/:attendeeId/cant-attend')

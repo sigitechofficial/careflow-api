@@ -34,6 +34,7 @@ import { LearningEligibilityService } from './learning-eligibility.service';
 import { LearningExternalTrainingController } from './learning-external-training.controller';
 import { LearningExternalTrainingService } from './learning-external-training.service';
 import { LearningJobs } from './learning-jobs';
+import { LearningTasksService } from './learning-tasks.service';
 import { LearningMeController } from './learning-me.controller';
 import { LearningMeService } from './learning-me.service';
 import { LearningNotificationHook } from './learning-notification.hook';
@@ -103,6 +104,7 @@ import { LearningFilesService } from './learning-files.service';
     LearningNotificationHook,
     LearningPushService,
     LearningJobs,
+    LearningTasksService,
   ],
   exports: [
     LearningAssignmentsService,

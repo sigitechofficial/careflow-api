@@ -15,6 +15,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import {
   AssignAgainDto,
   ExtendAssignmentWithReasonDto,
+  PracticalSignoffDto,
   RecordOutcomeDto,
   RecordAssignmentReviewDto,
 } from './dto/learning.dto';
@@ -202,6 +203,8 @@ export class LearningAssignmentReviewsService {
       ),
       // Face to face: the trainer marks lessons; the outcome waits for lessons + attendance.
       lessonsMarkedByTrainer: trainerMarksLessons(a.course.deliveryMethod),
+      // Practical test (17 Nov 2026): the checklist and every sign-off so far.
+      practical: await this.practicalFor(a.id, version),
       hasRequiredQuiz: (version?.assessments ?? []).some((q) => quizIsRequired(q)),
       outcomeBlockedReason: trainerMarksLessons(a.course.deliveryMethod)
         ? this.outcomeBlockedReason({
@@ -482,15 +485,36 @@ export class LearningAssignmentReviewsService {
    * Passed: the course completes once nothing else is left, and the certificate is issued.
    * Not passed: the course is failed; it can be given again now or later.
    */
-  async recordOutcome(id: string, userId: string, dto: RecordOutcomeDto, meta?: RequestAuditMeta) {
+  async recordOutcome(
+    id: string,
+    userId: string,
+    dto: RecordOutcomeDto,
+    meta?: RequestAuditMeta,
+    fromPracticalSignoff = false,
+  ) {
     const a = await this.prisma.learningAssignment.findUnique({
       where: { id },
       include: {
         course: { select: { title: true, deliveryMethod: true, courseType: true } },
-        progress: { include: { courseVersion: { select: { requiresManagerApproval: true } } } },
+        progress: {
+          include: {
+            courseVersion: {
+              select: {
+                requiresManagerApproval: true,
+                requiresPracticalAssessment: true,
+                competencyId: true,
+                competencyChecklistSnapshot: true,
+              },
+            },
+          },
+        },
       },
     });
     if (!a || !a.progress) throw new NotFoundException('Assignment not found');
+    // A course with a practical test is decided by its checklist (17 Nov 2026).
+    if (!fromPracticalSignoff && this.practicalChecklist(a.progress.courseVersion)) {
+      throw new BadRequestException('This course has a practical test. Fill the checklist to record the result.');
+    }
     const needsOutcome =
       courseNeedsManagerOutcome(a.course.deliveryMethod) ||
       !!a.progress.courseVersion?.requiresManagerApproval;
@@ -635,7 +659,7 @@ export class LearningAssignmentReviewsService {
     });
     if (!a || !a.progress || !a.employeeId) throw new NotFoundException('Assignment not found');
     if (!trainerMarksLessons(a.course.deliveryMethod)) {
-      throw new BadRequestException('Only face to face courses are marked by the office');
+      throw new BadRequestException('Only face to face and workplace courses are marked by the office');
     }
     if (CLOSED.includes(a.status) || a.status === LearningAssignmentStatus.FAILED) {
       throw new BadRequestException('This training is already closed');
@@ -674,6 +698,165 @@ export class LearningAssignmentReviewsService {
       userAgent: meta?.userAgent,
     });
     return this.detail(id);
+  }
+
+  /** Checklist frozen on the carer's version, or null when the course has no practical test. */
+  private practicalChecklist(version: {
+    requiresPracticalAssessment?: boolean | null;
+    competencyId?: string | null;
+    competencyChecklistSnapshot?: unknown;
+  } | null): string[] | null {
+    if (!version?.requiresPracticalAssessment || !version.competencyId) return null;
+    const raw = version.competencyChecklistSnapshot;
+    const list = Array.isArray(raw) ? raw.filter((x): x is string => typeof x === 'string' && !!x.trim()) : [];
+    return list.length ? list : null;
+  }
+
+  private async practicalFor(
+    assignmentId: string,
+    version: {
+      requiresPracticalAssessment?: boolean | null;
+      competencyId?: string | null;
+      competencyChecklistSnapshot?: unknown;
+    } | null,
+  ) {
+    const checklist = this.practicalChecklist(version);
+    if (!checklist || !version?.competencyId) return null;
+    const [competency, signoffs] = await Promise.all([
+      this.prisma.learningCompetency.findUnique({
+        where: { id: version.competencyId },
+        select: { name: true, validityDays: true },
+      }),
+      this.prisma.learningCompetencyAssessment.findMany({
+        where: { assignmentId },
+        orderBy: { createdAt: 'desc' },
+        include: { criterionResults: { orderBy: { displayOrder: 'asc' } } },
+      }),
+    ]);
+    const names = await this.userNames(signoffs.map((s) => s.assessorUserId));
+    return {
+      competencyName: competency?.name ?? 'Practical test',
+      validityDays: competency?.validityDays ?? null,
+      checklist,
+      signoffs: signoffs.map((s) => ({
+        id: s.id,
+        assessmentDate: s.assessmentDate,
+        location: s.location,
+        competent: s.outcome === 'COMPETENT',
+        assessorName: s.assessorUserId ? (names.get(s.assessorUserId) ?? null) : null,
+        note: s.assessorComments,
+        nextSteps: s.improvementActions,
+        createdAt: s.createdAt,
+        results: s.criterionResults.map((r) => ({
+          criterion: r.criterion,
+          met: r.result === 'MET',
+          comment: r.comments,
+        })),
+      })),
+    };
+  }
+
+  /**
+   * Practical test sign-off (17 Nov 2026): the logged-in admin fills the checklist and records
+   * Competent (course passed, or passed once the quiz is passed) or Not yet competent (not
+   * passed, can be given again). Saved as a competency assessment with each checklist point.
+   */
+  async practicalSignoff(id: string, userId: string, dto: PracticalSignoffDto, meta?: RequestAuditMeta) {
+    const a = await this.prisma.learningAssignment.findUnique({
+      where: { id },
+      include: { progress: { include: { courseVersion: true } } },
+    });
+    if (!a || !a.progress || !a.employeeId) throw new NotFoundException('Assignment not found');
+    const version = a.progress.courseVersion;
+    const checklist = this.practicalChecklist(version);
+    if (!checklist || !version?.competencyId) {
+      throw new BadRequestException('This course has no practical test');
+    }
+    const byPoint = new Map(dto.results.map((r) => [r.criterion.trim(), r]));
+    if (byPoint.size !== dto.results.length || checklist.some((c) => !byPoint.has(c.trim())) || byPoint.size !== checklist.length) {
+      throw new BadRequestException('Mark every checklist point as Met or Not met');
+    }
+    const allMet = checklist.every((c) => byPoint.get(c.trim())!.met);
+    if (dto.competent && !allMet) {
+      throw new BadRequestException('Competent needs every checklist point to be Met');
+    }
+    const note = dto.note?.trim() || null;
+    if (!dto.competent && (!note || note.length < 3)) {
+      throw new BadRequestException('Write why the carer is not yet competent');
+    }
+
+    // Competent with a required quiz not yet passed: the course completes after the quiz.
+    let result: 'PASSED' | 'PASSED_AFTER_QUIZ' | 'NOT_PASSED' = 'NOT_PASSED';
+    if (dto.competent) {
+      const quizzes = await this.prisma.learningAssessment.findMany({
+        where: { courseVersionId: version.id },
+        select: { isRequired: true, sectionId: true },
+      });
+      const quizLeft =
+        quizzes.some((q) => quizIsRequired(q)) && a.progress.assessmentStatus !== 'COMPLETED';
+      result = quizLeft ? 'PASSED_AFTER_QUIZ' : 'PASSED';
+    }
+    const outcome = await this.recordOutcome(
+      id,
+      userId,
+      {
+        result,
+        note: dto.competent ? `Practical test: competent.${note ? ` ${note}` : ''}` : (note ?? undefined),
+        reassignDueAt: dto.competent ? undefined : dto.reassignDueAt,
+      },
+      meta,
+      true,
+    );
+
+    const competency = await this.prisma.learningCompetency.findUnique({
+      where: { id: version.competencyId },
+      select: { validityDays: true },
+    });
+    const day = new Date(`${dto.assessmentDate.slice(0, 10)}T00:00:00.000Z`);
+    const signoff = await this.prisma.learningCompetencyAssessment.create({
+      data: {
+        employeeId: a.employeeId,
+        competencyId: version.competencyId,
+        assignmentId: id,
+        assessorUserId: userId,
+        assessmentDate: day,
+        location: dto.location?.trim() || null,
+        assessmentMethod: 'Observed',
+        outcome: dto.competent ? 'COMPETENT' : 'NOT_COMPETENT',
+        status: dto.competent ? 'APPROVED' : 'REJECTED',
+        assessorComments: note,
+        improvementActions: dto.nextSteps?.trim() || null,
+        validFrom: dto.competent ? day : null,
+        validUntil:
+          dto.competent && competency?.validityDays
+            ? new Date(day.getTime() + competency.validityDays * 86_400_000)
+            : null,
+        criterionResults: {
+          create: checklist.map((c, i) => ({
+            criterion: c,
+            result: byPoint.get(c.trim())!.met ? 'MET' : 'NOT_MET',
+            comments: byPoint.get(c.trim())!.comment?.trim() || null,
+            displayOrder: i,
+          })),
+        },
+      },
+    });
+    await this.audit.logAudit({
+      userId,
+      module: AuditModule.LEARNING,
+      action: 'learning_practical_signoff',
+      recordType: 'LearningCompetencyAssessment',
+      recordId: signoff.id,
+      newValues: {
+        assignmentId: id,
+        competent: dto.competent,
+        result,
+        results: checklist.map((c) => ({ criterion: c, met: byPoint.get(c.trim())!.met })),
+      },
+      ipAddress: meta?.ipAddress,
+      userAgent: meta?.userAgent,
+    });
+    return { ...(await this.detail(id)), reassignedAssignmentId: outcome.reassignedAssignmentId ?? null };
   }
 
   /** Face to face: the office marks lessons done (or undoes one). Empty lessonIds = all lessons. */

@@ -23,6 +23,7 @@ export class LearningEligibilityService {
     const warnings: string[] = [];
     const restrictions: string[] = [];
 
+    // Every assigned course is mandatory (user, 17 Nov 2026): all certificates count.
     const expiredCertificates = await this.prisma.learningCertificate.findMany({
       where: {
         employeeId,
@@ -30,13 +31,12 @@ export class LearningEligibilityService {
           { status: LearningCertificateStatus.EXPIRED },
           { status: LearningCertificateStatus.ACTIVE, expiresAt: { lt: now } },
         ],
-        course: { isMandatory: true },
       },
       include: { course: { select: { title: true } } },
     });
 
     for (const cert of expiredCertificates) {
-      restrictions.push(`Mandatory certificate expired: ${cert.course.title}`);
+      restrictions.push(`Certificate expired: ${cert.course.title}`);
     }
 
     const expiringCertificates = await this.prisma.learningCertificate.findMany({
@@ -44,13 +44,12 @@ export class LearningEligibilityService {
         employeeId,
         status: LearningCertificateStatus.ACTIVE,
         expiresAt: { gte: now, lte: new Date(now.getTime() + warningMs) },
-        course: { isMandatory: true },
       },
       include: { course: { select: { title: true } } },
     });
 
     for (const cert of expiringCertificates) {
-      warnings.push(`Mandatory certificate expiring soon: ${cert.course.title}`);
+      warnings.push(`Certificate expiring soon: ${cert.course.title}`);
     }
 
     const expiredCompetencies = await this.prisma.learningCompetencyAssessment.findMany({

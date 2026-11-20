@@ -427,6 +427,7 @@ jobs:
                 --exclude=".htaccess" \
                 --exclude=".well-known" \
                 --exclude="uploads" \
+                --exclude="storage" \
                 --exclude="node_modules" \
                 --exclude="*.pem" \
                 --exclude="*.key" \
@@ -577,6 +578,7 @@ jobs:
             --exclude=".htaccess" \
             --exclude=".well-known" \
             --exclude="uploads" \
+            --exclude="storage" \
             --exclude="node_modules" \
             --exclude="*.pem" \
             --exclude="*.key" \

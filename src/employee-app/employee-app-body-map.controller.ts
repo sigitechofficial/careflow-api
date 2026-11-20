@@ -27,6 +27,7 @@ import {
 } from '../body-map/body-map-video.util';
 import { CreateBodyMapReviewDto } from '../body-map/dto/create-body-map-record.dto';
 import { EmployeeAppAuthGuard } from './guards/employee-app-auth.guard';
+import { EmployeeAppFutureVisitReadOnlyGuard } from './guards/employee-app-future-visit-read-only.guard';
 import { EmployeeAppVisitsService } from './employee-app-visits.service';
 import { EmployeeAppBodyMapWizardSubmitDto } from './dto/employee-app-body-map-wizard.dto';
 import { EmployeeAppCreateBodyMapRecordDto } from './dto/employee-app-body-map-record.dto';
@@ -50,7 +51,7 @@ function ensureBodyMapVideoIncomingDir() {
  */
 @ApiTags('Employee App Body Map')
 @ApiBearerAuth()
-@UseGuards(JwtAuthGuard, EmployeeAppAuthGuard)
+@UseGuards(JwtAuthGuard, EmployeeAppAuthGuard, EmployeeAppFutureVisitReadOnlyGuard)
 @Controller('employee-app/visits/:jobId/body-map')
 export class EmployeeAppBodyMapController {
   constructor(

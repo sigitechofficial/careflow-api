@@ -57,7 +57,16 @@ const employeeSelect = {
     },
   },
   portalAccount: {
-    select: { id: true, email: true, isEnabled: true, deletedAt: true, passwordSetAt: true, userId: true, lastLoginAt: true },
+    select: {
+      id: true,
+      email: true,
+      isEnabled: true,
+      deletedAt: true,
+      passwordSetAt: true,
+      userId: true,
+      lastLoginAt: true,
+      approvalStatus: true,
+    },
   },
 } satisfies Prisma.EmployeeSelect;
 
@@ -614,6 +623,13 @@ export class StaffAccessService {
   private blockedReason(emp: EmployeeRow): string | null {
     const first = emp.personalDetail?.firstName?.trim() || 'They';
     if (leavingDateHasPassed(emp.employment?.endDate)) return `${first} has left (end date passed)`;
+    // A Care app sign-up is decided at the top of the staff record, not here (20 Nov 2026).
+    if (emp.portalAccount && !emp.portalAccount.deletedAt && emp.portalAccount.approvalStatus === 'PENDING') {
+      return `${first}’s Care app sign-up is waiting for approval (approve it at the top of this page)`;
+    }
+    if (emp.portalAccount && !emp.portalAccount.deletedAt && emp.portalAccount.approvalStatus === 'DECLINED') {
+      return `${first}’s Care app sign-up was declined`;
+    }
     if (!emp.isActive || emp.personalDetail?.status?.name?.trim().toLowerCase() === 'inactive') return `${first} is inactive`;
     return null;
   }

@@ -51,6 +51,21 @@ export class EmployeePortalAccountsService {
     });
   }
 
+  /** A Care app sign-up waiting for, or refused, office approval (never an office-switched-off account). */
+  async findAwaitingApproval(email: string) {
+    const e = email.trim().toLowerCase();
+    if (!e) return null;
+    return this.prisma.employeePortalAccount.findFirst({
+      where: {
+        deletedAt: null,
+        approvalStatus: { in: ['PENDING', 'DECLINED'] },
+        email: { equals: e, mode: 'insensitive' },
+        employee: { deletedAt: null },
+      },
+      select: { id: true, passwordHash: true, approvalStatus: true },
+    });
+  }
+
   async findForRefresh(id: string) {
     return this.prisma.employeePortalAccount.findFirst({
       where: { id, deletedAt: null },
