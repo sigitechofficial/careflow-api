@@ -72,6 +72,11 @@ describe('Temporary inspector residents', () => {
     await expect(service.create(user, dto([C]))).rejects.toThrow(/not in your branches/);
   });
 
+  it('keeps every letter of a name and tidies extra spaces', () => {
+    expect(serviceUserOptionName({ firstName: 'Betty ', lastName: 'Henderson', serviceUserNumber: 'SU-TEST-P10' })).toBe('Betty Henderson (SU-TEST-P10)');
+    expect(serviceUserOptionName({ firstName: 'Aisha', lastName: '  Mohammed  Davies', serviceUserNumber: null })).toBe('Aisha Mohammed Davies');
+  });
+
   it('names the scope, and says when it is the old sample list', () => {
     const names = new Map([[A, serviceUserOptionName(people[0]!)]]);
     expect(residentScopeLabel([], names)).toBe('All service users');

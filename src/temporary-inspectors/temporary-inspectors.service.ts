@@ -48,7 +48,7 @@ export function serviceUserOptionName(su: {
   lastName: string;
   serviceUserNumber: string | null;
 }): string {
-  const name = `${su.firstName} ${su.lastName}`.replace(/s+/g, ' ').trim();
+  const name = `${su.firstName} ${su.lastName}`.replace(/\s+/g, ' ').trim();
   return su.serviceUserNumber ? `${name} (${su.serviceUserNumber})` : name;
 }
 
