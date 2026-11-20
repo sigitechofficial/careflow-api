@@ -11,7 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { hashPassword } from '../common/utils/password.util';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { CreateTemporaryInspectorDto } from './dto/create-temporary-inspector.dto';
-import { TEMPORARY_INSPECTOR_SERVICE_USER_OPTIONS } from './service-user-options.seed';
+import { OrgScopeService } from '../common/org-scope/org-scope.service';
 
 const TI_PERMISSIONS = ['temporary_inspector.session'] as const;
 
@@ -38,17 +38,38 @@ function formatExpireLabel(d: Date): string {
   return d.toLocaleString('en-GB', { dateStyle: 'short', timeStyle: 'short' });
 }
 
-function resolveResidentScopeLabel(keys: string[]): string {
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export type InspectorServiceUserOption = { id: string; name: string };
+
+/** "First Last" (the number too, so two people with the same name can be told apart). */
+export function serviceUserOptionName(su: {
+  firstName: string;
+  lastName: string;
+  serviceUserNumber: string | null;
+}): string {
+  const name = `${su.firstName} ${su.lastName}`.replace(/s+/g, ' ').trim();
+  return su.serviceUserNumber ? `${name} (${su.serviceUserNumber})` : name;
+}
+
+/**
+ * The Resident scope column. Scopes saved before the picker listed real service users hold keys from the old
+ * placeholder list ("1"…"13"), which name nobody: they are shown as such rather than as made-up names.
+ */
+export function residentScopeLabel(keys: string[], names: Map<string, string>): string {
   if (!keys.length) return 'All service users';
-  const names = keys.map(
-    (id) => TEMPORARY_INSPECTOR_SERVICE_USER_OPTIONS.find((o) => o.id === id)?.name ?? id,
-  );
-  return names.join(', ');
+  const known = keys.map((k) => names.get(k)).filter((n): n is string => Boolean(n));
+  const unknown = keys.length - known.length;
+  if (!known.length) return 'Old sample list (no real service users)';
+  return unknown ? `${known.join(', ')} (+${unknown} no longer found)` : known.join(', ');
 }
 
 @Injectable()
 export class TemporaryInspectorsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly orgScope: OrgScopeService,
+  ) {}
 
   async findByUsernameForLogin(username: string) {
     const u = username.trim();
@@ -141,8 +162,26 @@ export class TemporaryInspectorsService {
     }
   }
 
-  serviceUserOptions() {
-    return TEMPORARY_INSPECTOR_SERVICE_USER_OPTIONS;
+  /** Active service users the signed-in office user can see (their branches), for the Select residents picker. */
+  async serviceUserOptions(actor: RequestUser): Promise<InspectorServiceUserOption[]> {
+    const scopeWhere = this.orgScope.serviceUserScopeWhere(this.orgScope.fromRequestUser(actor));
+    const rows = await this.prisma.serviceUser.findMany({
+      where: { deletedAt: null, isActive: true, ...(scopeWhere ? { AND: [scopeWhere] } : {}) },
+      select: { id: true, firstName: true, lastName: true, serviceUserNumber: true },
+      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+    });
+    return rows.map((r) => ({ id: r.id, name: serviceUserOptionName(r) }));
+  }
+
+  /** Names for saved scope keys (real service user ids; old placeholder keys find nothing). */
+  private async scopeNames(keys: string[]): Promise<Map<string, string>> {
+    const ids = [...new Set(keys.filter((k) => UUID.test(k)))];
+    if (!ids.length) return new Map();
+    const rows = await this.prisma.serviceUser.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, firstName: true, lastName: true, serviceUserNumber: true },
+    });
+    return new Map(rows.map((r) => [r.id, serviceUserOptionName(r)]));
   }
 
   private toRow(r: {
@@ -154,7 +193,7 @@ export class TemporaryInspectorsService {
     serviceUserKeys: string[];
     validFrom: Date;
     validTo: Date;
-  }): TemporaryInspectorListRow {
+  }, names: Map<string, string>): TemporaryInspectorListRow {
     const now = new Date();
     const expired = r.validTo.getTime() < now.getTime();
     return {
@@ -164,7 +203,7 @@ export class TemporaryInspectorsService {
       username: r.username,
       reason: r.reason,
       serviceUserKeys: r.serviceUserKeys,
-      residentScopeLabel: resolveResidentScopeLabel(r.serviceUserKeys),
+      residentScopeLabel: residentScopeLabel(r.serviceUserKeys, names),
       validFrom: r.validFrom.toISOString(),
       validTo: r.validTo.toISOString(),
       status: expired ? 'Expired' : 'Active',
@@ -188,10 +227,11 @@ export class TemporaryInspectorsService {
         validTo: true,
       },
     });
-    return rows.map((r) => this.toRow(r));
+    const names = await this.scopeNames(rows.flatMap((r) => r.serviceUserKeys));
+    return rows.map((r) => this.toRow(r, names));
   }
 
-  async create(actorUserId: string, dto: CreateTemporaryInspectorDto): Promise<{ id: string }> {
+  async create(actor: RequestUser, dto: CreateTemporaryInspectorDto): Promise<{ id: string }> {
     const validFrom = new Date(dto.validFrom);
     const validTo = new Date(dto.validTo);
     if (Number.isNaN(validFrom.getTime()) || Number.isNaN(validTo.getTime())) {
@@ -203,9 +243,12 @@ export class TemporaryInspectorsService {
 
     const raw = dto.serviceUserKeys ?? [];
     const keys = [...new Set(raw.map((k) => String(k).trim()).filter(Boolean))];
-    for (const k of keys) {
-      if (!TEMPORARY_INSPECTOR_SERVICE_USER_OPTIONS.some((o) => o.id === k)) {
-        throw new BadRequestException('Unknown service user selection');
+    // Only service users the office user can see themselves (active, in their branches).
+    if (keys.length) {
+      if (keys.some((k) => !UUID.test(k))) throw new BadRequestException('Unknown service user selection');
+      const allowed = new Set((await this.serviceUserOptions(actor)).map((o) => o.id));
+      if (keys.some((k) => !allowed.has(k))) {
+        throw new BadRequestException('One or more chosen service users were not found, or are not in your branches.');
       }
     }
 
@@ -221,7 +264,7 @@ export class TemporaryInspectorsService {
           serviceUserKeys: keys,
           validFrom,
           validTo,
-          createdById: actorUserId,
+          createdById: actor.id,
         },
         select: { id: true },
       });

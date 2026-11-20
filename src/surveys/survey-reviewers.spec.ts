@@ -326,7 +326,7 @@ describe('reviewer accounts: the permission follows the grant', () => {
     const prisma: any = {
       temporaryInspector: { findFirst: jest.fn(async () => ({ id: 'ti-1', firstName: 'T', lastName: 'I', username: 'ti', validFrom: day(-1), validTo: day(1) })) },
     };
-    expect((await new TemporaryInspectorsService(prisma).getAuthContextForJwt('ti-1'))?.permissions).toEqual(['temporary_inspector.session']);
+    expect((await new TemporaryInspectorsService(prisma, {} as never).getAuthContextForJwt('ti-1'))?.permissions).toEqual(['temporary_inspector.session']);
   });
 });
 
