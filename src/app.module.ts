@@ -144,6 +144,7 @@ import { PayrollModule } from './payroll/payroll.module';
 import { OfficeSalariesModule } from './office-salaries/office-salaries.module';
 import { SetupChecklistModule } from './setup-checklist/setup-checklist.module';
 import { RoleTasksModule } from './role-tasks/role-tasks.module';
+import { CarerSignupModule } from './carer-signup/carer-signup.module';
 import { ScriptsModule } from './scripts/scripts.module';
 import { RoleResponsibilitiesModule } from './role-responsibilities/role-responsibilities.module';
 import { LearningModule } from './learning/learning.module';
@@ -313,6 +314,7 @@ import { JobsModule } from './jobs/jobs.module';
     OfficeSalariesModule,
     SetupChecklistModule,
     RoleTasksModule,
+    CarerSignupModule,
     ScriptsModule,
     RoleResponsibilitiesModule,
     LearningModule,
