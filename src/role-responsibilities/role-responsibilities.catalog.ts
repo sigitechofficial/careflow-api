@@ -318,6 +318,14 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
     act: ['cqc_evidence.manage'],
   },
   {
+    key: 'cqc_mock_inspection',
+    label: 'Mock CQC inspection',
+    description:
+      'Run mock CQC inspections: score each quality statement against the evidence, see the key question and overall ratings, and track improvement actions.',
+    view: ['cqc_mock_inspection.read'],
+    act: ['cqc_mock_inspection.manage'],
+  },
+  {
     key: 'specialist_pathways',
     label: 'Specialist care pathways',
     description:

@@ -1,0 +1,33 @@
+{
+  "code": "MI-010",
+  "group": "TOPIC",
+  "displayOrder": 100,
+  "title": "End of life care",
+  "summary": "Support for people near the end of their life and their families: wishes, comfort, dignity and joint working.",
+  "whenToUse": "When you support people receiving end of life care, or after a death, to learn from it.",
+  "estimatedMinutes": 90,
+  "statements": [
+    {
+      "code": "RESPONSIVE_PLANNING_FUTURE"
+    },
+    {
+      "code": "RESPONSIVE_PERSON_CENTRED",
+      "focus": "End of life wishes reflected in the care plan."
+    },
+    {
+      "code": "CARING_KINDNESS_DIGNITY"
+    },
+    {
+      "code": "EFFECTIVE_WORKING_TOGETHER",
+      "focus": "Joint working with palliative care teams, district nurses and GPs."
+    },
+    {
+      "code": "CARING_WORKFORCE_WELLBEING",
+      "focus": "Support for staff after a death."
+    }
+  ],
+  "sources": [
+    "birdie-saf-homecare"
+  ],
+  "researchedOn": "2026-11-19"
+}

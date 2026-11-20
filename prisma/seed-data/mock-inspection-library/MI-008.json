@@ -1,0 +1,34 @@
+{
+  "code": "MI-008",
+  "group": "TOPIC",
+  "displayOrder": 80,
+  "title": "Infection prevention and control",
+  "summary": "How carers prevent and control infection in people's homes: PPE, hand hygiene, training and outbreaks.",
+  "whenToUse": "Before winter, during an outbreak, or after an infection control audit finds problems.",
+  "estimatedMinutes": 90,
+  "statements": [
+    {
+      "code": "SAFE_IPC"
+    },
+    {
+      "code": "SAFE_ENVIRONMENTS",
+      "focus": "Infection risks in the home: waste, laundry, equipment cleaning."
+    },
+    {
+      "code": "SAFE_STAFFING",
+      "focus": "Infection control training and spot checks on hand hygiene and PPE."
+    },
+    {
+      "code": "EFFECTIVE_HEALTHIER_LIVES",
+      "focus": "Vaccinations and spotting signs of infection early."
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "IPC audits and the actions taken."
+    }
+  ],
+  "sources": [
+    "goaudits-checklist"
+  ],
+  "researchedOn": "2026-11-19"
+}

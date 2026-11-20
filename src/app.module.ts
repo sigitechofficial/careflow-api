@@ -129,6 +129,9 @@ import { BodyMapModule } from './body-map/body-map.module';
 import { IncidentsModule } from './incidents/incidents.module';
 import { SurveysModule } from './surveys/surveys.module';
 import { CqcEvidenceModule } from './cqc-evidence/cqc-evidence.module';
+import { CqcMockInspectionModule } from './cqc-mock-inspection/cqc-mock-inspection.module';
+import { CqcEvidencePackModule } from './cqc-evidence-pack/cqc-evidence-pack.module';
+import { CqcNotificationsModule } from './cqc-notifications/cqc-notifications.module';
 import { SpecialistPathwaysModule } from './specialist-pathways/specialist-pathways.module';
 import { SafeguardingModule } from './safeguarding/safeguarding.module';
 import { CrmModule } from './crm/crm.module';
@@ -298,6 +301,9 @@ import { JobsModule } from './jobs/jobs.module';
     IncidentsModule,
     SurveysModule,
     CqcEvidenceModule,
+    CqcMockInspectionModule,
+    CqcEvidencePackModule,
+    CqcNotificationsModule,
     SpecialistPathwaysModule,
     SafeguardingModule,
     CrmModule,

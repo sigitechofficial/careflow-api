@@ -1,0 +1,52 @@
+{
+  "code": "MI-005",
+  "group": "FOCUSED",
+  "displayOrder": 50,
+  "title": "People's experience: caring and responsive",
+  "summary": "How people feel about their care: kindness, dignity, choice, information, complaints and planning for the future.",
+  "whenToUse": "After a survey, a rise in complaints, or when you want to hear directly from the people you support.",
+  "estimatedMinutes": 180,
+  "statements": [
+    {
+      "code": "CARING_KINDNESS_DIGNITY"
+    },
+    {
+      "code": "CARING_INDIVIDUALS"
+    },
+    {
+      "code": "CARING_INDEPENDENCE_CHOICE"
+    },
+    {
+      "code": "CARING_IMMEDIATE_NEEDS"
+    },
+    {
+      "code": "CARING_WORKFORCE_WELLBEING"
+    },
+    {
+      "code": "RESPONSIVE_PERSON_CENTRED"
+    },
+    {
+      "code": "RESPONSIVE_CONTINUITY"
+    },
+    {
+      "code": "RESPONSIVE_PROVIDING_INFORMATION"
+    },
+    {
+      "code": "RESPONSIVE_LISTENING_INVOLVING"
+    },
+    {
+      "code": "RESPONSIVE_EQUITY_ACCESS"
+    },
+    {
+      "code": "RESPONSIVE_EQUITY_EXPERIENCES"
+    },
+    {
+      "code": "RESPONSIVE_PLANNING_FUTURE"
+    }
+  ],
+  "sources": [
+    "cqc-how-we-inspect-asc",
+    "goaudits-checklist"
+  ],
+  "researchedOn": "2026-11-19"
+}

@@ -43,6 +43,8 @@ import { PolicyAcknowledgementRemindersJob } from './policy-acknowledgement-remi
     PolicyAcknowledgementNotificationsService,
     PolicyAcknowledgementRemindersJob,
   ],
-  exports: [PoliciesService, PolicyAcknowledgementsService],
+  // PolicyLibraryService: mock CQC inspections show the ready-made policies behind each quality statement.
+  // PolicyExportService: the CQC evidence pack adds published policies as PDFs.
+  exports: [PoliciesService, PolicyAcknowledgementsService, PolicyLibraryService, PolicyExportService],
 })
 export class PoliciesModule {}

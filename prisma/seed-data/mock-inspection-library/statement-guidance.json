@@ -1,0 +1,773 @@
+{
+  "SAFE_LEARNING_CULTURE": {
+    "lookAt": [
+      "Incident and near-miss records from the last 3 months and what was done after each one",
+      "Minutes or notes showing lessons shared with the team",
+      "Any themes found across incidents and how they were tackled"
+    ],
+    "askPeople": [
+      "If something went wrong with your care, were you told and did anything change?",
+      "Do you feel able to raise a worry about your safety?"
+    ],
+    "askStaff": [
+      "Tell me about a recent incident. What changed because of it?",
+      "How do you hear about lessons learned from other carers' incidents?"
+    ],
+    "inCareFlow": [
+      "Incidents: open and closed incidents, actions and lessons",
+      "CQC evidence: incident learning entries"
+    ],
+    "policies": [
+      "POL-GOV-007",
+      "POL-GOV-008",
+      "POL-MED-014",
+      "POL-GOV-002"
+    ]
+  },
+  "SAFE_SYSTEMS_PATHWAYS_TRANSITIONS": {
+    "lookAt": [
+      "Hospital discharge and admission records for 2 or 3 people",
+      "How information is handed over to and from GPs, district nurses and hospitals",
+      "How a new package of care is started safely"
+    ],
+    "askPeople": [
+      "When you came home from hospital, did your care start on time and did carers know what had changed?"
+    ],
+    "askStaff": [
+      "How do you find out when someone's needs change after a hospital stay?",
+      "Who do you call if you are worried a person needs a doctor or nurse?"
+    ],
+    "inCareFlow": [
+      "Service users: assessments, reviews and communication notes",
+      "Visits: first visits after a discharge"
+    ],
+    "policies": [
+      "POL-CD-015",
+      "POL-MED-013",
+      "POL-GOV-016",
+      "POL-CD-002"
+    ]
+  },
+  "SAFE_SAFEGUARDING": {
+    "lookAt": [
+      "Safeguarding log, referrals made to the local authority and their outcomes",
+      "Safeguarding training records for all staff",
+      "Mental Capacity Act and any Deprivation of Liberty (or Court of Protection) paperwork"
+    ],
+    "askPeople": [
+      "Do you feel safe with your carers?",
+      "Who would you tell if a carer treated you badly?"
+    ],
+    "askStaff": [
+      "What would you do if you thought someone was being abused or neglected?",
+      "Who is the safeguarding lead and how do you contact them out of hours?"
+    ],
+    "inCareFlow": [
+      "Safeguarding: concerns, referrals and outcomes",
+      "Learning: safeguarding training compliance"
+    ],
+    "policies": [
+      "POL-SG-001",
+      "POL-SG-002",
+      "POL-SG-007",
+      "POL-SG-004",
+      "POL-SG-005",
+      "POL-SG-006"
+    ]
+  },
+  "SAFE_INVOLVING_PEOPLE_RISKS": {
+    "lookAt": [
+      "Risk assessments for 3 or 4 people (falls, moving and handling, skin, choking, home environment)",
+      "Whether people agreed to and signed their risk plans",
+      "Body maps and pressure care records where needed"
+    ],
+    "askPeople": [
+      "Did staff talk with you about the risks in your care and what you want to do about them?"
+    ],
+    "askStaff": [
+      "How do you know what the risks are for the person you are visiting today?",
+      "What do you do if you see a new risk on a visit?"
+    ],
+    "inCareFlow": [
+      "Service users: risk assessments and care plans",
+      "Body map records"
+    ],
+    "policies": [
+      "POL-CD-016",
+      "POL-HS-002",
+      "POL-CD-009",
+      "POL-CD-008",
+      "POL-GOV-004"
+    ]
+  },
+  "SAFE_ENVIRONMENTS": {
+    "lookAt": [
+      "Home environment risk assessments (access, key safes, fire, trip hazards)",
+      "Equipment checks (hoists, slings, bed rails) and who services them",
+      "Lone working arrangements for carers"
+    ],
+    "askPeople": [
+      "Is the equipment you use checked and working?"
+    ],
+    "askStaff": [
+      "What do you check when you arrive at a person's home?",
+      "How do you report broken equipment?"
+    ],
+    "inCareFlow": [
+      "Service users: home and access details",
+      "Incidents: equipment-related incidents"
+    ],
+    "policies": [
+      "POL-HS-001",
+      "POL-HS-002",
+      "POL-HS-006",
+      "POL-HS-010",
+      "POL-HS-013",
+      "POL-HS-003"
+    ]
+  },
+  "SAFE_STAFFING": {
+    "lookAt": [
+      "Rotas, travel time and visit times against what was planned",
+      "Missed and late visit records and why they happened",
+      "Recruitment files for 3 recent starters (DBS, references, right to work, gaps in work history)",
+      "Induction, the Care Certificate and mandatory training"
+    ],
+    "askPeople": [
+      "Do carers arrive on time and stay for the full visit?",
+      "Do you usually see the same carers?"
+    ],
+    "askStaff": [
+      "Do you get enough travel time between visits?",
+      "What training did you have before you started visiting people alone?"
+    ],
+    "inCareFlow": [
+      "Visits: punctuality, missed and late visits",
+      "Employees: compliance documents and recruitment",
+      "Learning: training compliance"
+    ],
+    "policies": [
+      "POL-HR-001",
+      "POL-HR-002",
+      "POL-HR-004",
+      "POL-HR-006",
+      "POL-HR-005",
+      "POL-CD-013"
+    ]
+  },
+  "SAFE_IPC": {
+    "lookAt": [
+      "Infection prevention and control policy and audits",
+      "PPE supply and how carers get it",
+      "Hand hygiene and IPC training records, and any outbreak records"
+    ],
+    "askPeople": [
+      "Do carers wash their hands and wear gloves and aprons when they should?"
+    ],
+    "askStaff": [
+      "How do you get PPE and what do you do if you run out?",
+      "What would you do if you or a person you support had an infection?"
+    ],
+    "inCareFlow": [
+      "Learning: infection control training",
+      "Policies: IPC policy acknowledgements"
+    ],
+    "policies": [
+      "POL-IPC-001",
+      "POL-IPC-002",
+      "POL-IPC-003",
+      "POL-IPC-012",
+      "POL-IPC-009"
+    ]
+  },
+  "SAFE_MEDICINES": {
+    "lookAt": [
+      "Medication administration records (MAR) for 3 or 4 people over the last month: gaps, errors, PRN notes",
+      "Medicines risk assessments and the level of support agreed for each person",
+      "Medication competency assessments for carers and medicines audits"
+    ],
+    "askPeople": [
+      "Do you get your medicines at the right time?",
+      "Do carers explain what they are giving you?"
+    ],
+    "askStaff": [
+      "What do you do if a person refuses a medicine or a dose is missed?",
+      "When was your medication competency last checked?"
+    ],
+    "inCareFlow": [
+      "eMAR: missed, late and refused doses, PRN records",
+      "Incidents: medication errors"
+    ],
+    "policies": [
+      "POL-MED-001",
+      "POL-MED-002",
+      "POL-MED-005",
+      "POL-MED-014",
+      "POL-MED-016",
+      "POL-MED-007"
+    ]
+  },
+  "EFFECTIVE_ASSESSING_NEEDS": {
+    "lookAt": [
+      "Initial assessments and care plans for 3 or 4 people",
+      "How often care plans are reviewed and whether reviews happen when needs change",
+      "Whether people's goals, culture, communication and health needs are recorded"
+    ],
+    "askPeople": [
+      "Were you asked what support you need and how you like things done?",
+      "Has anyone checked recently whether your care still suits you?"
+    ],
+    "askStaff": [
+      "Where do you find out about a new person's needs before your first visit?"
+    ],
+    "inCareFlow": [
+      "Service users: initial assessments, care plans and review dates"
+    ],
+    "policies": [
+      "POL-CD-002",
+      "POL-CD-003",
+      "POL-CD-006",
+      "POL-CD-001"
+    ]
+  },
+  "EFFECTIVE_EVIDENCE_BASED_CARE": {
+    "lookAt": [
+      "Whether care follows current good practice (for example NICE guidance for home care, pressure care, nutrition)",
+      "Policies and procedures and when they were last reviewed",
+      "Specialist plans (diabetes, epilepsy, catheter, PEG) and the training for them"
+    ],
+    "askPeople": [
+      "Do carers know how to help with your health conditions?"
+    ],
+    "askStaff": [
+      "How do you keep up to date with good practice?",
+      "Which specialist care have you been trained to give?"
+    ],
+    "inCareFlow": [
+      "Policies: review dates",
+      "Specialist care pathways",
+      "Learning: specialist training"
+    ],
+    "policies": [
+      "POL-CD-008",
+      "POL-CD-010",
+      "POL-IPC-010",
+      "POL-MED-015",
+      "POL-GOV-001"
+    ]
+  },
+  "EFFECTIVE_WORKING_TOGETHER": {
+    "lookAt": [
+      "Records of contact with GPs, district nurses, social workers and families",
+      "How information is shared between carers who visit the same person",
+      "Handovers and communication notes"
+    ],
+    "askPeople": [
+      "Do your carers know what other carers did on earlier visits?"
+    ],
+    "askStaff": [
+      "How do you pass on something important to the next carer?",
+      "How do you work with district nurses or the GP?"
+    ],
+    "inCareFlow": [
+      "Service users: communication notes",
+      "Visit notes"
+    ],
+    "policies": [
+      "POL-CD-018",
+      "POL-GOV-016",
+      "POL-CD-015"
+    ]
+  },
+  "EFFECTIVE_HEALTHIER_LIVES": {
+    "lookAt": [
+      "Nutrition and hydration plans and records for people at risk",
+      "How carers spot and report changes in health (weight, skin, mood, eating)",
+      "Support with health appointments and healthy routines"
+    ],
+    "askPeople": [
+      "Do carers help you eat, drink and stay well in the way you want?"
+    ],
+    "askStaff": [
+      "What would you do if you noticed someone was not eating or drinking?"
+    ],
+    "inCareFlow": [
+      "Service users: assessments and observations",
+      "Visit tasks: food and drink records"
+    ],
+    "policies": [
+      "POL-CD-007",
+      "POL-IPC-007",
+      "POL-CD-008"
+    ]
+  },
+  "EFFECTIVE_MONITORING_OUTCOMES": {
+    "lookAt": [
+      "How the service checks that care is making a difference (reviews, outcomes, feedback)",
+      "Audits of care records and what was done about the findings",
+      "Trends in falls, pressure damage, hospital admissions or missed visits"
+    ],
+    "askPeople": [
+      "Has your care helped you do the things that matter to you?"
+    ],
+    "askStaff": [
+      "How do you know your care is working for someone?"
+    ],
+    "inCareFlow": [
+      "Surveys: results and actions",
+      "Incidents and visits analytics"
+    ],
+    "policies": [
+      "POL-GOV-003",
+      "POL-GOV-002",
+      "POL-GOV-006"
+    ]
+  },
+  "EFFECTIVE_CONSENT": {
+    "lookAt": [
+      "Consent to care records and who signed them",
+      "Mental capacity assessments and best-interest decisions where people cannot consent",
+      "Lasting power of attorney details checked and recorded"
+    ],
+    "askPeople": [
+      "Do carers ask before they help you?"
+    ],
+    "askStaff": [
+      "What does the Mental Capacity Act mean in your daily work?",
+      "What do you do if someone says no to care?"
+    ],
+    "inCareFlow": [
+      "Service users: consent and capacity records, representatives"
+    ],
+    "policies": [
+      "POL-CD-004",
+      "POL-SG-004",
+      "POL-MED-003",
+      "POL-MED-009",
+      "POL-SG-005"
+    ]
+  },
+  "CARING_KINDNESS_DIGNITY": {
+    "lookAt": [
+      "Compliments and complaints about how people are treated",
+      "Survey results about respect and dignity",
+      "Spot checks and observations of care"
+    ],
+    "askPeople": [
+      "Are your carers kind and respectful?",
+      "Do they protect your privacy, for example during personal care?"
+    ],
+    "askStaff": [
+      "How do you protect someone's dignity during personal care?"
+    ],
+    "inCareFlow": [
+      "Complaints and compliments",
+      "Surveys: people we support"
+    ],
+    "policies": [
+      "POL-CD-001",
+      "POL-CD-010",
+      "POL-SG-009",
+      "POL-HR-007"
+    ]
+  },
+  "CARING_INDIVIDUALS": {
+    "lookAt": [
+      "Care plans that describe the person: history, likes, culture, faith, language",
+      "How people's equality and diversity needs are met"
+    ],
+    "askPeople": [
+      "Do your carers know you as a person and what matters to you?"
+    ],
+    "askStaff": [
+      "Tell me about the person you are visiting next. What matters to them?"
+    ],
+    "inCareFlow": [
+      "Service users: personal profile and care plan"
+    ],
+    "policies": [
+      "POL-CD-001",
+      "POL-CD-005",
+      "POL-CD-006"
+    ]
+  },
+  "CARING_INDEPENDENCE_CHOICE": {
+    "lookAt": [
+      "Care plans that say what people can do for themselves",
+      "Records showing people's choices are followed (times, carers, routines)"
+    ],
+    "askPeople": [
+      "Do carers let you do things for yourself and make your own choices?",
+      "Can you choose the time of your visits or ask for a different carer?"
+    ],
+    "askStaff": [
+      "How do you help someone stay as independent as possible?"
+    ],
+    "inCareFlow": [
+      "Service users: care plan goals",
+      "Visits: preferred carers and times"
+    ],
+    "policies": [
+      "POL-CD-016",
+      "POL-MED-004",
+      "POL-CD-014",
+      "POL-CD-019"
+    ]
+  },
+  "CARING_IMMEDIATE_NEEDS": {
+    "lookAt": [
+      "How urgent requests and worries during visits are handled",
+      "On-call and out-of-hours records",
+      "What carers do when a person is unwell, in pain or distressed"
+    ],
+    "askPeople": [
+      "If you need help quickly, does someone respond?"
+    ],
+    "askStaff": [
+      "What do you do if a person is in pain or upset when you arrive?",
+      "Is the on-call manager easy to reach?"
+    ],
+    "inCareFlow": [
+      "On-call: calls and responses",
+      "Incidents raised during visits"
+    ],
+    "policies": [
+      "POL-SG-013",
+      "POL-HS-008",
+      "POL-CD-009",
+      "POL-GOV-020"
+    ]
+  },
+  "CARING_WORKFORCE_WELLBEING": {
+    "lookAt": [
+      "Supervision and appraisal records",
+      "Staff survey results and what was done",
+      "Support for staff wellbeing (sickness, stress, lone working, after an incident)"
+    ],
+    "askPeople": [],
+    "askStaff": [
+      "Do you feel supported and valued by managers?",
+      "When did you last have supervision?"
+    ],
+    "inCareFlow": [
+      "Supervision: sessions and due dates",
+      "Surveys: staff results"
+    ],
+    "policies": [
+      "POL-HS-015",
+      "POL-HR-005",
+      "POL-HR-013",
+      "POL-HS-004"
+    ]
+  },
+  "RESPONSIVE_PERSON_CENTRED": {
+    "lookAt": [
+      "Care plans written with the person, in their words where possible",
+      "Whether care changes when the person's wishes or needs change"
+    ],
+    "askPeople": [
+      "Were you involved in writing your care plan?",
+      "Does your care fit around your life?"
+    ],
+    "askStaff": [
+      "How do you find out how a person likes their care done?"
+    ],
+    "inCareFlow": [
+      "Service users: care plans and reviews"
+    ],
+    "policies": [
+      "POL-CD-001",
+      "POL-CD-002",
+      "POL-CD-003"
+    ]
+  },
+  "RESPONSIVE_CONTINUITY": {
+    "lookAt": [
+      "How many different carers each person sees in a month",
+      "Planned versus actual visit times, and visit cancellations",
+      "Joint working when people use other services"
+    ],
+    "askPeople": [
+      "Do you know which carer is coming?",
+      "Are you told if a carer is running late?"
+    ],
+    "askStaff": [
+      "Do you usually visit the same people?"
+    ],
+    "inCareFlow": [
+      "Visits and scheduling: continuity and punctuality"
+    ],
+    "policies": [
+      "POL-CD-013",
+      "POL-CD-014",
+      "POL-CD-015"
+    ]
+  },
+  "RESPONSIVE_PROVIDING_INFORMATION": {
+    "lookAt": [
+      "Information given to people (service guide, rota, how to complain) and its formats",
+      "Accessible Information Standard: communication needs recorded and met"
+    ],
+    "askPeople": [
+      "Do you get information in a way you can understand?",
+      "Do you know who to call at the office?"
+    ],
+    "askStaff": [
+      "How do you support someone who has difficulty communicating?"
+    ],
+    "inCareFlow": [
+      "Service users: communication needs",
+      "Service user portal"
+    ],
+    "policies": [
+      "POL-CD-006",
+      "POL-GOV-014",
+      "POL-GOV-012"
+    ]
+  },
+  "RESPONSIVE_LISTENING_INVOLVING": {
+    "lookAt": [
+      "Complaints log: response times, outcomes and lessons",
+      "Surveys and other feedback, and 'You said, we did' actions"
+    ],
+    "askPeople": [
+      "Do you know how to complain?",
+      "If you raised a concern, were you listened to?"
+    ],
+    "askStaff": [
+      "What do you do if someone tells you they are unhappy with their care?"
+    ],
+    "inCareFlow": [
+      "Complaints and compliments",
+      "Surveys: actions and 'You said, we did'"
+    ],
+    "policies": [
+      "POL-GOV-005",
+      "POL-GOV-006",
+      "POL-GOV-008"
+    ]
+  },
+  "RESPONSIVE_EQUITY_ACCESS": {
+    "lookAt": [
+      "How the service makes sure everyone can get the care they need, whatever their background, disability or where they live",
+      "Interpreters and other reasonable adjustments"
+    ],
+    "askPeople": [
+      "Has anything made it harder for you to get the care you need?"
+    ],
+    "askStaff": [
+      "How would you support someone whose first language is not English?"
+    ],
+    "inCareFlow": [
+      "Service users: language and communication needs"
+    ],
+    "policies": [
+      "POL-CD-005",
+      "POL-CD-006"
+    ]
+  },
+  "RESPONSIVE_EQUITY_EXPERIENCES": {
+    "lookAt": [
+      "Whether outcomes and feedback differ between groups of people and what is done about it",
+      "Equality and diversity in care planning"
+    ],
+    "askPeople": [
+      "Do you feel you are treated fairly?"
+    ],
+    "askStaff": [
+      "How do you make sure people with different needs get equally good care?"
+    ],
+    "inCareFlow": [
+      "Surveys: results by group (where numbers allow)"
+    ],
+    "policies": [
+      "POL-CD-005",
+      "POL-CD-001"
+    ]
+  },
+  "RESPONSIVE_PLANNING_FUTURE": {
+    "lookAt": [
+      "Advance care plans and end of life wishes (including DNACPR / ReSPECT where relevant)",
+      "End of life care training and joint working with palliative teams"
+    ],
+    "askPeople": [
+      "Has anyone talked with you about your wishes for the future?"
+    ],
+    "askStaff": [
+      "How do you support someone at the end of their life and their family?"
+    ],
+    "inCareFlow": [
+      "Service users: advance wishes and documents",
+      "Learning: end of life training"
+    ],
+    "policies": [
+      "POL-CD-011",
+      "POL-CD-012"
+    ]
+  },
+  "WELL_LED_SHARED_DIRECTION": {
+    "lookAt": [
+      "The service's vision and values and how staff know them",
+      "Business plan or service improvement plan"
+    ],
+    "askPeople": [
+      "Do you know who runs the service?"
+    ],
+    "askStaff": [
+      "What are the service's values and how do they show in your work?"
+    ],
+    "inCareFlow": [
+      "Policies: values and statement of purpose"
+    ],
+    "policies": [
+      "POL-GOV-012",
+      "POL-GOV-002",
+      "POL-HR-007"
+    ]
+  },
+  "WELL_LED_CAPABLE_LEADERS": {
+    "lookAt": [
+      "The registered manager's registration, training and how visible they are",
+      "Leadership structure and cover when the manager is away",
+      "Statutory notifications sent to CQC"
+    ],
+    "askPeople": [
+      "Do you know the manager? Is the office helpful?"
+    ],
+    "askStaff": [
+      "Is the manager approachable? Do they act on what you tell them?"
+    ],
+    "inCareFlow": [
+      "CQC notifications",
+      "Employees: management team"
+    ],
+    "policies": [
+      "POL-GOV-010",
+      "POL-GOV-011",
+      "POL-GOV-009"
+    ]
+  },
+  "WELL_LED_SPEAK_UP": {
+    "lookAt": [
+      "Whistleblowing policy and records of concerns raised by staff",
+      "How staff concerns were handled and fed back"
+    ],
+    "askPeople": [],
+    "askStaff": [
+      "Would you feel safe raising a concern, even about a manager?",
+      "Do you know how to whistleblow outside the organisation?"
+    ],
+    "inCareFlow": [
+      "Policies: whistleblowing",
+      "Surveys: staff results"
+    ],
+    "policies": [
+      "POL-HR-018",
+      "POL-HR-009",
+      "POL-GOV-008"
+    ]
+  },
+  "WELL_LED_WORKFORCE_EDI": {
+    "lookAt": [
+      "Equality and diversity policy and training",
+      "How fair recruitment, pay, training and promotion are checked"
+    ],
+    "askPeople": [],
+    "askStaff": [
+      "Are all staff treated fairly here?"
+    ],
+    "inCareFlow": [
+      "Learning: equality training",
+      "Recruitment records"
+    ],
+    "policies": [
+      "POL-HR-012",
+      "POL-HR-013",
+      "POL-HR-015"
+    ]
+  },
+  "WELL_LED_GOVERNANCE": {
+    "lookAt": [
+      "The audit programme (care plans, MAR, visits, files) and actions from audits",
+      "Risk register and how the provider checks the manager's work",
+      "Key performance data (missed visits, incidents, complaints, training) and how it is used",
+      "Statutory notifications sent to CQC on time"
+    ],
+    "askPeople": [],
+    "askStaff": [
+      "What audits do you take part in and what changed because of them?"
+    ],
+    "inCareFlow": [
+      "Mock CQC inspection: open actions",
+      "CQC evidence: overview and gaps",
+      "Dashboards: visits, incidents, training"
+    ],
+    "policies": [
+      "POL-GOV-002",
+      "POL-GOV-003",
+      "POL-GOV-004",
+      "POL-GOV-001",
+      "POL-GOV-009",
+      "POL-GOV-017"
+    ]
+  },
+  "WELL_LED_PARTNERSHIPS": {
+    "lookAt": [
+      "Work with the local authority, commissioners, health services and community groups",
+      "Feedback from partners and professionals"
+    ],
+    "askPeople": [],
+    "askStaff": [
+      "Which other services do you work with most?"
+    ],
+    "inCareFlow": [
+      "Surveys: professionals and partners",
+      "CRM: referrers and partners"
+    ],
+    "policies": [
+      "POL-GOV-016",
+      "POL-GOV-023",
+      "POL-CD-015"
+    ]
+  },
+  "WELL_LED_LEARNING_IMPROVEMENT": {
+    "lookAt": [
+      "The service improvement plan and progress against it",
+      "How learning from feedback, audits, incidents and inspections leads to change",
+      "Use of technology and new ideas to improve care"
+    ],
+    "askPeople": [
+      "Have you seen the service improve since you started?"
+    ],
+    "askStaff": [
+      "What has improved recently and why?"
+    ],
+    "inCareFlow": [
+      "Mock CQC inspection: comparison with the previous inspection",
+      "CQC evidence: 'You said, we did'"
+    ],
+    "policies": [
+      "POL-GOV-007",
+      "POL-GOV-003",
+      "POL-GOV-006",
+      "POL-GOV-023"
+    ]
+  },
+  "WELL_LED_ENVIRONMENTAL_SUSTAINABILITY": {
+    "lookAt": [
+      "Steps taken to reduce the service's impact on the environment (travel, paper, waste)",
+      "How rota planning cuts unnecessary travel"
+    ],
+    "askPeople": [],
+    "askStaff": [
+      "Has the service done anything to cut travel or waste?"
+    ],
+    "inCareFlow": [
+      "Scheduling: route and travel planning"
+    ],
+    "policies": [
+      "POL-HS-011",
+      "POL-IPC-005"
+    ]
+  }
+}

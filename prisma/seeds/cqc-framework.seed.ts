@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 import {
   frameworkHash,
   loadCqcFrameworks,
@@ -55,6 +55,7 @@ export async function seedCqcFramework(
       checkedOn: day(f.checkedOn),
       note: f.note,
       sources: f.sources,
+      scoringRules: f.scoring ? (f.scoring as Prisma.InputJsonValue) : Prisma.DbNull,
       contentHash,
     };
     const version = existing

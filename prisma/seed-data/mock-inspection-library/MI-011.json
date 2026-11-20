@@ -1,0 +1,35 @@
+{
+  "code": "MI-011",
+  "group": "HOME_CARE",
+  "displayOrder": 110,
+  "title": "Missed and late visits",
+  "summary": "Whether people get their visits on time, for the full length, from carers they know.",
+  "whenToUse": "Every month, or when missed or late visits rise, or after a complaint about visit times.",
+  "estimatedMinutes": 90,
+  "statements": [
+    {
+      "code": "SAFE_STAFFING",
+      "focus": "Rota capacity, travel time and visits that were missed, late or cut short."
+    },
+    {
+      "code": "RESPONSIVE_CONTINUITY"
+    },
+    {
+      "code": "CARING_IMMEDIATE_NEEDS",
+      "focus": "What happens when a carer cannot get to a visit: who is told and how fast."
+    },
+    {
+      "code": "SAFE_LEARNING_CULTURE",
+      "focus": "Missed visits treated as incidents and learned from."
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "How managers watch visit punctuality and act on it."
+    }
+  ],
+  "sources": [
+    "birdie-saf-homecare",
+    "learnsignal-mock"
+  ],
+  "researchedOn": "2026-11-19"
+}

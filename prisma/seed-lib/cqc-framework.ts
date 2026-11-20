@@ -60,6 +60,17 @@ export type CqcFrameworkCategory = {
   sources: string[];
 };
 
+/**
+ * How a mock inspection turns statement scores into ratings. Stored as-is in
+ * CqcFrameworkVersion.scoringRules; its rules are checked by scoringRulesProblems in
+ * src/cqc-mock-inspection/cqc-mock-inspection-scoring.util.ts (a spec runs it on every file).
+ */
+export type CqcFrameworkScoring = {
+  note: string;
+  verification: CqcStatementVerification;
+  [rule: string]: unknown;
+};
+
 export type CqcFramework = {
   version: number;
   code: string;
@@ -71,6 +82,8 @@ export type CqcFramework = {
   sources: CqcFrameworkSource[];
   keyQuestions: CqcFrameworkKeyQuestion[];
   evidenceCategories: CqcFrameworkCategory[];
+  /** Absent or null: the version has no numeric scoring for mock inspections. */
+  scoring?: CqcFrameworkScoring | null;
 };
 
 const isText = (v: unknown): v is string => typeof v === 'string' && v.trim().length > 0;
@@ -187,6 +200,20 @@ export function validateCqcFramework(value: unknown, name: string): string[] {
     if (!isText(c.title) || !isText(c.description)) errors.push(`${cAt}: title and description are required`);
     checkSources(c.sources, cAt);
     checkMapsFrom(c.mapsFrom, cAt);
+  }
+
+  if (f.scoring !== undefined && f.scoring !== null) {
+    const sc = f.scoring as Partial<CqcFrameworkScoring>;
+    if (typeof sc !== 'object' || Array.isArray(sc)) {
+      errors.push(`${at} scoring: must be an object or null`);
+    } else {
+      if (!isText(sc.note)) errors.push(`${at} scoring: note is required (where the rules come from)`);
+      if (!sc.verification || !['verified', 'unverified'].includes(sc.verification.status)) {
+        errors.push(`${at} scoring: verification.status must be verified or unverified`);
+      } else {
+        checkSources(sc.verification.sources, `${at} scoring verification`);
+      }
+    }
   }
   return errors;
 }

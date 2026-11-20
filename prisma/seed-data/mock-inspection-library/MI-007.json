@@ -1,0 +1,37 @@
+{
+  "code": "MI-007",
+  "group": "TOPIC",
+  "displayOrder": 70,
+  "title": "Safeguarding and risk",
+  "summary": "How people are kept safe from abuse and avoidable harm, and how staff can raise concerns.",
+  "whenToUse": "After a safeguarding referral, a police or local authority enquiry, or a whistleblowing concern.",
+  "estimatedMinutes": 150,
+  "statements": [
+    {
+      "code": "SAFE_SAFEGUARDING"
+    },
+    {
+      "code": "SAFE_INVOLVING_PEOPLE_RISKS"
+    },
+    {
+      "code": "SAFE_LEARNING_CULTURE",
+      "focus": "What changed after recent safeguarding concerns."
+    },
+    {
+      "code": "EFFECTIVE_CONSENT",
+      "focus": "Mental Capacity Act and any restrictions on people's liberty."
+    },
+    {
+      "code": "WELL_LED_SPEAK_UP"
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "Oversight of safeguarding: log, referrals, outcomes and notifications to CQC."
+    }
+  ],
+  "sources": [
+    "cqc-how-we-inspect-asc",
+    "goaudits-checklist"
+  ],
+  "researchedOn": "2026-11-19"
+}

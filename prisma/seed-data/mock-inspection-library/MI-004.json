@@ -1,0 +1,34 @@
+{
+  "code": "MI-004",
+  "group": "FOCUSED",
+  "displayOrder": 40,
+  "title": "Effective care and consent",
+  "summary": "Whether care is planned around assessed needs, follows good practice, works with other services and has the person's consent.",
+  "whenToUse": "When care plans or reviews are behind, or after concerns about consent or mental capacity.",
+  "estimatedMinutes": 150,
+  "statements": [
+    {
+      "code": "EFFECTIVE_ASSESSING_NEEDS"
+    },
+    {
+      "code": "EFFECTIVE_EVIDENCE_BASED_CARE"
+    },
+    {
+      "code": "EFFECTIVE_WORKING_TOGETHER"
+    },
+    {
+      "code": "EFFECTIVE_HEALTHIER_LIVES"
+    },
+    {
+      "code": "EFFECTIVE_MONITORING_OUTCOMES"
+    },
+    {
+      "code": "EFFECTIVE_CONSENT"
+    }
+  ],
+  "sources": [
+    "cqc-how-we-inspect-asc",
+    "goaudits-checklist"
+  ],
+  "researchedOn": "2026-11-19"
+}

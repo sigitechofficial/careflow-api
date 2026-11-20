@@ -1,0 +1,64 @@
+{
+  "code": "MI-002",
+  "group": "FOCUSED",
+  "displayOrder": 20,
+  "title": "Safe and well-led focused inspection",
+  "summary": "Safety and leadership together: the pair CQC most often looks at when it has a concern.",
+  "whenToUse": "After a serious incident, a safeguarding concern, a rise in complaints or missed visits, or between full mock inspections.",
+  "estimatedMinutes": 240,
+  "statements": [
+    {
+      "code": "SAFE_LEARNING_CULTURE"
+    },
+    {
+      "code": "SAFE_SYSTEMS_PATHWAYS_TRANSITIONS"
+    },
+    {
+      "code": "SAFE_SAFEGUARDING"
+    },
+    {
+      "code": "SAFE_INVOLVING_PEOPLE_RISKS"
+    },
+    {
+      "code": "SAFE_ENVIRONMENTS"
+    },
+    {
+      "code": "SAFE_STAFFING"
+    },
+    {
+      "code": "SAFE_IPC"
+    },
+    {
+      "code": "SAFE_MEDICINES"
+    },
+    {
+      "code": "WELL_LED_SHARED_DIRECTION"
+    },
+    {
+      "code": "WELL_LED_CAPABLE_LEADERS"
+    },
+    {
+      "code": "WELL_LED_SPEAK_UP"
+    },
+    {
+      "code": "WELL_LED_WORKFORCE_EDI"
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE"
+    },
+    {
+      "code": "WELL_LED_PARTNERSHIPS"
+    },
+    {
+      "code": "WELL_LED_LEARNING_IMPROVEMENT"
+    },
+    {
+      "code": "WELL_LED_ENVIRONMENTAL_SUSTAINABILITY"
+    }
+  ],
+  "sources": [
+    "cqc-how-we-inspect-asc",
+    "worknest-mock"
+  ],
+  "researchedOn": "2026-11-19"
+}

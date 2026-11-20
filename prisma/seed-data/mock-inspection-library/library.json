@@ -1,0 +1,62 @@
+{
+  "researchedOn": "2026-11-19",
+  "note": "Ready-made mock CQC inspections for a CQC-registered home care provider. Each template lists quality statements of the active CQC framework (single assessment framework v1) and, where useful, what to focus on. Guidance is CareFlow's own wording, not CQC's text. CQC's draft adult social care framework (March 2026, 24 key lines of enquiry, no numerical scores) was not yet in force when this was written; when it is, the templates move to its statements through the framework's mapsFrom links.",
+  "sources": [
+    {
+      "id": "cqc-how-we-inspect-asc",
+      "source": "CQC, How we inspect services: adult social care services (focused inspections cover one or more key questions and always include well-led)",
+      "url": "https://cqc.org.uk/node/2929"
+    },
+    {
+      "id": "cqc-draft-asc-2026",
+      "source": "CQC, Draft adult social care assessment framework for feedback (19 March 2026)",
+      "url": "https://www.cqc.org.uk/system/files?file=2026-03%2F20260319+DRAFT+Adult+Social+Care+assessment+framework+for+feedback_table+%282%29.pdf"
+    },
+    {
+      "id": "birdie-saf-homecare",
+      "source": "Birdie, The complete 2026 guide to the CQC single assessment framework for homecare providers (secondary summary)",
+      "url": "https://www.birdie.care/blog/cqc-single-assessment-framework"
+    },
+    {
+      "id": "learnsignal-mock",
+      "source": "LearnSignal, Mock CQC inspections: how to run a genuinely useful rehearsal (secondary summary)",
+      "url": "https://www.learnsignal.com/blog/mock-cqc-inspection-preparation-care-homes-guide/"
+    },
+    {
+      "id": "goaudits-checklist",
+      "source": "GoAudits, CQC inspection checklist: focused audits by key question (secondary summary)",
+      "url": "https://goaudits.com/templates/cqc-inspection-checklist/"
+    },
+    {
+      "id": "worknest-mock",
+      "source": "Worknest, Mock inspections: one-day snapshot on key risk areas (secondary summary)",
+      "url": "https://worknest.com/specialist-care-solutions/mock-inspections"
+    }
+  ],
+  "groups": [
+    {
+      "code": "FULL",
+      "name": "Full inspection",
+      "description": "Every key question, like a full CQC assessment.",
+      "displayOrder": 10
+    },
+    {
+      "code": "FOCUSED",
+      "name": "Focused inspections",
+      "description": "One or two key questions, the way CQC looks at a service when there is a concern.",
+      "displayOrder": 20
+    },
+    {
+      "code": "TOPIC",
+      "name": "Topic deep dives",
+      "description": "One subject across the key questions it touches.",
+      "displayOrder": 30
+    },
+    {
+      "code": "HOME_CARE",
+      "name": "Home care risks",
+      "description": "Risks that matter most when care is given in people's own homes.",
+      "displayOrder": 40
+    }
+  ]
+}

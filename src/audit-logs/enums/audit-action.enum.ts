@@ -702,6 +702,27 @@ export enum AuditAction {
   CQC_EVIDENCE_EXPORTED = 'cqc_evidence_exported',
   CQC_EVIDENCE_CAPTURED_FROM_SURVEY = 'cqc_evidence_captured_from_survey',
 
+  CQC_MOCK_INSPECTION_CREATED = 'cqc_mock_inspection_created',
+  CQC_MOCK_INSPECTION_UPDATED = 'cqc_mock_inspection_updated',
+  CQC_MOCK_INSPECTION_STATEMENT_SCORED = 'cqc_mock_inspection_statement_scored',
+  CQC_MOCK_INSPECTION_EVIDENCE_REFRESHED = 'cqc_mock_inspection_evidence_refreshed',
+  CQC_MOCK_INSPECTION_COMPLETED = 'cqc_mock_inspection_completed',
+  CQC_MOCK_INSPECTION_CANCELLED = 'cqc_mock_inspection_cancelled',
+  CQC_MOCK_INSPECTION_ACTION_CREATED = 'cqc_mock_inspection_action_created',
+  CQC_MOCK_INSPECTION_ACTION_UPDATED = 'cqc_mock_inspection_action_updated',
+  CQC_MOCK_INSPECTION_EXPORTED = 'cqc_mock_inspection_exported',
+
+  CQC_NOTIFICATION_CREATED = 'cqc_notification_created',
+  CQC_NOTIFICATION_UPDATED = 'cqc_notification_updated',
+  CQC_NOTIFICATION_READY = 'cqc_notification_ready',
+  CQC_NOTIFICATION_REOPENED = 'cqc_notification_reopened',
+  CQC_NOTIFICATION_SUBMITTED = 'cqc_notification_submitted',
+  CQC_NOTIFICATION_ACKNOWLEDGED = 'cqc_notification_acknowledged',
+  CQC_NOTIFICATION_NOT_REQUIRED = 'cqc_notification_not_required',
+  CQC_NOTIFICATION_CANCELLED = 'cqc_notification_cancelled',
+  CQC_NOTIFICATION_POLICY_ADDED = 'cqc_notification_policy_added',
+  CQC_NOTIFICATION_POLICY_REMOVED = 'cqc_notification_policy_removed',
+
   VISIT_CREATION_SCRIPT_STARTED = 'visit_creation_script_started',
   VISIT_CREATION_SCRIPT_FINISHED = 'visit_creation_script_finished',
 }

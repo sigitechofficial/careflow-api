@@ -27,6 +27,7 @@ import { seedSupervisionForms } from './seeds/supervision-forms.seed';
 import { seedPolicyLibrary } from './seeds/policy-library.seed';
 import { seedSurveyLibrary } from './seeds/survey-library.seed';
 import { seedCqcFramework } from './seeds/cqc-framework.seed';
+import { seedMockInspectionLibrary } from './seeds/mock-inspection-library.seed';
 import {
   seedAllforCareOrganisation,
   summariseAllforCareChanges,
@@ -649,6 +650,12 @@ async function main() {
     'cqc_evidence.read',
     'cqc_evidence.manage',
     'cqc_evidence.export',
+    // Mock CQC inspection (Governance → Mock CQC inspection)
+    'cqc_mock_inspection.read',
+    'cqc_mock_inspection.manage',
+    // CQC statutory notifications (Governance → CQC notifications)
+    'cqc_notifications.read',
+    'cqc_notifications.manage',
     // Carer notifications (Settings › Carer notifications)
     'carer_notifications.send',
     // On-call rota and out-of-hours calls (Operations › On-call)
@@ -788,6 +795,19 @@ async function main() {
   await assignPermKeys('Manager', cqcEvidenceKeys);
   await assignPermKeys('Care Coordinator', ['cqc_evidence.read']);
   await assignPermKeys('CQC Inspector', ['cqc_evidence.read', 'cqc_evidence.export']);
+
+  // Mock CQC inspection — admins and managers run them, coordinators read. Not the CQC Inspector
+  // role: a mock inspection is the provider's own practice, not evidence for the regulator.
+  await assignPermKeys('Admin', ['cqc_mock_inspection.read', 'cqc_mock_inspection.manage']);
+  await assignPermKeys('Manager', ['cqc_mock_inspection.read', 'cqc_mock_inspection.manage']);
+  await assignPermKeys('Care Coordinator', ['cqc_mock_inspection.read']);
+
+  // CQC statutory notifications — admins and managers prepare and record them; coordinators and
+  // the CQC Inspector role read them.
+  await assignPermKeys('Admin', ['cqc_notifications.read', 'cqc_notifications.manage']);
+  await assignPermKeys('Manager', ['cqc_notifications.read', 'cqc_notifications.manage']);
+  await assignPermKeys('Care Coordinator', ['cqc_notifications.read']);
+  await assignPermKeys('CQC Inspector', ['cqc_notifications.read']);
 
   // Specialist care pathways — coordinators read, managers build/approve plans
   await assignPermKeys('Care Coordinator', ['specialist_pathways.read']);
@@ -2992,6 +3012,12 @@ async function main() {
     `[seed] CQC framework: active v${cqcFramework.activeVersion}, ${cqcFramework.versionsCreated} created, ` +
       `${cqcFramework.versionsUpdated} updated, ${cqcFramework.versionsUnchanged} unchanged, ` +
       `${cqcFramework.linksRemapped} evidence links re-mapped.`,
+  );
+  // Ready-made mock CQC inspections (Governance → Mock CQC inspection → Ready-made inspections).
+  const mockLibrary = await seedMockInspectionLibrary(prisma);
+  console.log(
+    `[seed] Mock inspection library: ${mockLibrary.created} created, ${mockLibrary.updated} updated, ` +
+      `${mockLibrary.unchanged} unchanged, ${mockLibrary.retired} retired.`,
   );
 }
 

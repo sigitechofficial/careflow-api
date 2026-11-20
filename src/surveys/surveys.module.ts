@@ -117,6 +117,7 @@ import {
     SurveyBenchmarkHubController,
   ],
   providers: [SurveysService, SurveyDistributionJob, SurveyLibraryService, SurveyAlertsService, SurveyAccessService, SurveyShareLinksService, SurveyRecipientLinksService, SurveyLinkGuard, SurveySectionsService, SurveyRemindersService, SurveyTextRepliesService, SurveyManagerCopiesService, SurveyContactRuleService, SurveyReviewersService, SurveyEventTriggersService, SurveyOutsidePeopleService, SurveyUnsubscribeService, SurveyInsightService, SurveyActionsService, SurveyPlatformService, SurveyTranslationsService, SurveyApplicantInvitesService, SurveyBenchmarksService],
-  exports: [SurveysService, SurveyAlertsService],
+  // SurveyLibraryService: mock CQC inspections show the ready-made surveys for each quality statement.
+  exports: [SurveysService, SurveyAlertsService, SurveyLibraryService],
 })
 export class SurveysModule {}

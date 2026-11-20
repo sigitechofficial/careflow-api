@@ -1,0 +1,35 @@
+{
+  "code": "MI-006",
+  "group": "TOPIC",
+  "displayOrder": 60,
+  "title": "Medicines management",
+  "summary": "Medicines support from start to finish: assessments, MAR records, errors, carer competency and audits.",
+  "whenToUse": "Every quarter, after a medication error, or when eMAR shows gaps or late doses.",
+  "estimatedMinutes": 120,
+  "statements": [
+    {
+      "code": "SAFE_MEDICINES"
+    },
+    {
+      "code": "SAFE_LEARNING_CULTURE",
+      "focus": "Medication errors and near misses: were they reported, investigated and learned from?"
+    },
+    {
+      "code": "SAFE_STAFFING",
+      "focus": "Medication training and yearly competency checks for every carer who gives medicines."
+    },
+    {
+      "code": "EFFECTIVE_CONSENT",
+      "focus": "Consent and capacity for medicines support, including covert medicines."
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "Medicines audits: how often, what they found and whether actions were finished."
+    }
+  ],
+  "sources": [
+    "goaudits-checklist",
+    "birdie-saf-homecare"
+  ],
+  "researchedOn": "2026-11-19"
+}

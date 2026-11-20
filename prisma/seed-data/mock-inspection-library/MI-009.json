@@ -1,0 +1,36 @@
+{
+  "code": "MI-009",
+  "group": "TOPIC",
+  "displayOrder": 90,
+  "title": "Staffing and recruitment",
+  "summary": "Safe recruitment, enough skilled staff, training, supervision and staff wellbeing.",
+  "whenToUse": "When turnover is high, before taking on new packages, or after recruitment file checks find gaps.",
+  "estimatedMinutes": 150,
+  "statements": [
+    {
+      "code": "SAFE_STAFFING"
+    },
+    {
+      "code": "CARING_WORKFORCE_WELLBEING"
+    },
+    {
+      "code": "WELL_LED_CAPABLE_LEADERS"
+    },
+    {
+      "code": "WELL_LED_WORKFORCE_EDI"
+    },
+    {
+      "code": "WELL_LED_SPEAK_UP",
+      "focus": "Whether staff feel able to raise concerns about workload or staffing."
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "Oversight of recruitment files, training and supervision compliance."
+    }
+  ],
+  "sources": [
+    "birdie-saf-homecare",
+    "goaudits-checklist"
+  ],
+  "researchedOn": "2026-11-19"
+}

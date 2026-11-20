@@ -36,6 +36,21 @@
       "id": "access-group",
       "source": "The Access Group, CQC quality statements (secondary summary, modified 14 October 2026)",
       "url": "https://www.theaccessgroup.com/en-gb/blog/hsc-cqc-quality-statements/"
+    },
+    {
+      "id": "cqc-reach-rating",
+      "source": "CQC, How we reach a rating (returned HTTP 403 to automated access on 17 November 2026)",
+      "url": "https://www.cqc.org.uk/guidance-regulation/providers/assessment/assessing-quality-and-performance/reach-rating"
+    },
+    {
+      "id": "goaudits-saf",
+      "source": "GoAudits, CQC single assessment framework: ratings, scoring and inspections (secondary summary)",
+      "url": "https://goaudits.com/blog/new-cqc-framework/"
+    },
+    {
+      "id": "altea-scoring",
+      "source": "Altea Insurance, Measuring quality: how the CQC's new scoring system will work in practice (secondary summary)",
+      "url": "https://www.alteainsurance.com/post/the-cqcs-new-scoring-system"
     }
   ],
   "keyQuestions": [
@@ -350,5 +365,33 @@
       "description": "The difference care makes to people: measures of health, independence and quality of life, and trends over time.",
       "sources": ["kent-sfc", "nelincs", "dash-report"]
     }
-  ]
+  ],
+  "scoring": {
+    "note": "Mock inspection scoring. CQC scores each quality statement 1-4 (it stopped scoring evidence categories separately). A key question's score is its statement scores as a percentage of the maximum; bands are 25-38% inadequate, 39-62% requires improvement, 63-87% good, over 87% outstanding. Sources differ on whether a score between bands (such as 62.5% or 87.5%) rounds up, so bands are stored as 'above' values: over 87 outstanding, over 62 good, over 38 requires improvement. Limiters: a good-range score with any statement at 1 is limited to requires improvement; an outstanding-range score with any statement at 1 or 2 is limited to good. Overall rating rules follow CQC's rating principles as summarised by secondary sources. cqc.org.uk could not be opened, so all of this must be checked by hand on the CQC website.",
+    "verification": { "status": "unverified", "sources": ["cqc-reach-rating", "goaudits-saf", "altea-scoring"] },
+    "scale": [
+      { "score": 1, "label": "Significant shortfalls" },
+      { "score": 2, "label": "Some shortfalls" },
+      { "score": 3, "label": "Good standard" },
+      { "score": 4, "label": "Exceptional standard" }
+    ],
+    "keyQuestionBands": [
+      { "rating": "OUTSTANDING", "abovePercent": 87 },
+      { "rating": "GOOD", "abovePercent": 62 },
+      { "rating": "REQUIRES_IMPROVEMENT", "abovePercent": 38 },
+      { "rating": "INADEQUATE", "abovePercent": 0 }
+    ],
+    "limiters": [
+      { "whenRatingIn": ["GOOD"], "anyStatementScoreIn": [1], "limitTo": "REQUIRES_IMPROVEMENT" },
+      { "whenRatingIn": ["OUTSTANDING"], "anyStatementScoreIn": [1, 2], "limitTo": "GOOD" }
+    ],
+    "overallRules": [
+      { "atLeast": 2, "keyQuestionRatingIn": ["INADEQUATE"], "rating": "INADEQUATE" },
+      { "atLeast": 1, "keyQuestionRatingIn": ["INADEQUATE"], "rating": "REQUIRES_IMPROVEMENT" },
+      { "atLeast": 2, "keyQuestionRatingIn": ["REQUIRES_IMPROVEMENT"], "rating": "REQUIRES_IMPROVEMENT" },
+      { "atLeast": 1, "keyQuestionRatingIn": ["REQUIRES_IMPROVEMENT"], "rating": "GOOD" },
+      { "atLeast": 2, "keyQuestionRatingIn": ["OUTSTANDING"], "rating": "OUTSTANDING" }
+    ],
+    "overallDefault": "GOOD"
+  }
 }

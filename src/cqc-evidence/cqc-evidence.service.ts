@@ -549,18 +549,59 @@ export class CqcEvidenceService {
 
   /** Current evidence for one statement or all of them, as a PDF or CSV pack for inspection. */
   async export(user: RequestUser, query: ExportCqcEvidenceQueryDto, meta?: RequestAuditMeta, now: Date = new Date()) {
-    const scope = this.scopeOf(user);
     const framework = await this.framework.active();
     const statements = query.statementId
       ? framework.statements.filter((s) => s.id === query.statementId)
       : framework.statements;
     if (!statements.length) throw new NotFoundException('Quality statement not found');
+    const single = query.statementId ? statements[0] : null;
+    const { pack, rows } = await this.buildExportPack(user, framework, statements, query.locationId, single ? `${single.keyQuestionTitle}: ${single.title}` : 'All quality statements', now);
+    const stamp = now.toISOString().slice(0, 10);
+    const slug = single ? single.code.toLowerCase().replace(/_/g, '-') : 'all-statements';
+    const fileName = `cqc-evidence-${slug}-${stamp}.${query.format}`;
+    const buffer =
+      query.format === 'csv' ? Buffer.from(buildEvidenceCsv(pack), 'utf8') : await buildEvidencePdf(pack);
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.CQC_EVIDENCE,
+      action: AuditAction.CQC_EVIDENCE_EXPORTED,
+      recordType: 'CqcEvidence',
+      recordId: query.statementId ?? null,
+      metadata: {
+        format: query.format,
+        statementId: query.statementId ?? null,
+        locationId: query.locationId ?? null,
+        evidenceCount: rows.length,
+      },
+      ...meta,
+    });
+    return {
+      buffer,
+      fileName,
+      contentType: query.format === 'csv' ? 'text/csv; charset=utf-8' : 'application/pdf',
+      disposition: contentDisposition(fileName, false),
+    };
+  }
+
+  /**
+   * The current evidence a user may see for some statements (optionally one branch, with organisation-wide evidence),
+   * shaped for a pack. Also returns the rows, for their attached files (the evidence pack ZIP).
+   */
+  async buildExportPack(
+    user: RequestUser,
+    framework: ActiveFramework,
+    statements: ActiveFramework['statements'],
+    locationId: string | undefined,
+    scopeTitle: string,
+    now: Date = new Date(),
+  ): Promise<{ pack: ExportPack; rows: EvidenceRow[] }> {
+    const scope = this.scopeOf(user);
     const rows = await this.prisma.cqcEvidence.findMany({
       where: {
         AND: [
           { status: CqcEvidenceStatus.CURRENT },
           await this.visibleWhere(scope, user),
-          this.branchWhere(scope, query.locationId),
+          this.branchWhere(scope, locationId),
           { statements: { some: { statementId: { in: statements.map((s) => s.id) } } } },
         ],
       },
@@ -591,15 +632,16 @@ export class CqcEvidenceService {
       actions: readActions(r.actions),
       attachments: r.attachments.map((a) => a.fileName),
     });
-    const branchName = query.locationId ? (await this.locationNames([query.locationId])).get(query.locationId) : null;
-    const single = query.statementId ? statements[0] : null;
+    const branchName = locationId ? (await this.locationNames([locationId])).get(locationId) : null;
     const pack: ExportPack = {
       organisationName: profile?.companyName?.trim() || 'Organisation',
       generatedAt: now,
       generatedBy: actor.get(user.id) ?? 'User',
       frameworkTitle: `${framework.title} (version ${framework.version})`,
-      scopeLabel: `${single ? `${single.keyQuestionTitle}: ${single.title}` : 'All quality statements'}${branchName ? ` - ${branchName}` : ''}`,
+      scopeLabel: `${scopeTitle}${branchName ? ` - ${branchName}` : ''}`,
+      branchName: branchName ?? null,
       statements: statements.map((s) => ({
+        id: s.id,
         keyQuestionTitle: s.keyQuestionTitle,
         code: s.code,
         title: s.title,
@@ -607,31 +649,7 @@ export class CqcEvidenceService {
         evidence: rows.filter((r) => r.statements.some((l) => l.statementId === s.id)).map(toExport),
       })),
     };
-    const stamp = now.toISOString().slice(0, 10);
-    const slug = single ? single.code.toLowerCase().replace(/_/g, '-') : 'all-statements';
-    const fileName = `cqc-evidence-${slug}-${stamp}.${query.format}`;
-    const buffer =
-      query.format === 'csv' ? Buffer.from(buildEvidenceCsv(pack), 'utf8') : await buildEvidencePdf(pack);
-    await this.audit.logAudit({
-      userId: user.id,
-      module: AuditModule.CQC_EVIDENCE,
-      action: AuditAction.CQC_EVIDENCE_EXPORTED,
-      recordType: 'CqcEvidence',
-      recordId: query.statementId ?? null,
-      metadata: {
-        format: query.format,
-        statementId: query.statementId ?? null,
-        locationId: query.locationId ?? null,
-        evidenceCount: rows.length,
-      },
-      ...meta,
-    });
-    return {
-      buffer,
-      fileName,
-      contentType: query.format === 'csv' ? 'text/csv; charset=utf-8' : 'application/pdf',
-      disposition: contentDisposition(fileName, false),
-    };
+    return { pack, rows };
   }
 
   // ─── Shaping ──────────────────────────────────────────────────────────────

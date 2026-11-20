@@ -1,0 +1,36 @@
+{
+  "code": "MI-012",
+  "group": "HOME_CARE",
+  "displayOrder": 120,
+  "title": "Records and recording quality",
+  "summary": "Whether care plans, daily notes and medicines records are accurate, up to date and consistent between carers.",
+  "whenToUse": "Every quarter, or when audits find gaps in notes or MAR records.",
+  "estimatedMinutes": 90,
+  "statements": [
+    {
+      "code": "EFFECTIVE_ASSESSING_NEEDS",
+      "focus": "Care plans up to date and matching what carers actually do."
+    },
+    {
+      "code": "SAFE_MEDICINES",
+      "focus": "MAR records: gaps, codes and PRN notes."
+    },
+    {
+      "code": "EFFECTIVE_WORKING_TOGETHER",
+      "focus": "Daily notes clear enough for the next carer to follow."
+    },
+    {
+      "code": "RESPONSIVE_PERSON_CENTRED",
+      "focus": "Notes written about the person, not just tasks."
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "Care record audits and their actions."
+    }
+  ],
+  "sources": [
+    "birdie-saf-homecare",
+    "learnsignal-mock"
+  ],
+  "researchedOn": "2026-11-19"
+}

@@ -22,6 +22,7 @@ export type ExportEvidence = {
 };
 
 export type ExportStatement = {
+  id?: string;
   keyQuestionTitle: string;
   code: string;
   title: string;
@@ -35,6 +36,8 @@ export type ExportPack = {
   generatedBy: string;
   frameworkTitle: string;
   scopeLabel: string;
+  /** The branch chosen, or null for every branch the user may see. */
+  branchName?: string | null;
   statements: ExportStatement[];
 };
 
