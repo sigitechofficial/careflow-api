@@ -50,6 +50,8 @@ export function isSkippableIncompleteValidationMessage(message: string): boolean
   if (message.includes('Emergency contact 1 not recorded')) return true;
   if (message.startsWith('Agreed goals:')) return true;
   if (message.startsWith('Capacity assessment incomplete')) return true;
+  if (message.startsWith('Capacity in doubt — MCA must be completed')) return true;
+  if (message.startsWith('MCA required but not completed')) return true;
   return false;
 }
 
