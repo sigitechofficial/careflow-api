@@ -165,14 +165,14 @@ export class CqcDashboardService {
       });
     if (
       mock &&
-      (!mock.latest ||
-        now.getTime() - new Date(mock.latest.completedAt).getTime() >
+      (!mock.lastCompletedAt ||
+        now.getTime() - new Date(mock.lastCompletedAt).getTime() >
           MOCK_STALE_DAYS * DAY)
     )
       attention.push({
         kind: 'NO_RECENT_MOCK',
         count: 1,
-        message: mock.latest
+        message: mock.lastCompletedAt
           ? 'The last completed mock inspection was more than 6 months ago.'
           : 'No mock inspection has been completed yet.',
       });
@@ -227,7 +227,8 @@ export class CqcDashboardService {
       this.prisma.cqcMockInspection.findMany({
         where: { AND: [where, { status: CqcMockInspectionStatus.COMPLETED }] },
         orderBy: { completedAt: 'desc' },
-        take: 2,
+        // Enough history to find the last rating of each key question (focused inspections rate only some).
+        take: 50,
         select: {
           id: true,
           title: true,
@@ -276,6 +277,35 @@ export class CqcDashboardService {
             keyQuestions: keyQuestionRatings(r.result),
           }
         : null;
+    // The latest overall rating comes from the newest inspection that has one (a focused inspection
+    // rates only its own key questions), compared with the one before it that has one.
+    const rated = completed.filter(
+      (r) => (r.result as Partial<InspectionResult> | null)?.overall,
+    );
+    const latest = rated[0] ?? completed[0];
+    const previous = rated[0] ? rated[1] : undefined;
+    // Each key question's rating comes from the newest inspection that rated it.
+    const keyQuestions: {
+      code: string;
+      rating: string;
+      percent: number | null;
+      inspectionId: string;
+      inspectionTitle: string;
+      completedAt: string;
+    }[] = [];
+    for (const r of completed) {
+      for (const k of keyQuestionRatings(r.result)) {
+        if (!k.rating || keyQuestions.some((x) => x.code === k.code)) continue;
+        keyQuestions.push({
+          code: k.code,
+          rating: k.rating,
+          percent: k.percent,
+          inspectionId: r.id,
+          inspectionTitle: r.title,
+          completedAt: r.completedAt!.toISOString(),
+        });
+      }
+    }
     const countOf = (status: CqcMockInspectionStatus) =>
       byStatus.find((g) => g.status === status)?._count._all ?? 0;
     const counts = {
@@ -296,8 +326,10 @@ export class CqcDashboardService {
       )
       .slice(0, 5);
     return {
-      latest: summary(completed[0]),
-      previous: summary(completed[1]),
+      latest: summary(latest),
+      previous: summary(previous),
+      lastCompletedAt: completed[0]?.completedAt?.toISOString() ?? null,
+      keyQuestions,
       inProgress: counts.inProgress,
       counts,
       actions: {

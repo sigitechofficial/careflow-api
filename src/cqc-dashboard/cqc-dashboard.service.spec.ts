@@ -217,6 +217,61 @@ describe('CqcDashboardService.dashboard', () => {
     );
   });
 
+  it('takes the overall rating from the last full inspection and each key question from the newest that rated it', async () => {
+    const { service, prisma } = setup();
+    prisma.cqcMockInspection.findMany.mockResolvedValue([
+      {
+        // A focused inspection: no overall rating, rates Safe only.
+        id: 'm3',
+        title: 'Infection control',
+        completedAt: day('2026-11-23'),
+        locationId: 'loc-a',
+        result: {
+          overall: null,
+          keyQuestions: [
+            { keyQuestionCode: 'SAFE', rating: 'GOOD', percent: 75 },
+          ],
+        },
+      },
+      {
+        id: 'm2',
+        title: 'Nov',
+        completedAt: day('2026-11-17'),
+        locationId: 'loc-a',
+        result: RESULT,
+      },
+      {
+        id: 'm1',
+        title: 'May',
+        completedAt: day('2026-05-10'),
+        locationId: 'loc-a',
+        result: { overall: 'REQUIRES_IMPROVEMENT', keyQuestions: [] },
+      },
+    ]);
+    const { data } = await service.dashboard(ADMIN, {}, NOW);
+    expect(data.mock?.latest).toMatchObject({ id: 'm2', overall: 'GOOD' });
+    expect(data.mock?.previous).toMatchObject({ id: 'm1' });
+    expect(data.mock?.lastCompletedAt).toBe('2026-11-23T00:00:00.000Z');
+    expect(data.mock?.keyQuestions).toEqual([
+      {
+        code: 'SAFE',
+        rating: 'GOOD',
+        percent: 75,
+        inspectionId: 'm3',
+        inspectionTitle: 'Infection control',
+        completedAt: '2026-11-23T00:00:00.000Z',
+      },
+      {
+        code: 'WELL_LED',
+        rating: 'GOOD',
+        percent: 75,
+        inspectionId: 'm2',
+        inspectionTitle: 'Nov',
+        completedAt: '2026-11-17T00:00:00.000Z',
+      },
+    ]);
+  });
+
   it('flags when no mock inspection has been completed for six months', async () => {
     const { service, prisma } = setup();
     prisma.cqcMockInspection.findMany.mockResolvedValue([
