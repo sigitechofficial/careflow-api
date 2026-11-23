@@ -6,6 +6,7 @@ import {
   ParseUUIDPipe,
   Patch,
   Post,
+  Put,
   Query,
   Req,
   Res,
@@ -32,6 +33,7 @@ import {
   ScoreStatementDto,
   UpdateCqcMockActionDto,
   UpdateCqcMockInspectionDto,
+  UpdateCqcMockInspectionSettingsDto,
 } from './dto/cqc-mock-inspection.dto';
 
 /**
@@ -91,6 +93,29 @@ export class CqcMockInspectionController {
   })
   statementSurveys() {
     return this.surveys.byStatement();
+  }
+
+  @Get('settings')
+  @Permissions('cqc_mock_inspection.read')
+  @ApiOperation({
+    summary:
+      'Settings: points for each check answer and the % a statement needs for each score',
+  })
+  settings() {
+    return this.inspections.settings();
+  }
+
+  @Put('settings')
+  @Permissions('cqc_mock_inspection.manage')
+  @ApiOperation({
+    summary: 'Save the settings (used by mock inspections started after this)',
+  })
+  updateSettings(
+    @CurrentUser() user: RequestUser,
+    @Body() dto: UpdateCqcMockInspectionSettingsDto,
+    @Req() req: Request,
+  ) {
+    return this.inspections.updateSettings(user, dto, getRequestAuditMeta(req));
   }
 
   @Get('templates')

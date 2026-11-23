@@ -130,6 +130,8 @@ import { IncidentsModule } from './incidents/incidents.module';
 import { SurveysModule } from './surveys/surveys.module';
 import { CqcEvidenceModule } from './cqc-evidence/cqc-evidence.module';
 import { CqcMockInspectionModule } from './cqc-mock-inspection/cqc-mock-inspection.module';
+import { QualityAuditsModule } from './quality-audits/quality-audits.module';
+import { CqcDashboardModule } from './cqc-dashboard/cqc-dashboard.module';
 import { CqcEvidencePackModule } from './cqc-evidence-pack/cqc-evidence-pack.module';
 import { CqcNotificationsModule } from './cqc-notifications/cqc-notifications.module';
 import { SpecialistPathwaysModule } from './specialist-pathways/specialist-pathways.module';
@@ -303,6 +305,8 @@ import { JobsModule } from './jobs/jobs.module';
     SurveysModule,
     CqcEvidenceModule,
     CqcMockInspectionModule,
+    QualityAuditsModule,
+    CqcDashboardModule,
     CqcEvidencePackModule,
     CqcNotificationsModule,
     SpecialistPathwaysModule,

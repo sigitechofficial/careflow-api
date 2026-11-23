@@ -326,6 +326,14 @@ export const ROLE_RESPONSIBILITIES: RoleResponsibility[] = [
     act: ['cqc_mock_inspection.manage'],
   },
   {
+    key: 'quality_audits',
+    label: 'Audits',
+    description:
+      'Carry out audits from the audit library (infection control, medication, care records and more): mark each standard met or not met, and track the actions.',
+    view: ['quality_audits.read'],
+    act: ['quality_audits.manage'],
+  },
+  {
     key: 'specialist_pathways',
     label: 'Specialist care pathways',
     description:

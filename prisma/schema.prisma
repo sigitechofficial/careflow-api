@@ -17926,6 +17926,8 @@ model CqcMockInspection {
   cancelledAt        DateTime?
   /// Key question ratings and the overall rating, frozen when the inspection is completed.
   result             Json?
+  /// How check answers become statement scores, copied from the settings when it started (null = defaults).
+  checkScoring       Json?
   createdById        String?                 @db.Uuid
   updatedById        String?                 @db.Uuid
   createdAt          DateTime                @default(now())
@@ -17939,6 +17941,23 @@ model CqcMockInspection {
   @@index([locationId])
   @@index([status])
   @@index([templateId])
+  @@schema("quality")
+}
+
+/// Mock CQC inspection settings (one row): points for each check answer and the % a statement needs for
+/// each score. New inspections copy them; inspections already started keep their own.
+model CqcMockInspectionSettings {
+  id              String   @id @default(uuid()) @db.Uuid
+  metPoints       Int      @default(2)
+  partlyMetPoints Int      @default(1)
+  notMetPoints    Int      @default(0)
+  score4Percent   Int      @default(100)
+  score3Percent   Int      @default(75)
+  score2Percent   Int      @default(50)
+  updatedById     String?  @db.Uuid
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
   @@schema("quality")
 }
 
@@ -18022,6 +18041,224 @@ model CqcMockInspectionAction {
   statement  CqcQualityStatement? @relation(fields: [statementId], references: [id], onDelete: Restrict)
 
   @@index([inspectionId])
+  @@index([status, dueAt])
+  @@schema("quality")
+}
+
+// ─── Quality audits (Governance → Audits) ────────────────────────────────────────────────────────
+
+/// DUE (made by a schedule, not started) → IN_PROGRESS → COMPLETED; DUE / IN_PROGRESS → MISSED once the
+/// late window after the due date has passed; IN_PROGRESS → CANCELLED.
+enum QualityAuditStatus {
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  DUE
+  MISSED
+
+  @@schema("quality")
+}
+
+/// What an audit is about (Care quality, Infection prevention, Risk & safety …). The library's areas
+/// are seeded (isSystem); an organisation can add its own.
+model QualityAuditArea {
+  id           String    @id @default(uuid()) @db.Uuid
+  code         String    @unique
+  name         String
+  description  String?   @db.Text
+  isSystem     Boolean   @default(false)
+  displayOrder Int       @default(0)
+  archivedAt   DateTime?
+  createdById  String?   @db.Uuid
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  templates QualityAuditTemplate[]
+
+  @@schema("quality")
+}
+
+/// A recurring audit: a template carried out for a branch (or the whole organisation) every period.
+/// The next due audit is created from it; one not finished within the late window becomes MISSED.
+model QualityAuditSchedule {
+  id                String    @id @default(uuid()) @db.Uuid
+  templateId        String    @db.Uuid
+  locationId        String?   @db.Uuid
+  /// WEEKLY | MONTHLY | QUARTERLY | BIANNUAL | ANNUAL.
+  frequency         String
+  /// How many days before the due date it may be done, and after it before it is missed.
+  earlyDays         Int       @default(2)
+  lateDays          Int       @default(2)
+  firstDueDate      DateTime  @db.Date
+  /// The person accountable for each audit (a user).
+  accountableUserId String?   @db.Uuid
+  stoppedAt         DateTime?
+  createdById       String?   @db.Uuid
+  updatedById       String?   @db.Uuid
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  template QualityAuditTemplate @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  audits   QualityAudit[]
+
+  @@index([templateId])
+  @@index([locationId])
+  @@schema("quality")
+}
+
+enum QualityAuditAnswerValue {
+  MET
+  NOT_MET
+
+  @@schema("quality")
+}
+
+enum QualityAuditActionStatus {
+  OPEN
+  DONE
+
+  @@schema("quality")
+}
+
+/// An audit template: sections of numbered standards. Library templates (isCustom false) come from
+/// prisma/seed-data/audit-library in CareFlow's own words, are seeded on every deploy and are retired,
+/// never deleted, when they leave the library. Custom templates are made by the organisation.
+model QualityAuditTemplate {
+  id               String    @id @default(uuid()) @db.Uuid
+  code             String    @unique
+  areaId           String?   @db.Uuid
+  /// The organisation's own template (not from the library).
+  isCustom         Boolean   @default(false)
+  /// CQC key question it mainly supports (SAFE, EFFECTIVE, CARING, RESPONSIVE, WELL_LED).
+  keyQuestionCode  String?
+  title            String
+  summary          String    @db.Text
+  /// Shown at the top of the audit.
+  introduction     String?   @db.Text
+  /// Suggested frequency: WEEKLY | MONTHLY | QUARTERLY | BIANNUAL | ANNUAL.
+  frequency        String
+  earlyDays        Int       @default(2)
+  lateDays         Int       @default(2)
+  /// When set, each audit records what was audited under this label (e.g. "Person supported").
+  auditedItemLabel String?
+  /// Custom templates: the branches that use it (empty = every branch).
+  locationIds      String[]  @default([])
+  createdById      String?   @db.Uuid
+  estimatedMinutes Int       @default(30)
+  displayOrder     Int       @default(0)
+  /// [{ title, standards: [{ id, text, hint? }] }]; a standard's id stays the same when its text is edited.
+  sections         Json
+  /// CQC quality statement codes the audit gives evidence for.
+  cqcStatementCodes String[] @default([])
+  /// [{ id, source, url }] the template was written from.
+  sources          Json
+  researchedOn     DateTime  @db.Date
+  contentHash      String
+  retiredAt        DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  area      QualityAuditArea?      @relation(fields: [areaId], references: [id], onDelete: SetNull)
+  audits    QualityAudit[]
+  schedules QualityAuditSchedule[]
+
+  @@index([areaId])
+  @@schema("quality")
+}
+
+/// One audit carried out from a template, for a branch or the whole organisation (locationId null).
+model QualityAudit {
+  id          String             @id @default(uuid()) @db.Uuid
+  templateId  String             @db.Uuid
+  /// The template's sections when the audit was started, so later template changes do not alter it.
+  sections    Json
+  locationId  String?            @db.Uuid
+  /// The schedule that made it; null for an audit started by hand.
+  scheduleId  String?            @db.Uuid
+  title       String
+  /// When it is due (scheduled audits), and the days early / late it may be done (copied from the schedule).
+  dueDate     DateTime?          @db.Date
+  earlyDays   Int?
+  lateDays    Int?
+  /// When it was carried out; null while due.
+  auditDate   DateTime?          @db.Date
+  /// The person carrying out the audit (a user).
+  auditorId   String?            @db.Uuid
+  /// The person accountable for it (a user).
+  accountableUserId String?      @db.Uuid
+  /// What was audited, under the template's label (e.g. "Person supported: Jane Smith").
+  auditedItemLabel  String?
+  auditedItemValue  String?
+  status      QualityAuditStatus @default(IN_PROGRESS)
+  /// Overall comments from the auditor.
+  summary     String?            @db.Text
+  startedAt   DateTime?          @default(now())
+  missedAt    DateTime?
+  completedAt DateTime?
+  cancelledAt DateTime?
+  /// The score, frozen when the audit is completed.
+  result      Json?
+  createdById String?            @db.Uuid
+  updatedById String?            @db.Uuid
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  template QualityAuditTemplate  @relation(fields: [templateId], references: [id], onDelete: Restrict)
+  schedule QualityAuditSchedule? @relation(fields: [scheduleId], references: [id], onDelete: SetNull)
+  answers  QualityAuditAnswer[]
+  actions  QualityAuditAction[]
+
+  @@unique([scheduleId, dueDate])
+  @@index([locationId])
+  @@index([status])
+  @@index([templateId])
+  @@index([dueDate])
+  @@schema("quality")
+}
+
+/// The answer to one standard of an audit.
+model QualityAuditAnswer {
+  id           String                  @id @default(uuid()) @db.Uuid
+  auditId      String                  @db.Uuid
+  /// The standard's id in the audit's sections.
+  standardId   String
+  answer       QualityAuditAnswerValue
+  /// A standard met so well it is worth sharing with the team.
+  celebrate    Boolean                 @default(false)
+  /// What was found; required when not met before the audit can be completed.
+  note         String?                 @db.Text
+  answeredById String?                 @db.Uuid
+  answeredAt   DateTime                @default(now())
+  createdAt    DateTime                @default(now())
+  updatedAt    DateTime                @updatedAt
+
+  audit QualityAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@unique([auditId, standardId])
+  @@schema("quality")
+}
+
+/// An action from an audit, usually for a standard not met.
+model QualityAuditAction {
+  id                 String                   @id @default(uuid()) @db.Uuid
+  auditId            String                   @db.Uuid
+  /// The standard it came from (its id in the audit's sections); null for the audit as a whole.
+  standardId         String?
+  title              String
+  detail             String?                  @db.Text
+  /// The staff member (employee) who should do it.
+  assignedEmployeeId String?                  @db.Uuid
+  dueAt              DateTime?                @db.Date
+  urgent             Boolean                  @default(false)
+  status             QualityAuditActionStatus @default(OPEN)
+  completedAt        DateTime?
+  createdById        String?                  @db.Uuid
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
+
+  audit QualityAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+
+  @@index([auditId])
   @@index([status, dueAt])
   @@schema("quality")
 }

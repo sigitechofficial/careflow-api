@@ -1,0 +1,178 @@
+{
+  "code": "AUD-001",
+  "area": "INFECTION_PREVENTION",
+  "keyQuestion": "SAFE",
+  "displayOrder": 10,
+  "title": "Infection prevention and control",
+  "summary": "Checks that the service has a clear infection control lead and policy, that carers are trained and wash their hands and use protective equipment properly at every visit, and that infection risks, outbreaks and waste are handled safely.",
+  "frequency": "QUARTERLY",
+  "earlyDays": 7,
+  "lateDays": 7,
+  "introduction": "Use spot checks and visits to watch carers in practice, and the office records for policy, training and stock. Write what you saw in the notes for anything not met.",
+  "estimatedMinutes": 90,
+  "cqcStatements": ["SAFE_IPC", "WELL_LED_GOVERNANCE"],
+  "sections": [
+    {
+      "title": "Leadership and policy",
+      "standards": [
+        {
+          "id": "ipc-lead-named",
+          "text": "A named person leads on infection prevention and control, and staff know who it is.",
+          "hint": "Ask two carers who the infection control lead is."
+        },
+        {
+          "id": "ipc-policy-current",
+          "text": "The infection prevention and control policy has been reviewed in the last 12 months and reflects current national guidance.",
+          "hint": "Check the review date and that it covers hand hygiene, protective equipment, waste, outbreaks and staff illness."
+        },
+        {
+          "id": "ipc-policy-read",
+          "text": "Every member of care staff has read and signed the infection control policy, or it is planned for those who are new.",
+          "hint": "Compare the policy read-and-sign list with the current staff list."
+        },
+        {
+          "id": "ipc-annual-statement",
+          "text": "An annual infection control statement has been written for the last 12 months, covering outbreaks, audits, training and what will be improved.",
+          "hint": "The code of practice expects a yearly statement; check it exists and is dated."
+        }
+      ]
+    },
+    {
+      "title": "Training and competence",
+      "standards": [
+        {
+          "id": "ipc-training-in-date",
+          "text": "All care staff have infection control training that is in date, or booked where it is due.",
+          "hint": "Check the training matrix for anyone overdue."
+        },
+        {
+          "id": "ipc-ppe-training",
+          "text": "Care staff have been shown how to put on, take off and throw away protective equipment safely.",
+          "hint": "Look for this in induction records or practical training sign-off."
+        },
+        {
+          "id": "ipc-coshh-training",
+          "text": "Staff who use cleaning products in people's homes know how to use them safely (COSHH).",
+          "hint": "Ask a carer what they would do if a product splashed in their eyes."
+        },
+        {
+          "id": "ipc-competency-checks",
+          "text": "Each carer has had a hand hygiene and protective equipment check during a spot check in the last 6 months.",
+          "hint": "Check the last spot check record for three carers."
+        }
+      ]
+    },
+    {
+      "title": "Hand hygiene in practice",
+      "standards": [
+        {
+          "id": "ipc-hands-observed",
+          "text": "You have watched at least 3 carers clean their hands before and after giving personal care.",
+          "hint": "Use spot checks or shadow visits. Note who you observed in the notes."
+        },
+        {
+          "id": "ipc-hands-technique",
+          "text": "At least 3 carers can show you the correct steps for washing hands with soap and water and for using hand gel.",
+          "hint": "Ask them to talk you through it or show you."
+        },
+        {
+          "id": "ipc-bare-below-elbows",
+          "text": "Carers observed have short, clean nails, no false nails or nail varnish, and no wrist jewellery or watches while giving care.",
+          "hint": "A plain wedding band is acceptable."
+        },
+        {
+          "id": "ipc-hand-gel-carried",
+          "text": "Carers carry alcohol hand gel and use it between tasks when soap and water are not to hand.",
+          "hint": "Check carers' kits on a spot check."
+        }
+      ]
+    },
+    {
+      "title": "Protective equipment",
+      "standards": [
+        {
+          "id": "ipc-ppe-stock",
+          "text": "There is enough protective equipment (gloves, aprons, masks) in stock in the office, and carers can collect more when they need it.",
+          "hint": "Check the stock record and ask carers if they have ever run out."
+        },
+        {
+          "id": "ipc-ppe-in-homes",
+          "text": "Protective equipment is available in the homes of people who need it, stored clean and dry.",
+          "hint": "Check two or three homes during visits."
+        },
+        {
+          "id": "ipc-ppe-used-correctly",
+          "text": "Carers observed wear gloves and aprons for personal care, change them between tasks, and take them off in the right order.",
+          "hint": "Note any carer who reused gloves or wore them between rooms."
+        }
+      ]
+    },
+    {
+      "title": "Infection risks and illness",
+      "standards": [
+        {
+          "id": "ipc-risks-in-care-plans",
+          "text": "Care plans record any infection risks for the person (for example a catheter, wound, feeding tube or known infection) and what carers must do.",
+          "hint": "Check the care plans of three people with such needs."
+        },
+        {
+          "id": "ipc-staff-illness",
+          "text": "Staff know not to work while they have sickness or diarrhoea, and to stay off until 48 hours after it stops; rotas show this is followed.",
+          "hint": "Ask two carers and check sickness records."
+        },
+        {
+          "id": "ipc-outbreak-plan",
+          "text": "There is an outbreak plan that says how to tell the local health protection team, how visits continue and how staff are kept safe.",
+          "hint": "Check the plan names the local UKHSA health protection team contact."
+        },
+        {
+          "id": "ipc-infections-recorded",
+          "text": "Infections and outbreaks among people supported and staff are recorded, and the records show what was done and what was learned.",
+          "hint": "Look at incident records for the last 3 months."
+        }
+      ]
+    },
+    {
+      "title": "Waste, laundry and equipment",
+      "standards": [
+        {
+          "id": "ipc-waste-disposal",
+          "text": "Used protective equipment and soiled items are bagged and thrown away in line with the local council's arrangements for each home.",
+          "hint": "Ask carers what they do with used continence pads and gloves."
+        },
+        {
+          "id": "ipc-soiled-laundry",
+          "text": "Carers handle soiled laundry without shaking it, keep it away from their uniform, and wash it on the hottest setting the fabric allows.",
+          "hint": "Ask a carer to describe how they deal with soiled bedding."
+        },
+        {
+          "id": "ipc-equipment-cleaned",
+          "text": "Shared or reusable equipment (for example hoist slings, commodes, thermometers) is cleaned between uses as the care plan says.",
+          "hint": "Check the care plan and ask the carer."
+        },
+        {
+          "id": "ipc-sharps",
+          "text": "Where sharps are used, a sharps bin is in place, not overfilled, and staff know what to do after a needle-stick injury.",
+          "hint": "Mark as met if no one supported uses sharps, and say so in the notes."
+        }
+      ]
+    },
+    {
+      "title": "Staff health",
+      "standards": [
+        {
+          "id": "ipc-vaccination-offered",
+          "text": "Staff have been told how to get the flu and COVID-19 vaccines this season.",
+          "hint": "Check the message or poster that went to staff."
+        },
+        {
+          "id": "ipc-uniform",
+          "text": "Carers wear a clean uniform for each shift and know how to wash it.",
+          "hint": "Observe on spot checks and ask how often uniforms are washed."
+        }
+      ]
+    }
+  ],
+  "sources": ["dhsc-ipc-code", "ukhsa-ipc-asc", "nice-cg139", "cqc-reg-12", "hse-coshh"],
+  "researchedOn": "2026-11-23"
+}

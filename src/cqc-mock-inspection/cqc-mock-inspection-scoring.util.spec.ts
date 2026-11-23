@@ -316,6 +316,21 @@ describe('scoreFromChecks', () => {
   const P = 'PARTIALLY_MET' as const;
   const N = 'NOT_MET' as const;
 
+  it('uses the points and % levels it is given', () => {
+    const strict = {
+      metPoints: 3,
+      partlyMetPoints: 1,
+      notMetPoints: 0,
+      score4Percent: 90,
+      score3Percent: 80,
+      score2Percent: 60,
+    };
+    // 7 Met and 1 Partially met: 22 of 24 = 91.7% → 4 (with the defaults it is a 3).
+    expect(scoreFromChecks(checks, answer(M, M, M, M, M, M, M, P), strict)).toMatchObject({ score: 4, percent: 91.7 });
+    // 6 Met and 2 Not met: 18 of 24 = 75% → 2 here (80% needed for a 3).
+    expect(scoreFromChecks(checks, answer(M, M, M, M, M, M, N, N), strict).score).toBe(2);
+  });
+
   it('gives no score until every check is answered', () => {
     expect(scoreFromChecks(checks, answer(M, M, M))).toEqual({
       score: null,

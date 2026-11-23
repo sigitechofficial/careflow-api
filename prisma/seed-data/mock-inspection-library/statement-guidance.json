@@ -6,12 +6,10 @@
       "Any themes found across incidents and how they were tackled"
     ],
     "askPeople": [
-      "If something went wrong with your care, were you told and did anything change?",
-      "Do you feel able to raise a worry about your safety?"
+      "If something went wrong with your care, were you told and did anything change?"
     ],
     "askStaff": [
-      "Tell me about a recent incident. What changed because of it?",
-      "How do you hear about lessons learned from other carers' incidents?"
+      "Tell me about a recent incident. What changed because of it?"
     ],
     "inCareFlow": [
       "Incidents: open and closed incidents, actions and lessons",
@@ -34,8 +32,7 @@
       "When you came home from hospital, did your care start on time and did carers know what had changed?"
     ],
     "askStaff": [
-      "How do you find out when someone's needs change after a hospital stay?",
-      "Who do you call if you are worried a person needs a doctor or nurse?"
+      "How do you find out when someone's needs change after a hospital stay?"
     ],
     "inCareFlow": [
       "Service users: assessments, reviews and communication notes",
@@ -51,12 +48,10 @@
   "SAFE_SAFEGUARDING": {
     "lookAt": [
       "Safeguarding log, referrals made to the local authority and their outcomes",
-      "Safeguarding training records for all staff",
-      "Mental Capacity Act and any Deprivation of Liberty (or Court of Protection) paperwork"
+      "Safeguarding training records for all staff"
     ],
     "askPeople": [
-      "Do you feel safe with your carers?",
-      "Who would you tell if a carer treated you badly?"
+      "Do you feel safe with your carers?"
     ],
     "askStaff": [
       "What would you do if you thought someone was being abused or neglected?",
@@ -78,7 +73,6 @@
   "SAFE_INVOLVING_PEOPLE_RISKS": {
     "lookAt": [
       "Risk assessments for 3 or 4 people (falls, moving and handling, skin, choking, home environment)",
-      "Whether people agreed to and signed their risk plans",
       "Body maps and pressure care records where needed"
     ],
     "askPeople": [
@@ -110,8 +104,7 @@
       "Is the equipment you use checked and working?"
     ],
     "askStaff": [
-      "What do you check when you arrive at a person's home?",
-      "How do you report broken equipment?"
+      "What do you check when you arrive at a person's home?"
     ],
     "inCareFlow": [
       "Service users: home and access details",
@@ -128,18 +121,15 @@
   },
   "SAFE_STAFFING": {
     "lookAt": [
-      "Rotas, travel time and visit times against what was planned",
       "Missed and late visit records and why they happened",
       "Recruitment files for 3 recent starters (DBS, references, right to work, gaps in work history)",
       "Induction, the Care Certificate and mandatory training"
     ],
     "askPeople": [
-      "Do carers arrive on time and stay for the full visit?",
-      "Do you usually see the same carers?"
+      "Do carers arrive on time and stay for the full visit?"
     ],
     "askStaff": [
-      "Do you get enough travel time between visits?",
-      "What training did you have before you started visiting people alone?"
+      "Do you get enough travel time between visits?"
     ],
     "inCareFlow": [
       "Visits: punctuality, missed and late visits",
@@ -158,7 +148,6 @@
   "SAFE_IPC": {
     "lookAt": [
       "Infection prevention and control policy and audits",
-      "PPE supply and how carers get it",
       "Hand hygiene and IPC training records, and any outbreak records"
     ],
     "askPeople": [
@@ -187,12 +176,10 @@
       "Medication competency assessments for carers and medicines audits"
     ],
     "askPeople": [
-      "Do you get your medicines at the right time?",
-      "Do carers explain what they are giving you?"
+      "Do you get your medicines at the right time?"
     ],
     "askStaff": [
-      "What do you do if a person refuses a medicine or a dose is missed?",
-      "When was your medication competency last checked?"
+      "What do you do if a person refuses a medicine or a dose is missed?"
     ],
     "inCareFlow": [
       "eMAR: missed, late and refused doses, PRN records",
@@ -214,8 +201,7 @@
       "Whether people's goals, culture, communication and health needs are recorded"
     ],
     "askPeople": [
-      "Were you asked what support you need and how you like things done?",
-      "Has anyone checked recently whether your care still suits you?"
+      "Were you asked what support you need and how you like things done?"
     ],
     "askStaff": [
       "Where do you find out about a new person's needs before your first visit?"
@@ -240,8 +226,7 @@
       "Do carers know how to help with your health conditions?"
     ],
     "askStaff": [
-      "How do you keep up to date with good practice?",
-      "Which specialist care have you been trained to give?"
+      "How do you keep up to date with good practice?"
     ],
     "inCareFlow": [
       "Policies: review dates",
@@ -259,8 +244,7 @@
   "EFFECTIVE_WORKING_TOGETHER": {
     "lookAt": [
       "Records of contact with GPs, district nurses, social workers and families",
-      "How information is shared between carers who visit the same person",
-      "Handovers and communication notes"
+      "How information is shared between carers who visit the same person"
     ],
     "askPeople": [
       "Do your carers know what other carers did on earlier visits?"
@@ -333,8 +317,7 @@
       "Do carers ask before they help you?"
     ],
     "askStaff": [
-      "What does the Mental Capacity Act mean in your daily work?",
-      "What do you do if someone says no to care?"
+      "What does the Mental Capacity Act mean in your daily work?"
     ],
     "inCareFlow": [
       "Service users: consent and capacity records, representatives"
@@ -350,7 +333,6 @@
   "CARING_KINDNESS_DIGNITY": {
     "lookAt": [
       "Compliments and complaints about how people are treated",
-      "Survey results about respect and dignity",
       "Spot checks and observations of care"
     ],
     "askPeople": [
@@ -417,8 +399,7 @@
   "CARING_IMMEDIATE_NEEDS": {
     "lookAt": [
       "How urgent requests and worries during visits are handled",
-      "On-call and out-of-hours records",
-      "What carers do when a person is unwell, in pain or distressed"
+      "On-call and out-of-hours records"
     ],
     "askPeople": [
       "If you need help quickly, does someone respond?"
@@ -484,8 +465,7 @@
   "RESPONSIVE_CONTINUITY": {
     "lookAt": [
       "How many different carers each person sees in a month",
-      "Planned versus actual visit times, and visit cancellations",
-      "Joint working when people use other services"
+      "Planned versus actual visit times, and visit cancellations"
     ],
     "askPeople": [
       "Do you know which carer is coming?",

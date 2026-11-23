@@ -28,6 +28,7 @@ import { seedPolicyLibrary } from './seeds/policy-library.seed';
 import { seedSurveyLibrary } from './seeds/survey-library.seed';
 import { seedCqcFramework } from './seeds/cqc-framework.seed';
 import { seedMockInspectionLibrary } from './seeds/mock-inspection-library.seed';
+import { seedAuditLibrary } from './seeds/audit-library.seed';
 import {
   seedAllforCareOrganisation,
   summariseAllforCareChanges,
@@ -653,6 +654,9 @@ async function main() {
     // Mock CQC inspection (Governance → Mock CQC inspection)
     'cqc_mock_inspection.read',
     'cqc_mock_inspection.manage',
+    // Audits (Governance → Audits)
+    'quality_audits.read',
+    'quality_audits.manage',
     // CQC statutory notifications (Governance → CQC notifications)
     'cqc_notifications.read',
     'cqc_notifications.manage',
@@ -801,6 +805,11 @@ async function main() {
   await assignPermKeys('Admin', ['cqc_mock_inspection.read', 'cqc_mock_inspection.manage']);
   await assignPermKeys('Manager', ['cqc_mock_inspection.read', 'cqc_mock_inspection.manage']);
   await assignPermKeys('Care Coordinator', ['cqc_mock_inspection.read']);
+
+  // Audits — admins and managers carry them out; coordinators read them.
+  await assignPermKeys('Admin', ['quality_audits.read', 'quality_audits.manage']);
+  await assignPermKeys('Manager', ['quality_audits.read', 'quality_audits.manage']);
+  await assignPermKeys('Care Coordinator', ['quality_audits.read']);
 
   // CQC statutory notifications — admins and managers prepare and record them; coordinators and
   // the CQC Inspector role read them.
@@ -3018,6 +3027,12 @@ async function main() {
   console.log(
     `[seed] Mock inspection library: ${mockLibrary.created} created, ${mockLibrary.updated} updated, ` +
       `${mockLibrary.unchanged} unchanged, ${mockLibrary.retired} retired.`,
+  );
+  // Ready-made audits (Governance → Audits → Audit library).
+  const auditLibrary = await seedAuditLibrary(prisma);
+  console.log(
+    `[seed] Audit library: ${auditLibrary.areas} areas, ${auditLibrary.created} created, ${auditLibrary.updated} updated, ` +
+      `${auditLibrary.unchanged} unchanged, ${auditLibrary.retired} retired.`,
   );
 }
 

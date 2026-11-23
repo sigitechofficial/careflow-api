@@ -1,0 +1,86 @@
+{
+  "researchedOn": "2026-11-23",
+  "note": "CareFlow's own audit templates for home care, written from public regulations and guidance. They are not copied from any commercial audit product. Review them against your own policies before use.",
+  "sources": [
+    {
+      "id": "cqc-reg-12",
+      "source": "CQC: Regulation 12, Safe care and treatment",
+      "url": "https://www.cqc.org.uk/guidance-providers/regulations/regulation-12-safe-care-treatment"
+    },
+    {
+      "id": "cqc-reg-17",
+      "source": "CQC: Regulation 17, Good governance",
+      "url": "https://www.cqc.org.uk/guidance-providers/regulations/regulation-17-good-governance"
+    },
+    {
+      "id": "dhsc-ipc-code",
+      "source": "DHSC: The Health and Social Care Act 2008 code of practice on the prevention and control of infections",
+      "url": "https://www.gov.uk/government/publications/the-health-and-social-care-act-2008-code-of-practice-on-the-prevention-and-control-of-infections-and-related-guidance"
+    },
+    {
+      "id": "ukhsa-ipc-asc",
+      "source": "UKHSA / DHSC: Infection prevention and control in adult social care settings",
+      "url": "https://www.gov.uk/government/publications/infection-prevention-and-control-in-adult-social-care-settings"
+    },
+    {
+      "id": "nice-cg139",
+      "source": "NICE CG139: Healthcare-associated infections: prevention and control in primary and community care",
+      "url": "https://www.nice.org.uk/guidance/cg139"
+    },
+    {
+      "id": "hse-coshh",
+      "source": "HSE: Control of Substances Hazardous to Health (COSHH)",
+      "url": "https://www.hse.gov.uk/coshh/"
+    }
+  ],
+  "areas": [
+    {
+      "code": "CARE_QUALITY",
+      "name": "Care quality",
+      "description": "How good the care is: care plans and records, person-centred care, dignity, consent and outcomes.",
+      "displayOrder": 10
+    },
+    {
+      "code": "DAILY_CHECKS",
+      "name": "Daily checks",
+      "description": "Short, frequent checks: rotas and visit cover, late and missed calls, medicines and equipment.",
+      "displayOrder": 20
+    },
+    {
+      "code": "DEMENTIA",
+      "name": "Dementia",
+      "description": "Support for people living with dementia: assessment, communication, distress and families.",
+      "displayOrder": 30
+    },
+    {
+      "code": "INFECTION_PREVENTION",
+      "name": "Infection prevention",
+      "description": "Hand hygiene, protective equipment, waste, outbreaks and staff health.",
+      "displayOrder": 40
+    },
+    {
+      "code": "LEADERSHIP",
+      "name": "Leadership",
+      "description": "Governance, oversight by the registered manager, staff support, learning and improvement.",
+      "displayOrder": 50
+    },
+    {
+      "code": "OPERATIONAL",
+      "name": "Operational",
+      "description": "Running the service: recruitment files, training, complaints, records and information governance.",
+      "displayOrder": 60
+    },
+    {
+      "code": "SAFETY_ALERTS",
+      "name": "Safety alerts",
+      "description": "National patient safety and medical device alerts: received, checked and acted on.",
+      "displayOrder": 70
+    },
+    {
+      "code": "RISK_AND_SAFETY",
+      "name": "Risk and safety",
+      "description": "Risk assessments, safeguarding, falls, moving and handling, fire and lone working.",
+      "displayOrder": 80
+    }
+  ]
+}

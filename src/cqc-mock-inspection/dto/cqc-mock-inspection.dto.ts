@@ -12,6 +12,7 @@ import {
   IsString,
   IsUUID,
   Matches,
+  Max,
   MaxLength,
   Min,
   MinLength,
@@ -255,4 +256,59 @@ export class UpdateCqcMockActionDto {
   @IsOptional()
   @IsEnum(CqcMockActionStatus)
   status?: CqcMockActionStatus;
+}
+
+/** Governance → Mock CQC inspection → Settings: points for each check answer and the % for each score. */
+export class UpdateCqcMockInspectionSettingsDto {
+  @ApiProperty({ description: 'Points for Met', minimum: 1, maximum: 10 })
+  @IsInt()
+  @Min(1)
+  @Max(10)
+  metPoints!: number;
+
+  @ApiProperty({
+    description: 'Points for Partially met',
+    minimum: 0,
+    maximum: 10,
+  })
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  partlyMetPoints!: number;
+
+  @ApiProperty({ description: 'Points for Not met', minimum: 0, maximum: 10 })
+  @IsInt()
+  @Min(0)
+  @Max(10)
+  notMetPoints!: number;
+
+  @ApiProperty({
+    description: '% of the most points needed for a score of 4',
+    minimum: 1,
+    maximum: 100,
+  })
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  score4Percent!: number;
+
+  @ApiProperty({
+    description: '% needed for a score of 3',
+    minimum: 1,
+    maximum: 100,
+  })
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  score3Percent!: number;
+
+  @ApiProperty({
+    description: '% needed for a score of 2 (less gives 1)',
+    minimum: 1,
+    maximum: 100,
+  })
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  score2Percent!: number;
 }

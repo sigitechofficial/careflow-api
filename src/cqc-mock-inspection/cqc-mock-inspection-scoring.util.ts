@@ -188,18 +188,69 @@ export function parseScoringRules(value: unknown): CqcScoringRules | null {
   };
 }
 
-/** True when `score` is a whole number on the rules' scale. */
 export type CheckAnswerValue = 'MET' | 'PARTIALLY_MET' | 'NOT_MET';
 
 /**
- * A statement's 1–4 score from the answers to its checks: Met counts 1, Partially met ½, Not met 0,
- * and the share of the most it could get gives the score: all (100%) → 4, 75% or more → 3,
- * 50% or more → 2, less → 1. No score (null) until every check is answered.
+ * How answers to checks turn into a statement's 1–4 score (Governance → Mock CQC inspection → Settings).
+ * Points for each answer, and the % of the most points a statement needs for a score of 4, 3 and 2
+ * (less than `score2Percent` → 1). Copied onto each inspection when it starts.
+ */
+export type CheckScoring = {
+  metPoints: number;
+  partlyMetPoints: number;
+  notMetPoints: number;
+  score4Percent: number;
+  score3Percent: number;
+  score2Percent: number;
+};
+
+/** Met 2, Partially met 1, Not met 0 (the same as 1, ½, 0); all → 4, 75% → 3, 50% → 2. */
+export const DEFAULT_CHECK_SCORING: CheckScoring = {
+  metPoints: 2,
+  partlyMetPoints: 1,
+  notMetPoints: 0,
+  score4Percent: 100,
+  score3Percent: 75,
+  score2Percent: 50,
+};
+
+/** Why these settings cannot be used, or null when they are fine. */
+export function checkScoringProblem(s: CheckScoring): string | null {
+  const whole = Object.values(s).every((v) => Number.isInteger(v));
+  if (!whole) return 'Use whole numbers';
+  if (s.notMetPoints < 0 || s.metPoints > 10)
+    return 'Points must be between 0 and 10';
+  if (!(s.metPoints > s.partlyMetPoints && s.partlyMetPoints > s.notMetPoints))
+    return 'Met must score more than Partially met, and Partially met more than Not met';
+  if (
+    !(
+      s.score2Percent > 0 &&
+      s.score2Percent < s.score3Percent &&
+      s.score3Percent < s.score4Percent &&
+      s.score4Percent <= 100
+    )
+  )
+    return 'Each level must need a higher % than the one below it, up to 100%';
+  return null;
+}
+
+/** An inspection's stored settings, or the defaults for inspections started before settings existed. */
+export function readCheckScoring(value: unknown): CheckScoring {
+  if (!value || typeof value !== 'object') return DEFAULT_CHECK_SCORING;
+  const v = { ...DEFAULT_CHECK_SCORING, ...(value as Partial<CheckScoring>) };
+  return checkScoringProblem(v) ? DEFAULT_CHECK_SCORING : v;
+}
+
+/**
+ * A statement's 1–4 score from the answers to its checks: each answer earns its points (`scoring`),
+ * and the share of the most it could get gives the score (by default all → 4, 75% or more → 3,
+ * 50% or more → 2, less → 1). No score (null) until every check is answered.
  * `checks` are the statement's checks; `answers` the saved answers (by part and text).
  */
 export function scoreFromChecks(
   checks: { part: string; text: string }[],
   answers: { part: string; text: string; answer: CheckAnswerValue }[],
+  scoring: CheckScoring = DEFAULT_CHECK_SCORING,
 ): {
   score: number | null;
   answered: number;
@@ -210,30 +261,37 @@ export function scoreFromChecks(
     answers.map((a) => [`${a.part}\u0000${a.text}`, a.answer]),
   );
   let answered = 0;
-  let halves = 0; // In half points, so the sums stay whole numbers.
+  let points = 0;
   for (const c of checks) {
     const a = byKey.get(`${c.part}\u0000${c.text}`);
     if (!a) continue;
     answered += 1;
-    halves += a === 'MET' ? 2 : a === 'PARTIALLY_MET' ? 1 : 0;
+    points +=
+      a === 'MET'
+        ? scoring.metPoints
+        : a === 'PARTIALLY_MET'
+          ? scoring.partlyMetPoints
+          : scoring.notMetPoints;
   }
   const total = checks.length;
-  const most = total * 2;
+  const most = total * scoring.metPoints;
   if (!total || answered < total) {
     return { score: null, answered, total, percent: null };
   }
-  const percent = Math.round((halves / most) * 1000) / 10;
-  const score =
-    halves === most
-      ? 4
-      : halves * 4 >= most * 3
-        ? 3
-        : halves * 2 >= most
-          ? 2
-          : 1;
+  const percent = Math.round((points / most) * 1000) / 10;
+  // Whole-number comparisons (points × 100 against most × %), so 75% is exactly 75%.
+  const reaches = (p: number) => points * 100 >= most * p;
+  const score = reaches(scoring.score4Percent)
+    ? 4
+    : reaches(scoring.score3Percent)
+      ? 3
+      : reaches(scoring.score2Percent)
+        ? 2
+        : 1;
   return { score, answered, total, percent };
 }
 
+/** True when `score` is a whole number on the rules' scale. */
 export function isValidScore(
   rules: CqcScoringRules,
   score: unknown,

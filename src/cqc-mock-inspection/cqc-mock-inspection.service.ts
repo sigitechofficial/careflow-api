@@ -34,10 +34,14 @@ import {
   type ComparableInspection,
 } from './cqc-mock-inspection-compare.util';
 import {
+  DEFAULT_CHECK_SCORING,
+  checkScoringProblem,
   inspectionResult,
   isValidScore,
   parseScoringRules,
+  readCheckScoring,
   scoreFromChecks,
+  type CheckScoring,
   type CqcScoringRules,
   type InspectionResult,
 } from './cqc-mock-inspection-scoring.util';
@@ -48,6 +52,7 @@ import type {
   ScoreStatementDto,
   UpdateCqcMockActionDto,
   UpdateCqcMockInspectionDto,
+  UpdateCqcMockInspectionSettingsDto,
 } from './dto/cqc-mock-inspection.dto';
 import { CHECK_PARTS } from './dto/cqc-mock-inspection.dto';
 
@@ -620,6 +625,7 @@ export class CqcMockInspectionService {
         ? { code: row.template.code, title: row.template.title }
         : null,
       scale: rules?.scale ?? [],
+      checkScoring: readCheckScoring(row.checkScoring),
       leadReviewer: person(row.leadReviewerId),
       createdBy: person(row.createdById),
       startedAt: row.startedAt.toISOString(),
@@ -834,10 +840,12 @@ export class CqcMockInspectionService {
       now,
     );
 
+    const checkScoring = await this.currentCheckScoring();
     const created = await this.prisma.cqcMockInspection.create({
       data: {
         frameworkVersionId: framework.id,
         templateId,
+        checkScoring,
         locationId,
         title: dto.title.trim(),
         leadReviewerId,
@@ -987,7 +995,11 @@ export class CqcMockInspectionService {
       }
       data.checks = checks;
       if (scoredByChecks) {
-        const worked = scoreFromChecks(statementChecks, checks).score;
+        const worked = scoreFromChecks(
+          statementChecks,
+          checks,
+          readCheckScoring(row.checkScoring),
+        ).score;
         const score =
           worked !== null && isValidScore(rules, worked) ? worked : null;
         data.score = score;
@@ -1279,6 +1291,77 @@ export class CqcMockInspectionService {
     return {
       message: 'Action updated',
       data: await this.detail(user, await this.requireVisible(user, id)),
+    };
+  }
+
+  // ─── Settings ─────────────────────────────────────────────────────────────
+
+  /** The settings new inspections copy (the defaults until someone saves them). */
+  private async currentCheckScoring(): Promise<CheckScoring> {
+    const row = await this.prisma.cqcMockInspectionSettings.findFirst({
+      orderBy: { createdAt: 'asc' },
+    });
+    if (!row) return DEFAULT_CHECK_SCORING;
+    return readCheckScoring({
+      metPoints: row.metPoints,
+      partlyMetPoints: row.partlyMetPoints,
+      notMetPoints: row.notMetPoints,
+      score4Percent: row.score4Percent,
+      score3Percent: row.score3Percent,
+      score2Percent: row.score2Percent,
+    });
+  }
+
+  async settings() {
+    return {
+      data: {
+        ...(await this.currentCheckScoring()),
+        defaults: DEFAULT_CHECK_SCORING,
+      },
+    };
+  }
+
+  async updateSettings(
+    user: RequestUser,
+    dto: UpdateCqcMockInspectionSettingsDto,
+    meta?: RequestAuditMeta,
+  ) {
+    const next: CheckScoring = {
+      metPoints: dto.metPoints,
+      partlyMetPoints: dto.partlyMetPoints,
+      notMetPoints: dto.notMetPoints,
+      score4Percent: dto.score4Percent,
+      score3Percent: dto.score3Percent,
+      score2Percent: dto.score2Percent,
+    };
+    const problem = checkScoringProblem(next);
+    if (problem) throw new BadRequestException(problem);
+    const before = await this.currentCheckScoring();
+    const row = await this.prisma.cqcMockInspectionSettings.findFirst({
+      orderBy: { createdAt: 'asc' },
+      select: { id: true },
+    });
+    const saved = row
+      ? await this.prisma.cqcMockInspectionSettings.update({
+          where: { id: row.id },
+          data: { ...next, updatedById: user.id },
+        })
+      : await this.prisma.cqcMockInspectionSettings.create({
+          data: { ...next, updatedById: user.id },
+        });
+    await this.audit.logAudit({
+      userId: user.id,
+      module: AuditModule.CQC_MOCK_INSPECTION,
+      action: AuditAction.CQC_MOCK_INSPECTION_SETTINGS_UPDATED,
+      recordType: 'CqcMockInspectionSettings',
+      recordId: saved.id,
+      oldValues: before,
+      newValues: next,
+      ...meta,
+    });
+    return {
+      message: 'Settings saved. New mock inspections will use them.',
+      data: { ...next, defaults: DEFAULT_CHECK_SCORING },
     };
   }
 

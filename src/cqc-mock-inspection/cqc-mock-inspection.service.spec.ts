@@ -119,6 +119,11 @@ function setup(row: InspectionRow | null = makeRow()) {
       updateMany: jest.fn().mockResolvedValue({ count: 1 }),
     },
     cqcMockInspectionStatement: { update: jest.fn().mockResolvedValue({}) },
+    cqcMockInspectionSettings: {
+      findFirst: jest.fn().mockResolvedValue(null),
+      create: jest.fn(async ({ data }: any) => ({ id: 'set-1', ...data })),
+      update: jest.fn(async ({ data }: any) => ({ id: 'set-1', ...data })),
+    },
     cqcMockInspectionTemplate: { findMany: jest.fn().mockResolvedValue([]) },
     cqcMockInspectionAction: {
       create: jest.fn(async ({ data }: any) => ({ id: 'act-1', ...data })),
@@ -249,6 +254,15 @@ describe('CqcMockInspectionService: create', () => {
       locationId: 'loc-a',
       leadReviewerId: 'u-admin',
       frameworkVersionId: 'fv-1',
+      // No settings saved yet: the defaults are copied onto the inspection.
+      checkScoring: {
+        metPoints: 2,
+        partlyMetPoints: 1,
+        notMetPoints: 0,
+        score4Percent: 100,
+        score3Percent: 75,
+        score2Percent: 50,
+      },
     });
     expect(data.statements.create).toHaveLength(34);
     const safe = data.statements.create.find(
@@ -403,6 +417,47 @@ describe('CqcMockInspectionService: scoring', () => {
       reviewedById: null,
       reviewedAt: null,
     });
+  });
+
+  it('scores with the settings the inspection started with', async () => {
+    const guidance = {
+      lookAt: ['Incident records', 'Team minutes'],
+      askPeople: [],
+      askStaff: ['Tell me about one'],
+      inCareFlow: [],
+    };
+    // 3 points for Met, 1 for Partially met; 80% is enough for a 4.
+    const { service, prisma } = setup(
+      makeRow({
+        checkScoring: {
+          metPoints: 3,
+          partlyMetPoints: 1,
+          notMetPoints: 0,
+          score4Percent: 80,
+          score3Percent: 60,
+          score2Percent: 40,
+        },
+      } as Partial<InspectionRow>),
+    );
+    prisma.cqcMockInspectionTemplate.findMany.mockResolvedValue([
+      { statements: [{ code: 'SAFE_LEARNING_CULTURE', focus: null, guidance }] },
+    ]);
+    await service.scoreStatement(
+      ADMIN,
+      'insp-1',
+      's-SAFE_LEARNING_CULTURE',
+      {
+        checks: [
+          { part: 'lookAt', text: 'Incident records', answer: 'MET' },
+          { part: 'lookAt', text: 'Team minutes', answer: 'MET' },
+          { part: 'askStaff', text: 'Tell me about one', answer: 'NOT_MET', note: 'No example given' },
+        ],
+      },
+      undefined,
+      NOW,
+    );
+    // 6 of 9 = 66.7%: a 3 here (60% is enough); with the default settings 66.7% is only a 2.
+    expect(prisma.cqcMockInspectionStatement.update.mock.calls[0][0].data.score).toBe(3);
   });
 
   it('needs a note for a check that is not met or partially met', async () => {
@@ -970,5 +1025,47 @@ describe('CqcMockInspectionService: ready-made inspections', () => {
       keyQuestionCode: 'WELL_LED',
       focus: 'Medicines audits.',
     });
+  });
+});
+
+describe('CqcMockInspectionService: settings', () => {
+  const good = {
+    metPoints: 3,
+    partlyMetPoints: 1,
+    notMetPoints: 0,
+    score4Percent: 90,
+    score3Percent: 70,
+    score2Percent: 40,
+  };
+
+  it('gives the defaults until settings are saved', async () => {
+    const { service } = setup();
+    const { data } = await service.settings();
+    expect(data).toMatchObject({ metPoints: 2, score4Percent: 100, score3Percent: 75, score2Percent: 50 });
+  });
+
+  it('saves settings, logs the change, and new inspections copy them', async () => {
+    const { service, prisma, audit } = setup();
+    await service.updateSettings(ADMIN, good);
+    expect(prisma.cqcMockInspectionSettings.create).toHaveBeenCalledWith({
+      data: { ...good, updatedById: 'u-admin' },
+    });
+    expect(audit.logAudit).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'cqc_mock_inspection_settings_updated', newValues: good }),
+    );
+    prisma.cqcMockInspectionSettings.findFirst.mockResolvedValue({ id: 'set-1', ...good });
+    await service.create(ADMIN, { title: 'December mock', locationId: 'loc-a' }, undefined, NOW);
+    expect(prisma.cqcMockInspection.create.mock.calls[0][0].data.checkScoring).toEqual(good);
+  });
+
+  it('refuses settings that do not go up in order', async () => {
+    const { service, prisma } = setup();
+    await expect(service.updateSettings(ADMIN, { ...good, partlyMetPoints: 3 })).rejects.toThrow(
+      'Met must score more than Partially met',
+    );
+    await expect(service.updateSettings(ADMIN, { ...good, score3Percent: 95 })).rejects.toThrow(
+      'Each level must need a higher %',
+    );
+    expect(prisma.cqcMockInspectionSettings.create).not.toHaveBeenCalled();
   });
 });
