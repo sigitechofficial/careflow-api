@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
 import {
   MedicationAdministrationStatus,
   MedicationKind,
@@ -26,6 +26,8 @@ import {
   type StatusCodeResolution,
 } from '../medication-status-codes/medication-status-code-resolution.util';
 import { resolveMedicationWitnessColumns } from '../medications/medication-witness.util';
+import { VisitTimelineService } from '../employee-app/visit-timeline.service';
+import { medicationOutcomeLabel, medicationTimelineTone } from '../employee-app/visit-timeline.util';
 
 const eventInclude = {
   medication: {
@@ -72,7 +74,51 @@ export class MedicationAdministrationService {
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
     private readonly medNotifications: MedicationNotificationHook,
+    @Optional() private readonly visitTimeline?: VisitTimelineService,
   ) {}
+
+  /**
+   * Visit Log row for a record the office made or corrected on a visit (needs the record's visitId).
+   * Marked as an office action so the Log shows the Office tag and who. Records made outside a visit
+   * (service user medication page without a visit) do not go to any visit Log.
+   */
+  private async logOfficeMedicationOnVisit(input: {
+    userId: string;
+    serviceUserId: string;
+    visitId: string | null | undefined;
+    sourceId: string;
+    medicationName: string | null;
+    dose: string | null;
+    status: string;
+    extraDetail?: string | null;
+    titleSuffix?: string;
+    occurredAt: Date;
+  }): Promise<void> {
+    if (!this.visitTimeline || !input.visitId) return;
+    const visit = await this.prisma.scheduledVisit.findFirst({
+      where: { id: input.visitId, deletedAt: null },
+      select: { id: true, scheduledJobId: true, scheduledJob: { select: { serviceUserId: true } } },
+    });
+    if (!visit || visit.scheduledJob?.serviceUserId !== input.serviceUserId) return;
+    let statusLabel = medicationOutcomeLabel(null, input.status);
+    if (statusLabel === input.status) {
+      statusLabel = statusLabel.charAt(0) + statusLabel.slice(1).toLowerCase().replace(/_/g, ' ');
+    }
+    const name = [input.medicationName, input.dose].filter(Boolean).join(' · ') || 'Medication';
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: visit.scheduledJobId,
+      scheduledVisitId: visit.id,
+      eventType: 'medication',
+      sourceType: 'medication',
+      sourceId: input.sourceId,
+      title: input.titleSuffix ? `${name} — ${input.titleSuffix}` : name,
+      detail: [statusLabel, input.extraDetail].filter(Boolean).join(' · '),
+      tone: medicationTimelineTone(input.status),
+      occurredAt: input.occurredAt,
+      actorKind: 'office',
+      createdByUserId: input.userId,
+    });
+  }
 
   private async logData(userId: string, serviceUserId: string, meta: RequestAuditMeta, detail: string) {
     await this.audit.logDataAccess({
@@ -288,6 +334,18 @@ export class MedicationAdministrationService {
       metadata: { medicationId: med.id },
     });
 
+    await this.logOfficeMedicationOnVisit({
+      userId,
+      serviceUserId,
+      visitId: created.visitId,
+      sourceId: created.id,
+      medicationName: created.medicationNameSnapshot ?? med.medicationName,
+      dose: created.doseSnapshot ?? med.dose,
+      status: resolved.status,
+      extraDetail: dto.recordOnBehalfOfCarer ? 'Recorded on behalf of the carer' : null,
+      occurredAt: new Date(),
+    });
+
     return created;
   }
 
@@ -358,6 +416,21 @@ export class MedicationAdministrationService {
       newValues: auditSnapshot(updated),
       metadata: { serviceUserId, correction: true },
       ...meta,
+    });
+
+    // New Log row (the original record's row stays as history).
+    const correctedAt = new Date();
+    await this.logOfficeMedicationOnVisit({
+      userId,
+      serviceUserId,
+      visitId: existing.visitId,
+      sourceId: `office_correction:${eventId}:${correctedAt.getTime()}`,
+      medicationName: existing.medicationNameSnapshot ?? existing.medication.medicationName,
+      dose: existing.doseSnapshot ?? existing.medication.dose,
+      status: resolved.status,
+      extraDetail: dto.correctionNotes?.trim() || null,
+      titleSuffix: 'corrected',
+      occurredAt: correctedAt,
     });
 
     return updated;

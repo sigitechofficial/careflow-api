@@ -4,11 +4,12 @@ import { OrganisationGeneralSettingsModule } from '../organisation-general-setti
 import { ServiceUserObservationsController } from './service-user-observations.controller';
 import { ServiceUserObservationsService } from './service-user-observations.service';
 import { VisitObservationsCatalogService } from './visit-observations-catalog.service';
+import { VisitTimelineService } from '../employee-app/visit-timeline.service';
 
 @Module({
   imports: [AuditLogsModule, OrganisationGeneralSettingsModule],
   controllers: [ServiceUserObservationsController],
-  providers: [ServiceUserObservationsService, VisitObservationsCatalogService],
+  providers: [ServiceUserObservationsService, VisitObservationsCatalogService, VisitTimelineService],
   exports: [ServiceUserObservationsService, VisitObservationsCatalogService],
 })
 export class ServiceUserObservationsModule {}

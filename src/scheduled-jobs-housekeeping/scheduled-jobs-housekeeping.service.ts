@@ -553,6 +553,7 @@ export class ScheduledJobsHousekeepingService {
         occurredAt: input.actualStart,
         identityConfirmed: true,
         notes: `MANUAL:ADMIN_COMPLETE | approvedBy:${input.userId}`,
+        recordedByUserId: input.userId?.trim() || null,
       });
     }
 
@@ -573,6 +574,7 @@ export class ScheduledJobsHousekeepingService {
         occurredAt: input.actualEnd,
         identityConfirmed: true,
         notes: `MANUAL:ADMIN_COMPLETE | approvedBy:${input.userId}`,
+        recordedByUserId: input.userId?.trim() || null,
       });
     }
   }
@@ -1551,15 +1553,12 @@ export class ScheduledJobsHousekeepingService {
 
     // The visit Log (and the carer app's visit history) reads the timeline, not the job's own fields, so an
     // outcome recorded from the visit window adds rows there too: what the office recorded, and their notes.
-    // One row of each per visit: recording again updates them. Only for office staff: the carer app
-    // calls completeJob('') and writes its own clock-out, handover and note rows.
+    // One row per outcome (started, completed, …), so starting then completing keeps both; recording the
+    // same outcome again updates its row. Rows carry actorKind = office + the user, so the Log shows an
+    // Office tag and who. Only for office staff: the carer app calls completeJob('') and writes its own
+    // clock-out, handover and note rows.
     if (userId?.trim()) {
     try {
-      const author = await this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { firstName: true, lastName: true, email: true },
-      });
-      const who = [author?.firstName, author?.lastName].filter(Boolean).join(' ') || author?.email || 'office';
       const visitId = existing.visits?.[0]?.id ?? null;
       const outcomeLabel: Record<string, string> = {
         COMPLETED: 'completed',
@@ -1573,11 +1572,13 @@ export class ScheduledJobsHousekeepingService {
         scheduledVisitId: visitId,
         eventType: completing || markingMissed ? 'clock_out' : 'clock_in',
         sourceType: 'complete',
-        sourceId: 'office_outcome',
-        title: `Marked ${outcomeLabel[visitStatus] ?? String(visitStatus).toLowerCase()} by the office (${who})`,
+        sourceId: `office_outcome:${String(visitStatus)}`,
+        title: `Visit marked ${outcomeLabel[visitStatus] ?? String(visitStatus).toLowerCase()}`,
         detail: 'Recorded from the visit window.',
         tone: markingMissed ? 'danger' : 'success',
         occurredAt: new Date(),
+        actorKind: 'office',
+        createdByUserId: userId,
       });
       const officeNote = dto.notes?.trim();
       if (officeNote) {
@@ -1587,10 +1588,12 @@ export class ScheduledJobsHousekeepingService {
           eventType: 'visit_note',
           sourceType: 'log_note',
           sourceId: 'office_visit_note',
-          title: `Visit note (office, ${who})`,
+          title: 'Visit note',
           detail: officeNote,
           tone: 'ink',
           occurredAt: new Date(),
+          actorKind: 'office',
+          createdByUserId: userId,
         });
       }
     } catch {
@@ -2531,6 +2534,21 @@ export class ScheduledJobsHousekeepingService {
       });
     });
 
+    // Office row in the visit Log so the reset (and why) shows with the Office tag and who.
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: jobId,
+      scheduledVisitId: visitIds[0] ?? null,
+      eventType: 'task',
+      sourceType: 'task',
+      sourceId: `office_reset:${parsed.stampKey}:${resetAt.getTime()}`,
+      title: `${taskName} — reset`,
+      detail: `Reason: ${reason}`,
+      tone: 'warning',
+      occurredAt: resetAt,
+      actorKind: 'office',
+      createdByUserId: userId,
+    });
+
     return this.getVisitJobTasks(user, jobId, meta);
   }
 
@@ -3057,6 +3075,20 @@ export class ScheduledJobsHousekeepingService {
     const plannedNormalized = normalizedTasks.filter((task) => !task.isExtra && task.assignmentId);
     const extraNormalized = normalizedTasks.filter((task) => task.isExtra && task.taskCatalogueTaskId);
 
+    // Office saves: remember each task's state before saving, so the visit Log can show what changed.
+    const tasksBeforeSave = userId
+      ? await this.prisma.scheduledVisitTaskCompletion.findMany({
+          where: { scheduledJobId: job.id },
+          select: {
+            assignmentId: true,
+            taskCatalogueTaskId: true,
+            isCompleted: true,
+            recordedValue: true,
+            notes: true,
+          },
+        })
+      : [];
+
     await this.prisma.$transaction(async (tx) => {
       for (const item of plannedNormalized) {
         const assignment = assignmentById.get(item.assignmentId!);
@@ -3141,9 +3173,56 @@ export class ScheduledJobsHousekeepingService {
       }
     });
 
+    const primaryVisitId = job.visits[0]?.id ?? null;
+
+    // Office saves add one Log row per task that changed (the carer app passes an empty userId and
+    // writes its own task rows). Earlier rows, including the carer's, are kept as history.
+    if (userId) {
+      const retainedExtraIds = new Set(extraNormalized.map((item) => item.taskCatalogueTaskId!));
+      const removedExtras =
+        options?.pruneMissingExtras !== false
+          ? tasksBeforeSave.filter(
+              (row) =>
+                !row.assignmentId &&
+                row.isCompleted &&
+                !retainedExtraIds.has(row.taskCatalogueTaskId),
+            )
+          : [];
+      const removedExtraNames =
+        removedExtras.length > 0
+          ? new Map(
+              (
+                await this.prisma.taskCatalogueTask.findMany({
+                  where: { id: { in: removedExtras.map((row) => row.taskCatalogueTaskId) } },
+                  select: { id: true, name: true },
+                })
+              ).map((row) => [row.id, row.name]),
+            )
+          : new Map<string, string>();
+      await this.logOfficeTaskChanges({
+        jobId: job.id,
+        visitId: primaryVisitId,
+        userId,
+        before: tasksBeforeSave,
+        items: normalizedTasks.map((item) => ({
+          assignmentId: item.isExtra ? null : (item.assignmentId ?? null),
+          taskCatalogueTaskId: item.isExtra ? (item.taskCatalogueTaskId ?? null) : null,
+          name: item.isExtra
+            ? (extraTaskById.get(item.taskCatalogueTaskId!)?.name ?? 'Task')
+            : (assignmentById.get(item.assignmentId!)?.task.name ?? 'Task'),
+          isCompleted: item.isCompleted,
+          recordedValue: item.recordedValue ?? null,
+          notes: item.notes ?? null,
+        })),
+        removedExtras: removedExtras.map((row) => ({
+          taskCatalogueTaskId: row.taskCatalogueTaskId,
+          name: removedExtraNames.get(row.taskCatalogueTaskId) ?? 'Task',
+        })),
+      });
+    }
+
     // Admin office path: mirror fully completed Obs-linked readings into Observations.
     // Carer app passes empty userId and syncs via employee-app with recordedByEmployeeId.
-    const primaryVisitId = job.visits[0]?.id ?? null;
     if (userId && primaryVisitId) {
       for (const item of normalizedTasks) {
         if (!item.isCompleted || item.outcomeCode !== 'COMPLETED') continue;
@@ -3194,6 +3273,102 @@ export class ScheduledJobsHousekeepingService {
     }
 
     return this.getVisitJobTasks(userId, jobId, meta);
+  }
+
+  /**
+   * Visit Log rows for an office task save: one row per task whose outcome or recorded value changed,
+   * marked as an office action. A new row each time (never overwriting the carer's row), so the Log
+   * keeps the full history: "Personal care — changed: Completed → Not done".
+   */
+  private async logOfficeTaskChanges(input: {
+    jobId: string;
+    visitId: string | null;
+    userId: string;
+    before: Array<{
+      assignmentId: string | null;
+      taskCatalogueTaskId: string;
+      isCompleted: boolean;
+      recordedValue: string | null;
+      notes: string | null;
+    }>;
+    items: Array<{
+      assignmentId: string | null;
+      taskCatalogueTaskId: string | null;
+      name: string;
+      isCompleted: boolean;
+      recordedValue: string | null;
+      notes: string | null;
+    }>;
+    removedExtras: Array<{ taskCatalogueTaskId: string; name: string }>;
+  }): Promise<void> {
+    const now = new Date();
+    const stamp = now.getTime();
+    const outcomeLabel = (state: {
+      isCompleted: boolean;
+      recordedValue: string | null;
+      notes: string | null;
+    } | null): string => {
+      if (!state) return 'Not done';
+      const outcome = inferVisitTaskOutcome(state);
+      if (outcome === 'declined') return 'Declined';
+      if (outcome === 'partial') return 'Partially completed';
+      if (outcome === 'completed') return 'Completed';
+      return 'Not done';
+    };
+    const valueOf = (state: { isCompleted: boolean; recordedValue: string | null } | null) => {
+      if (!state?.isCompleted) return null;
+      const value = state.recordedValue?.trim() || null;
+      return value && !isVisitTaskOutcomeSentinel(value) ? value : null;
+    };
+
+    for (const item of input.items) {
+      const previous =
+        input.before.find((row) =>
+          item.assignmentId
+            ? row.assignmentId === item.assignmentId
+            : !row.assignmentId && row.taskCatalogueTaskId === item.taskCatalogueTaskId,
+        ) ?? null;
+      const beforeLabel = outcomeLabel(previous);
+      const afterLabel = outcomeLabel(item);
+      const beforeValue = valueOf(previous);
+      const afterValue = valueOf(item);
+      if (beforeLabel === afterLabel && beforeValue === afterValue) continue;
+
+      const wasRecorded = beforeLabel !== 'Not done';
+      const afterText = afterValue ? `${afterLabel} (${afterValue})` : afterLabel;
+      const beforeText = beforeValue ? `${beforeLabel} (${beforeValue})` : beforeLabel;
+      const key = item.assignmentId ? `a:${item.assignmentId}` : `x:${item.taskCatalogueTaskId}`;
+      await this.visitTimeline.upsertEvent({
+        scheduledJobId: input.jobId,
+        scheduledVisitId: input.visitId,
+        eventType: 'task',
+        sourceType: 'task',
+        sourceId: `office:${key}:${stamp}`,
+        title: wasRecorded ? `${item.name} — changed` : item.name,
+        detail: wasRecorded ? `${beforeText} → ${afterText}` : afterText,
+        tone:
+          afterLabel === 'Not done' ? 'warning' : afterLabel === 'Declined' ? 'danger' : 'success',
+        occurredAt: now,
+        actorKind: 'office',
+        createdByUserId: input.userId,
+      });
+    }
+
+    for (const extra of input.removedExtras) {
+      await this.visitTimeline.upsertEvent({
+        scheduledJobId: input.jobId,
+        scheduledVisitId: input.visitId,
+        eventType: 'task',
+        sourceType: 'task',
+        sourceId: `office:x:${extra.taskCatalogueTaskId}:${stamp}`,
+        title: `${extra.name} — removed`,
+        detail: 'Extra task removed from this visit',
+        tone: 'warning',
+        occurredAt: now,
+        actorKind: 'office',
+        createdByUserId: input.userId,
+      });
+    }
   }
 }
 

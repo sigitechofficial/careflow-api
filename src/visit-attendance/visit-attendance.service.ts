@@ -32,6 +32,8 @@ export type RecordAttendanceEventInput = {
   distanceMeters?: number | null;
   identityConfirmed?: boolean;
   notes?: string | null;
+  /** Office user who entered the time (MANUAL_OFFICE); shown as Office + name in the visit Log. */
+  recordedByUserId?: string | null;
 };
 
 @Injectable()
@@ -56,7 +58,7 @@ export class VisitAttendanceService {
     verificationMethod: VisitAttendanceVerificationMethod;
     occurredAt: Date;
     notes: string | null;
-  }): Promise<void> {
+  }, recordedByUserId?: string | null): Promise<void> {
     if (!this.visitTimeline) return;
     const entry = officeClockTimelineEntry(event);
     if (!entry) return;
@@ -66,6 +68,8 @@ export class VisitAttendanceService {
       ...entry,
       occurredAt: event.occurredAt,
       createdByEmployeeId: event.employeeId,
+      actorKind: 'office',
+      createdByUserId: recordedByUserId ?? null,
     });
   }
 
@@ -112,7 +116,7 @@ export class VisitAttendanceService {
           notes: input.notes?.trim() || null,
         },
       });
-      await this.logOfficeClockTime(created);
+      await this.logOfficeClockTime(created, input.recordedByUserId);
       return created;
     } catch (err) {
       if (

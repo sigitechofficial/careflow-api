@@ -1,4 +1,5 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException, Optional } from '@nestjs/common';
+import { VisitTimelineService } from '../employee-app/visit-timeline.service';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
@@ -106,7 +107,38 @@ export class ServiceUserObservationsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditLogsService,
+    @Optional() private readonly visitTimeline?: VisitTimelineService,
   ) {}
+
+  /** Office observation recorded on a visit → office row in that visit Log (Office tag + who). */
+  private async logOfficeObservationOnVisit(input: {
+    userId: string;
+    serviceUserId: string;
+    scheduledJobId: string | undefined;
+    observationId: string;
+    typeName: string;
+    valueLabel: string | null;
+  }): Promise<void> {
+    if (!this.visitTimeline || !input.scheduledJobId) return;
+    const job = await this.prisma.scheduledJob.findFirst({
+      where: { id: input.scheduledJobId, serviceUserId: input.serviceUserId, deletedAt: null },
+      select: { id: true, visits: { where: { deletedAt: null }, select: { id: true }, take: 1 } },
+    });
+    if (!job) return;
+    await this.visitTimeline.upsertEvent({
+      scheduledJobId: job.id,
+      scheduledVisitId: job.visits[0]?.id ?? null,
+      eventType: 'observation',
+      sourceType: 'observation',
+      sourceId: input.observationId,
+      title: input.typeName,
+      detail: input.valueLabel,
+      tone: 'teal',
+      occurredAt: new Date(),
+      actorKind: 'office',
+      createdByUserId: input.userId,
+    });
+  }
 
   private async ensureServiceUser(serviceUserId: string) {
     const u = await this.prisma.serviceUser.findFirst({
@@ -182,7 +214,7 @@ export class ServiceUserObservationsService {
     }
     const dimensionByCode = new Map(dimensions.map((d) => [d.code, d]));
 
-    return this.prisma.$transaction(async (tx) => {
+    const result = await this.prisma.$transaction(async (tx) => {
       const created = await tx.serviceUserObservation.create({
         data: {
           serviceUserId,
@@ -243,8 +275,22 @@ export class ServiceUserObservationsService {
         userAgent: meta?.userAgent ?? undefined,
       });
 
-      return { message: 'Observation recorded', data: mapped };
+      return {
+        message: 'Observation recorded',
+        data: mapped,
+        logInfo: { id: full.id, typeName, valueLabel: valueLabel || null },
+      };
     });
+
+    await this.logOfficeObservationOnVisit({
+      userId,
+      serviceUserId,
+      scheduledJobId: dto.scheduledJobId,
+      observationId: result.logInfo.id,
+      typeName: result.logInfo.typeName,
+      valueLabel: result.logInfo.valueLabel,
+    });
+    return { message: result.message, data: result.data };
   }
 
   async remove(

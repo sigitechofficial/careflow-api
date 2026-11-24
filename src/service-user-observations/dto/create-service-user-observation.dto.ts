@@ -7,6 +7,7 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
   ValidateNested,
 } from 'class-validator';
@@ -57,4 +58,12 @@ export class CreateServiceUserObservationDto {
   @ValidateNested({ each: true })
   @Type(() => WellbeingScoreDto)
   wellbeingScores?: WellbeingScoreDto[];
+
+  @ApiPropertyOptional({
+    description:
+      'Visit (scheduled job) this was recorded on from the admin visit window; adds an office row to that visit Log.',
+  })
+  @IsOptional()
+  @IsUUID()
+  scheduledJobId?: string;
 }
