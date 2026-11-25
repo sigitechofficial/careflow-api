@@ -9,13 +9,31 @@ import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { getRequestAuditMeta } from '../common/utils/request-audit-meta.util';
 import { InitialAssessmentsService } from './initial-assessments.service';
 import { InitialAssessmentReviewQueueQueryDto } from './dto/initial-assessment-review-queue-query.dto';
+import { InitialAssessmentListQueryDto } from './dto/initial-assessment-list-query.dto';
+import { InitialAssessmentsListService } from './initial-assessments-list.service';
 
 @ApiTags('Initial Assessments')
 @ApiBearerAuth()
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('initial-assessments')
 export class InitialAssessmentsAdminController {
-  constructor(private readonly service: InitialAssessmentsService) {}
+  constructor(
+    private readonly service: InitialAssessmentsService,
+    private readonly listService: InitialAssessmentsListService,
+  ) {}
+
+  @Get('list')
+  @AnyPermission('service_users.initial_assessment.read', 'service_users.initial_assessment.review')
+  @ApiOperation({
+    summary: 'All service users in the caller\'s branches with their latest Initial Assessment (read-only list)',
+  })
+  list(
+    @CurrentUser() user: RequestUser,
+    @Query() query: InitialAssessmentListQueryDto,
+    @Req() req: Request,
+  ) {
+    return this.listService.list(user, query, getRequestAuditMeta(req));
+  }
 
   @Get('review-queue')
   @AnyPermission('service_users.initial_assessment.review', 'service_users.initial_assessment.read')

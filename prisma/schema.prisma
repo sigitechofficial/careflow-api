@@ -8284,6 +8284,10 @@ model VisitTimelineEvent {
   isDraft             Boolean  @default(false)
   idempotencyKey      String?  @unique @db.VarChar(128)
   createdByEmployeeId String?  @db.Uuid
+  /// carer | office — null on older rows (treated as carer)
+  actorKind           String?  @db.VarChar(16)
+  /// Office user who did the action (actorKind = office)
+  createdByUserId     String?  @db.Uuid
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

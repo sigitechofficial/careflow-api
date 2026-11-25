@@ -289,6 +289,8 @@ export function buildTimelineUpsertData(input: VisitTimelineUpsertInput, timeZon
     logEntryId: input.logEntryId ?? null,
     isDraft: Boolean(input.isDraft),
     createdByEmployeeId: input.createdByEmployeeId ?? null,
+    actorKind: input.actorKind ?? null,
+    createdByUserId: input.createdByUserId ?? null,
     idempotencyKey,
   };
 }

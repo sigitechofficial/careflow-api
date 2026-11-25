@@ -51,8 +51,21 @@ export type VisitTimelineUpsertInput = {
   logEntryId?: string | null;
   isDraft?: boolean;
   createdByEmployeeId?: string | null;
+  /** Who did the action: the carer app (default) or office staff. */
+  actorKind?: VisitTimelineActorKind | null;
+  /** Office user who did the action (actorKind = office). */
+  createdByUserId?: string | null;
   /** Optional mobile write idempotency key (namespaced when stored). */
   writeIdempotencyKey?: string | null;
+};
+
+export type VisitTimelineActorKind = 'carer' | 'office';
+
+/** Set on rows the office recorded; carer rows have no actor. */
+export type VisitTimelineOfficeActor = {
+  kind: 'office';
+  userId: string | null;
+  name: string;
 };
 
 export type VisitTimelineApiItem = {
@@ -73,4 +86,6 @@ export type VisitTimelineApiItem = {
   photos?: Array<{ id: string; fileUrl: string; caption: string | null }>;
   /** Carer voice notes (max 3, recording order) on a note / handover / concern. */
   voiceNotes?: VisitVoiceNoteApiItem[];
+  /** Present only when the office recorded this row (Office tag + who). */
+  actor?: VisitTimelineOfficeActor;
 };

@@ -58,6 +58,8 @@ export class VisitTimelineService {
           logEntryId: data.logEntryId,
           isDraft: data.isDraft,
           createdByEmployeeId: data.createdByEmployeeId,
+          actorKind: data.actorKind,
+          createdByUserId: data.createdByUserId,
           idempotencyKey: data.idempotencyKey,
         },
       });
@@ -79,8 +81,46 @@ export class VisitTimelineService {
       where: { scheduledJobId, isDraft: false },
       orderBy: [{ occurredAt: 'asc' }, { id: 'asc' }],
     });
-    const items = sortTimelineRows(rows).map((row) => mapRowToTimelineApiItem(row, timeZone));
+    const sorted = sortTimelineRows(rows);
+    const officeNames = await this.officeUserNames(sorted);
+    const items = sorted.map((row) => {
+      const item = mapRowToTimelineApiItem(row, timeZone);
+      if (row.actorKind !== 'office') return item;
+      const userId = row.createdByUserId ?? null;
+      return {
+        ...item,
+        actor: {
+          kind: 'office' as const,
+          userId,
+          name: (userId && officeNames.get(userId)) || 'Office',
+        },
+      };
+    });
     return this.enrichObservationDetails(items);
+  }
+
+  /** Display names of the office users on office rows (first + last, else email). */
+  private async officeUserNames(
+    rows: Array<{ actorKind: string | null; createdByUserId: string | null }>,
+  ): Promise<Map<string, string>> {
+    const ids = [
+      ...new Set(
+        rows
+          .filter((r) => r.actorKind === 'office' && r.createdByUserId)
+          .map((r) => r.createdByUserId as string),
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+    const users = await this.prisma.user.findMany({
+      where: { id: { in: ids } },
+      select: { id: true, firstName: true, lastName: true, email: true },
+    });
+    return new Map(
+      users.map((u) => [
+        u.id,
+        [u.firstName, u.lastName].filter(Boolean).join(' ').trim() || u.email || 'Office',
+      ]),
+    );
   }
 
   /** Re-format observation rows from stored payload so BP shows systolic/diastolic. */

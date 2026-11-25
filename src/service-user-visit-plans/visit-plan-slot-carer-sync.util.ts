@@ -653,7 +653,7 @@ export async function syncVisitPlanSlotCarersToScheduledJobs(
           isActive: false,
           unallocatedAt: new Date(),
           unallocatedById: params.userId,
-          unallocationReason: 'Synced from visit plan call pattern',
+          unallocationReason: 'Synced from the visit plan visit pattern',
         },
       });
     }

@@ -105,6 +105,7 @@ export class EcmManualAttendanceService {
         : null,
       identityConfirmed: true,
       notes,
+      recordedByUserId: input.approvedByUserId,
     });
 
     await this.audit.append({
