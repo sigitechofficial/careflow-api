@@ -15,6 +15,11 @@ export type RequestUser = {
   firstName?: string;
   lastName?: string;
   username?: string;
+  /**
+   * Temporary inspector sessions: the chosen service users (empty = all) and when the access ends. Enforced in
+   * JwtAuthGuard (temporary-inspectors/inspector-access.ts) and by the service user list.
+   */
+  inspectorAccess?: { serviceUserIds: string[]; validTo: string };
   /** Populated for `service_user` portal sessions. */
   serviceUserId?: string;
   /** Populated for `employee` app sessions. */

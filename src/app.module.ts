@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ScheduleModule } from '@nestjs/schedule';
 import { appConfig } from './config/app.config';
@@ -46,6 +46,7 @@ import { ComplianceRequirementsModule } from './compliance-requirements/complian
 import { ComplianceReportsModule } from './compliance-reports/compliance-reports.module';
 import { FilesModule } from './files/files.module';
 import { AuditLogsModule } from './audit-logs/audit-logs.module';
+import { InspectorViewAuditInterceptor } from './temporary-inspectors/inspector-view-audit.interceptor';
 import { LookupsModule } from './lookups/lookups.module';
 import { EmployeeHolidaysModule } from './employee-holidays/employee-holidays.module';
 import { EmployeeLeavingRecordsModule } from './employee-leaving-records/employee-leaving-records.module';
@@ -339,6 +340,8 @@ import { JobsModule } from './jobs/jobs.module';
       provide: APP_GUARD,
       useClass: ThrottlerGuard,
     },
+    // Logs each service user record a temporary inspector opens (data access log, VIEW).
+    { provide: APP_INTERCEPTOR, useClass: InspectorViewAuditInterceptor },
   ],
 })
 export class AppModule {}

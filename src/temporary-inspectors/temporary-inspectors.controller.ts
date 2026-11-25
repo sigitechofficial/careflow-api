@@ -17,8 +17,8 @@ export class TemporaryInspectorsController {
 
   @Get('service-user-options')
   @Permissions('employees.read')
-  serviceUserOptions() {
-    return { data: this.service.serviceUserOptions() };
+  async serviceUserOptions(@CurrentUser() user: RequestUser) {
+    return { data: await this.service.serviceUserOptions(user) };
   }
 
   @Get()
@@ -30,7 +30,7 @@ export class TemporaryInspectorsController {
   @Post()
   @Permissions('employees.update')
   async create(@CurrentUser() user: RequestUser, @Body() dto: CreateTemporaryInspectorDto) {
-    const { id } = await this.service.create(user.id, dto);
+    const { id } = await this.service.create(user, dto);
     return { message: 'Temporary inspector created', data: { id } };
   }
 

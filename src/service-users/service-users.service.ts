@@ -51,7 +51,7 @@ import {
 } from './service-user-date-of-death.util';
 import { syncServiceUserActiveFlag } from './service-user-active-flag.util';
 
-export type ServiceUserAuditMeta = RequestAuditMeta & { actorUserId: string };
+export type ServiceUserAuditMeta = RequestAuditMeta & { actorUserId?: string };
 
 const detailInclude = {
   title: true,
@@ -348,6 +348,12 @@ export class ServiceUsersService implements OnModuleInit {
     const page = query.page ?? 1;
     const limit = query.limit ?? 20;
     const where: Prisma.ServiceUserWhereInput = {};
+    // A temporary inspector: their chosen service users only (all when none were chosen), current ones only.
+    if (actor?.accountKind === 'temporary_inspector') {
+      query = { ...query, showDeleted: false, showInactive: false };
+      const ids = actor.inspectorAccess?.serviceUserIds ?? [];
+      if (ids.length) where.id = { in: ids };
+    }
     if (query.showDeleted) {
       where.deletedAt = { not: null };
     } else {
