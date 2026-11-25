@@ -7,6 +7,7 @@ import { InitialAssessmentsController } from './initial-assessments.controller';
 import { InitialAssessmentsAdminController } from './initial-assessments-admin.controller';
 import { InitialAssessmentCarePlanRulesController } from './initial-assessment-care-plan-rules.controller';
 import { InitialAssessmentsService } from './initial-assessments.service';
+import { InitialAssessmentsListService } from './initial-assessments-list.service';
 import { InitialAssessmentCarePlanRulesService } from './initial-assessment-care-plan-rules.service';
 import { InitialAssessmentNotificationHook } from './initial-assessment-notification.hook';
 import { InitialAssessmentTranscriptionService } from './initial-assessment-transcription.service';
@@ -34,6 +35,7 @@ import { CarePlanReassessmentService } from './care-plan-reassessment.service';
   ],
   providers: [
     InitialAssessmentsService,
+    InitialAssessmentsListService,
     InitialAssessmentCarePlanRulesService,
     InitialAssessmentNotificationHook,
     InitialAssessmentTranscriptionService,
