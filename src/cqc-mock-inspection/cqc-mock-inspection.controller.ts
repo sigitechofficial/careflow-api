@@ -4,6 +4,7 @@ import {
   Get,
   Param,
   ParseUUIDPipe,
+  Delete,
   Patch,
   Post,
   Put,
@@ -284,6 +285,23 @@ export class CqcMockInspectionController {
       id,
       actionId,
       dto,
+      getRequestAuditMeta(req),
+    );
+  }
+
+  @Delete(':id/actions/:actionId')
+  @Permissions('cqc_mock_inspection.manage')
+  @ApiOperation({ summary: 'Delete an improvement action (kept in the audit log)' })
+  deleteAction(
+    @CurrentUser() user: RequestUser,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('actionId', ParseUUIDPipe) actionId: string,
+    @Req() req: Request,
+  ) {
+    return this.inspections.deleteAction(
+      user,
+      id,
+      actionId,
       getRequestAuditMeta(req),
     );
   }

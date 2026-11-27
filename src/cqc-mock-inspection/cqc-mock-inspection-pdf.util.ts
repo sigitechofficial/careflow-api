@@ -35,6 +35,21 @@ export type MockInspectionReport = {
       gap: boolean;
       evidence: { title: string; sourceType: string }[];
       hiddenEvidenceCount: number;
+      /** What the ready-made inspection asks to focus on. */
+      focus?: string | null;
+      /** The questions to check, by part (Look at, Ask people we support, Ask staff). */
+      guidance?: {
+        lookAt: string[];
+        askPeople: string[];
+        askStaff: string[];
+      } | null;
+      /** The answers given (matched to the questions by part and text). */
+      checks?: {
+        part: string;
+        text: string;
+        answer: 'MET' | 'PARTIALLY_MET' | 'NOT_MET';
+        note: string | null;
+      }[];
     }[];
   }[];
   actions: {
@@ -92,6 +107,69 @@ const SCORE_COLOURS: Record<number, string> = {
   3: '#16a34a',
   4: '#047857',
 };
+
+/** The parts of a statement's questions, in screen order. */
+export const QUESTION_PARTS = [
+  { key: 'lookAt', label: 'Look at' },
+  { key: 'askPeople', label: 'Ask people we support' },
+  { key: 'askStaff', label: 'Ask staff' },
+] as const;
+
+export const ANSWER_LABELS = {
+  MET: 'Met',
+  PARTIALLY_MET: 'Partially met',
+  NOT_MET: 'Not met',
+} as const;
+
+const ANSWER_COLOURS = {
+  MET: '#15803d',
+  PARTIALLY_MET: '#b45309',
+  NOT_MET: '#b91c1c',
+} as const;
+
+/** Light fills for the answer cell, so the answers stand out down the table. */
+const ANSWER_FILLS = {
+  MET: '#ecfdf3',
+  PARTIALLY_MET: '#fff7ed',
+  NOT_MET: '#fef2f2',
+} as const;
+
+type ReportStatement =
+  MockInspectionReport['keyQuestions'][number]['statements'][number];
+
+/** Each part's questions with the answer given (null = not answered), leaving out empty parts. */
+export function questionsWithAnswers(s: ReportStatement) {
+  const answers = new Map(
+    (s.checks ?? []).map((c) => [`${c.part}\u0000${c.text}`, c] as const),
+  );
+  return QUESTION_PARTS.flatMap((p) => {
+    const questions = s.guidance?.[p.key] ?? [];
+    if (!questions.length) return [];
+    return [
+      {
+        label: p.label,
+        questions: questions.map((text) => {
+          const a = answers.get(`${p.key}\u0000${text}`);
+          return {
+            text,
+            answer: a?.answer ?? null,
+            note: a?.note?.trim() || null,
+          };
+        }),
+      },
+    ];
+  });
+}
+
+/** "4 met, 1 partially met, 0 not met" (and how many are not answered yet). */
+export function answerTally(
+  parts: ReturnType<typeof questionsWithAnswers>,
+): string {
+  const all = parts.flatMap((p) => p.questions);
+  const n = (a: string | null) => all.filter((q) => q.answer === a).length;
+  const open = n(null);
+  return `${n('MET')} met, ${n('PARTIALLY_MET')} partially met, ${n('NOT_MET')} not met${open ? `, ${open} not answered` : ''}`;
+}
 
 const ukDate = (d: Date | null | undefined) =>
   d
@@ -260,6 +338,14 @@ export function buildMockInspectionPdf(
           )
           .fill(colour);
     };
+
+    const rule = () =>
+      doc
+        .moveTo(L, doc.y)
+        .lineTo(R, doc.y)
+        .lineWidth(0.8)
+        .strokeColor(C.line)
+        .stroke();
 
     /** `need`: room for the title and what must follow it on the same page (e.g. a table header and first row). */
     const sectionTitle = (title: string, subtitle?: string, need = 60) => {
@@ -499,25 +585,18 @@ export function buildMockInspectionPdf(
       { width: W },
     );
 
-    // ─── Statements by key question ───────────────────────────────────────
+    // ─── Questions and answers, by key question ──────────────────────────
     doc.addPage();
     sectionTitle(
-      'Quality statement scores',
-      "Each statement scored on the 1 to 4 scale, with the evidence held and the reviewer's notes.",
+      'Questions and answers',
+      'Every quality statement with its score, each question that was checked and the answer given.',
     );
-    const col = { statement: L + 10, score: L + W - 215, evidence: L + W - 88 };
-    const stW = col.score - col.statement - 12;
 
-    const tableHeader = () => {
-      const hy = doc.y;
-      doc.rect(L, hy, W, 18).fill(C.soft);
-      font(true, 7, C.muted);
-      put('STATEMENT', col.statement, hy + 6, { characterSpacing: 0.6 });
-      put('SCORE', col.score, hy + 6, { characterSpacing: 0.6 });
-      put('EVIDENCE', col.evidence, hy + 6, { characterSpacing: 0.6 });
-      doc.y = hy + 18;
+    /** Height of wrapped text. */
+    const textH = (s: string, bold: boolean, size: number, width: number) => {
+      font(bold, size, C.ink);
+      return doc.heightOfString(pdfText(s), { width, lineGap: 1 });
     };
-
     const kqHeader = (
       k: MockInspectionReport['keyQuestions'][number],
       cont = false,
@@ -539,76 +618,200 @@ export function buildMockInspectionPdf(
       const label = res?.rating ? RATING_LABELS[res.rating] : 'Not scored';
       rx -= pillWidth(label);
       ratingPill(res?.rating ?? null, rx, hy + 6);
-      doc.y = hy + 30;
-      tableHeader();
+      doc.y = hy + 34;
     };
+    let currentKq: MockInspectionReport['keyQuestions'][number] | null = null;
+    let currentStatement: string | null = null;
+    let inTable = false;
+    // Question table columns: No. | Question | Answer | Note.
+    const tc = { no: L, q: L + 26, ans: L + 262, note: L + 340 };
+    const cellPad = 5;
+    const qW = tc.ans - tc.q - 2 * cellPad;
+    const noteW = R - tc.note - 2 * cellPad;
+    /** Column lines and the bottom line of one table row. */
+    const rowLines = (y: number, h: number, full = true) => {
+      doc.lineWidth(0.5).strokeColor(C.line);
+      doc
+        .moveTo(L, y)
+        .lineTo(L, y + h)
+        .stroke();
+      doc
+        .moveTo(R, y)
+        .lineTo(R, y + h)
+        .stroke();
+      if (full)
+        for (const x of [tc.q, tc.ans, tc.note])
+          doc
+            .moveTo(x, y)
+            .lineTo(x, y + h)
+            .stroke();
+      doc
+        .moveTo(L, y + h)
+        .lineTo(R, y + h)
+        .stroke();
+    };
+    const questionTableHead = () => {
+      const y = doc.y;
+      doc.rect(L, y, W, 18).fill(C.soft);
+      doc.lineWidth(0.5).strokeColor(C.line).moveTo(L, y).lineTo(R, y).stroke();
+      font(true, 7, C.muted);
+      put('NO.', tc.no + cellPad, y + 6, { characterSpacing: 0.5 });
+      put('QUESTION', tc.q + cellPad, y + 6, { characterSpacing: 0.5 });
+      put('ANSWER', tc.ans + cellPad, y + 6, { characterSpacing: 0.5 });
+      put('NOTE (WHAT WAS FOUND)', tc.note + cellPad, y + 6, {
+        characterSpacing: 0.5,
+      });
+      rowLines(y, 18);
+      doc.y = y + 18;
+    };
+    /** Room for `h` on this page, else a new page that starts with the key question (and statement, and table head) again. */
+    const room = (h: number) => {
+      if (doc.y + h <= bottom()) return;
+      doc.addPage();
+      if (currentKq) kqHeader(currentKq, true);
+      if (currentStatement) {
+        font(true, 10.5, C.ink);
+        put(`${currentStatement} (continued)`, L, doc.y, { width: W });
+        doc.y += 18;
+      }
+      if (inTable) questionTableHead();
+    };
+    const topScore = r.scale.length ? r.scale[r.scale.length - 1].score : 4;
 
     for (const k of r.keyQuestions) {
-      if (doc.y + 90 > bottom()) doc.addPage();
-      else doc.y += 6;
+      currentKq = null;
+      if (doc.y + 120 > bottom()) doc.addPage();
+      else doc.y += 4;
+      currentKq = k;
       kqHeader(k);
-      k.statements.forEach((s, i) => {
-        const notes: [string, string][] = [];
-        if (s.strengths) notes.push(['Strengths', s.strengths]);
-        if (s.concerns) notes.push(['Concerns', s.concerns]);
-        if (s.notes) notes.push(['Notes', s.notes]);
-        font(true, 9, C.ink);
-        const titleH = doc.heightOfString(pdfText(s.title), { width: stW });
-        font(false, 8, C.body);
-        const noteH = notes.reduce(
-          (h, [label, text]) =>
-            h +
-            doc.heightOfString(pdfText(`${label}: ${text}`), { width: stW }) +
-            2,
-          0,
-        );
-        const rowH = Math.max(26, titleH + noteH + 14);
-        if (doc.y + rowH > bottom()) {
-          doc.addPage();
-          kqHeader(k, true);
-        }
-        const ry = doc.y;
-        if (i % 2 === 1) doc.rect(L, ry, W, rowH).fill(C.soft);
-        font(true, 9, C.ink);
-        put(s.title, col.statement, ry + 8, { width: stW });
-        let ny = ry + 8 + titleH + 2;
-        for (const [label, text] of notes) {
-          font(true, 8, label === 'Concerns' ? C.amber : C.body);
-          doc.text(pdfText(`${label}: `), col.statement, ny, {
-            continued: true,
-            width: stW,
-          });
-          font(false, 8, C.body);
-          doc.text(pdfText(text), { width: stW });
-          ny = doc.y + 2;
-        }
-        scoreChip(s.score, col.score, ry + 6);
-        font(false, 8, s.score === null ? C.muted : C.body);
+      for (const s of k.statements) {
+        const parts = questionsWithAnswers(s);
+        // Statement title with its score.
+        const titleH = textH(s.title, true, 10.5, W - 150);
+        currentStatement = null;
+        // Keep the title with its focus line and the start of its table.
+        room(titleH + 40 + (s.focus ? 24 : 0) + (parts.length ? 70 : 0));
+        currentStatement = s.title;
+        const sy = doc.y;
+        font(true, 10.5, C.ink);
+        put(s.title, L, sy, { width: W - 150, lineGap: 1 });
+        scoreChip(s.score, R - 140, sy - 2);
+        font(false, 8.5, s.score === null ? C.muted : C.body);
         put(
-          s.score === null ? 'Not scored' : (scaleLabel.get(s.score) ?? ''),
-          col.score + 21,
-          ry + 9.5,
-          {
-            width: col.evidence - col.score - 28,
-            height: 10,
-            ellipsis: true,
-          },
+          s.score === null
+            ? 'Not scored'
+            : `${s.score} of ${topScore}: ${scaleLabel.get(s.score) ?? ''}`,
+          R - 120,
+          sy + 1.5,
+          { width: 120, height: 11, ellipsis: true },
         );
-        font(s.gap, 8, s.gap ? C.amber : C.body);
-        put(evidenceLabel(s), col.evidence, ry + 9.5, {
-          width: R - col.evidence - 6,
-          height: 10,
-          ellipsis: true,
-        });
-        doc
-          .moveTo(L, ry + rowH)
-          .lineTo(R, ry + rowH)
-          .lineWidth(0.5)
-          .strokeColor(C.line)
-          .stroke();
-        doc.y = ry + rowH;
-      });
+        doc.y = sy + Math.max(titleH, 14) + 3;
+        const meta = [
+          parts.length ? answerTally(parts) : '',
+          `Evidence: ${evidenceLabel(s).toLowerCase()}`,
+        ]
+          .filter(Boolean)
+          .join('  ·  ');
+        font(false, 8, s.gap ? C.amber : C.muted);
+        put(meta, L, doc.y, { width: W });
+        doc.y += 13;
+        if (s.focus) {
+          const t = `Focus: ${s.focus}`;
+          const h = textH(t, false, 8.5, W);
+          room(h + 4);
+          font(false, 8.5, C.body);
+          put(t, L, doc.y, { width: W, lineGap: 1 });
+          doc.y += h + 4;
+        }
+
+        // The questions as a table: one row per question, a shaded row for each part.
+        if (parts.length) {
+          room(18 + 16 + 24);
+          questionTableHead();
+          inTable = true;
+          let n = 0;
+          for (const part of parts) {
+            room(16 + 24);
+            const py = doc.y;
+            doc.rect(L, py, W, 16).fill(C.brandSoft);
+            font(true, 7.5, C.brand);
+            put(part.label.toUpperCase(), L + cellPad, py + 5, {
+              characterSpacing: 0.6,
+            });
+            rowLines(py, 16, false);
+            doc.y = py + 16;
+            for (const q of part.questions) {
+              n += 1;
+              const qh = textH(q.text, false, 8.5, qW);
+              const nh = q.note ? textH(q.note, false, 8, noteW) : 0;
+              const rowH = Math.max(qh, nh, 10) + 2 * cellPad;
+              room(rowH);
+              const ry = doc.y;
+              if (q.answer)
+                doc
+                  .rect(tc.ans, ry, tc.note - tc.ans, rowH)
+                  .fill(ANSWER_FILLS[q.answer]);
+              font(true, 8.5, C.muted);
+              put(String(n), tc.no + cellPad, ry + cellPad, {
+                width: tc.q - tc.no - 2 * cellPad,
+                align: 'center',
+              });
+              font(false, 8.5, C.ink);
+              put(q.text, tc.q + cellPad, ry + cellPad, {
+                width: qW,
+                lineGap: 1,
+              });
+              font(true, 8.5, q.answer ? ANSWER_COLOURS[q.answer] : C.muted);
+              put(
+                q.answer ? ANSWER_LABELS[q.answer] : 'Not answered',
+                tc.ans + cellPad,
+                ry + cellPad,
+                { width: tc.note - tc.ans - 2 * cellPad },
+              );
+              font(false, 8, q.note ? C.body : C.muted);
+              put(q.note ?? '-', tc.note + cellPad, ry + cellPad, {
+                width: noteW,
+                lineGap: 1,
+              });
+              rowLines(ry, rowH);
+              doc.y = ry + rowH;
+            }
+          }
+          inTable = false;
+          doc.y += 8;
+        }
+        if (!parts.length) {
+          room(14);
+          font(false, 8.5, C.muted);
+          put('No questions set for this statement.', L, doc.y, { width: W });
+          doc.y += 13;
+        }
+
+        // The reviewer's own notes.
+        for (const [label, text] of [
+          ['Strengths', s.strengths],
+          ['Concerns', s.concerns],
+          ['Notes', s.notes],
+        ] as const) {
+          if (!text) continue;
+          const h = textH(`${label}: ${text}`, false, 8.5, W);
+          room(h + 3);
+          font(true, 8.5, label === 'Concerns' ? C.amber : C.body);
+          doc.text(pdfText(`${label}: `), L, doc.y, {
+            continued: true,
+            width: W,
+          });
+          font(false, 8.5, C.body);
+          doc.text(pdfText(text), { width: W, lineGap: 1 });
+          doc.y += 3;
+        }
+        doc.y += 6;
+        rule();
+        doc.y += 10;
+        currentStatement = null;
+      }
     }
+    currentKq = null;
 
     // ─── Actions ──────────────────────────────────────────────────────────
     doc.y += 18;

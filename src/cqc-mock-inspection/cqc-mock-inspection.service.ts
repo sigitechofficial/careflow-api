@@ -530,7 +530,7 @@ export class CqcMockInspectionService {
         ...row.actions.map((a) => a.ownerId),
       ]),
       this.locationNames([row.locationId]),
-      this.employeeNames(row.actions.map((a) => a.assignedEmployeeId)),
+      this.employeeNames(row.actions.flatMap((a) => a.assignedEmployeeIds)),
     ]);
     const person = (uid: string | null) =>
       uid ? { id: uid, name: users.get(uid) ?? null } : null;
@@ -640,12 +640,10 @@ export class CqcMockInspectionService {
         title: a.title,
         detail: a.detail,
         owner: person(a.ownerId),
-        assignedEmployee: a.assignedEmployeeId
-          ? {
-              id: a.assignedEmployeeId,
-              name: employees.get(a.assignedEmployeeId) ?? null,
-            }
-          : null,
+        assignedEmployees: a.assignedEmployeeIds.map((eid) => ({
+          id: eid,
+          name: employees.get(eid) ?? null,
+        })),
         dueAt: toIso(a.dueAt),
         status: a.status,
         completedAt: toIso(a.completedAt),
@@ -1215,13 +1213,7 @@ export class CqcMockInspectionService {
         'An action for a check needs its quality statement',
       );
     await this.assertUser(dto.ownerId, 'The action owner');
-    if (dto.assignedEmployeeId) {
-      const found = await this.prisma.employee.count({
-        where: { id: dto.assignedEmployeeId, deletedAt: null },
-      });
-      if (!found)
-        throw new BadRequestException('That staff member was not found');
-    }
+    const assignedEmployeeIds = await this.assignees(dto.assignedEmployeeIds);
     const action = await this.prisma.cqcMockInspectionAction.create({
       data: {
         inspectionId: id,
@@ -1230,7 +1222,7 @@ export class CqcMockInspectionService {
         title: dto.title.trim(),
         detail: text(dto.detail) ?? null,
         ownerId: dto.ownerId ?? null,
-        assignedEmployeeId: dto.assignedEmployeeId ?? null,
+        assignedEmployeeIds,
         dueAt: dto.dueAt ? new Date(dto.dueAt) : null,
         createdById: user.id,
       },
@@ -1272,6 +1264,25 @@ export class CqcMockInspectionService {
     }
     if (dto.dueAt !== undefined)
       data.dueAt = dto.dueAt ? new Date(dto.dueAt) : null;
+    if (
+      dto.statementId !== undefined &&
+      dto.statementId !== existing.statementId
+    ) {
+      if (existing.checkText)
+        throw new BadRequestException(
+          'An action made from a check stays with its quality statement',
+        );
+      if (
+        dto.statementId &&
+        !row.statements.some((s) => s.statementId === dto.statementId)
+      )
+        throw new BadRequestException(
+          'That quality statement is not part of this mock inspection',
+        );
+      data.statementId = dto.statementId;
+    }
+    if (dto.assignedEmployeeIds !== undefined)
+      data.assignedEmployeeIds = await this.assignees(dto.assignedEmployeeIds);
     if (dto.status !== undefined && dto.status !== existing.status) {
       data.status = dto.status;
       data.completedAt = dto.status === CqcMockActionStatus.DONE ? now : null;
@@ -1292,6 +1303,52 @@ export class CqcMockInspectionService {
       message: 'Action updated',
       data: await this.detail(user, await this.requireVisible(user, id)),
     };
+  }
+
+  /** Removes an action; the audit log keeps what it said. */
+  async deleteAction(
+    user: RequestUser,
+    id: string,
+    actionId: string,
+    meta?: RequestAuditMeta,
+  ) {
+    const row = await this.requireWritable(user, id, [
+      CqcMockInspectionStatus.IN_PROGRESS,
+      CqcMockInspectionStatus.COMPLETED,
+    ]);
+    const existing = row.actions.find((a) => a.id === actionId);
+    if (!existing) throw new NotFoundException('Action not found');
+    await this.prisma.cqcMockInspectionAction.delete({
+      where: { id: actionId },
+    });
+    await this.log(
+      user,
+      AuditAction.CQC_MOCK_INSPECTION_ACTION_DELETED,
+      id,
+      meta,
+      auditSnapshot(existing),
+      undefined,
+    );
+    return {
+      message: 'Action deleted',
+      data: await this.detail(user, await this.requireVisible(user, id)),
+    };
+  }
+
+  /** The staff an action is for: each once, and each must exist. */
+  private async assignees(ids: string[] | undefined): Promise<string[]> {
+    const unique = [...new Set(ids ?? [])];
+    if (!unique.length) return [];
+    const found = await this.prisma.employee.count({
+      where: { id: { in: unique }, deletedAt: null },
+    });
+    if (found !== unique.length)
+      throw new BadRequestException(
+        unique.length === 1
+          ? 'That staff member was not found'
+          : 'One of those staff members was not found',
+      );
+    return unique;
   }
 
   // ─── Settings ─────────────────────────────────────────────────────────────

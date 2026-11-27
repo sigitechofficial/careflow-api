@@ -106,7 +106,32 @@ function setup() {
     location: {
       findMany: jest.fn().mockResolvedValue([{ id: 'loc-a', name: 'Croydon' }]),
     },
+    cqcMockInspectionStatement: {
+      findMany: jest.fn().mockResolvedValue(
+        [
+          ['m2', 'SAFE_STAFFING', 2],
+          ['m1', 'SAFE_STAFFING', 3],
+          ['m2', 'LEARNING', 3],
+          ['m1', 'LEARNING', 3],
+        ].map(([inspectionId, code, score], i) => ({
+          inspectionId,
+          score,
+          statement: {
+            code,
+            title:
+              code === 'SAFE_STAFFING'
+                ? 'Safe and effective staffing'
+                : 'Learning culture',
+            displayOrder: i,
+            keyQuestion: { code: 'SAFE', title: 'Safe', displayOrder: 1 },
+          },
+        })),
+      ),
+    },
   };
+  prisma.cqcMockInspection.findFirst = jest
+    .fn()
+    .mockResolvedValue({ frameworkVersion: { scoringRules: null } });
   const orgScope: any = {
     fromRequestUser: (u: any) => ({
       locationIds: u.assignedLocationIds ?? null,
@@ -270,6 +295,91 @@ describe('CqcDashboardService.dashboard', () => {
         completedAt: '2026-11-17T00:00:00.000Z',
       },
     ]);
+  });
+
+  it('averages the change since the last inspection across branches', async () => {
+    const { service } = setup();
+    const { data } = await service.dashboard(ADMIN, {}, NOW);
+    expect(data.mock?.comparison).toMatchObject({
+      branches: ['Croydon'],
+      improved: [],
+      declined: [{ title: 'Safe and effective staffing', from: 3, to: 2 }],
+      unchangedCount: 1,
+    });
+  });
+
+  it('gives each branch its own comparison as well as the average', async () => {
+    const { service, prisma } = setup();
+    prisma.cqcMockInspection.findMany.mockResolvedValue([
+      { id: 'm2', title: 'Nov A', completedAt: day('2026-11-17'), locationId: 'loc-a', result: RESULT },
+      { id: 'b2', title: 'Nov B', completedAt: day('2026-11-16'), locationId: 'loc-b', result: RESULT },
+      { id: 'm1', title: 'May A', completedAt: day('2026-05-10'), locationId: 'loc-a', result: RESULT },
+      { id: 'b1', title: 'May B', completedAt: day('2026-05-09'), locationId: 'loc-b', result: RESULT },
+    ]);
+    const row = (inspectionId: string, score: number) => ({
+      inspectionId,
+      score,
+      statement: {
+        code: 'SAFE_STAFFING',
+        title: 'Safe and effective staffing',
+        displayOrder: 1,
+        keyQuestion: { code: 'SAFE', title: 'Safe', displayOrder: 1 },
+      },
+    });
+    prisma.cqcMockInspectionStatement.findMany.mockResolvedValue([
+      row('m2', 4),
+      row('m1', 2),
+      row('b2', 2),
+      row('b1', 2),
+    ]);
+    prisma.location.findMany.mockResolvedValue([
+      { id: 'loc-a', name: 'Croydon' },
+      { id: 'loc-b', name: 'Bromley' },
+    ]);
+    const { data } = await service.dashboard(ADMIN, {}, NOW);
+    const c = data.mock?.comparison;
+    expect(c?.branches).toEqual(['Bromley', 'Croydon']);
+    // Average: then (2 + 2) / 2 = 2, now (4 + 2) / 2 = 3.
+    expect(c?.improved).toEqual([
+      { code: 'SAFE_STAFFING', title: 'Safe and effective staffing', from: 2, to: 3 },
+    ]);
+    expect(c?.byBranch.map((b) => [b.id, b.name, b.improved.length, b.unchangedCount])).toEqual([
+      ['loc-b', 'Bromley', 0, 1],
+      ['loc-a', 'Croydon', 1, 0],
+    ]);
+    expect(c?.byBranch[1].compared).toEqual([
+      {
+        to: { id: 'm2', title: 'Nov A', completedAt: '2026-11-17T00:00:00.000Z' },
+        from: { id: 'm1', title: 'May A', completedAt: '2026-05-10T00:00:00.000Z' },
+      },
+    ]);
+  });
+
+  it('shows no comparison until there are two completed inspections', async () => {
+    const { service, prisma } = setup();
+    prisma.cqcMockInspection.findMany.mockResolvedValue([
+      { id: 'm2', title: 'Nov', completedAt: day('2026-11-17'), locationId: 'loc-a', result: RESULT },
+    ]);
+    const { data } = await service.dashboard(ADMIN, {}, NOW);
+    expect(data.mock?.comparison).toBeNull();
+  });
+
+  it('never compares the latest overall rating with another branch', async () => {
+    const { service, prisma } = setup();
+    prisma.cqcMockInspection.findMany.mockResolvedValue([
+      { id: 'm3', title: 'Nov B', completedAt: day('2026-11-20'), locationId: 'loc-b', result: RESULT },
+      { id: 'm2', title: 'Nov A', completedAt: day('2026-11-17'), locationId: 'loc-a', result: RESULT },
+      {
+        id: 'm1',
+        title: 'May B',
+        completedAt: day('2026-05-10'),
+        locationId: 'loc-b',
+        result: { overall: 'REQUIRES_IMPROVEMENT', keyQuestions: [] },
+      },
+    ]);
+    const { data } = await service.dashboard(ADMIN, {}, NOW);
+    expect(data.mock?.latest?.id).toBe('m3');
+    expect(data.mock?.previous?.id).toBe('m1');
   });
 
   it('flags when no mock inspection has been completed for six months', async () => {

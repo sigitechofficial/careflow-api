@@ -6,6 +6,7 @@ import { PoliciesModule } from '../policies/policies.module';
 import { CqcMockInspectionModule } from '../cqc-mock-inspection/cqc-mock-inspection.module';
 import { CqcEvidencePackController } from './cqc-evidence-pack.controller';
 import { CqcEvidencePackService } from './cqc-evidence-pack.service';
+import { CqcEvidencePackContextService } from './cqc-evidence-pack-context.service';
 
 /**
  * CQC evidence pack: brings together CQC evidence, the published policies behind each statement (PoliciesModule,
@@ -21,6 +22,6 @@ import { CqcEvidencePackService } from './cqc-evidence-pack.service';
     CqcMockInspectionModule,
   ],
   controllers: [CqcEvidencePackController],
-  providers: [CqcEvidencePackService],
+  providers: [CqcEvidencePackService, CqcEvidencePackContextService],
 })
 export class CqcEvidencePackModule {}

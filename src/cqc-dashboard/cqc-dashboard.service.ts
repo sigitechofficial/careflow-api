@@ -11,7 +11,11 @@ import { OrgScopeService } from '../common/org-scope/org-scope.service';
 import type { OrgScope } from '../common/org-scope/org-scope.types';
 import type { RequestUser } from '../common/decorators/current-user.decorator';
 import { CqcEvidenceService } from '../cqc-evidence/cqc-evidence.service';
-import type { InspectionResult } from '../cqc-mock-inspection/cqc-mock-inspection-scoring.util';
+import {
+  parseScoringRules,
+  type InspectionResult,
+} from '../cqc-mock-inspection/cqc-mock-inspection-scoring.util';
+import { averageComparison, type Named } from './cqc-dashboard-comparison.util';
 
 const SUPER_ADMIN = 'Super Admin';
 const OPEN_NOTIFICATION: CqcNotificationStatus[] = [
@@ -217,6 +221,144 @@ export class CqcDashboardService {
     };
   }
 
+  /**
+   * The average change across branches: each branch's latest score for each key question and
+   * statement against the one before it (see cqc-dashboard-comparison.util), with branch names.
+   */
+  private async averageComparison(
+    completed: {
+      id: string;
+      title: string;
+      completedAt: Date | null;
+      locationId: string | null;
+      result: unknown;
+    }[],
+  ) {
+    if (completed.length < 2) return null;
+    const [scores, newest] = await Promise.all([
+      this.prisma.cqcMockInspectionStatement.findMany({
+        where: {
+          inspectionId: { in: completed.map((c) => c.id) },
+          score: { not: null },
+        },
+        select: {
+          inspectionId: true,
+          score: true,
+          statement: {
+            select: {
+              code: true,
+              title: true,
+              displayOrder: true,
+              keyQuestion: {
+                select: { code: true, title: true, displayOrder: true },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.cqcMockInspection.findFirst({
+        where: { id: completed[0].id },
+        select: { frameworkVersion: { select: { scoringRules: true } } },
+      }),
+    ]);
+    let rules: ReturnType<typeof parseScoringRules> = null;
+    try {
+      rules = parseScoringRules(newest?.frameworkVersion.scoringRules);
+    } catch {
+      rules = null; // Invalid rules: show percentages without ratings.
+    }
+    // Key questions and statements in framework order, by code (framework versions share codes).
+    const ordered = [...scores].sort(
+      (a, b) =>
+        a.statement.keyQuestion.displayOrder -
+          b.statement.keyQuestion.displayOrder ||
+        a.statement.displayOrder - b.statement.displayOrder,
+    );
+    const keyQuestions: Named[] = [];
+    const statements: Named[] = [];
+    for (const { statement: st } of ordered) {
+      if (!keyQuestions.some((k) => k.code === st.keyQuestion.code))
+        keyQuestions.push({
+          code: st.keyQuestion.code,
+          title: st.keyQuestion.title,
+        });
+      if (!statements.some((x) => x.code === st.code))
+        statements.push({ code: st.code, title: st.title });
+    }
+    const inspections = completed.map((c) => ({
+      id: c.id,
+      locationId: c.locationId,
+      keyQuestions: keyQuestionRatings(c.result),
+      statements: scores
+        .filter((x) => x.inspectionId === c.id && x.score !== null)
+        .map((x) => ({ code: x.statement.code, score: x.score! })),
+    }));
+    const result = averageComparison(
+      inspections,
+      keyQuestions,
+      statements,
+      rules,
+    );
+    if (!result) return null;
+    const { branchIds } = result;
+    const ref = (id: string) => {
+      const c = completed.find((x) => x.id === id)!;
+      return {
+        id,
+        title: c.title,
+        completedAt: c.completedAt?.toISOString() ?? null,
+      };
+    };
+    const ids = branchIds.filter((id): id is string => id !== null);
+    const names = ids.length
+      ? await this.prisma.location.findMany({
+          where: { id: { in: ids } },
+          select: { id: true, name: true },
+        })
+      : [];
+    const nameOf = (id: string | null) =>
+      id === null
+        ? 'Whole organisation'
+        : (names.find((n) => n.id === id)?.name ?? 'Unknown branch');
+    // Each branch on its own, for the dashboard's branch picker.
+    const byBranch = branchIds
+      .flatMap((id) => {
+        const one = averageComparison(
+          inspections.filter((i) => i.locationId === id),
+          keyQuestions,
+          statements,
+          rules,
+        );
+        if (!one) return [];
+        return [
+          {
+            id,
+            name: nameOf(id),
+            overall: one.overall,
+            keyQuestions: one.keyQuestions,
+            improved: one.improved,
+            declined: one.declined,
+            unchangedCount: one.unchangedCount,
+            // Which inspections: usually one pair, more when a focused inspection covered only some.
+            compared: one.compared.map((x) => ({
+              to: ref(x.toId),
+              from: ref(x.fromId),
+            })),
+          },
+        ];
+      })
+      .sort((a, b) => a.name.localeCompare(b.name));
+    return {
+      branches: byBranch.map((x) => x.name),
+      overall: result.overall,
+      keyQuestions: result.keyQuestions,
+      improved: result.improved,
+      declined: result.declined,
+      unchangedCount: result.unchangedCount,
+      byBranch,
+    };
+  }
+
   private async mockSection(
     scope: OrgScope,
     locationId: string | undefined,
@@ -283,7 +425,10 @@ export class CqcDashboardService {
       (r) => (r.result as Partial<InspectionResult> | null)?.overall,
     );
     const latest = rated[0] ?? completed[0];
-    const previous = rated[0] ? rated[1] : undefined;
+    // The one before is from the same branch (or also whole-organisation), never another branch.
+    const previous = rated[0]
+      ? rated.slice(1).find((r) => r.locationId === rated[0].locationId)
+      : undefined;
     // Each key question's rating comes from the newest inspection that rated it.
     const keyQuestions: {
       code: string;
@@ -330,6 +475,7 @@ export class CqcDashboardService {
       previous: summary(previous),
       lastCompletedAt: completed[0]?.completedAt?.toISOString() ?? null,
       keyQuestions,
+      comparison: await this.averageComparison(completed),
       inProgress: counts.inProgress,
       counts,
       actions: {

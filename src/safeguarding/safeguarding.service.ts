@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
   AuditEventType,
+  CqcNotificationStatus,
   Prisma,
   SafeguardingReferralDecision,
   SafeguardingRisk,
@@ -177,6 +178,8 @@ function mapCase(row: CaseRow | PlainRow, names: NameMaps) {
 }
 
 /** Plain-text fields copied as-is from the DTO (empty string clears). */
+const CQC_NOT_REQUIRED_EVENT = 'CQC notification decided not required';
+
 const TEXT_FIELDS = [
   'personDescription',
   'raisedByRole',
@@ -263,6 +266,42 @@ export class SafeguardingService {
       OR: [...(ids.length ? [{ locationId: { in: ids } }] : []), { recordedById: actor.id }],
     });
     return where;
+  }
+
+  /**
+   * A CQC decision must match what happened: "made" only once a CQC notification linked to the case
+   * has been submitted (submitting one sets it on the case), and "not required" only with a reason.
+   * Returns the reason to keep on the case timeline, or null.
+   */
+  private async assertCqcDecision(
+    caseId: string | null,
+    decision: SafeguardingReferralDecision,
+    reason: string | undefined,
+  ): Promise<string | null> {
+    if (decision === SafeguardingReferralDecision.MADE) {
+      const submitted = caseId
+        ? await this.prisma.cqcNotification.findFirst({
+            where: {
+              safeguardingCaseId: caseId,
+              status: { in: [CqcNotificationStatus.SUBMITTED, CqcNotificationStatus.ACKNOWLEDGED] },
+            },
+            select: { id: true },
+          })
+        : null;
+      if (!submitted) {
+        throw new BadRequestException(
+          'Record the notification in CQC notifications, linked to this case, and mark it submitted. The case then shows CQC notified.',
+        );
+      }
+    }
+    if (decision === SafeguardingReferralDecision.NOT_REQUIRED) {
+      const why = reason?.trim() ?? '';
+      if (why.length < 3) {
+        throw new BadRequestException('Give the reason CQC does not need to be notified');
+      }
+      return why;
+    }
+    return null;
   }
 
   private async getInScope(actor: RequestUser, id: string, tx: Tx = this.prisma) {
@@ -452,6 +491,8 @@ export class SafeguardingService {
       : suBranch ?? this.resolveLocationId(actor, undefined) ?? null;
     await this.assertLead(dto.leadUserId);
     const raisedAt = this.parseDate(dto.raisedAt) ?? new Date();
+    const cqcNotified = dto.cqcNotified ?? SafeguardingReferralDecision.PENDING;
+    const cqcDecisionNote = await this.assertCqcDecision(null, cqcNotified, dto.cqcDecisionReason);
 
     return this.prisma.$transaction(async tx => {
       const year = new Date().getFullYear();
@@ -478,9 +519,14 @@ export class SafeguardingService {
           immediateAction: dto.immediateAction ?? null,
           reviewDate: this.parseDate(dto.reviewDate) ?? null,
           laReferral: dto.laReferral ?? SafeguardingReferralDecision.PENDING,
-          cqcNotified: dto.cqcNotified ?? SafeguardingReferralDecision.PENDING,
+          cqcNotified,
           recordedById: userId,
-          events: { create: { action: 'Concern raised', userId } },
+          events: {
+            create: [
+              { action: 'Concern raised', userId },
+              ...(cqcDecisionNote ? [{ action: CQC_NOT_REQUIRED_EVENT, note: cqcDecisionNote, userId }] : []),
+            ],
+          },
         },
         include: { events: true },
       });
@@ -525,7 +571,14 @@ export class SafeguardingService {
       set('description', dto.description);
     }
     if (dto.laReferral !== undefined) set('laReferral', dto.laReferral);
-    if (dto.cqcNotified !== undefined) set('cqcNotified', dto.cqcNotified);
+    let cqcDecisionNote: string | null = null;
+    if (dto.cqcNotified !== undefined) {
+      // The form sends the decision on every save: check it only when it changes.
+      if (dto.cqcNotified !== before.cqcNotified) {
+        cqcDecisionNote = await this.assertCqcDecision(id, dto.cqcNotified, dto.cqcDecisionReason);
+      }
+      set('cqcNotified', dto.cqcNotified);
+    }
     if (dto.handlerEmployeeId !== undefined) set('handlerEmployeeId', dto.handlerEmployeeId ?? null);
     for (const key of TEXT_FIELDS) {
       const v = (dto as Record<string, unknown>)[key];
@@ -560,6 +613,7 @@ export class SafeguardingService {
         userId,
       });
     }
+    if (cqcDecisionNote) events.push({ action: CQC_NOT_REQUIRED_EVENT, note: cqcDecisionNote, userId });
     if (changed.size) events.push({ action: 'Details updated', note: [...changed].join(', '), userId });
 
     return this.prisma.$transaction(async tx => {
@@ -578,7 +632,7 @@ export class SafeguardingService {
         recordType: 'SafeguardingCase',
         recordId: id,
         description: `Safeguarding concern ${updated.referenceNumber} updated`,
-        metadata: { sections: [...changed] },
+        metadata: { sections: [...changed], ...(cqcDecisionNote ? { cqcDecisionReason: cqcDecisionNote } : {}) },
         ipAddress: meta?.ipAddress ?? undefined,
         userAgent: meta?.userAgent ?? undefined,
       });

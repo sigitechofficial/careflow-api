@@ -24,10 +24,12 @@ import { AuditAction } from '../audit-logs/enums/audit-action.enum';
 import { auditSnapshot } from '../common/utils/audit-snapshot.util';
 import { buildPaginationMeta } from '../common/utils/pagination.util';
 import {
+  AWARENESS_TOLERANCE_MS,
   CQC_NOTIFICATION_TARGET_HOURS,
   CQC_NOTIFICATION_TYPES,
   CQC_OTHERS_INFORMED,
   OPEN_CQC_NOTIFICATION_STATUSES,
+  awarenessProblem,
   cleanDetails,
   dueAtFrom,
   formatCqcNotificationReference,
@@ -38,8 +40,13 @@ import {
 } from './cqc-notification-types.util';
 import {
   CQC_CANDIDATE_DAYS,
+  NOTIFIABLE_PRESSURE_ULCER_GRADES,
+  POSSIBLE_ABUSE_SUBTYPES,
+  SERVICE_DISRUPTION_SUBTYPES,
   abuseTypeForSafeguarding,
-  suggestForIncident,
+  incidentTypeKey,
+  settledByNotifications,
+  suggestionsForIncident,
   viewableIncidentPrivacy,
 } from './cqc-notification-links.util';
 import type {
@@ -52,6 +59,8 @@ import type {
 } from './dto/cqc-notifications.dto';
 
 const toIso = (d: Date | null | undefined) => d?.toISOString() ?? null;
+/** How many recent notifiable-looking incidents the "possible notifications" list reads. */
+const CANDIDATE_INCIDENT_SCAN = 500;
 const text = (v: string | undefined) =>
   v === undefined ? undefined : v.trim() || null;
 
@@ -383,6 +392,11 @@ export class CqcNotificationsService {
       this.date(dto.becameAwareAt, 'becameAwareAt') ??
       from.becameAwareAt ??
       new Date();
+    await this.assertAwareness(
+      becameAwareAt,
+      dto.incidentId ?? null,
+      dto.safeguardingCaseId ?? null,
+    );
     const eventOccurredAt =
       dto.eventOccurredAt === undefined
         ? (from.eventOccurredAt ?? null)
@@ -463,11 +477,38 @@ export class CqcNotificationsService {
       data.eventOccurredAt = dto.eventOccurredAt
         ? this.date(dto.eventOccurredAt, 'eventOccurredAt')
         : null;
+    // "Became aware" sets the 24-hour deadline: a change needs a reason (kept in the audit log)
+    // and is checked against the linked record. The form sends it on every save, in whole minutes.
+    let becameAwareAtReason: string | undefined;
+    let aware = existing.becameAwareAt;
     if (dto.becameAwareAt !== undefined) {
-      const aware = this.date(dto.becameAwareAt, 'becameAwareAt')!;
-      data.becameAwareAt = aware;
-      data.dueAt = dueAtFrom(aware);
+      const next = this.date(dto.becameAwareAt, 'becameAwareAt')!;
+      if (
+        Math.abs(next.getTime() - existing.becameAwareAt.getTime()) >=
+        AWARENESS_TOLERANCE_MS
+      ) {
+        becameAwareAtReason = dto.becameAwareAtReason?.trim() ?? '';
+        if (becameAwareAtReason.length < 3)
+          throw new BadRequestException(
+            'Give the reason for changing when the service became aware: it moves the 24-hour deadline',
+          );
+        aware = next;
+        data.becameAwareAt = next;
+        data.dueAt = dueAtFrom(next);
+      }
     }
+    const incidentId =
+      dto.incidentId !== undefined ? dto.incidentId : existing.incidentId;
+    const safeguardingCaseId =
+      dto.safeguardingCaseId !== undefined
+        ? dto.safeguardingCaseId
+        : existing.safeguardingCaseId;
+    if (
+      becameAwareAtReason !== undefined ||
+      incidentId !== existing.incidentId ||
+      safeguardingCaseId !== existing.safeguardingCaseId
+    )
+      await this.assertAwareness(aware, incidentId, safeguardingCaseId);
     if (dto.summary !== undefined) data.summary = text(dto.summary);
     if (dto.actionsTaken !== undefined)
       data.actionsTaken = text(dto.actionsTaken);
@@ -514,6 +555,7 @@ export class CqcNotificationsService {
       meta,
       auditSnapshot(existing),
       auditSnapshot(updated),
+      becameAwareAtReason ? { becameAwareAtReason } : undefined,
     );
     return {
       message: 'Notification updated',
@@ -820,12 +862,27 @@ export class CqcNotificationsService {
           },
         };
     }
+    // A death started from the person's record: their branch and recorded date of death.
+    if (dto.serviceUserId && dto.type === CqcNotificationType.DEATH) {
+      const su = await this.prisma.serviceUser.findFirst({
+        where: { id: dto.serviceUserId, deletedAt: null },
+        select: { locationId: true, dateOfDeath: true },
+      });
+      if (su)
+        return {
+          locationId: su.locationId,
+          serviceUserId: dto.serviceUserId,
+          eventOccurredAt: su.dateOfDeath,
+        };
+    }
     return {};
   }
 
   /**
-   * Incidents and safeguarding cases from the last 30 days that look notifiable and have no CQC
-   * notification yet (not even one marked not required). A suggestion only.
+   * Incidents, safeguarding cases and service users recorded as deceased in the last 30 days that
+   * look notifiable and have no CQC notification yet (not even one marked not required). A cancelled
+   * notification does not count, and an incident needs one of each type it may need. A suggestion
+   * only.
    */
   async candidates(user: RequestUser) {
     const scope = this.orgScope.fromRequestUser(user);
@@ -835,18 +892,22 @@ export class CqcNotificationsService {
         OR: [
           { incidentId: { not: null } },
           { safeguardingCaseId: { not: null } },
+          { type: CqcNotificationType.DEATH, serviceUserId: { not: null } },
         ],
       },
-      select: { incidentId: true, safeguardingCaseId: true },
+      select: {
+        incidentId: true,
+        safeguardingCaseId: true,
+        serviceUserId: true,
+        type: true,
+        status: true,
+      },
     });
-    const linkedIncidents = linked
-      .map((l) => l.incidentId)
-      .filter((v): v is string => Boolean(v));
-    const linkedCases = linked
-      .map((l) => l.safeguardingCaseId)
-      .filter((v): v is string => Boolean(v));
+    const settled = settledByNotifications(linked);
+    const linkedCases = [...settled.caseIds];
     const incidentScope = await this.orgScope.incidentScopeWhere(scope);
-    const [incidents, cases] = await Promise.all([
+    const suScope = this.orgScope.serviceUserScopeWhere(scope);
+    const [incidents, cases, deceased] = await Promise.all([
       this.prisma.incident.findMany({
         where: {
           AND: [
@@ -854,26 +915,46 @@ export class CqcNotificationsService {
             {
               deletedAt: null,
               occurredAt: { gte: since },
-              id: { notIn: linkedIncidents },
               privacyLevel: { in: viewableIncidentPrivacy(user) },
             },
             {
+              // Kept in step with suggestionsForIncident.
               OR: [
                 { category: { key: { in: ['DEATH', 'SAFEGUARDING'] } } },
                 { carerSafeguardingConcern: true },
                 { admittedToHospital: true },
+                { takenToAe: true },
+                { severity: 'CRITICAL' },
                 { whoInformedKeys: { has: 'police' } },
                 {
                   externalBodies: {
                     some: { bodyType: 'POLICE', deletedAt: null },
                   },
                 },
+                {
+                  subtype: {
+                    key: {
+                      in: [
+                        ...POSSIBLE_ABUSE_SUBTYPES,
+                        ...SERVICE_DISRUPTION_SUBTYPES,
+                      ],
+                    },
+                  },
+                },
+                ...NOTIFIABLE_PRESSURE_ULCER_GRADES.map((grade) => ({
+                  categoryDetails: {
+                    path: ['pressureUlcerGrade'],
+                    equals: grade,
+                  },
+                })),
               ],
             },
           ],
         },
         orderBy: { occurredAt: 'desc' },
-        take: 100,
+        // Incidents that already have their notification are dropped below (it depends on the
+        // suggested type), so read more than the 100 shown.
+        take: CANDIDATE_INCIDENT_SCAN,
         select: {
           id: true,
           referenceNumber: true,
@@ -881,9 +962,13 @@ export class CqcNotificationsService {
           locationId: true,
           primaryServiceUserId: true,
           admittedToHospital: true,
+          takenToAe: true,
+          severity: true,
+          categoryDetails: true,
           whoInformedKeys: true,
           carerSafeguardingConcern: true,
           category: { select: { key: true, label: true } },
+          subtype: { select: { key: true } },
           externalBodies: {
             where: { deletedAt: null },
             select: { bodyType: true },
@@ -911,15 +996,48 @@ export class CqcNotificationsService {
           category: true,
         },
       }),
+      // A death recorded on the person's record, not only as an incident. Same rule as the survey
+      // "death" trigger: the date of death, or the status set to deceased.
+      this.prisma.serviceUser.findMany({
+        where: {
+          AND: [
+            suScope ?? {},
+            {
+              deletedAt: null,
+              id: { notIn: [...settled.deathServiceUserIds] },
+            },
+            {
+              OR: [
+                { dateOfDeath: { gte: since } },
+                {
+                  dateOfDeath: null,
+                  status: { is: { code: 'DECEASED' } },
+                  updatedAt: { gte: since },
+                },
+              ],
+            },
+          ],
+        },
+        orderBy: { updatedAt: 'desc' },
+        take: 100,
+        select: {
+          id: true,
+          locationId: true,
+          dateOfDeath: true,
+          updatedAt: true,
+        },
+      }),
     ]);
     const [locations, serviceUsers] = await Promise.all([
       this.locationNames([
         ...incidents.map((i) => i.locationId),
         ...cases.map((c) => c.locationId),
+        ...deceased.map((d) => d.locationId),
       ]),
       this.serviceUsers([
         ...incidents.map((i) => i.primaryServiceUserId),
         ...cases.map((c) => c.aboutServiceUserId),
+        ...deceased.map((d) => d.id),
       ]),
     ]);
     const ref = (map: Map<string, string>, id: string | null) =>
@@ -928,18 +1046,23 @@ export class CqcNotificationsService {
       const su = id ? serviceUsers.get(id) : undefined;
       return su ? { id: su.id, name: su.name } : null;
     };
-    const rows = [
-      ...incidents.flatMap((i) => {
-        const s = suggestForIncident({
+    const incidentRows = incidents
+      .flatMap((i) =>
+        suggestionsForIncident({
           categoryKey: i.category.key,
+          subtypeKey: i.subtype?.key ?? null,
+          categoryDetails: i.categoryDetails,
+          severity: i.severity,
           admittedToHospital: i.admittedToHospital,
+          takenToAe: i.takenToAe,
           whoInformedKeys: i.whoInformedKeys,
           externalBodyTypes: i.externalBodies.map((b) => b.bodyType),
           carerSafeguardingConcern: i.carerSafeguardingConcern,
-        });
-        if (!s) return [];
-        return [
-          {
+        })
+          .filter(
+            (s) => !settled.incidentTypes.has(incidentTypeKey(i.id, s.type)),
+          )
+          .map((s) => ({
             source: 'INCIDENT' as const,
             id: i.id,
             referenceNumber: i.referenceNumber,
@@ -950,9 +1073,36 @@ export class CqcNotificationsService {
             reason: s.reason,
             suggestedType: s.type,
             suggestedTypeLabel: typeSpec(s.type).label,
-          },
-        ];
-      }),
+          })),
+      )
+      .slice(0, 100);
+    // A death already raised as an incident is listed (or settled) through the incident.
+    const deathIncidentPeople = new Set(
+      incidents
+        .filter((i) => i.category.key === 'DEATH')
+        .map((i) => i.primaryServiceUserId),
+    );
+    const deathRows = deceased
+      .filter((d) => !deathIncidentPeople.has(d.id))
+      .map((d) => {
+        const su = serviceUsers.get(d.id);
+        return {
+          source: 'SERVICE_USER' as const,
+          id: d.id,
+          referenceNumber: su?.identifier ?? su?.name ?? 'Service user',
+          title: 'Recorded as deceased',
+          occurredAt: (d.dateOfDeath ?? d.updatedAt).toISOString(),
+          location: ref(locations, d.locationId),
+          serviceUser: person(d.id),
+          reason: d.dateOfDeath
+            ? 'Date of death recorded'
+            : 'Status set to deceased',
+          suggestedType: CqcNotificationType.DEATH,
+          suggestedTypeLabel: typeSpec(CqcNotificationType.DEATH).label,
+        };
+      });
+    const rows = [
+      ...incidentRows,
       ...cases.map((c) => ({
         source: 'SAFEGUARDING' as const,
         id: c.id,
@@ -966,6 +1116,7 @@ export class CqcNotificationsService {
         suggestedTypeLabel: typeSpec(CqcNotificationType.ABUSE_ALLEGATION)
           .label,
       })),
+      ...deathRows,
     ].sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
     return { data: rows };
   }
@@ -1148,6 +1299,7 @@ export class CqcNotificationsService {
     meta?: RequestAuditMeta,
     oldValues?: unknown,
     newValues?: unknown,
+    metadata?: Record<string, unknown>,
   ) {
     await this.audit.logAudit({
       userId: user.id,
@@ -1157,8 +1309,39 @@ export class CqcNotificationsService {
       recordId,
       ...(oldValues !== undefined ? { oldValues } : {}),
       ...(newValues !== undefined ? { newValues } : {}),
+      ...(metadata ? { metadata } : {}),
       ...meta,
     });
+  }
+
+  /** See awarenessProblem: not in the future, and not after the linked record was reported or raised. */
+  private async assertAwareness(
+    aware: Date,
+    incidentId: string | null,
+    safeguardingCaseId: string | null,
+  ) {
+    const [incident, safeguardingCase] = await Promise.all([
+      incidentId
+        ? this.prisma.incident.findFirst({
+            where: { id: incidentId },
+            select: { reportedAt: true },
+          })
+        : null,
+      safeguardingCaseId
+        ? this.prisma.safeguardingCase.findFirst({
+            where: { id: safeguardingCaseId },
+            select: { raisedAt: true },
+          })
+        : null,
+    ]);
+    const known = [incident?.reportedAt, safeguardingCase?.raisedAt].filter(
+      (d): d is Date => Boolean(d),
+    );
+    const knownBy = known.length
+      ? new Date(Math.min(...known.map((d) => d.getTime())))
+      : null;
+    const problem = awarenessProblem(aware, knownBy, new Date());
+    if (problem) throw new BadRequestException(problem);
   }
 
   /** Name for staff screens; identifier (service user number) for what goes to CQC. */

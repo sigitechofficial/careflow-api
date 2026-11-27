@@ -1,6 +1,7 @@
 import { CqcNotificationStatus, CqcNotificationType } from '@prisma/client';
 import {
   CQC_NOTIFICATION_TYPES,
+  awarenessProblem,
   cleanDetails,
   dueAtFrom,
   formatCqcNotificationReference,
@@ -8,6 +9,29 @@ import {
   readinessProblems,
   submittedLate,
 } from './cqc-notification-types.util';
+
+describe('awarenessProblem', () => {
+  const now = new Date('2026-11-27T12:00:00Z');
+  const reported = new Date('2026-11-20T09:00:00Z');
+
+  it('accepts a time up to when the linked record was reported', () => {
+    expect(awarenessProblem(reported, reported, now)).toBeNull();
+    expect(awarenessProblem(new Date('2026-11-19T09:00:00Z'), reported, now)).toBeNull();
+    // Whole-minute forms: under a minute later is the same time.
+    expect(awarenessProblem(new Date('2026-11-20T09:00:30Z'), reported, now)).toBeNull();
+  });
+
+  it('rejects moving it after the linked record was reported (it would reset the deadline)', () => {
+    expect(awarenessProblem(new Date('2026-11-25T09:00:00Z'), reported, now)).toMatch(
+      /cannot be later/,
+    );
+  });
+
+  it('rejects a time in the future, with or without a link', () => {
+    expect(awarenessProblem(new Date('2026-11-28T09:00:00Z'), null, now)).toMatch(/future/);
+    expect(awarenessProblem(new Date('2026-11-26T09:00:00Z'), null, now)).toBeNull();
+  });
+});
 
 describe('cqc-notification-types.util', () => {
   it('has a spec for every notification type', () => {

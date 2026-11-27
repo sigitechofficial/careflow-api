@@ -212,12 +212,14 @@ export class CreateCqcMockActionDto {
   ownerId?: string;
 
   @ApiPropertyOptional({
-    description: 'Staff member (employee id) who should do it',
+    type: [String],
+    description: 'Staff members (employee ids) who should do it',
   })
   @IsOptional()
-  @Transform(emptyToUndefined)
-  @IsUUID()
-  assignedEmployeeId?: string;
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  assignedEmployeeIds?: string[];
 
   @ApiPropertyOptional({ example: '2026-12-31' })
   @IsOptional()
@@ -251,6 +253,26 @@ export class UpdateCqcMockActionDto {
   @ValidateIf((_, v) => v !== null)
   @IsDateString()
   dueAt?: string | null;
+
+  @ApiPropertyOptional({
+    nullable: true,
+    description:
+      'Quality statement; null = not about one statement. An action made from a check keeps its statement.',
+  })
+  @IsOptional()
+  @ValidateIf((_, v) => v !== null)
+  @IsUUID()
+  statementId?: string | null;
+
+  @ApiPropertyOptional({
+    type: [String],
+    description: 'Staff members (employee ids) who should do it; [] = nobody yet',
+  })
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(50)
+  @IsUUID('all', { each: true })
+  assignedEmployeeIds?: string[];
 
   @ApiPropertyOptional({ enum: CqcMockActionStatus })
   @IsOptional()

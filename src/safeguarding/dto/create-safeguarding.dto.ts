@@ -82,6 +82,14 @@ export class CreateSafeguardingDto {
   @IsEnum(SafeguardingReferralDecision)
   cqcNotified?: SafeguardingReferralDecision;
 
+  @ApiPropertyOptional({
+    description: 'Why CQC does not need to be notified. Required when cqcNotified changes to NOT_REQUIRED.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  cqcDecisionReason?: string;
+
   @ApiPropertyOptional({ format: 'uuid', description: 'Case lead (office user).' })
   @IsOptional()
   @IsUUID()

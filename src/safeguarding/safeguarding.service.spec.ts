@@ -78,6 +78,7 @@ describe('SafeguardingService', () => {
     safeguardingNumberSequence: { upsert: jest.fn() },
     safeguardingEvent: { create: jest.fn() },
     safeguardingInvestigation: { findUnique: jest.fn() },
+    cqcNotification: { findFirst: jest.fn() },
     $transaction: jest.fn(),
   };
 
@@ -89,6 +90,7 @@ describe('SafeguardingService', () => {
     prisma.location.findMany.mockResolvedValue([]);
     prisma.safeguardingCase.findMany.mockResolvedValue([]);
     prisma.safeguardingInvestigation.findUnique.mockResolvedValue(null);
+    prisma.cqcNotification.findFirst.mockResolvedValue(null);
 
     const moduleRef = await Test.createTestingModule({
       providers: [
@@ -259,5 +261,64 @@ describe('SafeguardingService', () => {
     expect(data.events.create).toEqual([
       expect.objectContaining({ action: 'Details updated', note: 'Voice of the person, Multi-agency' }),
     ]);
+  });
+
+  /* ─── CQC decision (statutory notification) ─── */
+
+  it('a new case cannot start as CQC notified', async () => {
+    await expect(
+      service.create(admin, { category: 'NEGLECT', description: 'x', cqcNotified: 'MADE' } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(prisma.safeguardingCase.create).not.toHaveBeenCalled();
+  });
+
+  it('cannot mark CQC notified without a submitted CQC notification linked to the case', async () => {
+    prisma.safeguardingCase.findFirst.mockResolvedValue(baseRow({ cqcNotified: 'PENDING' }));
+    await expect(service.update(admin, 'sg1', { cqcNotified: 'MADE' } as any)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+    expect(prisma.cqcNotification.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { safeguardingCaseId: 'sg1', status: { in: ['SUBMITTED', 'ACKNOWLEDGED'] } },
+      }),
+    );
+    expect(prisma.safeguardingCase.update).not.toHaveBeenCalled();
+  });
+
+  it('marks CQC notified when a linked notification was submitted', async () => {
+    prisma.safeguardingCase.findFirst.mockResolvedValue(baseRow({ cqcNotified: 'PENDING' }));
+    prisma.cqcNotification.findFirst.mockResolvedValue({ id: 'n1' });
+    prisma.safeguardingCase.update.mockResolvedValue(baseRow());
+    await service.update(admin, 'sg1', { cqcNotified: 'MADE' } as any);
+    expect(prisma.safeguardingCase.update.mock.calls[0][0].data.cqcNotified).toBe('MADE');
+  });
+
+  it('"not required" needs a reason, which goes on the timeline', async () => {
+    prisma.safeguardingCase.findFirst.mockResolvedValue(baseRow({ cqcNotified: 'PENDING' }));
+    await expect(
+      service.update(admin, 'sg1', { cqcNotified: 'NOT_REQUIRED', cqcDecisionReason: '   ' } as any),
+    ).rejects.toBeInstanceOf(BadRequestException);
+
+    prisma.safeguardingCase.update.mockResolvedValue(baseRow({ cqcNotified: 'NOT_REQUIRED' }));
+    await service.update(admin, 'sg1', {
+      cqcNotified: 'NOT_REQUIRED',
+      cqcDecisionReason: ' Not abuse: agreed with LA ',
+    } as any);
+    expect(prisma.safeguardingCase.update.mock.calls[0][0].data.events.create).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          action: 'CQC notification decided not required',
+          note: 'Not abuse: agreed with LA',
+        }),
+      ]),
+    );
+  });
+
+  it('an unchanged CQC decision is not checked again on save', async () => {
+    prisma.safeguardingCase.findFirst.mockResolvedValue(baseRow({ cqcNotified: 'MADE' }));
+    prisma.safeguardingCase.update.mockResolvedValue(baseRow());
+    await service.update(admin, 'sg1', { cqcNotified: 'MADE', laReference: 'LA-1' } as any);
+    expect(prisma.cqcNotification.findFirst).not.toHaveBeenCalled();
+    expect(prisma.safeguardingCase.update).toHaveBeenCalled();
   });
 });

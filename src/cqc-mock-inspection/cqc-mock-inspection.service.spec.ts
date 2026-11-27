@@ -127,6 +127,8 @@ function setup(row: InspectionRow | null = makeRow()) {
     cqcMockInspectionTemplate: { findMany: jest.fn().mockResolvedValue([]) },
     cqcMockInspectionAction: {
       create: jest.fn(async ({ data }: any) => ({ id: 'act-1', ...data })),
+      update: jest.fn(async ({ data }: any) => ({ id: 'a1', ...data })),
+      delete: jest.fn().mockResolvedValue({ id: 'a1' }),
     },
     cqcFrameworkVersion: {
       findUnique: jest.fn().mockResolvedValue({ scoringRules: SCORING }),
@@ -680,15 +682,16 @@ describe('CqcMockInspectionService: actions', () => {
     ).rejects.toThrow('needs its quality statement');
   });
 
-  it('assigns an action to a staff member and shows their name', async () => {
+  it('assigns an action to several staff members and shows their names', async () => {
     const { service, prisma } = setup();
+    prisma.employee.count.mockResolvedValue(2);
     await service.createAction(ADMIN, 'insp-1', {
       title: 'Hand hygiene refresher',
-      assignedEmployeeId: 'emp-1',
+      assignedEmployeeIds: ['emp-1', 'emp-2', 'emp-1'],
     });
     expect(
       prisma.cqcMockInspectionAction.create.mock.calls[0][0].data,
-    ).toMatchObject({ assignedEmployeeId: 'emp-1' });
+    ).toMatchObject({ assignedEmployeeIds: ['emp-1', 'emp-2'] });
 
     const row = makeRow({
       actions: [
@@ -699,7 +702,7 @@ describe('CqcMockInspectionService: actions', () => {
           title: 'Hand hygiene refresher',
           detail: null,
           ownerId: null,
-          assignedEmployeeId: 'emp-1',
+          assignedEmployeeIds: ['emp-1', 'emp-2'],
           dueAt: null,
           status: 'OPEN',
           completedAt: null,
@@ -710,21 +713,86 @@ describe('CqcMockInspectionService: actions', () => {
     const shown = setup(row);
     shown.prisma.employee.findMany.mockResolvedValue([
       { id: 'emp-1', personalDetail: { firstName: 'Amina', lastName: 'Khan' } },
+      { id: 'emp-2', personalDetail: { firstName: 'Tom', lastName: 'Reed' } },
     ]);
     const { data } = await shown.service.get(ADMIN, 'insp-1');
-    expect(data.actions[0].assignedEmployee).toEqual({
-      id: 'emp-1',
-      name: 'Amina Khan',
-    });
+    expect(data.actions[0].assignedEmployees).toEqual([
+      { id: 'emp-1', name: 'Amina Khan' },
+      { id: 'emp-2', name: 'Tom Reed' },
+    ]);
 
     const missing = setup();
-    missing.prisma.employee.count.mockResolvedValue(0);
+    missing.prisma.employee.count.mockResolvedValue(1);
     await expect(
       missing.service.createAction(ADMIN, 'insp-1', {
         title: 'Do it',
-        assignedEmployeeId: 'emp-x',
+        assignedEmployeeIds: ['emp-1', 'emp-x'],
       }),
-    ).rejects.toThrow('That staff member was not found');
+    ).rejects.toThrow('One of those staff members was not found');
+  });
+
+  describe('editing and deleting an action', () => {
+    const action = (over: Record<string, unknown> = {}) => ({
+      id: 'a1',
+      statementId: null,
+      checkText: null,
+      title: 'Hand hygiene refresher',
+      detail: null,
+      ownerId: null,
+      assignedEmployeeIds: ['emp-1'],
+      dueAt: null,
+      status: 'OPEN',
+      completedAt: null,
+      createdAt: NOW,
+      ...over,
+    });
+
+    it('changes the title, staff and statement of an action, and logs it', async () => {
+      const { service, prisma, audit } = setup(makeRow({ actions: [action()] as any }));
+      prisma.employee.count.mockResolvedValue(2);
+      const statementId = statementsOf()[0].id;
+      await service.updateAction(ADMIN, 'insp-1', 'a1', {
+        title: ' Refresher for all ',
+        assignedEmployeeIds: ['emp-1', 'emp-2'],
+        statementId,
+      });
+      expect(prisma.cqcMockInspectionAction.update.mock.calls[0][0]).toMatchObject({
+        where: { id: 'a1' },
+        data: { title: 'Refresher for all', assignedEmployeeIds: ['emp-1', 'emp-2'], statementId },
+      });
+      expect(audit.logAudit).toHaveBeenCalledWith(
+        expect.objectContaining({ action: 'cqc_mock_inspection_action_updated' }),
+      );
+    });
+
+    it('keeps an action made from a check with its statement', async () => {
+      const { service, prisma } = setup(
+        makeRow({ actions: [action({ statementId: statementsOf()[0].id, checkText: 'Hand washing seen' })] as any }),
+      );
+      await expect(
+        service.updateAction(ADMIN, 'insp-1', 'a1', { statementId: statementsOf()[1].id }),
+      ).rejects.toThrow('stays with its quality statement');
+      expect(prisma.cqcMockInspectionAction.update).not.toHaveBeenCalled();
+    });
+
+    it('deletes an action and keeps what it said in the audit log', async () => {
+      const { service, prisma, audit } = setup(makeRow({ actions: [action()] as any }));
+      await service.deleteAction(ADMIN, 'insp-1', 'a1');
+      expect(prisma.cqcMockInspectionAction.delete).toHaveBeenCalledWith({ where: { id: 'a1' } });
+      expect(audit.logAudit).toHaveBeenCalledWith(
+        expect.objectContaining({
+          action: 'cqc_mock_inspection_action_deleted',
+          oldValues: expect.objectContaining({ title: 'Hand hygiene refresher' }),
+        }),
+      );
+      await expect(service.deleteAction(ADMIN, 'insp-1', 'nope')).rejects.toThrow('Action not found');
+    });
+
+    it('cannot delete an action of a cancelled inspection', async () => {
+      const { service, prisma } = setup(makeRow({ status: 'CANCELLED', actions: [action()] } as any));
+      await expect(service.deleteAction(ADMIN, 'insp-1', 'a1')).rejects.toThrow();
+      expect(prisma.cqcMockInspectionAction.delete).not.toHaveBeenCalled();
+    });
   });
 
   it('refuses a statement outside the inspection and a cancelled inspection', async () => {

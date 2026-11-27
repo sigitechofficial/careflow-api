@@ -718,6 +718,7 @@ export enum AuditAction {
   CQC_MOCK_INSPECTION_CANCELLED = 'cqc_mock_inspection_cancelled',
   CQC_MOCK_INSPECTION_ACTION_CREATED = 'cqc_mock_inspection_action_created',
   CQC_MOCK_INSPECTION_ACTION_UPDATED = 'cqc_mock_inspection_action_updated',
+  CQC_MOCK_INSPECTION_ACTION_DELETED = 'cqc_mock_inspection_action_deleted',
   CQC_MOCK_INSPECTION_EXPORTED = 'cqc_mock_inspection_exported',
   CQC_MOCK_INSPECTION_SETTINGS_UPDATED = 'cqc_mock_inspection_settings_updated',
 

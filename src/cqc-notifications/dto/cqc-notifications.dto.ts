@@ -169,6 +169,15 @@ export class UpdateCqcNotificationDto extends CqcNotificationFieldsDto {
   @IsOptional()
   @IsUUID()
   locationId?: string;
+
+  @ApiPropertyOptional({
+    description:
+      'Why "became aware" is being changed. Required when it changes, because it moves the 24-hour deadline.',
+  })
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  becameAwareAtReason?: string;
 }
 
 export class SubmitCqcNotificationDto {

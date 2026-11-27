@@ -1,5 +1,7 @@
 import {
+  answerTally,
   buildMockInspectionPdf,
+  questionsWithAnswers,
   evidenceLabel,
   gapLine,
   keyQuestionLine,
@@ -65,6 +67,21 @@ const report = (
             { title: 'Incident log', sourceType: 'INCIDENT_LEARNING' },
           ],
           hiddenEvidenceCount: 1,
+          focus: 'Sharing lessons after incidents',
+          guidance: {
+            lookAt: ['Incident reviews', 'Team meeting minutes'],
+            askPeople: [],
+            askStaff: ['What changed after the last incident?'],
+          },
+          checks: [
+            { part: 'lookAt', text: 'Incident reviews', answer: 'MET', note: null },
+            {
+              part: 'askStaff',
+              text: 'What changed after the last incident?',
+              answer: 'NOT_MET',
+              note: ' Nobody could say ',
+            },
+          ],
         },
         {
           id: 's2',
@@ -136,6 +153,32 @@ describe('mock inspection report', () => {
       }),
     );
     expect(empty.subarray(0, 5).toString()).toBe('%PDF-');
+  });
+
+  it('lists every question of a statement with its answer, by part', () => {
+    const parts = questionsWithAnswers(report().keyQuestions[0].statements[0]);
+    expect(parts).toEqual([
+      {
+        label: 'Look at',
+        questions: [
+          { text: 'Incident reviews', answer: 'MET', note: null },
+          { text: 'Team meeting minutes', answer: null, note: null },
+        ],
+      },
+      {
+        label: 'Ask staff',
+        questions: [
+          {
+            text: 'What changed after the last incident?',
+            answer: 'NOT_MET',
+            note: 'Nobody could say',
+          },
+        ],
+      },
+    ]);
+    expect(answerTally(parts)).toBe('1 met, 0 partially met, 1 not met, 1 not answered');
+    // A statement without questions has none to show.
+    expect(questionsWithAnswers(report().keyQuestions[0].statements[1])).toEqual([]);
   });
 
   it('names the statements with no evidence, or says none has any', () => {

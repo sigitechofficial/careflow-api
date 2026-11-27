@@ -252,6 +252,31 @@ function setup(
     }),
   };
   const audit = { logAudit: jest.fn() };
+  const context = {
+    serviceDetails: jest.fn().mockResolvedValue({
+      provider: { name: 'Acme Care', legalName: 'Acme Care Ltd', cqcProviderId: '1-100', address: '1 High St' },
+      locations: [
+        {
+          name: 'Acme Croydon',
+          cqcLocationId: '1-200',
+          address: '2 Park Rd, Croydon',
+          contact: null,
+          registeredManagers: ['Sam Lee'],
+          nominatedIndividual: null,
+          regulatedActivities: ['Personal care'],
+          serviceTypes: ['Homecare agencies'],
+          registeredSince: new Date('2020-01-01'),
+          rating: 'Good',
+        },
+      ],
+    }),
+    keyData: jest.fn().mockResolvedValue({
+      from: new Date('2025-11-27'),
+      to: new Date('2026-11-27'),
+      groups: [{ title: 'Incidents', figures: [{ label: 'Incidents reported', value: '12' }] }],
+      hidden: ['Safeguarding'],
+    }),
+  };
   const service = new CqcEvidencePackService(
     prisma as any,
     audit as any,
@@ -260,6 +285,7 @@ function setup(
     policies as any,
     policyExports as any,
     statementPolicies as any,
+    context as any,
   );
   const user = {
     id: 'u-me',
@@ -273,6 +299,7 @@ function setup(
     policyExports,
     audit,
     user,
+    context,
   };
 }
 
@@ -341,7 +368,7 @@ describe('CqcEvidencePackService', () => {
   });
 
   it('makes a PDF for one key question and records the download', async () => {
-    const { service, evidenceService, audit, user } = setup();
+    const { service, evidenceService, audit, user, context } = setup();
     const file = await service.download(
       user,
       { format: 'pdf', keyQuestionCode: 'SAFE' },
@@ -349,6 +376,9 @@ describe('CqcEvidencePackService', () => {
       NOW,
     );
     expect(file.contentType).toBe('application/pdf');
+    // The service's CQC registration and key figures, for the same branches.
+    expect(context.serviceDetails).toHaveBeenCalledWith(expect.anything(), undefined);
+    expect(context.keyData).toHaveBeenCalledWith(user, expect.anything(), undefined, NOW);
     expect(file.buffer.subarray(0, 4).toString()).toBe('%PDF');
     expect(file.fileName).toBe('cqc-evidence-pack-safe-2026-11-20.pdf');
     expect(

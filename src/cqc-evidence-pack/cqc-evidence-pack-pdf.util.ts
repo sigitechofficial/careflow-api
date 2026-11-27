@@ -53,6 +53,41 @@ export type PackLatestInspection = {
 
 export type PackEvidence = ExportEvidence & { filesFolder: string | null };
 
+/** The service's CQC registration: the provider and each registered branch in the pack. */
+export type PackServiceDetails = {
+  provider: {
+    name: string;
+    legalName: string | null;
+    cqcProviderId: string | null;
+    address: string | null;
+  };
+  locations: Array<{
+    name: string;
+    cqcLocationId: string | null;
+    address: string | null;
+    contact: string | null;
+    registeredManagers: string[];
+    nominatedIndividual: string | null;
+    regulatedActivities: string[];
+    serviceTypes: string[];
+    registeredSince: Date | null;
+    rating: string | null;
+  }>;
+};
+
+export type PackKeyGroup = {
+  title: string;
+  figures: Array<{ label: string; value: string; note?: string }>;
+};
+
+/** Counts from the last 12 months; `hidden` names the groups the user may not see. */
+export type PackKeyData = {
+  from: Date;
+  to: Date;
+  groups: PackKeyGroup[];
+  hidden: string[];
+};
+
 export type PackStatement = Omit<ExportStatement, 'evidence'> & {
   keyQuestionCode: string;
   /** "2.3": key question, then statement, as the framework numbers them. */
@@ -68,6 +103,9 @@ export type EvidencePack = Omit<ExportPack, 'statements'> & {
   includesFiles: boolean;
   includesPolicies: boolean;
   latestInspection: PackLatestInspection | null;
+  /** CQC registration and key figures (null when not loaded, e.g. in older tests). */
+  service?: PackServiceDetails | null;
+  keyData?: PackKeyData | null;
   statements: PackStatement[];
 };
 
@@ -98,13 +136,6 @@ const SCORE_COLOURS: Record<number, string> = {
   2: '#c2410c',
   3: '#15803d',
   4: '#047857',
-};
-
-const POLICY_KIND: Record<string, string> = {
-  POLICY: 'Policy',
-  PROCEDURE: 'Procedure',
-  PROTOCOL: 'Protocol',
-  GUIDELINE: 'Guideline',
 };
 
 export const ukDate = (d: Date | null | undefined) =>
@@ -385,8 +416,8 @@ function renderPack(
       rows: Array<[string, string, string?]>,
       x: number,
       width: number,
+      lw = 78,
     ) => {
-      const lw = 78;
       for (const [k, v, colour] of rows) {
         if (!v) continue;
         const h = Math.max(heightOf(v, false, 9, width - lw), 11);
@@ -399,6 +430,93 @@ function renderPack(
         doc.y = y + h + 2.5;
       }
     };
+    /**
+     * A bordered table: a shaded header row, then one row per item. Column widths are shares of the page
+     * width; a cell can have a smaller second line (`sub`). The header repeats after a page break.
+     */
+    type GridCell = {
+      text: string;
+      sub?: string;
+      bold?: boolean;
+      colour?: string;
+    };
+    const grid = (
+      cols: Array<{ title: string; w: number }>,
+      rows: GridCell[][],
+    ) => {
+      const pad = 5;
+      const xs: number[] = [];
+      let acc = L;
+      for (const c of cols) {
+        xs.push(acc);
+        acc += c.w * W;
+      }
+      const widths = cols.map((c) => c.w * W - 2 * pad);
+      const lines = (y: number, h: number) => {
+        doc.lineWidth(0.5).strokeColor(C.line);
+        for (const x of [...xs, R])
+          doc
+            .moveTo(x, y)
+            .lineTo(x, y + h)
+            .stroke();
+        doc
+          .moveTo(L, y + h)
+          .lineTo(R, y + h)
+          .stroke();
+      };
+      const head = () => {
+        const y = doc.y;
+        doc.rect(L, y, W, 18).fill(C.soft);
+        doc
+          .lineWidth(0.5)
+          .strokeColor(C.line)
+          .moveTo(L, y)
+          .lineTo(R, y)
+          .stroke();
+        font(true, 7, C.muted);
+        cols.forEach((c, i) =>
+          put(c.title.toUpperCase(), xs[i] + pad, y + 6, {
+            characterSpacing: 0.5,
+            width: widths[i],
+            height: 9,
+            ellipsis: true,
+          }),
+        );
+        lines(y, 18);
+        doc.y = y + 18;
+      };
+      const cellH = (c: GridCell, w: number) =>
+        heightOf(c.text, !!c.bold, 9, w) +
+        (c.sub ? heightOf(c.sub, false, 8, w) + 2 : 0);
+      ensure(18 + 24);
+      head();
+      for (const row of rows) {
+        const h =
+          Math.max(...row.map((c, i) => cellH(c, widths[i])), 10) + 2 * pad;
+        if (doc.y + h > bottom()) {
+          doc.addPage();
+          head();
+        }
+        const y = doc.y;
+        row.forEach((c, i) => {
+          font(!!c.bold, 9, c.colour ?? C.ink);
+          put(c.text, xs[i] + pad, y + pad, { width: widths[i], lineGap: 1.5 });
+          if (c.sub) {
+            // Measure first: heightOf sets the font, so the sub-line's font comes after it.
+            const subY = y + pad + heightOf(c.text, !!c.bold, 9, widths[i]) + 2;
+            font(false, 8, c.colour ?? C.muted);
+            put(c.sub, xs[i] + pad, subY, {
+              width: widths[i],
+              lineGap: 1.5,
+            });
+          }
+        });
+        lines(y, h);
+        doc.y = y + h;
+      }
+      doc.y += 10;
+    };
+
     /** A table header row. */
     const tableHead = (cols: Array<[string, number, number?]>) => {
       ensure(40);
@@ -491,8 +609,15 @@ function renderPack(
           gap: 5,
         },
         {
-          text: '- Each CQC quality statement has its own section with three parts: Evidence (what the service keeps), Policies (published policies behind it) and Mock inspection (how the service scored itself).',
+          text: '- Each CQC quality statement has three short tables: Evidence (what the service keeps), Policies (published policies behind it) and Mock inspection (how the service scored itself, and actions still open).',
         },
+        ...(pack.service || pack.keyData
+          ? [
+              {
+                text: '- About the service (next page) gives the CQC registration and key figures from the last 12 months: counts only, no names.',
+              },
+            ]
+          : []),
         {
           text: `- Mock inspections are the service checking itself on the CQC scale: 1 significant shortfalls, 2 some shortfalls, 3 good standard, 4 exceptional standard. They are not CQC ratings.`,
         },
@@ -599,6 +724,107 @@ function renderPack(
       );
     }
 
+    // ─── About the service ────────────────────────────────────────────────
+    if (pack.service || pack.keyData) {
+      doc.addPage();
+      heading(
+        'About the service',
+        'The CQC registration of the service and key figures an inspector usually asks for.',
+      );
+      const svc = pack.service;
+      if (svc) {
+        label('Provider');
+        facts(
+          [
+            ['Name', svc.provider.legalName || svc.provider.name],
+            ['CQC provider ID', svc.provider.cqcProviderId ?? 'Not recorded'],
+            ['Registered office', svc.provider.address ?? ''],
+          ],
+          L,
+          W,
+          120,
+        );
+        doc.y += 6;
+        label(
+          svc.locations.length === 1
+            ? 'Registered location'
+            : 'Registered locations',
+        );
+        if (!svc.locations.length) {
+          font(false, 9.5, C.muted);
+          put(
+            'No branch in this pack has a CQC location ID recorded.',
+            L,
+            doc.y,
+            { width: W },
+          );
+          doc.y += 18;
+        }
+        for (const loc of svc.locations) {
+          ensure(70);
+          flow(loc.name, L, W, true, 10.5, C.ink, 3);
+          facts(
+            [
+              ['CQC location ID', loc.cqcLocationId ?? ''],
+              ['Address', loc.address ?? ''],
+              ['Contact', loc.contact ?? ''],
+              [
+                'Registered manager',
+                loc.registeredManagers.length
+                  ? loc.registeredManagers.join(', ')
+                  : 'Not recorded',
+              ],
+              ['Nominated individual', loc.nominatedIndividual ?? ''],
+              ['Regulated activities', loc.regulatedActivities.join(', ')],
+              ['Service types', loc.serviceTypes.join(', ')],
+              ['Registered since', ukDate(loc.registeredSince)],
+              ['Latest CQC rating', loc.rating ?? 'Not recorded'],
+            ],
+            L,
+            W,
+            120,
+          );
+          doc.y += 8;
+        }
+      }
+      const kd = pack.keyData;
+      if (kd) {
+        heading(
+          'Key data',
+          `${ukDate(kd.from)} to ${ukDate(kd.to)} (the last 12 months). Counts only, no names.`,
+          120,
+        );
+        for (const g of kd.groups) {
+          label(g.title, 40 + g.figures.length * 18);
+          for (const f of g.figures) {
+            const noteX = L + 250;
+            const noteW = R - noteX;
+            const h =
+              Math.max(f.note ? heightOf(f.note, false, 9, noteW) : 0, 12) + 6;
+            ensure(h);
+            const ry = doc.y;
+            font(false, 9.5, C.body);
+            put(f.label, L + 8, ry + 2, { width: 160 });
+            font(true, 10.5, C.ink);
+            put(f.value, L + 175, ry + 1, { width: 70 });
+            if (f.note) {
+              font(false, 9, C.muted);
+              put(f.note, noteX, ry + 2.5, { width: noteW, lineGap: 1.5 });
+            }
+            rule(ry + h);
+            doc.y = ry + h + 2;
+          }
+          doc.y += 8;
+        }
+        if (kd.hidden.length) {
+          const t = `Not shown, because your account cannot see them: ${kd.hidden.join(', ')}.`;
+          font(false, 8.5, C.muted);
+          put(t, L, doc.y, { width: W, lineGap: 1.5 });
+          doc.y += heightOf(t, false, 8.5, W) + 6;
+        }
+      }
+    }
+
     // ─── Contents ─────────────────────────────────────────────────────────
     doc.addPage();
     heading(
@@ -685,48 +911,36 @@ function renderPack(
       doc.y = by + 58;
 
       for (const [index, s] of g.statements.entries()) {
-        ensure(160);
+        ensure(120);
         // A line between statements, but not at the top of a new page.
         if (index > 0 && doc.y > M + 20) {
-          doc.y += 6;
+          doc.y += 4;
           rule(doc.y);
-          doc.y += 16;
+          doc.y += 14;
         }
         pageOf.set(s.number || s.code, pageNo());
 
-        // Statement title and status.
+        // Statement number and title, with the mock score on the right.
         const sy = doc.y;
-        font(true, 13, C.brand);
+        const scoreText = s.mock
+          ? `Mock score ${s.mock.score} of ${s.mock.outOf}`
+          : 'Not scored yet';
+        const sw = pillWidth(scoreText);
+        font(true, 12.5, C.brand);
         put(s.number, L, sy + 1);
-        const tx = L + 36;
-        const tWidth = W - 36;
-        font(true, 13, C.ink);
+        const tx = L + 34;
+        const tWidth = R - sw - 12 - tx;
+        font(true, 12.5, C.ink);
         put(s.title, tx, sy, { width: tWidth, lineGap: 1.5 });
-        doc.y = sy + heightOf(s.title, true, 13, tWidth) + 4;
-        flow(s.summary, tx, tWidth, false, 9.5, C.muted, 8);
-
-        let px = tx;
-        const py = doc.y;
-        px +=
+        if (s.mock)
           pill(
-            s.evidence.length
-              ? `Evidence: ${s.evidence.length}`
-              : 'No evidence yet',
-            px,
-            py,
-            s.evidence.length ? C.brandSoft : C.amberSoft,
-            s.evidence.length ? C.brand : C.amber,
-          ) + 6;
-        if (pack.includesPolicies) {
-          px +=
-            pill(`Policies: ${s.policies.length}`, px, py, C.soft, C.body) + 6;
-        }
-        if (s.mock) {
-          const t = `Mock score: ${s.mock.score} of ${s.mock.outOf}${s.mock.label ? ` - ${s.mock.label}` : ''}`;
-          if (px + pillWidth(t) <= R)
-            pill(t, px, py, SCORE_COLOURS[s.mock.score] ?? C.muted);
-        }
-        doc.y = py + 26;
+            scoreText,
+            R - sw,
+            sy - 1,
+            SCORE_COLOURS[s.mock.score] ?? C.muted,
+          );
+        else pill(scoreText, R - sw, sy - 1, C.soft, C.muted);
+        doc.y = sy + Math.max(heightOf(s.title, true, 12.5, tWidth), 16) + 10;
 
         // Evidence.
         label('Evidence');
@@ -736,71 +950,38 @@ function renderPack(
             width: W,
           });
           doc.y += 18;
-        }
-        for (const e of s.evidence) {
-          const overdue = reviewOverdue(e, now);
-          const cardX = L + 12;
-          const cardW = W - 12;
-          const titleH = heightOf(e.title, true, 10.5, cardW);
-          ensure(titleH + 60);
-          const top = doc.y;
-          flow(e.title, cardX, cardW, true, 10.5, C.ink, 3);
-          if (e.summary) flow(e.summary, cardX, cardW, false, 9.5, C.body, 5);
-          facts(
+        } else {
+          grid(
             [
-              [
-                'Type',
-                [
-                  SOURCE_TYPE_LABELS[e.sourceType] ?? e.sourceType,
-                  e.categoryTitle,
-                ]
-                  .filter(Boolean)
-                  .join(' · '),
-              ],
-              ['Period', periodText(e.periodStart, e.periodEnd)],
-              [
-                'Covers',
-                e.branches.length
-                  ? e.branches.join(', ')
-                  : 'Whole organisation',
-              ],
-              ['Figures', metricsLine(e.metrics)],
-              ...(e.metrics?.questions ?? []).map((q): [string, string] => [
-                '',
-                `${q.questionText}: ${q.percent === null ? 'too few answers to show' : `${q.percent}% ${q.positiveLabels.join(' or ')} (${q.base} answered)`}`,
-              ]),
-              ...e.actions.flatMap(
-                (a): Array<[string, string]> => [
-                  ['You said', a.youSaid],
-                  ['We did', a.weDid],
-                ],
-              ),
-              [
-                'Files',
-                e.attachments.length
-                  ? `${e.attachments.join(', ')}${e.filesFolder ? ` (in ${e.filesFolder}/)` : ''}`
-                  : '',
-              ],
-              ['Added', `${ukDate(e.addedAt)} by ${e.addedBy}`],
-              [
-                'Review',
-                e.reviewDueAt
-                  ? overdue
-                    ? `Was due ${ukDate(e.reviewDueAt)} - overdue`
-                    : `By ${ukDate(e.reviewDueAt)}`
-                  : '',
-                overdue ? C.amber : undefined,
-              ],
+              { title: 'Evidence', w: 0.46 },
+              { title: 'Type', w: 0.18 },
+              { title: 'Period', w: 0.2 },
+              { title: 'Review by', w: 0.16 },
             ],
-            cardX,
-            cardW,
+            s.evidence.map((e) => {
+              const overdue = reviewOverdue(e, now);
+              const sub = [
+                e.summary,
+                e.metrics ? metricsLine(e.metrics) : '',
+                pack.format === 'zip' && e.attachments.length
+                  ? `Files: ${e.attachments.join(', ')}${e.filesFolder ? ` (in ${e.filesFolder}/)` : ''}`
+                  : '',
+              ]
+                .filter(Boolean)
+                .join('\n');
+              return [
+                { text: e.title, bold: true, sub },
+                { text: SOURCE_TYPE_LABELS[e.sourceType] ?? e.sourceType },
+                { text: periodText(e.periodStart, e.periodEnd) },
+                {
+                  text: e.reviewDueAt ? ukDate(e.reviewDueAt) : '-',
+                  sub: overdue ? 'Overdue' : undefined,
+                  colour: overdue ? C.amber : undefined,
+                  bold: overdue,
+                },
+              ];
+            }),
           );
-          // Accent bar beside the item (only when it stayed on one page).
-          if (doc.y > top)
-            doc
-              .rect(L, top + 1, 3, doc.y - top - 3)
-              .fill(overdue ? C.amberLine : C.line);
-          doc.y += 9;
         }
 
         // Policies.
@@ -813,123 +994,79 @@ function renderPack(
             });
             doc.y += 18;
           } else {
-            const pc = {
-              ref: L + 8,
-              title: L + 85,
-              ver: L + 300,
-              pub: L + 345,
-              rev: L + 420,
-            };
-            tableHead([
-              ['Reference', pc.ref],
-              ['Title', pc.title],
-              ['Version', pc.ver],
-              ['Published', pc.pub],
-              ['Review by', pc.rev],
-            ]);
-            for (const p of s.policies) {
-              const th = heightOf(
-                `${p.title} (${POLICY_KIND[p.documentType] ?? p.documentType})`,
-                false,
-                9,
-                pc.ver - pc.title - 8,
-              );
-              const rowH = Math.max(p.reviewOverdue ? 32 : 20, th + 9);
-              ensure(rowH);
-              const ry = doc.y;
-              font(true, 9, C.ink);
-              put(p.reference, pc.ref, ry + 5);
-              font(false, 9, C.body);
-              put(
-                `${p.title} (${POLICY_KIND[p.documentType] ?? p.documentType})`,
-                pc.title,
-                ry + 5,
+            grid(
+              [
+                { title: 'Reference', w: 0.17 },
+                { title: 'Policy', w: 0.53 },
+                { title: 'Version', w: 0.12 },
+                { title: 'Review by', w: 0.18 },
+              ],
+              s.policies.map((pol) => [
+                { text: pol.reference, bold: true },
+                { text: pol.title },
+                { text: pol.versionLabel },
                 {
-                  width: pc.ver - pc.title - 8,
-                  lineGap: 1.5,
+                  text: pol.reviewDate ? ukDate(pol.reviewDate) : '-',
+                  sub: pol.reviewOverdue ? 'Overdue' : undefined,
+                  colour: pol.reviewOverdue ? C.amber : undefined,
+                  bold: pol.reviewOverdue,
                 },
-              );
-              put(p.versionLabel, pc.ver, ry + 5);
-              put(ukDate(p.publishedAt) || '-', pc.pub, ry + 5);
-              font(p.reviewOverdue, 9, p.reviewOverdue ? C.amber : C.body);
-              put(p.reviewDate ? ukDate(p.reviewDate) : '-', pc.rev, ry + 5);
-              if (p.reviewOverdue) {
-                font(false, 8, C.amber);
-                put('Overdue', pc.rev, ry + 17);
-              }
-              rule(ry + rowH);
-              doc.y = ry + rowH;
-            }
-            if (pack.format === 'zip') {
-              font(false, 8.5, C.muted);
-              put(
-                'Each policy is in the policies folder of this pack.',
-                L,
-                doc.y + 4,
-                { width: W },
-              );
-              doc.y += 16;
-            }
-            doc.y += 8;
+              ]),
+            );
           }
         }
 
-        // Mock inspection.
+        // Mock inspection: the score and where it came from, then actions still open.
         label('Mock inspection');
-        if (s.mock) {
-          facts(
-            [
-              [
-                'Score',
-                `${s.mock.score} of ${s.mock.outOf}${s.mock.label ? ` - ${s.mock.label}` : ''}`,
-                SCORE_COLOURS[s.mock.score],
-              ],
-              ['From', mockSource(s.mock)],
-            ],
-            L,
-            W,
-          );
-        } else {
+        if (!s.mock) {
           font(false, 9.5, C.muted);
           put('Not scored in a completed mock inspection yet.', L, doc.y, {
             width: W,
           });
-          doc.y += 16;
+          doc.y += 18;
+        } else {
+          grid(
+            [
+              { title: 'Score', w: 0.3 },
+              { title: 'Mock inspection', w: 0.48 },
+              { title: 'Completed', w: 0.22 },
+            ],
+            [
+              [
+                {
+                  text: `${s.mock.score} of ${s.mock.outOf}${s.mock.label ? ` - ${s.mock.label}` : ''}`,
+                  bold: true,
+                  colour: SCORE_COLOURS[s.mock.score],
+                },
+                {
+                  text: s.mock.inspectionTitle,
+                  sub: s.mock.branchName ?? 'Whole organisation',
+                },
+                { text: ukDate(s.mock.completedAt) || '-' },
+              ],
+            ],
+          );
         }
         if (s.actions.length) {
-          doc.y += 4;
-          const ac = { title: L + 8, owner: L + 300, due: L + 410 };
-          tableHead([
-            ['Improvement action in progress', ac.title],
-            ['Owner', ac.owner],
-            ['Due', ac.due],
-          ]);
-          for (const a of s.actions) {
-            const th = heightOf(a.title, false, 9, ac.owner - ac.title - 8);
-            const rowH = Math.max(a.overdue ? 32 : 20, th + 9);
-            ensure(rowH);
-            const ry = doc.y;
-            font(false, 9, C.body);
-            put(a.title, ac.title, ry + 5, {
-              width: ac.owner - ac.title - 8,
-              lineGap: 1.5,
-            });
-            put(a.owner ?? '-', ac.owner, ry + 5, {
-              width: ac.due - ac.owner - 8,
-              height: 12,
-              ellipsis: true,
-            });
-            font(a.overdue, 9, a.overdue ? C.amber : C.body);
-            put(a.dueAt ? ukDate(a.dueAt) : '-', ac.due, ry + 5);
-            if (a.overdue) {
-              font(false, 8, C.amber);
-              put('Overdue', ac.due, ry + 17);
-            }
-            rule(ry + rowH);
-            doc.y = ry + rowH;
-          }
+          grid(
+            [
+              { title: 'Improvement action still open', w: 0.56 },
+              { title: 'Owner', w: 0.24 },
+              { title: 'Due', w: 0.2 },
+            ],
+            s.actions.map((a) => [
+              { text: a.title },
+              { text: a.owner ?? '-' },
+              {
+                text: a.dueAt ? ukDate(a.dueAt) : '-',
+                sub: a.overdue ? 'Overdue' : undefined,
+                colour: a.overdue ? C.amber : undefined,
+                bold: a.overdue,
+              },
+            ]),
+          );
         }
-        doc.y += 10;
+        doc.y += 6;
       }
     }
 

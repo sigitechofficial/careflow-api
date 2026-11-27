@@ -18031,11 +18031,11 @@ model CqcMockInspectionAction {
   checkText          String?             @db.Text
   title              String
   detail             String?             @db.Text
-  ownerId            String?             @db.Uuid
-  /// The staff member (employee) who should do it.
-  assignedEmployeeId String?             @db.Uuid
-  dueAt              DateTime?
-  status             CqcMockActionStatus @default(OPEN)
+  ownerId             String?             @db.Uuid
+  /// The staff members (employees) who should do it.
+  assignedEmployeeIds String[]            @default([]) @db.Uuid
+  dueAt               DateTime?
+  status              CqcMockActionStatus @default(OPEN)
   completedAt        DateTime?
   createdById        String?             @db.Uuid
   createdAt          DateTime            @default(now())

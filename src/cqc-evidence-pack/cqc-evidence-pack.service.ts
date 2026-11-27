@@ -33,6 +33,7 @@ import {
   type InspectionResult,
 } from '../cqc-mock-inspection/cqc-mock-inspection-scoring.util';
 import type { EvidencePackQueryDto } from './dto/cqc-evidence-pack.dto';
+import { CqcEvidencePackContextService } from './cqc-evidence-pack-context.service';
 import {
   buildEvidencePackPdf,
   type EvidencePack,
@@ -111,6 +112,7 @@ export class CqcEvidencePackService {
     private readonly policies: PoliciesService,
     private readonly policyExports: PolicyExportService,
     private readonly statementPolicies: CqcMockInspectionPoliciesService,
+    private readonly context: CqcEvidencePackContextService,
   ) {}
 
   async download(
@@ -173,11 +175,13 @@ export class CqcEvidencePackService {
     );
 
     const ids = statements.map((s) => s.id);
-    const [policies, mock] = await Promise.all([
+    const [policies, mock, service, keyData] = await Promise.all([
       withPolicies
         ? this.policiesFor(user, statements, now)
         : Promise.resolve(new Map<string, PackPolicy[]>()),
       this.mockFor(scope, ids, query.locationId, now),
+      this.context.serviceDetails(scope, query.locationId),
+      this.context.keyData(user, scope, query.locationId, now),
     ]);
 
     const pack: EvidencePack = {
@@ -186,6 +190,8 @@ export class CqcEvidencePackService {
       includesFiles: withFiles,
       includesPolicies: withPolicies,
       latestInspection: mock.latest,
+      service,
+      keyData,
       statements: base.statements.map((s, i) => ({
         ...s,
         keyQuestionCode: statements[i].keyQuestionCode,

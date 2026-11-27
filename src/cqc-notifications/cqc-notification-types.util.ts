@@ -361,6 +361,32 @@ export function dueAtFrom(becameAwareAt: Date): Date {
   );
 }
 
+/** Forms work in whole minutes, so times closer than this are the same time. */
+export const AWARENESS_TOLERANCE_MS = 60_000;
+
+/**
+ * Why a "became aware" time cannot be used, or null. It sets the 24-hour deadline, so it cannot be
+ * in the future, and with a linked incident or safeguarding case it cannot be later than when that
+ * record was reported or raised (`knownBy`): the service knew by then.
+ */
+export function awarenessProblem(
+  aware: Date,
+  knownBy: Date | null,
+  now: Date,
+): string | null {
+  if (aware.getTime() > now.getTime() + AWARENESS_TOLERANCE_MS)
+    return 'When the service became aware cannot be in the future';
+  if (knownBy && aware.getTime() > knownBy.getTime() + AWARENESS_TOLERANCE_MS) {
+    const when = knownBy.toLocaleString('en-GB', {
+      timeZone: 'Europe/London',
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    });
+    return `The service knew by ${when}, when the linked record was reported. The 24-hour deadline runs from then, so "became aware" cannot be later.`;
+  }
+  return null;
+}
+
 export function formatCqcNotificationReference(
   year: number,
   value: number,
