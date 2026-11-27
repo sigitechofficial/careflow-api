@@ -1,0 +1,36 @@
+{
+  "code": "MI-019",
+  "group": "TOPIC",
+  "displayOrder": 107,
+  "title": "Equality, diversity and accessible information",
+  "summary": "Whether every person gets fair care and information they can understand, including the Accessible Information Standard.",
+  "whenToUse": "Every year, or when the service supports people with new communication, language or cultural needs.",
+  "estimatedMinutes": 90,
+  "statements": [
+    {
+      "code": "RESPONSIVE_PROVIDING_INFORMATION",
+      "focus": "Accessible Information Standard: communication needs asked about, recorded, flagged and met."
+    },
+    {
+      "code": "RESPONSIVE_EQUITY_ACCESS",
+      "focus": "Nobody is turned away or gets less because of a protected characteristic or language."
+    },
+    {
+      "code": "RESPONSIVE_EQUITY_EXPERIENCES",
+      "focus": "Outcomes and feedback compared across different groups of people."
+    },
+    {
+      "code": "CARING_INDIVIDUALS",
+      "focus": "Culture, religion, gender and sexuality respected in how care is given."
+    },
+    {
+      "code": "WELL_LED_WORKFORCE_EDI",
+      "focus": "Fair treatment of staff and support for staff from all backgrounds."
+    }
+  ],
+  "sources": [
+    "nhse-accessible-information",
+    "cqc-accessible-information"
+  ],
+  "researchedOn": "2026-11-27"
+}

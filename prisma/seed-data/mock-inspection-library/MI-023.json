@@ -1,0 +1,36 @@
+{
+  "code": "MI-023",
+  "group": "HOME_CARE",
+  "displayOrder": 123,
+  "title": "Continuity of care and keeping people informed",
+  "summary": "Whether people see the same carers and are told about changes, two of the most common home care concerns.",
+  "whenToUse": "Every quarter, or when people complain about unfamiliar carers or not being told about changes.",
+  "estimatedMinutes": 60,
+  "statements": [
+    {
+      "code": "RESPONSIVE_CONTINUITY",
+      "focus": "How many different carers each person sees, and whether changes are planned around them."
+    },
+    {
+      "code": "RESPONSIVE_PROVIDING_INFORMATION",
+      "focus": "People told in advance when a carer or visit time changes."
+    },
+    {
+      "code": "RESPONSIVE_LISTENING_INVOLVING",
+      "focus": "People and families asked about their carers and visit times, and listened to."
+    },
+    {
+      "code": "CARING_IMMEDIATE_NEEDS",
+      "focus": "Phones answered and calls returned, including out of hours."
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "Continuity and communication tracked and acted on by managers."
+    }
+  ],
+  "sources": [
+    "cqc-home-care-review",
+    "birdie-saf-homecare"
+  ],
+  "researchedOn": "2026-11-27"
+}

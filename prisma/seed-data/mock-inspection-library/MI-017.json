@@ -1,0 +1,40 @@
+{
+  "code": "MI-017",
+  "group": "TOPIC",
+  "displayOrder": 105,
+  "title": "Dementia care",
+  "summary": "Care for people living with dementia: knowing the person, communication, distress, consent and keeping them safe at home.",
+  "whenToUse": "Every six months, or when the service supports more people living with dementia.",
+  "estimatedMinutes": 120,
+  "statements": [
+    {
+      "code": "CARING_INDIVIDUALS",
+      "focus": "Life history and what matters to the person in the care plan, and carers who know it."
+    },
+    {
+      "code": "CARING_KINDNESS_DIGNITY",
+      "focus": "How carers communicate and support people who are confused or distressed."
+    },
+    {
+      "code": "EFFECTIVE_CONSENT",
+      "focus": "Capacity and best-interest decisions for people living with dementia."
+    },
+    {
+      "code": "EFFECTIVE_EVIDENCE_BASED_CARE",
+      "focus": "Dementia training for carers, and care that follows current good practice."
+    },
+    {
+      "code": "SAFE_INVOLVING_PEOPLE_RISKS",
+      "focus": "Risks such as wandering, cooking safety and medicines, balanced with independence."
+    },
+    {
+      "code": "RESPONSIVE_CONTINUITY",
+      "focus": "Familiar carers and routines that help the person feel safe."
+    }
+  ],
+  "sources": [
+    "nice-ng21-home-care",
+    "birdie-saf-homecare"
+  ],
+  "researchedOn": "2026-11-27"
+}

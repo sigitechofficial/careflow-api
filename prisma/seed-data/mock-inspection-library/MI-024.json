@@ -1,0 +1,32 @@
+{
+  "code": "MI-024",
+  "group": "HOME_CARE",
+  "displayOrder": 124,
+  "title": "Confidentiality and information sharing",
+  "summary": "Whether personal information is kept safe and shared only through safe channels, including staff phones and messaging apps.",
+  "whenToUse": "Every year, after a data breach, or when staff use their own phones for work.",
+  "estimatedMinutes": 60,
+  "statements": [
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "Data protection policy, breach log and how records and devices are kept secure."
+    },
+    {
+      "code": "CARING_KINDNESS_DIGNITY",
+      "focus": "Privacy respected: people’s details not discussed or shared where others can see."
+    },
+    {
+      "code": "SAFE_STAFFING",
+      "focus": "Data protection training, and staff using approved apps rather than personal messaging groups."
+    },
+    {
+      "code": "EFFECTIVE_WORKING_TOGETHER",
+      "focus": "Information shared with other professionals safely and only when needed."
+    }
+  ],
+  "sources": [
+    "reading-whatsapp-news",
+    "access-common-mistakes"
+  ],
+  "researchedOn": "2026-11-27"
+}

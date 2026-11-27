@@ -1,0 +1,36 @@
+{
+  "code": "MI-016",
+  "group": "TOPIC",
+  "displayOrder": 104,
+  "title": "Falls and pressure care",
+  "summary": "How falls and pressure damage are prevented, spotted early and followed up in people’s own homes.",
+  "whenToUse": "Every quarter, after a fall with injury or a new pressure ulcer, or when falls incidents rise.",
+  "estimatedMinutes": 90,
+  "statements": [
+    {
+      "code": "SAFE_INVOLVING_PEOPLE_RISKS",
+      "focus": "Falls and skin integrity risk assessments, repositioning and equipment use in the care plan."
+    },
+    {
+      "code": "SAFE_ENVIRONMENTS",
+      "focus": "Trip hazards, lighting and equipment such as hoists and pressure-relieving mattresses checked."
+    },
+    {
+      "code": "EFFECTIVE_HEALTHIER_LIVES",
+      "focus": "Skin checks at visits and what carers record and report."
+    },
+    {
+      "code": "EFFECTIVE_WORKING_TOGETHER",
+      "focus": "Referrals to district nurses, falls teams and occupational therapists, and their advice followed."
+    },
+    {
+      "code": "SAFE_LEARNING_CULTURE",
+      "focus": "Falls and pressure ulcers recorded as incidents, reviewed and learned from (and notified when grade 3 or 4)."
+    }
+  ],
+  "sources": [
+    "nice-ng21-home-care",
+    "goaudits-checklist"
+  ],
+  "researchedOn": "2026-11-27"
+}

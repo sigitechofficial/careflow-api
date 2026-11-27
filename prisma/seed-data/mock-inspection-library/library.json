@@ -31,6 +31,51 @@
       "id": "worknest-mock",
       "source": "Worknest, Mock inspections: one-day snapshot on key risk areas (secondary summary)",
       "url": "https://worknest.com/specialist-care-solutions/mock-inspections"
+    },
+    {
+      "id": "nice-ng21-home-care",
+      "source": "NICE, NG21 Home care: delivering personal care and practical support to older people living in their own homes (used by CQC as evidence)",
+      "url": "https://www.nice.org.uk/guidance/NG21"
+    },
+    {
+      "id": "nice-ng27-transitions",
+      "source": "NICE, NG27 Transition between inpatient hospital settings and community or care home settings for adults with social care needs",
+      "url": "https://www.nice.org.uk/guidance/NG27"
+    },
+    {
+      "id": "nhse-accessible-information",
+      "source": "NHS England, Accessible Information Standard (applies to publicly funded adult social care)",
+      "url": "https://www.england.nhs.uk/accessible-information-standard/"
+    },
+    {
+      "id": "cqc-accessible-information",
+      "source": "CQC, Meeting the Accessible Information Standard",
+      "url": "https://www.cqc.org.uk/node/1710"
+    },
+    {
+      "id": "cqc-right-support",
+      "source": "CQC, Right support, right care, right culture (services for autistic people and people with a learning disability)",
+      "url": "https://cqc.org.uk/node/3585"
+    },
+    {
+      "id": "cqc-home-care-review",
+      "source": "CQC, Common issues undermining good home care (late or missed calls, continuity, care planning, listening to people)",
+      "url": "https://cqc.org.uk/node/4245"
+    },
+    {
+      "id": "cqc-dover-enforcement",
+      "source": "CQC, Action against a Dover domiciliary care service (breaches included not sending incident notifications)",
+      "url": "https://www.cqc.org.uk/press-release/cqc-takes-action-protect-people-dover-domiciliary-care-service"
+    },
+    {
+      "id": "access-common-mistakes",
+      "source": "The Access Group, CQC compliance: the most common mistakes (secondary summary)",
+      "url": "https://www.theaccessgroup.com/en-gb/health-social-care/care-management-software/care-compliance/cqc-compliance-the-most-common-mistakes-and-how-to-avoid-them/"
+    },
+    {
+      "id": "reading-whatsapp-news",
+      "source": "News report: a Reading and Bracknell home care service rated inadequate, including personal information shared on WhatsApp (secondary)",
+      "url": "https://www.hellorayo.co.uk/hits-radio/berkshire-north-hampshire/news/my-homecare-reading-bracknell-special-measures-cqc"
     }
   ],
   "groups": [

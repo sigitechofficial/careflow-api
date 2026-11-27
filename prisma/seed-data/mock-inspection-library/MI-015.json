@@ -1,0 +1,40 @@
+{
+  "code": "MI-015",
+  "group": "TOPIC",
+  "displayOrder": 103,
+  "title": "Complaints, feedback and duty of candour",
+  "summary": "How people raise concerns, how quickly and openly the service answers, and whether it says sorry and learns when things go wrong.",
+  "whenToUse": "Every quarter, after a complaint is upheld, or when feedback or survey results drop.",
+  "estimatedMinutes": 90,
+  "statements": [
+    {
+      "code": "RESPONSIVE_LISTENING_INVOLVING",
+      "focus": "Complaints log: response times, outcomes and whether people were happy with the answer."
+    },
+    {
+      "code": "RESPONSIVE_PROVIDING_INFORMATION",
+      "focus": "People know how to complain, in a format they can use."
+    },
+    {
+      "code": "SAFE_LEARNING_CULTURE",
+      "focus": "Duty of candour: notifiable safety incidents, apology letters and the records kept."
+    },
+    {
+      "code": "WELL_LED_SPEAK_UP",
+      "focus": "Staff feel able to raise concerns and know the whistleblowing route."
+    },
+    {
+      "code": "WELL_LED_LEARNING_IMPROVEMENT",
+      "focus": "Themes from complaints and compliments shared with staff and turned into changes."
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "Managers review complaints and feedback regularly and track the actions."
+    }
+  ],
+  "sources": [
+    "cqc-home-care-review",
+    "goaudits-checklist"
+  ],
+  "researchedOn": "2026-11-27"
+}

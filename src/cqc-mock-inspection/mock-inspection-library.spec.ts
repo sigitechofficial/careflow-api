@@ -26,21 +26,13 @@ const read = (f: string): unknown =>
 describe('ready-made mock inspection library', () => {
   const { library, templates } = loadMockInspectionLibrary(codes);
 
-  it('has the 12 researched templates in four groups', () => {
-    expect(templates.map((t) => t.code)).toEqual([
-      'MI-001',
-      'MI-002',
-      'MI-003',
-      'MI-004',
-      'MI-005',
-      'MI-006',
-      'MI-007',
-      'MI-008',
-      'MI-009',
-      'MI-010',
-      'MI-011',
-      'MI-012',
-    ]);
+  it('has the 24 researched templates in four groups', () => {
+    expect(templates.map((t) => t.code)).toEqual(
+      Array.from(
+        { length: 24 },
+        (_, i) => `MI-${String(i + 1).padStart(3, '0')}`,
+      ),
+    );
     expect(library.groups.map((g) => g.code)).toEqual([
       'FULL',
       'FOCUSED',

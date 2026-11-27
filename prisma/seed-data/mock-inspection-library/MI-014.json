@@ -1,0 +1,36 @@
+{
+  "code": "MI-014",
+  "group": "TOPIC",
+  "displayOrder": 102,
+  "title": "Mental capacity and consent",
+  "summary": "Consent to care, Mental Capacity Act assessments, best-interest decisions and the legal powers others hold (LPA, deputyship).",
+  "whenToUse": "Every six months, when someone’s capacity changes, or when care is given to people who cannot consent.",
+  "estimatedMinutes": 90,
+  "statements": [
+    {
+      "code": "EFFECTIVE_CONSENT",
+      "focus": "Capacity assessments that are decision-specific, best-interest records, and copies of LPA or deputyship."
+    },
+    {
+      "code": "CARING_INDEPENDENCE_CHOICE",
+      "focus": "People supported to make their own choices, and the least restrictive option used."
+    },
+    {
+      "code": "SAFE_SAFEGUARDING",
+      "focus": "Restrictions on liberty spotted and referred for authorisation where needed."
+    },
+    {
+      "code": "SAFE_STAFFING",
+      "focus": "Mental Capacity Act training and whether carers can explain it in their own words."
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "Audits of consent and capacity records, and what was done about gaps."
+    }
+  ],
+  "sources": [
+    "nice-ng21-home-care",
+    "cqc-how-we-inspect-asc"
+  ],
+  "researchedOn": "2026-11-27"
+}

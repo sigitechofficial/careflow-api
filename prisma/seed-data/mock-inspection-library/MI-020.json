@@ -1,0 +1,36 @@
+{
+  "code": "MI-020",
+  "group": "TOPIC",
+  "displayOrder": 108,
+  "title": "Incidents, notifications and learning",
+  "summary": "Whether incidents are reported, investigated and learned from, and whether CQC is told about notifiable events without delay.",
+  "whenToUse": "Every quarter, after a serious incident, or when incidents or late notifications rise.",
+  "estimatedMinutes": 120,
+  "statements": [
+    {
+      "code": "SAFE_LEARNING_CULTURE",
+      "focus": "Incident reporting, investigations, root causes and lessons shared with staff."
+    },
+    {
+      "code": "WELL_LED_GOVERNANCE",
+      "focus": "Statutory notifications to CQC: every notifiable event sent, on time, with a record kept."
+    },
+    {
+      "code": "SAFE_SAFEGUARDING",
+      "focus": "Safeguarding concerns referred to the local authority and followed through."
+    },
+    {
+      "code": "WELL_LED_LEARNING_IMPROVEMENT",
+      "focus": "Trends in incidents reviewed and actions finished."
+    },
+    {
+      "code": "WELL_LED_PARTNERSHIPS",
+      "focus": "Working with the local authority, police and health partners after incidents."
+    }
+  ],
+  "sources": [
+    "cqc-dover-enforcement",
+    "access-common-mistakes"
+  ],
+  "researchedOn": "2026-11-27"
+}

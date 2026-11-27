@@ -1,0 +1,32 @@
+{
+  "code": "MI-022",
+  "group": "HOME_CARE",
+  "displayOrder": 122,
+  "title": "Lone working and staff safety",
+  "summary": "How carers are kept safe and supported when they work alone in people’s homes and travel between visits.",
+  "whenToUse": "Every year, after a staff safety incident, or when visits are added in the evening or at night.",
+  "estimatedMinutes": 60,
+  "statements": [
+    {
+      "code": "SAFE_ENVIRONMENTS",
+      "focus": "Home environment risk assessments that cover risks to staff as well as the person."
+    },
+    {
+      "code": "SAFE_STAFFING",
+      "focus": "Lone working procedures, check-ins and on-call cover that carers know and use."
+    },
+    {
+      "code": "CARING_WORKFORCE_WELLBEING",
+      "focus": "Support after a difficult visit and how carers’ wellbeing is checked."
+    },
+    {
+      "code": "WELL_LED_CAPABLE_LEADERS",
+      "focus": "Managers available out of hours and how quickly they respond."
+    }
+  ],
+  "sources": [
+    "nice-ng21-home-care",
+    "worknest-mock"
+  ],
+  "researchedOn": "2026-11-27"
+}

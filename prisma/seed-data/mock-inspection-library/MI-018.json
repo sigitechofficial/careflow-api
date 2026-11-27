@@ -1,0 +1,44 @@
+{
+  "code": "MI-018",
+  "group": "TOPIC",
+  "displayOrder": 106,
+  "title": "Learning disability and autism",
+  "summary": "Support for autistic people and people with a learning disability, checked against CQC’s right support, right care, right culture.",
+  "whenToUse": "Every six months for services supporting autistic people or people with a learning disability, and before registering a new service.",
+  "estimatedMinutes": 150,
+  "statements": [
+    {
+      "code": "CARING_INDEPENDENCE_CHOICE",
+      "focus": "Right support: choice, control and independence in everyday life."
+    },
+    {
+      "code": "CARING_INDIVIDUALS",
+      "focus": "Right care: person-centred support that protects dignity, privacy and human rights."
+    },
+    {
+      "code": "RESPONSIVE_PERSON_CENTRED",
+      "focus": "Support plans built with the person, with goals and how they communicate."
+    },
+    {
+      "code": "SAFE_SAFEGUARDING",
+      "focus": "Restrictive practices: any restraint or restriction recorded, reviewed and reduced."
+    },
+    {
+      "code": "EFFECTIVE_CONSENT",
+      "focus": "Decisions made with the person, and capacity and best-interest records where needed."
+    },
+    {
+      "code": "RESPONSIVE_EQUITY_EXPERIENCES",
+      "focus": "Access to health checks and community life on the same terms as others."
+    },
+    {
+      "code": "WELL_LED_SHARED_DIRECTION",
+      "focus": "Right culture: leaders’ and staff’s values, and how a closed culture would be spotted."
+    }
+  ],
+  "sources": [
+    "cqc-right-support",
+    "cqc-how-we-inspect-asc"
+  ],
+  "researchedOn": "2026-11-27"
+}

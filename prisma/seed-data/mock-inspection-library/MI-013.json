@@ -1,0 +1,36 @@
+{
+  "code": "MI-013",
+  "group": "TOPIC",
+  "displayOrder": 101,
+  "title": "Nutrition and hydration",
+  "summary": "Whether people eat and drink enough, the way they like, and whether risks such as weight loss or choking are spotted and acted on.",
+  "whenToUse": "Every six months, after weight loss or a dehydration-related admission, or when carers prepare meals for many people.",
+  "estimatedMinutes": 90,
+  "statements": [
+    {
+      "code": "EFFECTIVE_HEALTHIER_LIVES",
+      "focus": "Food and drink records, weight checks and what carers do when someone is not eating or drinking."
+    },
+    {
+      "code": "EFFECTIVE_ASSESSING_NEEDS",
+      "focus": "Nutrition and swallowing needs in the assessment and care plan, including special diets and textures."
+    },
+    {
+      "code": "SAFE_INVOLVING_PEOPLE_RISKS",
+      "focus": "Choking, malnutrition and dehydration risk assessments and how they are kept up to date."
+    },
+    {
+      "code": "CARING_INDIVIDUALS",
+      "focus": "Food likes, culture and religion respected when meals are prepared."
+    },
+    {
+      "code": "EFFECTIVE_WORKING_TOGETHER",
+      "focus": "Referrals to the GP, dietitian or speech and language therapist, and following their advice."
+    }
+  ],
+  "sources": [
+    "nice-ng21-home-care",
+    "goaudits-checklist"
+  ],
+  "researchedOn": "2026-11-27"
+}

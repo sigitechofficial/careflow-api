@@ -1,0 +1,36 @@
+{
+  "code": "MI-021",
+  "group": "HOME_CARE",
+  "displayOrder": 121,
+  "title": "Hospital discharge and moving between services",
+  "summary": "How people are supported safely when they come home from hospital or move to or from another service.",
+  "whenToUse": "Every six months, or after a difficult discharge, a readmission or a medicines mix-up after hospital.",
+  "estimatedMinutes": 90,
+  "statements": [
+    {
+      "code": "SAFE_SYSTEMS_PATHWAYS_TRANSITIONS",
+      "focus": "Discharge information received, care restarted on time and the care plan updated."
+    },
+    {
+      "code": "SAFE_MEDICINES",
+      "focus": "Medicines reconciled against the hospital discharge list before carers support them."
+    },
+    {
+      "code": "EFFECTIVE_WORKING_TOGETHER",
+      "focus": "Contact with the hospital, GP and community teams around the move."
+    },
+    {
+      "code": "EFFECTIVE_ASSESSING_NEEDS",
+      "focus": "Needs reassessed after a hospital stay."
+    },
+    {
+      "code": "RESPONSIVE_CONTINUITY",
+      "focus": "The person and family kept informed about when care starts again and who is coming."
+    }
+  ],
+  "sources": [
+    "nice-ng27-transitions",
+    "nice-ng21-home-care"
+  ],
+  "researchedOn": "2026-11-27"
+}
